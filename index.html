@@ -14,6 +14,255 @@
 </style>
 <style>
 /* ═══════════════════════════════════════════════════
+   AUTH SCREEN
+═══════════════════════════════════════════════════ */
+#auth-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+#auth-screen.hidden { display: none; }
+
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 32px 80px rgba(0,0,0,.5);
+  animation: authIn .35s cubic-bezier(.4,0,.2,1) both;
+}
+@keyframes authIn {
+  from { opacity:0; transform: translateY(24px) scale(.97); }
+  to   { opacity:1; transform: none; }
+}
+
+.auth-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.auth-logo-mark {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, var(--accent), #a89cff);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 900; color: #fff;
+  box-shadow: 0 8px 24px rgba(124,111,247,.4);
+}
+.auth-logo-text .auth-app-name { font-size: 20px; font-weight: 900; color: var(--accent); }
+.auth-logo-text .auth-app-sub  { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+.auth-tabs {
+  display: flex;
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 24px;
+  gap: 4px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all .2s;
+}
+.auth-tab.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+
+.auth-panel { display: none; }
+.auth-panel.active { display: block; }
+
+.auth-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+.auth-subtitle {
+  font-size: 12px;
+  color: var(--text3);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.auth-input-group {
+  margin-bottom: 14px;
+}
+.auth-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+.auth-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  transition: border-color .2s, box-shadow .2s;
+  direction: rtl;
+}
+.auth-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124,111,247,.15);
+}
+.auth-input::placeholder { color: var(--text3); }
+
+.auth-input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.auth-btn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), #a89cff);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: all .2s;
+  box-shadow: 0 4px 16px rgba(124,111,247,.35);
+}
+.auth-btn:hover  { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(124,111,247,.45); }
+.auth-btn:active { transform: none; }
+
+.auth-error {
+  background: rgba(247,111,124,.1);
+  border: 1px solid rgba(247,111,124,.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--accent4);
+  margin-bottom: 14px;
+  display: none;
+  text-align: center;
+}
+.auth-error.show { display: block; }
+
+.auth-success {
+  background: rgba(79,209,165,.1);
+  border: 1px solid rgba(79,209,165,.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--accent3);
+  margin-bottom: 14px;
+  display: none;
+  text-align: center;
+}
+.auth-success.show { display: block; }
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--text3);
+  font-size: 11px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.7;
+}
+
+/* password strength bar */
+.pw-strength {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--surface3);
+  margin-top: 6px;
+  overflow: hidden;
+}
+.pw-strength-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width .3s, background .3s;
+  width: 0%;
+}
+
+/* current user badge in sidebar */
+.sidebar-user {
+  margin-top: auto;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-avatar {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), #a89cff);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900; color: #fff;
+  flex-shrink: 0;
+}
+.user-info { flex: 1; overflow: hidden; }
+.user-name  { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-phone { font-size: 10px; color: var(--text3); margin-top: 1px; }
+.logout-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text3);
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all .2s;
+  flex-shrink: 0;
+}
+.logout-btn:hover { color: var(--accent4); background: rgba(247,111,124,.1); }
+
+@media (max-width: 480px) {
+  .auth-card { padding: 28px 20px; border-radius: 16px; }
+  .auth-input-row { grid-template-columns: 1fr; gap: 0; }
+}
+</style>
+<style>
+/* ═══════════════════════════════════════════════════
    DESIGN TOKENS
 ═══════════════════════════════════════════════════ */
 :root {
@@ -566,8 +815,219 @@ tr:hover td { background: rgba(255,255,255,.02); }
   .header-page-title { font-size: 14px; }
 }
 </style>
+<style>
+/* ═══════════════════════════════════════════════════
+   PROFILE MODAL
+═══════════════════════════════════════════════════ */
+#modal-profile .modal { width: 480px; }
+
+.profile-avatar-lg {
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, var(--accent), #a89cff);
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; font-weight: 900; color: #fff;
+  margin: 0 auto 16px;
+  box-shadow: 0 8px 24px rgba(124,111,247,.35);
+}
+.profile-name  { text-align:center; font-size:20px; font-weight:900; }
+.profile-phone { text-align:center; font-size:13px; color:var(--text3); margin-top:4px; }
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 20px 0;
+}
+.profile-stat {
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+}
+.profile-stat-val  { font-size: 18px; font-weight: 900; color: var(--accent); }
+.profile-stat-lbl  { font-size: 10px; color: var(--text3); margin-top: 3px; }
+
+.profile-section {
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.profile-section-title {
+  font-size: 11px; font-weight:700; color:var(--text3);
+  text-transform:uppercase; letter-spacing:.6px;
+  margin-bottom: 12px;
+}
+.profile-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.profile-field label {
+  font-size:12px; color:var(--text2); font-weight:600;
+  width: 90px; flex-shrink:0;
+}
+.profile-field input {
+  flex:1;
+  background:var(--surface2);
+  border:1.5px solid var(--border);
+  border-radius:8px;
+  padding:8px 12px;
+  color:var(--text);
+  font-family:var(--font);
+  font-size:13px;
+  transition:border-color .2s;
+}
+.profile-field input:focus { outline:none; border-color:var(--accent); }
+
+.pw-reset-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.pw-reset-row .auth-input { font-size:13px; padding:9px 12px; border-radius:8px; }
+
+.profile-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.profile-actions .btn { flex:1; justify-content:center; }
+
+.accounts-list { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+.account-item {
+  display:flex; align-items:center; gap:12px;
+  padding:11px 14px;
+  background:var(--surface2);
+  border:1.5px solid var(--border);
+  border-radius:10px;
+  cursor:pointer;
+  transition:all .2s;
+}
+.account-item:hover  { border-color:var(--accent); }
+.account-item.current{ border-color:var(--accent); background:rgba(124,111,247,.08); }
+.account-item-avatar {
+  width:36px; height:36px;
+  background:linear-gradient(135deg,var(--accent),#a89cff);
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:15px; font-weight:900; color:#fff;
+  flex-shrink:0;
+}
+.account-item-name  { font-size:13px; font-weight:700; }
+.account-item-phone { font-size:11px; color:var(--text3); margin-top:2px; }
+.account-item-badge {
+  margin-right:auto;
+  font-size:10px; color:var(--accent);
+  background:rgba(124,111,247,.15);
+  padding:2px 8px; border-radius:20px; font-weight:700;
+}
+
+@media(max-width:540px){
+  .profile-stats { grid-template-columns:1fr 1fr; }
+  .pw-reset-row  { grid-template-columns:1fr; }
+  #modal-profile .modal { width:100%!important; }
+}
+</style>
 </head>
 <body>
+
+<!-- ═══ AUTH SCREEN ═══ -->
+<div id="auth-screen">
+  <div class="auth-card">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-mark">⬡</div>
+      <div class="auth-logo-text">
+        <div class="auth-app-name">Studio OS</div>
+        <div class="auth-app-sub">نظام إدارة الاستوديو</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">تسجيل الدخول</button>
+      <button class="auth-tab"        onclick="switchAuthTab('register')">إنشاء حساب</button>
+    </div>
+
+    <!-- ── LOGIN PANEL ── -->
+    <div class="auth-panel active" id="panel-login">
+      <div class="auth-title">أهلاً بعودتك 👋</div>
+      <div class="auth-subtitle">سجّل دخولك لمتابعة العمل</div>
+
+      <div id="login-error" class="auth-error"></div>
+
+      <div class="auth-input-group">
+        <label class="auth-label">رقم الهاتف</label>
+        <input class="auth-input" id="login-phone" type="tel" placeholder="01xxxxxxxxx" inputmode="numeric">
+      </div>
+      <div class="auth-input-group">
+        <label class="auth-label">كلمة المرور</label>
+        <input class="auth-input" id="login-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+
+      <button class="auth-btn" onclick="doLogin()">تسجيل الدخول</button>
+
+      <div class="auth-divider">أو</div>
+      <div style="text-align:center;font-size:12px;color:var(--text2)">
+        ما عندكش حساب؟
+        <span style="color:var(--accent);cursor:pointer;font-weight:700" onclick="switchAuthTab('register')">أنشئ حساب جديد</span>
+      </div>
+    </div>
+
+    <!-- ── REGISTER PANEL ── -->
+    <div class="auth-panel" id="panel-register">
+      <div class="auth-title">إنشاء حساب جديد ✨</div>
+      <div class="auth-subtitle">ادخل بياناتك وابدأ إدارة استوديوك</div>
+
+      <div id="register-error"   class="auth-error"></div>
+      <div id="register-success" class="auth-success"></div>
+
+      <div class="auth-input-row">
+        <div class="auth-input-group">
+          <label class="auth-label">الاسم الكامل *</label>
+          <input class="auth-input" id="reg-name" type="text" placeholder="اسمك هنا">
+        </div>
+        <div class="auth-input-group">
+          <label class="auth-label">رقم الهاتف *</label>
+          <input class="auth-input" id="reg-phone" type="tel" placeholder="01xxxxxxxxx" inputmode="numeric">
+        </div>
+      </div>
+
+      <div class="auth-input-group">
+        <label class="auth-label">اسم الاستوديو (اختياري)</label>
+        <input class="auth-input" id="reg-studio" type="text" placeholder="مثال: Creative Studio">
+      </div>
+
+      <div class="auth-input-group">
+        <label class="auth-label">كلمة المرور *</label>
+        <input class="auth-input" id="reg-password" type="password" placeholder="8 أحرف على الأقل" oninput="checkPwStrength(this.value)">
+        <div class="pw-strength"><div class="pw-strength-bar" id="pw-bar"></div></div>
+        <div id="pw-hint" style="font-size:11px;color:var(--text3);margin-top:4px;min-height:16px"></div>
+      </div>
+      <div class="auth-input-group">
+        <label class="auth-label">تأكيد كلمة المرور *</label>
+        <input class="auth-input" id="reg-password2" type="password" placeholder="أعد كتابة كلمة المرور" onkeydown="if(event.key==='Enter')doRegister()">
+      </div>
+
+      <button class="auth-btn" onclick="doRegister()">إنشاء الحساب</button>
+
+      <div class="auth-divider">أو</div>
+      <div style="text-align:center;font-size:12px;color:var(--text2)">
+        عندك حساب بالفعل؟
+        <span style="color:var(--accent);cursor:pointer;font-weight:700" onclick="switchAuthTab('login')">سجّل الدخول</span>
+      </div>
+    </div>
+
+    <div class="auth-footer">
+      بياناتك محفوظة محلياً على جهازك فقط 🔒
+    </div>
+  </div>
+</div>
+<!-- ═══ END AUTH ═══ -->
+
 
 <!-- SIDEBAR OVERLAY -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
@@ -596,6 +1056,15 @@ tr:hover td { background: rgba(255,255,255,.02); }
   <div class="nav-item" onclick="showPage('learning',this)"><span class="nav-icon">◆</span>التعلم والأهداف</div>
   <div class="nav-section-label">الإعدادات</div>
   <div class="nav-item" onclick="showPage('settings',this)"><span class="nav-icon">⚙</span>إعدادات الاستوديو</div>
+  <!-- User badge -->
+  <div class="sidebar-user" id="sidebar-user" onclick="openProfileModal()" style="cursor:pointer" title="الملف الشخصي">
+    <div class="user-avatar" id="user-avatar-icon">م</div>
+    <div class="user-info">
+      <div class="user-name" id="user-display-name">المستخدم</div>
+      <div class="user-phone" id="user-display-phone"></div>
+    </div>
+    <button class="logout-btn" onclick="event.stopPropagation();doLogout()" title="تسجيل الخروج">⏻</button>
+  </div>
 </aside><!-- end sidebar -->
 
 <!-- ╔══ APP BODY ══╗ -->
@@ -1063,8 +1532,9 @@ const COLORS=['#7c6ff7','#f7c948','#4fd1a5','#f76f7c','#64b5f6','#ff8a65','#ce93
 let S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],settings:{name:'',phone:'',email:'',address:'',terms:'',logo:''}};
 let invItems=[];
 
-function lsLoad(){try{const d=localStorage.getItem('studioOS_v3');if(d)S=JSON.parse(d);}catch(e){}}
-function lsSave(){try{localStorage.setItem('studioOS_v3',JSON.stringify(S));}catch(e){}updateDash();}
+function userKey(){const sess=getSession();return 'studioOS_v3_'+(sess?sess.id:'guest');}
+function lsLoad(){try{const d=localStorage.getItem(userKey());if(d)S=JSON.parse(d);}catch(e){}}
+function lsSave(){try{localStorage.setItem(userKey(),JSON.stringify(S));}catch(e){}updateDash();}
 lsLoad();
 
 // ============================================================
@@ -1950,9 +2420,431 @@ function updateHeader(pageId){
   }
 }
 
+
+// ============================================================
+// AUTH SYSTEM
+// ============================================================
+const AUTH_KEY = 'studioOS_auth_v1';
+const USERS_KEY = 'studioOS_users_v1';
+
+function getUsers(){ try{ return JSON.parse(localStorage.getItem(USERS_KEY)||'[]'); }catch(e){return [];} }
+function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+function getSession(){ try{ return JSON.parse(localStorage.getItem(AUTH_KEY)||'null'); }catch(e){return null;} }
+function saveSession(u){ localStorage.setItem(AUTH_KEY, JSON.stringify(u)); }
+function clearSession(){ localStorage.removeItem(AUTH_KEY); }
+
+function switchAuthTab(tab){
+  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1)));
+  document.getElementById('panel-login').classList.toggle('active', tab==='login');
+  document.getElementById('panel-register').classList.toggle('active', tab==='register');
+  clearAuthMessages();
+}
+
+function clearAuthMessages(){
+  ['login-error','register-error','register-success'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.classList.remove('show');el.textContent='';}
+  });
+}
+
+function showAuthMsg(id, msg){
+  const el=document.getElementById(id);
+  if(el){el.textContent=msg;el.classList.add('show');}
+}
+
+function checkPwStrength(pw){
+  const bar=document.getElementById('pw-bar');
+  const hint=document.getElementById('pw-hint');
+  if(!bar||!hint)return;
+  let score=0;
+  const checks=[pw.length>=8, /[A-Z]/.test(pw)||/[a-z]/.test(pw), /[0-9]/.test(pw), pw.length>=12];
+  checks.forEach(c=>{ if(c)score++; });
+  const colors=['#f76f7c','#f7c948','#4fd1a5','#7c6ff7'];
+  const labels=['ضعيفة','متوسطة','جيدة','قوية جداً'];
+  bar.style.width=(score*25)+'%';
+  bar.style.background=colors[score-1]||'var(--border)';
+  hint.textContent=pw.length?'قوة كلمة المرور: '+(labels[score-1]||''):'';
+}
+
+function doRegister(){
+  const name   = document.getElementById('reg-name').value.trim();
+  const phone  = document.getElementById('reg-phone').value.trim();
+  const studio = document.getElementById('reg-studio').value.trim();
+  const pw1    = document.getElementById('reg-password').value;
+  const pw2    = document.getElementById('reg-password2').value;
+  clearAuthMessages();
+
+  if(!name)            return showAuthMsg('register-error','⚠ يرجى إدخال الاسم الكامل');
+  if(!phone)           return showAuthMsg('register-error','⚠ يرجى إدخال رقم الهاتف');
+  if(!/^[0-9+\-\s]{7,15}$/.test(phone)) return showAuthMsg('register-error','⚠ رقم الهاتف غير صحيح');
+  if(pw1.length < 6)   return showAuthMsg('register-error','⚠ كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+  if(pw1 !== pw2)      return showAuthMsg('register-error','⚠ كلمتا المرور غير متطابقتين');
+
+  const users = getUsers();
+  if(users.find(u=>u.phone===phone)) return showAuthMsg('register-error','⚠ رقم الهاتف مسجل مسبقاً');
+
+  // Simple hash (XOR-based, sufficient for local storage)
+  const hash = btoa(encodeURIComponent(pw1 + phone + 'studioOS'));
+  const newUser = { id: Date.now(), name, phone, studio: studio||name+' Studio', hash, createdAt: new Date().toISOString() };
+  users.push(newUser);
+  saveUsers(users);
+
+  showAuthMsg('register-success', '✅ تم إنشاء الحساب بنجاح! جاري تسجيل الدخول...');
+  setTimeout(()=>{ loginUser(newUser); }, 1000);
+}
+
+function doLogin(){
+  const phone = document.getElementById('login-phone').value.trim();
+  const pw    = document.getElementById('login-password').value;
+  clearAuthMessages();
+
+  if(!phone || !pw) return showAuthMsg('login-error','⚠ يرجى إدخال رقم الهاتف وكلمة المرور');
+
+  const users = getUsers();
+  const user  = users.find(u=>u.phone===phone);
+  if(!user) return showAuthMsg('login-error','⚠ رقم الهاتف غير مسجل');
+
+  const hash = btoa(encodeURIComponent(pw + phone + 'studioOS'));
+  if(hash !== user.hash) return showAuthMsg('login-error','⚠ كلمة المرور غير صحيحة');
+
+  loginUser(user);
+}
+
+function loginUser(user){
+  saveSession(user);
+  // Reload data for this user
+  S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],settings:{name:'',phone:'',email:'',address:'',terms:'',logo:''}};
+  lsLoad();
+  // Pre-fill settings with user name if settings are empty
+  if(!S.settings.name && user.name){
+    S.settings.name  = user.name;
+    S.settings.phone = user.phone;
+    if(user.studio) S.settings.name = user.studio;
+    lsSave();
+  }
+  // Update UI
+  updateUserBadge(user);
+  const screen = document.getElementById('auth-screen');
+  screen.style.transition='opacity .4s ease';
+  screen.style.opacity='0';
+  setTimeout(()=>{ screen.classList.add('hidden'); screen.style.opacity=''; }, 400);
+}
+
+function doLogout(){
+  if(!confirm('هل تريد تسجيل الخروج؟')) return;
+  clearSession();
+  // Reset inputs
+  ['login-phone','login-password','reg-name','reg-phone','reg-studio','reg-password','reg-password2'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.value='';
+  });
+  clearAuthMessages();
+  checkPwStrength('');
+  const screen=document.getElementById('auth-screen');
+  screen.classList.remove('hidden');
+  screen.style.opacity='0';
+  screen.style.transition='opacity .35s ease';
+  requestAnimationFrame(()=>{ screen.style.opacity='1'; });
+  switchAuthTab('login');
+}
+
+function updateUserBadge(user){
+  const el=document.getElementById('user-display-name');
+  const ph=document.getElementById('user-display-phone');
+  const av=document.getElementById('user-avatar-icon');
+  if(el) el.textContent = user.studio||user.name;
+  if(ph) ph.textContent = user.phone;
+  if(av) av.textContent = (user.name||'م')[0];
+  const nd=document.getElementById('studio-name-disp');
+  if(nd) nd.textContent = user.name||'المصمم';
+}
+
+function initAuth(){
+  const session = getSession();
+  if(session){
+    // Validate session user still exists
+    const users = getUsers();
+    const stillExists = users.find(u=>u.id===session.id&&u.hash===session.hash);
+    if(stillExists){
+      loginUser(stillExists);
+      return;
+    }
+  }
+  // Show auth screen
+  document.getElementById('auth-screen').classList.remove('hidden');
+}
+
+
+// ============================================================
+// PROFILE MODAL
+// ============================================================
+function openProfileModal(){
+  const user = getSession();
+  if(!user) return;
+  const users = getUsers();
+  renderProfileBody(user, users);
+  openM('modal-profile');
+}
+
+function renderProfileBody(user, users, tab='profile'){
+  const tabs = ['profile','accounts','reset'];
+  const tabLabels = ['بياناتي','الحسابات','كلمة المرور'];
+  const tabIcons  = ['👤','👥','🔒'];
+
+  let html = `
+    <!-- Avatar + name -->
+    <div class="profile-avatar-lg" id="pm-avatar">${(user.name||'م')[0]}</div>
+    <div class="profile-name">${user.name}</div>
+    <div class="profile-phone">${user.phone}</div>
+
+    <!-- Stats -->
+    <div class="profile-stats">
+      <div class="profile-stat">
+        <div class="profile-stat-val">${S.tasks.length}</div>
+        <div class="profile-stat-lbl">مهمة</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-val">${S.clients.length}</div>
+        <div class="profile-stat-lbl">عميل</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-val">${S.invoices.length}</div>
+        <div class="profile-stat-lbl">فاتورة</div>
+      </div>
+    </div>
+
+    <!-- Tab buttons -->
+    <div style="display:flex;gap:6px;margin-bottom:16px">
+      ${tabs.map((t,i)=>`
+        <button onclick="switchProfileTab('${t}')"
+          id="ptab-${t}"
+          style="flex:1;padding:8px 4px;border:1.5px solid ${t===tab?'var(--accent)':'var(--border)'};
+                 background:${t===tab?'rgba(124,111,247,.12)':'var(--surface2)'};
+                 border-radius:8px;color:${t===tab?'var(--accent)':'var(--text2)'};
+                 font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s">
+          ${tabIcons[i]} ${tabLabels[i]}
+        </button>`).join('')}
+    </div>
+
+    <!-- Tab panels -->
+    <div id="ptab-panel">`;
+
+  if(tab==='profile'){
+    html += `
+      <div class="profile-section" style="border-top:none;padding-top:0">
+        <div class="profile-section-title">تعديل البيانات</div>
+        <div id="profile-edit-msg" class="auth-success" style="margin-bottom:10px"></div>
+        <div class="profile-field">
+          <label>الاسم الكامل</label>
+          <input id="pe-name" value="${user.name||''}" placeholder="اسمك الكامل">
+        </div>
+        <div class="profile-field">
+          <label>اسم الاستوديو</label>
+          <input id="pe-studio" value="${user.studio||''}" placeholder="اسم الاستوديو">
+        </div>
+        <div class="profile-field">
+          <label>رقم الهاتف</label>
+          <input id="pe-phone" value="${user.phone||''}" placeholder="01xxxxxxxxx" type="tel">
+        </div>
+        <div class="profile-actions">
+          <button class="btn btn-primary" onclick="saveProfileEdit()">💾 حفظ التعديلات</button>
+          <button class="btn btn-danger" onclick="confirmDeleteAccount()" style="flex:none;padding:9px 14px">🗑 حذف الحساب</button>
+        </div>
+      </div>`;
+  } else if(tab==='accounts'){
+    const allUsers = getUsers();
+    html += `
+      <div class="profile-section" style="border-top:none;padding-top:0">
+        <div class="profile-section-title">الحسابات المسجلة على هذا الجهاز</div>
+        <div class="accounts-list">
+          ${allUsers.map(u=>`
+            <div class="account-item ${u.id===user.id?'current':''}" onclick="${u.id===user.id?'':'switchToAccount('+u.id+')'}">
+              <div class="account-item-avatar">${(u.name||'م')[0]}</div>
+              <div style="flex:1;min-width:0">
+                <div class="account-item-name">${u.name}</div>
+                <div class="account-item-phone">${u.phone}</div>
+              </div>
+              ${u.id===user.id?'<span class="account-item-badge">الحساب الحالي</span>':'<span style="font-size:18px;color:var(--text3)">←</span>'}
+            </div>`).join('')}
+        </div>
+        <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:12px" onclick="closeM('modal-profile');doLogout()">
+          ➕ إضافة حساب جديد
+        </button>
+      </div>`;
+  } else if(tab==='reset'){
+    html += `
+      <div class="profile-section" style="border-top:none;padding-top:0">
+        <div class="profile-section-title">تغيير كلمة المرور</div>
+        <div id="reset-msg" class="auth-error" style="margin-bottom:10px"></div>
+        <div id="reset-ok"  class="auth-success" style="margin-bottom:10px"></div>
+        <div class="profile-field">
+          <label>الحالية</label>
+          <input id="rp-old" type="password" placeholder="كلمة المرور الحالية">
+        </div>
+        <div class="pw-reset-row" style="margin-bottom:10px">
+          <div>
+            <label class="auth-label" style="margin-right:0">الجديدة</label>
+            <input class="auth-input" id="rp-new1" type="password" placeholder="كلمة مرور جديدة" style="font-size:13px" oninput="checkPwStrength2(this.value)">
+          </div>
+          <div>
+            <label class="auth-label" style="margin-right:0">تأكيد الجديدة</label>
+            <input class="auth-input" id="rp-new2" type="password" placeholder="أعد الكتابة" style="font-size:13px" onkeydown="if(event.key==='Enter')doResetPassword()">
+          </div>
+        </div>
+        <div class="pw-strength"><div class="pw-strength-bar" id="pw-bar2"></div></div>
+        <div id="pw-hint2" style="font-size:11px;color:var(--text3);margin-top:4px;min-height:16px;margin-bottom:12px"></div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doResetPassword()">🔒 تحديث كلمة المرور</button>
+      </div>`;
+  }
+  html += `</div>`;
+
+  const body = document.getElementById('profile-modal-body');
+  if(body) body.innerHTML = html;
+}
+
+function switchProfileTab(tab){
+  const user = getSession();
+  if(!user) return;
+  renderProfileBody(user, getUsers(), tab);
+}
+
+function checkPwStrength2(pw){
+  const bar=document.getElementById('pw-bar2');
+  const hint=document.getElementById('pw-hint2');
+  if(!bar||!hint)return;
+  let score=0;
+  [pw.length>=8, /[A-Za-z]/.test(pw), /[0-9]/.test(pw), pw.length>=12].forEach(c=>{if(c)score++;});
+  const colors=['#f76f7c','#f7c948','#4fd1a5','#7c6ff7'];
+  const labels=['ضعيفة','متوسطة','جيدة','قوية جداً'];
+  bar.style.width=(score*25)+'%';
+  bar.style.background=colors[score-1]||'var(--border)';
+  hint.textContent=pw.length?'قوة كلمة المرور: '+(labels[score-1]||''):'';
+}
+
+function saveProfileEdit(){
+  const user = getSession();
+  if(!user) return;
+  const name   = (document.getElementById('pe-name')?.value||'').trim();
+  const studio = (document.getElementById('pe-studio')?.value||'').trim();
+  const phone  = (document.getElementById('pe-phone')?.value||'').trim();
+  const msgEl  = document.getElementById('profile-edit-msg');
+
+  if(!name)  { if(msgEl){msgEl.textContent='⚠ الاسم مطلوب';msgEl.className='auth-error show';} return; }
+  if(!phone) { if(msgEl){msgEl.textContent='⚠ رقم الهاتف مطلوب';msgEl.className='auth-error show';} return; }
+
+  const users = getUsers();
+  // Check phone not taken by another user
+  if(phone!==user.phone && users.find(u=>u.phone===phone&&u.id!==user.id)){
+    if(msgEl){msgEl.textContent='⚠ رقم الهاتف مستخدم من حساب آخر';msgEl.className='auth-error show';} return;
+  }
+
+  const idx = users.findIndex(u=>u.id===user.id);
+  if(idx<0) return;
+  users[idx] = {...users[idx], name, studio:studio||name+' Studio', phone};
+  saveUsers(users);
+  saveSession(users[idx]);
+  updateUserBadge(users[idx]);
+  // Update app settings name
+  if(S.settings){ S.settings.name=studio||name; S.settings.phone=phone; lsSave(); }
+
+  if(msgEl){ msgEl.textContent='✅ تم حفظ التعديلات بنجاح'; msgEl.className='auth-success show'; }
+  // refresh header avatar
+  const av=document.getElementById('pm-avatar'); if(av) av.textContent=(name||'م')[0];
+}
+
+function doResetPassword(){
+  const user  = getSession();
+  if(!user) return;
+  const oldPw = document.getElementById('rp-old')?.value||'';
+  const newPw1= document.getElementById('rp-new1')?.value||'';
+  const newPw2= document.getElementById('rp-new2')?.value||'';
+  const errEl = document.getElementById('reset-msg');
+  const okEl  = document.getElementById('reset-ok');
+  [errEl,okEl].forEach(el=>{if(el){el.textContent='';el.className=el.id==='reset-ok'?'auth-success':'auth-error';}});
+
+  const show=(el,msg,ok)=>{ if(el){el.textContent=msg;el.classList.add('show');} };
+
+  const oldHash = btoa(encodeURIComponent(oldPw + user.phone + 'studioOS'));
+  if(oldHash!==user.hash) return show(errEl,'⚠ كلمة المرور الحالية غير صحيحة');
+  if(newPw1.length<6)    return show(errEl,'⚠ كلمة المرور الجديدة قصيرة جداً (6 أحرف على الأقل)');
+  if(newPw1!==newPw2)    return show(errEl,'⚠ كلمتا المرور الجديدتان غير متطابقتين');
+
+  const newHash = btoa(encodeURIComponent(newPw1 + user.phone + 'studioOS'));
+  const users = getUsers();
+  const idx   = users.findIndex(u=>u.id===user.id);
+  if(idx<0) return;
+  users[idx].hash = newHash;
+  saveUsers(users);
+  saveSession(users[idx]);
+
+  ['rp-old','rp-new1','rp-new2'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  checkPwStrength2('');
+  show(okEl,'✅ تم تغيير كلمة المرور بنجاح');
+}
+
+function switchToAccount(userId){
+  const users = getUsers();
+  const target = users.find(u=>u.id===userId);
+  if(!target) return;
+  closeM('modal-profile');
+  // show password prompt overlay
+  showSwitchPrompt(target);
+}
+
+function showSwitchPrompt(target){
+  // reuse confirm modal with custom content
+  document.getElementById('confirm-msg').innerHTML = `
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="width:48px;height:48px;background:linear-gradient(135deg,var(--accent),#a89cff);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;margin-bottom:8px">${(target.name||'م')[0]}</div>
+      <div style="font-size:15px;font-weight:700">${target.name}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:2px">${target.phone}</div>
+    </div>
+    <div style="margin-bottom:8px">
+      <label style="font-size:12px;color:var(--text2);font-weight:600;display:block;margin-bottom:5px">كلمة المرور</label>
+      <input id="switch-pw" type="password" class="form-input" placeholder="أدخل كلمة المرور" onkeydown="if(event.key==='Enter')confirmSwitchAccount(${target.id})">
+    </div>
+    <div id="switch-err" style="font-size:12px;color:var(--accent4);min-height:16px;margin-bottom:4px"></div>`;
+  document.getElementById('confirm-btn').textContent = 'تسجيل الدخول';
+  document.getElementById('confirm-btn').className   = 'btn btn-primary';
+  document.getElementById('confirm-btn').onclick = () => confirmSwitchAccount(target.id);
+  openM('modal-confirm');
+}
+
+function confirmSwitchAccount(userId){
+  const pw  = document.getElementById('switch-pw')?.value||'';
+  const users = getUsers();
+  const target = users.find(u=>u.id===userId);
+  if(!target) return;
+  const hash = btoa(encodeURIComponent(pw + target.phone + 'studioOS'));
+  if(hash!==target.hash){
+    const errEl=document.getElementById('switch-err');
+    if(errEl) errEl.textContent='⚠ كلمة المرور غير صحيحة';
+    return;
+  }
+  closeM('modal-confirm');
+  loginUser(target);
+  renderAll();
+  showPage('dashboard');
+}
+
+function confirmDeleteAccount(){
+  confirmDel('⚠ هل تريد حذف هذا الحساب نهائياً؟ سيتم حذف جميع البيانات المرتبطة به.', ()=>{
+    const user = getSession();
+    if(!user) return;
+    // Delete user data
+    localStorage.removeItem(userKey());
+    // Remove from users list
+    const users = getUsers().filter(u=>u.id!==user.id);
+    saveUsers(users);
+    clearSession();
+    closeM('modal-profile');
+    doLogout();
+  });
+}
+
 // ============================================================
 // INIT
 // ============================================================
+initAuth();
 renderAll();
 updateHeader('dashboard');
 // close sidebar on desktop resize
@@ -1960,5 +2852,17 @@ window.addEventListener('resize',()=>{
   if(window.innerWidth>1024) closeSidebar();
 });
 </script>
+
+<!-- ═══ PROFILE MODAL ═══ -->
+<div class="modal-overlay" id="modal-profile">
+  <div class="modal" style="width:480px">
+    <div class="modal-header">
+      <div class="modal-title" id="profile-modal-title">👤 الملف الشخصي</div>
+      <button class="close-btn" onclick="closeM('modal-profile')">✕</button>
+    </div>
+    <div id="profile-modal-body"></div>
+  </div>
+</div>
+
 </body>
 </html>
