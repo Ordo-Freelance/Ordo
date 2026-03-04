@@ -1060,6 +1060,39 @@ function getQRDataURL(text, size) {
   return url;
 }
 </script>
+<!-- Quill Rich Text Editor -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
+<style>
+/* ── Quill dark theme ── */
+.ql-toolbar.ql-snow{background:var(--surface2);border:1px solid var(--border)!important;border-bottom:none!important;border-radius:var(--r2) var(--r2) 0 0;padding:6px 8px;}
+.ql-container.ql-snow{background:var(--surface2);border:1px solid var(--border)!important;border-radius:0 0 var(--r2) var(--r2);min-height:160px;font-family:var(--font);font-size:13px;color:var(--text);}
+.ql-editor{min-height:160px;padding:10px 14px;color:var(--text);}
+.ql-editor.ql-blank::before{color:var(--text3);font-style:normal;}
+.ql-snow .ql-stroke{stroke:var(--text2)!important;}.ql-snow .ql-fill{fill:var(--text2)!important;}
+.ql-snow .ql-picker-label{color:var(--text2)!important;}
+.ql-snow .ql-picker-options{background:var(--surface3)!important;border-color:var(--border)!important;}
+.ql-snow .ql-picker-item{color:var(--text2)!important;}
+.ql-snow button:hover .ql-stroke,.ql-snow .ql-active .ql-stroke{stroke:var(--accent)!important;}
+.ql-snow button:hover .ql-fill,.ql-snow .ql-active .ql-fill{fill:var(--accent)!important;}
+
+/* ── Task detail modal ── */
+#modal-task-detail .modal{width:min(860px,96vw);max-height:90vh;overflow-y:auto;}
+.td-header{display:flex;align-items:flex-start;gap:14px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.td-title{font-size:20px;font-weight:800;color:var(--text);line-height:1.3;flex:1;}
+.td-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center;}
+.td-brief{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;min-height:60px;font-size:13px;line-height:1.8;color:var(--text);}
+.td-brief img{max-width:100%;border-radius:6px;margin:6px 0;}
+.td-brief a{color:var(--accent);}
+.td-brief ul,.td-brief ol{padding-right:20px;}
+.td-section-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px;}
+.td-info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px;}
+.td-info-cell{background:var(--surface2);border-radius:var(--r2);padding:10px 12px;}
+.td-info-cell .lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+.td-info-cell .val{font-size:13px;font-weight:700;color:var(--text);}
+.task-clickable{cursor:pointer;}
+.task-clickable:hover{filter:brightness(1.06);}
+</style>
 </head>
 <body>
 
@@ -1611,6 +1644,12 @@ function getQRDataURL(text, size) {
     <div class="form-group" id="deposit-row" style="display:none"><label class="form-label">قيمة العربون المدفوع (ج)</label><input class="form-input" type="number" id="t-deposit" placeholder="0"></div>
     <div class="form-group"><label class="form-label">ملاحظات</label><textarea class="form-textarea" id="t-notes" placeholder="تفاصيل إضافية..."></textarea></div>
 
+    <!-- ── بريف المشروع (rich editor) ── -->
+    <div class="form-group">
+      <label class="form-label">📄 بريف المشروع <span style="font-size:11px;color:var(--text3)">— تفاصيل، صور، لينكات، تنسيق (اختياري)</span></label>
+      <div id="t-brief-editor"></div>
+    </div>
+
     <!-- ── إصدار فاتورة اختياري ── -->
     <div id="task-inv-opt" style="background:rgba(124,111,247,.07);border:1.5px dashed rgba(124,111,247,.28);border-radius:10px;padding:11px 14px;margin-bottom:2px">
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;margin:0">
@@ -1756,6 +1795,20 @@ function getQRDataURL(text, size) {
       <button class="btn btn-ghost" onclick="closeM(&#39;modal-invoice&#39;)">إلغاء</button>
       <button class="btn btn-primary" onclick="saveInvoice()">💾 حفظ الفاتورة</button>
     </div>
+  </div>
+</div>
+
+<!-- TASK DETAIL -->
+<div class="modal-overlay" id="modal-task-detail">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" style="font-size:14px;color:var(--text3)">تفاصيل المهمة</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" id="td-edit-btn" onclick="">✏ تعديل</button>
+        <button class="close-btn" onclick="closeM('modal-task-detail')">✕</button>
+      </div>
+    </div>
+    <div id="td-body"></div>
   </div>
 </div>
 
@@ -1908,6 +1961,110 @@ function clearAll(){if(confirm('سيتم مسح جميع البيانات! هل 
 // ============================================================
 function toggleDeposit(){document.getElementById('deposit-row').style.display=document.getElementById('t-pay').value==='deposit'?'block':'none';}
 
+/* ── Quill editor instance ── */
+let taskQuill = null;
+function initTaskQuill(){
+  if(taskQuill) return; // already initialized
+  taskQuill = new Quill('#t-brief-editor', {
+    theme: 'snow',
+    placeholder: 'اكتب بريف المشروع هنا — يمكنك إضافة صور، روابط، قوائم، وتنسيق النص...',
+    modules: {
+      toolbar: [
+        ['bold','italic','underline'],
+        [{ list:'ordered' }, { list:'bullet' }],
+        ['link','image'],
+        [{ color:[] }],
+        ['clean']
+      ]
+    }
+  });
+}
+
+/* ── Task Detail Modal ── */
+function openTaskDetail(id){
+  const t = S.tasks.find(x => x.id === id);
+  if(!t) return;
+
+  // Set edit button
+  const editBtn = document.getElementById('td-edit-btn');
+  if(editBtn) editBtn.onclick = () => { closeM('modal-task-detail'); openTaskModal(id); };
+
+  const statusLabel = {new:'جديد',progress:'قيد التنفيذ',review:'مراجعة',done:'مكتمل'};
+  const statusColor = {new:'var(--text3)',progress:'var(--accent2)',review:'var(--accent)',done:'var(--accent3)'};
+  const prioLabel   = {high:'🔴 عالية',med:'🟡 متوسطة',low:'🟢 منخفضة'};
+  const payLabel    = {none:'❌ غير مدفوع',deposit:'💛 عربون',full:'✅ مدفوع كاملاً'};
+
+  const body = document.getElementById('td-body');
+  if(!body) return;
+
+  // Brief section
+  const briefHTML = t.brief
+    ? `<div class="td-section-label">📄 بريف المشروع</div><div class="td-brief">${t.brief}</div>`
+    : '';
+
+  // Notes
+  const notesHTML = t.notes
+    ? `<div class="td-section-label">📝 ملاحظات</div>
+       <div style="background:var(--surface2);border-radius:var(--r2);padding:12px 14px;font-size:13px;color:var(--text2);line-height:1.7;border:1px solid var(--border)">${t.notes.replace(/\n/g,'<br>')}</div>`
+    : '';
+
+  // Related invoices
+  const relInv = S.invoices.filter(inv => inv.items.some(it => it._taskId === id));
+  const invHTML = relInv.length
+    ? `<div class="td-section-label">◻ فواتير مرتبطة</div>
+       <div style="display:flex;flex-direction:column;gap:6px">
+         ${relInv.map(inv=>`
+           <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface2);border-radius:var(--r2);padding:10px 14px;border:1px solid var(--border)">
+             <div>
+               <span style="font-weight:700;font-size:13px">${inv.num}</span>
+               <span style="font-size:11px;color:var(--text3);margin-right:8px">${inv.date}</span>
+             </div>
+             <div style="display:flex;align-items:center;gap:10px">
+               <span style="font-weight:700;color:var(--accent3)">${inv.total.toLocaleString()} ج</span>
+               <span class="badge ${inv.status==='paid'?'badge-green':'badge-yellow'}">${inv.status==='paid'?'✅ مدفوع':'⏳ معلق'}</span>
+             </div>
+           </div>`).join('')}
+       </div>`
+    : '';
+
+  body.innerHTML = `
+    <div class="td-header">
+      <div>
+        <div class="td-title">${t.title}</div>
+        <div class="td-meta">
+          <span style="color:${statusColor[t.status]};font-weight:700;font-size:12px">● ${statusLabel[t.status]||t.status}</span>
+          ${t.client?`<span style="background:rgba(124,111,247,.15);color:var(--accent);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">${t.client}</span>`:''}
+          <span style="background:var(--surface2);border:1px solid var(--border);padding:2px 10px;border-radius:20px;font-size:11px">${prioLabel[t.priority]||t.priority}</span>
+          ${t.done?'<span style="background:rgba(79,209,165,.15);color:var(--accent3);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">✅ مكتمل</span>':''}
+        </div>
+      </div>
+    </div>
+
+    <div class="td-info-grid">
+      ${t.value?`<div class="td-info-cell"><div class="lbl">قيمة المشروع</div><div class="val" style="color:var(--accent3)">${t.value.toLocaleString()} ج</div></div>`:''}
+      ${t.deposit&&t.pay==='deposit'?`<div class="td-info-cell"><div class="lbl">العربون</div><div class="val" style="color:var(--accent2)">${t.deposit.toLocaleString()} ج</div></div>`:''}
+      <div class="td-info-cell"><div class="lbl">حالة الدفع</div><div class="val" style="font-size:12px">${payLabel[t.pay||'none']}</div></div>
+      ${t.orderDate?`<div class="td-info-cell"><div class="lbl">تاريخ الطلب</div><div class="val" style="font-family:var(--mono)">${t.orderDate}</div></div>`:''}
+      ${t.deadline?`<div class="td-info-cell"><div class="lbl">تاريخ التسليم</div><div class="val" style="font-family:var(--mono);color:var(--accent4)">${t.deadline}</div></div>`:''}
+    </div>
+
+    ${briefHTML}
+    ${notesHTML}
+    ${invHTML}
+
+    <div style="display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      ${!t.done
+        ? `<button class="btn btn-success" onclick="closeM('modal-task-detail');completeTask(${t.id})">✅ إكمال المشروع</button>`
+        : `<button class="btn btn-ghost btn-sm" onclick="closeM('modal-task-detail');completeTask(${t.id})">↩ إلغاء الإكمال</button>`
+      }
+      <button class="btn btn-ghost" onclick="closeM('modal-task-detail');openInvoiceFromTask(${JSON.stringify(t).replace(/"/g,'&quot;')})">◻ إصدار فاتورة</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-danger btn-sm" onclick="closeM('modal-task-detail');delTask(${t.id})">🗑 حذف</button>
+    </div>`;
+
+  openM('modal-task-detail');
+}
+
 function openTaskModal(id){
   fillDD('t-client');
   document.getElementById('task-modal-ttl').textContent=id?'✦ تعديل المهمة':'✦ مهمة / مشروع جديد';
@@ -1930,6 +2087,12 @@ function openTaskModal(id){
     document.getElementById('t-deposit').value=t.deposit||'';
     document.getElementById('t-notes').value=t.notes||'';
     toggleDeposit();
+    // Load brief into Quill
+    setTimeout(()=>{
+      initTaskQuill();
+      if(t.brief) taskQuill.clipboard.dangerouslyPasteHTML(t.brief);
+      else taskQuill.setText('');
+    }, 80);
   } else {
     ['t-title','t-value','t-deposit','t-notes'].forEach(f=>{const e=document.getElementById(f);if(e)e.value='';});
     document.getElementById('t-client').value='';
@@ -1939,6 +2102,7 @@ function openTaskModal(id){
     document.getElementById('t-order').value=today();
     document.getElementById('t-deadline').value='';
     document.getElementById('deposit-row').style.display='none';
+    setTimeout(()=>{ initTaskQuill(); taskQuill.setText(''); }, 80);
   }
   openM('modal-task');
 }
@@ -1953,7 +2117,9 @@ function saveTask(){
   if(!client)return alert('⚠ يجب اختيار عميل\n\nلو مش موجود، استخدم زر + بجانب القائمة لإضافة عميل جديد');
   const eid=v('task-eid');
   const issueInv=document.getElementById('t-issue-inv')?.checked;
-  const d={title,client,priority:v('t-priority'),status:v('t-status'),value:+v('t-value')||0,orderDate:v('t-order'),deadline:v('t-deadline'),pay:v('t-pay'),deposit:+v('t-deposit')||0,notes:v('t-notes'),done:false};
+  const briefHTML = taskQuill ? taskQuill.root.innerHTML.trim() : '';
+  const briefContent = (briefHTML === '<p><br></p>' || briefHTML === '<p></p>') ? '' : briefHTML;
+  const d={title,client,priority:v('t-priority'),status:v('t-status'),value:+v('t-value')||0,orderDate:v('t-order'),deadline:v('t-deadline'),pay:v('t-pay'),deposit:+v('t-deposit')||0,notes:v('t-notes'),brief:briefContent,done:false};
   if(eid){const i=S.tasks.findIndex(t=>t.id==eid);if(i>-1){d.id=+eid;d.done=S.tasks[i].done;S.tasks[i]=d;}}
   else{d.id=Date.now();S.tasks.push(d);}
   lsSave();closeM('modal-task');renderAll();
@@ -2058,14 +2224,15 @@ function renderTasks(){
     const el=document.getElementById('col-'+p);if(!el)return;
     const items=S.tasks.filter(t=>t.priority===p&&!t.done);
     el.innerHTML=items.length?items.map(t=>`
-      <div class="task-item">
+      <div class="task-item task-clickable" onclick="openTaskDetail(${t.id})" title="اضغط لعرض التفاصيل">
         <div class="task-priority priority-${t.priority}"></div>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:600">${t.title}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
           ${t.client?`<div style="font-size:11px;color:var(--text3)">${t.client}${t.value?` · ${t.value.toLocaleString()} ج`:''}</div>`:''}
+          ${t.brief?'<div style="font-size:10px;color:var(--accent);margin-top:2px">📄 يوجد بريف</div>':''}
         </div>
-        <button class="btn btn-success btn-sm" onclick="completeTask(${t.id})" title="تحديد كمكتمل" style="flex-shrink:0">✓</button>
-        <button class="btn btn-ghost btn-sm" onclick="openTaskModal(${t.id})" style="flex-shrink:0">✏</button>
+        <button class="btn btn-success btn-sm" onclick="event.stopPropagation();completeTask(${t.id})" title="تحديد كمكتمل" style="flex-shrink:0">✓</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openTaskModal(${t.id})" style="flex-shrink:0">✏</button>
       </div>`).join(''):'<div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div>';
   });
 
@@ -2074,27 +2241,28 @@ function renderTasks(){
   if(doneEl){
     const done = S.tasks.filter(t=>t.done);
     doneEl.innerHTML = done.length ? done.map(t=>`
-      <div class="task-item" style="opacity:.6;border-color:var(--accent3)">
+      <div class="task-item task-clickable" onclick="openTaskDetail(${t.id})" style="opacity:.6;border-color:var(--accent3)" title="اضغط لعرض التفاصيل">
         <div style="width:8px;height:8px;border-radius:50%;background:var(--accent3);flex-shrink:0"></div>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:600;text-decoration:line-through;color:var(--text2)">${t.title}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;text-decoration:line-through;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
           ${t.client?`<div style="font-size:11px;color:var(--text3)">${t.client}</div>`:''}
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="completeTask(${t.id})" title="إلغاء الإكمال" style="flex-shrink:0;font-size:10px">↩</button>
-        <button class="btn btn-danger btn-sm" onclick="delTask(${t.id})" style="flex-shrink:0">🗑</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();completeTask(${t.id})" title="إلغاء الإكمال" style="flex-shrink:0;font-size:10px">↩</button>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delTask(${t.id})" style="flex-shrink:0">🗑</button>
       </div>`).join('') : '<div class="empty" style="padding:16px 0;font-size:12px;color:var(--accent3)">لا مشاريع مكتملة</div>';
   }
 
   const tbody=document.getElementById('tasks-tbody');if(!tbody)return;
-  tbody.innerHTML=S.tasks.map(t=>`<tr style="${t.done?'opacity:.55':''}">
+  tbody.innerHTML=S.tasks.map(t=>`<tr style="${t.done?'opacity:.55':''}" onclick="openTaskDetail(${t.id})" class="task-clickable" title="اضغط لعرض التفاصيل">
     <td>
       <div style="display:flex;align-items:center;gap:8px">
         ${!t.done
-          ? `<button class="btn btn-success btn-sm" onclick="completeTask(${t.id})" title="إكمال المشروع" style="padding:4px 8px;font-size:13px;flex-shrink:0">✓</button>`
+          ? `<button class="btn btn-success btn-sm" onclick="event.stopPropagation();completeTask(${t.id})" title="إكمال المشروع" style="padding:4px 8px;font-size:13px;flex-shrink:0">✓</button>`
           : `<span style="color:var(--accent3);font-size:16px;flex-shrink:0">✅</span>`
         }
         <div>
-          <b style="${t.done?'text-decoration:line-through;color:var(--text2)':''}"">${t.title}</b>
+          <b style="${t.done?'text-decoration:line-through;color:var(--text2)':''}">${t.title}</b>
+          ${t.brief?'<span style="font-size:10px;color:var(--accent);margin-right:6px">📄</span>':''}
           ${t.notes?`<div style="font-size:11px;color:var(--text3)">${t.notes.slice(0,40)}${t.notes.length>40?'...':''}</div>`:''}
         </div>
       </div>
@@ -2105,7 +2273,7 @@ function renderTasks(){
     <td class="hide-mobile" style="font-family:var(--mono);font-size:11px">${t.deadline||'—'}</td>
     <td>${payBadge[t.pay||'none']}${t.pay==='deposit'&&t.deposit?`<div style="font-size:11px;color:var(--accent2)">${t.deposit.toLocaleString()} ج</div>`:''}</td>
     <td>${t.done?'<span class="badge badge-green">✅ مكتمل</span>':statusBadge[t.status]}</td>
-    <td><div style="display:flex;gap:4px">
+    <td><div style="display:flex;gap:4px" onclick="event.stopPropagation()">
       <button class="btn btn-ghost btn-sm" onclick="openTaskModal(${t.id})">✏</button>
       <button class="btn btn-danger btn-sm" onclick="delTask(${t.id})">🗑</button>
     </div></td>
@@ -2169,13 +2337,14 @@ function openClientProfile(id){
     </div>
     ${c.notes?`<div class="hlbox" style="margin-bottom:16px;font-size:13px;color:var(--text2)">${c.notes}</div>`:''}
     <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">المشاريع والمهام</div>
-    ${cTasks.length?`<table style="margin-bottom:16px"><thead><tr><th>المشروع</th><th>الحالة</th><th>القيمة</th><th>الدفع</th><th>التسليم</th></tr></thead><tbody>
-      ${cTasks.map(t=>`<tr>
-        <td><b>${t.title}</b></td>
+    ${cTasks.length?`<table style="margin-bottom:16px"><thead><tr><th>المشروع</th><th>الحالة</th><th>القيمة</th><th>الدفع</th><th>التسليم</th><th></th></tr></thead><tbody>
+      ${cTasks.map(t=>`<tr class="task-clickable" onclick="openTaskDetail(${t.id})" title="اضغط لعرض التفاصيل">
+        <td><b>${t.title}</b>${t.brief?'<span style="font-size:10px;color:var(--accent);margin-right:5px">📄</span>':''}</td>
         <td>${statusBadgeLocal[t.status]}</td>
         <td style="color:var(--accent3);font-weight:700">${t.value?t.value.toLocaleString()+' ج':'—'}</td>
         <td>${payBadge[t.pay||'none']}${t.pay==='deposit'&&t.deposit?`<div style="font-size:11px;color:var(--accent2)">${t.deposit.toLocaleString()} ج عربون</div>`:''}</td>
         <td style="font-family:var(--mono);font-size:11px">${t.deadline||'—'}</td>
+        <td onclick="event.stopPropagation()"><button class="btn btn-ghost btn-sm" onclick="openTaskModal(${t.id})">✏</button></td>
       </tr>`).join('')}
     </tbody></table>` : '<div style="color:var(--text3);font-size:13px;margin-bottom:16px">لا مشاريع</div>'}
     <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">الفواتير</div>
@@ -2813,9 +2982,12 @@ function updateDash(){
   set('dash-done',done);set('dash-pending-txt',pending+' معلقة');set('dash-clients',S.clients.length);
   const dtl=document.getElementById('dash-tasks-list');
   if(dtl)dtl.innerHTML=S.tasks.slice(0,5).map(t=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,42,58,.3)">
+    <div class="task-clickable" onclick="openTaskDetail(${t.id})" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,42,58,.3)">
       <div class="task-priority priority-${t.priority}"></div>
-      <div style="flex:1;font-size:13px;${t.done?'text-decoration:line-through;color:var(--text3)':''}">${t.title}</div>
+      <div style="flex:1;font-size:13px;${t.done?'text-decoration:line-through;color:var(--text3)':''}">
+        ${t.title}
+        ${t.brief?'<span style="font-size:10px;color:var(--accent);margin-right:4px">📄</span>':''}
+      </div>
       ${payBadge[t.pay||'none']}
     </div>`).join('')||'<div class="empty"><div class="empty-icon">✦</div>لا مهام</div>';
   const dsl=document.getElementById('dash-sched-list');
@@ -3748,7 +3920,7 @@ function buildQRSectionHTML(inv, forPDF){
   if(!blocks) return '';
 
   return `<div style="${bgStyle}">
-    <div style="font-size:11px;font-weight:700;color:#7c6ff7;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">امسح الكيورار كود   </div>
+    <div style="font-size:11px;font-weight:700;color:#7c6ff7;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">📱 QR كودات — امسحها بكاميرتك</div>
     <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">${blocks}</div>
   </div>`;
 }
