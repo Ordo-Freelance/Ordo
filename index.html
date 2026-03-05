@@ -499,6 +499,44 @@ body {
 .grid          { display: grid; gap: var(--space-md); }
 .grid-4        { grid-template-columns: repeat(4, 1fr); }
 .grid-3        { grid-template-columns: repeat(3, 1fr); }
+/* ── Kanban Board ── */
+#status-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+#tasks-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:768px){
+  #status-cols{grid-template-columns:repeat(2,1fr)}
+  #tasks-cols{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:540px){
+  #status-cols{grid-template-columns:1fr}
+  #tasks-cols{grid-template-columns:1fr}
+}
+.kb-col{background:var(--surface2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.kb-col-header{padding:10px 12px;display:flex;align-items:center;justify-content:space-between;user-select:none}
+.kb-col-body{padding:8px;min-height:100px;flex:1;transition:background .15s}
+.kb-col-body.drag-over{background:rgba(124,111,247,.1);outline:2px dashed var(--accent)}
+#col-high.drag-over{background:rgba(247,111,124,.1);outline:2px dashed var(--accent4)}
+#col-med.drag-over{background:rgba(247,201,72,.1);outline:2px dashed var(--accent2)}
+#col-low.drag-over{background:rgba(79,209,165,.1);outline:2px dashed var(--accent3)}
+.kb-card{background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:7px;cursor:grab;user-select:none;transition:transform .15s,box-shadow .15s;display:block}
+.kb-card:active{cursor:grabbing}
+.kb-card.dragging{opacity:.4;transform:scale(.97)}
+@media(max-width:540px){.kb-card{cursor:default}}
+/* ── Invoices ── */
+#inv-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:768px){#inv-layout{grid-template-columns:1fr} #inv-preview-card{display:none} #inv-preview-card.active{display:block}}
+.inv-status-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.inv-uncollected{background:rgba(247,111,124,.15);color:var(--accent4)}
+.inv-collected{background:rgba(79,209,165,.15);color:var(--accent3)}
+.inv-cancelled{background:rgba(150,150,150,.15);color:var(--text3)}
+/* ── Meetings ── */
+.meeting-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;cursor:pointer;transition:border-color .2s}
+.meeting-card:hover{border-color:var(--accent)}
+.meeting-card.upcoming{border-color:rgba(124,111,247,.4)}
+.meeting-card.past{opacity:.7}
+.meeting-editor-toolbar{display:flex;gap:6px;padding:6px;border-bottom:1px solid var(--border);flex-wrap:wrap;margin-bottom:6px}
+.meeting-editor-toolbar button{background:none;border:1px solid var(--border);border-radius:6px;color:var(--text2);padding:3px 8px;cursor:pointer;font-size:12px}
+.meeting-editor-toolbar button:hover{background:var(--surface3)}
+
 .grid-2        { grid-template-columns: repeat(2, 1fr); }
 
 /* ═══════════════════════════════════════════════════
@@ -1282,6 +1320,7 @@ function getQRDataURL(text, size) {
   <div class="nav-item" onclick="showPage(&#39;team&#39;,this)"><span class="nav-icon">👥</span>فريق العمل<span class="nav-badge" id="team-badge" style="display:none"></span></div>
   <div class="nav-section-label">التطوير</div>
   <div class="nav-item" onclick="showPage(&#39;learning&#39;,this)"><span class="nav-icon">◆</span>التعلم والأهداف</div>
+  <div class="nav-item" onclick="showPage(&#39;meetings&#39;,this)"><span class="nav-icon">📅</span>الميتنج<span class="nav-badge" id="meetings-badge" style="display:none;background:var(--accent4)"></span></div>
   <div class="nav-section-label">الإعدادات</div>
   <div class="nav-item" onclick="showPage(&#39;settings&#39;,this)"><span class="nav-icon">⚙</span>إعدادات الاستوديو</div>
   <div class="nav-item" onclick="openBackupModal()" style="color:var(--accent3)"><span class="nav-icon">💾</span>نسخ احتياطي<span id="backup-reminder-dot" style="display:none;width:8px;height:8px;background:var(--accent4);border-radius:50%;margin-right:auto;flex-shrink:0"></span></div>
@@ -1322,6 +1361,7 @@ function getQRDataURL(text, size) {
   <div class="bn-more-item" onclick="showPage(&#39;finance&#39;);closeBnMore()" id="bnm-finance"><span>◎</span>المالية</div>
   <div class="bn-more-item" onclick="showPage(&#39;invoices&#39;);closeBnMore()" id="bnm-invoices"><span>◻</span>الفواتير والعقود</div>
   <div class="bn-more-item" onclick="showPage(&#39;learning&#39;);closeBnMore()" id="bnm-learning"><span>◆</span>التعلم والأهداف</div>
+  <div class="bn-more-item" onclick="showPage(&#39;meetings&#39;);closeBnMore()" id="bnm-meetings"><span>📅</span>الميتنج</div>
   <div class="bn-more-item" onclick="showPage(&#39;schedule&#39;);closeBnMore()" id="bnm-schedule"><span>◷</span>تنظيم اليوم</div>
   <div class="bn-more-item" onclick="showPage(&#39;settings&#39;);closeBnMore()" id="bnm-settings"><span>⚙</span>الإعدادات</div>
 </div>
@@ -1390,15 +1430,41 @@ function getQRDataURL(text, size) {
     </div>
   </div>
 
+  <!-- Row: Team pay + Kanban mini shortcut -->
+  <div class="grid grid-2" style="margin-bottom:16px">
+    <div class="card" id="dash-team-pay-section" style="border-color:rgba(100,181,246,.3)">
+      <div class="section-title" style="color:#64b5f6">💰 مستحقات الفريق غير المدفوعة</div>
+      <div id="dash-team-pay-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">لا مستحقات متأخرة</div></div></div>
+    </div>
+    <div class="card" id="dash-kanban-mini">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="section-title" style="margin:0">⚡ المهام النشطة</div>
+        <button onclick="showPage('tasks')" class="btn btn-ghost btn-sm" style="font-size:11px">عرض الكل ←</button>
+      </div>
+      <div id="dash-kanban-mini-list"><div class="empty" style="padding:8px 0"><div class="empty-icon">✦</div><div style="font-size:12px">لا مهام نشطة</div></div></div>
+    </div>
+  </div>
+
   <!-- Main Grid -->
   <div class="grid grid-2" style="margin-bottom:16px">
     <div class="card"><div class="section-title">آخر المهام</div><div id="dash-tasks-list"><div class="empty"><div class="empty-icon">✦</div>لا مهام</div></div></div>
     <div class="card"><div class="section-title">جدول اليوم</div><div id="dash-sched-list"><div class="empty"><div class="empty-icon">◷</div>لا جدول اليوم</div></div></div>
   </div>
 
-  <div class="grid grid-2">
+  <div class="grid grid-2" style="margin-bottom:16px">
     <div class="card"><div class="section-title">فواتير معلقة</div><div id="dash-inv-list"><div class="empty"><div class="empty-icon">◻</div>لا فواتير معلقة</div></div></div>
     <div class="card"><div class="section-title">أهداف التطوير</div><div id="dash-goals-list"><div class="empty"><div class="empty-icon">◆</div>أضف أهدافك</div></div></div>
+  </div>
+  <!-- Meetings shortcut -->
+  <div class="card" style="border-color:rgba(124,111,247,.3)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="section-title" style="margin:0;color:var(--accent)">📅 الميتنجات القادمة</div>
+      <div style="display:flex;gap:6px">
+        <button onclick="openMeetingModal()" class="btn btn-ghost btn-sm" style="font-size:11px">+ جديد</button>
+        <button onclick="showPage('meetings')" class="btn btn-ghost btn-sm" style="font-size:11px">عرض الكل ←</button>
+      </div>
+    </div>
+    <div id="dash-meetings-shortcut"><div class="empty" style="padding:8px 0"><div class="empty-icon">📅</div>لا ميتنجات قادمة</div></div>
   </div>
 </div>
 
@@ -1508,42 +1574,66 @@ function getQRDataURL(text, size) {
 
   <!-- KANBAN VIEW -->
   <div id="kanban-view">
-    <!-- Status Columns -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px" id="status-cols">
-      <div style="background:var(--surface2);border:1px solid rgba(150,150,180,.3);border-radius:10px;overflow:hidden">
-        <div style="padding:10px 12px;background:rgba(90,90,112,.3);display:flex;align-items:center;justify-content:space-between">
+    <!-- Kanban Status Columns — drag & drop + responsive -->
+
+    <div id="status-cols">
+      <div class="kb-col" style="border:1px solid rgba(150,150,180,.3)">
+        <div class="kb-col-header" style="background:rgba(90,90,112,.3)">
           <div style="font-size:12px;font-weight:700;color:var(--text2)">📋 جديد</div>
           <span class="nav-badge" id="cnt-new" style="display:none;background:var(--text3)">0</span>
         </div>
-        <div id="col-status-new" style="padding:8px;min-height:80px"></div>
+        <div class="kb-col-body" id="col-status-new" data-status="new"
+          ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDrop(event)"></div>
       </div>
-      <div style="background:var(--surface2);border:1px solid rgba(247,201,72,.25);border-radius:10px;overflow:hidden">
-        <div style="padding:10px 12px;background:rgba(247,201,72,.1);display:flex;align-items:center;justify-content:space-between">
+      <div class="kb-col" style="border:1px solid rgba(247,201,72,.25)">
+        <div class="kb-col-header" style="background:rgba(247,201,72,.1)">
           <div style="font-size:12px;font-weight:700;color:var(--accent2)">⚡ قيد التنفيذ</div>
           <span class="nav-badge" id="cnt-progress" style="display:none;background:var(--accent2)">0</span>
         </div>
-        <div id="col-status-progress" style="padding:8px;min-height:80px"></div>
+        <div class="kb-col-body" id="col-status-progress" data-status="progress"
+          ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDrop(event)"></div>
       </div>
-      <div style="background:var(--surface2);border:1px solid rgba(124,111,247,.25);border-radius:10px;overflow:hidden">
-        <div style="padding:10px 12px;background:rgba(124,111,247,.1);display:flex;align-items:center;justify-content:space-between">
+      <div class="kb-col" style="border:1px solid rgba(124,111,247,.25)">
+        <div class="kb-col-header" style="background:rgba(124,111,247,.1)">
           <div style="font-size:12px;font-weight:700;color:var(--accent)">🔍 مراجعة</div>
           <span class="nav-badge" id="cnt-review" style="display:none;background:var(--accent)">0</span>
         </div>
-        <div id="col-status-review" style="padding:8px;min-height:80px"></div>
+        <div class="kb-col-body" id="col-status-review" data-status="review"
+          ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDrop(event)"></div>
       </div>
-      <div style="background:var(--surface2);border:1px solid rgba(100,181,246,.25);border-radius:10px;overflow:hidden">
-        <div style="padding:10px 12px;background:rgba(100,181,246,.1);display:flex;align-items:center;justify-content:space-between">
+      <div class="kb-col" style="border:1px solid rgba(100,181,246,.25)">
+        <div class="kb-col-header" style="background:rgba(100,181,246,.1)">
           <div style="font-size:12px;font-weight:700;color:#64b5f6">⏸ موقوف</div>
           <span class="nav-badge" id="cnt-paused" style="display:none;background:#64b5f6">0</span>
         </div>
-        <div id="col-status-paused" style="padding:8px;min-height:80px"></div>
+        <div class="kb-col-body" id="col-status-paused" data-status="paused"
+          ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDrop(event)"></div>
       </div>
     </div>
-    <!-- Priority cols (old) -->
-    <div class="grid grid-3" id="tasks-cols" style="margin-bottom:16px">
-      <div><div class="section-title" style="color:var(--accent4)">🔴 عاجل</div><div id="col-high"><div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div></div></div>
-      <div><div class="section-title" style="color:var(--accent2)">🟡 متوسط</div><div id="col-med"><div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div></div></div>
-      <div><div class="section-title" style="color:var(--accent3)">🟢 عادي</div><div id="col-low"><div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div></div></div>
+    <!-- Priority cols -->
+
+    <div id="tasks-cols">
+      <div class="card" style="border-color:rgba(247,111,124,.3)">
+        <div class="section-title" style="color:var(--accent4)">🔴 عاجل</div>
+        <div id="col-high" class="kb-col-body" data-priority="high" data-status="progress"
+          ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDropPrio(event)">
+          <div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(247,201,72,.3)">
+        <div class="section-title" style="color:var(--accent2)">🟡 متوسط</div>
+        <div id="col-med" class="kb-col-body" data-priority="med"
+          ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDropPrio(event)">
+          <div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(79,209,165,.3)">
+        <div class="section-title" style="color:var(--accent3)">🟢 عادي</div>
+        <div id="col-low" class="kb-col-body" data-priority="low"
+          ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDropPrio(event)">
+          <div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div>
+        </div>
+      </div>
     </div>
     <div class="card" style="margin-bottom:16px;border-color:rgba(79,209,165,.3)">
       <div class="section-title" style="color:var(--accent3)">✅ مشاريع مكتملة</div>
@@ -1631,24 +1721,8 @@ function getQRDataURL(text, size) {
     <span class="filter-count" id="cf-count"></span>
   </div>
   <div class="grid grid-3" id="clients-grid">
-    <div class="client-card" onclick="openClientProfile(1772628436111)" style="cursor:pointer">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div class="client-avatar" style="background:#7c6ff722;color:#7c6ff7">s</div>
-        <div style="display:flex;gap:4px" onclick="event.stopPropagation()">
-          <button class="btn btn-ghost btn-sm" onclick="openClientModal(1772628436111)">✏</button>
-          <button class="btn btn-danger btn-sm" onclick="delClient(1772628436111)">🗑</button>
-        </div>
-      </div>
-      <div style="font-size:15px;font-weight:700">sdsd</div>
-      <div style="font-size:12px;color:var(--text2);margin-top:2px">شركة · واتساب</div>
-      <div style="font-size:12px;color:var(--text3);margin-top:6px">📞 sd</div>
-      <div style="font-size:12px;color:var(--text3)">✉ sd</div>
-      
-      <div style="display:flex;gap:16px;margin-top:12px">
-        <div><div style="font-size:16px;font-weight:700;color:#7c6ff7">1</div><div style="font-size:11px;color:var(--text3)">مشاريع</div></div>
-        <div><div style="font-size:16px;font-weight:700;color:var(--accent3)">0</div><div style="font-size:11px;color:var(--text3)">إجمالي ج</div></div>
-      </div>
-    </div></div>
+    <div class="empty" style="grid-column:span 3"><div class="empty-icon">◈</div>جاري التحميل...</div>
+  </div>
 </div>
 
 <!-- TEAM -->
@@ -1902,9 +1976,12 @@ function getQRDataURL(text, size) {
     <div><div class="page-title">الفواتير <span>والعقود</span></div><div class="page-subtitle">احترف تعاملاتك المالية</div></div>
     <button class="btn btn-primary" onclick="openInvoiceModal()">+ فاتورة جديدة</button>
   </div>
-  <div class="grid grid-2">
+
+  <div id="inv-layout">
     <div class="card">
-      <div class="section-title">سجل الفواتير</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="section-title" style="margin:0">سجل الفواتير</div>
+      </div>
       <div class="table-wrap"><table><thead><tr><th>رقم</th><th>العميل</th><th>المبلغ</th><th class="hide-mobile">الحالة</th><th>إجراءات</th></tr></thead><tbody id="inv-tbody"><tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">لا فواتير</td></tr></tbody></table></div>
     </div>
     <div class="card" id="inv-preview-card">
@@ -1918,7 +1995,10 @@ function getQRDataURL(text, size) {
 <div class="page" id="page-learning">
   <div class="page-header">
     <div><div class="page-title">التعلم <span>والأهداف</span></div><div class="page-subtitle">خطة تطويرك المهني</div></div>
+    <div style="display:flex;gap:8px">
+    <button class="btn btn-ghost" onclick="openCourseModal()">+ كورس/فيديو</button>
     <button class="btn btn-primary" onclick="openGoalModal()">+ هدف جديد</button>
+  </div>
   </div>
 
   <!-- Stats row -->
@@ -1937,8 +2017,156 @@ function getQRDataURL(text, size) {
     </div>
   </div>
 
+  <!-- Courses/Videos section -->
+  <div id="courses-section" style="margin-bottom:20px">
+    <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+      <span>🎓 الكورسات والمواد التعليمية</span>
+      <button class="btn btn-ghost btn-sm" onclick="openCourseModal()">+ إضافة</button>
+    </div>
+    <div id="courses-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+      <div class="empty card" style="padding:20px"><div class="empty-icon">🎓</div>أضف كورس أو فيديو تعليمي</div>
+    </div>
+  </div>
+
   <!-- Goals grid -->
+  <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px">🎯 الأهداف التطويرية</div>
   <div id="goals-grid"><div class="empty card"><div class="empty-icon">◆</div>أضف أهدافك التعليمية والمهنية<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="openGoalModal()">+ هدف جديد</button></div></div></div>
+</div>
+
+<!-- MEETINGS -->
+<div class="page" id="page-meetings">
+  <div class="page-header">
+    <div><div class="page-title">الميتنج <span>والاجتماعات</span></div><div class="page-subtitle">ارتب مواعيدك مع عملائك</div></div>
+    <button class="btn btn-primary" onclick="openMeetingModal()">+ ميتنج جديد</button>
+  </div>
+
+  <div class="grid grid-2">
+    <div>
+      <!-- Filters -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <select id="mtg-filter-client" onchange="renderMeetings()" class="form-select" style="height:34px;font-size:12px;flex:1;min-width:130px">
+          <option value="">كل العملاء</option>
+        </select>
+        <select id="mtg-filter-status" onchange="renderMeetings()" class="form-select" style="height:34px;font-size:12px">
+          <option value="">الكل</option>
+          <option value="upcoming">قادمة</option>
+          <option value="done">منتهية</option>
+        </select>
+      </div>
+      <div id="meetings-list"><div class="empty card"><div class="empty-icon">📅</div>لا اجتماعات مسجلة</div></div>
+    </div>
+    <div class="card" id="meeting-detail-card" style="display:none">
+      <div id="meeting-detail-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MEETING MODAL -->
+<div class="modal-overlay" id="modal-meeting">
+  <div class="modal" style="width:560px;max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <div class="modal-title" id="mtg-modal-title">📅 ميتنج جديد</div>
+      <button class="close-btn" onclick="closeM('modal-meeting')">✕</button>
+    </div>
+    <input type="hidden" id="mtg-eid">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">العنوان *</label><input class="form-input" id="mtg-title" placeholder="اجتماع متابعة مشروع..."></div>
+      <div class="form-group"><label class="form-label">العميل</label>
+        <select class="form-select" id="mtg-client"><option value="">— اختر عميل —</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">التاريخ *</label><input class="form-input" type="date" id="mtg-date"></div>
+      <div class="form-group"><label class="form-label">الوقت</label><input class="form-input" type="time" id="mtg-time" value="10:00"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">المدة (دقيقة)</label><input class="form-input" type="number" id="mtg-duration" value="60" min="15" step="15"></div>
+      <div class="form-group"><label class="form-label">نوع الميتنج</label>
+        <select class="form-select" id="mtg-type">
+          <option value="online">🖥 أونلاين (Zoom/Meet)</option>
+          <option value="offline">📍 حضوري</option>
+          <option value="phone">📞 مكالمة</option>
+          <option value="whatsapp">💬 واتساب</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">رابط الاجتماع (Zoom/Meet)</label><input class="form-input" id="mtg-link" placeholder="https://zoom.us/j/..."></div>
+    <div class="form-group">
+      <label class="form-label">الأجندة / البريف</label>
+      <div id="mtg-brief-wrap">
+        <div class="meeting-editor-toolbar">
+          <button onclick="mtgFormat('bold')"><b>B</b></button>
+          <button onclick="mtgFormat('italic')"><i>I</i></button>
+          <button onclick="mtgFormat('underline')"><u>U</u></button>
+          <button onclick="mtgFormat('insertUnorderedList')">• قائمة</button>
+          <button onclick="mtgFormat('insertOrderedList')">1. مرتب</button>
+          <button onclick="mtgFormat('formatBlock','h3')">عنوان</button>
+          <button onclick="mtgFormat('formatBlock','p')">نص</button>
+        </div>
+        <div id="mtg-brief" contenteditable="true" style="min-height:100px;padding:8px;font-size:13px;line-height:1.7;outline:none;color:var(--text)" dir="rtl" placeholder="أهداف الاجتماع، نقاط النقاش..."></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">ملاحظات / محضر الاجتماع</label>
+      <div class="meeting-editor-toolbar">
+        <button onclick="mtgNotesFormat('bold')"><b>B</b></button>
+        <button onclick="mtgNotesFormat('italic')"><i>I</i></button>
+        <button onclick="mtgNotesFormat('insertUnorderedList')">• قائمة</button>
+        <button onclick="mtgNotesFormat('insertOrderedList')">1. مرتب</button>
+      </div>
+      <div id="mtg-notes" contenteditable="true" style="min-height:80px;padding:8px;background:var(--surface3);border-radius:8px;font-size:13px;line-height:1.7;outline:none;color:var(--text);border:1px solid var(--border)" dir="rtl" placeholder="ما اتقاله في الاجتماع..."></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeM('modal-meeting')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveMeeting()">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- COURSE MODAL -->
+<div class="modal-overlay" id="modal-course">
+  <div class="modal" style="width:520px">
+    <div class="modal-header">
+      <div class="modal-title" id="course-modal-title">🎓 إضافة كورس / مادة تعليمية</div>
+      <button class="close-btn" onclick="closeM('modal-course')">✕</button>
+    </div>
+    <input type="hidden" id="course-eid">
+    <div class="form-group"><label class="form-label">عنوان الكورس *</label><input class="form-input" id="course-title" placeholder="مثال: كورس After Effects الكامل"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">نوع المحتوى</label>
+        <select class="form-select" id="course-type">
+          <option value="video">🎬 فيديو يوتيوب</option>
+          <option value="course">🎓 كورس (Udemy/Coursera)</option>
+          <option value="playlist">▶ قائمة تشغيل</option>
+          <option value="link">🔗 رابط عام</option>
+          <option value="book">📚 كتاب/مقال</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">الحالة</label>
+        <select class="form-select" id="course-status">
+          <option value="todo">📋 لم أبدأ</option>
+          <option value="inprogress">⚡ جاري</option>
+          <option value="done">✅ مكتمل</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">الرابط</label><input class="form-input" id="course-url" placeholder="https://youtube.com/watch?v=..." oninput="previewCourseEmbed()"></div>
+    <div id="course-embed-preview" style="margin-bottom:10px;border-radius:8px;overflow:hidden;display:none"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">التقدم %</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="form-input" type="range" id="course-progress" min="0" max="100" value="0" oninput="document.getElementById('course-pct-disp').textContent=this.value+'%'" style="flex:1">
+          <span id="course-pct-disp" style="font-size:12px;font-weight:700;color:var(--accent);width:35px">0%</span>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">المصدر / المنصة</label><input class="form-input" id="course-platform" placeholder="Udemy, YouTube, Skillshare..."></div>
+    </div>
+    <div class="form-group"><label class="form-label">ملاحظات / مواد إضافية</label><textarea class="form-textarea" id="course-notes" placeholder="ملاحظاتك، أهم النقاط..." style="min-height:70px"></textarea></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeM('modal-course')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveCourse()">💾 حفظ</button>
+    </div>
+  </div>
 </div>
 
 <!-- SETTINGS -->
@@ -2146,7 +2374,6 @@ function getQRDataURL(text, size) {
       </button>
     </div>
   </div>
-</div>
 </div><!-- end app-body -->
 </div><!-- end app-shell -->
 
@@ -2423,6 +2650,26 @@ function getQRDataURL(text, size) {
 
     <div class="form-group"><label class="form-label">ملاحظات</label><textarea class="form-textarea" id="c-notes" placeholder="تفاصيل، اهتمامات، تاريخ التعامل..."></textarea></div>
 
+    <!-- ── منصات السوشيال ── -->
+    <div style="background:rgba(124,111,247,.06);border:1px solid rgba(124,111,247,.2);border-radius:var(--r2);padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px">🌐 حسابات السوشيال ميديا</div>
+      <div id="c-socials-list" style="margin-bottom:10px"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <select id="c-social-platform" class="form-select" style="width:auto;min-width:130px">
+          <option value="Facebook" data-icon="📘">📘 فيسبوك</option>
+          <option value="Instagram" data-icon="📸">📸 إنستقرام</option>
+          <option value="TikTok" data-icon="🎵">🎵 تيك توك</option>
+          <option value="Twitter" data-icon="🐦">🐦 تويتر/X</option>
+          <option value="LinkedIn" data-icon="💼">💼 لينكدإن</option>
+          <option value="YouTube" data-icon="▶">▶ يوتيوب</option>
+          <option value="Behance" data-icon="🎨">🎨 بيهانس</option>
+          <option value="Website" data-icon="🌐">🌐 موقع</option>
+        </select>
+        <input class="form-input" id="c-social-url" placeholder="رابط الحساب..." style="flex:1;min-width:160px">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="addClientSocial()">+ إضافة</button>
+      </div>
+    </div>
+
     <!-- ── إعدادات المتابعة ── -->
     <div style="background:rgba(247,201,72,.06);border:1px solid rgba(247,201,72,.25);border-radius:var(--r2);padding:12px 14px;margin-bottom:10px">
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:10px">🔔 إعدادات المتابعة التلقائية</div>
@@ -2435,13 +2682,17 @@ function getQRDataURL(text, size) {
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">لو مطلبش حاجة خلال</label>
-          <select class="form-select" id="c-followup-months">
-            <option value="2">شهرين</option>
-            <option value="3" selected>3 شهور</option>
-            <option value="4">4 شهور</option>
-            <option value="6">6 شهور</option>
-          </select>
+          <label class="form-label">لو مطلبش حاجة خلال (شهور)</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input class="form-input" type="number" id="c-followup-months" min="1" max="36" value="3" style="width:80px;text-align:center">
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              <button type="button" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px" onclick="setFollowupMonths(1)">1</button>
+              <button type="button" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px" onclick="setFollowupMonths(2)">2</button>
+              <button type="button" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px" onclick="setFollowupMonths(3)">3</button>
+              <button type="button" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px" onclick="setFollowupMonths(6)">6</button>
+              <button type="button" class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px" onclick="setFollowupMonths(12)">12</button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="form-group">
@@ -2727,6 +2978,8 @@ function lsLoad(){
     if(!S.paymentAccounts) S.paymentAccounts=[];
     if(!S.hiddenPayMethods) S.hiddenPayMethods=[];
     if(!S.hiddenStatuses) S.hiddenStatuses=[];
+    if(!S.meetings) S.meetings=[];
+    if(!S.courses) S.courses=[];
     // migrate tasks to include worker fields
     S.tasks.forEach(t=>{
       if(t.workerType===undefined) t.workerType='me';
@@ -3586,8 +3839,11 @@ function renderTasks(){
     return (now24 - doneMs) < 24*60*60*1000;
   };
 
+  const prioToStatus = {high:'progress', med:'new', low:'new'};
   ['high','med','low'].forEach(p=>{
     const el=document.getElementById('col-'+p);if(!el)return;
+    // make drop target for status columns
+    el.dataset.priority = p;
     const items=filtered.filter(t=>t.priority===p&&!t.done);
     el.innerHTML=items.length?items.map(t=>{
       const stMap={new:'📋 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف',done:'✅ مكتمل'};
@@ -3597,7 +3853,7 @@ function renderTasks(){
       const stepsDone=t.steps?t.steps.filter(s=>s.done).length:0;
       const pct=stepsTotal?Math.round(stepsDone/stepsTotal*100):0;
       return `
-      <div class="task-item task-clickable" onclick="openTaskDetail(${t.id})" title="اضغط لعرض التفاصيل" style="flex-direction:column;align-items:stretch;gap:0;padding:10px 12px">
+      <div class="kb-card task-clickable" draggable="true" data-task-id="${t.id}" ondragstart="kbDragStart(event,${t.id})" onclick="openTaskDetail(${t.id})" style="flex-direction:column;align-items:stretch;gap:0;padding:10px 12px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
           <div class="task-priority priority-${t.priority}"></div>
           <div style="flex:1;min-width:0">
@@ -3607,6 +3863,7 @@ function renderTasks(){
               ${t.value?`<span style="font-size:10px;color:var(--accent3);font-weight:700">${t.value.toLocaleString()} ج</span>`:''}
             </div>
           </div>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();kbShowMoveMenu(event,${t.id})" style="flex-shrink:0;padding:3px 7px;color:var(--accent)" title="نقل">▾</button>
           <button class="btn btn-success btn-sm" onclick="event.stopPropagation();completeTask(${t.id})" title="مكتمل" style="flex-shrink:0;padding:3px 7px">✓</button>
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openTaskModal(${t.id})" style="flex-shrink:0;padding:3px 7px">✏</button>
         </div>
@@ -3635,19 +3892,28 @@ function renderTasks(){
       const stepsTotal=t.steps?t.steps.length:0;
       const stepsDone=t.steps?t.steps.filter(s=>s.done).length:0;
       const pct=stepsTotal?Math.round(stepsDone/stepsTotal*100):0;
-      return `<div onclick="openTaskDetail(${t.id})" class="task-clickable" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 10px;margin-bottom:7px;cursor:pointer">
-        <div style="font-size:12px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:${stepsTotal?'6px':'0'}">
-          ${t.client?`<span style="font-size:10px;color:var(--text3)">${t.client}</span>`:''}
-          <span style="font-size:10px;background:${['high','med','low'].includes(t.priority)?({'high':'rgba(247,111,124,.2)','med':'rgba(247,201,72,.2)','low':'rgba(79,209,165,.2)'}[t.priority]):'rgba(0,0,0,.2)'};color:${{'high':'var(--accent4)','med':'var(--accent2)','low':'var(--accent3)'}[t.priority]||'var(--text3)'};padding:1px 6px;border-radius:8px">${{'high':'🔴 عاجل','med':'🟡 متوسط','low':'🟢 عادي'}[t.priority]||''}</span>
-          ${t.value?`<span style="font-size:10px;color:var(--accent3);font-weight:700">${t.value.toLocaleString()} ج</span>`:''}
+      const prioColors={'high':'rgba(247,111,124,.2)','med':'rgba(247,201,72,.2)','low':'rgba(79,209,165,.2)'};
+      const prioText={'high':'var(--accent4)','med':'var(--accent2)','low':'var(--accent3)'};
+      const prioLabel={'high':'🔴 عاجل','med':'🟡 متوسط','low':'🟢 عادي'};
+      return `<div class="kb-card" draggable="true" data-task-id="${t.id}"
+          ondragstart="kbDragStart(event,${t.id})"
+          onclick="openTaskDetail(${t.id})">
+        <div style="font-size:12px;font-weight:700;margin-bottom:5px;line-height:1.4">${t.title}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:${stepsTotal?'6px':'0'}">
+          ${t.client?`<span style="font-size:10px;color:var(--text3);background:rgba(255,255,255,.05);padding:1px 6px;border-radius:8px">${t.client}</span>`:''}
+          ${t.priority?`<span style="font-size:10px;background:${prioColors[t.priority]||'rgba(0,0,0,.2)'};color:${prioText[t.priority]||'var(--text3)'};padding:1px 6px;border-radius:8px">${prioLabel[t.priority]||''}</span>`:''}
+          ${t.value?`<span style="font-size:10px;color:var(--accent3);font-weight:700;margin-right:auto">${t.value.toLocaleString()} ج</span>`:''}
         </div>
-        ${stepsTotal?`<div style="display:flex;align-items:center;gap:5px">
+        ${stepsTotal?`<div style="display:flex;align-items:center;gap:5px;margin-top:2px">
           <div style="flex:1;height:3px;background:var(--surface3);border-radius:2px;overflow:hidden">
-            <div style="height:100%;width:${pct}%;background:${pct===100?'var(--accent3)':'var(--accent)'};border-radius:2px"></div>
+            <div style="height:100%;width:${pct}%;background:${pct===100?'var(--accent3)':'var(--accent)'};border-radius:2px;transition:width .3s"></div>
           </div>
-          <span style="font-size:10px;color:var(--text3)">${pct}%</span>
+          <span style="font-size:10px;color:var(--text3)">${stepsDone}/${stepsTotal}</span>
         </div>`:''}
+        <div style="font-size:10px;color:var(--text3);margin-top:5px;display:flex;justify-content:space-between;align-items:center">
+          <span style="opacity:.4">⠿ اسحب للنقل</span>
+          <button onclick="event.stopPropagation();kbShowMoveMenu(event,${t.id})" style="background:rgba(124,111,247,.15);border:none;border-radius:6px;color:var(--accent);font-size:10px;padding:2px 7px;cursor:pointer;font-weight:700">نقل ▾</button>
+        </div>
       </div>`;
     }).join('');
   });
@@ -3760,6 +4026,8 @@ function openClientModal(id){
     document.getElementById('c-salary-lastpaid').value=c.salaryLastPaid||'';
     document.getElementById('c-followup-enabled').value=c.followupEnabled||'off';
     document.getElementById('c-followup-months').value=c.followupMonths||'3';
+    // restore socials
+    renderClientSocials(c.socials||[]);
     document.getElementById('c-followup-msg').value=c.followupMsg||'';
   } else {
     ['c-name','c-phone','c-email','c-field','c-notes','c-salary'].forEach(f=>{const e=document.getElementById(f);if(e)e.value='';});
@@ -3775,6 +4043,10 @@ function openClientModal(id){
   toggleClientSalary();
   openM('modal-client');
 }
+function setFollowupMonths(n){
+  const el=document.getElementById('c-followup-months');
+  if(el){ el.value=n; }
+}
 function saveClient(){
   const name=v('c-name').trim();if(!name)return alert('أدخل اسم العميل');
   const eid=v('client-eid');
@@ -3789,8 +4061,11 @@ function saveClient(){
     salaryDay:   isSal?(+v('c-salary-day')||1):null,
     salaryLastPaid: isSal?v('c-salary-lastpaid'):null,
     followupEnabled: document.getElementById('c-followup-enabled')?.value||'off',
-    followupMonths: +(document.getElementById('c-followup-months')?.value)||3,
+    followupMonths: Math.max(1, +(document.getElementById('c-followup-months')?.value)||3),
     followupMsg: document.getElementById('c-followup-msg')?.value||'',
+    socials: [...(document.querySelectorAll('#c-socials-list .social-tag')||[])].map(el=>({
+      platform:el.dataset.platform, icon:el.dataset.icon, url:el.dataset.url
+    })),
   };
   if(eid){const i=S.clients.findIndex(c=>c.id==eid);if(i>-1){d.id=+eid;d.color=S.clients[i].color;S.clients[i]=d;}}
   else{d.id=Date.now();S.clients.push(d);}
@@ -3812,11 +4087,13 @@ function openClientProfile(id){
       <div class="card" style="padding:14px"><div class="stat-label">المشاريع</div><div style="font-size:22px;font-weight:900;color:var(--accent)">${cTasks.length}</div></div>
       <div class="card" style="padding:14px"><div class="stat-label">فواتير معلقة</div><div style="font-size:22px;font-weight:900;color:var(--accent2)">${pendingInv.reduce((s,i)=>s+i.total,0).toLocaleString()} ج</div></div>
     </div>
-    <div style="display:flex;gap:10px;margin-bottom:16px;font-size:13px">
+    <div style="display:flex;gap:8px;margin-bottom:16px;font-size:13px;flex-wrap:wrap;align-items:center">
       ${c.phone?`<span style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--text2)">📞 ${c.phone}</span>`:''}
+      ${c.phone?`<button onclick="window.open('https://wa.me/'+('${c.phone}'.replace(/\\D/g,'')),'_blank')" style="display:flex;align-items:center;gap:6px;background:#25D366;color:#fff;border:none;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer"><svg width='14' height='14' viewBox='0 0 24 24' fill='#fff'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z'/></svg> واتساب</button>`:''}
       ${c.email?`<span style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--text2)">✉ ${c.email}</span>`:''}
       ${c.channel?`<span style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--text2)">${c.channel}</span>`:''}
       ${c.field?`<span style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--text2)">${c.field}</span>`:''}
+      ${(c.socials&&c.socials.length)?c.socials.map(s=>`<a href="${s.url}" target="_blank" style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--accent);font-size:12px;text-decoration:none;font-weight:600">${s.icon||'🔗'} ${s.platform}</a>`).join(''):''}
     </div>
     ${c.notes?`<div class="hlbox" style="margin-bottom:16px;font-size:13px;color:var(--text2)">${c.notes}</div>`:''}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -4365,7 +4642,8 @@ function delInvoice(id){
     document.getElementById('inv-preview-card').innerHTML='<div class="section-title">معاينة الفاتورة</div><div class="empty"><div class="empty-icon">◻</div>اختر فاتورة أو أنشئ جديدة</div>';
   });
 }
-function markPaid(id){const inv=S.invoices.find(i=>i.id===id);if(inv){inv.status='paid';lsSave();renderAll();previewInv(id);}}
+function markPaid(id){const inv=S.invoices.find(i=>i.id===id);if(inv){inv.status='paid';inv.collectedAt=new Date().toISOString().split('T')[0];lsSave();renderAll();previewInv(id);showMiniNotif('✅ تم تسجيل التحصيل');}}
+function markUncollected(id){const inv=S.invoices.find(i=>i.id===id);if(inv){inv.status='pending';inv.collectedAt=null;lsSave();renderAll();previewInv(id);}}
 
 // ============================================================
 // RECEIPT PDF — إيصال استلام مبلغ
@@ -4434,7 +4712,11 @@ ${s.terms?`<div style="margin:12px 28px;padding:12px;background:#fafafe;border-r
 
 function renderInvoices(){
   const tbody=document.getElementById('inv-tbody');if(!tbody)return;
-  const sm={pending:'<span class="badge badge-yellow">معلقة</span>',paid:'<span class="badge badge-green">مدفوعة</span>',cancelled:'<span class="badge badge-red">ملغية</span>'};
+  const sm={
+    pending:'<span class="inv-status-badge inv-uncollected">⏳ لم يتم التحصيل</span>',
+    paid:'<span class="inv-status-badge inv-collected">✅ تم التحصيل</span>',
+    cancelled:'<span class="inv-status-badge inv-cancelled">🚫 ملغية</span>'
+  };
   tbody.innerHTML=S.invoices.map(inv=>`<tr>
     <td style="font-family:var(--mono);color:var(--accent);font-size:12px">${inv.num}</td>
     <td>${inv.client}</td>
@@ -4447,7 +4729,8 @@ function renderInvoices(){
       <button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;padding:4px 9px" onclick="openWaModal('invoice',${inv.id})" title="إرسال واتساب">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="white" style="vertical-align:middle"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
       </button>
-      ${inv.status==='pending'?`<button class="btn btn-success btn-sm" onclick="markPaid(${inv.id})" title="تحديد كمدفوعة">✅</button>`:''}
+      ${inv.status==='pending'?`<button class="btn btn-success btn-sm" onclick="markPaid(${inv.id})" title="تم التحصيل" style="font-size:10px">✅ تحصيل</button>`:''}
+      ${inv.status==='paid'?`<button class="btn btn-ghost btn-sm" onclick="markUncollected(${inv.id})" title="إلغاء التحصيل" style="font-size:10px">↩</button>`:''}
       <button class="btn btn-danger btn-sm" onclick="delInvoice(${inv.id})" title="حذف">🗑</button>
     </div></td>
   </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">لا فواتير</td></tr>';
@@ -5017,6 +5300,9 @@ function updateDash(){
   renderFollowupReminders();
   renderDashTeamTasks();
   renderDashAlerts();
+  renderDashTeamPay();
+  renderDashKanbanMini();
+  renderDashMeetings();
 }
 
 // ============================================================
@@ -5025,6 +5311,7 @@ function updateDash(){
 function renderAll(){
   renderTasks();renderClients();renderFinance();renderInvoices();
   renderGoals();renderSchedule();updateDash();loadSettings();renderTeams();
+  renderMeetings();renderCourses();renderDashTeamPay();renderDashKanbanMini();renderDashMeetings();
   renderSalaryReminders();renderFollowupReminders();
 }
 
@@ -5035,7 +5322,7 @@ const PAGE_TITLES = {
   dashboard:'لوحة التحكم', tasks:'المهام والمشاريع',
   schedule:'تنظيم اليوم',  clients:'قاعدة العملاء',
   finance:'المالية',       invoices:'الفواتير والعقود',
-  learning:'التعلم والأهداف', settings:'إعدادات الاستوديو'
+  learning:'التعلم والأهداف', meetings:'الميتنج والاجتماعات', settings:'إعدادات الاستوديو'
 };
 const PAGE_CTA = {
   dashboard: {label:'+ مهمة جديدة', fn:'openTaskModal()'},
@@ -5044,6 +5331,7 @@ const PAGE_CTA = {
   finance:   {label:'+ دخل',        fn:'openIncomeModal()'},
   invoices:  {label:'+ فاتورة',     fn:'openInvoiceModal()'},
   learning:  {label:'+ هدف جديد',   fn:'openGoalModal()'},
+  meetings:  {label:'+ ميتنج جديد',  fn:'openMeetingModal()'},
   schedule:  {label:'+ وقت جديد',   fn:'openSchedModal()'},
   settings:  {label:'',             fn:''}
 };
@@ -6938,6 +7226,402 @@ function renderDashAlerts(){
 // ============================================================
 // LSLOAD migration for paymentAccounts
 // ============================================================
+
+
+// ============================================================
+// KANBAN DRAG & DROP
+// ============================================================
+let _kbDragId = null;
+
+function kbDragStart(ev, taskId){
+  _kbDragId = taskId;
+  ev.dataTransfer.effectAllowed = 'move';
+  ev.dataTransfer.setData('text/plain', taskId);
+  // add visual class after a tick
+  setTimeout(()=>{
+    const el = document.querySelector(`[data-task-id="${taskId}"]`);
+    if(el) el.classList.add('dragging');
+  }, 0);
+}
+
+function kbDragOver(ev){
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect = 'move';
+  ev.currentTarget.classList.add('drag-over');
+}
+
+function kbDragLeave(ev){
+  ev.currentTarget.classList.remove('drag-over');
+}
+
+function kbDrop(ev){
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('drag-over');
+  const taskId = +(_kbDragId || ev.dataTransfer.getData('text/plain'));
+  const newStatus = ev.currentTarget.dataset.status;
+  if(!taskId || !newStatus) return;
+  const task = S.tasks.find(t=>t.id===taskId);
+  if(!task) return;
+  if(task.status === newStatus){ _kbDragId=null; return; }
+  task.status = newStatus;
+  task.done   = false;
+  lsSave(); renderTasks();
+  showMiniNotif('✅ '+({'new':'📋 جديد','progress':'⚡ قيد التنفيذ','review':'🔍 مراجعة','paused':'⏸ موقوف'}[newStatus]||newStatus));
+  _kbDragId = null;
+  document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
+}
+
+function kbDropPrio(ev){
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('drag-over');
+  const taskId = +(_kbDragId || ev.dataTransfer.getData('text/plain'));
+  const newPrio = ev.currentTarget.dataset.priority;
+  if(!taskId || !newPrio) return;
+  const task = S.tasks.find(t=>t.id===taskId);
+  if(!task) return;
+  task.priority = newPrio;
+  task.done     = false;
+  lsSave(); renderTasks();
+  showMiniNotif('✅ '+({'high':'🔴 عاجل','med':'🟡 متوسط','low':'🟢 عادي'}[newPrio]||newPrio));
+  _kbDragId = null;
+  document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
+}
+
+// Touch support for mobile drag (swap via long-press menu)
+function kbMobileMoveTask(taskId, newStatus){
+  const task = S.tasks.find(t=>t.id===taskId); if(!task) return;
+  task.status = newStatus;
+  task.done   = false;
+  lsSave(); renderTasks();
+  showMiniNotif('✅ نُقلت المهمة إلى: '+({'new':'جديد','progress':'قيد التنفيذ','review':'مراجعة','paused':'موقوف'}[newStatus]||newStatus));
+}
+
+// Show context menu for mobile task move (status + priority)
+function kbShowMoveMenu(ev, taskId){
+  ev.preventDefault(); ev.stopPropagation();
+  const existing = document.getElementById('_kb_menu');
+  if(existing) existing.remove();
+  const task = S.tasks.find(t=>t.id===taskId);
+  const statuses = [{id:'new',label:'📋 جديد'},{id:'progress',label:'⚡ قيد التنفيذ'},{id:'review',label:'🔍 مراجعة'},{id:'paused',label:'⏸ موقوف'}];
+  const priorities = [{id:'high',label:'🔴 عاجل'},{id:'med',label:'🟡 متوسط'},{id:'low',label:'🟢 عادي'}];
+  const menu = document.createElement('div');
+  menu.id = '_kb_menu';
+  menu.style.cssText = 'position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:8px;min-width:190px;box-shadow:0 8px 32px rgba(0,0,0,.5)';
+  const x = Math.min((ev.clientX||ev.touches?.[0]?.clientX||100), window.innerWidth-210);
+  const y = Math.min((ev.clientY||ev.touches?.[0]?.clientY||100), window.innerHeight-300);
+  menu.style.left = x+'px'; menu.style.top = y+'px';
+  menu.innerHTML =
+    `<div style="font-size:11px;color:var(--text3);padding:4px 8px 6px;border-bottom:1px solid var(--border);margin-bottom:6px">نقل: "${(task?.title||'').slice(0,22)}"</div>`+
+    `<div style="font-size:10px;color:var(--accent);padding:2px 8px 4px;font-weight:700">الحالة</div>`+
+    statuses.filter(s=>s.id!==(task?.status||'new')).map(s=>
+      `<div onclick="kbMobileMoveTask(${taskId},'${s.id}');document.getElementById('_kb_menu').remove()" style="padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer" onmouseover="this.style.background='rgba(124,111,247,.12)'" onmouseout="this.style.background=''">${s.label}</div>`
+    ).join('')+
+    `<div style="font-size:10px;color:var(--accent2);padding:6px 8px 4px;font-weight:700;border-top:1px solid var(--border);margin-top:4px">الأولوية</div>`+
+    priorities.filter(p=>p.id!==(task?.priority||'med')).map(p=>
+      `<div onclick="kbMobilePrio(${taskId},'${p.id}');document.getElementById('_kb_menu').remove()" style="padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer" onmouseover="this.style.background='rgba(247,201,72,.12)'" onmouseout="this.style.background=''">${p.label}</div>`
+    ).join('');
+  document.body.appendChild(menu);
+  setTimeout(()=>document.addEventListener('click',()=>{const m=document.getElementById('_kb_menu');if(m)m.remove();},{once:true}),100);
+}
+function kbMobilePrio(taskId,newPrio){
+  const t=S.tasks.find(x=>x.id===taskId);if(!t)return;
+  t.priority=newPrio; lsSave(); renderTasks();
+  showMiniNotif('✅ '+({'high':'🔴 عاجل','med':'🟡 متوسط','low':'🟢 عادي'}[newPrio]||newPrio));
+}
+
+
+// ============================================================
+// CLIENT SOCIALS MANAGEMENT
+// ============================================================
+function renderClientSocials(socials){
+  const el=document.getElementById('c-socials-list'); if(!el) return;
+  if(!socials||!socials.length){ el.innerHTML='<div style="font-size:11px;color:var(--text3)">لا حسابات مضافة</div>'; return; }
+  el.innerHTML=socials.map((s,i)=>`
+    <span class="social-tag" data-platform="${s.platform}" data-icon="${s.icon||'🔗'}" data-url="${s.url||''}"
+      style="display:inline-flex;align-items:center;gap:5px;background:rgba(124,111,247,.15);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;margin:2px">
+      ${s.icon||'🔗'} ${s.platform}
+      <a href="${s.url}" target="_blank" style="color:var(--accent3);font-size:10px" onclick="event.stopPropagation()">↗</a>
+      <button onclick="removeClientSocial(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:0;line-height:1">✕</button>
+    </span>`).join('');
+}
+function addClientSocial(){
+  const sel=document.getElementById('c-social-platform');
+  const url=document.getElementById('c-social-url')?.value.trim();
+  if(!url) return alert('أدخل رابط الحساب');
+  const opt=sel.options[sel.selectedIndex];
+  const platform=sel.value;
+  const icon=opt.dataset.icon||'🔗';
+  const existing=[...document.querySelectorAll('#c-socials-list .social-tag')].map(el=>({platform:el.dataset.platform,icon:el.dataset.icon,url:el.dataset.url}));
+  existing.push({platform,icon,url});
+  renderClientSocials(existing);
+  document.getElementById('c-social-url').value='';
+}
+function removeClientSocial(idx){
+  const existing=[...document.querySelectorAll('#c-socials-list .social-tag')].map(el=>({platform:el.dataset.platform,icon:el.dataset.icon,url:el.dataset.url}));
+  existing.splice(idx,1);
+  renderClientSocials(existing);
+}
+
+// ============================================================
+// MEETINGS — CRUD + Render
+// ============================================================
+function openMeetingModal(id){
+  document.getElementById('mtg-modal-title').textContent = id ? '✏ تعديل ميتنج' : '📅 ميتنج جديد';
+  document.getElementById('mtg-eid').value = id||'';
+  // Fill client dropdown
+  const sel=document.getElementById('mtg-client'); if(sel){ sel.innerHTML='<option value="">— اختر عميل —</option>'; S.clients.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=c.name;sel.appendChild(o);}); }
+  if(id){
+    const m=S.meetings.find(x=>x.id===id); if(!m) return;
+    document.getElementById('mtg-title').value=m.title||'';
+    if(sel) sel.value=m.client||'';
+    document.getElementById('mtg-date').value=m.date||'';
+    document.getElementById('mtg-time').value=m.time||'10:00';
+    document.getElementById('mtg-duration').value=m.duration||60;
+    document.getElementById('mtg-type').value=m.type||'online';
+    document.getElementById('mtg-link').value=m.link||'';
+    document.getElementById('mtg-brief').innerHTML=m.brief||'';
+    document.getElementById('mtg-notes').innerHTML=m.notes||'';
+  } else {
+    ['mtg-title','mtg-link'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+    document.getElementById('mtg-date').value=new Date().toISOString().split('T')[0];
+    document.getElementById('mtg-time').value='10:00';
+    document.getElementById('mtg-duration').value=60;
+    document.getElementById('mtg-brief').innerHTML='';
+    document.getElementById('mtg-notes').innerHTML='';
+  }
+  openM('modal-meeting');
+}
+function mtgFormat(cmd,val){ document.getElementById('mtg-brief').focus(); document.execCommand(cmd,false,val||null); }
+function mtgNotesFormat(cmd,val){ document.getElementById('mtg-notes').focus(); document.execCommand(cmd,false,val||null); }
+function saveMeeting(){
+  const title=document.getElementById('mtg-title')?.value.trim(); if(!title) return alert('أدخل عنوان الميتنج');
+  const eid=document.getElementById('mtg-eid')?.value;
+  const d={
+    id:eid?+eid:Date.now(),
+    title, client:document.getElementById('mtg-client')?.value||'',
+    date:document.getElementById('mtg-date')?.value||'',
+    time:document.getElementById('mtg-time')?.value||'',
+    duration:+(document.getElementById('mtg-duration')?.value)||60,
+    type:document.getElementById('mtg-type')?.value||'online',
+    link:document.getElementById('mtg-link')?.value||'',
+    brief:document.getElementById('mtg-brief')?.innerHTML||'',
+    notes:document.getElementById('mtg-notes')?.innerHTML||'',
+    done: eid ? (S.meetings.find(m=>m.id===+eid)?.done||false) : false,
+  };
+  if(eid){const i=S.meetings.findIndex(m=>m.id===+eid);if(i>-1)S.meetings[i]=d;}
+  else S.meetings.push(d);
+  lsSave(); closeM('modal-meeting'); renderMeetings();
+  showMiniNotif('✅ تم حفظ الميتنج: '+title);
+}
+function delMeeting(id){ confirmDel('حذف هذا الميتنج؟',()=>{ S.meetings=S.meetings.filter(m=>m.id!==id); lsSave(); renderMeetings(); }); }
+function toggleMeetingDone(id){ const m=S.meetings.find(x=>x.id===id); if(m){m.done=!m.done;lsSave();renderMeetings();} }
+function renderMeetings(){
+  const list=document.getElementById('meetings-list'); if(!list) return;
+  // Fill client filter
+  const cf=document.getElementById('mtg-filter-client');
+  if(cf){ const cur=cf.value; cf.innerHTML='<option value="">كل العملاء</option>'; S.clients.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=c.name;cf.appendChild(o);}); cf.value=cur; }
+  const sf=document.getElementById('mtg-filter-status')?.value||'';
+  const cff=document.getElementById('mtg-filter-client')?.value||'';
+  let mtgs=[...S.meetings].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+  if(cff) mtgs=mtgs.filter(m=>m.client===cff);
+  if(sf==='upcoming') mtgs=mtgs.filter(m=>!m.done);
+  if(sf==='done') mtgs=mtgs.filter(m=>m.done);
+  const typeIcon={online:'🖥',offline:'📍',phone:'📞',whatsapp:'💬'};
+  if(!mtgs.length){ list.innerHTML='<div class="empty card"><div class="empty-icon">📅</div>لا اجتماعات مطابقة</div>'; return; }
+  list.innerHTML=mtgs.map(m=>`
+    <div class="meeting-card ${m.done?'past':'upcoming'}" onclick="openMeetingDetail(${m.id})">
+      <div style="display:flex;align-items:start;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;${m.done?'text-decoration:line-through;color:var(--text3)':''}">${m.title}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px">${m.client?'👤 '+m.client+' · ':''} ${typeIcon[m.type]||'📅'} ${m.date||''} ${m.time?'⏰ '+m.time:''} ${m.duration?'('+m.duration+' د)':''}</div>
+        </div>
+        <div style="display:flex;gap:5px;flex-shrink:0">
+          <button onclick="event.stopPropagation();toggleMeetingDone(${m.id})" class="btn btn-ghost btn-sm" title="${m.done?'إعادة':'مكتمل'}">${m.done?'↩':'✓'}</button>
+          <button onclick="event.stopPropagation();openMeetingModal(${m.id})" class="btn btn-ghost btn-sm">✏</button>
+          <button onclick="event.stopPropagation();delMeeting(${m.id})" class="btn btn-danger btn-sm">🗑</button>
+        </div>
+      </div>
+      ${m.link?`<a href="${m.link}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:var(--accent);display:block;margin-top:5px">🔗 انضم للاجتماع</a>`:''}
+    </div>`).join('');
+  // Update badge
+  const badge=document.getElementById('meetings-badge');
+  const upcoming=S.meetings.filter(m=>!m.done).length;
+  if(badge){ badge.textContent=upcoming; badge.style.display=upcoming?'inline-flex':'none'; }
+}
+function openMeetingDetail(id){
+  const m=S.meetings.find(x=>x.id===id); if(!m) return;
+  const card=document.getElementById('meeting-detail-card');
+  const body=document.getElementById('meeting-detail-body');
+  if(!card||!body) return;
+  card.style.display='block';
+  const typeLabel={online:'🖥 أونلاين',offline:'📍 حضوري',phone:'📞 مكالمة',whatsapp:'💬 واتساب'};
+  body.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:14px">
+      <div><div style="font-size:15px;font-weight:800">${m.title}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px">${typeLabel[m.type]||''} · ${m.date||''} ${m.time?'⏰ '+m.time:''}</div>
+        ${m.client?`<div style="font-size:12px;color:var(--accent);margin-top:2px">👤 ${m.client}</div>`:''}
+      </div>
+      <button onclick="openMeetingModal(${m.id})" class="btn btn-ghost btn-sm">✏ تعديل</button>
+    </div>
+    ${m.link?`<a href="${m.link}" target="_blank" class="btn btn-primary btn-sm" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;margin-bottom:12px">🔗 انضم للاجتماع</a>`:''}
+    ${m.brief?`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px;text-transform:uppercase">الأجندة</div><div style="background:var(--surface3);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.7">${m.brief}</div></div>`:''}
+    ${m.notes?`<div><div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px;text-transform:uppercase">الملاحظات</div><div style="background:rgba(247,201,72,.06);border:1px solid rgba(247,201,72,.2);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.7">${m.notes}</div></div>`:''}`;
+}
+
+// ============================================================
+// COURSES — CRUD + Render
+// ============================================================
+function previewCourseEmbed(){
+  const url=document.getElementById('course-url')?.value||'';
+  const prev=document.getElementById('course-embed-preview'); if(!prev) return;
+  const ytMatch=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?]+)/);
+  const ytPlaylist=url.match(/youtube\.com\/playlist\?list=([^&]+)/);
+  if(ytMatch){
+    prev.style.display='block';
+    prev.innerHTML=`<div style="position:relative;padding-top:56.25%"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:8px" allowfullscreen></iframe></div>`;
+  } else if(ytPlaylist){
+    prev.style.display='block';
+    prev.innerHTML=`<div style="position:relative;padding-top:56.25%"><iframe src="https://www.youtube.com/embed/videoseries?list=${ytPlaylist[1]}" style="position:absolute;inset:0;width:100%;height:100%;border:none;border-radius:8px" allowfullscreen></iframe></div>`;
+  } else { prev.style.display='none'; prev.innerHTML=''; }
+}
+function openCourseModal(id){
+  document.getElementById('course-modal-title').textContent=id?'✏ تعديل الكورس':'🎓 إضافة كورس / مادة تعليمية';
+  document.getElementById('course-eid').value=id||'';
+  if(id){
+    const c=S.courses.find(x=>x.id===id); if(!c) return;
+    document.getElementById('course-title').value=c.title||'';
+    document.getElementById('course-type').value=c.type||'video';
+    document.getElementById('course-status').value=c.status||'todo';
+    document.getElementById('course-url').value=c.url||'';
+    document.getElementById('course-progress').value=c.progress||0;
+    document.getElementById('course-pct-disp').textContent=(c.progress||0)+'%';
+    document.getElementById('course-platform').value=c.platform||'';
+    document.getElementById('course-notes').value=c.notes||'';
+    previewCourseEmbed();
+  } else {
+    ['course-title','course-url','course-platform','course-notes'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});
+    document.getElementById('course-progress').value=0;
+    document.getElementById('course-pct-disp').textContent='0%';
+    document.getElementById('course-embed-preview').style.display='none';
+  }
+  openM('modal-course');
+}
+function saveCourse(){
+  const title=document.getElementById('course-title')?.value.trim(); if(!title) return alert('أدخل عنوان الكورس');
+  const eid=document.getElementById('course-eid')?.value;
+  const d={id:eid?+eid:Date.now(),title,type:document.getElementById('course-type')?.value||'video',status:document.getElementById('course-status')?.value||'todo',url:document.getElementById('course-url')?.value||'',progress:+(document.getElementById('course-progress')?.value)||0,platform:document.getElementById('course-platform')?.value||'',notes:document.getElementById('course-notes')?.value||''};
+  if(eid){const i=S.courses.findIndex(c=>c.id===+eid);if(i>-1)S.courses[i]=d;}
+  else S.courses.push(d);
+  lsSave(); closeM('modal-course'); renderCourses();
+  showMiniNotif('✅ تم حفظ الكورس: '+title);
+}
+function delCourse(id){ confirmDel('حذف هذا الكورس؟',()=>{ S.courses=S.courses.filter(c=>c.id!==id); lsSave(); renderCourses(); }); }
+function renderCourses(){
+  const el=document.getElementById('courses-grid'); if(!el) return;
+  if(!S.courses||!S.courses.length){ el.innerHTML='<div class="empty card" style="padding:20px"><div class="empty-icon">🎓</div>أضف كورس أو فيديو تعليمي</div>'; return; }
+  const stColor={todo:'var(--text3)',inprogress:'var(--accent2)',done:'var(--accent3)'};
+  const stLabel={todo:'📋 لم أبدأ',inprogress:'⚡ جاري',done:'✅ مكتمل'};
+  el.innerHTML=S.courses.map(c=>{
+    const ytMatch=c.url&&c.url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?]+)/);
+    const thumb=ytMatch?`<div style="position:relative;padding-top:42%;overflow:hidden;border-radius:8px;margin-bottom:10px;background:var(--surface3);cursor:pointer" onclick="toggleCourseEmbed(${c.id})">
+      <img src="https://i.ytimg.com/vi/${ytMatch[1]}/hqdefault.jpg"
+           onerror="this.style.display='none';this.parentElement.querySelector('.yt-thumb-fallback').style.display='flex'"
+           style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:8px" loading="lazy">
+      <div class="yt-thumb-fallback" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:6px">
+        <div style="font-size:28px">▶</div>
+        <div style="font-size:11px;color:var(--text3)">اضغط للمعاينة</div>
+      </div>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;background:rgba(0,0,0,.3)" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
+        <div style="width:44px;height:44px;background:rgba(255,0,0,.85);border-radius:50%;display:flex;align-items:center;justify-content:center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+      </div>
+    </div>`:'';
+    return `<div class="card" style="position:relative">
+      ${thumb}
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:8px">
+        <div style="font-size:13px;font-weight:700;flex:1">${c.title}</div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button onclick="openCourseModal(${c.id})" class="btn btn-ghost btn-sm">✏</button>
+          <button onclick="delCourse(${c.id})" class="btn btn-danger btn-sm">🗑</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <span style="font-size:11px;font-weight:700;color:${stColor[c.status]};background:${stColor[c.status]}18;padding:2px 8px;border-radius:10px">${stLabel[c.status]||c.status}</span>
+        ${c.platform?`<span style="font-size:11px;color:var(--text3);background:var(--surface3);padding:2px 8px;border-radius:10px">${c.platform}</span>`:''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${c.progress||0}%;background:${c.progress>=100?'var(--accent3)':'var(--accent)'};border-radius:3px;transition:width .3s"></div>
+        </div>
+        <span style="font-size:11px;font-weight:700;color:var(--accent);width:32px">${c.progress||0}%</span>
+      </div>
+      ${c.url?`<a href="${c.url}" target="_blank" style="font-size:11px;color:var(--accent3);display:block;margin-bottom:4px">🔗 فتح الكورس</a>`:''}
+      ${ytMatch?`<button onclick="toggleCourseEmbed(${c.id})" class="btn btn-ghost btn-sm" style="width:100%;font-size:11px">▶ معاينة داخل التطبيق</button><div id="cembed-${c.id}" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="width:100%;height:180px;border:none;border-radius:8px" allowfullscreen></iframe></div>`:''}
+    </div>`;}).join('');
+}
+function toggleCourseEmbed(id){
+  const el=document.getElementById('cembed-'+id); if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+
+// ============================================================
+// DASHBOARD TEAM PAY + KANBAN MINI
+// ============================================================
+function renderDashTeamPay(){
+  const list=document.getElementById('dash-team-pay-list'); if(!list) return;
+  const owedTasks=S.tasks.filter(t=>t.workerMember&&!t.done&&t.workerAmount>0&&!t.workerDepositPaid);
+  if(!owedTasks.length){ list.innerHTML='<div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">لا مستحقات متأخرة</div></div>'; return; }
+  // group by member
+  const byMember={};
+  owedTasks.forEach(t=>{ if(!byMember[t.workerMember]) byMember[t.workerMember]=0; byMember[t.workerMember]+=t.workerAmount; });
+  list.innerHTML=Object.entries(byMember).map(([name,total])=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(42,42,58,.25)">
+      <div><div style="font-size:12px;font-weight:700">👤 ${name}</div>
+        <div style="font-size:11px;color:var(--text3)">${owedTasks.filter(t=>t.workerMember===name).length} مهمة</div>
+      </div>
+      <span style="font-size:13px;font-weight:800;color:#64b5f6">${total.toLocaleString()} ج</span>
+    </div>`).join('');
+}
+function renderDashKanbanMini(){
+  const el=document.getElementById('dash-kanban-mini-list'); if(!el) return;
+  const active=S.tasks.filter(t=>!t.done).slice(0,6);
+  if(!active.length){ el.innerHTML='<div class="empty" style="padding:8px 0"><div class="empty-icon">✦</div><div style="font-size:12px">لا مهام نشطة</div></div>'; return; }
+  const stColor={new:'var(--text3)',progress:'var(--accent2)',review:'var(--accent)',paused:'#64b5f6'};
+  const stLabel={new:'📋',progress:'⚡',review:'🔍',paused:'⏸'};
+  el.innerHTML=active.map(t=>`
+    <div onclick="openTaskDetail(${t.id})" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(42,42,58,.2);cursor:pointer">
+      <div class="task-priority priority-${t.priority||'low'}" style="flex-shrink:0"></div>
+      <div style="flex:1;min-width:0;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
+      <span style="font-size:10px;color:${stColor[t.status||'new']};flex-shrink:0">${stLabel[t.status||'new']||''}</span>
+    </div>`).join('');
+  if(S.tasks.filter(t=>!t.done).length>6) el.innerHTML+=`<div onclick="showPage('tasks')" style="font-size:11px;color:var(--accent);padding:5px 0;text-align:center;cursor:pointer">عرض الكل ←</div>`;
+}
+
+// ============================================================
+// DASHBOARD SHORTCUT: call new fns from updateDash
+// ============================================================
+
+
+// ============================================================
+// DASHBOARD MEETINGS SHORTCUT
+// ============================================================
+function renderDashMeetings(){
+  const el=document.getElementById('dash-meetings-shortcut'); if(!el) return;
+  const upcoming=(S.meetings||[]).filter(m=>!m.done && m.date>=new Date().toISOString().split('T')[0]).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
+  if(!upcoming.length){ el.innerHTML='<div class="empty" style="padding:8px 0"><div class="empty-icon">📅</div>لا ميتنجات قادمة</div>'; return; }
+  const typeIcon={online:'🖥',offline:'📍',phone:'📞',whatsapp:'💬'};
+  el.innerHTML=upcoming.map(m=>`
+    <div onclick="showPage('meetings')" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(42,42,58,.25);cursor:pointer">
+      <div style="background:rgba(124,111,247,.15);border-radius:8px;padding:6px 8px;text-align:center;flex-shrink:0;min-width:42px">
+        <div style="font-size:11px;font-weight:800;color:var(--accent)">${m.date?m.date.slice(8):'—'}</div>
+        <div style="font-size:9px;color:var(--text3)">${m.date?['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'][+m.date.slice(5,7)-1]?.slice(0,3)||'':''}</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.title}</div>
+        <div style="font-size:11px;color:var(--text3)">${m.client?m.client+' · ':''} ${typeIcon[m.type]||'📅'} ${m.time||''}</div>
+      </div>
+    </div>`).join('');
+}
 
 initAuth();
 renderAll();
