@@ -3520,6 +3520,7 @@ const FREE_PAGES = ['dashboard', 'settings'];
 
 function hasActiveSub(){
   if(!_supaUserId) return true;
+  if(_isAdminUser) return true;  // المشرف له اشتراك مدى الحياة تلقائياً
   if(!_userSubscription) return false;
   if(_userSubscription.billing==='lifetime') return true;
   if(!_userSubscription.expiresAt) return true;
@@ -3534,13 +3535,14 @@ function _getPlanFeatures(){
 // هل الصفحة دي مسموحة في الباقة؟
 function hasPageFeature(pageId){
   if(!_supaUserId || !hasActiveSub()) return false;
+  if(_isAdminUser) return true;  // المشرف يوصل لكل الأقسام
   const f = _getPlanFeatures();
   const map = { tasks:'tasks', clients:'clients', finance:'finance',
     invoices:'invoices', schedule:'schedule', team:'team',
     reports:'reports', meetings:'meetings', learning:'learning' };
   const key = map[pageId];
-  if(!key) return true; // صفحات بدون feature key (settings,dashboard) = مفتوحة
-  if(!(key in f)) return true; // لو الباقة مش محددة = مفتوحة
+  if(!key) return true;
+  if(!(key in f)) return true;
   return !!f[key];
 }
 
@@ -6640,6 +6642,128 @@ function updateSubscriptionBar() {
   }
 }
 
+// ── Sub Modal Tabs ──
+function switchSubTab(tab) {
+  ['current','plans'].forEach(t => {
+    document.getElementById('subtab-' + t)?.classList.toggle('active', t === tab);
+    const p = document.getElementById('subtabp-' + t);
+    if(p) p.style.display = t === tab ? 'block' : 'none';
+  });
+  if(tab === 'plans') renderPlansListing();
+}
+
+// ── Plans Listing ──
+async function renderPlansListing() {
+  const el = document.getElementById('plans-listing-body');
+  if(!el) return;
+
+  // اجلب الباقات من Supabase أو localStorage
+  let plans = [];
+  try {
+    const { data } = await supa.from('subscription_plans').select('*').eq('active', true).order('price_monthly');
+    if(data && data.length) plans = data;
+  } catch(e) {}
+  if(!plans.length) {
+    plans = JSON.parse(localStorage.getItem('admin_plans') || localStorage.getItem('plans') || '[]');
+    plans = plans.filter(p => p.active !== false);
+  }
+
+  if(!plans.length) {
+    el.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text3)">
+      <div style="font-size:36px;margin-bottom:10px">📭</div>
+      <div>لا توجد باقات متاحة حالياً</div>
+      <div style="font-size:12px;margin-top:6px">تواصل معنا عبر واتساب</div>
+    </div>`;
+    return;
+  }
+
+  const cfg = JSON.parse(localStorage.getItem('platform_config') || '{}');
+  const wa  = cfg.whatsapp || '201090412218';
+  const appName = cfg.name || 'Studio OS';
+  const currentPlanId = _userSubscription?.planId || _userSubscription?.plan_id;
+
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-align:center">اختر الباقة المناسبة لك — تواصل معنا للحصول على كود التفعيل</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${plans.map(plan => {
+        const f = plan.features || {};
+        const isCurrent = plan.id === currentPlanId;
+        const price = plan.price_monthly;
+        const priceAnnual = plan.price_annual;
+
+        const featureList = [
+          f.tasks !== false     && '📋 المهام والمشاريع',
+          f.clients !== false   && '👥 إدارة العملاء',
+          f.finance !== false   && '💰 المالية',
+          f.invoices !== false  && '🧾 الفواتير',
+          f.schedule            && '📅 جدولة اليوم',
+          f.reports             && '📊 التقارير',
+          f.team                && '👨‍💼 فريق العمل',
+          f.cloud !== false     && '☁️ السحابة',
+        ].filter(Boolean);
+
+        const limits = [
+          f.max_tasks       ? 'حد المهام: ' + f.max_tasks      : 'مهام غير محدودة',
+          f.max_clients_feat? 'حد العملاء: ' + f.max_clients_feat : 'عملاء غير محدودين',
+          f.max_invoices    ? 'حد الفواتير: ' + f.max_invoices  : 'فواتير غير محدودة',
+        ];
+
+        const waMsg = encodeURIComponent('مرحباً، أريد الاشتراك في ' + appName + ' — باقة ' + plan.name);
+
+        return \`<div style="border:1.5px solid \${isCurrent ? 'var(--accent)' : 'var(--border)'};border-radius:14px;overflow:hidden;position:relative;background:\${isCurrent ? 'rgba(108,99,255,.04)' : 'var(--surface2)'}">
+          \${isCurrent ? '<div style="position:absolute;top:10px;left:10px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px">باقتك الحالية</div>' : ''}
+          <div style="padding:16px 16px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="font-size:32px">\${plan.icon || '📦'}</div>
+              <div>
+                <div style="font-size:16px;font-weight:900">\${plan.name}</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">\${plan.desc || ''}</div>
+              </div>
+            </div>
+            <div style="text-align:left;flex-shrink:0">
+              \${price ? \`<div style="font-size:20px;font-weight:900;color:var(--accent)">\${price.toLocaleString()} <span style="font-size:12px">ج/شهر</span></div>\` : '<div style="font-size:15px;font-weight:900;color:var(--accent3)">مجاني</div>'}
+              \${priceAnnual ? \`<div style="font-size:11px;color:var(--text3)">\${priceAnnual.toLocaleString()} ج/سنة</div>\` : ''}
+            </div>
+          </div>
+          <div style="padding:0 16px 12px;display:flex;flex-wrap:wrap;gap:6px">
+            \${featureList.map(f=>\`<span style="background:rgba(108,99,255,.1);color:var(--accent);padding:3px 9px;border-radius:20px;font-size:11px">\${f}</span>\`).join('')}
+          </div>
+          <div style="padding:0 16px 14px;display:flex;flex-wrap:wrap;gap:4px">
+            \${limits.map(l=>\`<span style="background:var(--surface3);color:var(--text2);padding:2px 8px;border-radius:10px;font-size:10px">\${l}</span>\`).join('')}
+          </div>
+          <div style="padding:12px 16px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:8px">
+            \${isCurrent
+              ? '<div style="flex:1;text-align:center;font-size:12px;color:var(--accent3);font-weight:700;padding:8px">✅ باقتك الحالية</div>'
+              : \`<button onclick="openCodeActivation('\${plan.id}','\${plan.name}')"
+                  style="flex:1;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">
+                  🔑 عندي كود — فعّل الآن
+                </button>
+                <a href="https://wa.me/\${wa}?text=\${waMsg}" target="_blank"
+                  style="flex:1;background:#25D366;color:#fff;border:none;border-radius:8px;padding:10px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                  اطلب كود
+                </a>\`
+            }
+          </div>
+        </div>\`;
+      }).join('')}
+    </div>`;
+}
+
+function openCodeActivation(planId, planName) {
+  const si = document.getElementById('_si_serial');
+  const msg = document.getElementById('_si_msg');
+  // Switch to current tab and show code input highlighted
+  switchSubTab('current');
+  // Scroll to activation input
+  if(si) {
+    si.focus();
+    si.style.borderColor = 'var(--accent)';
+    si.placeholder = 'أدخل كود باقة ' + planName + '...';
+    setTimeout(() => { si.style.borderColor = ''; }, 3000);
+  }
+}
+
 function openSubscriptionInfo() {
   const body = document.getElementById('sub-info-body');
   if(!body) return;
@@ -6716,6 +6840,7 @@ function openSubscriptionInfo() {
     `;
   }
   openM('modal-subscription-info');
+  switchSubTab('current');
 }
 
 // ══ ADMIN CHOICE OVERLAY ══
@@ -6800,20 +6925,29 @@ function migrateSFields(){
 
 async function doLogout(){
   if(!confirm('هل تريد تسجيل الخروج؟')) return;
-  await supa.auth.signOut();
+  try { await supa.auth.signOut(); } catch(e) {}
   _supaUserId = null;
+  _userSubscription = null;
   clearSession();
+  // Hide app, show auth
+  const shell = document.getElementById('app-body') || document.querySelector('.app-shell');
+  if(shell) shell.style.display = 'none';
   ['login-phone','login-password','reg-name','reg-phone','reg-studio','reg-password','reg-password2'].forEach(id=>{
     const el=document.getElementById(id); if(el)el.value='';
   });
   clearAuthMessages();
   checkPwStrength('');
   const screen=document.getElementById('auth-screen');
-  screen.classList.remove('hidden');
-  screen.style.opacity='0';
-  screen.style.transition='opacity .35s ease';
-  requestAnimationFrame(()=>{ screen.style.opacity='1'; });
+  if(screen){
+    screen.classList.remove('hidden');
+    screen.style.display='';
+    screen.style.opacity='0';
+    screen.style.transition='opacity .35s ease';
+    requestAnimationFrame(()=>{ screen.style.opacity='1'; });
+  }
   switchAuthTab('login');
+  // Reload page as safest option
+  setTimeout(()=>{ window.location.reload(); }, 400);
 }
 
 function updateUserBadge(user){
@@ -9379,12 +9513,30 @@ setTimeout(()=>{ initBackupTimers(); }, 1500);
 <!-- ═══ PROFILE MODAL ═══ -->
 <!-- ═══ SUBSCRIPTION INFO MODAL ═══ -->
 <div class="modal-overlay" id="modal-subscription-info">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-header">
+  <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
+    <div class="modal-header" style="position:sticky;top:0;background:var(--surface);z-index:2">
       <div class="modal-title">📦 اشتراكي</div>
       <button class="close-btn" onclick="closeM('modal-subscription-info')">✕</button>
     </div>
-    <div id="sub-info-body"></div>
+
+    <!-- تبويبات: اشتراكي الحالي | الباقات المتاحة -->
+    <div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:16px">
+      <button class="stab active" id="subtab-current" onclick="switchSubTab('current')" style="font-size:12px">📋 اشتراكي الحالي</button>
+      <button class="stab" id="subtab-plans" onclick="switchSubTab('plans')" style="font-size:12px">🚀 الباقات المتاحة</button>
+    </div>
+
+    <!-- اشتراكي الحالي -->
+    <div id="subtabp-current">
+      <div id="sub-info-body"></div>
+    </div>
+
+    <!-- الباقات المتاحة -->
+    <div id="subtabp-plans" style="display:none">
+      <div id="plans-listing-body">
+        <div style="text-align:center;padding:20px;color:var(--text3)">جاري تحميل الباقات...</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
