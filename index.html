@@ -6474,6 +6474,40 @@ const USERS_KEY = 'studioOS_users_v1';
 // ── local compat shims (kept for backup/restore) ──
 function getUsers(){ try{ return JSON.parse(localStorage.getItem(USERS_KEY)||'[]'); }catch(e){return [];} }
 function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+async function _trackLoginEvent(uid) {
+  try {
+    const device = navigator.userAgent.includes('Mobile') ? 'موبايل' :
+                   navigator.userAgent.includes('Tablet') ? 'تابلت' : 'كمبيوتر';
+    const logEntry = { time: new Date().toISOString(), device };
+
+    // جيب البيانات الحالية
+    const { data: sd } = await supa.from('studio_data').select('data').eq('user_id', uid).maybeSingle();
+    let parsed = {};
+    if(sd?.data) {
+      try { parsed = typeof sd.data === 'string' ? JSON.parse(sd.data) : sd.data; } catch(e) {}
+    }
+    // أضف الـ login log
+    const log = parsed._login_log || [];
+    log.unshift(logEntry);
+    if(log.length > 100) log.splice(100);
+    parsed._login_log = log;
+
+    await supa.from('studio_data')
+      .update({ data: JSON.stringify(parsed) })
+      .eq('user_id', uid);
+  } catch(e) { console.warn('Login tracking failed:', e.message); }
+}
+
+// ─── Check if account is banned ───
+async function _checkAccountBanned(uid) {
+  try {
+    const { data: sd } = await supa.from('studio_data').select('data').eq('user_id', uid).maybeSingle();
+    if(!sd?.data) return false;
+    const parsed = typeof sd.data === 'string' ? JSON.parse(sd.data) : sd.data;
+    return parsed._account_banned === true;
+  } catch(e) { return false; }
+}
+
 function getSession(){ try{ return JSON.parse(localStorage.getItem(AUTH_KEY)||'null'); }catch(e){return null;} }
 function saveSession(u){ localStorage.setItem(AUTH_KEY, JSON.stringify(u)); }
 function clearSession(){ localStorage.removeItem(AUTH_KEY); }
@@ -6624,6 +6658,9 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   };
   saveSession(userObj);
 
+  // ── تسجيل حدث الدخول في studio_data ──
+  _trackLoginEvent(supaUser.id);
+
   // ── حمّل من السحابة أولاً ──
   showSyncIndicator('☁️ جاري تحميل بياناتك...', 'var(--accent)');
   const cloudData = await cloudLoad();
@@ -6654,6 +6691,18 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   const isAdmin  = meta.role === 'admin' || meta.is_admin === true;
   const isViewer = meta.role === 'viewer';
   _isAdminUser = isAdmin || isViewer;
+
+  // ── تحقق من حالة الحظر ──
+  const isBanned = await _checkAccountBanned(supaUser.id);
+  if(isBanned) {
+    await supa.auth.signOut();
+    const screen = document.getElementById('auth-screen');
+    if(screen) { screen.classList.remove('hidden'); screen.style.display=''; }
+    setTimeout(() => {
+      alert('⛔ هذا الحساب موقوف. تواصل مع الإدارة للمساعدة.');
+    }, 300);
+    return;
+  }
 
   // ── حمّل الاشتراك قبل أي render ──
   await loadUserSubscription(supaUser.id);
