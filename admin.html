@@ -1663,16 +1663,18 @@ function _supaRowToSerial(row) {
 }
 
 function _serialToSupaPayload(s) {
-  return {
+  const p = {
     code:         s.code,
-    plan_id:      s.planId,
+    plan_id:      s.planId    || null,
     billing:      s.billing   || 'monthly',
     note:         s.note      || null,
     status:       s.status    || 'unused',
-    user_id:      s.userId    || null,
     activated_at: s.activatedAt || null,
-    expires_at:   s.expiresAt   || null
+    expires_at:   s.expiresAt !== undefined ? s.expiresAt : null
   };
+  // user_id: حطّها دايماً — حتى لو null (مش نمسحها بالغلط)
+  if('userId' in s) p.user_id = s.userId || null;
+  return p;
 }
 
 async function syncSerialsFromSupabase() {
@@ -1692,36 +1694,53 @@ async function syncSerialsFromSupabase() {
 async function supaUpsertSerial(serial) {
   try {
     const payload = _serialToSupaPayload(serial);
-    let result;
-    const isUUID = (v) => v && typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v);
-    if (isUUID(serial._supaId)) {
-      const { data, error } = await supa.from('serial_keys').update(payload).eq('id', serial._supaId).select().single();
-      if (error) throw error;
-      result = data;
-    } else if (isUUID(serial.id)) {
-      const { data, error } = await supa.from('serial_keys').update(payload).eq('id', serial.id).select().single();
-      if (error) throw error;
-      result = data;
-      serial._supaId = serial.id;
-    } else if (serial.code) {
-      // fallback: ابحث بالكود وعمّل update
-      const { data: existing } = await supa.from('serial_keys').select('id').eq('code', serial.code).maybeSingle();
-      if (existing && existing.id) {
-        const { data, error } = await supa.from('serial_keys').update(payload).eq('id', existing.id).select().single();
-        if (error) throw error;
-        result = data;
-        serial._supaId = existing.id;
-      } else {
-        const { data, error } = await supa.from('serial_keys').insert(payload).select().single();
-        if (error) throw error;
-        result = data;
-        if (result) serial._supaId = result.id;
+    const isUUID  = (v) => v && typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v);
+
+    // تحديد الـ ID الصحيح للـ record في Supabase
+    let supaId = isUUID(serial._supaId) ? serial._supaId
+               : isUUID(serial.id)      ? serial.id
+               : null;
+
+    // لو مش عندنا UUID — ابحث بالكود
+    if(!supaId && serial.code) {
+      const { data: found } = await supa
+        .from('serial_keys').select('id').eq('code', serial.code).maybeSingle();
+      if(found?.id) {
+        supaId = found.id;
+        serial._supaId = supaId;
       }
     }
+
+    let result;
+    if(supaId) {
+      // UPDATE — الـ record موجود
+      const { data, error } = await supa
+        .from('serial_keys').update(payload).eq('id', supaId).select().single();
+      if(error) {
+        // لو RLS رفضت — جرب بدون user_id في الـ filter (Supabase admin bypass غير متاح بدون service key)
+        // الحل: نعمل upsert بدلاً من update
+        const upsertPayload = { ...payload, id: supaId };
+        const { data: d2, error: e2 } = await supa
+          .from('serial_keys').upsert(upsertPayload, { onConflict: 'id' }).select().single();
+        if(e2) throw e2;
+        result = d2;
+      } else {
+        result = data;
+      }
+      if(!serial._supaId) serial._supaId = supaId;
+    } else {
+      // INSERT — كود جديد مش موجود
+      const { data, error } = await supa
+        .from('serial_keys').insert(payload).select().single();
+      if(error) throw error;
+      result = data;
+      if(result) { serial._supaId = result.id; serial.id = result.id; }
+    }
+
     lsSet('serials', SERIALS);
     return true;
   } catch(e) {
-    console.warn('supaUpsertSerial failed:', e.message);
+    console.warn('supaUpsertSerial failed:', e.message, e);
     lsSet('serials', SERIALS);
     return false;
   }
@@ -3585,23 +3604,32 @@ async function saveEditSubscription() {
   const btn = document.querySelector('#modal-edit-sub .btn-primary');
   if(btn) { btn.disabled=true; btn.textContent='⏳ جاري الحفظ...'; }
 
-  let serial = SERIALS.find(s => s.userId === uid);
+  // ابحث عن الكود المرتبط بالمستخدم
+  let serial = SERIALS.find(s => s.userId === uid && s.status === 'active');
+  if(!serial) serial = SERIALS.find(s => s.userId === uid); // fallback: أي كود
+
   if(serial) {
-    serial.planId  = planId;
-    serial.billing = billing;
-    serial.status  = 'active';
-    if(expires) serial.expiresAt = new Date(expires).toISOString();
-    else if(billing === 'lifetime') serial.expiresAt = null;
-    else {
+    // عدّل البيانات مع الحفاظ على userId و activatedAt و code
+    serial.planId      = planId;
+    serial.billing     = billing;
+    serial.status      = 'active';
+    serial.userId      = uid;  // تأكيد إن userId موجود
+    // حساب تاريخ الانتهاء
+    if(expires) {
+      serial.expiresAt = new Date(expires).toISOString();
+    } else if(billing === 'lifetime') {
+      serial.expiresAt = null;
+    } else {
       const plan = PLANS.find(p => p.id === planId);
       const exp = new Date();
       exp.setDate(exp.getDate() + (plan?.duration_days || 30));
       serial.expiresAt = exp.toISOString();
     }
   } else {
+    // مفيش كود — أنشئ واحد جديد
     const code = generateCode();
     serial = {
-      id: Date.now() + Math.random(), code, planId, billing,
+      code, planId, billing,
       status: 'active', userId: uid,
       activatedAt: new Date().toISOString(),
       expiresAt: expires ? new Date(expires).toISOString() : null,
