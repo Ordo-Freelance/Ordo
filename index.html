@@ -3693,31 +3693,14 @@ async function _activateCode(inputId, msgId, onSuccess){
   }, 15000);
 
   try{
-    // ابحث بالكود — query واحدة بـ OR تغطي كلا الـ columns
+    // البحث عن الكود في serial_keys — column اسمه 'code'
     let data = null, error = null;
-
-    // جرّب or filter: code=X OR key_code=X
-    // Supabase or() filter — code بيحتوي على - فنحتاج quotes
-    const codeFilter = 'code.eq."' + code + '",key_code.eq."' + code + '"';
-    const r1 = await supa
-      .from('serial_keys')
-      .select('*')
-      .or(codeFilter)
-      .limit(1);
-
-    if(!r1.error && r1.data && r1.data.length > 0) {
-      data = r1.data[0];
-      if(!data.code && data.key_code) data.code = data.key_code;
+    const r1 = await supa.from('serial_keys').select('*').eq('code', code).maybeSingle();
+    if(!r1.error && r1.data) {
+      data = r1.data;
     } else if(r1.error) {
-      // fallback: جرّب key_code فقط
-      const r2 = await supa.from('serial_keys').select('*').eq('key_code', code).limit(1);
-      if(!r2.error && r2.data && r2.data.length > 0) {
-        data = r2.data[0];
-        data.code = data.key_code;
-      } else {
-        error = r1.error;
-        console.error('Lookup failed:', r1.error?.message, '| code tried:', code);
-      }
+      error = r1.error;
+      console.error('Code lookup failed:', r1.error?.message, '| code tried:', code);
     }
 
     if(error){
@@ -6707,8 +6690,6 @@ async function loadUserSubscription(uid) {
     const { data: sd1, error: se1 } = await supa
       .from('serial_keys').select('*').eq('user_id', uid).eq('status','active').maybeSingle();
     if(!se1 && sd1) { serialData = sd1; }
-    // normalize code field
-    if(serialData && !serialData.code && serialData.key_code) serialData.code = serialData.key_code;
 
     if(!serialData) {
       _userSubscription = null;
