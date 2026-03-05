@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- saved from url=(0063)file:///C:/Users/Mahmoud%20Ragab/Downloads/studio-os%20(9).html -->
 <html lang="ar" dir="rtl"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2489,15 +2488,21 @@ setTimeout(window._showApp, 4000);
   </div>
 
   <!-- ── وسائل الدفع ── -->
-  <div class="card" style="margin-top:16px">
+  <div class="card" style="margin-top:16px" id="payment-accounts-card">
     <div class="section-title">💳 وسائل الدفع والحسابات</div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:12px">أضف وسائل الدفع اللي بتستخدمها — بتظهر عند تسجيل الدخل والصرف</div>
     <div id="payment-accounts-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <div id="payment-accounts-add" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <input class="form-input" id="new-account-name" placeholder="اسم الحساب (مثال: فودافون كاش)" style="flex:1;min-width:160px">
       <input class="form-input" id="new-account-icon" placeholder="📱" style="width:66px;text-align:center">
       <input class="form-input" id="new-account-color" type="color" value="#7c6ff7" style="width:44px;height:36px;padding:2px;cursor:pointer;border-radius:8px">
       <button class="btn btn-ghost btn-sm" onclick="addPaymentAccount()">+ إضافة</button>
+    </div>
+    <!-- overlay قفل وسائل الدفع -->
+    <div id="payment-lock-overlay" style="display:none;position:absolute;inset:0;background:rgba(7,8,15,.75);backdrop-filter:blur(6px);border-radius:inherit;z-index:10;align-items:center;justify-content:center;flex-direction:column;gap:8px;text-align:center;padding:20px">
+      <div style="font-size:26px">🔒</div>
+      <div style="font-size:13px;font-weight:700">يتطلب اشتراكاً نشطاً</div>
+      <div style="font-size:11px;color:var(--text2)">فعّل كودك للوصول لوسائل الدفع</div>
     </div>
   </div>
 
@@ -3249,7 +3254,7 @@ lsLoad();
 // ============================================================
 const BN_MAIN=['dashboard','tasks','invoices','clients'];
 // ── الصفحات المجانية بدون اشتراك ──
-const FREE_PAGES = ['dashboard'];
+const FREE_PAGES = ['dashboard', 'settings'];
 
 function hasActiveSub(){
   if(!_supaUserId) return true;
@@ -3358,10 +3363,10 @@ async function _activateCode(inputId, msgId, onSuccess){
   const btn=inp.parentElement?.querySelector('button');
   if(btn) btn.disabled=true;
   try{
-    // ابحث بالكود فقط أولاً (بدون فلتر status/user_id علشان الـ RLS)
+    // ابحث بالكود فقط بدون JOIN
     const {data,error}=await supa
       .from('serial_keys')
-      .select('*,subscription_plans(*)')
+      .select('*')
       .eq('code',code)
       .maybeSingle();
 
@@ -3399,10 +3404,18 @@ async function _activateCode(inputId, msgId, onSuccess){
       return;
     }
 
-    // الكود صحيح وغير مستخدم — فعّله
-    const plan=data.subscription_plans, now=new Date();
+    // الكود صحيح وغير مستخدم — جيب الباقة منفصلاً وفعّله
+    let plan = null;
+    try {
+      const {data: planRow} = await supa.from('subscription_plans').select('*').eq('id', data.plan_id).maybeSingle();
+      plan = planRow;
+    } catch(pe) {
+      const lsPlans = JSON.parse(localStorage.getItem('admin_plans')||'[]');
+      plan = lsPlans.find(p => p.id === data.plan_id) || null;
+    }
+    const now=new Date();
     let exp=null;
-    if(data.billing!=='lifetime'&&plan?.duration_days){
+    if(data.billing!=='lifetime' && plan?.duration_days){
       const d=new Date(now);d.setDate(d.getDate()+plan.duration_days);exp=d.toISOString();
     }
     const {error:e2}=await supa
@@ -3438,10 +3451,16 @@ function _updateNavLocks(){
     const oc=el.getAttribute('onclick')||'';
     if(!oc.includes('showPage')) return;
     if(oc.includes("'dashboard'")||oc.includes('"dashboard"')) return;
+    if(oc.includes("'settings'")||oc.includes('"settings"')) return;
     const ic=document.createElement('span');
     ic.className='_nl';ic.style.cssText='font-size:10px;opacity:.55;margin-right:auto;flex-shrink:0';
     ic.textContent='🔒';el.appendChild(ic);
   });
+  // قفّل / افتح قسم وسائل الدفع في الإعدادات
+  const card = document.getElementById('payment-accounts-card');
+  const overlay = document.getElementById('payment-lock-overlay');
+  if(card) card.style.position = 'relative';
+  if(overlay) overlay.style.display = locked ? 'flex' : 'none';
 }
 
 
@@ -6157,44 +6176,43 @@ let _userSubscription = null;
 
 async function loadUserSubscription(uid) {
   try {
-    const { data, error } = await supa
+    // جيب السيريال الأول بدون JOIN
+    const { data: serialData, error: serialErr } = await supa
       .from('serial_keys')
-      .select('*, subscription_plans(*)')
+      .select('*')
       .eq('user_id', uid)
       .eq('status', 'active')
       .maybeSingle();
 
-    if(error || !data) {
-      // Check localStorage (from admin dashboard)
-      const lsSerials = JSON.parse(localStorage.getItem('admin_serials')||'[]');
-      const serial = lsSerials.find(s => s.userId === uid);
-      if(serial) {
-        const lsPlans = JSON.parse(localStorage.getItem('admin_plans')||'[]');
-        const plan = lsPlans.find(p => p.id === serial.planId);
-        _userSubscription = {...serial, plan};
-      } else {
-        _userSubscription = null;
-      }
+    if(serialErr || !serialData) {
+      _userSubscription = null;
     } else {
+      // جيب الباقة بشكل منفصل
+      let plan = null;
+      try {
+        const { data: planData } = await supa
+          .from('subscription_plans')
+          .select('*')
+          .eq('id', serialData.plan_id)
+          .maybeSingle();
+        plan = planData;
+      } catch(pe) {
+        // لو مفيش جدول subscription_plans، استخدم الباقات المحلية
+        const lsPlans = JSON.parse(localStorage.getItem('admin_plans')||'[]');
+        plan = lsPlans.find(p => p.id === serialData.plan_id) || null;
+      }
       _userSubscription = {
-        ...data,
-        planId: data.plan_id,
-        billing: data.billing,
-        expiresAt: data.expires_at,
-        activatedAt: data.activated_at,
-        plan: data.subscription_plans
+        ...serialData,
+        planId:      serialData.plan_id,
+        billing:     serialData.billing,
+        expiresAt:   serialData.expires_at,
+        activatedAt: serialData.activated_at,
+        plan
       };
     }
   } catch(e) {
-    // Fallback to localStorage
-    const lsSerials = JSON.parse(localStorage.getItem('admin_serials')||'[]');
-    const serial = lsSerials.find(s => s.userId === uid);
-    if(serial) {
-      const lsPlans = JSON.parse(localStorage.getItem('admin_plans')||'[]');
-      _userSubscription = {...serial, plan: lsPlans.find(p=>p.id===serial.planId)};
-    } else {
-      _userSubscription = null;
-    }
+    console.warn('loadUserSubscription error:', e);
+    _userSubscription = null;
   }
   updateSubscriptionBar();
   _updateNavLocks();
