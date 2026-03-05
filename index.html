@@ -1360,7 +1360,7 @@ window._showApp = function(){
   document.body.style.visibility = 'visible';
 };
 // Fallback: show after 4s no matter what (increased from 2s to allow sub load)
-setTimeout(window._showApp, 2000);
+setTimeout(window._showApp, 4000);
 </script>
 
 <!-- ═══ AUTH SCREEN ═══ -->
@@ -6144,9 +6144,8 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   setTimeout(()=>{ screen.classList.add('hidden'); screen.style.opacity=''; }, 400);
 
   if(isAdmin || isViewer) {
-    // فتح مباشر بدون overlay — زرار الأدمن موجود في السايدبار
+    showAdminChoiceOverlay(userObj, isAdmin);
     showSyncIndicator('✅ أهلاً ' + (userObj.name||''), '#4fd1a5');
-    setTimeout(()=>{ _addAdminSwitchBtn(); }, 600);
     return;
   }
 
@@ -6356,7 +6355,7 @@ function goToUserSite(){
 }
 
 function goToAdminDash(){
-  window.open('StudioOS_Admin_v5.html','_blank');
+  window.open('StudioOS_Admin_v3.html','_blank');
 }
 
 function _addAdminSwitchBtn(){
