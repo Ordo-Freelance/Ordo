@@ -1664,7 +1664,6 @@ function _supaRowToSerial(row) {
 
 function _serialToSupaPayload(s) {
   const p = {
-    code:         s.code,
     plan_id:      s.planId    || null,
     billing:      s.billing   || 'monthly',
     note:         s.note      || null,
@@ -1672,7 +1671,9 @@ function _serialToSupaPayload(s) {
     activated_at: s.activatedAt || null,
     expires_at:   s.expiresAt !== undefined ? s.expiresAt : null
   };
-  // user_id: حطّها دايماً — حتى لو null (مش نمسحها بالغلط)
+  // support both 'code' and 'key_code' column names
+  if(s.code) { p.code = s.code; p.key_code = s.code; }
+  // user_id: حطّها دايماً
   if('userId' in s) p.user_id = s.userId || null;
   return p;
 }
@@ -1701,14 +1702,23 @@ async function supaUpsertSerial(serial) {
                : isUUID(serial.id)      ? serial.id
                : null;
 
-    // لو مش عندنا UUID — ابحث بالكود
+    // لو مش عندنا UUID — ابحث بالكود (جرب code و key_code)
     if(!supaId && serial.code) {
-      const { data: found } = await supa
-        .from('serial_keys').select('id').eq('code', serial.code).maybeSingle();
-      if(found?.id) {
-        supaId = found.id;
-        serial._supaId = supaId;
+      let found = null;
+      const { data: f1 } = await supa.from('serial_keys').select('id').eq('code', serial.code).maybeSingle();
+      if(f1?.id) { found = f1; }
+      else {
+        const { data: f2 } = await supa.from('serial_keys').select('id').eq('key_code', serial.code).maybeSingle();
+        if(f2?.id) found = f2;
       }
+      if(found?.id) { supaId = found.id; serial._supaId = supaId; }
+    }
+
+    // لو لسه مفيش — ابحث بـ user_id وplan_id (للتعديل من الأدمن)
+    if(!supaId && serial.userId && serial.planId) {
+      const { data: byUser } = await supa.from('serial_keys')
+        .select('id').eq('user_id', serial.userId).eq('status','active').maybeSingle();
+      if(byUser?.id) { supaId = byUser.id; serial._supaId = supaId; }
     }
 
     let result;
