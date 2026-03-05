@@ -3683,28 +3683,40 @@ async function _activateCode(inputId, msgId, onSuccess){
   msg.style.color='var(--text2)';msg.textContent='⏳ جاري التحقق من الكود...';
   const btn=inp.parentElement?.querySelector('button');
   if(btn) btn.disabled=true;
+  // Timeout safety — if hanging > 15s, show error
+  const _actTimeout = setTimeout(()=>{
+    if(msg.textContent.includes('جاري')) {
+      msg.style.color='var(--accent4)';
+      msg.textContent='⛔ انتهت المهلة — تحقق من اتصالك بالإنترنت';
+      if(btn) btn.disabled=false;
+    }
+  }, 15000);
+
   try{
-    // ابحث بالكود — جرّب كلا الـ column names
+    // ابحث بالكود — query واحدة بـ OR تغطي كلا الـ columns
     let data = null, error = null;
 
-    const r1 = await supa.from('serial_keys').select('*').eq('code', code).maybeSingle();
-    if(!r1.error && r1.data) {
-      data = r1.data;
-    } else {
-      const r2 = await supa.from('serial_keys').select('*').eq('key_code', code).maybeSingle();
-      if(!r2.error && r2.data) {
-        data = r2.data;
-        data._colIsKeyCode = true;
+    // جرّب or filter: code=X OR key_code=X
+    // Supabase or() filter — code بيحتوي على - فنحتاج quotes
+    const codeFilter = 'code.eq."' + code + '",key_code.eq."' + code + '"';
+    const r1 = await supa
+      .from('serial_keys')
+      .select('*')
+      .or(codeFilter)
+      .limit(1);
+
+    if(!r1.error && r1.data && r1.data.length > 0) {
+      data = r1.data[0];
+      if(!data.code && data.key_code) data.code = data.key_code;
+    } else if(r1.error) {
+      // fallback: جرّب key_code فقط
+      const r2 = await supa.from('serial_keys').select('*').eq('key_code', code).limit(1);
+      if(!r2.error && r2.data && r2.data.length > 0) {
+        data = r2.data[0];
+        data.code = data.key_code;
       } else {
-        // جرّب ilike للـ case insensitive
-        const r3 = await supa.from('serial_keys').select('*').ilike('key_code', code).maybeSingle();
-        if(!r3.error && r3.data) {
-          data = r3.data;
-          data._colIsKeyCode = true;
-        } else if(r1.error) {
-          error = r1.error;
-          console.error('All code lookups failed:', r1.error, r2.error, r3.error);
-        }
+        error = r1.error;
+        console.error('Lookup failed:', r1.error?.message, '| code tried:', code);
       }
     }
 
@@ -3788,10 +3800,12 @@ async function _activateCode(inputId, msgId, onSuccess){
       if(onSuccess) onSuccess();
     }, 800);
   }catch(e){
+    clearTimeout(_actTimeout);
     console.error('_activateCode exception:', e);
     msg.style.color='var(--accent4)';
     msg.textContent='⛔ خطأ: '+e.message;
   }
+  clearTimeout(_actTimeout);
   if(btn) btn.disabled=false;
 }
 
