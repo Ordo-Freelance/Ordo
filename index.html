@@ -13,7 +13,14 @@
 // ══════════════════════════════════════════════════
 const SUPA_URL  = 'https://mpfmcjgigpvdxbhgzufo.supabase.co';
 const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wZm1jamdpZ3B2ZHhiaGd6dWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2Mjc3MzMsImV4cCI6MjA4ODIwMzczM30.fICNxH_7DEBHripIoyMcUugTnd4JEBx-ypegpPvb6PM';
-const supa = supabase.createClient(SUPA_URL, SUPA_ANON);
+const supa = supabase.createClient(SUPA_URL, SUPA_ANON, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: window.localStorage
+  }
+});
 
 // ══════════════════════════════════════════════════
 //  SUPABASE CLOUD SYNC
@@ -560,6 +567,7 @@ body {
 }
 .nav-item:hover  { color: var(--text); background: var(--surface2); }
 .nav-item.active { color: var(--accent); border-right-color: var(--accent); background: rgba(124,111,247,.1); }
+.nav-label { flex:1; }
 .nav-icon  { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
 .nav-badge {
   margin-right: auto;
@@ -1569,20 +1577,20 @@ setTimeout(window._showApp, 4000);
     </div>
   </div>
   <div class="nav-section-label">الرئيسية</div>
-  <div class="nav-item active" onclick="showPage(&#39;dashboard&#39;,this)"><span class="nav-icon">⚡</span>لوحة التحكم</div>
-  <div class="nav-item" onclick="showPage(&#39;tasks&#39;,this)"><span class="nav-icon">✦</span>المهام والمشاريع<span class="nav-badge" id="tasks-badge" style="display:none"></span></div>
-  <div class="nav-item" onclick="showPage(&#39;schedule&#39;,this)"><span class="nav-icon">◷</span>تنظيم اليوم</div>
+  <div class="nav-item active" onclick="showPage(&#39;dashboard&#39;,this)"><span class="nav-icon">⚡</span><span class="nav-label" data-ar="لوحة التحكم">لوحة التحكم</span></div>
+  <div class="nav-item" onclick="showPage(&#39;tasks&#39;,this)"><span class="nav-icon">✦</span><span class="nav-label" data-ar="المهام والمشاريع">المهام والمشاريع</span><span class="nav-badge" id="tasks-badge" style="display:none"></span></div>
+  <div class="nav-item" onclick="showPage(&#39;schedule&#39;,this)"><span class="nav-icon">◷</span><span class="nav-label" data-ar="تنظيم اليوم">تنظيم اليوم</span></div>
   <div class="nav-section-label">المال والعملاء</div>
-  <div class="nav-item" onclick="showPage(&#39;clients&#39;,this)"><span class="nav-icon">◈</span>قاعدة العملاء</div>
-  <div class="nav-item" onclick="showPage(&#39;finance&#39;,this)"><span class="nav-icon">◎</span>المالية</div>
-  <div class="nav-item" onclick="showPage(&#39;invoices&#39;,this)"><span class="nav-icon">◻</span>الفواتير والعقود</div>
+  <div class="nav-item" onclick="showPage(&#39;clients&#39;,this)"><span class="nav-icon">◈</span><span class="nav-label" data-ar="قاعدة العملاء">قاعدة العملاء</span></div>
+  <div class="nav-item" onclick="showPage(&#39;finance&#39;,this)"><span class="nav-icon">◎</span><span class="nav-label" data-ar="المالية">المالية</span></div>
+  <div class="nav-item" onclick="showPage(&#39;invoices&#39;,this)"><span class="nav-icon">◻</span><span class="nav-label" data-ar="الفواتير والعقود">الفواتير والعقود</span></div>
   <div class="nav-section-label">الفريق</div>
-  <div class="nav-item" onclick="showPage(&#39;team&#39;,this)"><span class="nav-icon">👥</span>فريق العمل<span class="nav-badge" id="team-badge" style="display:none"></span></div>
+  <div class="nav-item" onclick="showPage(&#39;team&#39;,this)"><span class="nav-icon">👥</span><span class="nav-label" data-ar="فريق العمل">فريق العمل</span><span class="nav-badge" id="team-badge" style="display:none"></span></div>
   <div class="nav-section-label">التطوير</div>
-  <div class="nav-item" onclick="showPage(&#39;learning&#39;,this)"><span class="nav-icon">◆</span>التعلم والأهداف</div>
-  <div class="nav-item" onclick="showPage(&#39;meetings&#39;,this)"><span class="nav-icon">📅</span>الميتنج<span class="nav-badge" id="meetings-badge" style="display:none;background:var(--accent4)"></span></div>
+  <div class="nav-item" onclick="showPage(&#39;learning&#39;,this)"><span class="nav-icon">◆</span><span class="nav-label" data-ar="التعلم والأهداف">التعلم والأهداف</span></div>
+  <div class="nav-item" onclick="showPage(&#39;meetings&#39;,this)"><span class="nav-icon">📅</span><span class="nav-label" data-ar="الميتنج">الميتنج</span><span class="nav-badge" id="meetings-badge" style="display:none;background:var(--accent4)"></span></div>
   <div class="nav-section-label">الإعدادات</div>
-  <div class="nav-item" onclick="showPage(&#39;settings&#39;,this)"><span class="nav-icon">⚙</span>إعدادات الاستوديو</div>
+  <div class="nav-item" onclick="showPage(&#39;settings&#39;,this)"><span class="nav-icon">⚙</span><span class="nav-label" data-ar="إعدادات الاستوديو">إعدادات الاستوديو</span></div>
   <div class="nav-item" onclick="openBackupModal()" style="color:var(--accent3)"><span class="nav-icon">💾</span>نسخ احتياطي<span id="backup-reminder-dot" style="display:none;width:8px;height:8px;background:var(--accent4);border-radius:50%;margin-right:auto;flex-shrink:0"></span></div>
   <!-- User badge -->
   <div class="sidebar-user" id="sidebar-user" onclick="openProfileModal()" style="cursor:pointer" title="الملف الشخصي">
@@ -4131,39 +4139,124 @@ function setThemeColor(color) {
   if(picker) picker.value = color;
 }
 
+// ═══ TRANSLATION SYSTEM ═══
+const TRANSLATIONS = {
+  en: {
+    // Nav
+    'الرئيسية':'Dashboard','المهام':'Tasks','المهام والمشاريع':'Tasks & Projects',
+    'العملاء':'Clients','إدارة العملاء':'Clients','المالية':'Finance',
+    'الفواتير':'Invoices','الفواتير والعقود':'Invoices & Contracts',
+    'جدولة اليوم':'Schedule','التقارير':'Reports','الإعدادات':'Settings',
+    'فريق العمل':'Team','الميتنج':'Meetings','التعلم والأهداف':'Learning',
+    // Auth
+    'تسجيل الدخول':'Sign In','إنشاء حساب':'Register',
+    'أهلاً بعودتك':'Welcome back','سجّل دخولك لمتابعة العمل':'Sign in to continue',
+    'البريد الإلكتروني':'Email','كلمة المرور':'Password',
+    'نسيت كلمة المرور؟':'Forgot password?','أو':'or',
+    'متابعة بـ Google':'Continue with Google',
+    'اسم الاستوديو / المصمم':'Studio name','رقم الهاتف':'Phone',
+    // Dashboard
+    'نظرة عامة على استوديوك':'Overview of your studio',
+    'مهمة نشطة':'Active task','مهمة منتهية':'Done',
+    'إجمالي الدخل':'Total income','اشتراكات منتهية':'Expired subscriptions',
+    'مشاريع هذا الشهر':'This month projects',
+    // Actions
+    'إضافة':'Add','حفظ':'Save','إلغاء':'Cancel','حذف':'Delete','تعديل':'Edit',
+    'إغلاق':'Close','بحث':'Search','تصفية':'Filter','تصدير':'Export',
+    'حفظ الإعدادات':'Save Settings','💾 حفظ الإعدادات':'💾 Save Settings',
+    // Tasks
+    'إضافة مهمة':'New Task','مهمة جديدة':'New Task','اسم المشروع':'Project Name',
+    'العميل':'Client','القيمة':'Value','الموعد النهائي':'Deadline',
+    'الحالة':'Status','النوع':'Type','الأولوية':'Priority',
+    'جديد':'New','جاري':'In Progress','مراجعة':'Review',
+    'قيد التنفيذ':'In Progress','موقوف':'On Hold','منتهي':'Done',
+    'ملاحظات':'Notes','إضافة خطوة':'Add Step',
+    // Finance
+    'تسجيل دخل':'Add Income','تسجيل مصروف':'Add Expense',
+    'المبلغ':'Amount','التاريخ':'Date','وصف':'Description',
+    'الفئة':'Category','طريقة الدفع':'Payment Method',
+    'دخل':'Income','صرف':'Expense','الربح الصافي':'Net Profit',
+    'إجمالي الصرف':'Total Expense',
+    // Clients
+    'عميل جديد':'New Client','اسم العميل':'Client Name',
+    'نوع العمل':'Work Type','فري لانس':'Freelance','دوام':'Full-time',
+    // Settings
+    'إعدادات الاستوديو':'Studio Settings','خصّص نظامك كما تريد':'Customize your system',
+    'بيانات الاستوديو':'Studio Info','لوجو الاستوديو':'Studio Logo',
+    'منصات التواصل':'Social Media','مظهر النظام':'Appearance',
+    'وضع العرض':'Display Mode','🌙 ليلي':'🌙 Dark','☀️ نهاري':'☀️ Light',
+    'لون هوية النظام':'Accent Color','لون مخصص':'Custom color',
+    'وسائل الدفع والحسابات':'Payment Methods','بنود الصرف':'Expense Categories',
+    'أنواع المهام':'Task Types','حالات المهام':'Task Statuses',
+    'قوالب رسائل واتساب':'WhatsApp Templates',
+    // Subscription
+    'لا يوجد اشتراك نشط':'No active subscription',
+    'اشترِ باقة وفعّل كودك هنا':'Purchase a plan and activate your code',
+    'تفعيل كود الاشتراك':'Activate Code','أدخل الكود هنا...':'Enter code here...',
+    'تفعيل':'Activate','شراء باقة عبر واتساب':'Buy via WhatsApp',
+    'اشتراكي الحالي':'My Subscription','الباقات المتاحة':'Available Plans',
+    'باقتك الحالية':'Current Plan','عندي كود':'I have a code','اطلب كود':'Request Code',
+    // Common
+    'جاري التحميل...':'Loading...','لا توجد بيانات':'No data',
+    'تأكيد':'Confirm','خطأ':'Error','نجح':'Success',
+    'عام':'General','المظهر':'Appearance','خطر':'Danger',
+    'منطقة الخطر':'Danger Zone','واتساب':'WhatsApp',
+  }
+};
+
+let _currentLang = localStorage.getItem('studioLang') || 'ar';
+
+function t(arabicText) {
+  if(_currentLang === 'ar') return arabicText;
+  return TRANSLATIONS.en[arabicText] || arabicText;
+}
+
 function setLanguage(lang) {
+  _currentLang = lang;
   localStorage.setItem('studioLang', lang);
+
+  // HTML dir/lang
   document.documentElement.lang = lang === 'en' ? 'en' : 'ar';
   document.documentElement.dir  = lang === 'en' ? 'ltr' : 'rtl';
+
+  // Buttons
   const btnAr = document.getElementById('btn-lang-ar');
   const btnEn = document.getElementById('btn-lang-en');
-  if(btnAr && btnEn) {
-    btnAr.className = lang === 'ar' ? 'btn btn-primary' : 'btn btn-ghost';
-    btnEn.className = lang === 'en' ? 'btn btn-primary' : 'btn btn-ghost';
-  }
-  // Apply translations
+  if(btnAr) btnAr.className = lang === 'ar' ? 'btn btn-primary' : 'btn btn-ghost';
+  if(btnEn) btnEn.className = lang === 'en' ? 'btn btn-primary' : 'btn btn-ghost';
+
+  // Apply to all [data-i18n] elements
   applyTranslations(lang);
+
+  // Re-render app
+  if(typeof renderAll === 'function') renderAll();
+  if(typeof renderNav === 'function') renderNav();
 }
 
 function applyTranslations(lang) {
-  if(lang !== 'en') return; // Arabic is default
-  const t = {
-    'نظام الاستوديو': 'Studio OS',
-    'الرئيسية': 'Dashboard',
-    'المهام': 'Tasks',
-    'العملاء': 'Clients',
-    'المالية': 'Finance',
-    'الفواتير': 'Invoices',
-    'الإعدادات': 'Settings',
-    'تسجيل الدخول': 'Sign In',
-    'إنشاء حساب': 'Register',
-  };
-  // Light translation for nav items only
-  document.querySelectorAll('.nav-item').forEach(el => {
-    const txt = el.textContent.trim();
-    for(const [ar, en] of Object.entries(t)) {
-      if(txt.includes(ar)) el.querySelector('span:last-child') && (el.querySelector('span:last-child').textContent = en);
-    }
+  const dict = lang === 'en' ? TRANSLATIONS.en : null;
+  if(!dict) {
+    // Restore Arabic — reload all [data-i18n-ar] elements
+    document.querySelectorAll('[data-i18n-ar]').forEach(el => {
+      el.textContent = el.getAttribute('data-i18n-ar');
+    });
+    return;
+  }
+  // Translate all elements with data-i18n attribute
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if(dict[key]) el.textContent = dict[key];
+  });
+  // Also translate nav items text nodes
+  document.querySelectorAll('.nav-label').forEach(el => {
+    const ar = el.getAttribute('data-ar') || el.textContent.trim();
+    el.setAttribute('data-ar', ar);
+    el.textContent = dict[ar] || ar;
+  });
+  // Translate buttons with known text
+  document.querySelectorAll('button, .btn').forEach(el => {
+    const ar = el.getAttribute('data-ar');
+    if(ar) el.textContent = dict[ar] || ar;
   });
 }
 
@@ -6598,6 +6691,26 @@ async function loadUserSubscription(uid) {
     console.warn('loadUserSubscription error:', e);
     _userSubscription = null;
   }
+
+  // Fallback: check admin_subscription stored in studio_data
+  if(!_userSubscription) {
+    try {
+      const { data: sd } = await supa.from('studio_data').select('data').eq('user_id', uid).maybeSingle();
+      if(sd?.data) {
+        const parsed = typeof sd.data === 'string' ? JSON.parse(sd.data) : sd.data;
+        if(parsed?.admin_subscription) {
+          const as = typeof parsed.admin_subscription === 'string'
+            ? JSON.parse(parsed.admin_subscription) : parsed.admin_subscription;
+          if(as?.status === 'active') {
+            // Get plan details
+            const lsPlans = JSON.parse(localStorage.getItem('admin_plans') || localStorage.getItem('plans') || '[]');
+            const plan = lsPlans.find(p => p.id === as.planId) || null;
+            _userSubscription = { ...as, plan, _fromAdminOverride: true };
+          }
+        }
+      }
+    } catch(fe) { console.warn('fallback sub check:', fe); }
+  }
   updateSubscriptionBar();
   _updateNavLocks();
   return _userSubscription;
@@ -6962,8 +7075,7 @@ async function doLogout(){
     requestAnimationFrame(()=>{ screen.style.opacity='1'; });
   }
   switchAuthTab('login');
-  // Reload page as safest option
-  setTimeout(()=>{ window.location.reload(); }, 400);
+  // Don't reload — session already cleared by Supabase
 }
 
 function updateUserBadge(user){
