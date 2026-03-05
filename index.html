@@ -223,6 +223,8 @@
   width: 0%;
 }
 
+/* paused badge */
+.badge-paused { background: rgba(100,181,246,.15); color: #64b5f6; }
 /* current user badge in sidebar */
 .sidebar-user {
   margin-top: auto;
@@ -1276,6 +1278,8 @@ function getQRDataURL(text, size) {
   <div class="nav-item" onclick="showPage(&#39;clients&#39;,this)"><span class="nav-icon">◈</span>قاعدة العملاء</div>
   <div class="nav-item" onclick="showPage(&#39;finance&#39;,this)"><span class="nav-icon">◎</span>المالية</div>
   <div class="nav-item" onclick="showPage(&#39;invoices&#39;,this)"><span class="nav-icon">◻</span>الفواتير والعقود</div>
+  <div class="nav-section-label">الفريق</div>
+  <div class="nav-item" onclick="showPage(&#39;team&#39;,this)"><span class="nav-icon">👥</span>فريق العمل<span class="nav-badge" id="team-badge" style="display:none"></span></div>
   <div class="nav-section-label">التطوير</div>
   <div class="nav-item" onclick="showPage(&#39;learning&#39;,this)"><span class="nav-icon">◆</span>التعلم والأهداف</div>
   <div class="nav-section-label">الإعدادات</div>
@@ -1314,6 +1318,7 @@ function getQRDataURL(text, size) {
 <div class="bn-overlay" id="bn-overlay" onclick="closeBnMore()"></div>
 <div class="bn-more-menu" id="bn-more-menu">
   <div class="bn-more-item" onclick="showPage(&#39;clients&#39;);closeBnMore()" id="bnm-clients"><span>◈</span>قاعدة العملاء</div>
+  <div class="bn-more-item" onclick="showPage(&#39;team&#39;);closeBnMore()" id="bnm-team"><span>👥</span>فريق العمل</div>
   <div class="bn-more-item" onclick="showPage(&#39;finance&#39;);closeBnMore()" id="bnm-finance"><span>◎</span>المالية</div>
   <div class="bn-more-item" onclick="showPage(&#39;invoices&#39;);closeBnMore()" id="bnm-invoices"><span>◻</span>الفواتير والعقود</div>
   <div class="bn-more-item" onclick="showPage(&#39;learning&#39;);closeBnMore()" id="bnm-learning"><span>◆</span>التعلم والأهداف</div>
@@ -1348,28 +1353,49 @@ function getQRDataURL(text, size) {
     <div><div class="page-title">أهلاً، <span id="studio-name-disp">محمود</span> 👋</div><div class="page-subtitle">نظرة عامة على استوديوك</div></div>
     <button class="btn btn-primary" onclick="openTaskModal()">+ مهمة جديدة</button>
   </div>
+
+  <!-- Stats Row -->
   <div class="grid grid-4" style="margin-bottom:16px">
     <div class="card"><div class="stat-label">💰 إيرادات مسجلة</div><div class="stat-value green" id="dash-income">0 ج</div><div class="stat-change">إجمالي الدخل</div></div>
-    <div class="card"><div class="stat-label">📋 مشاريع نشطة</div><div class="stat-value purple" id="dash-projects">1</div><div class="stat-change">غير مكتملة</div></div>
-    <div class="card"><div class="stat-label">✅ مهام مكتملة</div><div class="stat-value yellow" id="dash-done">0</div><div class="stat-change" id="dash-pending-txt">1 معلقة</div></div>
-    <div class="card"><div class="stat-label">👥 العملاء</div><div class="stat-value" id="dash-clients">1</div><div class="stat-change">في قاعدة البيانات</div></div>
+    <div class="card"><div class="stat-label">📋 مشاريع نشطة</div><div class="stat-value purple" id="dash-projects">0</div><div class="stat-change">غير مكتملة</div></div>
+    <div class="card"><div class="stat-label">✅ مهام مكتملة</div><div class="stat-value yellow" id="dash-done">0</div><div class="stat-change" id="dash-pending-txt">0 معلقة</div></div>
+    <div class="card"><div class="stat-label">👥 العملاء</div><div class="stat-value" id="dash-clients">0</div><div class="stat-change">في قاعدة البيانات</div></div>
   </div>
 
-  <!-- تذكيرات الرواتب -->
+  <!-- Reminders -->
   <div id="dash-salary-reminders" style="display:none;margin-bottom:16px"></div>
-
-  <!-- تذكيرات المتابعة -->
   <div id="dash-followup-reminders" style="display:none;margin-bottom:16px"></div>
 
+  <!-- Alert Row 1: Overdue + Subscriptions -->
   <div class="grid grid-2" style="margin-bottom:16px">
-    <div class="card"><div class="section-title">آخر المهام</div><div id="dash-tasks-list">
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,42,58,.3)">
-      <div class="task-priority priority-med"></div>
-      <div style="flex:1;font-size:13px;">sdds</div>
-      <span class="pay-badge pay-none">❌ لم يُدفع</span>
-    </div></div></div>
+    <div class="card" id="dash-overdue-section" style="border-color:rgba(247,111,124,.4)">
+      <div class="section-title" style="color:var(--accent4)">⚠ مهام تجاوزت 24 ساعة</div>
+      <div id="dash-overdue-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">لا مهام متأخرة</div></div></div>
+    </div>
+    <div class="card" id="dash-subs-alert" style="border-color:rgba(124,111,247,.35)">
+      <div class="section-title" style="color:var(--accent)">🔔 اشتراكات قريبة التجديد</div>
+      <div id="dash-subs-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">لا اشتراكات منتهية</div></div></div>
+    </div>
+  </div>
+
+  <!-- Alert Row 2: Uncollected + Team Tasks -->
+  <div class="grid grid-2" style="margin-bottom:16px">
+    <div class="card" id="dash-uncollected-alert" style="border-color:rgba(247,201,72,.35)">
+      <div class="section-title" style="color:var(--accent2)">💸 مبالغ لم تُحصَّل</div>
+      <div id="dash-uncollected-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">كل المبالغ محصّلة</div></div></div>
+    </div>
+    <div class="card" id="dash-team-section" style="border-color:rgba(79,209,165,.3)">
+      <div class="section-title" style="color:var(--accent3)">👥 مهام أعضاء الفريق</div>
+      <div id="dash-team-tasks"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">👥</div><div style="font-size:12px">لا مهام مسندة للفريق</div></div></div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="grid grid-2" style="margin-bottom:16px">
+    <div class="card"><div class="section-title">آخر المهام</div><div id="dash-tasks-list"><div class="empty"><div class="empty-icon">✦</div>لا مهام</div></div></div>
     <div class="card"><div class="section-title">جدول اليوم</div><div id="dash-sched-list"><div class="empty"><div class="empty-icon">◷</div>لا جدول اليوم</div></div></div>
   </div>
+
   <div class="grid grid-2">
     <div class="card"><div class="section-title">فواتير معلقة</div><div id="dash-inv-list"><div class="empty"><div class="empty-icon">◻</div>لا فواتير معلقة</div></div></div>
     <div class="card"><div class="section-title">أهداف التطوير</div><div id="dash-goals-list"><div class="empty"><div class="empty-icon">◆</div>أضف أهدافك</div></div></div>
@@ -1390,6 +1416,7 @@ function getQRDataURL(text, size) {
       <option value="new">جديد</option>
       <option value="progress">جاري</option>
       <option value="review">مراجعة</option>
+      <option value="paused">⏸ موقوف مؤقتاً</option>
       <option value="done">مكتمل</option>
     </select>
     <select id="tf-priority" onchange="applyTaskFilters()">
@@ -1423,24 +1450,112 @@ function getQRDataURL(text, size) {
     <button class="filter-reset" onclick="resetTaskFilters()">✕ إعادة تعيين</button>
     <span class="filter-count" id="tf-count"></span>
   </div>
-  <div class="grid grid-3" id="tasks-cols" style="margin-bottom:20px">
-    <div><div class="section-title" style="color:var(--accent4)">🔴 عاجل</div><div id="col-high"><div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div></div></div>
-    <div><div class="section-title" style="color:var(--accent2)">🟡 متوسط</div><div id="col-med">
-      <div class="task-item">
-        <div class="task-priority priority-med"></div>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:600">sdds</div>
-          <div style="font-size:11px;color:var(--text3)">sdsd</div>
+  <!-- Tasks Page Tabs -->
+  <div style="display:flex;gap:6px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:0">
+    <button id="ttab-active" onclick="switchTasksTab('active')" style="padding:7px 16px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--accent);border-bottom:2px solid var(--accent);cursor:pointer">📋 المهام النشطة</button>
+    <button id="ttab-log-day" onclick="switchTasksTab('log-day')" style="padding:7px 16px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text3);border-bottom:2px solid transparent;cursor:pointer">📅 السجل اليومي</button>
+    <button id="ttab-log-month" onclick="switchTasksTab('log-month')" style="padding:7px 16px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text3);border-bottom:2px solid transparent;cursor:pointer">📆 السجل الشهري</button>
+    <button id="ttab-log-year" onclick="switchTasksTab('log-year')" style="padding:7px 16px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text3);border-bottom:2px solid transparent;cursor:pointer">📊 السجل السنوي</button>
+  </div>
+
+  <!-- TASKS LOG VIEWS (hidden by default) -->
+  <div id="tasks-log-view" style="display:none">
+    <!-- Daily Log -->
+    <div id="log-daily" style="display:none">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+        <input type="date" id="log-day-picker" onchange="renderDailyLog()" style="height:34px;padding:0 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px">
+        <span style="font-size:12px;color:var(--text3)">اختر يوم لعرض المهام المكتملة فيه</span>
+      </div>
+      <div id="log-daily-content"></div>
+    </div>
+    <!-- Monthly Log -->
+    <div id="log-monthly" style="display:none">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+        <select id="log-month-sel" onchange="renderMonthlyLog()" style="height:34px;padding:0 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px">
+          <option value="1">يناير</option><option value="2">فبراير</option><option value="3">مارس</option>
+          <option value="4">أبريل</option><option value="5">مايو</option><option value="6">يونيو</option>
+          <option value="7">يوليو</option><option value="8">أغسطس</option><option value="9">سبتمبر</option>
+          <option value="10">أكتوبر</option><option value="11">نوفمبر</option><option value="12">ديسمبر</option>
+        </select>
+        <select id="log-month-year" onchange="renderMonthlyLog()" style="height:34px;padding:0 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px"></select>
+      </div>
+      <div id="log-monthly-content"></div>
+    </div>
+    <!-- Annual Log -->
+    <div id="log-annual" style="display:none">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+        <select id="log-year-sel" onchange="renderAnnualLog()" style="height:34px;padding:0 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px"></select>
+      </div>
+      <div id="log-annual-content"></div>
+    </div>
+  </div>
+
+  <!-- Kanban View Toggle -->
+  <div id="tasks-active-view">
+  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+    <div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:3px">
+      <button id="view-kanban-btn" class="btn btn-ghost btn-sm" style="padding:5px 12px;font-size:12px;background:var(--accent);color:#fff" onclick="switchTaskView('kanban')">📋 كانبان</button>
+      <button id="view-list-btn" class="btn btn-ghost btn-sm" style="padding:5px 12px;font-size:12px" onclick="switchTaskView('list')">📊 قائمة</button>
+    </div>
+    <div id="tasks-progress-bar-wrap" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:11px;color:var(--text3)">التقدم الكلي</span>
+      <div style="flex:1;height:8px;background:var(--surface3);border-radius:4px;overflow:hidden">
+        <div id="tasks-global-progress" style="height:100%;background:linear-gradient(to left,var(--accent3),var(--accent));border-radius:4px;transition:width .4s" width="0%"></div>
+      </div>
+      <span id="tasks-progress-pct" style="font-size:11px;font-weight:700;color:var(--accent3)">0%</span>
+    </div>
+  </div>
+
+  <!-- KANBAN VIEW -->
+  <div id="kanban-view">
+    <!-- Status Columns -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px" id="status-cols">
+      <div style="background:var(--surface2);border:1px solid rgba(150,150,180,.3);border-radius:10px;overflow:hidden">
+        <div style="padding:10px 12px;background:rgba(90,90,112,.3);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:12px;font-weight:700;color:var(--text2)">📋 جديد</div>
+          <span class="nav-badge" id="cnt-new" style="display:none;background:var(--text3)">0</span>
         </div>
-        <button class="btn btn-success btn-sm" onclick="completeTask(1772628440723)" title="تحديد كمكتمل" style="flex-shrink:0">✓</button>
-        <button class="btn btn-ghost btn-sm" onclick="openTaskModal(1772628440723)" style="flex-shrink:0">✏</button>
-      </div></div></div>
-    <div><div class="section-title" style="color:var(--accent3)">🟢 عادي</div><div id="col-low"><div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div></div></div>
+        <div id="col-status-new" style="padding:8px;min-height:80px"></div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid rgba(247,201,72,.25);border-radius:10px;overflow:hidden">
+        <div style="padding:10px 12px;background:rgba(247,201,72,.1);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:12px;font-weight:700;color:var(--accent2)">⚡ قيد التنفيذ</div>
+          <span class="nav-badge" id="cnt-progress" style="display:none;background:var(--accent2)">0</span>
+        </div>
+        <div id="col-status-progress" style="padding:8px;min-height:80px"></div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid rgba(124,111,247,.25);border-radius:10px;overflow:hidden">
+        <div style="padding:10px 12px;background:rgba(124,111,247,.1);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:12px;font-weight:700;color:var(--accent)">🔍 مراجعة</div>
+          <span class="nav-badge" id="cnt-review" style="display:none;background:var(--accent)">0</span>
+        </div>
+        <div id="col-status-review" style="padding:8px;min-height:80px"></div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid rgba(100,181,246,.25);border-radius:10px;overflow:hidden">
+        <div style="padding:10px 12px;background:rgba(100,181,246,.1);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:12px;font-weight:700;color:#64b5f6">⏸ موقوف</div>
+          <span class="nav-badge" id="cnt-paused" style="display:none;background:#64b5f6">0</span>
+        </div>
+        <div id="col-status-paused" style="padding:8px;min-height:80px"></div>
+      </div>
+    </div>
+    <!-- Priority cols (old) -->
+    <div class="grid grid-3" id="tasks-cols" style="margin-bottom:16px">
+      <div><div class="section-title" style="color:var(--accent4)">🔴 عاجل</div><div id="col-high"><div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div></div></div>
+      <div><div class="section-title" style="color:var(--accent2)">🟡 متوسط</div><div id="col-med"><div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div></div></div>
+      <div><div class="section-title" style="color:var(--accent3)">🟢 عادي</div><div id="col-low"><div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div></div></div>
+    </div>
+    <div class="card" style="margin-bottom:16px;border-color:rgba(79,209,165,.3)">
+      <div class="section-title" style="color:var(--accent3)">✅ مشاريع مكتملة</div>
+      <div id="col-done"><div class="empty" style="padding:16px 0;font-size:12px;color:var(--accent3)">لا مشاريع مكتملة</div></div>
+    </div>
+    <div class="card" style="display:none" id="col-paused-wrap">
+      <div id="col-paused"></div>
+    </div>
   </div>
-  <div class="card" style="margin-bottom:16px;border-color:rgba(79,209,165,.3)">
-    <div class="section-title" style="color:var(--accent3)">✅ مشاريع مكتملة</div>
-    <div id="col-done"><div class="empty" style="padding:16px 0;font-size:12px;color:var(--accent3)">لا مشاريع مكتملة</div></div>
-  </div>
+
+  <!-- LIST VIEW -->
+  <div id="list-view" style="display:none">
   <div class="card">
     <div class="section-title">جدول المهام الكامل</div>
     <div class="table-wrap"><table><thead><tr><th>المهمة</th><th>العميل</th><th class="hide-mobile">الأولوية</th><th class="hide-mobile">تاريخ الطلب</th><th class="hide-mobile">تاريخ التسليم</th><th>الدفع</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="tasks-tbody"><tr style="">
@@ -1465,6 +1580,8 @@ function getQRDataURL(text, size) {
     </div></td>
   </tr></tbody></table></div>
   </div>
+  </div><!-- end list-view -->
+  </div><!-- end tasks-active-view -->
 </div>
 
 <!-- SCHEDULE -->
@@ -1534,21 +1651,199 @@ function getQRDataURL(text, size) {
     </div></div>
 </div>
 
+<!-- TEAM -->
+<div class="page" id="page-team">
+  <div class="page-header">
+    <div><div class="page-title">فريق <span>العمل</span></div><div class="page-subtitle">تابع أعضاء الفريق ومشاريعهم</div></div>
+    <button class="btn btn-primary" onclick="openTeamModal()">+ فريق جديد</button>
+  </div>
+
+  <!-- Team Member Profile (hidden by default) -->
+  <div id="member-profile-view" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button class="btn btn-ghost btn-sm" onclick="closeMemberProfile()">← رجوع</button>
+      <div id="member-profile-title" style="font-size:16px;font-weight:700"></div>
+    </div>
+
+    <!-- Member Stats Row -->
+    <div class="grid grid-4" style="margin-bottom:16px" id="member-stats-row">
+      <div class="card" style="text-align:center">
+        <div class="stat-value" id="mp-tasks-count" style="font-size:22px">0</div>
+        <div class="stat-label">مهام نشطة</div>
+      </div>
+      <div class="card" style="text-align:center">
+        <div class="stat-value" id="mp-done-count" style="font-size:22px;color:var(--accent3)">0</div>
+        <div class="stat-label">مهام مكتملة</div>
+      </div>
+      <div class="card" style="text-align:center">
+        <div class="stat-value" id="mp-total-paid" style="font-size:22px;color:var(--accent2)">0 ج</div>
+        <div class="stat-label">إجمالي المدفوع</div>
+      </div>
+      <div class="card" style="text-align:center">
+        <div class="stat-value" id="mp-pending-pay" style="font-size:22px;color:var(--accent4)">0 ج</div>
+        <div class="stat-label">مستحق لم يُدفع</div>
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <!-- Active Tasks -->
+      <div class="card">
+        <div class="section-title">📋 مهامه النشطة</div>
+        <div id="mp-tasks-list"></div>
+      </div>
+      <!-- Payments / Invoices -->
+      <div class="card">
+        <div class="section-title">💰 سجل المدفوعات</div>
+        <div id="mp-payments-list"></div>
+      </div>
+    </div>
+
+    <!-- Done tasks -->
+    <div class="card">
+      <div class="section-title">✅ مهام مكتملة</div>
+      <div id="mp-done-list"></div>
+    </div>
+  </div>
+
+  <!-- Teams Grid (shown by default) -->
+  <div id="teams-grid-view">
+    <div id="teams-grid" class="grid grid-3">
+      <div class="empty card" style="grid-column:span 3"><div class="empty-icon">👥</div>لا فرق بعد — أضف فريق عمل<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="openTeamModal()">+ فريق جديد</button></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SUBSCRIPTION MODAL -->
+<div class="modal-overlay" id="modal-subscription">
+  <div class="modal" style="width:540px">
+    <div class="modal-header">
+      <div class="modal-title">🔄 إدارة الاشتراكات الشهرية</div>
+      <button class="close-btn" onclick="closeM('modal-subscription')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px">سجّل اشتراكاتك الشهرية وهتتسجل تلقائياً في المصروفات وهتجدد كل شهر</div>
+    <div id="subs-list" style="max-height:300px;overflow-y:auto;margin-bottom:14px"></div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">إضافة اشتراك جديد</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">اسم الاشتراك</label><input class="form-input" id="sub-name" placeholder="مثال: Adobe CC"></div>
+        <div class="form-group"><label class="form-label">المبلغ الشهري (ج)</label><input class="form-input" type="number" id="sub-amount" placeholder="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">يوم التجديد من الشهر</label><input class="form-input" type="number" id="sub-day" placeholder="مثال: 1" min="1" max="28"></div>
+        <div class="form-group"><label class="form-label">الفئة</label>
+          <select class="form-select" id="sub-cat">
+            <option value="برامج واشتراكات">💻 برامج واشتراكات</option>
+            <option value="إنترنت">🌐 إنترنت</option>
+            <option value="تسويق">📣 تسويق</option>
+            <option value="أخرى">📌 أخرى</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="addSubscription()">+ إضافة الاشتراك</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeM('modal-subscription')">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEAM MODAL -->
+<div class="modal-overlay" id="modal-team">
+  <div class="modal" style="width:560px">
+    <div class="modal-header">
+      <div class="modal-title" id="team-modal-ttl">👥 فريق جديد</div>
+      <button class="close-btn" onclick="closeM('modal-team')">✕</button>
+    </div>
+    <input type="hidden" id="team-eid">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">اسم الفريق *</label><input class="form-input" id="team-name" placeholder="مثال: فريق السوشيال ميديا"></div>
+      <div class="form-group"><label class="form-label">وصف الفريق</label><input class="form-input" id="team-desc" placeholder="اختياري"></div>
+    </div>
+    <div class="section-title" style="margin-top:4px">أعضاء الفريق</div>
+    <div id="team-members-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:250px;overflow-y:auto"></div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">+ إضافة عضو</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">الاسم</label><input class="form-input" id="member-name" placeholder="اسم العضو"></div>
+        <div class="form-group"><label class="form-label">التخصص</label>
+          <select class="form-select" id="member-role">
+            <option value="كونتنت كريتور">✍ كونتنت كريتور</option>
+            <option value="مصمم جرافيك">🎨 مصمم جرافيك</option>
+            <option value="فيديو إديتور">🎬 فيديو إديتور</option>
+            <option value="مودريتور">💬 مودريتور</option>
+            <option value="أخرى">📌 أخرى</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">رقم الواتساب</label><input class="form-input" id="member-phone" placeholder="20123..."></div>
+        <div class="form-group"><label class="form-label">نسبة الربح الافتراضية (%)</label><input class="form-input" type="number" id="member-rate" placeholder="مثال: 50"></div>
+      </div>
+      <button class="btn btn-ghost" onclick="addMemberToForm()" style="width:100%;justify-content:center">+ إضافة</button>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeM('modal-team')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveTeam()">💾 حفظ الفريق</button>
+    </div>
+  </div>
+</div>
+
 <!-- FINANCE -->
 <div class="page" id="page-finance">
   <div class="page-header">
     <div><div class="page-title">المالية <span>والحسابات</span></div><div class="page-subtitle">تتبع الدخل والمصروفات</div></div>
-    <div style="display:flex;gap:10px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-success" onclick="openIncomeModal()">+ دخل</button>
       <button class="btn btn-danger" onclick="openExpenseModal()">+ مصروف</button>
+      <button class="btn btn-ghost" onclick="openSubscriptionModal()">🔄 اشتراكاتي</button>
     </div>
   </div>
-  <div class="grid grid-4" style="margin-bottom:16px">
-    <div class="card"><div class="stat-label">إجمالي الدخل</div><div class="stat-value green" id="fin-in">0 ج</div></div>
-    <div class="card"><div class="stat-label">إجمالي المصروفات</div><div class="stat-value red" id="fin-out">0 ج</div></div>
-    <div class="card"><div class="stat-label">صافي الربح</div><div class="stat-value purple" id="fin-net">0 ج</div></div>
-    <div class="card"><div class="stat-label">هامش الربح</div><div class="stat-value yellow" id="fin-margin">—</div></div>
+
+  <!-- فلتر الفترة الزمنية -->
+  <div class="filter-bar" style="margin-bottom:16px">
+    <select id="fin-filter-month" onchange="applyFinanceFilter()">
+      <option value="">كل الأشهر</option>
+      <option value="1">يناير</option><option value="2">فبراير</option>
+      <option value="3">مارس</option><option value="4">أبريل</option>
+      <option value="5">مايو</option><option value="6">يونيو</option>
+      <option value="7">يوليو</option><option value="8">أغسطس</option>
+      <option value="9">سبتمبر</option><option value="10">أكتوبر</option>
+      <option value="11">نوفمبر</option><option value="12">ديسمبر</option>
+    </select>
+    <select id="fin-filter-year" onchange="applyFinanceFilter()">
+      <option value="">كل السنوات</option>
+    </select>
+    <select id="fin-filter-type" onchange="applyFinanceFilter()">
+      <option value="">كل الأنواع</option>
+      <option value="income">💰 دخل</option>
+      <option value="expense">💸 مصروف</option>
+    </select>
+    <select id="fin-filter-method" onchange="applyFinanceFilter()">
+      <option value="">كل وسائل الدفع</option>
+      <option value="cash">💵 نقدي</option>
+      <option value="instapay">📲 إنستاباي</option>
+      <option value="vodafone">📱 فودافون كاش</option>
+      <option value="etisalat">📞 اتصالات كاش</option>
+    </select>
+    <select id="fin-filter-cat" onchange="applyFinanceFilter()">
+      <option value="">كل الفئات</option>
+      <option value="برامج واشتراكات">💻 اشتراكات</option>
+      <option value="معدات وأجهزة">🖥 معدات</option>
+      <option value="تسويق">📣 تسويق</option>
+      <option value="تعليم وكورسات">📚 تعليم</option>
+      <option value="سحب شخصي">💵 شخصي</option>
+    </select>
+    <button class="filter-reset" onclick="resetFinanceFilter()">✕ إعادة تعيين</button>
+    <span id="fin-filter-label" style="font-size:12px;color:var(--accent);font-weight:700"></span>
   </div>
+
+  <div class="grid grid-4" style="margin-bottom:16px">
+    <div class="card"><div class="stat-label">💰 إجمالي الدخل</div><div class="stat-value green" id="fin-in">0 ج</div><div class="stat-change" id="fin-in-sub" style="font-size:11px;color:var(--text3)"></div></div>
+    <div class="card"><div class="stat-label">💸 إجمالي المصروفات</div><div class="stat-value red" id="fin-out">0 ج</div></div>
+    <div class="card"><div class="stat-label">📈 صافي الربح</div><div class="stat-value purple" id="fin-net">0 ج</div></div>
+    <div class="card"><div class="stat-label">📊 هامش الربح</div><div class="stat-value yellow" id="fin-margin">—</div></div>
+  </div>
+
   <div class="grid grid-2" style="margin-bottom:16px">
     <div class="card">
       <div class="stat-label">⏳ إيرادات معلقة (مشاريع غير مكتملة)</div>
@@ -1561,9 +1856,43 @@ function getQRDataURL(text, size) {
       <div style="font-size:12px;color:var(--text3);margin-top:5px">مبالغ عربون من مشاريع لم تكتمل بعد</div>
     </div>
   </div>
+
+  <!-- تذكيرات المدفوعات غير المحصّلة -->
+  <div id="fin-unpaid-reminders" style="display:none;margin-bottom:16px"></div>
+
+  <!-- Monthly Timeline -->
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="section-title" style="margin:0">📅 سجل الشهور</div>
+      <select id="fin-year-timeline" onchange="renderMonthlyTimeline()" style="height:32px;padding:0 10px;background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px"></select>
+    </div>
+    <div id="monthly-timeline"></div>
+  </div>
+
+  <!-- Transactions this period -->
   <div class="card">
-    <div class="section-title">سجل المعاملات</div>
-    <div class="table-wrap"><table><thead><tr><th>الوصف</th><th class="hide-mobile">المصدر/الفئة</th><th>النوع</th><th>المبلغ</th><th class="hide-mobile">التاريخ</th><th>إجراءات</th></tr></thead><tbody id="fin-tbody"><tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">لا معاملات</td></tr></tbody></table></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div class="section-title" style="margin:0">سجل المعاملات</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <select id="fin-cat-filter" onchange="applyFinanceFilter()" style="height:32px;padding:0 8px;background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px">
+          <option value="">كل الفئات</option>
+          <option value="income">💰 دخل</option>
+          <optgroup label="مصروفات العمل">
+            <option value="برامج واشتراكات">💻 برامج واشتراكات</option>
+            <option value="معدات وأجهزة">🖥 معدات وأجهزة</option>
+            <option value="تسويق">📣 تسويق</option>
+            <option value="تعليم وكورسات">📚 تعليم وكورسات</option>
+            <option value="صيانة أجهزة">🔧 صيانة أجهزة</option>
+            <option value="إنترنت">🌐 إنترنت</option>
+          </optgroup>
+          <optgroup label="مصروف شخصي">
+            <option value="سحب شخصي">💵 سحب شخصي</option>
+            <option value="مصاريف تعليمية شخصية">🎓 مصاريف تعليمية شخصية</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>الوصف</th><th class="hide-mobile">الفئة</th><th>النوع</th><th>المبلغ</th><th class="hide-mobile">التاريخ</th><th>إجراءات</th></tr></thead><tbody id="fin-tbody"><tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">لا معاملات</td></tr></tbody></table></div>
   </div>
 </div>
 
@@ -1680,6 +2009,19 @@ function getQRDataURL(text, size) {
     </div>
   </div>
 
+  <!-- ── وسائل الدفع ── -->
+  <div class="card" style="margin-top:16px">
+    <div class="section-title">💳 وسائل الدفع والحسابات</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">أضف وسائل الدفع اللي بتستخدمها — بتظهر عند تسجيل الدخل والصرف</div>
+    <div id="payment-accounts-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input class="form-input" id="new-account-name" placeholder="اسم الحساب (مثال: فودافون كاش)" style="flex:1;min-width:160px">
+      <input class="form-input" id="new-account-icon" placeholder="📱" style="width:66px;text-align:center">
+      <input class="form-input" id="new-account-color" type="color" value="#7c6ff7" style="width:44px;height:36px;padding:2px;cursor:pointer;border-radius:8px">
+      <button class="btn btn-ghost btn-sm" onclick="addPaymentAccount()">+ إضافة</button>
+    </div>
+  </div>
+
   <!-- ── أنواع المهام ── -->
   <div class="card" style="margin-top:16px">
     <div class="section-title">🏷 أنواع المهام</div>
@@ -1688,6 +2030,19 @@ function getQRDataURL(text, size) {
     <div style="display:flex;gap:8px">
       <input class="form-input" id="settings-new-task-type" placeholder="مثال: موشن جرافيك، ويب ديزاين..." style="max-width:300px">
       <button class="btn btn-ghost btn-sm" onclick="addTaskTypeFromSettings()">+ إضافة نوع</button>
+    </div>
+  </div>
+
+  <!-- ── حالات المهام المخصصة ── -->
+  <div class="card" style="margin-top:16px">
+    <div class="section-title">🎛 حالات المهام</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">أضف أو احذف حالات — الحالات الافتراضية (جديد، جاري، مراجعة، موقوف) لا يمكن حذفها</div>
+    <div id="task-statuses-list" style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:8px"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input class="form-input" id="new-status-label" placeholder="اسم الحالة (مثال: انتظار عميل)" style="flex:1;min-width:160px">
+      <input class="form-input" id="new-status-color" type="color" value="#7c6ff7" style="width:44px;height:36px;padding:2px;cursor:pointer;border-radius:8px">
+      <input class="form-input" id="new-status-icon" placeholder="⏳" style="width:66px;text-align:center">
+      <button class="btn btn-ghost btn-sm" onclick="addCustomStatus()">+ إضافة</button>
     </div>
   </div>
 
@@ -1815,13 +2170,32 @@ function getQRDataURL(text, size) {
       <div style="color:var(--text2)">العربون: <span id="complete-deposit-paid" style="font-weight:700;color:var(--accent2)">—</span> · المبلغ المتبقي: <span id="complete-remaining" style="font-weight:700;color:var(--accent3)">—</span></div>
     </div>
     <div id="complete-income-section">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <input type="checkbox" id="complete-register-income" checked="" style="width:18px;height:18px;accent-color:var(--accent3);cursor:pointer">
-        <label for="complete-register-income" style="font-size:14px;font-weight:600;cursor:pointer;color:var(--text)">تسجيل الإيراد في المالية تلقائياً</label>
+      <!-- هل تم التحصيل؟ -->
+      <div style="background:rgba(247,201,72,.08);border:1px solid rgba(247,201,72,.3);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:10px">💰 هل حصلت على المبلغ؟</div>
+        <div style="display:flex;gap:12px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;padding:10px;background:rgba(79,209,165,.1);border:1.5px solid rgba(79,209,165,.3);border-radius:8px">
+            <input type="radio" name="pay-collected" id="complete-pay-collected" value="yes" style="accent-color:var(--accent3)" onchange="toggleCompletePayFields()">
+            <span style="font-size:13px;font-weight:600;color:var(--accent3)">✅ نعم، حصلت على المبلغ</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;padding:10px;background:rgba(247,111,124,.08);border:1.5px solid rgba(247,111,124,.3);border-radius:8px">
+            <input type="radio" name="pay-collected" id="complete-pay-not-collected" value="no" checked style="accent-color:var(--accent4)" onchange="toggleCompletePayFields()">
+            <span style="font-size:13px;font-weight:600;color:var(--accent4)">❌ لا، لم أحصل بعد</span>
+          </label>
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">المبلغ المراد تسجيله كإيراد (ج)</label>
-        <input class="form-input" type="number" id="complete-income-amount" placeholder="0">
+      <div id="complete-income-fields" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <input type="checkbox" id="complete-register-income" checked="" style="width:18px;height:18px;accent-color:var(--accent3);cursor:pointer">
+          <label for="complete-register-income" style="font-size:14px;font-weight:600;cursor:pointer;color:var(--text)">تسجيل الإيراد في المالية تلقائياً</label>
+        </div>
+        <div class="form-group">
+          <label class="form-label">المبلغ المراد تسجيله كإيراد (ج)</label>
+          <input class="form-input" type="number" id="complete-income-amount" placeholder="0">
+        </div>
+      </div>
+      <div id="complete-reminder-note" style="background:rgba(247,201,72,.08);border:1px solid rgba(247,201,72,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent2)">
+        ⏰ هيتم تذكيرك بالمبلغ في صفحة المالية حتى تقوم بتحصيله
       </div>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
@@ -1885,13 +2259,80 @@ function getQRDataURL(text, size) {
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">الأولوية</label><select class="form-select" id="t-priority"><option value="high">🔴 عالية — عاجل</option><option value="med" selected="">🟡 متوسطة</option><option value="low">🟢 منخفضة</option></select></div>
-      <div class="form-group"><label class="form-label">الحالة</label><select class="form-select" id="t-status"><option value="new">جديد</option><option value="progress">قيد التنفيذ</option><option value="review">مراجعة</option><option value="done">مكتمل</option></select></div>
+      <div class="form-group"><label class="form-label">الحالة</label><select class="form-select" id="t-status"><option value="new">جديد</option><option value="progress">قيد التنفيذ</option><option value="review">مراجعة</option><option value="paused">⏸ موقوف مؤقتاً</option><option value="done">مكتمل</option></select></div>
     </div>
     <div class="form-row" id="t-value-row">
-      <div class="form-group"><label class="form-label">قيمة المشروع (ج)</label><input class="form-input" type="number" id="t-value" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">قيمة المشروع (ج)</label><input class="form-input" type="number" id="t-value" placeholder="0" oninput="calcTaskProfit()"></div>
       <div class="form-group"><label class="form-label">حالة الدفع</label><select class="form-select" id="t-pay" onchange="toggleDeposit()"><option value="none">❌ لم يتم الدفع</option><option value="deposit">💛 تم دفع عربون</option><option value="full">✅ تم الدفع كاملاً</option></select></div>
     </div>
     <div class="form-group" id="deposit-row" style="display:none"><label class="form-label">قيمة العربون المدفوع (ج)</label><input class="form-input" type="number" id="t-deposit" placeholder="0"></div>
+
+    <!-- ── من يعمل على المهمة؟ ── -->
+    <div style="background:rgba(100,181,246,.07);border:1px solid rgba(100,181,246,.25);border-radius:10px;padding:12px 14px;margin-bottom:10px" id="t-worker-section">
+      <div style="font-size:12px;font-weight:700;color:#64b5f6;margin-bottom:10px">👤 من يعمل على المهمة؟</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">المنفذ</label>
+          <select class="form-select" id="t-worker-type" onchange="toggleWorkerFields()">
+            <option value="me">أنا فقط 💪</option>
+            <option value="team">شخص من الفريق</option>
+          </select>
+        </div>
+        <div class="form-group" id="t-worker-member-wrap" style="display:none">
+          <label class="form-label">اختر العضو
+            <span onclick="showPage('team');closeM('modal-task')" style="font-size:10px;color:var(--accent);cursor:pointer;font-weight:600;margin-right:8px">+ إدارة الفريق</span>
+          </label>
+          <select class="form-select" id="t-worker-member" onchange="onWorkerMemberChange()">
+            <option value="">— اختر عضو —</option>
+          </select>
+          <div id="t-no-members-hint" style="display:none;font-size:11px;color:var(--accent4);margin-top:5px">⚠ لا يوجد أعضاء — اضغط "إدارة الفريق" لإضافة أعضاء أولاً</div>
+        </div>
+      </div>
+      <div id="t-worker-pay-section" style="display:none">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+              <span>نصيب العضو</span>
+              <div style="display:flex;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:2px;gap:2px">
+                <button type="button" id="worker-pay-pct-btn" onclick="setWorkerPayMode('pct')" style="padding:2px 8px;font-size:11px;border-radius:4px;border:none;cursor:pointer;background:var(--accent);color:#fff">%</button>
+                <button type="button" id="worker-pay-fixed-btn" onclick="setWorkerPayMode('fixed')" style="padding:2px 8px;font-size:11px;border-radius:4px;border:none;cursor:pointer;background:transparent;color:var(--text3)">ج</button>
+              </div>
+            </label>
+            <div style="display:flex;gap:4px;align-items:center">
+              <input class="form-input" type="number" id="t-worker-pct" placeholder="مثال: 50" oninput="calcTaskProfit()" style="flex:1">
+              <span id="t-worker-pct-sym" style="font-size:13px;color:var(--accent);font-weight:700">%</span>
+            </div>
+            <input class="form-input" type="number" id="t-worker-amount" placeholder="0" oninput="calcTaskProfit()" style="display:none;margin-top:4px">
+          </div>
+          <div class="form-group">
+            <label class="form-label">أخذ عربون؟</label>
+            <select class="form-select" id="t-worker-deposit-status" onchange="toggleWorkerDepositField()">
+              <option value="no">لا</option>
+              <option value="yes">نعم</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" id="t-worker-deposit-wrap" style="display:none">
+          <label class="form-label">قيمة العربون المدفوع للعضو (ج)</label>
+          <input class="form-input" type="number" id="t-worker-deposit-amount" placeholder="0">
+        </div>
+        <!-- ملخص الربح -->
+        <div id="t-profit-summary" style="background:rgba(79,209,165,.08);border:1px solid rgba(79,209,165,.25);border-radius:8px;padding:10px 14px;font-size:12px;display:none">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="color:var(--text3)">قيمة المشروع:</span>
+            <span id="ps-total" style="font-weight:700;color:var(--accent3)">0 ج</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="color:var(--text3)">مستحق العضو:</span>
+            <span id="ps-member" style="font-weight:700;color:var(--accent2)">0 ج</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;border-top:1px solid rgba(79,209,165,.3);padding-top:6px;margin-top:4px">
+            <span style="color:var(--text);font-weight:700">ربحي الصافي:</span>
+            <span id="ps-mine" style="font-weight:900;color:var(--accent3);font-size:14px">0 ج</span>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="form-group"><label class="form-label">ملاحظات</label><textarea class="form-textarea" id="t-notes" placeholder="تفاصيل إضافية..."></textarea></div>
 
     <!-- ── خطوات التنفيذ (اختياري) ── -->
@@ -2018,13 +2459,45 @@ function getQRDataURL(text, size) {
 </div>
 
 <!-- INCOME -->
+<datalist id="clients-datalist"></datalist>
 <div class="modal-overlay" id="modal-income">
-  <div class="modal" style="width:460px">
+  <div class="modal" style="width:500px">
     <div class="modal-header"><div class="modal-title" id="income-ttl">💰 تسجيل دخل</div><button class="close-btn" onclick="closeM(&#39;modal-income&#39;)">✕</button></div>
     <input type="hidden" id="income-eid">
     <div class="form-row">
       <div class="form-group"><label class="form-label">المبلغ (ج) *</label><input class="form-input" type="number" id="in-amount" placeholder="0"></div>
-      <div class="form-group"><label class="form-label">العميل / المصدر</label><input class="form-input" id="in-source" placeholder="من أين جاء؟"></div>
+      <div class="form-group"><label class="form-label">التاريخ</label><input class="form-input" type="date" id="in-date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">العميل / المصدر</label>
+        <input class="form-input" id="in-source" placeholder="من أين جاء؟" list="clients-datalist" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label">ربط بمشروع (اختياري)</label>
+        <select class="form-select" id="in-linked-task" onchange="onIncomeTaskLink()">
+          <option value="">— لا ربط —</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">نوع الدفعة</label>
+        <select class="form-select" id="in-payment-type">
+          <option value="full">💰 دفعة كاملة</option>
+          <option value="deposit">🔰 عربون</option>
+          <option value="partial">💳 دفعة جزئية</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">طريقة التحصيل</label>
+        <select class="form-select" id="in-pay-method">
+          <option value="cash">💵 نقدي</option>
+          <option value="instapay">📲 إنستاباي</option>
+          <option value="vodafone">📱 فودافون كاش</option>
+          <option value="etisalat">📞 اتصالات كاش</option>
+        </select>
+      </div>
     </div>
     <div class="form-group"><label class="form-label">وصف</label><input class="form-input" id="in-desc" placeholder="مثال: دفعة أولى مشروع لوجو"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -2036,12 +2509,36 @@ function getQRDataURL(text, size) {
 
 <!-- EXPENSE -->
 <div class="modal-overlay" id="modal-expense">
-  <div class="modal" style="width:460px">
+  <div class="modal" style="width:500px">
     <div class="modal-header"><div class="modal-title" id="expense-ttl">💸 تسجيل مصروف</div><button class="close-btn" onclick="closeM(&#39;modal-expense&#39;)">✕</button></div>
     <input type="hidden" id="expense-eid">
     <div class="form-row">
       <div class="form-group"><label class="form-label">المبلغ (ج) *</label><input class="form-input" type="number" id="ex-amount" placeholder="0"></div>
-      <div class="form-group"><label class="form-label">الفئة</label><select class="form-select" id="ex-cat"><option>برامج واشتراكات</option><option>معدات وأجهزة</option><option>تسويق</option><option>تعليم وكورسات</option><option>أخرى</option></select></div>
+      <div class="form-group"><label class="form-label">التاريخ</label><input class="form-input" type="date" id="ex-date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">الفئة</label>
+        <select class="form-select" id="ex-cat">
+          <option value="برامج واشتراكات">💻 برامج واشتراكات</option>
+          <option value="معدات وأجهزة">🖥 معدات وأجهزة</option>
+          <option value="تسويق">📣 تسويق</option>
+          <option value="تعليم وكورسات">📚 تعليم وكورسات</option>
+          <option value="صيانة أجهزة">🔧 صيانة أجهزة</option>
+          <option value="إنترنت">🌐 إنترنت</option>
+          <option value="سحب شخصي">💵 سحب شخصي</option>
+          <option value="أخرى">📌 أخرى</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">طريقة الدفع</label>
+        <select class="form-select" id="ex-pay-method">
+          <option value="cash">💵 نقدي</option>
+          <option value="instapay">📲 إنستاباي</option>
+          <option value="vodafone">📱 فودافون كاش</option>
+          <option value="etisalat">📞 اتصالات كاش</option>
+        </select>
+      </div>
     </div>
     <div class="form-group"><label class="form-label">وصف</label><input class="form-input" id="ex-desc" placeholder="مثال: اشتراك Adobe CC"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -2212,7 +2709,7 @@ function getQRDataURL(text, size) {
 // CORE STATE
 // ============================================================
 const COLORS=['#7c6ff7','#f7c948','#4fd1a5','#f76f7c','#64b5f6','#ff8a65','#ce93d8','#80cbc4'];
-let S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],settings:{name:'',phone:'',email:'',address:'',terms:'',logo:'',taskTypes:['تصميم سوشيال ميديا','برانيدنج','لوجو','فيديو موشن','كونتنت','ويب ديزاين']}};
+let S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],teams:[],subscriptions:[],settings:{name:'',phone:'',email:'',address:'',terms:'',logo:'',taskTypes:['تصميم سوشيال ميديا','برانيدنج','لوجو','فيديو موشن','كونتنت','ويب ديزاين']}};
 let invItems=[];
 
 function userKey(){const sess=getSession();return 'studioOS_v3_'+(sess?sess.id:'guest');}
@@ -2224,6 +2721,25 @@ function lsLoad(){
     if(!S.settings) S.settings={};
     if(!S.settings.taskTypes) S.settings.taskTypes=['تصميم سوشيال ميديا','برانيدنج','لوجو','فيديو موشن','كونتنت','ويب ديزاين'];
     if(!S.schedule) S.schedule=[];
+    if(!S.teams) S.teams=[];
+    if(!S.subscriptions) S.subscriptions=[];
+    if(!S.customStatuses) S.customStatuses=[];
+    if(!S.paymentAccounts) S.paymentAccounts=[];
+    if(!S.hiddenPayMethods) S.hiddenPayMethods=[];
+    if(!S.hiddenStatuses) S.hiddenStatuses=[];
+    // migrate tasks to include worker fields
+    S.tasks.forEach(t=>{
+      if(t.workerType===undefined) t.workerType='me';
+      if(t.workerMember===undefined) t.workerMember=null;
+      if(t.workerAmount===undefined) t.workerAmount=0;
+      if(t.workerDepositPaid===undefined) t.workerDepositPaid=false;
+      if(t.workerDepositAmount===undefined) t.workerDepositAmount=0;
+      if(t.paymentCollected===undefined) t.paymentCollected=false;
+    });
+    // migrate transactions to have proper ISO date
+    S.transactions.forEach(t=>{
+      if(!t.isoDate && t.date) t.isoDate = tryParseDate(t.date);
+    });
     // migrate schedule items — add done/linkedTaskId if missing
     S.schedule.forEach(s=>{if(s.done===undefined)s.done=false;if(s.linkedTaskId===undefined)s.linkedTaskId=null;});
     // migrate clients — add followup fields if missing
@@ -2231,6 +2747,17 @@ function lsLoad(){
     // migrate tasks — add steps/taskType if missing
     S.tasks.forEach(t=>{if(!t.steps)t.steps=[];if(!t.taskType)t.taskType='';});
   }catch(e){}
+}
+function tryParseDate(dateStr){
+  if(!dateStr) return '';
+  // Try ISO format first
+  if(/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  // Try to extract from Arabic locale date (e.g. "١/١/٢٠٢٤")
+  try {
+    const d = new Date(dateStr);
+    if(!isNaN(d)) return d.toISOString().split('T')[0];
+  } catch(e){}
+  return '';
 }
 function lsSave(){try{localStorage.setItem(userKey(),JSON.stringify(S));}catch(e){}updateDash();}
 lsLoad();
@@ -2283,7 +2810,7 @@ function confirmDel(msg,cb){
 // ============================================================
 const today=()=>new Date().toISOString().split('T')[0];
 const payBadge={none:'<span class="pay-badge pay-none">❌ لم يُدفع</span>',deposit:'<span class="pay-badge pay-deposit">💛 عربون</span>',full:'<span class="pay-badge pay-full">✅ مدفوع</span>'};
-const statusBadge={new:'<span class="badge badge-gray">جديد</span>',progress:'<span class="badge badge-yellow">جاري</span>',review:'<span class="badge badge-purple">مراجعة</span>',done:'<span class="badge badge-green">مكتمل</span>'};
+const statusBadge={new:'<span class="badge badge-gray">جديد</span>',progress:'<span class="badge badge-yellow">جاري</span>',review:'<span class="badge badge-purple">مراجعة</span>',paused:'<span class="badge" style="background:rgba(100,181,246,.15);color:#64b5f6">⏸ موقوف</span>',done:'<span class="badge badge-green">مكتمل</span>'};
 const prioBadge={high:'<span class="badge badge-red">عالية</span>',med:'<span class="badge badge-yellow">متوسطة</span>',low:'<span class="badge badge-green">منخفضة</span>'};
 const tcol={work:'var(--accent)',meeting:'var(--accent4)',learning:'var(--accent3)',break:'var(--accent2)',admin:'var(--text2)'};
 const tname={work:'شغل تصميم',meeting:'اجتماع',learning:'تعلم',break:'استراحة',admin:'إدارة'};
@@ -2321,8 +2848,8 @@ function loadSettings(){
   });
   // أنواع المهام في الإعدادات
   renderSettingsTaskTypes();
-}
-function renderSettingsTaskTypes(){
+  _initStatusSettings();
+}function renderSettingsTaskTypes(){
   const el=document.getElementById('settings-task-types');if(!el)return;
   const types=S.settings?.taskTypes||[];
   el.innerHTML=types.map((t,i)=>`
@@ -2617,7 +3144,7 @@ function resetTaskFilters(){
 function filterTasks(tasks){
   const f=taskFilterState;
   return tasks.filter(t=>{
-    if(f.status   && (f.status==='done'?!t.done:(t.status!==f.status||t.done))) return false;
+    if(f.status   && (f.status==='done'?!t.done:f.status==='paused'?(t.status!=='paused'):(t.status!==f.status||t.done||t.status==='paused'))) return false;
     if(f.priority && t.priority!==f.priority) return false;
     if(f.jobtype  && (t.jobType||'freelance')!==f.jobtype) return false;
     if(f.client   && t.client!==f.client) return false;
@@ -2745,6 +3272,10 @@ function openTaskDetail(id){
     <div class="td-info-grid">
       ${t.value?`<div class="td-info-cell"><div class="lbl">قيمة المشروع</div><div class="val" style="color:var(--accent3)">${t.value.toLocaleString()} ج</div></div>`:''}
       ${t.deposit&&t.pay==='deposit'?`<div class="td-info-cell"><div class="lbl">العربون</div><div class="val" style="color:var(--accent2)">${t.deposit.toLocaleString()} ج</div></div>`:''}
+      ${t.workerType==='team'&&t.workerMember?`<div class="td-info-cell"><div class="lbl">👤 المنفذ</div><div class="val" style="color:#64b5f6">${t.workerMember}</div></div>`:''}
+      ${t.workerType==='team'&&t.workerAmount?`<div class="td-info-cell"><div class="lbl">💰 مستحق المنفذ</div><div class="val" style="color:var(--accent2)">${t.workerAmount.toLocaleString()} ج</div></div>`:''}
+      ${t.workerType==='team'&&t.value&&t.workerAmount?`<div class="td-info-cell"><div class="lbl">🏆 ربحي الصافي</div><div class="val" style="color:var(--accent3)">${(t.value-t.workerAmount).toLocaleString()} ج</div></div>`:''}
+      ${t.paymentCollected?`<div class="td-info-cell"><div class="lbl">تحصيل المبلغ</div><div class="val" style="color:var(--accent3)">✅ تم التحصيل</div></div>`:(t.done&&t.value?`<div class="td-info-cell"><div class="lbl">تحصيل المبلغ</div><div class="val" style="color:var(--accent4)">⏳ لم يتم بعد</div></div>`:'')}
       <div class="td-info-cell"><div class="lbl">حالة الدفع</div><div class="val" style="font-size:12px">${payLabel[t.pay||'none']}</div></div>
       ${t.orderDate?`<div class="td-info-cell"><div class="lbl">تاريخ الطلب</div><div class="val" style="font-family:var(--mono)">${t.orderDate}</div></div>`:''}
       ${t.deadline?`<div class="td-info-cell"><div class="lbl">تاريخ التسليم</div><div class="val" style="font-family:var(--mono);color:var(--accent4)">${t.deadline}</div></div>`:''}
@@ -2760,6 +3291,14 @@ function openTaskDetail(id){
         ? `<button class="btn btn-success" onclick="closeM('modal-task-detail');completeTask(${t.id})">✅ إكمال المشروع</button>`
         : `<button class="btn btn-ghost btn-sm" onclick="closeM('modal-task-detail');completeTask(${t.id})">↩ إلغاء الإكمال</button>`
       }
+      ${!t.done ? `
+      <select onchange="if(this.value){changeTaskStatus(${t.id},this.value);closeM('modal-task-detail')}" style="height:36px;padding:0 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:12px;cursor:pointer" title="تغيير الحالة">
+        <option value="">⚡ تغيير الحالة</option>
+        ${t.status!=='new'?'<option value="new">جديد</option>':''}
+        ${t.status!=='progress'?'<option value="progress">قيد التنفيذ</option>':''}
+        ${t.status!=='review'?'<option value="review">مراجعة</option>':''}
+        ${t.status!=='paused'?'<option value="paused">⏸ موقوف مؤقتاً</option>':''}
+      </select>` : ''}
       <button class="btn btn-ghost" onclick="closeM('modal-task-detail');openInvoiceFromTask(${JSON.stringify(t).replace(/"/g,'&quot;')})">◻ إصدار فاتورة</button>
       <button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:var(--font)" onclick="openWaModal('task',null,${t.id})">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
@@ -2775,6 +3314,7 @@ function openTaskDetail(id){
 function openTaskModal(id){
   fillDD('t-client');
   fillTaskTypesDD();
+  fillWorkerMembersDD();
   document.getElementById('task-modal-ttl').textContent=id?'✦ تعديل المهمة':'✦ مهمة / مشروع جديد';
   document.getElementById('task-eid').value=id||'';
   const invCb=document.getElementById('t-issue-inv');
@@ -2796,6 +3336,24 @@ function openTaskModal(id){
     document.getElementById('t-jobtype').value=t.jobType||'freelance';
     const ttEl=document.getElementById('t-tasktype');if(ttEl)ttEl.value=t.taskType||'';
     toggleDeposit(); toggleJobType();
+    // Load worker fields
+    const workerType = document.getElementById('t-worker-type');
+    if(workerType) workerType.value = t.workerType||'me';
+    toggleWorkerFields();
+    // Restore worker pay mode
+    if(t.workerPayMode) { workerPayMode = t.workerPayMode; setWorkerPayMode(t.workerPayMode); }
+    else { workerPayMode='fixed'; setWorkerPayMode('fixed'); }
+    if(t.workerPct){ const pe=document.getElementById('t-worker-pct'); if(pe) pe.value=t.workerPct; }
+    const workerMember = document.getElementById('t-worker-member');
+    if(workerMember && t.workerMember) workerMember.value = t.workerMember;
+    const workerAmt = document.getElementById('t-worker-amount');
+    if(workerAmt) workerAmt.value = t.workerAmount||'';
+    const workerDepStat = document.getElementById('t-worker-deposit-status');
+    if(workerDepStat) workerDepStat.value = t.workerDepositPaid ? 'yes' : 'no';
+    toggleWorkerDepositField();
+    const workerDepAmt = document.getElementById('t-worker-deposit-amount');
+    if(workerDepAmt) workerDepAmt.value = t.workerDepositAmount||'';
+    calcTaskProfit();
     // Steps
     renderTaskStepsForm(t.steps||[]);
     setTimeout(()=>{
@@ -2815,6 +3373,10 @@ function openTaskModal(id){
     const ttEl=document.getElementById('t-tasktype');if(ttEl)ttEl.value='';
     document.getElementById('deposit-row').style.display='none';
     toggleJobType();
+    // Reset worker fields
+    const wtEl=document.getElementById('t-worker-type');if(wtEl)wtEl.value='me';
+    toggleWorkerFields();
+    fillWorkerMembersDD();
     renderTaskStepsForm([]);
     setTimeout(()=>{ initTaskQuill(); taskQuill.setText(''); }, 80);
   }
@@ -2838,6 +3400,8 @@ function saveTask(){
   const taskType = document.getElementById('t-tasktype')?.value||'';
   // collect steps from DOM
   const steps = collectTaskSteps();
+  const workerType = document.getElementById('t-worker-type')?.value||'me';
+  const isTeam = workerType==='team';
   const d={
     title, client,
     priority:v('t-priority'), status:v('t-status'),
@@ -2847,10 +3411,33 @@ function saveTask(){
     deposit:+v('t-deposit')||0,
     notes:v('t-notes'), brief:briefContent, done:false,
     jobType, taskType, steps,
+    workerType,
+    workerMember: isTeam ? (document.getElementById('t-worker-member')?.value||null) : null,
+    workerAmount: isTeam ? (workerPayMode==='pct' ? Math.round((+(document.getElementById('t-value')?.value)||0)*(+(document.getElementById('t-worker-pct')?.value)||0)/100) : (+(document.getElementById('t-worker-amount')?.value)||0)) : 0,
+    workerPayMode: isTeam ? workerPayMode : 'fixed',
+    workerPct: isTeam && workerPayMode==='pct' ? (+(document.getElementById('t-worker-pct')?.value)||0) : 0,
+    workerDepositPaid: isTeam && document.getElementById('t-worker-deposit-status')?.value==='yes',
+    workerDepositAmount: isTeam ? (+(document.getElementById('t-worker-deposit-amount')?.value)||0) : 0,
+    paymentCollected: false,
   };
-  if(eid){const i=S.tasks.findIndex(t=>t.id==eid);if(i>-1){d.id=+eid;d.done=S.tasks[i].done;d.steps=mergeSteps(S.tasks[i].steps||[],steps);S.tasks[i]=d;}}
+  if(eid){const i=S.tasks.findIndex(t=>t.id==eid);if(i>-1){d.id=+eid;d.done=S.tasks[i].done;d.paymentCollected=S.tasks[i].paymentCollected||false;d.steps=mergeSteps(S.tasks[i].steps||[],steps);S.tasks[i]=d;}}
   else{d.id=Date.now();S.tasks.push(d);}
   lsSave();closeM('modal-task');renderAll();
+  // Prompt to register deposit as income for new tasks with deposit
+  const payVal = v('t-pay');
+  const depositVal = +(v('t-deposit'))||0;
+  if(!eid && payVal==='deposit' && depositVal>0){
+    setTimeout(()=>{
+      if(confirm('تم تسجيل المهمة بعربون '+depositVal.toLocaleString()+' ج - هل تريد تسجيله كدخل الآن؟')){
+        openIncomeModal(null, d.id);
+        const ae=document.getElementById('in-amount');   if(ae) ae.value=depositVal;
+        const se=document.getElementById('in-source');   if(se) se.value=d.client||'';
+        const de=document.getElementById('in-desc');     if(de) de.value='عربون مشروع: '+d.title;
+        const pe=document.getElementById('in-payment-type'); if(pe) pe.value='deposit';
+      }
+    }, 400);
+    return;
+  }
   // إصدار فاتورة تلقائي
   if(issueInv && !eid){
     setTimeout(()=>openInvoiceFromTask(d), 150);
@@ -2925,19 +3512,26 @@ function confirmComplete(){
   // Mark task done
   t.done = true;
   t.status = 'done';
+  t.doneAt = new Date().toISOString().split('T')[0]; // record date for log
 
-  // Register income if checked
+  // Check if payment was collected
+  const payCollected = document.getElementById('complete-pay-collected')?.checked;
+  t.paymentCollected = payCollected || false;
+
+  // Register income if checked AND payment collected
   if(document.getElementById('complete-register-income').checked){
     const amount = +(document.getElementById('complete-income-amount').value)||0;
-    if(amount > 0){
+    if(amount > 0 && payCollected){
       S.transactions.push({
         id: Date.now(),
         type: 'income',
         amount,
         source: t.client||'',
         desc: 'إيراد مشروع: '+t.title,
+        isoDate: new Date().toISOString().split('T')[0],
         date: new Date().toLocaleDateString('ar-EG'),
-        taskId: id
+        linkedTaskId: id,
+        paymentType: 'full'
       });
     }
   }
@@ -2948,10 +3542,27 @@ function confirmComplete(){
   });
 
   lsSave(); closeM('modal-complete'); renderAll();
-  showToast('🎉 تم إنجاز المشروع: '+t.title);
+  if(!payCollected && t.value>0){
+    showToast('🎉 تم إنجاز المشروع: '+t.title+' — تذكير: المبلغ لم يتم تحصيله بعد!');
+    // Schedule reminder notification
+    setTimeout(()=>{
+      showToast('💰 تذكير: فيه مبلغ '+t.value.toLocaleString()+' ج لم يتم تحصيله من مشروع: '+t.title);
+    }, 5000);
+  } else {
+    showToast('🎉 تم إنجاز المشروع: '+t.title);
+  }
 }
 
 function toggleDone(id){completeTask(id);}
+
+function changeTaskStatus(id, newStatus){
+  const t = S.tasks.find(t=>t.id===id); if(!t) return;
+  t.status = newStatus;
+  if(newStatus==='done'){ t.done=true; t.doneAt=t.doneAt||new Date().toISOString().split('T')[0]; }
+  else t.done=false;
+  lsSave(); renderAll();
+  showMiniNotif('✅ تم تغيير حالة المهمة إلى: '+{new:'جديد',progress:'قيد التنفيذ',review:'مراجعة',paused:'موقوف مؤقتاً',done:'مكتمل'}[newStatus]);
+}
 
 function renderTasks(){
   populateTaskFilterDropdowns();
@@ -2966,29 +3577,113 @@ function renderTasks(){
     return '';
   };
 
+  // Filter: only show done tasks completed within last 24h in kanban
+  const now24 = Date.now();
+  const isRecentDone = t => {
+    if(!t.done) return false;
+    if(!t.doneAt) return true; // old data, show it
+    const doneMs = new Date(t.doneAt+'T23:59:59').getTime();
+    return (now24 - doneMs) < 24*60*60*1000;
+  };
+
   ['high','med','low'].forEach(p=>{
     const el=document.getElementById('col-'+p);if(!el)return;
     const items=filtered.filter(t=>t.priority===p&&!t.done);
-    el.innerHTML=items.length?items.map(t=>`
-      <div class="task-item task-clickable" onclick="openTaskDetail(${t.id})" title="اضغط لعرض التفاصيل">
-        <div class="task-priority priority-${t.priority}"></div>
+    el.innerHTML=items.length?items.map(t=>{
+      const stMap={new:'📋 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف',done:'✅ مكتمل'};
+      const stColor={new:'var(--text3)',progress:'var(--accent2)',review:'var(--accent)',paused:'#64b5f6',done:'var(--accent3)'};
+      const st=t.status||'new';
+      const stepsTotal=t.steps?t.steps.length:0;
+      const stepsDone=t.steps?t.steps.filter(s=>s.done).length:0;
+      const pct=stepsTotal?Math.round(stepsDone/stepsTotal*100):0;
+      return `
+      <div class="task-item task-clickable" onclick="openTaskDetail(${t.id})" title="اضغط لعرض التفاصيل" style="flex-direction:column;align-items:stretch;gap:0;padding:10px 12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div class="task-priority priority-${t.priority}"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px;align-items:center">
+              ${t.client?`<span style="font-size:11px;color:var(--text3)">${t.client}</span>`:''}
+              ${t.value?`<span style="font-size:10px;color:var(--accent3);font-weight:700">${t.value.toLocaleString()} ج</span>`:''}
+            </div>
+          </div>
+          <button class="btn btn-success btn-sm" onclick="event.stopPropagation();completeTask(${t.id})" title="مكتمل" style="flex-shrink:0;padding:3px 7px">✓</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openTaskModal(${t.id})" style="flex-shrink:0;padding:3px 7px">✏</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span style="font-size:10px;font-weight:700;color:${stColor[st]};background:${stColor[st]}18;padding:2px 7px;border-radius:10px;white-space:nowrap">${stMap[st]||st}</span>
+          ${stepsTotal?`<div style="flex:1;display:flex;align-items:center;gap:6px">
+            <div style="flex:1;height:4px;background:var(--surface3);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:${pct===100?'var(--accent3)':'var(--accent)'};border-radius:3px;transition:width .3s"></div>
+            </div>
+            <span style="font-size:10px;color:var(--text3);white-space:nowrap">${stepsDone}/${stepsTotal}</span>
+          </div>`:''}
+        </div>
+      </div>`}).join(''):'<div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div>';
+  });
+
+  // Status Kanban columns
+  ['new','progress','review','paused'].forEach(st=>{
+    const el = document.getElementById('col-status-'+st); if(!el) return;
+    const stItems = filtered.filter(t=>!t.done && (t.status||'new')===st);
+    const cnt = document.getElementById('cnt-'+st);
+    if(cnt){ cnt.textContent=stItems.length; cnt.style.display=stItems.length?'inline-block':'none'; }
+    if(!stItems.length){ el.innerHTML='<div style="font-size:11px;color:var(--text3);padding:8px;text-align:center">لا مهام</div>'; return; }
+    const stMap={new:'📋 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف'};
+    const stColor={new:'var(--text3)',progress:'var(--accent2)',review:'var(--accent)',paused:'#64b5f6'};
+    el.innerHTML = stItems.map(t=>{
+      const stepsTotal=t.steps?t.steps.length:0;
+      const stepsDone=t.steps?t.steps.filter(s=>s.done).length:0;
+      const pct=stepsTotal?Math.round(stepsDone/stepsTotal*100):0;
+      return `<div onclick="openTaskDetail(${t.id})" class="task-clickable" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 10px;margin-bottom:7px;cursor:pointer">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:${stepsTotal?'6px':'0'}">
+          ${t.client?`<span style="font-size:10px;color:var(--text3)">${t.client}</span>`:''}
+          <span style="font-size:10px;background:${['high','med','low'].includes(t.priority)?({'high':'rgba(247,111,124,.2)','med':'rgba(247,201,72,.2)','low':'rgba(79,209,165,.2)'}[t.priority]):'rgba(0,0,0,.2)'};color:${{'high':'var(--accent4)','med':'var(--accent2)','low':'var(--accent3)'}[t.priority]||'var(--text3)'};padding:1px 6px;border-radius:8px">${{'high':'🔴 عاجل','med':'🟡 متوسط','low':'🟢 عادي'}[t.priority]||''}</span>
+          ${t.value?`<span style="font-size:10px;color:var(--accent3);font-weight:700">${t.value.toLocaleString()} ج</span>`:''}
+        </div>
+        ${stepsTotal?`<div style="display:flex;align-items:center;gap:5px">
+          <div style="flex:1;height:3px;background:var(--surface3);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${pct===100?'var(--accent3)':'var(--accent)'};border-radius:2px"></div>
+          </div>
+          <span style="font-size:10px;color:var(--text3)">${pct}%</span>
+        </div>`:''}
+      </div>`;
+    }).join('');
+  });
+
+  // Global progress — based on task completion, resets to 0 when no active tasks
+  const globalProgress = document.getElementById('tasks-global-progress');
+  const globalPct = document.getElementById('tasks-progress-pct');
+  if(globalProgress){
+    const totalTasks = filtered.length;
+    const doneTasks  = filtered.filter(t=>t.done).length;
+    const pct = totalTasks ? Math.round(doneTasks/totalTasks*100) : 0;
+    globalProgress.style.width = pct+'%';
+    if(globalPct) globalPct.textContent = totalTasks ? pct+'%' : '0%';
+  }
+
+  // Paused column
+  const pausedEl = document.getElementById('col-paused');
+  if(pausedEl){
+    const paused = filtered.filter(t=>!t.done && t.status==='paused');
+    pausedEl.innerHTML = paused.length ? paused.map(t=>`
+      <div class="task-item task-clickable" onclick="openTaskDetail(${t.id})" style="opacity:.8;border-color:#64b5f6" title="اضغط لعرض التفاصيل">
+        <div style="width:8px;height:8px;border-radius:50%;background:#64b5f6;flex-shrink:0"></div>
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:3px;align-items:center">
-            ${t.client?`<span style="font-size:11px;color:var(--text3)">${t.client}</span>`:''}
-            ${jtBadge(t.jobType)}
-            ${(t.jobType==='fulltime'||t.jobType==='parttime')&&t.salary?`<span style="font-size:10px;color:var(--accent3);font-weight:700">${t.salary.toLocaleString()} ج/شهر</span>`:t.value?`<span style="font-size:10px;color:var(--accent3)">${t.value.toLocaleString()} ج</span>`:''}
-          </div>
-          ${t.brief?'<div style="font-size:10px;color:var(--accent);margin-top:2px">📄 يوجد بريف</div>':''}
+          <div style="font-size:11px;color:var(--text3)">${t.client||''}${jtBadge(t.jobType)}</div>
         </div>
-        <button class="btn btn-success btn-sm" onclick="event.stopPropagation();completeTask(${t.id})" title="تحديد كمكتمل" style="flex-shrink:0">✓</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();changeTaskStatus(${t.id},'progress')" title="استئناف">▶</button>
         <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openTaskModal(${t.id})" style="flex-shrink:0">✏</button>
-      </div>`).join(''):'<div class="empty" style="padding:16px 0;font-size:12px">لا مهام</div>';
-  });
+      </div>`).join('') : '<div class="empty" style="padding:16px 0;font-size:12px;color:#64b5f6">لا مهام موقوفة</div>';
+    const wrap = document.getElementById('col-paused-wrap');
+    if(wrap) wrap.style.display = paused.length ? 'block' : 'none';
+  }
 
   const doneEl = document.getElementById('col-done');
   if(doneEl){
-    const done = filtered.filter(t=>t.done);
+    const done = filtered.filter(t=>isRecentDone(t));
     doneEl.innerHTML = done.length ? done.map(t=>`
       <div class="task-item task-clickable" onclick="openTaskDetail(${t.id})" style="opacity:.6;border-color:var(--accent3)" title="اضغط لعرض التفاصيل">
         <div style="width:8px;height:8px;border-radius:50%;background:var(--accent3);flex-shrink:0"></div>
@@ -3215,7 +3910,7 @@ function renderClients(){
         ${c.workType==='fulltime'?'<span class="jtype-badge jtype-fulltime">🏢 دوام</span>':c.workType==='parttime'?'<span class="jtype-badge jtype-parttime">⏰ بارت تايم</span>':'<span class="jtype-badge jtype-freelance">🎯 فري لانس</span>'}
       </div>
       ${c.salary?`<div style="font-size:12px;color:var(--accent3);margin-top:4px;font-weight:700">💰 ${c.salary.toLocaleString()} ج/شهر · يوم ${c.salaryDay}</div>`:''}
-      ${c.phone?`<div style="font-size:12px;color:var(--text3);margin-top:6px">📞 ${c.phone}</div>`:''}
+      ${c.phone?`<div style="font-size:12px;color:var(--text3);margin-top:6px;display:flex;align-items:center;gap:8px">📞 ${c.phone}<a href="https://wa.me/${c.phone.replace(/[^\d]/g,'')}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;text-decoration:none">💬 واتساب</a></div>`:''}
       ${c.email?`<div style="font-size:12px;color:var(--text3)">✉ ${c.email}</div>`:''}
       ${c.notes?`<div style="font-size:12px;color:var(--text3);margin-top:6px;font-style:italic">${c.notes.slice(0,60)}${c.notes.length>60?'...':''}</div>`:''}
       <div style="display:flex;gap:16px;margin-top:12px">
@@ -3228,18 +3923,71 @@ function renderClients(){
 // ============================================================
 // FINANCE
 // ============================================================
-function openIncomeModal(id){
+function onIncomeTaskLink(){
+  const taskSel = document.getElementById('in-linked-task');
+  const srcEl   = document.getElementById('in-source');
+  if(!taskSel||!srcEl) return;
+  const taskId = +taskSel.value;
+  if(taskId){
+    const t = S.tasks.find(x=>x.id===taskId);
+    if(t && !srcEl.value) srcEl.value = t.client||'';
+    const amtEl = document.getElementById('in-amount');
+    if(t && amtEl && !amtEl.value) amtEl.value = t.value||'';
+  }
+}
+function openIncomeModal(id, prefillTaskId){
   document.getElementById('income-ttl').textContent=id?'💰 تعديل دخل':'💰 تسجيل دخل';
   document.getElementById('income-eid').value=id||'';
-  if(id){const t=S.transactions.find(t=>t.id===id);if(t){document.getElementById('in-amount').value=t.amount;document.getElementById('in-source').value=t.source||'';document.getElementById('in-desc').value=t.desc||'';}}
-  else{['in-amount','in-source','in-desc'].forEach(f=>{const e=document.getElementById(f);if(e)e.value='';});}
+  // Populate clients datalist
+  const dl = document.getElementById('clients-datalist');
+  if(dl){ dl.innerHTML=''; S.clients.forEach(c=>{ const o=document.createElement('option'); o.value=c.name; dl.appendChild(o); }); }
+  // Populate task dropdown
+  const taskSel = document.getElementById('in-linked-task');
+  if(taskSel){
+    taskSel.innerHTML='<option value="">— لا ربط —</option>';
+    S.tasks.forEach(t=>{
+      const o=document.createElement('option');
+      o.value=t.id;
+      o.textContent=(t.done?'✅ ':'📋 ')+t.title+(t.client?' ('+t.client+')':'');
+      taskSel.appendChild(o);
+    });
+  }
+  // Populate payment methods from custom accounts
+  fillPayMethodDropdowns();
+  if(id){const t=S.transactions.find(t=>t.id===id);if(t){
+    document.getElementById('in-amount').value=t.amount;
+    document.getElementById('in-source').value=t.source||'';
+    document.getElementById('in-desc').value=t.desc||'';
+    document.getElementById('in-date').value=t.isoDate||'';
+    if(taskSel) taskSel.value=t.linkedTaskId||'';
+    const ptEl=document.getElementById('in-payment-type'); if(ptEl) ptEl.value=t.paymentType||'full';
+    const pmEl=document.getElementById('in-pay-method');  if(pmEl) pmEl.value=t.payMethod||'cash';
+  }}
+  else{
+    ['in-amount','in-source','in-desc'].forEach(f=>{const e=document.getElementById(f);if(e)e.value='';});
+    document.getElementById('in-date').value=new Date().toISOString().split('T')[0];
+    if(taskSel && prefillTaskId) taskSel.value=prefillTaskId;
+    const ptEl=document.getElementById('in-payment-type'); if(ptEl) ptEl.value='full';
+    const pmEl=document.getElementById('in-pay-method');  if(pmEl) pmEl.value='cash';
+  }
   openM('modal-income');
 }
 function openExpenseModal(id){
   document.getElementById('expense-ttl').textContent=id?'💸 تعديل مصروف':'💸 تسجيل مصروف';
   document.getElementById('expense-eid').value=id||'';
-  if(id){const t=S.transactions.find(t=>t.id===id);if(t){document.getElementById('ex-amount').value=t.amount;document.getElementById('ex-cat').value=t.source||'برامج واشتراكات';document.getElementById('ex-desc').value=t.desc||'';}}
-  else{document.getElementById('ex-amount').value='';document.getElementById('ex-desc').value='';}
+  fillPayMethodDropdowns();
+  if(id){const t=S.transactions.find(t=>t.id===id);if(t){
+    document.getElementById('ex-amount').value=t.amount;
+    document.getElementById('ex-desc').value=t.desc||'';
+    document.getElementById('ex-date').value=t.isoDate||'';
+    const catEl=document.getElementById('ex-cat'); if(catEl) catEl.value=t.expCat||t.source||'أخرى';
+    const pmEl=document.getElementById('ex-pay-method'); if(pmEl) pmEl.value=t.payMethod||'cash';
+  }}
+  else{
+    ['ex-amount','ex-desc'].forEach(f=>{const e=document.getElementById(f);if(e)e.value='';});
+    document.getElementById('ex-date').value=new Date().toISOString().split('T')[0];
+    const pmEl=document.getElementById('ex-pay-method'); if(pmEl) pmEl.value='cash';
+  }
   openM('modal-expense');
 }
 function saveTrans(type){
@@ -3247,36 +3995,172 @@ function saveTrans(type){
   const amount=+(isInc?v('in-amount'):v('ex-amount'));
   if(!amount)return alert('أدخل المبلغ');
   const eid=v(isInc?'income-eid':'expense-eid');
-  const d={type,amount,source:v(isInc?'in-source':'ex-cat'),desc:v(isInc?'in-desc':'ex-desc'),date:new Date().toLocaleDateString('ar-EG')};
+  const rawDate = isInc ? v('in-date') : v('ex-date');
+  const isoDate = rawDate || new Date().toISOString().split('T')[0];
+  const source = isInc ? v('in-source') : (v('ex-cat')||'أخرى');
+  const linkedTaskId = isInc ? (+(document.getElementById('in-linked-task')?.value)||null) : null;
+  const paymentType  = isInc ? (document.getElementById('in-payment-type')?.value||'full') : null;
+  const payMethod    = isInc ? (document.getElementById('in-pay-method')?.value||'cash') : (document.getElementById('ex-pay-method')?.value||'cash');
+  const expCat       = !isInc ? (v('ex-cat')||'أخرى') : null;
+  // Auto-fill source from linked task
+  let finalSource = source;
+  if(isInc && linkedTaskId && !source){
+    const lt = S.tasks.find(t=>t.id===linkedTaskId);
+    if(lt) finalSource = lt.client||lt.title;
+  }
+  const d={type,amount,source:finalSource,desc:v(isInc?'in-desc':'ex-desc'),
+    date:new Date(isoDate+'T00:00:00').toLocaleDateString('ar-EG'), isoDate,
+    payMethod,
+    ...(linkedTaskId ? {linkedTaskId} : {}),
+    ...(paymentType  ? {paymentType}  : {}),
+    ...(expCat       ? {expCat}       : {})};
   if(eid){const i=S.transactions.findIndex(t=>t.id==eid);if(i>-1){d.id=+eid;S.transactions[i]=d;}}
   else{d.id=Date.now();S.transactions.push(d);}
   lsSave();closeM(isInc?'modal-income':'modal-expense');renderAll();
+  // Auto-print receipt for income transactions
+  if(isInc){
+    const savedId = eid ? +eid : S.transactions[S.transactions.length-1]?.id;
+    if(savedId) setTimeout(()=>exportReceipt(savedId), 400);
+  }
 }
 function delTrans(id){confirmDel('هل تريد حذف هذه المعاملة؟',()=>{S.transactions=S.transactions.filter(t=>t.id!==id);lsSave();renderAll();});}
+// Finance filter state
+let finFilterState = {month:'', year:'', type:'', method:'', cat:''};
+
+function populateFinYears(){
+  const sel = document.getElementById('fin-filter-year'); if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">كل السنوات</option>';
+  const years = [...new Set(S.transactions.map(t=>t.isoDate?t.isoDate.slice(0,4):null).filter(Boolean))].sort();
+  const thisYear = new Date().getFullYear().toString();
+  if(!years.includes(thisYear)) years.push(thisYear);
+  years.sort().forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=y;sel.appendChild(o);});
+  sel.value = cur;
+}
+
+function applyFinanceFilter(){
+  finFilterState.month  = document.getElementById('fin-filter-month')?.value||'';
+  finFilterState.year   = document.getElementById('fin-filter-year')?.value||'';
+  finFilterState.type   = document.getElementById('fin-filter-type')?.value||'';
+  finFilterState.method = document.getElementById('fin-filter-method')?.value||'';
+  finFilterState.cat    = document.getElementById('fin-filter-cat')?.value||'';
+  renderFinance();
+}
+
+function resetFinanceFilter(){
+  finFilterState = {month:'',year:'',type:'',method:'',cat:''};
+  ['fin-filter-month','fin-filter-year','fin-filter-type','fin-filter-method','fin-filter-cat'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  renderFinance();
+}
+
+function filterTransactions(transactions){
+  const f = finFilterState;
+  return transactions.filter(t=>{
+    const d = t.isoDate || '';
+    if(f.month  && d.slice(5,7) !== f.month.padStart(2,'0')) return false;
+    if(f.year   && d.slice(0,4) !== f.year) return false;
+    if(f.type   && t.type !== f.type) return false;
+    if(f.method && (t.payMethod||'cash') !== f.method) return false;
+    if(f.cat    && (t.expCat||t.source||'') !== f.cat) return false;
+    return true;
+  });
+}
+
 function renderFinance(){
-  const inc=S.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const exp=S.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  const net=inc-exp,margin=inc?Math.round(net/inc*100):0;
-  // Pending = value of incomplete tasks that have no full payment
+  populateFinYears();
+  renderMonthlyTimeline();
+  const filtered = filterTransactions(S.transactions);
+  const f = finFilterState;
+  
+  // Label for current filter
+  const lbl = document.getElementById('fin-filter-label');
+  if(lbl){
+    const months = ['','يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    let parts = [];
+    if(f.month) parts.push(months[+f.month]||'');
+    if(f.year)  parts.push(f.year);
+    lbl.textContent = parts.length ? '📅 '+parts.join(' ') : '';
+  }
+
+  const inc = filtered.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp = filtered.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const net = inc-exp, margin = inc?Math.round(net/inc*100):0;
+  
+  // Category breakdown
+  const catSum = cat => filtered.filter(t=>t.type==='expense'&&t.source===cat).reduce((s,t)=>s+t.amount,0);
+  const personalSum = filtered.filter(t=>t.type==='expense'&&(t.source==='سحب شخصي'||t.source==='مصاريف تعليمية شخصية')).reduce((s,t)=>s+t.amount,0);
+  
+  // Pending tasks (global, not filtered)
   const pendingTasks=S.tasks.filter(t=>!t.done&&t.status!=='done'&&t.pay!=='full');
   const pendingRev=pendingTasks.reduce((s,t)=>s+(t.value||0),0);
   const depositsPending=pendingTasks.filter(t=>t.pay==='deposit').reduce((s,t)=>s+(t.deposit||0),0);
+  
   const set=(id,val)=>{const e=document.getElementById(id);if(e)e.textContent=val;};
-  set('fin-in',inc.toLocaleString()+' ج');set('fin-out',exp.toLocaleString()+' ج');
-  set('fin-net',net.toLocaleString()+' ج');set('fin-margin',inc?margin+'%':'—');
+  set('fin-in',inc.toLocaleString()+' ج');
+  set('fin-in-sub', f.month||f.year ? `(${(f.month?'الشهر':'')+(f.year?' '+f.year:'')})` : '');
+  set('fin-out',exp.toLocaleString()+' ج');
+  set('fin-net',net.toLocaleString()+' ج');
+  set('fin-margin',inc?margin+'%':'—');
   set('fin-pending',pendingRev.toLocaleString()+' ج');
   set('fin-deposits',depositsPending.toLocaleString()+' ج');
+  
+  // Category cards
+  
+  // Unpaid task reminders
+  renderUnpaidReminders();
+  
   const tbody=document.getElementById('fin-tbody');if(!tbody)return;
-  tbody.innerHTML=[...S.transactions].reverse().map(t=>`<tr>
-    <td>${t.desc||'—'}</td><td class="hide-mobile">${t.source||'—'}</td>
-    <td><span class="badge ${t.type==='income'?'badge-green':'badge-red'}">${t.type==='income'?'دخل':'مصروف'}</span></td>
+  const rows = [...filtered].sort((a,b)=>(b.isoDate||'').localeCompare(a.isoDate||'')).map(t=>`<tr>
+    <td>${t.desc||'—'}${t.linkedTaskId?(()=>{const lt=S.tasks.find(x=>x.id===t.linkedTaskId);return lt?` <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:1px 6px;border-radius:8px;cursor:pointer" onclick="openTaskDetail(${t.linkedTaskId})">🔗 ${lt.title.slice(0,20)}</span>`:''})():''}</td><td class="hide-mobile">${t.source||'—'}${t.paymentType&&t.paymentType!=='full'?` <span style="font-size:10px;color:var(--accent2)">(${t.paymentType==='deposit'?'عربون':'جزئي'})</span>`:''}</td>
+    <td><span class="badge ${t.type==='income'?'badge-green':'badge-red'}">${t.type==='income'?'💰 دخل':'💸 مصروف'}</span></td>
     <td style="font-weight:700;color:${t.type==='income'?'var(--accent3)':'var(--accent4)'}">${t.amount.toLocaleString()} ج</td>
-    <td class="hide-mobile" style="font-family:var(--mono);font-size:11px">${t.date}</td>
+    <td class="hide-mobile" style="font-family:var(--mono);font-size:11px">${t.isoDate||t.date||'—'}</td>
     <td><div style="display:flex;gap:4px">
       <button class="btn btn-ghost btn-sm" onclick="${t.type==='income'?'openIncomeModal':'openExpenseModal'}(${t.id})">✏</button>
+      ${t.type==='income'?`<button class="btn btn-ghost btn-sm" onclick="exportReceipt(${t.id})" title="إيصال PDF" style="color:var(--accent3)">🧾</button>`:''}
       <button class="btn btn-danger btn-sm" onclick="delTrans(${t.id})">🗑</button>
     </div></td>
-  </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">لا معاملات</td></tr>';
+  </tr>`).join('');
+  tbody.innerHTML = rows || '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">لا معاملات تطابق الفلتر</td></tr>';
+}
+
+function renderUnpaidReminders(){
+  const wrap = document.getElementById('fin-unpaid-reminders'); if(!wrap) return;
+  // Find completed tasks whose payment was not collected
+  const uncollected = S.tasks.filter(t=>t.done && !t.paymentCollected && t.value>0);
+  if(!uncollected.length){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  wrap.innerHTML = `<div class="card" style="border-color:rgba(247,201,72,.4)">
+    <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:10px">⚠ مبالغ لم يتم تحصيلها</div>
+    ${uncollected.map(t=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(42,42,58,.4)">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600">${t.title}</div>
+          <div style="font-size:11px;color:var(--text3)">${t.client||'—'}</div>
+        </div>
+        <div style="font-weight:700;color:var(--accent2)">${t.value.toLocaleString()} ج</div>
+        <button class="btn btn-success btn-sm" onclick="markTaskPaymentCollected(${t.id})">✅ تم التحصيل</button>
+      </div>`).join('')}
+  </div>`;
+}
+
+function markTaskPaymentCollected(taskId){
+  const task = S.tasks.find(x=>x.id===taskId); if(!task) return;
+  task.paymentCollected = true;
+  lsSave();
+  // Open income modal pre-filled with task info so user can review before saving
+  openIncomeModal(null, taskId);
+  const amtEl=document.getElementById('in-amount');
+  if(amtEl) amtEl.value = task.value||0;
+  const srcEl=document.getElementById('in-source');
+  if(srcEl) srcEl.value = task.client||'';
+  const descEl=document.getElementById('in-desc');
+  if(descEl) descEl.value = 'تحصيل مبلغ مشروع: '+task.title;
+  const ptEl=document.getElementById('in-payment-type');
+  if(ptEl) ptEl.value = 'full';
+  renderAll();
 }
 
 // ============================================================
@@ -3482,6 +4366,72 @@ function delInvoice(id){
   });
 }
 function markPaid(id){const inv=S.invoices.find(i=>i.id===id);if(inv){inv.status='paid';lsSave();renderAll();previewInv(id);}}
+
+// ============================================================
+// RECEIPT PDF — إيصال استلام مبلغ
+// ============================================================
+function exportReceipt(transId){
+  const t = S.transactions.find(x=>x.id===transId);
+  if(!t) return;
+  const s = S.settings||{};
+  const logo = s.logo ? `<img src="${s.logo}" style="max-height:56px;max-width:130px;object-fit:contain">` : `<div style="font-size:20px;font-weight:900;color:#7c6ff7">${s.name||'Studio'}</div>`;
+  const linkedTask = t.linkedTaskId ? S.tasks.find(x=>x.id===t.linkedTaskId) : null;
+  const payTypeAr = {full:'دفعة كاملة',deposit:'عربون',partial:'دفعة جزئية'}[t.paymentType||'full'] || 'دفعة';
+  const receiptNum = 'RCP-' + String(transId).slice(-5);
+  const dateStr = t.isoDate ? new Date(t.isoDate+'T00:00:00').toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'}) : t.date||'';
+  const receiptHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Cairo',sans-serif;background:#fff;color:#1a1a2e;direction:rtl;}@page{size:A4;margin:0;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style>
+</head><body><div style="width:210mm;min-height:297mm;background:#fff">
+<div style="background:#14141e;padding:22px 28px;display:flex;justify-content:space-between;align-items:center">
+  <div>${logo}</div>
+  <div style="text-align:left"><div style="font-size:24px;font-weight:900;color:#4fd1a5">إيصال استلام</div><div style="font-size:11px;color:#b0a8ff;margin-top:3px">${receiptNum}</div></div>
+</div>
+<div style="height:3px;background:linear-gradient(to left,#4fd1a5,#7c6ff7)"></div>
+<div style="display:flex;justify-content:space-between;padding:22px 28px;background:#f7fffe">
+  <div><div style="font-size:10px;color:#888;margin-bottom:4px">صادر من</div><div style="font-size:14px;font-weight:700">${s.name||'الاستوديو'}</div>${s.phone?`<div style="font-size:11px;color:#555;margin-top:2px">📞 ${s.phone}</div>`:''}</div>
+  <div style="text-align:left"><div style="font-size:10px;color:#888;margin-bottom:4px">بيانات الإيصال</div><div style="font-size:13px;font-weight:700">رقم: ${receiptNum}</div><div style="font-size:11px;color:#555;margin-top:3px">التاريخ: ${dateStr}</div></div>
+</div>
+<div style="margin:0 28px 24px;background:linear-gradient(135deg,#14141e,#1e1e30);border-radius:12px;padding:24px 28px;display:flex;justify-content:space-between;align-items:center">
+  <div><div style="font-size:11px;color:#b0a8ff;margin-bottom:6px">تم استلام مبلغ</div>
+    <div style="font-size:36px;font-weight:900;color:#4fd1a5">${t.amount.toLocaleString()} <span style="font-size:18px">ج.م</span></div>
+    <div style="margin-top:8px;display:inline-block;background:rgba(79,209,165,.2);color:#4fd1a5;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700">${payTypeAr}</div>
+  </div>
+  <div style="text-align:left"><div style="font-size:11px;color:#b0a8ff;margin-bottom:3px">من</div><div style="font-size:15px;font-weight:700;color:#fff">${t.source||'—'}</div></div>
+</div>
+<div style="margin:0 28px 24px;border:1px solid #e8e8f0;border-radius:10px;overflow:hidden">
+  <div style="padding:10px 16px;background:#f8f8fc;font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.5px">تفاصيل الإيصال</div>
+  <table style="width:100%;border-collapse:collapse">
+    <tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5;width:38%">الوصف</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5">${t.desc||'—'}</td></tr>
+    ${linkedTask ? `<tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5">المشروع</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5">📋 ${linkedTask.title}</td></tr><tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5">العميل</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5">${linkedTask.client||'—'}</td></tr>` : ''}
+    <tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5">نوع الدفعة</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5">${payTypeAr}</td></tr>
+    <tr><td style="padding:11px 16px;font-size:12px;color:#888">تاريخ الاستلام</td><td style="padding:11px 16px;font-size:13px;font-weight:600">${dateStr}</td></tr>
+  </table>
+</div>
+<div style="margin:0 28px;padding:16px;border-top:2px solid #f0f0f5;display:flex;justify-content:space-between;align-items:center">
+  <div style="font-size:11px;color:#aaa">هذا الإيصال يُثبت استلام المبلغ المذكور أعلاه</div>
+  <div style="font-size:11px;color:#aaa">توقيع: _______________</div>
+</div>
+${s.terms?`<div style="margin:12px 28px;padding:12px;background:#fafafe;border-radius:8px;font-size:10px;color:#888;line-height:1.6">${s.terms}</div>`:''}
+</div></body></html>`;
+  // Use hidden iframe to avoid popup blockers
+  let iframe = document.getElementById('_receipt_frame');
+  if(!iframe){
+    iframe = document.createElement('iframe');
+    iframe.id = '_receipt_frame';
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
+    document.body.appendChild(iframe);
+  }
+  iframe.srcdoc = receiptHTML;
+  iframe.onload = () => {
+    try { iframe.contentWindow.focus(); iframe.contentWindow.print(); }
+    catch(e){ 
+      // fallback: open in new tab
+      const w = window.open('','_blank'); w.document.write(receiptHTML); w.document.close(); setTimeout(()=>w.print(),600);
+    }
+  };
+}
+
 function renderInvoices(){
   const tbody=document.getElementById('inv-tbody');if(!tbody)return;
   const sm={pending:'<span class="badge badge-yellow">معلقة</span>',paid:'<span class="badge badge-green">مدفوعة</span>',cancelled:'<span class="badge badge-red">ملغية</span>'};
@@ -3871,6 +4821,13 @@ function openTaskTypesSettings(){
   renderTaskTypesList();
   openM('modal-task-types');
 }
+// Called by loadSettings
+function _initStatusSettings(){
+  renderTaskStatusesSettings();
+  buildDynamicStatusDropdowns();
+  renderPaymentAccountsSettings();
+  fillPayMethodDropdowns();
+}
 function renderTaskTypesList(){
   const el=document.getElementById('task-types-list');if(!el)return;
   const types=S.settings?.taskTypes||[];
@@ -4058,6 +5015,8 @@ function updateDash(){
     </div>`).join('')||'<div class="empty"><div class="empty-icon">◆</div>أضف أهدافك</div>';
   renderSalaryReminders();
   renderFollowupReminders();
+  renderDashTeamTasks();
+  renderDashAlerts();
 }
 
 // ============================================================
@@ -4065,7 +5024,8 @@ function updateDash(){
 // ============================================================
 function renderAll(){
   renderTasks();renderClients();renderFinance();renderInvoices();
-  renderGoals();renderSchedule();updateDash();loadSettings();
+  renderGoals();renderSchedule();updateDash();loadSettings();renderTeams();
+  renderSalaryReminders();renderFollowupReminders();
 }
 
 // ============================================================
@@ -4604,6 +5564,8 @@ function saveBackupSettings(){
 
 /* ── Do backup ── */
 function doBackupNow(){
+  // Save latest state first
+  try{ localStorage.setItem(userKey(), JSON.stringify(S)); }catch(e){}
   const user    = getSession();
   const bs      = getBackupSettings();
   const dataStr = localStorage.getItem(userKey()) || '{}';
@@ -4661,9 +5623,9 @@ function readBackupFile(input){
       if(!obj.data || !obj.version) { alert('⚠ الملف غير صالح أو تالف'); return; }
       const confirmed = confirm(`هل تريد استعادة البيانات من نسخة:\n📅 ${obj.exportedAt ? new Date(obj.exportedAt).toLocaleString('ar-EG') : 'غير معروف'}\n👤 ${obj.userName||'غير معروف'}\n\n⚠ سيتم استبدال بياناتك الحالية!\n${obj.authUsers?'✅ تشمل النسخة بيانات الحسابات':''}` );
       if(!confirmed) return;
-      // Restore app data
+      // Restore app data - use the correct key format studioOS_v3_
       const session = getSession();
-      const key = session ? 'studioOS_data_'+session.id : userKey();
+      const key = session ? 'studioOS_v3_'+session.id : userKey();
       localStorage.setItem(key, JSON.stringify(obj.data));
       // Restore users if available
       if(obj.authUsers && Array.isArray(obj.authUsers) && obj.authUsers.length>0){
@@ -5013,9 +5975,9 @@ function doAuthBackupImport(input){
         saveUsers(merged);
       }
 
-      // Restore app data
+      // Restore app data - use correct key format studioOS_v3_
       if(obj.data && obj.userId){
-        const dataKey = 'studioOS_data_'+obj.userId;
+        const dataKey = 'studioOS_v3_'+obj.userId;
         localStorage.setItem(dataKey, JSON.stringify(obj.data));
       }
 
@@ -5038,6 +6000,945 @@ function doAuthBackupImport(input){
 // ============================================================
 // INIT
 // ============================================================
+
+// ============================================================
+// TOGGLE COMPLETE PAY FIELDS
+// ============================================================
+function toggleCompletePayFields(){
+  const yes = document.getElementById('complete-pay-collected')?.checked;
+  // The radio with id complete-pay-collected is "yes" radio
+  const fields = document.getElementById('complete-income-fields');
+  const reminder = document.getElementById('complete-reminder-note');
+  if(fields) fields.style.display = yes ? 'block' : 'none';
+  if(reminder) reminder.style.display = yes ? 'none' : 'block';
+}
+
+// ============================================================
+// WORKER FIELDS LOGIC
+// ============================================================
+function toggleWorkerFields(){
+  const wt = document.getElementById('t-worker-type')?.value||'me';
+  const memberWrap = document.getElementById('t-worker-member-wrap');
+  const paySection = document.getElementById('t-worker-pay-section');
+  if(memberWrap) memberWrap.style.display = wt==='team' ? 'block' : 'none';
+  if(paySection) paySection.style.display = wt==='team' ? 'block' : 'none';
+  calcTaskProfit();
+}
+
+function toggleWorkerDepositField(){
+  const yes = document.getElementById('t-worker-deposit-status')?.value==='yes';
+  const wrap = document.getElementById('t-worker-deposit-wrap');
+  if(wrap) wrap.style.display = yes ? 'block' : 'none';
+}
+
+function calcTaskProfit(){
+  const total = +(document.getElementById('t-value')?.value)||0;
+  const wt = document.getElementById('t-worker-type')?.value||'me';
+  const summary = document.getElementById('t-profit-summary');
+  if(!summary) return;
+  if(wt==='team'){
+    let memberAmt = 0;
+    if(workerPayMode==='pct'){
+      const pct = +(document.getElementById('t-worker-pct')?.value)||0;
+      memberAmt = total ? Math.round(total*pct/100) : 0;
+    } else {
+      memberAmt = +(document.getElementById('t-worker-amount')?.value)||0;
+    }
+    const mine = total - memberAmt;
+    if(total>0){
+      document.getElementById('ps-total').textContent = total.toLocaleString()+' ج';
+      document.getElementById('ps-member').textContent = memberAmt.toLocaleString()+' ج';
+      document.getElementById('ps-mine').textContent = mine.toLocaleString()+' ج';
+      summary.style.display = 'block';
+    }
+  } else {
+    summary.style.display = 'none';
+  }
+}
+
+function onWorkerMemberChange(){
+  // Auto-fill amount from member's default rate
+  const memberName = document.getElementById('t-worker-member')?.value;
+  const total = +(document.getElementById('t-value')?.value)||0;
+  if(memberName && total>0){
+    // Find member in teams
+    let found = null;
+    S.teams.forEach(team=>{
+      const m = team.members.find(m=>m.name===memberName);
+      if(m) found = m;
+    });
+    if(found && found.rate){
+      if(workerPayMode==='pct'){
+        const pctEl = document.getElementById('t-worker-pct');
+        if(pctEl && !pctEl.value) pctEl.value = found.rate;
+      } else {
+        const autoAmt = Math.round(total * found.rate / 100);
+        const amtEl = document.getElementById('t-worker-amount');
+        if(amtEl && !amtEl.value) amtEl.value = autoAmt;
+      }
+    }
+  }
+  calcTaskProfit();
+}
+
+function fillWorkerMembersDD(){
+  const sel = document.getElementById('t-worker-member'); if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— اختر عضو —</option>';
+  let totalMembers = 0;
+  S.teams.forEach(team=>{
+    if(team.members.length){
+      const grp = document.createElement('optgroup');
+      grp.label = '👥 '+team.name;
+      team.members.forEach(m=>{
+        const o = document.createElement('option');
+        o.value = m.name;
+        o.textContent = m.name + ' ('+(m.role||'عضو')+')' + (m.rate?' — '+m.rate+'%':'');
+        grp.appendChild(o);
+        totalMembers++;
+      });
+      sel.appendChild(grp);
+    }
+  });
+  sel.value = cur;
+  // Show hint if no members
+  const hint = document.getElementById('t-no-members-hint');
+  if(hint) hint.style.display = totalMembers===0 ? 'block' : 'none';
+}
+
+// ============================================================
+// TEAMS
+// ============================================================
+let teamMembersForm = []; // members being added in form
+
+function openTeamModal(id){
+  teamMembersForm = [];
+  document.getElementById('team-modal-ttl').textContent = id ? '👥 تعديل الفريق' : '👥 فريق جديد';
+  document.getElementById('team-eid').value = id||'';
+  if(id){
+    const team = S.teams.find(t=>t.id===id); if(!team) return;
+    document.getElementById('team-name').value = team.name;
+    document.getElementById('team-desc').value = team.desc||'';
+    teamMembersForm = team.members.map(m=>({...m}));
+  } else {
+    document.getElementById('team-name').value = '';
+    document.getElementById('team-desc').value = '';
+  }
+  renderTeamMembersForm();
+  openM('modal-team');
+}
+
+function renderTeamMembersForm(){
+  const el = document.getElementById('team-members-list'); if(!el) return;
+  if(!teamMembersForm.length){
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">لا أعضاء بعد — أضف أعضاء من الأسفل</div>';
+    return;
+  }
+  const roleIcon = {
+    'كونتنت كريتور':'✍',
+    'مصمم جرافيك':'🎨',
+    'فيديو إديتور':'🎬',
+    'مودريتور':'💬',
+    'أخرى':'📌'
+  };
+  el.innerHTML = teamMembersForm.map((m,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:13px">${roleIcon[m.role]||'👤'} ${m.name}</div>
+        <div style="font-size:11px;color:var(--text3)">${m.role}${m.phone?' · 📞'+m.phone:''}${m.rate?' · نسبة '+m.rate+'%':''}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="removeTeamMember(${i})">✕</button>
+    </div>`).join('');
+}
+
+function addMemberToForm(){
+  const name = document.getElementById('member-name')?.value.trim();
+  if(!name) return alert('أدخل اسم العضو');
+  teamMembersForm.push({
+    name,
+    role: document.getElementById('member-role')?.value||'أخرى',
+    phone: document.getElementById('member-phone')?.value||'',
+    rate: +(document.getElementById('member-rate')?.value)||0,
+  });
+  ['member-name','member-phone','member-rate'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  renderTeamMembersForm();
+}
+
+function removeTeamMember(i){
+  teamMembersForm.splice(i,1);
+  renderTeamMembersForm();
+}
+
+function saveTeam(){
+  const name = document.getElementById('team-name')?.value.trim();
+  if(!name) return alert('أدخل اسم الفريق');
+  const eid = document.getElementById('team-eid')?.value;
+  const d = {
+    name,
+    desc: document.getElementById('team-desc')?.value||'',
+    members: teamMembersForm.map(m=>({...m})),
+  };
+  if(eid){
+    const i = S.teams.findIndex(t=>t.id==eid);
+    if(i>-1){ d.id=+eid; S.teams[i]=d; }
+  } else {
+    d.id = Date.now();
+    S.teams.push(d);
+  }
+  lsSave(); closeM('modal-team'); renderTeams();
+  fillWorkerMembersDD();
+  showMiniNotif('✅ تم حفظ الفريق: '+name);
+}
+
+function delTeam(id){
+  confirmDel('هل تريد حذف هذا الفريق؟',()=>{
+    S.teams = S.teams.filter(t=>t.id!==id);
+    lsSave(); renderTeams();
+  });
+}
+
+function renderTeams(){
+  const grid = document.getElementById('teams-grid'); if(!grid) return;
+  if(!S.teams.length){
+    grid.innerHTML = '<div class="empty card" style="grid-column:span 3"><div class="empty-icon">👥</div>لا فرق بعد — أضف فريق عمل<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="openTeamModal()">+ فريق جديد</button></div></div>';
+    // Update badge
+    const badge = document.getElementById('team-badge'); if(badge) badge.style.display='none';
+    return;
+  }
+  const roleIcon = {'كونتنت كريتور':'✍','مصمم جرافيك':'🎨','فيديو إديتور':'🎬','مودريتور':'💬','أخرى':'📌'};
+  // Count total members
+  const totalMembers = S.teams.reduce((s,t)=>s+t.members.length,0);
+  const badge = document.getElementById('team-badge');
+  if(badge){ badge.textContent=totalMembers; badge.style.display=totalMembers?'inline-block':'none'; }
+
+  grid.innerHTML = S.teams.map(team=>`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div style="font-size:16px;font-weight:700">👥 ${team.name}</div>
+          ${team.desc?`<div style="font-size:12px;color:var(--text3);margin-top:3px">${team.desc}</div>`:''}
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm" onclick="openTeamModal(${team.id})">✏</button>
+          <button class="btn btn-danger btn-sm" onclick="delTeam(${team.id})">🗑</button>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px">الأعضاء (${team.members.length})</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${team.members.map(m=>{
+          const mTasks = S.tasks.filter(t=>t.workerMember===m.name&&!t.done).length;
+          return `<div onclick="openMemberProfile('${m.name.replace(/'/g,"\'")}')" class="task-clickable" style="display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;cursor:pointer">
+            <div style="font-size:18px">${roleIcon[m.role]||'👤'}</div>
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:700">${m.name}</div>
+              <div style="font-size:11px;color:var(--text3)">${m.role}${m.rate?' · '+m.rate+'%':''}</div>
+            </div>
+            ${mTasks?`<span style="font-size:10px;background:rgba(247,201,72,.2);color:var(--accent2);padding:2px 7px;border-radius:10px;font-weight:700">${mTasks} مهام</span>`:''}
+            ${m.phone?`<a href="https://wa.me/${m.phone.replace(/[^\d]/g,'')}" target="_blank" onclick="event.stopPropagation()" style="font-size:16px;text-decoration:none" title="واتساب">💬</a>`:''}
+            <span style="font-size:11px;color:var(--text3)">←</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+}
+
+// ============================================================
+// SUBSCRIPTIONS
+// ============================================================
+function openSubscriptionModal(){
+  renderSubsList();
+  openM('modal-subscription');
+}
+
+function renderSubsList(){
+  renderSubsWithReminder();
+}
+
+function addSubscription(){
+  const name = document.getElementById('sub-name')?.value.trim();
+  const amount = +(document.getElementById('sub-amount')?.value)||0;
+  const day = +(document.getElementById('sub-day')?.value)||1;
+  const cat = document.getElementById('sub-cat')?.value||'برامج واشتراكات';
+  if(!name||!amount) return alert('أدخل اسم الاشتراك والمبلغ');
+  if(!S.subscriptions) S.subscriptions=[];
+  S.subscriptions.push({name,amount,day,cat});
+  lsSave();
+  renderSubsList();
+  ['sub-name','sub-amount','sub-day'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  showMiniNotif('✅ تم إضافة الاشتراك: '+name);
+}
+
+function renewSubscription(i){
+  const s = S.subscriptions[i]; if(!s) return;
+  S.transactions.push({
+    id:Date.now(), type:'expense', amount:s.amount,
+    source:s.cat||'برامج واشتراكات', desc:'تجديد اشتراك: '+s.name,
+    isoDate:new Date().toISOString().split('T')[0],
+    date:new Date().toLocaleDateString('ar-EG')
+  });
+  lsSave(); renderAll();
+  showMiniNotif('✅ تم تسجيل تجديد اشتراك '+s.name+': '+s.amount.toLocaleString()+' ج');
+}
+
+function delSubscription(i){
+  S.subscriptions.splice(i,1);
+  lsSave(); renderSubsList();
+}
+
+
+// ============================================================
+// TASK VIEW SWITCH
+// ============================================================
+function switchTaskView(mode){
+  const kanban = document.getElementById('kanban-view');
+  const list = document.getElementById('list-view');
+  const kb = document.getElementById('view-kanban-btn');
+  const lb = document.getElementById('view-list-btn');
+  if(mode==='kanban'){
+    if(kanban) kanban.style.display='block';
+    if(list)   list.style.display='none';
+    if(kb){ kb.style.background='var(--accent)'; kb.style.color='#fff'; }
+    if(lb){ lb.style.background='transparent';   lb.style.color='var(--text3)'; }
+  } else {
+    if(kanban) kanban.style.display='none';
+    if(list)   list.style.display='block';
+    if(kb){ kb.style.background='transparent'; kb.style.color='var(--text3)'; }
+    if(lb){ lb.style.background='var(--accent)'; lb.style.color='#fff'; }
+  }
+}
+
+// ============================================================
+// WORKER PAY MODE (% or fixed amount)
+// ============================================================
+let workerPayMode = 'pct'; // 'pct' or 'fixed'
+function setWorkerPayMode(mode){
+  workerPayMode = mode;
+  const pctBtn   = document.getElementById('worker-pay-pct-btn');
+  const fixedBtn = document.getElementById('worker-pay-fixed-btn');
+  const pctInput = document.getElementById('t-worker-pct');
+  const fixInput = document.getElementById('t-worker-amount');
+  const pctSym   = document.getElementById('t-worker-pct-sym');
+  if(mode==='pct'){
+    if(pctBtn)  { pctBtn.style.background='var(--accent)';   pctBtn.style.color='#fff'; }
+    if(fixedBtn){ fixedBtn.style.background='transparent';   fixedBtn.style.color='var(--text3)'; }
+    if(pctInput) pctInput.style.display='block';
+    if(fixInput) fixInput.style.display='none';
+    if(pctSym)   pctSym.style.display='inline';
+  } else {
+    if(pctBtn)  { pctBtn.style.background='transparent';    pctBtn.style.color='var(--text3)'; }
+    if(fixedBtn){ fixedBtn.style.background='var(--accent)';fixedBtn.style.color='#fff'; }
+    if(pctInput) pctInput.style.display='none';
+    if(fixInput) fixInput.style.display='block';
+    if(pctSym)   pctSym.style.display='none';
+  }
+  calcTaskProfit();
+}
+
+// ============================================================
+// MONTHLY FINANCE TIMELINE
+// ============================================================
+function renderMonthlyTimeline(){
+  const el = document.getElementById('monthly-timeline'); if(!el) return;
+  const yearSel = document.getElementById('fin-year-timeline');
+  // Populate years
+  const years = [...new Set(S.transactions.map(t=>t.isoDate?t.isoDate.slice(0,4):null).filter(Boolean))];
+  const thisYear = new Date().getFullYear().toString();
+  if(!years.includes(thisYear)) years.push(thisYear);
+  years.sort((a,b)=>b-a);
+  if(yearSel){
+    const cur = yearSel.value;
+    yearSel.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
+    yearSel.value = cur && years.includes(cur) ? cur : thisYear;
+  }
+  const selYear = yearSel ? yearSel.value : thisYear;
+  const mNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const now = new Date();
+  const rows = mNames.map((mName,i)=>{
+    const mNum = String(i+1).padStart(2,'0');
+    const prefix = `${selYear}-${mNum}`;
+    const mTrans = S.transactions.filter(t=>(t.isoDate||'').startsWith(prefix));
+    const inc = mTrans.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+    const exp = mTrans.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+    const net = inc-exp;
+    const isCurrent = +selYear===now.getFullYear() && i===now.getMonth();
+    const isFuture = +selYear>now.getFullYear() || (+selYear===now.getFullYear() && i>now.getMonth());
+    if(isFuture && !mTrans.length) return '';
+    return `<div onclick="jumpToMonth('${String(i+1)}','${selYear}')" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;transition:.15s;${isCurrent?'background:rgba(124,111,247,.1);border:1px solid rgba(124,111,247,.3)':'border:1px solid transparent'};margin-bottom:4px" class="task-clickable">
+      <div style="font-size:12px;font-weight:700;color:${isCurrent?'var(--accent)':'var(--text2)'};width:60px">${mName}${isCurrent?' ◀':''}</div>
+      <div style="flex:1;height:6px;background:var(--surface3);border-radius:4px;overflow:hidden;position:relative">
+        ${inc?`<div style="position:absolute;right:0;top:0;height:100%;width:${Math.min(100,Math.round(inc/(Math.max(inc,exp)||1)*100))}%;background:var(--accent3);border-radius:4px;opacity:.7"></div>`:''}
+        ${exp?`<div style="position:absolute;right:0;top:0;height:100%;width:${Math.min(100,Math.round(exp/(Math.max(inc,exp)||1)*100))}%;background:var(--accent4);border-radius:4px;opacity:.5"></div>`:''}
+      </div>
+      <div style="font-size:11px;color:var(--accent3);width:70px;text-align:left;font-weight:700">+${inc.toLocaleString()}</div>
+      <div style="font-size:11px;color:var(--accent4);width:70px;text-align:left">-${exp.toLocaleString()}</div>
+      <div style="font-size:11px;font-weight:800;width:70px;text-align:left;color:${net>=0?'var(--accent3)':'var(--accent4)'}">${net>=0?'+':''}${net.toLocaleString()} ج</div>
+    </div>`;
+  }).filter(Boolean).join('');
+  el.innerHTML = rows || `<div style="font-size:12px;color:var(--text3);padding:8px">لا معاملات في ${selYear}</div>`;
+}
+
+function jumpToMonth(month, year){
+  const ms = document.getElementById('fin-filter-month');
+  const ys = document.getElementById('fin-filter-year');
+  if(ms) ms.value = month;
+  if(ys) ys.value = year;
+  finFilterState.month = month;
+  finFilterState.year  = year;
+  renderFinance();
+}
+
+// ============================================================
+// MEMBER PROFILE VIEW
+// ============================================================
+function openMemberProfile(memberName){
+  document.getElementById('teams-grid-view').style.display='none';
+  document.getElementById('member-profile-view').style.display='block';
+  document.getElementById('member-profile-title').textContent = '👤 '+memberName;
+
+  // Tasks assigned to this member
+  const allTasks = S.tasks.filter(t=>t.workerMember===memberName);
+  const activeTasks = allTasks.filter(t=>!t.done);
+  const doneTasks   = allTasks.filter(t=>t.done);
+
+  // Financial summary
+  const totalOwed  = allTasks.reduce((s,t)=>s+(t.workerAmount||0),0);
+  const totalDeposits = allTasks.filter(t=>t.workerDepositPaid).reduce((s,t)=>s+(t.workerDepositAmount||0),0);
+  const pendingPay = totalOwed - totalDeposits;
+
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('mp-tasks-count', activeTasks.length);
+  set('mp-done-count',  doneTasks.length);
+  set('mp-total-paid',  totalDeposits.toLocaleString()+' ج');
+  set('mp-pending-pay', pendingPay.toLocaleString()+' ج');
+
+  // Active tasks list
+  const el1 = document.getElementById('mp-tasks-list');
+  if(el1) el1.innerHTML = activeTasks.length ? activeTasks.map(t=>{
+    const stMap={new:'📋 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف',done:'✅ مكتمل'};
+    const stepsTotal=t.steps?t.steps.length:0;
+    const stepsDone=t.steps?t.steps.filter(s=>s.done).length:0;
+    const pct=stepsTotal?Math.round(stepsDone/stepsTotal*100):0;
+    return `<div onclick="openTaskDetail(${t.id})" class="task-clickable" style="padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer">
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px">${t.title}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text3)">
+        <span>${t.client||'—'}</span>
+        <span style="color:var(--accent2)">${stMap[t.status||'new']}</span>
+        ${t.workerAmount?`<span style="color:var(--accent4);font-weight:700">مستحق: ${t.workerAmount.toLocaleString()} ج</span>`:''}
+      </div>
+      ${stepsTotal?`<div style="margin-top:6px;display:flex;align-items:center;gap:6px">
+        <div style="flex:1;height:4px;background:var(--surface3);border-radius:2px"><div style="height:100%;width:${pct}%;background:var(--accent);border-radius:2px"></div></div>
+        <span style="font-size:10px;color:var(--text3)">${pct}%</span></div>`:''}
+    </div>`;
+  }).join('') : '<div class="empty" style="padding:16px 0;font-size:12px">لا مهام نشطة</div>';
+
+  // Payments list
+  const el2 = document.getElementById('mp-payments-list');
+  if(el2) el2.innerHTML = allTasks.filter(t=>t.workerAmount>0).length ? allTasks.filter(t=>t.workerAmount>0).map(t=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:12px;font-weight:700">${t.title}</div>
+        <div style="font-size:11px;color:var(--text3)">${t.done?'مكتمل':'جاري'}</div>
+      </div>
+      <div style="text-align:left">
+        <div style="font-size:13px;font-weight:800;color:var(--accent4)">${(t.workerAmount||0).toLocaleString()} ج</div>
+        ${t.workerDepositPaid?`<div style="font-size:10px;color:var(--accent3)">عربون: ${(t.workerDepositAmount||0).toLocaleString()} ج ✓</div>`:'<div style="font-size:10px;color:var(--accent2)">لم يُدفع عربون</div>'}
+      </div>
+    </div>`).join('') : '<div class="empty" style="padding:16px 0;font-size:12px">لا مدفوعات مسجلة</div>';
+
+  // Done tasks
+  const el3 = document.getElementById('mp-done-list');
+  if(el3) el3.innerHTML = doneTasks.length ? doneTasks.map(t=>`
+    <div onclick="openTaskDetail(${t.id})" class="task-clickable" style="padding:9px;background:var(--surface2);border:1px solid rgba(79,209,165,.2);border-radius:8px;margin-bottom:7px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--text2);text-decoration:line-through">${t.title}</div>
+        <div style="font-size:11px;color:var(--text3)">${t.client||'—'}</div>
+      </div>
+      ${t.workerAmount?`<span style="font-size:12px;font-weight:700;color:var(--accent3)">${t.workerAmount.toLocaleString()} ج</span>`:''}
+    </div>`).join('') : '<div class="empty" style="padding:16px 0;font-size:12px">لا مهام مكتملة</div>';
+}
+
+function closeMemberProfile(){
+  document.getElementById('teams-grid-view').style.display='block';
+  document.getElementById('member-profile-view').style.display='none';
+}
+
+// ============================================================
+// SUBSCRIPTIONS — Remaining days + custom categories
+// ============================================================
+function renderSubsWithReminder(){
+  const el = document.getElementById('subs-list'); if(!el) return;
+  const subs = S.subscriptions||[];
+  if(!subs.length){ el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">لا اشتراكات مسجلة بعد</div>'; return; }
+  const today = new Date();
+  el.innerHTML = subs.map((s,i)=>{
+    const day = s.day||1;
+    let nextDate = new Date(today.getFullYear(), today.getMonth(), day);
+    if(nextDate <= today) nextDate = new Date(today.getFullYear(), today.getMonth()+1, day);
+    const diffMs = nextDate - today;
+    const diffDays = Math.ceil(diffMs/(1000*60*60*24));
+    const urgent = diffDays<=5;
+    return `<div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid ${urgent?'rgba(247,111,124,.4)':'var(--border)'};border-radius:8px;padding:10px 14px;margin-bottom:8px">
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:13px">💻 ${s.name}</div>
+        <div style="font-size:11px;color:var(--text3)">${s.cat||'اشتراكات'} · ${s.amount.toLocaleString()} ج/شهر · يتجدد يوم ${s.day}</div>
+        <div style="font-size:11px;margin-top:3px;font-weight:700;color:${urgent?'var(--accent4)':'var(--accent3)'}">${urgent?'⚠ ':'⏰ '}يتجدد خلال ${diffDays} يوم (${nextDate.toLocaleDateString('ar-EG')})</div>
+      </div>
+      <button class="btn btn-success btn-sm" onclick="renewSubscription(${i})" title="تجديد الآن">✅ تجديد</button>
+      <button class="btn btn-danger btn-sm" onclick="delSubscription(${i})">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+// renderSubsList is now renderSubsWithReminder (merged above)
+
+
+// ============================================================
+// DASHBOARD TEAM TASKS
+// ============================================================
+function renderDashTeamTasks(){
+  const container = document.getElementById('dash-team-tasks');
+  if(!container) return;
+
+  // Collect all members with active tasks
+  const allMembers = [];
+  (S.teams||[]).forEach(team=>{
+    (team.members||[]).forEach(m=>allMembers.push(m.name));
+  });
+  if(!allMembers.length){
+    container.innerHTML='<div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">👥</div><div style="font-size:12px">لا أعضاء في الفريق بعد</div></div>';
+    return;
+  }
+
+  const memberData = allMembers.map(name=>{
+    const tasks = S.tasks.filter(t=>t.workerMember===name && !t.done);
+    return {name, tasks};
+  }).filter(m=>m.tasks.length>0);
+
+  if(!memberData.length){
+    container.innerHTML='<div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">لا مهام مسندة حالياً</div></div>';
+    return;
+  }
+
+  const stMap={new:'📋 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف'};
+  const stColor={new:'var(--text3)',progress:'var(--accent2)',review:'var(--accent)',paused:'#64b5f6'};
+
+  container.innerHTML = memberData.map(m=>{
+    const rows = m.tasks.map(t=>{
+      const stepsTotal = t.steps?t.steps.length:0;
+      const stepsDone  = t.steps?t.steps.filter(s=>s.done).length:0;
+      const pct = stepsTotal ? Math.round(stepsDone/stepsTotal*100) : null;
+      const st = t.status||'new';
+      return `<div onclick="openTaskDetail(${t.id})" class="task-clickable" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(42,42,58,.25);cursor:pointer">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+            <span style="font-size:10px;font-weight:700;color:${stColor[st]};background:${stColor[st]}18;padding:1px 6px;border-radius:8px">${stMap[st]||st}</span>
+            ${t.client?`<span style="font-size:10px;color:var(--text3)">${t.client}</span>`:''}
+          </div>
+        </div>
+        ${pct!==null ? `<div style="display:flex;align-items:center;gap:5px;width:80px">
+          <div style="flex:1;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${pct===100?'var(--accent3)':'var(--accent)'};border-radius:2px"></div>
+          </div>
+          <span style="font-size:10px;color:var(--text3);white-space:nowrap">${pct}%</span>
+        </div>` : ''}
+      </div>`;
+    }).join('');
+    return `<div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:6px">👤 ${m.name} — ${m.tasks.length} مهمة</div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+
+// ============================================================
+// DASHBOARD — Subscriptions & Uncollected alerts
+// ============================================================
+
+// ============================================================
+// TASKS LOG — Daily / Monthly / Annual
+// ============================================================
+let currentTasksTab = 'active';
+
+function switchTasksTab(tab){
+  currentTasksTab = tab;
+  const tabs = ['active','log-day','log-month','log-year'];
+  tabs.forEach(t=>{
+    const btn = document.getElementById('ttab-'+t);
+    if(btn){
+      btn.style.color = t===tab ? 'var(--accent)' : 'var(--text3)';
+      btn.style.borderBottom = t===tab ? '2px solid var(--accent)' : '2px solid transparent';
+    }
+  });
+  document.getElementById('tasks-active-view').style.display = tab==='active' ? 'block' : 'none';
+  document.getElementById('tasks-log-view').style.display    = tab!=='active' ? 'block' : 'none';
+  document.getElementById('log-daily').style.display    = tab==='log-day'   ? 'block' : 'none';
+  document.getElementById('log-monthly').style.display  = tab==='log-month' ? 'block' : 'none';
+  document.getElementById('log-annual').style.display   = tab==='log-year'  ? 'block' : 'none';
+
+  if(tab==='log-day'){
+    const dp = document.getElementById('log-day-picker');
+    if(dp && !dp.value) dp.value = new Date().toISOString().split('T')[0];
+    renderDailyLog();
+  } else if(tab==='log-month'){
+    const now=new Date();
+    const ms=document.getElementById('log-month-sel'); if(ms) ms.value=now.getMonth()+1;
+    // Fill year dropdown
+    const ys=document.getElementById('log-month-year');
+    if(ys){
+      const years=[...new Set(S.tasks.filter(t=>t.done&&t.doneAt).map(t=>t.doneAt.slice(0,4)))];
+      const ty=now.getFullYear().toString();
+      if(!years.includes(ty)) years.push(ty);
+      years.sort((a,b)=>b-a);
+      ys.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
+    }
+    renderMonthlyLog();
+  } else if(tab==='log-year'){
+    const ys2=document.getElementById('log-year-sel');
+    if(ys2){
+      const years=[...new Set(S.tasks.filter(t=>t.done&&t.doneAt).map(t=>t.doneAt.slice(0,4)))];
+      const ty=new Date().getFullYear().toString();
+      if(!years.includes(ty)) years.push(ty);
+      years.sort((a,b)=>b-a);
+      ys2.innerHTML=years.map(y=>`<option value="${y}">${y}</option>`).join('');
+    }
+    renderAnnualLog();
+  }
+}
+
+function _taskLogCard(t){
+  return `<div onclick="openTaskDetail(${t.id})" class="task-clickable" style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:7px;cursor:pointer">
+    <div class="task-priority priority-${t.priority||'low'}"></div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">${t.client||'—'}${t.value?' · '+t.value.toLocaleString()+' ج':''}</div>
+    </div>
+    <span style="font-size:10px;background:rgba(79,209,165,.15);color:var(--accent3);padding:2px 8px;border-radius:10px;font-weight:700">✅ مكتمل</span>
+    <span style="font-size:10px;color:var(--text3)">${t.doneAt||''}</span>
+  </div>`;
+}
+
+function renderDailyLog(){
+  const el=document.getElementById('log-daily-content'); if(!el) return;
+  const day=document.getElementById('log-day-picker')?.value;
+  if(!day){ el.innerHTML='<div class="empty">اختر يوماً</div>'; return; }
+  const tasks = S.tasks.filter(t=>t.done && t.doneAt && t.doneAt.startsWith(day));
+  const inc = S.transactions.filter(t=>t.type==='income' && (t.isoDate||'').startsWith(day)).reduce((s,t)=>s+t.amount,0);
+  const exp = S.transactions.filter(t=>t.type==='expense' && (t.isoDate||'').startsWith(day)).reduce((s,t)=>s+t.amount,0);
+  el.innerHTML = `
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">مهام مكتملة</div><div class="stat-value" style="font-size:20px;color:var(--accent)">${tasks.length}</div></div>
+      <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">دخل اليوم</div><div class="stat-value" style="font-size:20px;color:var(--accent3)">${inc.toLocaleString()} ج</div></div>
+      <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">مصروف اليوم</div><div class="stat-value" style="font-size:20px;color:var(--accent4)">${exp.toLocaleString()} ج</div></div>
+    </div>
+    ${tasks.length ? tasks.map(_taskLogCard).join('') : '<div class="empty"><div class="empty-icon">📋</div>لا مهام مكتملة في هذا اليوم</div>'}`;
+}
+
+function renderMonthlyLog(){
+  const el=document.getElementById('log-monthly-content'); if(!el) return;
+  const month=document.getElementById('log-month-sel')?.value;
+  const year=document.getElementById('log-month-year')?.value;
+  if(!month||!year){ el.innerHTML=''; return; }
+  const prefix=`${year}-${String(month).padStart(2,'0')}`;
+  const tasks=S.tasks.filter(t=>t.done && t.doneAt && t.doneAt.startsWith(prefix));
+  const inc=S.transactions.filter(t=>t.type==='income'&&(t.isoDate||'').startsWith(prefix)).reduce((s,t)=>s+t.amount,0);
+  const exp=S.transactions.filter(t=>t.type==='expense'&&(t.isoDate||'').startsWith(prefix)).reduce((s,t)=>s+t.amount,0);
+  const mNames=['','يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  el.innerHTML=`
+    <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--accent)">${mNames[+month]} ${year}</div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">مهام مكتملة</div><div class="stat-value" style="font-size:20px;color:var(--accent)">${tasks.length}</div></div>
+      <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">إجمالي الدخل</div><div class="stat-value" style="font-size:20px;color:var(--accent3)">${inc.toLocaleString()} ج</div></div>
+      <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">إجمالي المصروف</div><div class="stat-value" style="font-size:20px;color:var(--accent4)">${exp.toLocaleString()} ج</div></div>
+      <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">الصافي</div><div class="stat-value" style="font-size:20px;color:${(inc-exp)>=0?'var(--accent3)':'var(--accent4)'}">${(inc-exp).toLocaleString()} ج</div></div>
+    </div>
+    ${tasks.length ? tasks.map(_taskLogCard).join('') : '<div class="empty"><div class="empty-icon">📋</div>لا مهام مكتملة في هذا الشهر</div>'}`;
+}
+
+function renderAnnualLog(){
+  const el=document.getElementById('log-annual-content'); if(!el) return;
+  const year=document.getElementById('log-year-sel')?.value;
+  if(!year){ el.innerHTML=''; return; }
+  const mNames=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const rows = mNames.map((mName,i)=>{
+    const prefix=`${year}-${String(i+1).padStart(2,'0')}`;
+    const tasks=S.tasks.filter(t=>t.done&&t.doneAt&&t.doneAt.startsWith(prefix));
+    const inc=S.transactions.filter(t=>t.type==='income'&&(t.isoDate||'').startsWith(prefix)).reduce((s,t)=>s+t.amount,0);
+    const exp=S.transactions.filter(t=>t.type==='expense'&&(t.isoDate||'').startsWith(prefix)).reduce((s,t)=>s+t.amount,0);
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:7px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);width:55px">${mName}</div>
+      <div style="flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;position:relative">
+        ${inc?`<div style="position:absolute;right:0;top:0;height:100%;width:${Math.min(100,Math.round(inc/Math.max(inc,exp)*100))}%;background:var(--accent3);border-radius:3px;opacity:.7"></div>`:''}
+        ${exp?`<div style="position:absolute;right:0;top:0;height:100%;width:${Math.min(100,Math.round(exp/Math.max(inc,exp)*100))}%;background:var(--accent4);border-radius:3px;opacity:.4"></div>`:''}
+      </div>
+      <span style="font-size:11px;color:var(--accent3);width:65px;text-align:left">${inc?'+'+inc.toLocaleString():''}</span>
+      <span style="font-size:11px;color:var(--accent4);width:65px;text-align:left">${exp?'-'+exp.toLocaleString():''}</span>
+      <span style="font-size:11px;font-weight:700;width:60px;text-align:left;color:${(inc-exp)>=0?'var(--accent3)':'var(--accent4)'}">${(inc-exp)>=0?'+':''}${(inc-exp).toLocaleString()} ج</span>
+      <span style="font-size:11px;color:var(--text3);white-space:nowrap">${tasks.length} مهمة</span>
+    </div>`;
+  });
+  const totalInc=S.transactions.filter(t=>t.type==='income'&&(t.isoDate||'').startsWith(year)).reduce((s,t)=>s+t.amount,0);
+  const totalExp=S.transactions.filter(t=>t.type==='expense'&&(t.isoDate||'').startsWith(year)).reduce((s,t)=>s+t.amount,0);
+  const totalTasks=S.tasks.filter(t=>t.done&&t.doneAt&&t.doneAt.startsWith(year)).length;
+  el.innerHTML=`
+    <div style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--accent)">سنة ${year}</div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">مهام مكتملة</div><div class="stat-value" style="font-size:20px;color:var(--accent)">${totalTasks}</div></div>
+      <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">إجمالي الدخل</div><div class="stat-value" style="font-size:20px;color:var(--accent3)">${totalInc.toLocaleString()} ج</div></div>
+      <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">صافي الربح</div><div class="stat-value" style="font-size:20px;color:${(totalInc-totalExp)>=0?'var(--accent3)':'var(--accent4)'}">${(totalInc-totalExp).toLocaleString()} ج</div></div>
+    </div>
+    ${rows.join('')}`;
+}
+
+// ============================================================
+// CUSTOM TASK STATUSES
+// ============================================================
+const DEFAULT_STATUSES = ['new','progress','review','paused','done'];
+
+function renderTaskStatusesSettings(){
+  const el = document.getElementById('task-statuses-list'); if(!el) return;
+  const hidden = S.hiddenStatuses||[];
+  const custom = S.customStatuses||[];
+  const defaultItems = [
+    {id:'new',      label:'📋 جديد',       color:'var(--text3)'},
+    {id:'progress', label:'⚡ قيد التنفيذ', color:'var(--accent2)'},
+    {id:'review',   label:'🔍 مراجعة',     color:'var(--accent)'},
+    {id:'paused',   label:'⏸ موقوف',       color:'#64b5f6'},
+  ];
+  const defaultHTML = defaultItems.map(s=>{
+    const isHidden = hidden.includes(s.id);
+    if(isHidden) return `<span style="display:inline-flex;align-items:center;gap:6px;background:rgba(42,42,58,.5);color:var(--text3);border:1px dashed var(--border);padding:4px 12px;border-radius:20px;font-size:12px;opacity:.5">${s.label} <button onclick="restoreStatus('${s.id}')" style="background:none;border:none;cursor:pointer;color:var(--accent3);font-size:11px;padding:0" title="إعادة تفعيل">↩</button></span>`;
+    return `<span style="display:inline-flex;align-items:center;gap:6px;background:${s.color}18;color:${s.color};border:1px solid ${s.color}44;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">${s.label} <button onclick="hideStatus('${s.id}')" style="background:none;border:none;cursor:pointer;color:${s.color};font-size:12px;padding:0;line-height:1" title="إخفاء">✕</button></span>`;
+  }).join('');
+  const customHTML = custom.map((s,i)=>
+    `<span style="display:inline-flex;align-items:center;gap:6px;background:${s.color}22;color:${s.color};border:1px solid ${s.color}55;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">${s.icon||''} ${s.label} <button onclick="delCustomStatus(${i})" style="background:none;border:none;cursor:pointer;color:${s.color};font-size:12px;padding:0;line-height:1">✕</button></span>`
+  ).join('');
+  el.innerHTML = defaultHTML + customHTML;
+}
+
+function hideStatus(id){
+  if(!S.hiddenStatuses) S.hiddenStatuses=[];
+  if(!S.hiddenStatuses.includes(id)) S.hiddenStatuses.push(id);
+  lsSave(); renderTaskStatusesSettings(); buildDynamicStatusDropdowns();
+}
+function restoreStatus(id){
+  S.hiddenStatuses = (S.hiddenStatuses||[]).filter(x=>x!==id);
+  lsSave(); renderTaskStatusesSettings(); buildDynamicStatusDropdowns();
+}
+
+function addCustomStatus(){
+  const label = document.getElementById('new-status-label')?.value.trim();
+  const color = document.getElementById('new-status-color')?.value||'#7c6ff7';
+  const icon  = document.getElementById('new-status-icon')?.value.trim()||'';
+  if(!label) return alert('أدخل اسم الحالة');
+  const id = 'custom_'+Date.now();
+  if(!S.customStatuses) S.customStatuses=[];
+  S.customStatuses.push({id,label,color,icon});
+  lsSave();
+  renderTaskStatusesSettings();
+  buildDynamicStatusDropdowns();
+  document.getElementById('new-status-label').value='';
+  document.getElementById('new-status-icon').value='';
+  showMiniNotif('✅ تمت إضافة الحالة: '+label);
+}
+
+function delCustomStatus(i){
+  confirmDel('هل تريد حذف هذه الحالة؟',()=>{
+    S.customStatuses.splice(i,1);
+    lsSave(); renderTaskStatusesSettings(); buildDynamicStatusDropdowns();
+  });
+}
+
+function buildDynamicStatusDropdowns(){
+  const hidden = S.hiddenStatuses||[];
+  const custom = S.customStatuses||[];
+  const defaultMap = {
+    new:'📋 جديد', progress:'⚡ قيد التنفيذ', review:'🔍 مراجعة', paused:'⏸ موقوف'
+  };
+  ['t-status','tf-status'].forEach(selId=>{
+    const sel = document.getElementById(selId); if(!sel) return;
+    const cur = sel.value;
+    // Rebuild options: defaults (filtered) + custom
+    const filterPrefix = selId==='tf-status' ? '<option value="">كل الحالات</option>' : '';
+    const defaultOpts = Object.entries(defaultMap)
+      .filter(([id])=>!hidden.includes(id))
+      .map(([id,lbl])=>`<option value="${id}">${lbl}</option>`).join('');
+    const customOpts = custom.map(s=>`<option value="${s.id}">${s.icon||''} ${s.label}</option>`).join('');
+    sel.innerHTML = filterPrefix + defaultOpts + customOpts;
+    if(cur) sel.value = cur;
+  });
+}
+
+// ============================================================
+// SAVE doneAt timestamp when task is completed
+// ============================================================
+
+
+// ============================================================
+// PAYMENT ACCOUNTS (custom wallets/methods)
+// ============================================================
+const DEFAULT_PAY_METHODS = [
+  {id:'cash',     label:'نقدي',          icon:'💵', color:'#4fd1a5'},
+  {id:'instapay', label:'إنستاباي',      icon:'📲', color:'#7c6ff7'},
+  {id:'vodafone', label:'فودافون كاش',   icon:'📱', color:'#e53935'},
+  {id:'etisalat', label:'اتصالات كاش',   icon:'📞', color:'#1565c0'},
+];
+
+function getAllPayMethods(){
+  const hidden = S.hiddenPayMethods||[];
+  const custom = S.paymentAccounts||[];
+  return [...DEFAULT_PAY_METHODS.filter(m=>!hidden.includes(m.id)), ...custom];
+}
+
+function fillPayMethodDropdowns(){
+  const methods = getAllPayMethods();
+  const opts = methods.map(m=>`<option value="${m.id}">${m.icon} ${m.label}</option>`).join('');
+  ['in-pay-method','ex-pay-method','fin-filter-method'].forEach(id=>{
+    const sel = document.getElementById(id); if(!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = id==='fin-filter-method' ? '<option value="">كل وسائل الدفع</option>'+opts : opts;
+    if(cur) sel.value = cur;
+  });
+}
+
+function renderPaymentAccountsSettings(){
+  const el = document.getElementById('payment-accounts-list'); if(!el) return;
+  // الافتراضية المخفية (المحذوفة من قِبَل المستخدم)
+  const hidden = S.hiddenPayMethods||[];
+  const custom = S.paymentAccounts||[];
+  // عرض الافتراضية مع زر حذف
+  const defaultHTML = DEFAULT_PAY_METHODS.map(m=>{
+    const isHidden = hidden.includes(m.id);
+    if(isHidden) return `<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(42,42,58,.5);color:var(--text3);border:1px dashed var(--border);padding:4px 12px;border-radius:20px;font-size:12px;opacity:.5">${m.icon} ${m.label} <button onclick="restorePayMethod('${m.id}')" style="background:none;border:none;cursor:pointer;color:var(--accent3);font-size:11px;padding:0" title="إعادة تفعيل">↩</button></span>`;
+    return `<span style="display:inline-flex;align-items:center;gap:5px;background:${m.color}18;color:${m.color};border:1px solid ${m.color}44;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">${m.icon} ${m.label} <button onclick="hidePayMethod('${m.id}')" style="background:none;border:none;cursor:pointer;color:${m.color};font-size:12px;padding:0;line-height:1" title="إخفاء">✕</button></span>`;
+  }).join('');
+  const customHTML = custom.map((a,i)=>
+    `<span style="display:inline-flex;align-items:center;gap:5px;background:${a.color}22;color:${a.color};border:1px solid ${a.color}55;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">${a.icon||'💳'} ${a.label} <button onclick="delPaymentAccount(${i})" style="background:none;border:none;cursor:pointer;color:${a.color};font-size:12px;padding:0;line-height:1">✕</button></span>`
+  ).join('');
+  el.innerHTML = defaultHTML + customHTML;
+}
+
+function hidePayMethod(id){
+  if(!S.hiddenPayMethods) S.hiddenPayMethods=[];
+  if(!S.hiddenPayMethods.includes(id)) S.hiddenPayMethods.push(id);
+  lsSave(); renderPaymentAccountsSettings(); fillPayMethodDropdowns();
+}
+function restorePayMethod(id){
+  S.hiddenPayMethods = (S.hiddenPayMethods||[]).filter(x=>x!==id);
+  lsSave(); renderPaymentAccountsSettings(); fillPayMethodDropdowns();
+}
+
+function addPaymentAccount(){
+  const name  = document.getElementById('new-account-name')?.value.trim();
+  const icon  = document.getElementById('new-account-icon')?.value.trim()||'💳';
+  const color = document.getElementById('new-account-color')?.value||'#7c6ff7';
+  if(!name) return alert('أدخل اسم الحساب');
+  const id = 'acc_'+Date.now();
+  if(!S.paymentAccounts) S.paymentAccounts=[];
+  S.paymentAccounts.push({id,label:name,icon,color});
+  lsSave();
+  renderPaymentAccountsSettings();
+  fillPayMethodDropdowns();
+  document.getElementById('new-account-name').value='';
+  document.getElementById('new-account-icon').value='';
+  showMiniNotif('✅ تمت إضافة حساب: '+name);
+}
+
+function delPaymentAccount(i){
+  confirmDel('هل تريد حذف هذا الحساب؟',()=>{
+    S.paymentAccounts.splice(i,1);
+    lsSave(); renderPaymentAccountsSettings(); fillPayMethodDropdowns();
+  });
+}
+
+// ============================================================
+// DASHBOARD OVERDUE TASKS (> 24h old active)
+// ============================================================
+function renderDashOverdue(){
+  const list = document.getElementById('dash-overdue-list'); if(!list) return;
+  const now = Date.now();
+  const overdue = S.tasks.filter(t=>{
+    if(t.done) return false;
+    const created = +t.id;
+    return (now - created) > 24*60*60*1000;
+  }).sort((a,b)=>a.id-b.id); // الأقدم أولاً
+  if(!overdue.length){
+    list.innerHTML='<div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">لا مهام متأخرة</div></div>';
+    return;
+  }
+  const stLabel={new:'📋 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف'};
+  list.innerHTML = overdue.slice(0,5).map(t=>{
+    const hrs  = Math.floor((now - +t.id)/(1000*60*60));
+    const days = Math.floor(hrs/24);
+    const timeStr = days>=1 ? days+' يوم' : hrs+' ساعة';
+    return `<div onclick="openTaskDetail(${t.id})" class="task-clickable" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(42,42,58,.25);cursor:pointer">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
+        <div style="font-size:11px;color:var(--text3)">${t.client||'—'} · ${stLabel[t.status||'new']||t.status||''}</div>
+      </div>
+      <span style="font-size:11px;font-weight:700;color:var(--accent4);white-space:nowrap;background:rgba(247,111,124,.12);padding:2px 7px;border-radius:10px">منذ ${timeStr}</span>
+    </div>`;
+  }).join('');
+  if(overdue.length>5) list.innerHTML += `<div style="font-size:11px;color:var(--text3);padding:5px 0;text-align:center">+ ${overdue.length-5} مهمة أخرى</div>`;
+}
+
+// ============================================================
+// renderDashAlerts — يحدّث كل خانات التنبيه
+// ============================================================
+function renderDashAlerts(){
+  renderDashOverdue();
+
+  // ── اشتراكات قريبة التجديد ──
+  const subsList = document.getElementById('dash-subs-list');
+  if(subsList){
+    const today = new Date();
+    const urgentSubs = (S.subscriptions||[]).filter(s=>{
+      let next = new Date(today.getFullYear(), today.getMonth(), s.day||1);
+      if(next <= today) next = new Date(today.getFullYear(), today.getMonth()+1, s.day||1);
+      return Math.ceil((next-today)/(1000*60*60*24)) <= 7;
+    });
+    if(urgentSubs.length){
+      subsList.innerHTML = urgentSubs.map(s=>{
+        let next = new Date(today.getFullYear(), today.getMonth(), s.day||1);
+        if(next<=today) next = new Date(today.getFullYear(), today.getMonth()+1, s.day||1);
+        const days = Math.ceil((next-today)/(1000*60*60*24));
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(42,42,58,.25)">
+          <div><div style="font-size:12px;font-weight:700">💻 ${s.name}</div><div style="font-size:11px;color:var(--text3)">${s.amount.toLocaleString()} ج/شهر</div></div>
+          <span style="font-size:11px;font-weight:700;color:${days<=3?'var(--accent4)':'var(--accent2)'}; background:${days<=3?'rgba(247,111,124,.12)':'rgba(247,201,72,.12)'};padding:2px 8px;border-radius:10px">${days===0?'اليوم!':days+' أيام'}</span>
+        </div>`;
+      }).join('');
+    } else {
+      subsList.innerHTML='<div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">لا اشتراكات منتهية قريباً</div></div>';
+    }
+  }
+
+  // ── مبالغ لم تُحصَّل ──
+  const uncList = document.getElementById('dash-uncollected-list');
+  if(uncList){
+    const uncollected = S.tasks.filter(t=>t.done && !t.paymentCollected && t.value>0);
+    if(uncollected.length){
+      uncList.innerHTML = uncollected.slice(0,5).map(t=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(42,42,58,.25)">
+          <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div><div style="font-size:11px;color:var(--text3)">${t.client||'—'}</div></div>
+          <div style="text-align:left;flex-shrink:0">
+            <div style="font-size:13px;font-weight:800;color:var(--accent4)">${t.value.toLocaleString()} ج</div>
+            <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 8px;margin-top:2px" onclick="markTaskPaymentCollected(${t.id})">تحصيل</button>
+          </div>
+        </div>`).join('');
+      if(uncollected.length>5) uncList.innerHTML += `<div style="font-size:11px;color:var(--text3);padding:5px 0;text-align:center">+ ${uncollected.length-5} مبلغ آخر</div>`;
+    } else {
+      uncList.innerHTML='<div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">كل المبالغ محصّلة</div></div>';
+    }
+  }
+}
+
+// ============================================================
+// LSLOAD migration for paymentAccounts
+// ============================================================
+
 initAuth();
 renderAll();
 updateHeader('dashboard');
