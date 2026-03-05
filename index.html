@@ -21,6 +21,8 @@ const supa = supabase.createClient(SUPA_URL, SUPA_ANON);
 // ══════════════════════════════════════════════════
 let _syncTimer = null;
 let _supaUserId = null;
+let _isAdminUser = false;
+let _currentMode = 'user';
 
 function cloudSave(data){
   if(!_supaUserId) return;
@@ -88,12 +90,28 @@ function showSyncIndicator(msg, color){
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 40px 36px;
   width: 100%;
   max-width: 420px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 32px 80px rgba(0,0,0,.5);
   animation: authIn .35s cubic-bezier(.4,0,.2,1) both;
+  overflow: hidden;
 }
+.auth-card-top {
+  padding: 28px 36px 0 36px;
+  flex-shrink: 0;
+}
+.auth-card-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 36px 28px 36px;
+  overscroll-behavior: contain;
+}
+.auth-card-body::-webkit-scrollbar { width: 3px; }
+.auth-card-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
 @keyframes authIn {
   from { opacity:0; transform: translateY(24px) scale(.97); }
   to   { opacity:1; transform: none; }
@@ -346,6 +364,7 @@ function showSyncIndicator(msg, color){
   --surface3:  #1c1c28;
   --border:    #2a2a3a;
   --accent:    #7c6ff7;
+  --accent-rgb: 124,111,247;
   --accent2:   #f7c948;
   --accent3:   #4fd1a5;
   --accent4:   #f76f7c;
@@ -366,6 +385,24 @@ function showSyncIndicator(msg, color){
   --transition: 0.28s cubic-bezier(.4,0,.2,1);
 }
 
+/* ═══ LIGHT MODE ═══ */
+body.light-mode {
+  --bg:      #f0f2f8;
+  --surface: #ffffff;
+  --surface2:#f5f6fb;
+  --surface3:#eceef5;
+  --border:  #d8dae8;
+  --text:    #1a1a2e;
+  --text2:   #5a5a7a;
+  --text3:   #9090b0;
+}
+body.light-mode .sidebar { box-shadow: -2px 0 20px rgba(0,0,0,.08); }
+body.light-mode .card    { box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+body.light-mode .modal   { box-shadow: 0 20px 60px rgba(0,0,0,.15); }
+
+/* ═══ DYNAMIC ACCENT COLOR ═══ */
+/* Applied via JS: document.documentElement.style.setProperty('--accent', color) */
+
 /* ═══════════════════════════════════════════════════
    RESET & BASE
 ═══════════════════════════════════════════════════ */
@@ -378,7 +415,19 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  transition: background var(--transition), color var(--transition);
 }
+
+/* Smooth transitions for theme changes */
+*, *::before, *::after {
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+.btn, .nav-item, .card, input, select, textarea {
+  transition: all 0.2s cubic-bezier(.4,0,.2,1) !important;
+}
+
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
@@ -539,7 +588,11 @@ body {
   padding: var(--space-xl);
   max-width: 1600px;
   width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
+
+/* ── Prevent layout jumps on mobile ── */
+.page { contain: layout style; }
 
 /* ═══════════════════════════════════════════════════
    PAGES
@@ -1176,6 +1229,46 @@ function getQRDataURL(text, size) {
 <link href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
 <style>
+/* ── Theme Swatches ── */
+.theme-swatch {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: transform .2s, border-color .2s;
+}
+.theme-swatch:hover { transform: scale(1.15); }
+.theme-swatch.active { border-color: var(--text); transform: scale(1.1); }
+
+/* ── Subscription Status Bar ── */
+.sub-status-bar {
+  margin: 8px 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: .2s;
+}
+.sub-status-bar.active   { background:rgba(79,209,165,.1);  border:1px solid rgba(79,209,165,.25); }
+.sub-status-bar.expired  { background:rgba(255,107,107,.1); border:1px solid rgba(255,107,107,.25); }
+.sub-status-bar.none     { background:rgba(247,201,72,.08); border:1px solid rgba(247,201,72,.2);  }
+.sub-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.sub-dot.green  { background:var(--accent3); }
+.sub-dot.red    { background:var(--accent4); }
+.sub-dot.yellow { background:var(--accent2); }
+
+/* ── Subscription Modal ── */
+#modal-subscription-info .modal { max-width:460px; }
+.upgrade-plan-card {
+  background:var(--surface2); border:1.5px solid var(--border);
+  border-radius:10px; padding:14px; cursor:pointer; transition:.2s;
+}
+.upgrade-plan-card:hover { border-color:var(--accent); }
+.upgrade-plan-card.current { border-color:var(--accent3); background:rgba(79,209,165,.06); }
+
 /* ── Quill dark theme ── */
 .ql-toolbar.ql-snow{background:var(--surface2);border:1px solid var(--border)!important;border-bottom:none!important;border-radius:var(--r2) var(--r2) 0 0;padding:6px 8px;}
 .ql-container.ql-snow{background:var(--surface2);border:1px solid var(--border)!important;border-radius:0 0 var(--r2) var(--r2);min-height:160px;font-family:var(--font);font-size:13px;color:var(--text);}
@@ -1258,24 +1351,39 @@ function getQRDataURL(text, size) {
 .tpl-card-title{font-size:12px;font-weight:700;margin-bottom:8px;}
 </style>
 </head>
-<body>
+<body style="visibility:hidden">
+<script>
+// Prevent flash: show body only after auth check AND subscription load
+window._appReady = false;
+window._showApp = function(){
+  window._appReady = true;
+  document.body.style.visibility = 'visible';
+};
+// Fallback: show after 4s no matter what (increased from 2s to allow sub load)
+setTimeout(window._showApp, 2000);
+</script>
 
 <!-- ═══ AUTH SCREEN ═══ -->
-<div id="auth-screen" class="hidden" style="transition: opacity 0.4s;">
+<div id="auth-screen" class="hidden" style="transition: opacity 0.4s;" data-initialized="false">
   <div class="auth-card">
 
-    <div class="auth-logo">
-      <div class="auth-logo-mark">⬡</div>
-      <div class="auth-logo-text">
-        <div class="auth-app-name">Studio OS</div>
-        <div class="auth-app-sub">نظام إدارة الاستوديو</div>
+    <!-- FIXED TOP: logo + tabs -->
+    <div class="auth-card-top">
+      <div class="auth-logo">
+        <div class="auth-logo-mark">⬡</div>
+        <div class="auth-logo-text">
+          <div class="auth-app-name">Studio OS</div>
+          <div class="auth-app-sub">نظام إدارة الاستوديو</div>
+        </div>
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchAuthTab('login')">تسجيل الدخول</button>
+        <button class="auth-tab" onclick="switchAuthTab('register')">إنشاء حساب</button>
       </div>
     </div>
 
-    <div class="auth-tabs">
-      <button class="auth-tab active" onclick="switchAuthTab('login')">تسجيل الدخول</button>
-      <button class="auth-tab" onclick="switchAuthTab('register')">إنشاء حساب</button>
-    </div>
+    <!-- SCROLLABLE BODY: panels -->
+    <div class="auth-card-body">
 
     <!-- ── LOGIN PANEL ── -->
     <div class="auth-panel active" id="panel-login">
@@ -1283,7 +1391,6 @@ function getQRDataURL(text, size) {
       <div class="auth-subtitle">سجّل دخولك لمتابعة العمل</div>
       <div id="login-error" class="auth-error"></div>
       <div id="login-success" class="auth-success"></div>
-
       <div class="auth-input-group">
         <label class="auth-label">البريد الإلكتروني</label>
         <input class="auth-input" id="login-email" type="email" placeholder="example@gmail.com" dir="ltr">
@@ -1295,23 +1402,18 @@ function getQRDataURL(text, size) {
       <div style="text-align:left;margin-bottom:12px">
         <span onclick="showForgotPassword()" style="font-size:12px;color:var(--accent);cursor:pointer;font-weight:600">نسيت كلمة المرور؟</span>
       </div>
-
       <button class="auth-btn" onclick="doLogin()">تسجيل الدخول</button>
-
       <div class="auth-divider">أو</div>
-
       <button class="auth-btn auth-btn-google" onclick="doGoogleLogin()">
         <svg width="18" height="18" viewBox="0 0 48 48" style="flex-shrink:0"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.5 6.5 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.6 16.1 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.5 6.5 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.5-2.1 14.2-5.5l-6.6-5.6C29.7 35 27 36 24 36c-5.3 0-9.7-3.3-11.3-8H6.1C9.4 35.5 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.9l.1-.1 6.6 5.6C37.3 39.3 44 34.3 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>
         متابعة بـ Google
       </button>
-
       <div class="auth-divider">أو</div>
       <button class="auth-btn" onclick="triggerAuthBackupImport()" style="background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);box-shadow:none;margin-top:0">
         📂 استعادة من نسخة احتياطية
       </button>
       <input type="file" id="auth-backup-input" accept=".json" style="display:none" onchange="doAuthBackupImport(this)">
-
-      <div style="text-align:center;font-size:12px;color:var(--text2);margin-top:10px">
+      <div style="text-align:center;font-size:12px;color:var(--text2);margin-top:10px;padding-bottom:8px">
         ما عندكش حساب؟
         <span style="color:var(--accent);cursor:pointer;font-weight:700" onclick="switchAuthTab('register')">أنشئ حساب جديد</span>
       </div>
@@ -1323,7 +1425,6 @@ function getQRDataURL(text, size) {
       <div class="auth-subtitle">ادخل بياناتك وابدأ إدارة استوديوك</div>
       <div id="register-error" class="auth-error"></div>
       <div id="register-success" class="auth-success"></div>
-
       <div class="auth-input-row">
         <div class="auth-input-group">
           <label class="auth-label">الاسم الكامل *</label>
@@ -1334,17 +1435,14 @@ function getQRDataURL(text, size) {
           <input class="auth-input" id="reg-phone" type="tel" placeholder="01xxxxxxxxx" inputmode="numeric">
         </div>
       </div>
-
       <div class="auth-input-group">
         <label class="auth-label">البريد الإلكتروني *</label>
         <input class="auth-input" id="reg-email" type="email" placeholder="example@gmail.com" dir="ltr">
       </div>
-
       <div class="auth-input-group">
         <label class="auth-label">اسم الاستوديو (اختياري)</label>
         <input class="auth-input" id="reg-studio" type="text" placeholder="مثال: Creative Studio">
       </div>
-
       <div class="auth-input-group">
         <label class="auth-label">كلمة المرور *</label>
         <input class="auth-input" id="reg-password" type="password" placeholder="6 أحرف على الأقل" oninput="checkPwStrength(this.value)">
@@ -1355,16 +1453,13 @@ function getQRDataURL(text, size) {
         <label class="auth-label">تأكيد كلمة المرور *</label>
         <input class="auth-input" id="reg-password2" type="password" placeholder="أعد كتابة كلمة المرور" onkeydown="if(event.key==='Enter')doRegister()">
       </div>
-
       <button class="auth-btn" onclick="doRegister()">إنشاء الحساب</button>
-
       <div class="auth-divider">أو</div>
       <button class="auth-btn auth-btn-google" onclick="doGoogleLogin()">
         <svg width="18" height="18" viewBox="0 0 48 48" style="flex-shrink:0"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.5 6.5 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.6 16.1 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.5 6.5 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.5-2.1 14.2-5.5l-6.6-5.6C29.7 35 27 36 24 36c-5.3 0-9.7-3.3-11.3-8H6.1C9.4 35.5 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.9l.1-.1 6.6 5.6C37.3 39.3 44 34.3 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>
         متابعة بـ Google
       </button>
-
-      <div style="text-align:center;font-size:12px;color:var(--text2);margin-top:10px">
+      <div style="text-align:center;font-size:12px;color:var(--text2);margin-top:10px;padding-bottom:8px">
         عندك حساب بالفعل؟
         <span style="color:var(--accent);cursor:pointer;font-weight:700" onclick="switchAuthTab('login')">سجّل الدخول</span>
       </div>
@@ -1376,22 +1471,19 @@ function getQRDataURL(text, size) {
       <div class="auth-subtitle">هنبعتلك رابط تغيير كلمة المرور على إيميلك</div>
       <div id="forgot-error" class="auth-error"></div>
       <div id="forgot-success" class="auth-success"></div>
-
       <div class="auth-input-group" style="margin-top:16px">
         <label class="auth-label">البريد الإلكتروني</label>
         <input class="auth-input" id="forgot-email" type="email" placeholder="example@gmail.com" dir="ltr" onkeydown="if(event.key==='Enter')doForgotPassword()">
       </div>
-
       <button class="auth-btn" onclick="doForgotPassword()">📧 إرسال رابط التغيير</button>
-
-      <div style="text-align:center;margin-top:12px">
+      <div style="text-align:center;margin-top:12px;padding-bottom:8px">
         <span onclick="switchAuthTab('login')" style="font-size:12px;color:var(--accent);cursor:pointer;font-weight:600">← العودة لتسجيل الدخول</span>
       </div>
     </div>
 
-    <div class="auth-footer">
-      بياناتك محفوظة على السحابة بأمان تام ☁️🔒
-    </div>
+    <div class="auth-footer">Studio OS — نظام إدارة الاستوديو الاحترافي ⬡</div>
+
+    </div><!-- end auth-card-body -->
   </div>
 </div>
 <!-- ═══ END AUTH ═══ -->
@@ -1436,6 +1528,16 @@ function getQRDataURL(text, size) {
       <div class="user-phone" id="user-display-phone">01090412218</div>
     </div>
     <button class="logout-btn" onclick="event.stopPropagation();doLogout()" title="تسجيل الخروج">⏻</button>
+    <button class="logout-btn" onclick="event.stopPropagation();toggleDarkLight()" title="تبديل الوضع" style="margin-right:4px" id="dark-toggle-btn">🌙</button>
+  </div>
+  <!-- Subscription Status Bar -->
+  <div id="sub-status-bar" class="sub-status-bar none" onclick="openSubscriptionInfo()" title="حالة الاشتراك">
+    <div class="sub-dot yellow" id="sub-dot"></div>
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="sub-bar-plan">لا يوجد اشتراك</div>
+      <div id="sub-bar-detail" style="color:var(--text3);font-size:10px;margin-top:1px">اضغط للتفاصيل</div>
+    </div>
+    <span style="font-size:14px">↗</span>
   </div>
 </aside><!-- end sidebar -->
 
@@ -1468,6 +1570,7 @@ function getQRDataURL(text, size) {
   <div class="bn-more-item" onclick="showPage(&#39;meetings&#39;);closeBnMore()" id="bnm-meetings"><span>📅</span>الميتنج</div>
   <div class="bn-more-item" onclick="showPage(&#39;schedule&#39;);closeBnMore()" id="bnm-schedule"><span>◷</span>تنظيم اليوم</div>
   <div class="bn-more-item" onclick="showPage(&#39;settings&#39;);closeBnMore()" id="bnm-settings"><span>⚙</span>الإعدادات</div>
+  <div class="bn-more-item" onclick="toggleDarkLight();closeBnMore()" id="bnm-darkmode"><span id="bnm-dark-icon">🌙</span>تبديل المظهر</div>
 </div>
 <div class="bottom-nav">
   <div class="bottom-nav-inner">
@@ -2207,7 +2310,7 @@ function getQRDataURL(text, size) {
           <button onclick="mtgFormat('formatBlock','h3')">عنوان</button>
           <button onclick="mtgFormat('formatBlock','p')">نص</button>
         </div>
-        <div id="mtg-brief" contenteditable="true" style="min-height:100px;padding:8px;font-size:13px;line-height:1.7;outline:none;color:var(--text)" dir="rtl" placeholder="أهداف الاجتماع، نقاط النقاش..."></div>
+        <div id="mtg-brief" contenteditable="true" style="min-height:100px;padding:10px;font-size:13px;line-height:1.7;outline:none;color:var(--text);background:var(--surface3);border:1px solid var(--border);border-radius:8px" dir="rtl" placeholder="أهداف الاجتماع، نقاط النقاش..."></div>
       </div>
     </div>
     <div class="form-group">
@@ -2218,7 +2321,7 @@ function getQRDataURL(text, size) {
         <button onclick="mtgNotesFormat('insertUnorderedList')">• قائمة</button>
         <button onclick="mtgNotesFormat('insertOrderedList')">1. مرتب</button>
       </div>
-      <div id="mtg-notes" contenteditable="true" style="min-height:80px;padding:8px;background:var(--surface3);border-radius:8px;font-size:13px;line-height:1.7;outline:none;color:var(--text);border:1px solid var(--border)" dir="rtl" placeholder="ما اتقاله في الاجتماع..."></div>
+      <div id="mtg-notes" contenteditable="true" style="min-height:80px;padding:10px;font-size:13px;line-height:1.7;outline:none;color:var(--text);background:var(--surface3);border:1px solid var(--border);border-radius:8px" dir="rtl"></div>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeM('modal-meeting')">إلغاء</button>
@@ -2338,6 +2441,50 @@ function getQRDataURL(text, size) {
       <div class="divider"></div>
       <div class="section-title">خطر</div>
       <button class="btn btn-danger" onclick="clearAll()">🗑 مسح جميع البيانات</button>
+    </div>
+  </div>
+
+  <!-- ── مظهر النظام ── -->
+  <div class="card" style="margin-top:16px">
+    <div class="section-title">🎨 مظهر النظام</div>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <!-- وضع الألوان -->
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:10px">وضع العرض</div>
+        <div style="display:flex;gap:8px">
+          <button id="btn-dark-mode" class="btn btn-primary" onclick="setDisplayMode('dark')" style="flex:1;justify-content:center">🌙 ليلي</button>
+          <button id="btn-light-mode" class="btn btn-ghost" onclick="setDisplayMode('light')" style="flex:1;justify-content:center">☀️ نهاري</button>
+        </div>
+      </div>
+      <!-- اللغة -->
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:10px">اللغة / Language</div>
+        <div style="display:flex;gap:8px">
+          <button id="btn-lang-ar" class="btn btn-primary" onclick="setLanguage('ar')" style="flex:1;justify-content:center">🇪🇬 العربية</button>
+          <button id="btn-lang-en" class="btn btn-ghost" onclick="setLanguage('en')" style="flex:1;justify-content:center">🇬🇧 English</button>
+        </div>
+      </div>
+      <!-- لون النظام -->
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:10px">لون هوية النظام</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+          <div id="theme-colors" style="display:flex;gap:6px;flex-wrap:wrap">
+            <div class="theme-swatch" data-color="#7c6ff7" style="background:#7c6ff7" onclick="setThemeColor('#7c6ff7')" title="بنفسجي"></div>
+            <div class="theme-swatch" data-color="#0ea5e9" style="background:#0ea5e9" onclick="setThemeColor('#0ea5e9')" title="أزرق"></div>
+            <div class="theme-swatch" data-color="#10b981" style="background:#10b981" onclick="setThemeColor('#10b981')" title="أخضر"></div>
+            <div class="theme-swatch" data-color="#f59e0b" style="background:#f59e0b" onclick="setThemeColor('#f59e0b')" title="ذهبي"></div>
+            <div class="theme-swatch" data-color="#ef4444" style="background:#ef4444" onclick="setThemeColor('#ef4444')" title="أحمر"></div>
+            <div class="theme-swatch" data-color="#ec4899" style="background:#ec4899" onclick="setThemeColor('#ec4899')" title="وردي"></div>
+            <div class="theme-swatch" data-color="#f97316" style="background:#f97316" onclick="setThemeColor('#f97316')" title="برتقالي"></div>
+            <div class="theme-swatch" data-color="#06b6d4" style="background:#06b6d4" onclick="setThemeColor('#06b6d4')" title="سماوي"></div>
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer">
+            <input type="color" id="custom-accent-picker" value="#7c6ff7" onchange="setThemeColor(this.value)" style="width:32px;height:32px;border:none;border-radius:8px;cursor:pointer;padding:2px">
+            لون مخصص
+          </label>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--text3)">اللون يطبق على جميع عناصر النظام والفواتير</div>
+      </div>
     </div>
   </div>
 
@@ -2558,7 +2705,7 @@ function getQRDataURL(text, size) {
       <div class="form-group">
         <label class="form-label">العميل / الجهة *</label>
         <div style="display:flex;gap:8px">
-          <select class="form-select" id="t-client" style="flex:1"><option value="">— اختر عميل —</option></select>
+          <select class="form-select" id="t-client" style="flex:1" onchange="onTaskClientChange(this.value)"><option value="">— اختر عميل —</option></select>
           <button class="btn btn-ghost btn-sm" title="إضافة عميل جديد" onclick="closeM(&#39;modal-task&#39;);openClientModal()" style="flex-shrink:0;padding:9px 13px;font-size:16px">+</button>
         </div>
       </div>
@@ -2826,12 +2973,14 @@ function getQRDataURL(text, size) {
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">العميل / المصدر</label>
-        <input class="form-input" id="in-source" placeholder="من أين جاء؟" list="clients-datalist" autocomplete="off">
+        <select class="form-select" id="in-source" onchange="onIncomeClientChange(this.value)">
+          <option value="">— اختر عميل أو اكتب المصدر —</option>
+        </select>
       </div>
       <div class="form-group">
         <label class="form-label">ربط بمشروع (اختياري)</label>
         <select class="form-select" id="in-linked-task" onchange="onIncomeTaskLink()">
-          <option value="">— لا ربط —</option>
+          <option value="">— اختر عميل أولاً —</option>
         </select>
       </div>
     </div>
@@ -3099,7 +3248,22 @@ lsLoad();
 // NAVIGATION
 // ============================================================
 const BN_MAIN=['dashboard','tasks','invoices','clients'];
+// ── الصفحات المجانية بدون اشتراك ──
+const FREE_PAGES = ['dashboard'];
+
+function hasActiveSub(){
+  if(!_supaUserId) return true;
+  if(!_userSubscription) return false;
+  if(_userSubscription.billing==='lifetime') return true;
+  if(!_userSubscription.expiresAt) return true;
+  return new Date(_userSubscription.expiresAt) > new Date();
+}
+
 function showPage(id,el){
+  if(_supaUserId && !hasActiveSub() && !FREE_PAGES.includes(id)){
+    _showPageLock(id,el); return;
+  }
+  _hideLock();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -3121,6 +3285,166 @@ function showPage(id,el){
   renderAll();
   window.scrollTo(0,0);
 }
+
+function _hideLock(){
+  const el=document.getElementById('_page_lock_el');
+  if(el) el.style.display='none';
+}
+
+function _showPageLock(id,el){
+  // حدّث الـ nav
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  else document.querySelectorAll('.nav-item').forEach(n=>{
+    if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'")) n.classList.add('active');
+  });
+  document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
+  const bnEl=document.getElementById('bn-'+id); if(bnEl) bnEl.classList.add('active');
+  if(window.innerWidth<=1024) closeSidebar();
+
+  const names={tasks:'المهام والمشاريع',schedule:'تنظيم اليوم',clients:'قاعدة العملاء',
+    finance:'المالية',invoices:'الفواتير والعقود',team:'فريق العمل',
+    learning:'التعلم والأهداف',meetings:'الميتنج',settings:'الإعدادات'};
+
+  let lock=document.getElementById('_page_lock_el');
+  if(!lock){
+    lock=document.createElement('div');
+    lock.id='_page_lock_el';
+    document.body.appendChild(lock);
+  }
+  lock.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(7,8,15,.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px';
+  lock.innerHTML=`
+    <div style="max-width:380px;width:100%;text-align:center;position:relative">
+      <!-- زرار الإغلاق -->
+      <button onclick="_hideLock();showPage('dashboard')"
+        style="position:absolute;top:-40px;left:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--text2);width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s;font-family:var(--font)"
+        onmouseover="this.style.background='rgba(255,255,255,.15)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">✕</button>
+      <div style="width:76px;height:76px;background:rgba(108,99,255,.12);border:1.5px solid rgba(108,99,255,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px">🔒</div>
+      <div style="font-size:20px;font-weight:900;margin-bottom:6px">${names[id]||id}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px">Premium — مدفوع</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:24px;line-height:1.8">هذه الصفحة تتطلب اشتراكاً نشطاً<br>فعّل كودك أو اشترك للوصول إليها</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;text-align:right">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px">🔑 تفعيل كود الاشتراك</div>
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <input id="_lock_code" type="text" placeholder="أدخل الكود..." dir="ltr"
+            style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;letter-spacing:1.5px;outline:none"
+            oninput="this.value=this.value.toUpperCase()"
+            onkeydown="if(event.key==='Enter')_activateCode('_lock_code','_lock_msg')">
+          <button onclick="_activateCode('_lock_code','_lock_msg')"
+            style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 14px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+            تفعيل
+          </button>
+        </div>
+        <div id="_lock_msg" style="font-size:11px;min-height:14px;text-align:center"></div>
+      </div>
+      <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد الاشتراك في Studio OS')}" target="_blank"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;font-size:13px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+        شراء باقة عبر واتساب
+      </a>
+    </div>`;
+  lock.style.display='flex';
+  window.scrollTo(0,0);
+}
+
+// ── تفعيل السيريال — دالة موحّدة ──
+async function _activateCode(inputId, msgId, onSuccess){
+  const inp=document.getElementById(inputId), msg=document.getElementById(msgId);
+  if(!inp||!msg) return;
+  const code=inp.value.trim().toUpperCase();
+  if(!code){msg.style.color='var(--accent4)';msg.textContent='⚠ أدخل الكود';return;}
+  if(!_supaUserId){msg.style.color='var(--accent4)';msg.textContent='⚠ يجب تسجيل الدخول أولاً';return;}
+  msg.style.color='var(--text2)';msg.textContent='⏳ جاري التحقق من الكود...';
+  const btn=inp.parentElement?.querySelector('button');
+  if(btn) btn.disabled=true;
+  try{
+    // ابحث بالكود فقط أولاً (بدون فلتر status/user_id علشان الـ RLS)
+    const {data,error}=await supa
+      .from('serial_keys')
+      .select('*,subscription_plans(*)')
+      .eq('code',code)
+      .maybeSingle();
+
+    if(error){
+      console.error('Serial lookup error:', error);
+      msg.style.color='var(--accent4)';
+      msg.textContent='⛔ خطأ في الاتصال، حاول مرة أخرى';
+      if(btn) btn.disabled=false;
+      return;
+    }
+    if(!data){
+      msg.style.color='var(--accent4)';
+      msg.textContent='⛔ الكود غير موجود';
+      if(btn) btn.disabled=false;
+      return;
+    }
+    // تحقق من الـ status في الـ JS
+    if(data.status !== 'unused'){
+      msg.style.color='var(--accent4)';
+      msg.textContent = data.user_id === _supaUserId
+        ? '✅ هذا الكود مفعّل بالفعل لحسابك'
+        : '⛔ هذا الكود مستخدم مسبقاً';
+      if(btn) btn.disabled=false;
+      // لو الكود لحسابنا، حمّل الاشتراك
+      if(data.user_id === _supaUserId){
+        await loadUserSubscription(_supaUserId);
+        setTimeout(()=>{_hideLock();if(onSuccess)onSuccess();},800);
+      }
+      return;
+    }
+    if(data.user_id !== null){
+      msg.style.color='var(--accent4)';
+      msg.textContent='⛔ هذا الكود مرتبط بحساب آخر';
+      if(btn) btn.disabled=false;
+      return;
+    }
+
+    // الكود صحيح وغير مستخدم — فعّله
+    const plan=data.subscription_plans, now=new Date();
+    let exp=null;
+    if(data.billing!=='lifetime'&&plan?.duration_days){
+      const d=new Date(now);d.setDate(d.getDate()+plan.duration_days);exp=d.toISOString();
+    }
+    const {error:e2}=await supa
+      .from('serial_keys')
+      .update({status:'active',user_id:_supaUserId,activated_at:now.toISOString(),expires_at:exp})
+      .eq('id',data.id);
+
+    if(e2){
+      console.error('Serial update error:', e2);
+      msg.style.color='var(--accent4)';
+      msg.textContent='⛔ خطأ أثناء التفعيل — تأكد من إعدادات قاعدة البيانات';
+      if(btn) btn.disabled=false;
+      return;
+    }
+    msg.style.color='var(--accent3)';
+    msg.textContent='✅ تم تفعيل الاشتراك بنجاح!';
+    inp.value='';
+    await loadUserSubscription(_supaUserId);
+    setTimeout(()=>{_hideLock();if(onSuccess)onSuccess();},1000);
+  }catch(e){
+    console.error('_activateCode exception:', e);
+    msg.style.color='var(--accent4)';
+    msg.textContent='⛔ خطأ: '+e.message;
+  }
+  if(btn) btn.disabled=false;
+}
+
+function _updateNavLocks(){
+  const locked=_supaUserId&&!hasActiveSub();
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.querySelectorAll('._nl').forEach(i=>i.remove());
+    if(!locked) return;
+    const oc=el.getAttribute('onclick')||'';
+    if(!oc.includes('showPage')) return;
+    if(oc.includes("'dashboard'")||oc.includes('"dashboard"')) return;
+    const ic=document.createElement('span');
+    ic.className='_nl';ic.style.cssText='font-size:10px;opacity:.55;margin-right:auto;flex-shrink:0';
+    ic.textContent='🔒';el.appendChild(ic);
+  });
+}
+
+
 function toggleBnMore(){
   document.getElementById('bn-more-menu').classList.toggle('open');
   document.getElementById('bn-overlay').classList.toggle('open');
@@ -3162,6 +3486,21 @@ function fillDD(selId){
 function loadSettings(){
   const s=S.settings||{};
   ['name','phone','email','address','terms'].forEach(k=>{const e=document.getElementById('set-'+k);if(e)e.value=s[k]||'';});
+  // Reflect current theme state in buttons
+  const mode = localStorage.getItem('studioDisplayMode') || 'dark';
+  const color = localStorage.getItem('studioAccentColor') || '#7c6ff7';
+  const lang  = localStorage.getItem('studioLang') || 'ar';
+  const btnDark  = document.getElementById('btn-dark-mode');
+  const btnLight = document.getElementById('btn-light-mode');
+  if(btnDark)  btnDark.className  = mode === 'dark'  ? 'btn btn-primary' : 'btn btn-ghost';
+  if(btnLight) btnLight.className = mode === 'light' ? 'btn btn-primary' : 'btn btn-ghost';
+  const btnAr = document.getElementById('btn-lang-ar');
+  const btnEn = document.getElementById('btn-lang-en');
+  if(btnAr) btnAr.className = lang === 'ar' ? 'btn btn-primary' : 'btn btn-ghost';
+  if(btnEn) btnEn.className = lang === 'en' ? 'btn btn-primary' : 'btn btn-ghost';
+  document.querySelectorAll('.theme-swatch').forEach(s => s.classList.toggle('active', s.dataset.color === color));
+  const picker = document.getElementById('custom-accent-picker');
+  if(picker) picker.value = color;
   const lp=document.getElementById('logo-preview');
   if(lp)lp.innerHTML=s.logo?`<img src="${s.logo}" style="max-height:80px;max-width:200px;object-fit:contain;border-radius:6px">`:'<span style="color:var(--text3);font-size:13px">لا يوجد لوجو</span>';
   const nd=document.getElementById('studio-name-disp');if(nd)nd.textContent=s.name||'المصمم';
@@ -3354,6 +3693,150 @@ function clearAll(){if(confirm('سيتم مسح جميع البيانات! هل 
 function toggleDeposit(){document.getElementById('deposit-row').style.display=document.getElementById('t-pay').value==='deposit'?'block':'none';}
 
 /* ── نوع العمل في المهمة (فقط يخفي/يظهر قيمة المشروع) ── */
+// ============================================================
+// THEME / LANGUAGE / DARK MODE
+// ============================================================
+function toggleDarkLight() {
+  const current = localStorage.getItem('studioDisplayMode') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  setDisplayMode(next);
+  const btn = document.getElementById('dark-toggle-btn');
+  if(btn) btn.textContent = next === 'dark' ? '🌙' : '☀️';
+}
+
+function setDisplayMode(mode) {
+  document.body.classList.toggle('light-mode', mode === 'light');
+  localStorage.setItem('studioDisplayMode', mode);
+  const btnDark  = document.getElementById('btn-dark-mode');
+  const btnLight = document.getElementById('btn-light-mode');
+  if(btnDark && btnLight) {
+    btnDark.className  = mode === 'dark'  ? 'btn btn-primary' : 'btn btn-ghost';
+    btnLight.className = mode === 'light' ? 'btn btn-primary' : 'btn btn-ghost';
+  }
+  const toggleBtn = document.getElementById('dark-toggle-btn');
+  if(toggleBtn) toggleBtn.textContent = mode === 'dark' ? '🌙' : '☀️';
+}
+
+function setThemeColor(color) {
+  document.documentElement.style.setProperty('--accent', color);
+  localStorage.setItem('studioAccentColor', color);
+  // update swatches
+  document.querySelectorAll('.theme-swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.color === color);
+  });
+  const picker = document.getElementById('custom-accent-picker');
+  if(picker) picker.value = color;
+}
+
+function setLanguage(lang) {
+  localStorage.setItem('studioLang', lang);
+  document.documentElement.lang = lang === 'en' ? 'en' : 'ar';
+  document.documentElement.dir  = lang === 'en' ? 'ltr' : 'rtl';
+  const btnAr = document.getElementById('btn-lang-ar');
+  const btnEn = document.getElementById('btn-lang-en');
+  if(btnAr && btnEn) {
+    btnAr.className = lang === 'ar' ? 'btn btn-primary' : 'btn btn-ghost';
+    btnEn.className = lang === 'en' ? 'btn btn-primary' : 'btn btn-ghost';
+  }
+  // Apply translations
+  applyTranslations(lang);
+}
+
+function applyTranslations(lang) {
+  if(lang !== 'en') return; // Arabic is default
+  const t = {
+    'نظام الاستوديو': 'Studio OS',
+    'الرئيسية': 'Dashboard',
+    'المهام': 'Tasks',
+    'العملاء': 'Clients',
+    'المالية': 'Finance',
+    'الفواتير': 'Invoices',
+    'الإعدادات': 'Settings',
+    'تسجيل الدخول': 'Sign In',
+    'إنشاء حساب': 'Register',
+  };
+  // Light translation for nav items only
+  document.querySelectorAll('.nav-item').forEach(el => {
+    const txt = el.textContent.trim();
+    for(const [ar, en] of Object.entries(t)) {
+      if(txt.includes(ar)) el.querySelector('span:last-child') && (el.querySelector('span:last-child').textContent = en);
+    }
+  });
+}
+
+function loadThemePreferences() {
+  const mode  = localStorage.getItem('studioDisplayMode') || 'dark';
+  const color = localStorage.getItem('studioAccentColor') || '#7c6ff7';
+  const lang  = localStorage.getItem('studioLang') || 'ar';
+  setDisplayMode(mode);
+  setThemeColor(color);
+  setLanguage(lang);
+  // Update sidebar toggle icon
+  const btn = document.getElementById('dark-toggle-btn');
+  if(btn) btn.textContent = mode === 'dark' ? '🌙' : '☀️';
+}
+
+// ============================================================
+// TASK AUTO-FILL FROM CLIENT TYPE
+// ============================================================
+function onTaskClientChange(clientName) {
+  if(!clientName) return;
+  const client = S.clients.find(c => c.name === clientName);
+  if(!client) return;
+  const jobtypeEl = document.getElementById('t-jobtype');
+  if(!jobtypeEl) return;
+  // Auto-set job type from client work type
+  if(client.workType === 'fulltime') {
+    jobtypeEl.value = 'fulltime';
+  } else if(client.workType === 'parttime') {
+    jobtypeEl.value = 'fulltime'; // part-time maps to fulltime
+  } else {
+    jobtypeEl.value = 'freelance';
+  }
+  toggleJobType();
+}
+
+// ============================================================
+// INCOME MODAL - CLIENT → PROJECT FILTER
+// ============================================================
+function onIncomeClientChange(clientName) {
+  const taskSel = document.getElementById('in-linked-task');
+  if(!taskSel) return;
+  taskSel.innerHTML = '<option value="">— لا ربط —</option>';
+  if(!clientName) return;
+  // Filter tasks belonging to this client
+  const clientTasks = S.tasks.filter(t => t.client === clientName);
+  if(!clientTasks.length) {
+    taskSel.innerHTML = '<option value="">— لا توجد مشاريع لهذا العميل —</option>';
+    return;
+  }
+  const statusLabel = {new:'جديد', progress:'جاري', review:'مراجعة', done:'مكتمل'};
+  clientTasks.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.title + (t.status ? ' (' + (statusLabel[t.status]||t.status) + ')' : '');
+    taskSel.appendChild(opt);
+  });
+}
+
+// Populate income client dropdown with all clients
+function fillIncomeClientDropdown() {
+  const sel = document.getElementById('in-source');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— اختر عميل أو اكتب المصدر —</option>';
+  S.clients.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.name;
+    opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+  // add free-text option
+  const other = document.createElement('option');
+  other.value = '__other__';
+  other.textContent = '✏ مصدر آخر...';
+  sel.appendChild(other);
+}
+
 function toggleJobType(){
   const jt = document.getElementById('t-jobtype')?.value||'freelance';
   const isFulltime = jt==='fulltime';
@@ -4295,35 +4778,46 @@ function onIncomeTaskLink(){
 function openIncomeModal(id, prefillTaskId){
   document.getElementById('income-ttl').textContent=id?'💰 تعديل دخل':'💰 تسجيل دخل';
   document.getElementById('income-eid').value=id||'';
-  // Populate clients datalist
-  const dl = document.getElementById('clients-datalist');
-  if(dl){ dl.innerHTML=''; S.clients.forEach(c=>{ const o=document.createElement('option'); o.value=c.name; dl.appendChild(o); }); }
-  // Populate task dropdown
-  const taskSel = document.getElementById('in-linked-task');
-  if(taskSel){
-    taskSel.innerHTML='<option value="">— لا ربط —</option>';
-    S.tasks.forEach(t=>{
-      const o=document.createElement('option');
-      o.value=t.id;
-      o.textContent=(t.done?'✅ ':'📋 ')+t.title+(t.client?' ('+t.client+')':'');
-      taskSel.appendChild(o);
-    });
-  }
+  // Populate clients dropdown (replaces datalist)
+  fillIncomeClientDropdown();
   // Populate payment methods from custom accounts
   fillPayMethodDropdowns();
   if(id){const t=S.transactions.find(t=>t.id===id);if(t){
     document.getElementById('in-amount').value=t.amount;
-    document.getElementById('in-source').value=t.source||'';
+    // Set client in dropdown
+    const srcSel = document.getElementById('in-source');
+    if(srcSel) {
+      if([...srcSel.options].some(o=>o.value===t.source)) srcSel.value=t.source||'';
+      else srcSel.value='';
+    }
     document.getElementById('in-desc').value=t.desc||'';
     document.getElementById('in-date').value=t.isoDate||'';
-    if(taskSel) taskSel.value=t.linkedTaskId||'';
+    // After setting client, filter projects
+    if(t.source) onIncomeClientChange(t.source);
+    const taskSel = document.getElementById('in-linked-task');
+    if(taskSel) setTimeout(()=>{ taskSel.value=t.linkedTaskId||''; }, 50);
     const ptEl=document.getElementById('in-payment-type'); if(ptEl) ptEl.value=t.paymentType||'full';
     const pmEl=document.getElementById('in-pay-method');  if(pmEl) pmEl.value=t.payMethod||'cash';
   }}
   else{
-    ['in-amount','in-source','in-desc'].forEach(f=>{const e=document.getElementById(f);if(e)e.value='';});
+    ['in-amount','in-desc'].forEach(f=>{const e=document.getElementById(f);if(e)e.value='';});
+    const srcSel=document.getElementById('in-source'); if(srcSel) srcSel.value='';
     document.getElementById('in-date').value=new Date().toISOString().split('T')[0];
-    if(taskSel && prefillTaskId) taskSel.value=prefillTaskId;
+    // If prefillTaskId, find client and preselect
+    if(prefillTaskId){
+      const task=S.tasks.find(t=>t.id==prefillTaskId);
+      if(task&&task.client){
+        setTimeout(()=>{
+          const srcSel=document.getElementById('in-source');
+          if(srcSel) srcSel.value=task.client;
+          onIncomeClientChange(task.client);
+          setTimeout(()=>{
+            const taskSel=document.getElementById('in-linked-task');
+            if(taskSel) taskSel.value=prefillTaskId;
+          },60);
+        },30);
+      }
+    }
     const ptEl=document.getElementById('in-payment-type'); if(ptEl) ptEl.value='full';
     const pmEl=document.getElementById('in-pay-method');  if(pmEl) pmEl.value='cash';
   }
@@ -5596,12 +6090,13 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   _supaUserId = supaUser.id;
   const meta = supaUser.user_metadata || {};
   const userObj = {
-    id    : supaUser.id,
-    supaId: supaUser.id,
-    email : supaUser.email || '',
-    name  : userMeta?.name  || meta.full_name || meta.name || supaUser.email || '',
-    phone : userMeta?.phone || meta.phone || '',
-    studio: userMeta?.studio || meta.studio || ''
+    id       : supaUser.id,
+    supaId   : supaUser.id,
+    email    : supaUser.email || '',
+    name     : userMeta?.name  || meta.full_name || meta.name || supaUser.email || '',
+    phone    : userMeta?.phone || meta.phone || '',
+    studio   : userMeta?.studio || meta.studio || '',
+    avatarUrl: meta.avatarUrl || meta.avatar_url || meta.picture || ''
   };
   saveSession(userObj);
 
@@ -5621,17 +6116,261 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     S.settings.name  = userObj.studio || userObj.name;
     S.settings.phone = userObj.phone;
     cloudSave(S);
+  } else if(S.settings.name) {
+    // حفظ الإيميل في الإعدادات علشان الأدمن يشوفه
+    if(!S.settings.email && userObj.email) {
+      S.settings.email = userObj.email;
+      cloudSave(S);
+    }
   }
 
   updateUserBadge(userObj);
   renderAll();
   updateHeader('dashboard');
 
+  // ── فحص صلاحية Admin ──
+  const isAdmin  = meta.role === 'admin' || meta.is_admin === true;
+  const isViewer = meta.role === 'viewer';
+  _isAdminUser = isAdmin || isViewer;
+
+  // تحميل الاشتراك أولاً قبل إظهار الـ app (منع flash)
+  await loadUserSubscription(supaUser.id);
+
+  // إخفاء شاشة اللوجين وإظهار التطبيق بعد تحميل الاشتراك
+  if(window._showApp) window._showApp();
   const screen = document.getElementById('auth-screen');
   screen.style.transition='opacity .4s ease';
   screen.style.opacity='0';
   setTimeout(()=>{ screen.classList.add('hidden'); screen.style.opacity=''; }, 400);
+
+  if(isAdmin || isViewer) {
+    // فتح مباشر بدون overlay — زرار الأدمن موجود في السايدبار
+    showSyncIndicator('✅ أهلاً ' + (userObj.name||''), '#4fd1a5');
+    setTimeout(()=>{ _addAdminSwitchBtn(); }, 600);
+    return;
+  }
+
   showSyncIndicator('✅ أهلاً ' + (userObj.name||'') , '#4fd1a5');
+}
+
+// ══ SUBSCRIPTION SYSTEM ══
+let _userSubscription = null;
+
+async function loadUserSubscription(uid) {
+  try {
+    const { data, error } = await supa
+      .from('serial_keys')
+      .select('*, subscription_plans(*)')
+      .eq('user_id', uid)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if(error || !data) {
+      // Check localStorage (from admin dashboard)
+      const lsSerials = JSON.parse(localStorage.getItem('admin_serials')||'[]');
+      const serial = lsSerials.find(s => s.userId === uid);
+      if(serial) {
+        const lsPlans = JSON.parse(localStorage.getItem('admin_plans')||'[]');
+        const plan = lsPlans.find(p => p.id === serial.planId);
+        _userSubscription = {...serial, plan};
+      } else {
+        _userSubscription = null;
+      }
+    } else {
+      _userSubscription = {
+        ...data,
+        planId: data.plan_id,
+        billing: data.billing,
+        expiresAt: data.expires_at,
+        activatedAt: data.activated_at,
+        plan: data.subscription_plans
+      };
+    }
+  } catch(e) {
+    // Fallback to localStorage
+    const lsSerials = JSON.parse(localStorage.getItem('admin_serials')||'[]');
+    const serial = lsSerials.find(s => s.userId === uid);
+    if(serial) {
+      const lsPlans = JSON.parse(localStorage.getItem('admin_plans')||'[]');
+      _userSubscription = {...serial, plan: lsPlans.find(p=>p.id===serial.planId)};
+    } else {
+      _userSubscription = null;
+    }
+  }
+  updateSubscriptionBar();
+  _updateNavLocks();
+  return _userSubscription;
+}
+
+function updateSubscriptionBar() {
+  const bar     = document.getElementById('sub-status-bar');
+  const planEl  = document.getElementById('sub-bar-plan');
+  const detailEl= document.getElementById('sub-bar-detail');
+  const dotEl   = document.getElementById('sub-dot');
+  if(!bar) return;
+
+  if(!_userSubscription) {
+    bar.className = 'sub-status-bar none';
+    if(planEl)  planEl.textContent = 'لا يوجد اشتراك';
+    if(detailEl) detailEl.textContent = 'اضغط لطلب اشتراك';
+    if(dotEl) dotEl.style.background = 'var(--accent2)';
+    return;
+  }
+
+  const sub  = _userSubscription;
+  const plan = sub.plan;
+  const isExpired = sub.expiresAt && sub.billing !== 'lifetime' && new Date(sub.expiresAt) < new Date();
+  const daysLeft  = sub.expiresAt && sub.billing !== 'lifetime'
+    ? Math.max(0, Math.ceil((new Date(sub.expiresAt) - Date.now()) / 86400000))
+    : null;
+
+  if(isExpired) {
+    bar.className = 'sub-status-bar expired';
+    if(planEl) planEl.textContent = (plan?.name||'الاشتراك') + ' — منتهي';
+    if(detailEl) detailEl.textContent = 'الاشتراك انتهى — تواصل للتجديد';
+    if(dotEl) dotEl.style.background = 'var(--accent4)';
+  } else {
+    bar.className = 'sub-status-bar active';
+    if(planEl) planEl.textContent = (plan?.icon||'📦') + ' ' + (plan?.name||sub.planId);
+    if(detailEl) {
+      detailEl.textContent = sub.billing === 'lifetime'
+        ? '♾️ مدى الحياة'
+        : (daysLeft !== null ? `⏰ متبقي ${daysLeft} يوم` : 'نشط');
+    }
+    if(dotEl) dotEl.style.background = 'var(--accent3)';
+  }
+}
+
+function openSubscriptionInfo() {
+  const body = document.getElementById('sub-info-body');
+  if(!body) return;
+
+  if(!_userSubscription) {
+    body.innerHTML = `
+      <div style="text-align:center;padding:16px 0 12px">
+        <div style="font-size:44px;margin-bottom:10px">📭</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:6px">لا يوجد اشتراك نشط</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:18px">اشترِ باقة وفعّل كودك هنا</div>
+      </div>
+      <div style="background:rgba(108,99,255,.06);border:1.5px dashed rgba(108,99,255,.3);border-radius:13px;padding:16px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px">🔑 تفعيل كود الاشتراك</div>
+        <div style="display:flex;gap:8px;margin-bottom:7px">
+          <input id="_si_serial" type="text" placeholder="أدخل الكود هنا..." dir="ltr"
+            style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;letter-spacing:1.5px;outline:none"
+            oninput="this.value=this.value.toUpperCase()"
+            onkeydown="if(event.key==='Enter')_activateCode('_si_serial','_si_msg',()=>{closeM('modal-subscription-info');openSubscriptionInfo();})">
+          <button onclick="_activateCode('_si_serial','_si_msg',()=>{closeM('modal-subscription-info');openSubscriptionInfo();})"
+            style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 15px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+            تفعيل
+          </button>
+        </div>
+        <div id="_si_msg" style="font-size:11px;min-height:14px;text-align:center"></div>
+      </div>
+      <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد الاشتراك في Studio OS')}"
+        target="_blank"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;padding:12px 24px;border-radius:10px;font-weight:700;text-decoration:none;font-size:13px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+        شراء باقة عبر واتساب
+      </a>`;
+  } else {
+    const sub  = _userSubscription;
+    const plan = sub.plan;
+    const isExpired = sub.expiresAt && sub.billing !== 'lifetime' && new Date(sub.expiresAt) < new Date();
+    const daysLeft  = sub.expiresAt && sub.billing !== 'lifetime'
+      ? Math.max(0, Math.ceil((new Date(sub.expiresAt)-Date.now())/86400000)) : null;
+    const feats = Object.entries(plan?.features||{}).filter(([,v])=>v)
+      .map(([k])=>({'tasks':'✦ المهام','clients':'👥 العملاء','finance':'💰 المالية','invoices':'🧾 الفواتير','schedule':'📅 الجدولة','reports':'📊 التقارير','cloud':'☁️ السحابة'}[k]||k));
+
+    body.innerHTML = `
+      <div style="text-align:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <div style="font-size:40px;margin-bottom:8px">${plan?.icon||'📦'}</div>
+        <div style="font-size:20px;font-weight:900">${plan?.name||sub.planId}</div>
+        <div style="margin-top:6px">${isExpired
+          ? '<span style="background:rgba(255,107,107,.15);color:var(--accent4);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">⛔ منتهي</span>'
+          : '<span style="background:rgba(79,209,165,.15);color:var(--accent3);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">✅ نشط</span>'
+        }</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">نوع الاشتراك</span><span style="font-weight:700">${{'monthly':'📅 شهري','annual':'📆 سنوي','lifetime':'♾️ مدى الحياة'}[sub.billing]||sub.billing}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">الحد الأقصى للعملاء</span><span style="font-weight:700;color:var(--accent)">${plan?.max_clients||'∞'}</span></div>
+        ${daysLeft !== null ? `<div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">المتبقي</span><span style="font-weight:700;color:${daysLeft<7?'var(--accent4)':'var(--text)'}">${daysLeft} يوم</span></div>` : ''}
+        ${sub.expiresAt && sub.billing!=='lifetime' ? `<div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">ينتهي في</span><span>${new Date(sub.expiresAt).toLocaleDateString('ar-EG')}</span></div>` : ''}
+      </div>
+      ${feats.length ? `<div style="margin-bottom:16px"><div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:8px">الصلاحيات المتاحة</div><div style="display:flex;flex-wrap:wrap;gap:6px">${feats.map(f=>`<span style="background:rgba(108,99,255,.12);color:var(--accent);padding:4px 10px;border-radius:20px;font-size:12px">${f}</span>`).join('')}</div></div>` : ''}
+      ${isExpired || daysLeft !== null && daysLeft <= 7 ? `
+        <div style="background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:13px;font-weight:700;margin-bottom:8px">${isExpired?'⛔ اشتراكك انتهى':'⚠ اشتراكك ينتهي قريباً'}</div>
+          <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد تجديد اشتراكي في Studio OS — باقة '+(plan?.name||''))}"
+            target="_blank"
+            style="display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;padding:10px 20px;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px">
+            تجديد عبر واتساب
+          </a>
+        </div>` : `
+        <div style="text-align:center;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:8px">ترغب في ترقية باقتك؟</div>
+          <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد ترقية اشتراكي في Studio OS')}"
+            target="_blank"
+            style="display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;padding:10px 20px;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px">
+            🚀 ترقية الباقة
+          </a>
+        </div>`}
+    `;
+  }
+  openM('modal-subscription-info');
+}
+
+// ══ ADMIN CHOICE OVERLAY ══
+function showAdminChoiceOverlay(user, isAdmin) {
+  let overlay = document.getElementById('admin-choice-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='admin-choice-overlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.style.cssText='position:fixed;inset:0;z-index:9998;background:rgba(7,8,15,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML=`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:36px 28px;max-width:420px;width:100%;text-align:center;box-shadow:0 40px 80px rgba(0,0,0,.6)">
+      <div style="width:60px;height:60px;background:rgba(108,99,255,.15);border:1.5px solid rgba(108,99,255,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px">⚡</div>
+      <div style="font-size:21px;font-weight:900;margin-bottom:6px">أهلاً ${user.name||''}!</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:26px;line-height:1.7">حسابك يملك صلاحيات ${isAdmin?'مشرف':'مشاهد'}<br>اختر الوضع الذي تريد الدخول إليه</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <button onclick="goToUserSite()" style="background:linear-gradient(135deg,#6c63ff,#9f7aea);color:#fff;border:none;border-radius:14px;padding:17px 20px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:12px;transition:.2s" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+          <div style="width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🎨</div>
+          <div style="text-align:right;flex:1"><div>موقع المستخدم</div><div style="font-size:11px;font-weight:400;opacity:.8;margin-top:2px">إدارة أعمالك ومشاريعك</div></div>
+        </button>
+        ${isAdmin?`
+        <button onclick="goToAdminDash()" style="background:var(--surface2);color:var(--text);border:1.5px solid var(--border);border-radius:14px;padding:17px 20px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:12px;transition:.2s" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
+          <div style="width:38px;height:38px;background:rgba(108,99,255,.15);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📊</div>
+          <div style="text-align:right;flex:1"><div>لوحة الإدارة</div><div style="font-size:11px;font-weight:400;color:var(--text2);margin-top:2px">إدارة المستخدمين والاشتراكات</div></div>
+        </button>`:''}
+      </div>
+    </div>`;
+}
+
+function goToUserSite(){
+  _currentMode='user';
+  const o=document.getElementById('admin-choice-overlay'); if(o) o.style.display='none';
+  if(_supaUserId) loadUserSubscription(_supaUserId);
+  // أضف زرار الأدمن في الـ sidebar
+  setTimeout(()=>{ _addAdminSwitchBtn(); }, 500);
+}
+
+function goToAdminDash(){
+  window.open('StudioOS_Admin_v5.html','_blank');
+}
+
+function _addAdminSwitchBtn(){
+  if(!_isAdminUser) return;
+  if(document.getElementById('_admin_sw_btn')) return;
+  const su=document.getElementById('sidebar-user'); if(!su) return;
+  const btn=document.createElement('button');
+  btn.id='_admin_sw_btn';
+  btn.title='التبديل للأدمن';
+  btn.style.cssText='background:rgba(108,99,255,.15);border:1px solid rgba(108,99,255,.3);color:var(--accent);border-radius:8px;padding:4px 7px;font-size:10px;cursor:pointer;font-family:var(--font);font-weight:700;flex-shrink:0;transition:.2s;white-space:nowrap';
+  btn.textContent='⚡ أدمن';
+  btn.onclick=(e)=>{e.stopPropagation();openProfileModal();setTimeout(()=>switchProfileTab('adminswitch'),100);};
+  const logoutBtn=su.querySelector('.logout-btn');
+  if(logoutBtn) su.insertBefore(btn,logoutBtn); else su.appendChild(btn);
 }
 
 // migration helper
@@ -5684,7 +6423,13 @@ function updateUserBadge(user){
   const av=document.getElementById('user-avatar-icon');
   if(el) el.textContent = user.studio||user.name;
   if(ph) ph.textContent = user.email || user.phone || '';
-  if(av) av.textContent = (user.name||'م')[0];
+  if(av){
+    if(user.avatarUrl){
+      av.innerHTML = `<img src="${user.avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    } else {
+      av.textContent = (user.name||'م')[0];
+    }
+  }
   const nd=document.getElementById('studio-name-disp');
   if(nd) nd.textContent = user.name||'المصمم';
 }
@@ -5702,7 +6447,7 @@ async function doGoogleLogin(){
   const { error } = await supa.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.href,
+      redirectTo: window.location.origin + window.location.pathname,
       queryParams: { access_type: 'offline', prompt: 'consent' }
     }
   });
@@ -5718,6 +6463,19 @@ function showForgotPassword(){
   clearAuthMessages();
 }
 
+async function sendPasswordResetEmail(){
+  const user = getSession();
+  if(!user || !user.email) { alert('لم يتم العثور على بريدك الإلكتروني'); return; }
+  const { error } = await supa.auth.resetPasswordForEmail(user.email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  if(error) {
+    showMiniNotif('⚠ فشل الإرسال: ' + error.message);
+  } else {
+    showMiniNotif('✅ تم إرسال رابط إعادة الضبط لـ ' + user.email);
+  }
+}
+
 async function doForgotPassword(){
   const email = (document.getElementById('forgot-email')?.value||'').trim().toLowerCase();
   if(!email || !email.includes('@')) return showAuthMsg('forgot-error','⚠ يرجى إدخال بريد إلكتروني صحيح');
@@ -5726,7 +6484,7 @@ async function doForgotPassword(){
   if(btn){ btn.disabled=true; btn.textContent='⏳ جاري الإرسال...'; }
 
   const { error } = await supa.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.href + '?reset=1'
+    redirectTo: window.location.origin + window.location.pathname
   });
 
   if(btn){ btn.disabled=false; btn.textContent='📧 إرسال رابط التغيير'; }
@@ -5800,6 +6558,43 @@ async function doEmailReset(){
 }
 
 // ============================================================
+// AVATAR UPLOAD
+// ============================================================
+async function uploadAvatarPhoto(input){
+  const file = input.files[0];
+  if(!file) return;
+  if(file.size > 2 * 1024 * 1024){ alert('⚠ حجم الصورة كبير — الحد الأقصى 2MB'); return; }
+
+  // Convert to base64 and store in user metadata + session
+  const reader = new FileReader();
+  reader.onload = async function(e){
+    const base64 = e.target.result;
+
+    // Update Supabase metadata
+    await supa.auth.updateUser({ data: { avatarUrl: base64 } });
+
+    // Update local session
+    const user = getSession();
+    if(user){
+      user.avatarUrl = base64;
+      saveSession(user);
+    }
+
+    // Update avatar display immediately
+    const av = document.getElementById('pm-avatar');
+    if(av) av.innerHTML = `<img src="${base64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+
+    // Update header avatar
+    const headerAv = document.getElementById('user-avatar-icon');
+    if(headerAv) headerAv.innerHTML = `<img src="${base64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+
+    showMiniNotif('✅ تم تحديث صورة البروفايل!');
+    input.value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ============================================================
 // PROFILE MODAL
 // ============================================================
 function openProfileModal(){
@@ -5811,13 +6606,20 @@ function openProfileModal(){
 }
 
 function renderProfileBody(user, users, tab='profile'){
-  const tabs = ['profile','accounts','reset'];
-  const tabLabels = ['بياناتي','الحسابات','كلمة المرور'];
-  const tabIcons  = ['👤','👥','🔒'];
+  const tabs = ['profile','subscription','accounts','reset',...(_isAdminUser?['adminswitch']:[])];
+  const tabLabels = ['بياناتي','اشتراكي','الحسابات','كلمة المرور',...(_isAdminUser?['⚡ أدمن']:[])];
+  const tabIcons  = ['👤','📦','👥','🔒',...(_isAdminUser?['']:[])];
+
 
   let html = `
     <!-- Avatar + name -->
-    <div class="profile-avatar-lg" id="pm-avatar">${(user.name||'م')[0]}</div>
+    <div style="position:relative;display:inline-block;margin-bottom:4px">
+      <div class="profile-avatar-lg" id="pm-avatar" style="cursor:pointer;overflow:hidden;position:relative" onclick="document.getElementById('avatar-upload-input').click()" title="اضغط لتغيير الصورة">
+        ${user.avatarUrl ? `<img src="${user.avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : (user.name||'م')[0]}
+      </div>
+      <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;white-space:nowrap;pointer-events:none">📷 تغيير</div>
+    </div>
+    <input type="file" id="avatar-upload-input" accept="image/*" style="display:none" onchange="uploadAvatarPhoto(this)">
     <div class="profile-name">${user.name}</div>
     <div class="profile-phone">${user.email || user.phone || ''}</div>
 
@@ -5875,6 +6677,99 @@ function renderProfileBody(user, users, tab='profile'){
           <button class="btn btn-danger" onclick="confirmDeleteAccount()" style="flex:none;padding:9px 14px">🗑 حذف الحساب</button>
         </div>
       </div>`;
+  } else if(tab==='subscription'){
+    const sub  = _userSubscription;
+    const plan = sub?.plan || sub?.subscription_plans;
+    if(!sub){
+      html += `
+        <div class="profile-section" style="border-top:none;padding-top:0">
+          <div style="text-align:center;padding:16px 0 12px">
+            <div style="font-size:44px;margin-bottom:10px">📭</div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:6px">لا يوجد اشتراك نشط</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:18px">اشترِ باقة وأدخل الكود أدناه لتفعيل اشتراكك</div>
+          </div>
+          <!-- خانة تفعيل السيريال -->
+          <div style="background:rgba(108,99,255,.06);border:1.5px dashed rgba(108,99,255,.3);border-radius:13px;padding:16px;margin-bottom:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px">🔑 تفعيل كود الاشتراك</div>
+            <div style="display:flex;gap:8px;margin-bottom:7px">
+              <input id="_prof_serial" type="text" placeholder="أدخل الكود هنا..." dir="ltr"
+                style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;letter-spacing:1.5px;outline:none"
+                oninput="this.value=this.value.toUpperCase()"
+                onkeydown="if(event.key==='Enter')_activateCode('_prof_serial','_prof_serial_msg',()=>switchProfileTab('subscription'))">
+              <button onclick="_activateCode('_prof_serial','_prof_serial_msg',()=>switchProfileTab('subscription'))"
+                style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 15px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+                تفعيل
+              </button>
+            </div>
+            <div id="_prof_serial_msg" style="font-size:11px;min-height:14px;text-align:center"></div>
+          </div>
+          <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد الاشتراك في Studio OS')}" target="_blank"
+            style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;font-size:13px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+            شراء باقة عبر واتساب
+          </a>
+        </div>`;
+    } else {
+      const isExpired = sub.expiresAt && sub.billing !== 'lifetime' && new Date(sub.expiresAt) < new Date();
+      const daysLeft  = (sub.expiresAt && sub.billing !== 'lifetime')
+        ? Math.max(0, Math.ceil((new Date(sub.expiresAt) - Date.now()) / 86400000)) : null;
+      const dur = plan?.duration_days || 30;
+      const pct = daysLeft !== null ? Math.min(100, Math.max(0, (daysLeft/dur)*100)) : 100;
+      const barColor = daysLeft === null ? 'var(--accent3)' : daysLeft<7 ? 'var(--accent4)' : daysLeft<14 ? 'var(--accent2)' : 'var(--accent3)';
+      const feats = Object.entries(plan?.features||{}).filter(([,v])=>v)
+        .map(([k])=>({'tasks':'✦ المهام','clients':'👥 العملاء','finance':'💰 المالية','invoices':'🧾 الفواتير','schedule':'📅 الجدولة','reports':'📊 التقارير','cloud':'☁️ السحابة'}[k]||k));
+      html += `
+        <div class="profile-section" style="border-top:none;padding-top:0">
+          <div style="text-align:center;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px">
+            <div style="font-size:40px;margin-bottom:8px">${plan?.icon||'📦'}</div>
+            <div style="font-size:18px;font-weight:900">${plan?.name||sub.planId||'الباقة'}</div>
+            <div style="margin-top:8px">${isExpired
+              ? '<span style="background:rgba(255,107,107,.15);color:var(--accent4);padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700">⛔ منتهي</span>'
+              : '<span style="background:rgba(79,209,165,.15);color:var(--accent3);padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700">✅ نشط</span>'
+            }</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;font-size:13px;align-items:center">
+              <span style="color:var(--text2)">نوع الاشتراك</span>
+              <span style="font-weight:700">${{'monthly':'📅 شهري','annual':'📆 سنوي','lifetime':'♾️ مدى الحياة'}[sub.billing]||sub.billing||'—'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;align-items:center">
+              <span style="color:var(--text2)">حد العملاء</span>
+              <span style="font-weight:700;color:var(--accent)">${plan?.max_clients ? plan.max_clients+' عميل' : 'غير محدود'}</span>
+            </div>
+            ${daysLeft !== null ? `
+            <div style="display:flex;justify-content:space-between;font-size:13px;align-items:center">
+              <span style="color:var(--text2)">الأيام المتبقية</span>
+              <span style="font-weight:700;color:${daysLeft<7?'var(--accent4)':'var(--text)'}">${daysLeft} يوم</span>
+            </div>` : '<div style="font-size:13px;text-align:center;color:var(--accent3);padding:4px 0">♾️ مدى الحياة</div>'}
+            ${sub.activatedAt ? `
+            <div style="display:flex;justify-content:space-between;font-size:13px;align-items:center">
+              <span style="color:var(--text2)">تاريخ التفعيل</span>
+              <span>${new Date(sub.activatedAt).toLocaleDateString('ar-EG')}</span>
+            </div>` : ''}
+            ${sub.expiresAt && sub.billing!=='lifetime' ? `
+            <div style="display:flex;justify-content:space-between;font-size:13px;align-items:center">
+              <span style="color:var(--text2)">ينتهي في</span>
+              <span style="font-weight:600">${new Date(sub.expiresAt).toLocaleDateString('ar-EG')}</span>
+            </div>` : ''}
+          </div>
+          ${daysLeft !== null ? `
+          <div style="margin-bottom:14px">
+            <div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:.4s"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:4px">${daysLeft} من ${dur} يوم متبقي</div>
+          </div>` : ''}
+          ${feats.length ? `
+          <div style="margin-bottom:16px">
+            <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">الصلاحيات المتاحة</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">${feats.map(f=>`<span style="background:rgba(124,111,247,.12);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:12px">${f}</span>`).join('')}</div>
+          </div>` : ''}
+          ${isExpired
+            ? `<a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد تجديد اشتراكي — باقة '+(plan?.name||''))}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;font-size:13px">🔄 تجديد عبر واتساب</a>`
+            : `<a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد ترقية اشتراكي — الباقة الحالية: '+(plan?.name||''))}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:#fff;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;font-size:13px">🚀 ترقية الباقة</a>`}
+        </div>`;
+    }
   } else if(tab==='accounts'){
     const allUsers = getUsers();
     html += `
@@ -5918,6 +6813,34 @@ function renderProfileBody(user, users, tab='profile'){
         <div class="pw-strength"><div class="pw-strength-bar" id="pw-bar2"></div></div>
         <div id="pw-hint2" style="font-size:11px;color:var(--text3);margin-top:4px;min-height:16px;margin-bottom:12px"></div>
         <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doResetPassword()">🔒 تحديث كلمة المرور</button>
+        <div style="text-align:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+          <span style="font-size:12px;color:var(--text3)">أو </span>
+          <button class="btn btn-ghost btn-sm" onclick="sendPasswordResetEmail()" style="font-size:12px">📧 إرسال رابط إعادة ضبط لبريدي</button>
+        </div>
+      </div>`;
+  } else if(tab==='adminswitch'){
+    html += `
+      <div class="profile-section" style="border-top:none;padding-top:0">
+        <div style="text-align:center;margin-bottom:18px">
+          <div style="font-size:38px;margin-bottom:8px">⚡</div>
+          <div style="font-size:15px;font-weight:800;margin-bottom:4px">صلاحيات المشرف</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7">حسابك يملك صلاحيات أدمن<br>يمكنك التبديل في أي وقت</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+          <div style="width:38px;height:38px;background:rgba(79,209,165,.15);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🎨</div>
+          <div style="flex:1"><div style="font-size:11px;color:var(--text3);margin-bottom:2px">الوضع الحالي</div><div style="font-weight:800;font-size:13px">موقع المستخدم</div></div>
+          <div style="background:rgba(79,209,165,.15);color:var(--accent3);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px">نشط ✓</div>
+        </div>
+        <button onclick="closeM('modal-profile');goToAdminDash()"
+          style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:15px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;color:var(--text);display:flex;align-items:center;gap:10px;margin-bottom:10px;transition:.2s"
+          onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
+          <div style="width:36px;height:36px;background:rgba(108,99,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">📊</div>
+          <div style="text-align:right;flex:1"><div>فتح لوحة الإدارة</div><div style="font-size:11px;font-weight:400;color:var(--text2);margin-top:2px">إدارة المستخدمين والاشتراكات</div></div>
+          <span style="color:var(--text3);font-size:16px">↗</span>
+        </button>
+        <button onclick="closeM('modal-profile')" style="width:100%;background:rgba(108,99,255,.08);border:1.5px solid rgba(108,99,255,.25);border-radius:12px;padding:13px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;color:var(--accent);display:flex;align-items:center;justify-content:center;gap:8px">
+          <span>🎨</span> البقاء في موقع المستخدم
+        </button>
       </div>`;
   }
   html += `</div>`;
@@ -7696,9 +8619,14 @@ function renderMeetings(){
   list.innerHTML=mtgs.map(m=>`
     <div class="meeting-card ${m.done?'past':'upcoming'}" onclick="openMeetingDetail(${m.id})">
       <div style="display:flex;align-items:start;gap:10px">
+        <div style="width:44px;height:44px;background:${m.done?'var(--surface3)':'rgba(124,111,247,.15)'};border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">
+          <div style="font-size:13px;font-weight:800;color:${m.done?'var(--text3)':'var(--accent)'}">${m.date?m.date.slice(8):'—'}</div>
+          <div style="font-size:9px;color:var(--text3)">${m.date?['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'][+m.date.slice(5,7)-1]?.slice(0,3)||'':''}</div>
+        </div>
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:700;${m.done?'text-decoration:line-through;color:var(--text3)':''}">${m.title}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:3px">${m.client?'👤 '+m.client+' · ':''} ${typeIcon[m.type]||'📅'} ${m.date||''} ${m.time?'⏰ '+m.time:''} ${m.duration?'('+m.duration+' د)':''}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${m.client?'👤 '+m.client+' · ':''} ${typeIcon[m.type]||'📅'} ${m.time?'⏰ '+m.time:''} ${m.duration?'('+m.duration+' د)':''}</div>
+          ${m.brief?`<div style="font-size:11px;color:var(--text2);margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical">${m.brief.replace(/<[^>]*>/g,'')}</div>`:''}
         </div>
         <div style="display:flex;gap:5px;flex-shrink:0">
           <button onclick="event.stopPropagation();toggleMeetingDone(${m.id})" class="btn btn-ghost btn-sm" title="${m.done?'إعادة':'مكتمل'}">${m.done?'↩':'✓'}</button>
@@ -7706,7 +8634,7 @@ function renderMeetings(){
           <button onclick="event.stopPropagation();delMeeting(${m.id})" class="btn btn-danger btn-sm">🗑</button>
         </div>
       </div>
-      ${m.link?`<a href="${m.link}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:var(--accent);display:block;margin-top:5px">🔗 انضم للاجتماع</a>`:''}
+      ${m.link?`<a href="${m.link}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:var(--accent);display:inline-flex;align-items:center;gap:4px;margin-top:6px;background:rgba(124,111,247,.1);padding:3px 8px;border-radius:6px">🔗 انضم للاجتماع</a>`:''}
     </div>`).join('');
   // Update badge
   const badge=document.getElementById('meetings-badge');
@@ -7930,19 +8858,26 @@ supa.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
-// initAuth — بس تشغل renderAll وتعمل fallback لو onAuthStateChange تأخر
+// initAuth — render UI and set fallback timeout
 async function initAuthFallback(){
+  loadThemePreferences(); // Load saved theme/color/language
   renderAll();
   updateHeader('dashboard');
   checkPasswordResetFlow();
-  // Fallback: لو بعد ثانيتين مفيش session ومفيش login
+
+  // Clean up the # from URL after Google OAuth redirect
+  if(window.location.hash === '#' || window.location.hash === ''){
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  // Fallback: show auth screen if no login after 3 seconds
   setTimeout(()=>{
     if(!_supaUserId){
       const authScreen = document.getElementById('auth-screen');
-      if(authScreen && authScreen.classList.contains('hidden') === false) return;
       if(authScreen) authScreen.classList.remove('hidden');
+      if(window._showApp) window._showApp();
     }
-  }, 2000);
+  }, 3000);
 }
 
 initAuthFallback();
@@ -8030,6 +8965,17 @@ setTimeout(()=>{ initBackupTimers(); }, 1500);
 <style>@keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(20px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }</style>
 
 <!-- ═══ PROFILE MODAL ═══ -->
+<!-- ═══ SUBSCRIPTION INFO MODAL ═══ -->
+<div class="modal-overlay" id="modal-subscription-info">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">📦 اشتراكي</div>
+      <button class="close-btn" onclick="closeM('modal-subscription-info')">✕</button>
+    </div>
+    <div id="sub-info-body"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-profile">
   <div class="modal" style="width:480px">
     <div class="modal-header">
