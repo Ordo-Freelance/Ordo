@@ -39,6 +39,8 @@ function applyPlatformConfig() {
   if(storedDN && (storedDN.includes('@') || storedDN.match(/^[0-9]/))) {
     localStorage.removeItem('_studioDisplayName');
   }
+  // PLATFORM name = admin-set name only (shown in sidebar + auth)
+  // USER studio name = S.settings.name (shown in dashboard greeting only, NOT in sidebar)
   // Update sidebar logo with studio logo if available
   const studioLogo = (typeof S !== 'undefined' && S.settings?.logo) ? S.settings.logo : '';
   const imgEl = document.getElementById('_sidebar-logo-img');
@@ -63,21 +65,15 @@ function applyPlatformConfig() {
   }
 
   const cfg = JSON.parse(localStorage.getItem('platform_config') || '{}');
-  // Priority: S.settings.name (from cloud) > platform_config > default
-  // Never show an email address as the studio name
-  let cloudStudioName = (typeof S !== 'undefined' && S?.settings?.name) ? S.settings.name : '';
-  // Never show email addresses as studio name
   const _isEmail = v => v && (v.includes('@') || /^[^@]+@[^@]+\.[^@]+$/.test(v));
-  if(_isEmail(cloudStudioName)) cloudStudioName = '';
+  // Platform name = ONLY from admin-set platform_config (NOT user studio name)
+  // This is what shows in sidebar and auth page
   let cfgName = cfg.name || '';
   if(_isEmail(cfgName)) cfgName = '';
-  const savedName = localStorage.getItem('_studioDisplayName') || '';
-  let studioField = (typeof S !== 'undefined' && S?.settings?.studio) || '';
-  if(_isEmail(studioField)) studioField = '';
-  const name = cloudStudioName || cfgName || savedName || studioField || 'Studio OS';
-  // Persist the best name we have so auth page shows it even before S loads
-  if(cloudStudioName || cfgName) localStorage.setItem('_studioDisplayName', cloudStudioName || cfgName);
-  const favicon = cfg.favicon || '';
+  const name = cfgName || 'Studio OS';
+  // User studio name is separate — only used in greeting, not in sidebar/auth
+  const favicon = cfg.favicon || cfg.logo_url || '';
+
   // Update title
   document.title = name + ' — نظام الاستوديو';
   // Update logo texts
@@ -120,7 +116,7 @@ window.addEventListener('storage', function(e) {
 });
 
 // Poll كل 3 ثواني كـ fallback لو الـ storage event ما وصلش
-setInterval(applyPlatformConfig, 3000);
+// Poll removed — name updates via storage event and explicit calls only
 
 // Also run immediately
 (function() { if(document.readyState !== 'loading') applyPlatformConfig(); })();
@@ -146,9 +142,15 @@ function cloudSave(data){
   _syncTimer = setTimeout(async ()=>{
     try{
       const payload = { user_id: _supaUserId, data: JSON.stringify(data), updated_at: new Date().toISOString() };
-      await supa.from('studio_data').upsert(payload, { onConflict: 'user_id' });
-      showSyncIndicator('✅ محفوظ على السحابة', '#4fd1a5');
+      const { error } = await supa.from('studio_data').upsert(payload, { onConflict: 'user_id' });
+      if(error){
+        console.error('cloudSave error:', error.message);
+        showSyncIndicator('⚠ فشل الحفظ: ' + error.message.substring(0,30), '#f76f7c');
+      } else {
+        showSyncIndicator('✅ محفوظ على السحابة', '#4fd1a5');
+      }
     }catch(e){
+      console.error('cloudSave exception:', e);
       showSyncIndicator('⚠ فشل المزامنة', '#f76f7c');
     }
   }, 1000);
@@ -1682,7 +1684,7 @@ setTimeout(window._showApp, 4000);
     </div>
     <div class="logo-text">
       <div class="logo-title" data-platform-name>Studio OS</div>
-      <div class="logo-sub">نظام إدارة الاستوديو</div>
+      <div class="logo-sub" id="_sidebar-logo-sub">نظام إدارة الاستوديو</div>
     </div>
   </div>
   <div class="nav-section-label">الرئيسية</div>
@@ -2728,13 +2730,6 @@ setTimeout(window._showApp, 4000);
         <button class="btn btn-ghost" style="margin-right:8px;color:var(--accent2)" onclick="forcePushToCloud()" title="رفع البيانات المحلية للسحابة">⬆ رفع للسحابة</button>
       </div>
 
-      <div class="card" id="cloud-diag-card" style="border-color:rgba(108,99,255,.3)">
-        <div class="section-title" style="color:var(--accent)">☁️ حالة المزامنة</div>
-        <div id="cloud-diag-info" style="font-size:12px;color:var(--text2);line-height:1.8">
-          <div>جاري التحقق...</div>
-        </div>
-      </div>
-
       <div class="card">
         <div class="section-title">🖼 لوجو الاستوديو</div>
         <div id="logo-preview" style="margin-bottom:14px;min-height:90px;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:var(--r2);border:2px dashed var(--border)"><span style="color:var(--text3);font-size:13px">لا يوجد لوجو</span></div>
@@ -2761,6 +2756,20 @@ setTimeout(window._showApp, 4000);
           </select>
           <input class="form-input" id="social-url-input" placeholder="الرابط أو الرقم" style="flex:1;min-width:120px">
           <button class="btn btn-ghost btn-sm" onclick="addSocial()" style="flex-shrink:0">+ إضافة</button>
+        </div>
+      </div>
+
+      <!-- Cloud Sync Status Card -->
+      <div class="card" id="cloud-diag-card" style="border-color:rgba(108,99,255,.25);grid-column:1/-1">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="section-title" style="margin:0;color:var(--accent)">☁️ حالة المزامنة مع السحابة</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="forceCloudReload()">⬇ تحميل من السحابة</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--accent2)" onclick="forcePushToCloud()">⬆ رفع للسحابة</button>
+          </div>
+        </div>
+        <div id="cloud-diag-info" style="font-size:12px;color:var(--text2);line-height:2">
+          <div style="color:var(--text3)">افتح الإعدادات لرؤية حالة المزامنة...</div>
         </div>
       </div>
 
@@ -10269,10 +10278,12 @@ supa.auth.onAuthStateChange(async (event, session) => {
     // If admin is logged into admin dashboard in another tab and this tab isn't the source, skip auto-login
     const storedAdminSession = localStorage.getItem('_admin_active_session');
     const isAdminTabSession  = (session.user.user_metadata?.role === 'admin' || session.user.user_metadata?.is_admin === true);
-    if(isAdminTabSession && event === 'INITIAL_SESSION' && storedAdminSession === 'admin_dash_only'){
-      // Admin session from another tab — show auth screen instead of auto-login
+    // ALWAYS block admin accounts from auto-logging into user site
+    // Admin users should only access via admin.html
+    if(isAdminTabSession){
       const authScreen = document.getElementById('auth-screen');
       if(authScreen && !_supaUserId){ authScreen.classList.remove('hidden'); }
+      console.log('Admin account blocked from user site auto-login');
       return;
     }
 
