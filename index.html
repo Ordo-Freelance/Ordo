@@ -11678,19 +11678,40 @@ async function _loadServerNotifications(){
       .order('created_at', {ascending:false})
       .limit(30);
     if(res.data && res.data.length){
+      var newCount = 0;
       res.data.forEach(function(n){
         var exists = _notifications.find(function(x){ return x.id === 'srv_'+n.id; });
         if(!exists){
           _notifications.unshift({
-            id: 'srv_'+n.id, msg: (n.title ? n.title+': ' : '')+n.body,
-            type: n.type||'message', time: n.created_at, read: n.read||false
+            id: 'srv_'+n.id, supaId: n.id,
+            msg: (n.title ? '**'+n.title+'**\n' : '')+n.body,
+            type: n.type==='broadcast'?'message':n.type||'message',
+            time: n.created_at, read: false
           });
+          if(!n.read) newCount++;
         }
       });
-      _saveNotifications();
-      _updateNotifBell();
+      if(newCount > 0) {
+        _saveNotifications();
+        _updateNotifBell();
+        // Show a toast for new messages from admin
+        if(typeof toast === 'function') toast('💬 لديك '+newCount+' رسالة جديدة من الإدارة');
+      }
     }
   } catch(e){ /* silent fail if table doesn't exist */ }
+}
+
+// Mark server notifications as read in Supabase
+async function _markServerNotifsRead(){
+  if(!_supaUserId || typeof supa === 'undefined') return;
+  try {
+    var unreadIds = _notifications
+      .filter(function(n){ return n.supaId && !n.read; })
+      .map(function(n){ return n.supaId; });
+    if(unreadIds.length){
+      await supa.from('user_notifications').update({read:true}).in('id', unreadIds);
+    }
+  } catch(e){}
 }
 
 // Poll for new server notifications every 60s
@@ -12233,38 +12254,50 @@ function _toggleNotifPanel(triggerEl){
   var existing = document.getElementById('_notif-panel');
   if(existing){ existing.remove(); return; }
   _loadNotifications();
-  // Mark all as read
+  // Mark all as read locally
   _notifications.forEach(function(n){ n.read=true; });
   _saveNotifications();
   _updateNotifBell();
+  // Mark as read in Supabase (async, no await needed)
+  _markServerNotifsRead();
 
-  var ICONS = {info:'ℹ', success:'✅', warning:'⚠', error:'❌', message:'💬'};
-  var COLORS = {info:'var(--accent)', success:'var(--accent3)', warning:'var(--accent2)', error:'var(--accent4)', message:'#64b5f6'};
+  var ICONS  = {info:'ℹ', success:'✅', warning:'⚠', error:'❌', message:'💬', broadcast:'📢'};
+  var COLORS = {info:'var(--accent)', success:'var(--accent3)', warning:'var(--accent2)', error:'var(--accent4)', message:'#64b5f6', broadcast:'#f7c948'};
 
   var panel = document.createElement('div');
   panel.id = '_notif-panel';
-  panel.style.cssText = 'position:fixed;z-index:9998;background:var(--surface2);border:1px solid var(--border);border-radius:16px;width:320px;max-height:480px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 36px rgba(0,0,0,.35)';
+  panel.style.cssText = 'position:fixed;z-index:9998;background:var(--surface);border:1px solid var(--border);border-radius:18px;width:340px;max-height:520px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,.45)';
   var rect = triggerEl.getBoundingClientRect();
   panel.style.top = (rect.bottom+8)+'px';
-  panel.style.left = Math.max(8, rect.left-260)+'px';
+  panel.style.left = Math.max(8, rect.left-280)+'px';
 
   var listHtml = _notifications.length === 0
-    ? '<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px">🔔<br>لا إشعارات جديدة</div>'
-    : _notifications.slice(0,20).map(function(n){
-        var ago = _timeAgo(n.time);
-        var icon = ICONS[n.type]||'ℹ';
-        var color = COLORS[n.type]||'var(--accent)';
-        return '<div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start">' +
-          '<span style="font-size:16px;margin-top:1px;flex-shrink:0">' + icon + '</span>' +
+    ? '<div style="text-align:center;padding:48px 20px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px;opacity:.4">🔔</div><div style="font-size:13px">لا إشعارات جديدة</div></div>'
+    : _notifications.slice(0,25).map(function(n){
+        var ago   = _timeAgo(n.time);
+        var icon  = ICONS[n.type]  || 'ℹ';
+        var color = COLORS[n.type] || 'var(--accent)';
+        // Parse **bold** markdown in message
+        var msgHtml = (n.msg||'')
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n/g, '<br>');
+        var isAdmin = !!n.supaId;
+        return '<div style="padding:13px 15px;border-bottom:1px solid rgba(42,42,58,.5);display:flex;gap:11px;align-items:flex-start' + (isAdmin?';background:rgba(108,99,255,.04)':'') + '">' +
+          '<div style="width:34px;height:34px;border-radius:50%;background:'+color+'18;border:1.5px solid '+color+'44;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">'+icon+'</div>' +
           '<div style="flex:1;min-width:0">' +
-          '<div style="font-size:12px;font-weight:600;color:var(--text)">' + n.msg + '</div>' +
-          '<div style="font-size:10px;color:var(--text3);margin-top:3px">' + ago + '</div></div></div>';
+          '<div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.5">' + msgHtml + '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px;margin-top:4px">' +
+          (isAdmin ? '<span style="font-size:9px;padding:2px 7px;border-radius:8px;background:rgba(108,99,255,.15);color:var(--accent);font-weight:700">من الإدارة</span>' : '') +
+          '<div style="font-size:10px;color:var(--text3)">'+ago+'</div>' +
+          '</div></div></div>';
       }).join('');
 
   panel.innerHTML =
-    '<div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">' +
-    '<div style="font-size:13px;font-weight:800">🔔 الإشعارات</div>' +
-    '<button onclick="_clearAllNotifications()" style="font-size:10px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:var(--font)">مسح الكل</button>' +
+    '<div style="padding:13px 15px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">' +
+    '<div style="font-size:13px;font-weight:800;display:flex;align-items:center;gap:6px">' +
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' +
+    'الإشعارات <span style="font-size:10px;padding:1px 7px;border-radius:10px;background:rgba(108,99,255,.15);color:var(--accent)">' + _notifications.length + '</span></div>' +
+    '<button onclick="_clearAllNotifications()" style="font-size:10px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:3px 8px;border-radius:6px;transition:.15s" onmouseover="this.style.color=\'var(--accent4)\'" onmouseout="this.style.color=\'var(--text3)\'">مسح الكل</button>' +
     '</div>' +
     '<div style="overflow-y:auto;flex:1">' + listHtml + '</div>';
 
