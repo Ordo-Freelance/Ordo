@@ -155,12 +155,29 @@ function cloudSave(data){
 }
 
 async function cloudLoad(){
-  if(!_supaUserId) return null;
+  if(!_supaUserId) { console.warn('cloudLoad: no _supaUserId'); return null; }
   try{
+    // Try fetching the data column
     const { data, error } = await supa.from('studio_data').select('data').eq('user_id', _supaUserId).single();
-    if(error || !data) return null;
-    return JSON.parse(data.data);
-  }catch(e){ return null; }
+    if(error){
+      console.error('cloudLoad error:', error.code, error.message);
+      if(error.code === 'PGRST116') return null; // no rows = new user
+      // RLS or other error — try alternative query
+      const { data: fullRow, error: e2 } = await supa.from('studio_data').select('*').eq('user_id', _supaUserId).maybeSingle();
+      if(e2 || !fullRow) { console.error('cloudLoad fallback error:', e2?.message); return null; }
+      const raw = fullRow.data;
+      try { return typeof raw === 'string' ? JSON.parse(raw) : (raw || null); } catch(e){ return null; }
+    }
+    if(!data){ console.warn('cloudLoad: no data row'); return null; }
+    try {
+      const parsed = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+      console.log('cloudLoad: ✅ loaded', Object.keys(parsed||{}).join(','));
+      return parsed;
+    } catch(parseErr){
+      console.error('cloudLoad parse error:', parseErr);
+      return null;
+    }
+  }catch(e){ console.error('cloudLoad exception:', e); return null; }
 }
 
 function showSyncIndicator(msg, color){
@@ -2707,6 +2724,7 @@ setTimeout(window._showApp, 4000);
           </div>
         </div>
         <button class="btn btn-primary" onclick="saveSettings()">💾 حفظ الإعدادات</button>
+        <button class="btn btn-ghost" style="margin-right:8px" onclick="forceCloudReload()" title="إعادة تحميل البيانات من السحابة">☁️ تحديث من السحابة</button>
       </div>
 
       <div class="card">
@@ -4223,7 +4241,34 @@ function removeTaskTypeFromSettings(i){
 }
 function saveSettings(){
   S.settings={name:v('set-name'),phone:v('set-phone'),email:v('set-email'),address:v('set-address'),terms:v('set-terms'),logo:S.settings?.logo||'',policies:S.settings?.policies||[],socials:S.settings?.socials||[],waTemplates:S.settings?.waTemplates||{}};
-  lsSave();alert('✅ تم حفظ الإعدادات');
+  lsSave();cloudSave(S);alert('✅ تم حفظ الإعدادات');
+}
+
+async function forceCloudReload(){
+  if(!_supaUserId){ toast('⚠ غير مسجل دخول'); return; }
+  showSyncIndicator('☁️ جاري التحميل...', 'var(--accent)');
+  try {
+    const cloudData = await cloudLoad();
+    if(cloudData){
+      S = cloudData;
+      migrateSFields();
+      localStorage.setItem('studioOS_v3_'+_supaUserId, JSON.stringify(S));
+      renderAll();
+      applyPlatformConfig();
+      showSyncIndicator('✅ تم التحديث من السحابة', '#4fd1a5');
+      toast('✅ تم تحميل البيانات من السحابة');
+    } else {
+      showSyncIndicator('⚠ لا بيانات في السحابة', '#f7c948');
+      // Check what the raw error is
+      const { data, error } = await supa.from('studio_data').select('user_id, updated_at').eq('user_id', _supaUserId).maybeSingle();
+      if(error) toast('❌ خطأ RLS: ' + error.message);
+      else if(!data) toast('⚠ لا يوجد سجل لهذا المستخدم في studio_data');
+      else toast('⚠ السجل موجود بس البيانات فارغة');
+    }
+  } catch(e) {
+    showSyncIndicator('❌ فشل', '#f76f7c');
+    toast('❌ ' + e.message);
+  }
 }
 
 /* ── WhatsApp Templates ── */
