@@ -2103,7 +2103,7 @@ setTimeout(window._showApp, 4000);
 </div>
 
 <!-- CONTRACTS PAGE -->
-<div class="page" id="page-contracts" style="display:none"></div>
+<div class="page" id="page-contracts"></div>
 
 
 <!-- FREELANCER GOALS PAGE -->
@@ -2112,9 +2112,7 @@ setTimeout(window._showApp, 4000);
     <div><div class="page-title">🎯 الأهداف <span>والإنجازات</span></div><div class="page-subtitle">حدد أهدافك وتابع تقدمك</div></div>
     <button class="btn btn-primary" onclick="openFreelancerGoalModal()">+ هدف جديد</button>
   </div>
-  <!-- Monthly summary banner -->
   <div id="fg-banner" style="margin-bottom:16px"></div>
-  <!-- Tabs -->
   <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px">
     <button class="filter-chip active" id="fg-tab-fin" onclick="switchFgTab('financial')">💰 مالية</button>
     <button class="filter-chip" id="fg-tab-tasks" onclick="switchFgTab('tasks')">📋 أوردرات</button>
@@ -2374,16 +2372,12 @@ setTimeout(window._showApp, 4000);
 <div class="page" id="page-invoices">
   <div class="page-header">
     <div><div class="page-title">الفواتير <span>والعقود</span></div><div class="page-subtitle">احترف تعاملاتك المالية</div></div>
-    <div style="display:flex;gap:8px" id="inv-header-btns">
-      <button class="btn btn-primary" onclick="openInvoiceModal()" id="inv-add-btn">+ فاتورة جديدة</button>
-    </div>
+    <button class="btn btn-primary" id="inv-add-btn" onclick="openInvoiceModal()">+ فاتورة جديدة</button>
   </div>
-  <!-- Tabs -->
   <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px">
     <button class="filter-chip active" id="inv-tab-inv" onclick="switchInvTab('invoices')">◻ الفواتير</button>
     <button class="filter-chip" id="inv-tab-ct" onclick="switchInvTab('contracts')">📝 العقود</button>
   </div>
-  <!-- Invoices panel -->
   <div id="inv-panel-invoices">
     <div id="inv-layout">
       <div class="card">
@@ -2398,9 +2392,8 @@ setTimeout(window._showApp, 4000);
       </div>
     </div>
   </div>
-  <!-- Contracts panel (hidden by default) -->
   <div id="inv-panel-contracts" style="display:none">
-    <div style="display:grid;grid-template-columns:320px 1fr;gap:20px" id="contracts-layout">
+    <div style="display:grid;grid-template-columns:320px 1fr;gap:20px">
       <div class="card" style="padding:0;overflow:hidden">
         <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
           <div style="font-size:14px;font-weight:800">العقود</div>
@@ -2413,9 +2406,7 @@ setTimeout(window._showApp, 4000);
       </div>
       <div id="contract-detail-area">
         <div class="card" style="display:flex;align-items:center;justify-content:center;min-height:400px">
-          <div class="empty">
-            <div class="empty-icon">📄</div>
-            <div>اختر عقداً أو أنشئ عقداً جديداً</div>
+          <div class="empty"><div class="empty-icon">📄</div><div>اختر عقداً أو أنشئ عقداً جديداً</div>
             <button class="btn btn-primary" style="margin-top:14px" onclick="openContractModal()">+ عقد جديد</button>
           </div>
         </div>
@@ -10561,304 +10552,251 @@ function buildPortalHTML(d){
 // Check sign URL on page load
 window.addEventListener('load',()=>setTimeout(checkContractSignUrl,800));
 
-// ════════════════════════════════════════════════════════════════
-// 1. INVOICE TABS (switchInvTab)
-// ════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// INJECT CSS ANIMATIONS
+// ═══════════════════════════════════════════════════
+(function(){
+  const s = document.createElement('style');
+  s.textContent = `
+    @keyframes _confettiFall{0%{transform:translateY(0) rotate(0deg) translateX(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg) translateX(var(--tx,0px));opacity:0}}
+    @keyframes _celebIn{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+    @keyframes _notifSlide{0%{transform:translateX(-50%) translateY(-24px);opacity:0}100%{transform:translateX(-50%) translateY(0);opacity:1}}
+  `;
+  document.head.appendChild(s);
+})();
+
+// ═══════════════════════════════════════════════════
+// 1. INVOICE TAB SWITCHER
+// ═══════════════════════════════════════════════════
 function switchInvTab(tab){
-  const inv = document.getElementById('inv-panel-invoices');
-  const ct  = document.getElementById('inv-panel-contracts');
-  const btnInv = document.getElementById('inv-tab-inv');
-  const btnCt  = document.getElementById('inv-tab-ct');
+  const panels = {invoices:'inv-panel-invoices', contracts:'inv-panel-contracts'};
+  const btns   = {invoices:'inv-tab-inv',        contracts:'inv-tab-ct'};
+  Object.keys(panels).forEach(k=>{
+    const p = document.getElementById(panels[k]);
+    const b = document.getElementById(btns[k]);
+    if(p) p.style.display = k===tab ? '' : 'none';
+    if(b){ b.classList.toggle('active', k===tab); }
+  });
   const addBtn = document.getElementById('inv-add-btn');
-  if(tab==='invoices'){
-    if(inv)inv.style.display='';
-    if(ct)ct.style.display='none';
-    if(btnInv){btnInv.classList.add('active');}
-    if(btnCt){btnCt.classList.remove('active');}
-    if(addBtn){addBtn.textContent='+ فاتورة جديدة';addBtn.setAttribute('onclick','openInvoiceModal()');}
-  } else {
-    if(inv)inv.style.display='none';
-    if(ct)ct.style.display='';
-    if(btnCt){btnCt.classList.add('active');}
-    if(btnInv){btnInv.classList.remove('active');}
-    if(addBtn){addBtn.textContent='+ عقد جديد';addBtn.setAttribute('onclick','openContractModal()');}
-    renderContractsList();
+  if(addBtn){
+    if(tab==='contracts'){ addBtn.textContent='+ عقد جديد'; addBtn.onclick=()=>openContractModal(); }
+    else { addBtn.textContent='+ فاتورة جديدة'; addBtn.onclick=()=>openInvoiceModal(); }
   }
+  if(tab==='contracts') renderContractsList();
 }
 
-// Redirect contracts page to invoices+contracts tab
-const _origShowPage = showPage;
-function showPage(id, el){
-  if(id==='contracts'){
-    _origShowPage('invoices', el);
-    setTimeout(()=>switchInvTab('contracts'),50);
-    return;
-  }
-  _origShowPage(id, el);
-  if(id==='invoices') setTimeout(()=>switchInvTab('invoices'),20);
-  if(id==='freelancer-goals') setTimeout(()=>renderFreelancerGoalsPage(),50);
-}
+// ═══════════════════════════════════════════════════
+// 2. PATCH showPage — contracts -> invoices tab
+//    (safe: no recursive override)
+// ═══════════════════════════════════════════════════
+document.addEventListener('click', function(e){
+  // intercept any nav click to 'contracts' before showPage fires
+}, true);
 
-// ════════════════════════════════════════════════════════════════
-// 2. TIME TRACKER — Task dropdown with autocomplete
-// ════════════════════════════════════════════════════════════════
-// Override ttFillDL to populate from S.tasks
-const _origTtFillDL = ttFillDL;
-function ttFillDL(){
-  _origTtFillDL();
-  // Add active tasks to dropdown
-  const activeTasks = (S.tasks||[]).filter(t=>!t.done&&t.status!=='done');
-  const taskNames = activeTasks.map(t=>t.title).filter(Boolean);
-  const dlEl = document.getElementById('tt-tasks-dl');
-  if(dlEl){
-    const prev = [...new Set((S.timeEntries||[]).map(e=>e.task_title).filter(Boolean))];
-    const all = [...new Set([...taskNames,...prev])];
-    dlEl.innerHTML = all.map(t=>`<option value="${t}">`).join('');
-  }
-  // Build a dropdown overlay for better UX
-  const inp = document.getElementById('tt-task-input');
-  if(inp && !inp._ttDropBound){
-    inp._ttDropBound = true;
-    inp.addEventListener('focus', ttShowTaskDropdown);
-    inp.addEventListener('input', ttShowTaskDropdown);
-    inp.addEventListener('blur', ()=>setTimeout(ttHideTaskDropdown,200));
-  }
-}
-
-function ttShowTaskDropdown(){
-  const inp = document.getElementById('tt-task-input');
-  if(!inp) return;
-  const val = (inp.value||'').trim().toLowerCase();
-  const activeTasks = (S.tasks||[]).filter(t=>!t.done&&t.status!=='done');
-  const filtered = val ? activeTasks.filter(t=>(t.title||'').toLowerCase().includes(val)) : activeTasks;
-  if(!filtered.length){ ttHideTaskDropdown(); return; }
-  let dd = document.getElementById('tt-task-dropdown');
-  if(!dd){
-    dd = document.createElement('div');
-    dd.id = 'tt-task-dropdown';
-    dd.style.cssText = 'position:absolute;background:var(--surface2);border:1px solid var(--border);border-radius:10px;z-index:9000;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:280px';
-    inp.parentNode.style.position = 'relative';
-    inp.parentNode.appendChild(dd);
-  }
-  dd.innerHTML = filtered.slice(0,10).map(t=>`
-    <div onclick="ttPickTask('${(t.title||'').replace(/'/g,"\\'")}','${(t.client||'').replace(/'/g,"\\'")}','${t.id}')"
-      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px"
-      onmouseenter="this.style.background='var(--surface3)'" onmouseleave="this.style.background=''">
-      <span style="font-size:10px;padding:2px 6px;border-radius:20px;background:rgba(124,111,247,.15);color:var(--accent);font-weight:700">${t.status==='progress'?'⚡ جاري':'🆕 جديد'}</span>
-      <div>
-        <div style="font-size:13px;font-weight:700">${t.title||''}</div>
-        ${t.client?`<div style="font-size:11px;color:var(--text3)">${t.client}</div>`:''}
-      </div>
-    </div>
-  `).join('');
-  dd.style.display = 'block';
-}
-
-function ttHideTaskDropdown(){
-  const dd = document.getElementById('tt-task-dropdown');
-  if(dd) dd.style.display = 'none';
-}
-
-function ttPickTask(title, client, taskId){
-  const inp = document.getElementById('tt-task-input');
-  const ci  = document.getElementById('tt-client-input');
-  if(inp) inp.value = title;
-  if(ci && client) ci.value = client;
-  // Store linked task id
-  window._ttLinkedTaskId = +taskId;
-  ttHideTaskDropdown();
-}
-
-// Override ttStop to also save time log to the task itself
-const _origTtStop = ttStop;
-function ttStop(){
-  const taskName = document.getElementById('tt-task-input')?.value?.trim();
-  const totalMs  = (_tt.elapsed||0)+((_tt.startedAt)?Date.now()-_tt.startedAt:0);
-  _origTtStop();
-  // After stop, link time to task
-  if(taskName && totalMs >= 5000){
-    const tid = window._ttLinkedTaskId;
-    const task = tid ? S.tasks.find(t=>t.id===tid) : S.tasks.find(t=>t.title===taskName&&!t.done);
-    if(task){
-      if(!task.timeLogs) task.timeLogs = [];
-      task.timeLogs.push({date: new Date().toISOString().split('T')[0], seconds: Math.floor(totalMs/1000)});
-      lsSave(); cloudSave(S);
+// Wrap showPage once, safely, using a flag
+if(!window._showPagePatched){
+  window._showPagePatched = true;
+  const _spOrig = window.showPage;
+  window.showPage = function(id, el){
+    if(id === 'contracts'){
+      _spOrig('invoices', el);
+      setTimeout(()=>switchInvTab('contracts'), 40);
+      return;
     }
-    window._ttLinkedTaskId = null;
-  }
+    _spOrig(id, el);
+    if(id === 'invoices')  setTimeout(()=>switchInvTab('invoices'), 20);
+    if(id === 'freelancer-goals') setTimeout(renderFreelancerGoalsPage, 40);
+  };
 }
 
-// ════════════════════════════════════════════════════════════════
-// 3. DASHBOARD WIDGETS — Timer Shortcut + Goals Shortcut
-// ════════════════════════════════════════════════════════════════
-function renderDashTimerShortcut(){
+// ═══════════════════════════════════════════════════
+// 3. TIME TRACKER — task dropdown
+// ═══════════════════════════════════════════════════
+function ttBuildActiveTasks(){
+  return (S.tasks||[]).filter(t=>!t.done && t.status!=='done');
+}
+
+function ttShowDropdown(inputId, dropdownId){
+  const inp = document.getElementById(inputId);
+  const dd  = document.getElementById(dropdownId);
+  if(!inp || !dd) return;
+  const q = (inp.value||'').toLowerCase();
+  const tasks = ttBuildActiveTasks().filter(t=> !q || (t.title||'').toLowerCase().includes(q));
+  if(!tasks.length){ dd.style.display='none'; return; }
+  dd.innerHTML = tasks.slice(0,10).map(t=>`
+    <div class="_tt-opt" data-title="${(t.title||'').replace(/"/g,'&quot;')}" data-client="${(t.client||'').replace(/"/g,'&quot;')}" data-id="${t.id}"
+      style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px"
+      onmousedown="ttSelectOpt(event,'${inputId}')">
+      <div style="font-weight:700">${t.title||''}</div>
+      ${t.client?`<div style="font-size:11px;color:var(--text3)">${t.client}</div>`:''}
+    </div>`).join('');
+  dd.style.display='block';
+}
+
+function ttSelectOpt(e, inputId){
+  e.preventDefault();
+  const el = e.currentTarget;
+  const title  = el.dataset.title;
+  const client = el.dataset.client;
+  const id     = +el.dataset.id;
+  // Fill main timer inputs
+  const ti = document.getElementById('tt-task-input');
+  const ci = document.getElementById('tt-client-input');
+  if(ti) ti.value = title;
+  if(ci && client) ci.value = client;
+  window._ttLinkedTaskId = id;
+  // Also fill dashboard input if that's where we are
+  const di = document.getElementById(inputId);
+  if(di) di.value = title;
+  // Hide dropdown
+  const dd = document.getElementById(el.closest('[id$="-dropdown"]')?.id || '_none');
+  if(dd) dd.style.display='none';
+}
+
+// Inject dropdown elements next to tt-task-input after page loads
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    const inp = document.getElementById('tt-task-input');
+    if(inp && !document.getElementById('tt-task-dd')){
+      const dd = document.createElement('div');
+      dd.id = 'tt-task-dd';
+      dd.style.cssText = 'display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;z-index:9000;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.3)';
+      inp.parentNode.style.position='relative';
+      inp.parentNode.appendChild(dd);
+      inp.addEventListener('focus', ()=>ttShowDropdown('tt-task-input','tt-task-dd'));
+      inp.addEventListener('input', ()=>ttShowDropdown('tt-task-input','tt-task-dd'));
+      inp.addEventListener('blur',  ()=>setTimeout(()=>{dd.style.display='none';},200));
+    }
+  }, 1200);
+});
+
+// ═══════════════════════════════════════════════════
+// 4. DASHBOARD WIDGETS
+// ═══════════════════════════════════════════════════
+function renderDashWidgets(){
+  _renderDashGoals();
+  _renderDashTimer();
+}
+
+function _renderDashGoals(){
   const pg = document.getElementById('page-dashboard');
   if(!pg) return;
-  let el = document.getElementById('dash-timer-shortcut-card');
+  let el = document.getElementById('_dash-goals-wgt');
   if(!el){
     el = document.createElement('div');
-    el.id = 'dash-timer-shortcut-card';
+    el.id = '_dash-goals-wgt';
     el.className = 'card';
-    el.style.cssText = 'margin-bottom:16px;border-color:rgba(79,209,165,.3)';
-    // Insert before last element in dashboard
-    const meetings = pg.querySelector('[id="dash-meetings-shortcut"]')?.closest('.card');
-    if(meetings) pg.insertBefore(el, meetings);
+    el.style.cssText = 'margin-bottom:16px;border-color:rgba(124,111,247,.3)';
+    const meetings = pg.querySelector('#dash-meetings-shortcut');
+    const parent   = meetings ? meetings.closest('.card') : null;
+    if(parent) pg.insertBefore(el, parent);
     else pg.appendChild(el);
   }
-  const running = _tt && _tt.running;
-  const elapsed = _tt ? (_tt.elapsed + (_tt.startedAt ? Date.now()-_tt.startedAt : 0)) : 0;
-  el.innerHTML = `
+  const fg = S.freelancerGoals||{};
+  const now = new Date();
+  let rows = '';
+  if(fg.financial){
+    const {target,month,year}=fg.financial;
+    const ms=year+'-'+(month<10?'0':'')+month;
+    const actual=(S.transactions||[]).filter(t=>t.type==='income'&&(t.isoDate||'').startsWith(ms)).reduce((s,t)=>s+(+t.amount||0),0);
+    const pct=Math.min(100,Math.round(actual/(target||1)*100));
+    const col=pct>=100?'var(--accent3)':pct>=75?'var(--accent2)':'var(--accent)';
+    rows+=`<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>💰 هدف الدخل</span><span style="font-weight:700;color:${col}">${pct}%</span></div>
+      <div style="background:var(--surface3);border-radius:20px;height:7px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${col};border-radius:20px;transition:.5s"></div></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">${actual.toLocaleString()} / ${target.toLocaleString()} ج</div>
+    </div>`;
+  } else {
+    rows+=`<div style="font-size:12px;color:var(--text3);margin-bottom:8px">💰 <span style="color:var(--accent);cursor:pointer" onclick="openFreelancerGoalModal('financial')">حدد هدفك المالي</span></div>`;
+  }
+  if(fg.tasks){
+    const {target,startDate,endDate}=fg.tasks;
+    const done=(S.tasks||[]).filter(t=>t.done&&t.doneAt>=startDate&&t.doneAt<=endDate).length;
+    const pct=Math.min(100,Math.round(done/(target||1)*100));
+    const col=pct>=100?'var(--accent3)':pct>=75?'var(--accent2)':'var(--accent)';
+    rows+=`<div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>📋 هدف الأوردرات</span><span style="font-weight:700;color:${col}">${pct}%</span></div>
+      <div style="background:var(--surface3);border-radius:20px;height:7px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${col};border-radius:20px;transition:.5s"></div></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">${done} / ${target} أوردر</div>
+    </div>`;
+  } else {
+    rows+=`<div style="font-size:12px;color:var(--text3)">📋 <span style="color:var(--accent);cursor:pointer" onclick="openFreelancerGoalModal('tasks')">حدد هدف الأوردرات</span></div>`;
+  }
+  el.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="section-title" style="margin:0;color:var(--accent)">🎯 أهدافي هذا الشهر</div>
+      <button onclick="showPage('freelancer-goals')" class="btn btn-ghost btn-sm" style="font-size:11px">تفاصيل ←</button>
+    </div>${rows}`;
+}
+
+function _renderDashTimer(){
+  const pg = document.getElementById('page-dashboard');
+  if(!pg) return;
+  let el = document.getElementById('_dash-timer-wgt');
+  if(!el){
+    el = document.createElement('div');
+    el.id = '_dash-timer-wgt';
+    el.className = 'card';
+    el.style.cssText = 'margin-bottom:16px;border-color:rgba(79,209,165,.3)';
+    const gWgt = document.getElementById('_dash-goals-wgt');
+    if(gWgt) pg.insertBefore(el, gWgt);
+    else pg.appendChild(el);
+  }
+  const running = _tt&&_tt.running;
+  const elaps   = _tt ? _tt.elapsed+(_tt.startedAt?Date.now()-_tt.startedAt:0) : 0;
+  const curTask = document.getElementById('tt-task-input')?.value||'';
+  el.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <div class="section-title" style="margin:0;color:var(--accent3)">⏱ تتبع الوقت السريع</div>
       <button onclick="showPage('timetracker')" class="btn btn-ghost btn-sm" style="font-size:11px">فتح كامل ←</button>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <div style="position:relative;flex:1">
-        <input class="form-input" id="dash-tt-task" placeholder="اسم المهمة..." 
-          value="${document.getElementById('tt-task-input')?.value||''}"
-          oninput="dashTtTaskInput(this.value)" style="width:100%;padding-left:8px">
-        <div id="dash-tt-dropdown" style="display:none;position:absolute;background:var(--surface2);border:1px solid var(--border);border-radius:8px;z-index:9000;width:100%;max-height:160px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,.3)"></div>
+        <input class="form-input" id="_dtt-inp" value="${curTask.replace(/"/g,'&quot;')}" placeholder="اسم المهمة..."
+          oninput="ttShowDropdown('_dtt-inp','_dtt-dd')" onfocus="ttShowDropdown('_dtt-inp','_dtt-dd')" onblur="setTimeout(()=>{const d=document.getElementById('_dtt-dd');if(d)d.style.display='none'},200)">
+        <div id="_dtt-dd" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;z-index:9001;max-height:160px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,.3)"></div>
       </div>
-      <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent3);min-width:70px;text-align:center">${ttFmt(elapsed,1)||'00:00'}</div>
-      <button onclick="dashTtToggle()" style="width:40px;height:40px;border-radius:50%;background:${running?'var(--accent2)':'var(--accent)'};border:none;color:#fff;font-size:16px;cursor:pointer">${running?'⏸':'▶'}</button>
-      <button onclick="dashTtStop()" style="width:36px;height:36px;border-radius:50%;background:rgba(247,111,124,.15);border:1.5px solid rgba(247,111,124,.3);color:var(--accent4);font-size:14px;cursor:pointer" title="إيقاف وحفظ">■</button>
-    </div>
-  `;
-  // Bind task input
-  const dtInp = document.getElementById('dash-tt-task');
-  if(dtInp && !dtInp._bound){
-    dtInp._bound=true;
-    dtInp.addEventListener('focus',()=>dashTtTaskInput(dtInp.value));
-    dtInp.addEventListener('blur',()=>setTimeout(()=>{ const dd=document.getElementById('dash-tt-dropdown');if(dd)dd.style.display='none'; },200));
-  }
+      <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent3);min-width:68px;text-align:center">${ttFmt(elaps,1)||'00:00'}</div>
+      <button onclick="_dttToggle()" style="width:40px;height:40px;border-radius:50%;background:${running?'var(--accent2)':'var(--accent)'};border:none;color:#fff;font-size:16px;cursor:pointer">${running?'⏸':'▶'}</button>
+      <button onclick="_dttStop()" style="width:36px;height:36px;border-radius:50%;background:rgba(247,111,124,.15);border:1.5px solid rgba(247,111,124,.3);color:var(--accent4);font-size:14px;cursor:pointer">■</button>
+    </div>`;
 }
 
-function dashTtTaskInput(val){
-  const dd = document.getElementById('dash-tt-dropdown');
-  if(!dd) return;
-  const activeTasks = (S.tasks||[]).filter(t=>!t.done&&t.status!=='done');
-  const q = (val||'').toLowerCase();
-  const filtered = q ? activeTasks.filter(t=>(t.title||'').toLowerCase().includes(q)) : activeTasks;
-  if(!filtered.length){ dd.style.display='none'; return; }
-  dd.innerHTML = filtered.slice(0,8).map(t=>`
-    <div onclick="dashTtPickTask('${(t.title||'').replace(/'/g,"\\'")}','${(t.client||'').replace(/'/g,"\\'")}','${t.id}')"
-      style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)"
-      onmouseenter="this.style.background='var(--surface3)'" onmouseleave="this.style.background=''">
-      <span style="font-weight:700">${t.title}</span>${t.client?`<span style="color:var(--text3);font-size:11px"> · ${t.client}</span>`:''}
-    </div>`).join('');
-  dd.style.display='block';
-}
-
-function dashTtPickTask(title, client, taskId){
-  const inp = document.getElementById('dash-tt-task');
-  if(inp){ inp.value=title; }
-  const mainInp = document.getElementById('tt-task-input');
-  if(mainInp) mainInp.value = title;
-  const mainCl = document.getElementById('tt-client-input');
-  if(mainCl && client) mainCl.value = client;
-  window._ttLinkedTaskId = +taskId;
-  const dd = document.getElementById('dash-tt-dropdown');
-  if(dd) dd.style.display='none';
-}
-
-function dashTtToggle(){
-  // Sync task name from dashboard input
-  const dinp = document.getElementById('dash-tt-task');
-  const mainInp = document.getElementById('tt-task-input');
-  if(dinp && mainInp && dinp.value) mainInp.value = dinp.value;
+function _dttToggle(){
+  const inp = document.getElementById('_dtt-inp');
+  const ti  = document.getElementById('tt-task-input');
+  if(inp && inp.value && ti) ti.value = inp.value;
   ttToggle();
-  setTimeout(renderDashTimerShortcut, 100);
+  setTimeout(()=>_renderDashTimer(), 120);
 }
-
-function dashTtStop(){
-  const dinp = document.getElementById('dash-tt-task');
-  const mainInp = document.getElementById('tt-task-input');
-  if(dinp && mainInp && dinp.value) mainInp.value = dinp.value;
+function _dttStop(){
+  const inp = document.getElementById('_dtt-inp');
+  const ti  = document.getElementById('tt-task-input');
+  if(inp && inp.value && ti) ti.value = inp.value;
   ttStop();
-  setTimeout(renderDashTimerShortcut, 100);
+  setTimeout(()=>_renderDashTimer(), 120);
 }
 
-function renderDashGoalsShortcut(){
-  const pg = document.getElementById('page-dashboard');
-  if(!pg) return;
-  let el = document.getElementById('dash-goals-shortcut-card');
-  if(!el){
-    el = document.createElement('div');
-    el.id = 'dash-goals-shortcut-card';
-    el.className = 'card';
-    el.style.cssText = 'margin-bottom:16px;border-color:rgba(124,111,247,.3)';
-    const timerCard = document.getElementById('dash-timer-shortcut-card');
-    if(timerCard) pg.insertBefore(el, timerCard);
-    else pg.appendChild(el);
-  }
-  const fg = S.freelancerGoals || {};
-  const now = new Date();
-  // Financial goal
-  let finHtml = '<div style="color:var(--text3);font-size:12px">لم تحدد هدفاً مالياً بعد — <span style="color:var(--accent);cursor:pointer" onclick="openFreelancerGoalModal(\'financial\')">حدد الآن</span></div>';
-  if(fg.financial){
-    const mo=fg.financial.month, yr=fg.financial.year;
-    const actual=(S.transactions||[]).filter(t=>t.type==='income'&&t.isoDate&&t.isoDate.startsWith(yr+'-'+(mo<10?'0':'')+mo)).reduce((s,t)=>s+(+t.amount||0),0);
-    const pct = Math.min(100,Math.round((actual/(fg.financial.target||1))*100));
-    const color = pct>=100?'var(--accent3)':pct>=75?'var(--accent2)':'var(--accent)';
-    finHtml = `<div style="margin-bottom:6px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
-        <span>💰 هدف الدخل الشهري</span><span style="font-weight:700;color:${color}">${pct}%</span>
-      </div>
-      <div style="background:var(--surface3);border-radius:20px;height:8px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${color};border-radius:20px;transition:.4s"></div>
-      </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:3px">${actual.toLocaleString()} / ${(fg.financial.target||0).toLocaleString()} ج</div>
-    </div>`;
-  }
-  // Tasks goal
-  let taskHtml = '<div style="color:var(--text3);font-size:12px">لم تحدد هدف أوردرات — <span style="color:var(--accent);cursor:pointer" onclick="openFreelancerGoalModal(\'tasks\')">حدد الآن</span></div>';
-  if(fg.tasks){
-    const {target,startDate,endDate} = fg.tasks;
-    const done=(S.tasks||[]).filter(t=>t.done&&t.doneAt&&t.doneAt>=startDate&&t.doneAt<=endDate).length;
-    const pct=Math.min(100,Math.round((done/(target||1))*100));
-    const color=pct>=100?'var(--accent3)':pct>=75?'var(--accent2)':'var(--accent)';
-    taskHtml = `<div style="margin-bottom:6px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
-        <span>📋 هدف الأوردرات</span><span style="font-weight:700;color:${color}">${pct}%</span>
-      </div>
-      <div style="background:var(--surface3);border-radius:20px;height:8px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${color};border-radius:20px;transition:.4s"></div>
-      </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:3px">أنجزت ${done} من ${target} أوردر</div>
-    </div>`;
-  }
-  el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div class="section-title" style="margin:0;color:var(--accent)">🎯 أهدافي هذا الشهر</div>
-      <button onclick="showPage('freelancer-goals')" class="btn btn-ghost btn-sm" style="font-size:11px">عرض التفاصيل ←</button>
-    </div>
-    ${finHtml}${taskHtml}
-  `;
-}
+// Hook into renderAll by replacing it once after load
+window.addEventListener('load', function(){
+  const _ra = renderAll;
+  renderAll = function(){
+    _ra();
+    renderDashWidgets();
+    if(document.getElementById('page-freelancer-goals')?.classList.contains('active')) renderFgBanner();
+  };
+});
 
-// Patch renderAll to also render dashboard widgets
-const _origRenderAll = renderAll;
-function renderAll(){
-  _origRenderAll();
-  renderDashGoalsShortcut();
-  renderDashTimerShortcut();
-  updateFgBanners();
-}
-
-// ════════════════════════════════════════════════════════════════
-// 4. FREELANCER GOALS PAGE
-// ════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// 5. FREELANCER GOALS PAGE
+// ═══════════════════════════════════════════════════
 function switchFgTab(tab){
-  ['financial','tasks','learning'].forEach(t=>{
-    const panel = document.getElementById('fg-panel-'+t);
-    const btn   = document.getElementById('fg-tab-'+(t==='financial'?'fin':t==='tasks'?'tasks':'learn'));
-    if(panel) panel.style.display = t===tab ? '' : 'none';
-    if(btn){ if(t===tab) btn.classList.add('active'); else btn.classList.remove('active'); }
+  ['financial','tasks','learning'].forEach(k=>{
+    const p = document.getElementById('fg-panel-'+k);
+    const b = document.getElementById('fg-tab-'+(k==='financial'?'fin':k==='tasks'?'tasks':'learn'));
+    if(p) p.style.display = k===tab?'':'none';
+    if(b) b.classList.toggle('active', k===tab);
   });
-  renderFgPanel(tab);
-}
-
-function renderFgPanel(tab){
   if(tab==='financial') renderFgFinancial();
   else if(tab==='tasks') renderFgTasks();
   else renderFgLearning();
@@ -10870,146 +10808,120 @@ function renderFreelancerGoalsPage(){
 }
 
 function renderFgBanner(){
-  const el = document.getElementById('fg-banner');
-  if(!el) return;
+  const el = document.getElementById('fg-banner'); if(!el) return;
   const fg = S.freelancerGoals||{};
-  const now = new Date();
   const parts = [];
   if(fg.financial){
-    const mo=fg.financial.month,yr=fg.financial.year;
-    const actual=(S.transactions||[]).filter(t=>t.type==='income'&&t.isoDate&&t.isoDate.startsWith(yr+'-'+(mo<10?'0':'')+mo)).reduce((s,t)=>s+(+t.amount||0),0);
-    const pct=Math.min(100,Math.round((actual/(fg.financial.target||1))*100));
-    parts.push(`<div style="flex:1;text-align:center"><div style="font-size:11px;color:var(--text3)">💰 الهدف المالي</div><div style="font-size:20px;font-weight:900;color:${pct>=100?'var(--accent3)':'var(--accent)'}">${pct}%</div><div style="font-size:11px;color:var(--text2)">${actual.toLocaleString()} / ${(fg.financial.target||0).toLocaleString()} ج</div></div>`);
+    const {target,month,year}=fg.financial;
+    const ms=year+'-'+(month<10?'0':'')+month;
+    const actual=(S.transactions||[]).filter(t=>t.type==='income'&&(t.isoDate||'').startsWith(ms)).reduce((s,t)=>s+(+t.amount||0),0);
+    const pct=Math.min(100,Math.round(actual/(target||1)*100));
+    parts.push(`<div style="flex:1;text-align:center"><div style="font-size:11px;color:var(--text3)">💰 المالي</div><div style="font-size:22px;font-weight:900;color:${pct>=100?'var(--accent3)':'var(--accent)'}">${pct}%</div><div style="font-size:11px;color:var(--text2)">${actual.toLocaleString()} / ${target.toLocaleString()} ج</div></div>`);
   }
   if(fg.tasks){
-    const done=(S.tasks||[]).filter(t=>t.done&&t.doneAt&&t.doneAt>=fg.tasks.startDate&&t.doneAt<=fg.tasks.endDate).length;
-    const pct=Math.min(100,Math.round((done/(fg.tasks.target||1))*100));
-    parts.push(`<div style="flex:1;text-align:center"><div style="font-size:11px;color:var(--text3)">📋 هدف الأوردرات</div><div style="font-size:20px;font-weight:900;color:${pct>=100?'var(--accent3)':'var(--accent2)'}">${pct}%</div><div style="font-size:11px;color:var(--text2)">${done} / ${fg.tasks.target||0} أوردر</div></div>`);
+    const {target,startDate,endDate}=fg.tasks;
+    const done=(S.tasks||[]).filter(t=>t.done&&t.doneAt&&t.doneAt>=startDate&&t.doneAt<=endDate).length;
+    const pct=Math.min(100,Math.round(done/(target||1)*100));
+    parts.push(`<div style="flex:1;text-align:center"><div style="font-size:11px;color:var(--text3)">📋 الأوردرات</div><div style="font-size:22px;font-weight:900;color:${pct>=100?'var(--accent3)':'var(--accent2)'}">${done}/${target}</div><div style="font-size:11px;color:var(--text2)">${pct}%</div></div>`);
   }
-  const learnTotal=(S.goals||[]).length;
-  const learnDone=(S.goals||[]).filter(g=>g.done||(g.progress||0)===100).length;
-  parts.push(`<div style="flex:1;text-align:center"><div style="font-size:11px;color:var(--text3)">◆ الأهداف التعليمية</div><div style="font-size:20px;font-weight:900;color:var(--accent2)">${learnDone}/${learnTotal}</div><div style="font-size:11px;color:var(--text2)">مكتمل</div></div>`);
-  if(!parts.length){ el.innerHTML=''; return; }
-  el.innerHTML=`<div class="card" style="display:flex;gap:16px;padding:16px;border-color:rgba(124,111,247,.3)">${parts.join('<div style="width:1px;background:var(--border)"></div>')}</div>`;
+  const lt=(S.goals||[]).length, ld=(S.goals||[]).filter(g=>g.done||(g.progress||0)===100).length;
+  parts.push(`<div style="flex:1;text-align:center"><div style="font-size:11px;color:var(--text3)">◆ تعليمية</div><div style="font-size:22px;font-weight:900;color:var(--accent2)">${ld}/${lt}</div><div style="font-size:11px;color:var(--text2)">مكتمل</div></div>`);
+  el.innerHTML = parts.length
+    ? `<div class="card" style="display:flex;gap:16px;padding:16px;border-color:rgba(124,111,247,.3)">${parts.join('<div style="width:1px;background:var(--border)"></div>')}</div>`
+    : '';
 }
 
 function renderFgFinancial(){
-  const el = document.getElementById('fg-panel-financial');
-  if(!el) return;
+  const el = document.getElementById('fg-panel-financial'); if(!el) return;
   const fg = S.freelancerGoals||{};
   if(!fg.financial){
-    el.innerHTML=`<div class="card" style="text-align:center;padding:40px"><div class="empty-icon">💰</div><div style="margin-bottom:16px">لم تحدد هدفاً مالياً بعد</div><button class="btn btn-primary" onclick="openFreelancerGoalModal('financial')">+ تحديد هدف مالي</button></div>`;
+    el.innerHTML=`<div class="card" style="text-align:center;padding:40px"><div class="empty-icon">💰</div><div style="margin-bottom:16px">لم تحدد هدفاً مالياً بعد</div><button class="btn btn-primary" onclick="openFreelancerGoalModal('financial')">+ تحديد الهدف</button></div>`;
     return;
   }
   const {target,month,year}=fg.financial;
-  const moStr = year+'-'+(month<10?'0':'')+month;
-  const incomes = (S.transactions||[]).filter(t=>t.type==='income'&&t.isoDate&&t.isoDate.startsWith(moStr));
-  const actual = incomes.reduce((s,t)=>s+(+t.amount||0),0);
-  const pct = Math.min(100,Math.round((actual/(target||1))*100));
-  const remaining = Math.max(0,target-actual);
-  const color = pct>=100?'var(--accent3)':pct>=75?'var(--accent2)':'var(--accent)';
-  const msg = pct>=100?'🎉 أحسنت! لقد حققت هدفك المالي هذا الشهر!':pct>=75?`💪 أنت على وشك تحقيق هدفك! باقي ${remaining.toLocaleString()} ج`:pct>=50?`📈 نصف الطريق! استمر، باقي ${remaining.toLocaleString()} ج`:`🚀 ابدأ القطار! باقي ${remaining.toLocaleString()} ج لتحقيق هدفك`;
-  // Build timeline data
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const byDay = {};
-  incomes.forEach(t=>{ const d=+t.isoDate.split('-')[2]; byDay[d]=(byDay[d]||0)+(+t.amount||0); });
-  let cum=0; const bars=[]; const today=new Date().getDate();
-  for(let d=1;d<=daysInMonth;d++){
-    cum+=(byDay[d]||0);
-    bars.push({d,cum,hasIncome:!!byDay[d]});
-  }
-  const maxCum=Math.max(target,cum,1);
+  const ms=year+'-'+(month<10?'0':'')+month;
+  const incomes=(S.transactions||[]).filter(t=>t.type==='income'&&(t.isoDate||'').startsWith(ms));
+  const actual=incomes.reduce((s,t)=>s+(+t.amount||0),0);
+  const pct=Math.min(100,Math.round(actual/(target||1)*100));
+  const remaining=Math.max(0,target-actual);
+  const col=pct>=100?'var(--accent3)':pct>=75?'var(--accent2)':'var(--accent)';
+  const msg=pct>=100?'🎉 مبروك! حققت هدفك المالي هذا الشهر!':pct>=75?`💪 أنت قريب! باقي ${remaining.toLocaleString()} ج فقط`:pct>=50?`📈 نصف الطريق! باقي ${remaining.toLocaleString()} ج`:`🚀 استمر! باقي ${remaining.toLocaleString()} ج للهدف`;
+  const days=new Date(year,month,0).getDate();
+  const byDay={};
+  incomes.forEach(t=>{const d=+(t.isoDate||'').split('-')[2];byDay[d]=(byDay[d]||0)+(+t.amount||0);});
+  let cum=0;const bars=[];const today=new Date().getDate();
+  for(let d=1;d<=days;d++){cum+=(byDay[d]||0);bars.push({d,cum,has:!!byDay[d]});}
+  const maxV=Math.max(target,cum,1);
   el.innerHTML=`
     <div class="card" style="margin-bottom:16px;padding:24px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
         <div>
-          <div style="font-size:13px;color:var(--text3)">الهدف المالي لشهر ${new Date(year,month-1).toLocaleString('ar-EG',{month:'long',year:'numeric'})}</div>
-          <div style="font-size:32px;font-weight:900;color:${color}">${pct}%</div>
+          <div style="font-size:12px;color:var(--text3)">الهدف المالي — ${new Date(year,month-1).toLocaleString('ar-EG',{month:'long',year:'numeric'})}</div>
+          <div style="font-size:34px;font-weight:900;color:${col}">${pct}%</div>
           <div style="font-size:13px;color:var(--text2)">${actual.toLocaleString()} من ${target.toLocaleString()} ج</div>
         </div>
         <button onclick="openFreelancerGoalModal('financial')" class="btn btn-ghost btn-sm">✏ تعديل</button>
       </div>
       <div style="background:var(--surface3);border-radius:20px;height:12px;overflow:hidden;margin-bottom:12px">
-        <div style="height:100%;width:${pct}%;background:${color};border-radius:20px;transition:.6s"></div>
+        <div style="height:100%;width:${pct}%;background:${col};border-radius:20px;transition:.6s"></div>
       </div>
-      <div style="padding:12px 16px;background:rgba(124,111,247,.08);border-radius:10px;font-size:13px;color:var(--text2)">${msg}</div>
+      <div style="padding:12px 16px;background:rgba(124,111,247,.08);border-radius:10px;font-size:13px">${msg}</div>
     </div>
     <div class="card" style="padding:20px">
       <div class="section-title" style="margin-bottom:14px">📈 مسار الدخل اليومي</div>
-      <div style="display:flex;align-items:flex-end;gap:3px;height:100px">
-        ${bars.map(b=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px" title="${b.d}: ${b.cum.toLocaleString()} ج">
-          <div style="width:100%;background:${b.d<=today?(b.hasIncome?color:'var(--surface3)'):'var(--border)'};border-radius:3px 3px 0 0;height:${Math.round((b.cum/maxCum)*90)}px;min-height:2px;transition:.3s"></div>
-          ${b.d%5===0?`<div style="font-size:8px;color:var(--text3)">${b.d}</div>`:''}
+      <div style="display:flex;align-items:flex-end;gap:2px;height:90px">
+        ${bars.map(b=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center" title="${b.d}: ${b.cum.toLocaleString()} ج">
+          <div style="width:100%;background:${b.d<=today?(b.has?col:'var(--surface3)'):'var(--border)'};border-radius:2px 2px 0 0;height:${Math.round(b.cum/maxV*80)}px;min-height:2px"></div>
+          ${b.d%7===0||b.d===1?`<div style="font-size:7px;color:var(--text3);margin-top:2px">${b.d}</div>`:''}
         </div>`).join('')}
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:6px"><span>1</span><span style="color:${color};font-weight:700">الهدف: ${target.toLocaleString()} ج</span><span>${daysInMonth}</span></div>
-    </div>
-    <div style="margin-top:16px;text-align:center">
-      <button onclick="openFreelancerGoalModal('financial')" class="btn btn-primary">+ تعديل الهدف المالي</button>
-    </div>
-  `;
+    </div>`;
 }
 
 function renderFgTasks(){
-  const el = document.getElementById('fg-panel-tasks');
-  if(!el) return;
-  const fg = S.freelancerGoals||{};
+  const el=document.getElementById('fg-panel-tasks'); if(!el) return;
+  const fg=S.freelancerGoals||{};
   if(!fg.tasks){
-    el.innerHTML=`<div class="card" style="text-align:center;padding:40px"><div class="empty-icon">📋</div><div style="margin-bottom:16px">لم تحدد هدف أوردرات بعد</div><button class="btn btn-primary" onclick="openFreelancerGoalModal('tasks')">+ تحديد هدف أوردرات</button></div>`;
+    el.innerHTML=`<div class="card" style="text-align:center;padding:40px"><div class="empty-icon">📋</div><div style="margin-bottom:16px">لم تحدد هدف أوردرات بعد</div><button class="btn btn-primary" onclick="openFreelancerGoalModal('tasks')">+ تحديد الهدف</button></div>`;
     return;
   }
   const {target,startDate,endDate}=fg.tasks;
-  const doneTasks=(S.tasks||[]).filter(t=>t.done&&t.doneAt&&t.doneAt>=startDate&&t.doneAt<=endDate);
-  const done=doneTasks.length;
-  const pct=Math.min(100,Math.round((done/(target||1))*100));
-  const color=pct>=100?'var(--accent3)':pct>=75?'var(--accent2)':'var(--accent)';
-  const remaining=Math.max(0,target-done);
-  const msg=pct>=100?'🎉 رائع! أكملت هدف الأوردرات!':pct>=75?`💪 ممتاز! ${remaining} أوردر باقي لإكمال الهدف!`:`⚡ استمر! باقي ${remaining} أوردر للهدف`;
-  // Stats by date
-  const byDate={};
-  doneTasks.forEach(t=>{ byDate[t.doneAt]=(byDate[t.doneAt]||0)+1; });
-  const sortedDates=Object.keys(byDate).sort();
+  const done=(S.tasks||[]).filter(t=>t.done&&t.doneAt&&t.doneAt>=startDate&&t.doneAt<=endDate);
+  const pct=Math.min(100,Math.round(done.length/(target||1)*100));
+  const col=pct>=100?'var(--accent3)':pct>=75?'var(--accent2)':'var(--accent)';
   el.innerHTML=`
     <div class="card" style="margin-bottom:16px;padding:24px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
         <div>
-          <div style="font-size:13px;color:var(--text3)">هدف الأوردرات (${startDate} → ${endDate})</div>
-          <div style="font-size:32px;font-weight:900;color:${color}">${done} / ${target}</div>
+          <div style="font-size:12px;color:var(--text3)">هدف الأوردرات (${startDate} ← ${endDate})</div>
+          <div style="font-size:34px;font-weight:900;color:${col}">${done.length} / ${target}</div>
           <div style="font-size:13px;color:var(--text2)">${pct}% من الهدف</div>
         </div>
         <button onclick="openFreelancerGoalModal('tasks')" class="btn btn-ghost btn-sm">✏ تعديل</button>
       </div>
       <div style="background:var(--surface3);border-radius:20px;height:12px;overflow:hidden;margin-bottom:12px">
-        <div style="height:100%;width:${pct}%;background:${color};border-radius:20px;transition:.6s"></div>
+        <div style="height:100%;width:${pct}%;background:${col};border-radius:20px;transition:.6s"></div>
       </div>
-      <div style="padding:12px 16px;background:rgba(124,111,247,.08);border-radius:10px;font-size:13px;color:var(--text2)">${msg}</div>
     </div>
-    ${doneTasks.length?`<div class="card" style="padding:20px">
-      <div class="section-title" style="margin-bottom:12px">✅ الأوردرات المكتملة في الفترة</div>
-      ${doneTasks.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px">
-        <span>${t.title||''}</span><span style="color:var(--text3);font-size:11px">${t.doneAt||''}</span>
-      </div>`).join('')}
-    </div>`:''}
-    <div style="margin-top:16px;text-align:center">
-      <button onclick="openFreelancerGoalModal('tasks')" class="btn btn-primary">+ تعديل هدف الأوردرات</button>
-    </div>
-  `;
+    ${done.length?`<div class="card" style="padding:18px">
+      <div class="section-title" style="margin-bottom:10px">✅ الأوردرات المكتملة في الفترة</div>
+      ${done.map(t=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span>${t.title||''}</span><span style="color:var(--text3);font-size:11px">${t.doneAt||''}</span></div>`).join('')}
+    </div>`:''}`;
 }
 
 function renderFgLearning(){
-  const el = document.getElementById('fg-panel-learning');
-  if(!el) return;
-  const goals = S.goals||[];
-  const active = goals.filter(g=>!g.done&&(g.progress||0)<100);
-  const completed = goals.filter(g=>g.done||(g.progress||0)===100);
+  const el=document.getElementById('fg-panel-learning'); if(!el) return;
+  const goals=S.goals||[];
+  const active=goals.filter(g=>!g.done&&(g.progress||0)<100);
+  const done=goals.filter(g=>g.done||(g.progress||0)===100);
   el.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div class="section-title" style="margin:0">🎯 الأهداف التعليمية والمهنية (${goals.length})</div>
+      <div class="section-title" style="margin:0">🎯 الأهداف التعليمية (${goals.length})</div>
       <button onclick="openGoalModal()" class="btn btn-primary btn-sm">+ هدف جديد</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">
-      ${active.map(g=>`<div class="card" style="padding:16px;border-color:rgba(124,111,247,.2)">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+      ${active.map(g=>`<div class="card" style="padding:16px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px">
           <div style="font-size:13px;font-weight:700">${g.title||''}</div>
           <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(124,111,247,.15);color:var(--accent)">${g.cat||''}</span>
         </div>
@@ -11021,62 +10933,72 @@ function renderFgLearning(){
         </div>
         <div style="display:flex;gap:6px;margin-top:10px">
           <button onclick="openGoalModal(${g.id})" class="btn btn-ghost btn-sm" style="flex:1">✏ تعديل</button>
-          <button onclick="markGoalDone(${g.id})" class="btn btn-ghost btn-sm" style="flex:1;color:var(--accent3)">✅ أكمل</button>
+          <button onclick="markGoalDoneNow(${g.id})" class="btn btn-ghost btn-sm" style="flex:1;color:var(--accent3)">✅ أكمل</button>
         </div>
       </div>`).join('')}
     </div>
-    ${completed.length?`<div style="margin-top:20px"><div class="section-title" style="color:var(--accent3)">✅ مكتملة (${completed.length})</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:10px">
-      ${completed.map(g=>`<div class="card" style="padding:12px;opacity:.7">
-        <div style="font-size:13px;font-weight:700;text-decoration:line-through">${g.title||''}</div>
-        <div style="font-size:11px;color:var(--accent3);margin-top:4px">✅ مكتمل</div>
-      </div>`).join('')}
+    ${done.length?`<div style="margin-top:20px"><div class="section-title" style="color:var(--accent3)">✅ مكتملة (${done.length})</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-top:10px">
+      ${done.map(g=>`<div class="card" style="padding:12px;opacity:.7"><div style="font-size:13px;font-weight:700;text-decoration:line-through">${g.title||''}</div></div>`).join('')}
     </div>`:''}
-    ${!goals.length?`<div class="empty card"><div class="empty-icon">◆</div><div>أضف أهدافك التعليمية والمهنية</div><div style="margin-top:12px"><button class="btn btn-primary" onclick="openGoalModal()">+ هدف جديد</button></div></div>`:''}
-  `;
+    ${!goals.length?`<div class="empty card"><div class="empty-icon">◆</div><div>أضف أهدافك التعليمية</div><div style="margin-top:12px"><button class="btn btn-primary" onclick="openGoalModal()">+ هدف جديد</button></div></div>`:''}`;
+}
+
+function markGoalDoneNow(id){
+  const g=(S.goals||[]).find(g=>g.id===id);
+  if(!g) return;
+  g.done=true; g.progress=100;
+  lsSave(); renderAll();
+  celebrateCompletion('🎓 أكملت الهدف: '+(g.title||''));
 }
 
 function openFreelancerGoalModal(type){
-  type = type||'financial';
-  const fg = S.freelancerGoals||{};
-  const now = new Date();
-  let html = `<div class="modal-header"><div class="modal-title">🎯 ${type==='financial'?'الهدف المالي':type==='tasks'?'هدف الأوردرات':'هدف تعليمي'}</div><button class="close-btn" onclick="closeM('modal-fg')">✕</button></div><div style="padding:20px">`;
+  type=type||'financial';
+  const fg=S.freelancerGoals||{};
+  const now=new Date();
+  let inner='';
   if(type==='financial'){
-    const d = fg.financial||{};
-    html+=`
-      <div class="form-group"><label class="form-label">الهدف الشهري (ج)</label><input class="form-input" id="fgf-target" type="number" value="${d.target||''}" placeholder="مثال: 5000"></div>
+    const d=fg.financial||{};
+    inner=`
+      <div class="form-group"><label class="form-label">الهدف الشهري (ج)</label><input class="form-input" id="fgf-target" type="number" value="${d.target||''}" placeholder="5000"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-group"><label class="form-label">الشهر</label><select class="form-select" id="fgf-month">
           ${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${(d.month||now.getMonth()+1)===i+1?'selected':''}>${new Date(2024,i).toLocaleString('ar-EG',{month:'long'})}</option>`).join('')}
         </select></div>
         <div class="form-group"><label class="form-label">السنة</label><input class="form-input" id="fgf-year" type="number" value="${d.year||now.getFullYear()}"></div>
       </div>
-      <button class="btn btn-primary" style="width:100%" onclick="saveFgGoal('financial')">💾 حفظ الهدف المالي</button>`;
+      <button class="btn btn-primary" style="width:100%" onclick="saveFgGoal('financial')">💾 حفظ الهدف</button>`;
   } else if(type==='tasks'){
-    const d = fg.tasks||{};
-    const m2=(now.getMonth()+1)<10?'0':''; const m3=(now.getMonth()+1);
-    html+=`
-      <div class="form-group"><label class="form-label">عدد الأوردرات المستهدفة</label><input class="form-input" id="fgt-target" type="number" value="${d.target||''}" placeholder="مثال: 10"></div>
+    const d=fg.tasks||{};
+    const m=now.getMonth()+1; const ms=m<10?'0':'';
+    const lastDay=new Date(now.getFullYear(),m,0).getDate();
+    inner=`
+      <div class="form-group"><label class="form-label">عدد الأوردرات المستهدفة</label><input class="form-input" id="fgt-target" type="number" value="${d.target||''}" placeholder="10"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div class="form-group"><label class="form-label">من تاريخ</label><input class="form-input" id="fgt-start" type="date" value="${d.startDate||now.getFullYear()+'-'+m2+m3+'-01'}"></div>
-        <div class="form-group"><label class="form-label">إلى تاريخ</label><input class="form-input" id="fgt-end" type="date" value="${d.endDate||now.getFullYear()+'-'+m2+m3+'-'+new Date(now.getFullYear(),m3,0).getDate()}"></div>
+        <div class="form-group"><label class="form-label">من</label><input class="form-input" id="fgt-start" type="date" value="${d.startDate||now.getFullYear()+'-'+ms+m+'-01'}"></div>
+        <div class="form-group"><label class="form-label">إلى</label><input class="form-input" id="fgt-end" type="date" value="${d.endDate||now.getFullYear()+'-'+ms+m+'-'+lastDay}"></div>
       </div>
-      <button class="btn btn-primary" style="width:100%" onclick="saveFgGoal('tasks')">💾 حفظ هدف الأوردرات</button>`;
+      <button class="btn btn-primary" style="width:100%" onclick="saveFgGoal('tasks')">💾 حفظ الهدف</button>`;
   } else {
-    html+=`<div style="text-align:center;padding:20px 0"><button class="btn btn-primary" onclick="closeM('modal-fg');openGoalModal()">+ إضافة هدف تعليمي جديد</button></div>`;
+    inner=`<div style="text-align:center;padding:20px"><button class="btn btn-primary" onclick="closeM('_modal-fg');openGoalModal()">+ إضافة هدف تعليمي</button></div>`;
   }
-  html+='</div>';
-  let modal = document.getElementById('modal-fg');
+  const titles={financial:'💰 الهدف المالي',tasks:'📋 هدف الأوردرات',learning:'◆ هدف تعليمي'};
+  let modal=document.getElementById('_modal-fg');
   if(!modal){
-    modal = document.createElement('div');
-    modal.id = 'modal-fg';
-    modal.className = 'modal-overlay';
-    modal.innerHTML = '<div class="modal" style="width:460px" id="modal-fg-inner"></div>';
+    modal=document.createElement('div');
+    modal.id='_modal-fg';
+    modal.className='modal-overlay';
+    modal.innerHTML='<div class="modal" style="width:460px" id="_modal-fg-inner"></div>';
     document.body.appendChild(modal);
-    modal.addEventListener('click',e=>{if(e.target===modal)closeM('modal-fg');});
+    modal.addEventListener('click',e=>{if(e.target===modal)closeM('_modal-fg');});
   }
-  document.getElementById('modal-fg-inner').innerHTML = html;
-  openM('modal-fg');
+  document.getElementById('_modal-fg-inner').innerHTML=`
+    <div class="modal-header">
+      <div class="modal-title">${titles[type]||'هدف جديد'}</div>
+      <button class="close-btn" onclick="closeM('_modal-fg')">✕</button>
+    </div>
+    <div style="padding:20px">${inner}</div>`;
+  openM('_modal-fg');
 }
 
 function saveFgGoal(type){
@@ -11086,149 +11008,96 @@ function saveFgGoal(type){
     const month=+document.getElementById('fgf-month')?.value;
     const year=+document.getElementById('fgf-year')?.value;
     if(!target||!month||!year){toast('أدخل جميع البيانات');return;}
-    S.freelancerGoals.financial={target,month,year,createdAt:new Date().toISOString()};
+    S.freelancerGoals.financial={target,month,year};
   } else if(type==='tasks'){
     const target=+document.getElementById('fgt-target')?.value;
     const startDate=document.getElementById('fgt-start')?.value;
     const endDate=document.getElementById('fgt-end')?.value;
     if(!target||!startDate||!endDate){toast('أدخل جميع البيانات');return;}
-    S.freelancerGoals.tasks={target,startDate,endDate,createdAt:new Date().toISOString()};
+    S.freelancerGoals.tasks={target,startDate,endDate};
   }
-  lsSave(); cloudSave(S); closeM('modal-fg');
-  renderFreelancerGoalsPage(); renderDashGoalsShortcut();
-  toast('✅ تم حفظ الهدف'); updateFgBanners();
+  lsSave(); cloudSave(S); closeM('_modal-fg');
+  renderDashWidgets(); renderFgBanner();
+  const activeTab = document.querySelector('#page-freelancer-goals .filter-chip.active');
+  if(activeTab) switchFgTab(type);
+  checkGoalMilestones();
+  toast('✅ تم حفظ الهدف');
 }
 
-function updateFgBanners(){
-  renderFgBanner();
-  renderDashGoalsShortcut();
-  checkGoalNotifications();
-}
-
-function checkGoalNotifications(){
-  const fg = S.freelancerGoals||{};
+function checkGoalMilestones(){
+  const fg=S.freelancerGoals||{};
   if(fg.financial){
     const {target,month,year}=fg.financial;
-    const moStr=year+'-'+(month<10?'0':'')+month;
-    const actual=(S.transactions||[]).filter(t=>t.type==='income'&&t.isoDate&&t.isoDate.startsWith(moStr)).reduce((s,t)=>s+(+t.amount||0),0);
-    const pct=Math.round((actual/(target||1))*100);
-    const key='fg-notif-'+moStr+'-'+Math.floor(pct/25)*25;
-    if(!sessionStorage.getItem(key)){
+    const ms=year+'-'+(month<10?'0':'')+month;
+    const actual=(S.transactions||[]).filter(t=>t.type==='income'&&(t.isoDate||'').startsWith(ms)).reduce((s,t)=>s+(+t.amount||0),0);
+    const pct=Math.round(actual/(target||1)*100);
+    const key='_fg_fin_'+ms+'_'+Math.floor(pct/25);
+    if(pct>=100 && !sessionStorage.getItem(key)){
       sessionStorage.setItem(key,'1');
-      if(pct>=100) showMotivationalNotif('🎉 مبروك! حققت هدفك المالي هذا الشهر! '+actual.toLocaleString()+' ج','var(--accent3)');
-      else if(pct>=75) showMotivationalNotif('💪 أنت على وشك تحقيق هدفك المالي! '+pct+'% مكتمل','var(--accent2)');
-    }
-  }
-  if(fg.tasks){
-    const {target,startDate,endDate}=fg.tasks;
-    const done=(S.tasks||[]).filter(t=>t.done&&t.doneAt&&t.doneAt>=startDate&&t.doneAt<=endDate).length;
-    const pct=Math.round((done/(target||1))*100);
-    const key='fg-task-notif-'+startDate+'-'+Math.floor(pct/25)*25;
-    if(!sessionStorage.getItem(key)){
+      showMotivationalNotif('🎉 مبروك! حققت هدفك المالي! '+actual.toLocaleString()+' ج 🏆','var(--accent3)');
+    } else if(pct>=75 && !sessionStorage.getItem(key)){
       sessionStorage.setItem(key,'1');
-      if(pct>=100) showMotivationalNotif('🎉 أحسنت! أكملت هدف الأوردرات! '+done+' أوردر 🏆','var(--accent3)');
-      else if(pct>=50) showMotivationalNotif('📋 نصف الطريق! أكملت '+done+' من '+target+' أوردر 💪','var(--accent)');
+      showMotivationalNotif('💪 رائع! وصلت لـ '+pct+'% من هدفك المالي!','var(--accent2)');
     }
   }
 }
 
 function showMotivationalNotif(msg, color){
-  color = color||'var(--accent)';
-  const el = document.createElement('div');
-  el.style.cssText = `position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:99999;background:var(--surface2);border:1.5px solid ${color};border-radius:14px;padding:14px 20px;font-size:13px;font-weight:700;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,.3);cursor:pointer;max-width:380px;text-align:center;animation:_notifIn .35s ease`;
-  el.textContent = msg;
-  el.onclick = ()=>el.remove();
+  color=color||'var(--accent)';
+  const el=document.createElement('div');
+  el.style.cssText=`position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:99999;background:var(--surface2);border:2px solid ${color};border-radius:14px;padding:14px 22px;font-size:13px;font-weight:700;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,.35);cursor:pointer;max-width:380px;text-align:center;animation:_notifSlide .35s ease`;
+  el.textContent=msg;
+  el.onclick=()=>el.remove();
   document.body.appendChild(el);
-  setTimeout(()=>el.remove(), 6000);
+  setTimeout(()=>{ try{el.remove();}catch(e){} },6000);
 }
 
-// ════════════════════════════════════════════════════════════════
-// 5. CELEBRATION ON TASK COMPLETE
-// ════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// 6. CELEBRATION ON TASK COMPLETION
+// ═══════════════════════════════════════════════════
 function celebrateCompletion(msg){
-  msg = msg||'🎉 تم إنجاز المهمة!';
-  // Confetti
-  const colors=['#7c6ff7','#f7c948','#4fd1a5','#f76f7c','#64b5f6','#fff'];
-  for(let i=0;i<60;i++){
+  msg=msg||'🎉 تم إنجاز المهمة!';
+  const cols=['#7c6ff7','#f7c948','#4fd1a5','#f76f7c','#64b5f6','#fff','#ff9f43'];
+  for(let i=0;i<55;i++){
     const c=document.createElement('div');
-    const size=Math.random()*10+5;
-    c.style.cssText=`position:fixed;top:-20px;left:${Math.random()*100}vw;width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>.5?'50%':'3px'};opacity:.9;pointer-events:none;z-index:99998;animation:_confettiFall ${1.5+Math.random()*2}s ease-in forwards`;
+    const sz=Math.random()*9+5;
+    c.style.cssText=`position:fixed;top:-20px;left:${Math.random()*100}vw;width:${sz}px;height:${sz}px;background:${cols[Math.floor(Math.random()*cols.length)]};border-radius:${Math.random()>.5?'50%':'3px'};pointer-events:none;z-index:99998;animation:_confettiFall ${1.5+Math.random()*2}s ease-in forwards`;
     c.style.setProperty('--tx',(Math.random()*120-60)+'px');
     document.body.appendChild(c);
-    setTimeout(()=>c.remove(),4000);
+    setTimeout(()=>{try{c.remove();}catch(e){}},4000);
   }
-  // Success modal
-  const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99997;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease';
-  overlay.innerHTML=`<div style="background:var(--surface2);border-radius:20px;padding:40px 48px;text-align:center;animation:_celebIn .4s cubic-bezier(.34,1.56,.64,1);border:2px solid var(--accent3);box-shadow:0 20px 60px rgba(0,0,0,.4)">
-    <div style="font-size:60px;margin-bottom:12px">🎉</div>
-    <div style="font-size:20px;font-weight:900;margin-bottom:8px">${msg}</div>
-    <div style="font-size:13px;color:var(--text3);margin-bottom:20px">أحسنت! استمر في التميز 💪</div>
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99997;display:flex;align-items:center;justify-content:center';
+  ov.innerHTML=`<div style="background:var(--surface2);border-radius:20px;padding:40px 48px;text-align:center;animation:_celebIn .4s cubic-bezier(.34,1.56,.64,1);border:2px solid var(--accent3);box-shadow:0 20px 60px rgba(0,0,0,.4)">
+    <div style="font-size:56px;margin-bottom:10px">🎉</div>
+    <div style="font-size:18px;font-weight:900;margin-bottom:8px">${msg}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:18px">أحسنت! استمر في التميز 💪</div>
     <button onclick="this.closest('[style*=fixed]').remove()" class="btn btn-primary" style="padding:10px 32px">رائع! 🚀</button>
   </div>`;
-  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
-  document.body.appendChild(overlay);
-  setTimeout(()=>overlay.remove(),5000);
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+  setTimeout(()=>{try{ov.remove();}catch(e){}},5000);
 }
 
-// Patch confirmComplete to trigger celebration
-const _origConfirmComplete = confirmComplete;
-function confirmComplete(){
-  const id = +document.getElementById('complete-task-id')?.value;
-  const t = S.tasks.find(t=>t.id===id);
-  const title = t?.title||'المهمة';
-  _origConfirmComplete();
-  setTimeout(()=>{
-    celebrateCompletion('تم إنجاز: '+title);
-    checkGoalNotifications();
-  }, 300);
-}
+// Patch confirmComplete to add celebration (safe: called after load)
+window.addEventListener('load', function(){
+  const _cc = confirmComplete;
+  confirmComplete = function(){
+    const id=+document.getElementById('complete-task-id')?.value;
+    const t=(S.tasks||[]).find(t=>t.id===id);
+    const title=t?.title||'المهمة';
+    if(t) t.doneAt = t.doneAt || new Date().toISOString().split('T')[0];
+    _cc();
+    setTimeout(()=>{ celebrateCompletion('تم إنجاز: '+title); checkGoalMilestones(); }, 300);
+  };
 
-// Also patch markGoalDone to celebrate
-function markGoalDone(id){
-  const g=S.goals.find(g=>g.id===id);if(!g)return;
-  g.done=true;g.progress=100;
-  lsSave();renderAll();
-  celebrateCompletion('🎓 أكملت الهدف: '+(g.title||''));
-}
-
-// ════════════════════════════════════════════════════════════════
-// 6. CSS Animations (injected)
-// ════════════════════════════════════════════════════════════════
-(function injectStyles(){
-  const style=document.createElement('style');
-  style.textContent=`
-    @keyframes _confettiFall{0%{transform:translateY(0) rotate(0deg) translateX(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg) translateX(var(--tx));opacity:0}}
-    @keyframes _celebIn{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
-    @keyframes _notifIn{0%{transform:translateX(-50%) translateY(-20px);opacity:0}100%{transform:translateX(-50%) translateY(0);opacity:1}}
-    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-    #tt-task-dropdown div:hover,#dash-tt-dropdown div:hover{background:var(--surface3)!important}
-    .fg-progress-bar{transition:width .6s ease}
-  `;
-  document.head.appendChild(style);
-})();
-
-// ════════════════════════════════════════════════════════════════
-// 7. PAGE_TITLES + PAGE_CTA for new pages
-// ════════════════════════════════════════════════════════════════
-if(typeof PAGE_TITLES!=='undefined'){
-  PAGE_TITLES['freelancer-goals']='الأهداف والإنجازات';
-  PAGE_TITLES['contracts']='العقود الرقمية';
-}
-if(typeof PAGE_CTA!=='undefined'){
-  PAGE_CTA['freelancer-goals']={label:'+ هدف جديد',fn:'openFreelancerGoalModal()'};
-}
-
-// Init freelancerGoals in migration
-const _origMigrate = migrateSFields;
-function migrateSFields(){
-  _origMigrate();
-  if(!S.freelancerGoals) S.freelancerGoals={};
-  (S.tasks||[]).forEach(t=>{
-    if(!t.timeLogs) t.timeLogs=[];
-    if(t.done && !t.doneAt) t.doneAt = t.doneAt||new Date().toISOString().split('T')[0];
-  });
-}
+  // Init freelancerGoals in S
+  if(typeof S !== 'undefined'){
+    if(!S.freelancerGoals) S.freelancerGoals={};
+    if(typeof PAGE_TITLES !== 'undefined') PAGE_TITLES['freelancer-goals']='الأهداف والإنجازات';
+    if(typeof PAGE_CTA !== 'undefined')    PAGE_CTA['freelancer-goals']={label:'+ هدف جديد',fn:'openFreelancerGoalModal()'};
+  }
+});
 
 </script>
 
