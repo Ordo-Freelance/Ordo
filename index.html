@@ -42,12 +42,17 @@ function applyPlatformConfig() {
     imgEl.src = studioLogo;
     imgEl.style.display = 'block';
     if(hexEl) hexEl.style.display = 'none';
-    // If logo is wide, hide the logo-text to give it full width
+    // Expand the logo-mark to show full logo
+    const wrap = document.getElementById('_logo-mark-wrap');
+    if(wrap){ wrap.style.width='auto'; wrap.style.height='auto'; wrap.style.maxWidth='150px'; wrap.style.background='transparent'; wrap.style.borderRadius='0'; }
+    // Hide logo text when studio logo is shown
     const logoText = document.querySelector('.logo-text');
     if(logoText) logoText.style.display = 'none';
   } else if(imgEl){
     imgEl.style.display = 'none';
     if(hexEl) hexEl.style.display = 'flex';
+    const wrap = document.getElementById('_logo-mark-wrap');
+    if(wrap){ wrap.style.width='36px'; wrap.style.height='36px'; wrap.style.maxWidth=''; wrap.style.background='var(--accent)'; wrap.style.borderRadius='8px'; }
     const logoText = document.querySelector('.logo-text');
     if(logoText) logoText.style.display = '';
   }
@@ -565,14 +570,25 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  min-height: 52px;
 }
 .logo-mark {
-  width: 44px; height: 44px;
-  background: transparent;
-  border-radius: 0;
+  width: 36px; height: 36px;
+  background: var(--accent);
+  border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px; font-weight: 900; color: var(--accent);
+  font-size: 18px; font-weight: 900; color: #fff;
   flex-shrink: 0;
+  overflow: hidden;
+}
+/* When studio logo is loaded, expand to show full logo */
+#_sidebar-logo-img {
+  width: auto !important;
+  height: auto !important;
+  max-height: 44px !important;
+  max-width: 130px !important;
+  object-fit: contain !important;
+  display: block;
 }
 .logo-text { flex: 1; overflow: hidden; }
 .logo-title { font-size: 16px; font-weight: 900; color: var(--accent); line-height: 1.2; }
@@ -8420,6 +8436,81 @@ function removeSocial(i){
   renderSocialsList();
 }
 
+function openSocialIconEditor(idx){
+  const s = (S.settings.socials||[])[idx];
+  if(!s) return;
+  const meta = SOCIAL_META[s.platform]||SOCIAL_META.other;
+  let modal = document.getElementById('_modal-social-icon');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = '_modal-social-icon';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = '<div class="modal" style="width:460px" id="_modal-social-icon-inner"></div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click',e=>{if(e.target===modal)closeM('_modal-social-icon');});
+  }
+  document.getElementById('_modal-social-icon-inner').innerHTML = `
+    <div class="modal-header">
+      <div class="modal-title">🎨 تخصيص أيقونة ${meta.label}</div>
+      <button class="close-btn" onclick="closeM('_modal-social-icon')">✕</button>
+    </div>
+    <div style="padding:20px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:10px">
+        <span id="_sie-preview" style="display:inline-flex;width:32px;height:32px;color:${meta.color}">${s.customSvg||meta.svg||'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>'}</span>
+        <div>
+          <div style="font-size:12px;font-weight:700">${meta.label}</div>
+          <div style="font-size:10px;color:var(--text3)">معاينة الأيقونة الحالية</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">SVG Code أو رابط صورة</label>
+        <textarea id="_sie-input" class="form-input" rows="4" placeholder='<svg viewBox="0 0 24 24" ...>...</svg>&#10;أو&#10;https://example.com/icon.png' style="font-family:monospace;font-size:11px;resize:vertical" oninput="_updateSiePreview(this.value,'${meta.color}')">${s.customSvg||''}</textarea>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">الصق كود SVG أو رابط صورة PNG/SVG من الإنترنت</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button onclick="_resetSocialIcon(${idx})" class="btn btn-ghost" style="flex:1">↺ إعادة الافتراضي</button>
+        <button onclick="_saveSocialIcon(${idx})" class="btn btn-primary" style="flex:1">💾 حفظ</button>
+      </div>
+    </div>`;
+  openM('_modal-social-icon');
+}
+
+function _updateSiePreview(val, color){
+  const prev = document.getElementById('_sie-preview');
+  if(!prev) return;
+  val = val.trim();
+  if(val.startsWith('<svg')){
+    prev.innerHTML = val;
+    prev.style.color = color;
+  } else if(val.startsWith('http')){
+    prev.innerHTML = `<img src="${val}" style="width:100%;height:100%;object-fit:contain">`;
+  }
+}
+
+function _resetSocialIcon(idx){
+  if(!S.settings.socials||!S.settings.socials[idx]) return;
+  delete S.settings.socials[idx].customSvg;
+  lsSave(); renderSocialsList();
+  closeM('_modal-social-icon');
+}
+
+function _saveSocialIcon(idx){
+  const val = document.getElementById('_sie-input')?.value.trim();
+  if(!S.settings.socials||!S.settings.socials[idx]) return;
+  if(val && (val.startsWith('<svg') || val.startsWith('http'))){
+    if(val.startsWith('http')){
+      S.settings.socials[idx].customSvg = `<img src="${val}" style="width:100%;height:100%;object-fit:contain">`;
+    } else {
+      S.settings.socials[idx].customSvg = val;
+    }
+  } else if(!val){
+    delete S.settings.socials[idx].customSvg;
+  }
+  lsSave(); renderSocialsList();
+  closeM('_modal-social-icon');
+  if(typeof toast==='function') toast('✅ تم تحديث الأيقونة');
+}
+
 function renderSocialsList(){
   const el = document.getElementById('socials-list');
   if(!el) return;
@@ -8427,12 +8518,16 @@ function renderSocialsList(){
   if(!socials.length){ el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0">لا منصات مضافة بعد</div>'; return; }
   el.innerHTML = socials.map((s,i)=>{
     const meta = SOCIAL_META[s.platform]||SOCIAL_META.other;
+    const customIconHtml = s.customSvg
+      ? `<span style="display:inline-flex;width:20px;height:20px;color:${meta.color}">${s.customSvg}</span>`
+      : getSocialIconHTML(s.platform,20);
     return `<div class="social-item">
-      <span class="social-icon">${getSocialIconHTML(s.platform,20)}</span>
+      <span class="social-icon">${customIconHtml}</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:11px;font-weight:700;color:${meta.color}">${meta.label}</div>
         <div class="social-url">${s.url}</div>
       </div>
+      <button onclick="openSocialIconEditor(${i})" title="تغيير الأيقونة" style="background:rgba(124,111,247,.1);border:none;border-radius:6px;color:var(--accent);font-size:10px;padding:2px 7px;cursor:pointer;font-weight:700;margin-left:4px">أيقونة</button>
       <button class="social-del" onclick="removeSocial(${i})" title="حذف">✕</button>
     </div>`;
   }).join('');
@@ -11709,7 +11804,7 @@ function _toggleProfileMenu(triggerEl){
     '<div><div style="font-size:10px;color:var(--text3);font-weight:700">الباقة الحالية</div>' +
     '<div style="font-size:13px;font-weight:800;color:var(--accent);margin-top:2px">✨ ' + planName + '</div></div>' +
     expHtml + '</div></div>' +
-    '<button onclick="document.getElementById(\'_profile-menu-pop\').remove();showPage(\'settings\')" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right" onmouseover="this.style.background=\'var(--surface3)\'" onmouseout="this.style.background=\'none\'">' +
+    '<button onclick="document.getElementById(\'_profile-menu-pop\').remove();openProfileModal()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right" onmouseover="this.style.background=\'var(--surface3)\'" onmouseout="this.style.background=\'none\'">' +
     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>الملف الشخصي</button>' +
     '<button onclick="openBackupModal();document.getElementById(\'_profile-menu-pop\')?.remove()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right" onmouseover="this.style.background=\'var(--surface3)\'" onmouseout="this.style.background=\'none\'">' +
     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 15 21 21 3 21 3 15"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>نسخ احتياطي</button>' +
