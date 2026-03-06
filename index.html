@@ -2,6 +2,11 @@
 <html lang="ar" dir="rtl"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Studio OS">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#7c6ff7">
 <title>Studio OS — نظام الاستوديو</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 
@@ -82,6 +87,17 @@ setInterval(applyPlatformConfig, 3000);
 let _supaUserId = null;
 let _isAdminUser = false;
 let _currentMode = 'user';
+
+// ── Pre-warm: restore user ID from stored session to prevent flash ──
+(function(){
+  try{
+    const stored = localStorage.getItem('studioOS_auth_v1');
+    if(stored){
+      const sess = JSON.parse(stored);
+      if(sess && sess.id) _supaUserId = sess.id;
+    }
+  }catch(e){}
+})();
 
 function cloudSave(data){
   if(!_supaUserId) return;
@@ -692,7 +708,14 @@ body {
   #tasks-cols{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:540px){
-  #status-cols{grid-template-columns:1fr}
+  /* On mobile: horizontal scroll so each column is visible as a card */
+  #kanban-view{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+  #status-cols{
+    display:flex;flex-direction:row;flex-wrap:nowrap;gap:10px;
+    grid-template-columns:unset;
+    min-width:max-content;padding-bottom:4px
+  }
+  #status-cols .kb-col{min-width:220px;max-width:220px;flex-shrink:0}
   #tasks-cols{grid-template-columns:1fr}
 }
 .kb-col{background:var(--surface2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
@@ -9844,6 +9867,18 @@ let _authInitialized = false;
 supa.auth.onAuthStateChange(async (event, session) => {
   console.log('Auth event:', event, session?.user?.email);
 
+  // TOKEN_REFRESHED = الـ session اتجدد تلقائياً — مش محتاج login جديد
+  if(event === 'TOKEN_REFRESHED' && session && session.user){
+    _supaUserId = session.user.id; // تأكد إن الـ ID محفوظ
+    const meta = session.user.user_metadata||{};
+    const existing = getSession();
+    if(existing){
+      // حدّث الـ session المحفوظ بدون تأثير على البيانات
+      saveSession({...existing, supaId:session.user.id, id:session.user.id});
+    }
+    return; // مش محتاج نعمل أي حاجة تانية
+  }
+
   if(event === 'SIGNED_IN' && session && session.user){
     // لو already logged in (منعاً للـ double login)
     if(_supaUserId === session.user.id) return;
@@ -9855,7 +9890,8 @@ supa.auth.onAuthStateChange(async (event, session) => {
       email : session.user.email || '',
       name  : meta.full_name || meta.name || session.user.email || '',
       phone : meta.phone  || '',
-      studio: meta.studio || (meta.full_name ? meta.full_name + ' Studio' : '')
+      studio: meta.studio || (meta.full_name ? meta.full_name + ' Studio' : ''),
+      avatarUrl: meta.avatarUrl || meta.avatar_url || meta.picture || ''
     };
     await loginWithSupaSession(session.user, session, userObj);
     _authInitialized = true;
@@ -9890,14 +9926,50 @@ async function initAuthFallback(){
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
-  // Fallback: show auth screen if no login after 3 seconds
+  // ── Check for existing Supabase session first (handles mobile refresh) ──
+  try {
+    const { data: { session } } = await supa.auth.getSession();
+    if(session && session.user){
+      if(!_supaUserId){
+        const meta = session.user.user_metadata||{};
+        const existing = getSession();
+        // If we have local session data, restore silently without full reload
+        if(existing && existing.id === session.user.id){
+          _supaUserId = session.user.id;
+          _authInitialized = true;
+          // Silently sync in background without showing loading screen
+          setTimeout(async()=>{
+            const cloudData = await cloudLoad();
+            if(cloudData){ S=cloudData; migrateSFields(); }
+            renderAll();
+            const authScreen=document.getElementById('auth-screen');
+            if(authScreen)authScreen.classList.add('hidden');
+          }, 100);
+          return;
+        }
+        // No local session — do full login
+        const userObj = {
+          id: session.user.id, supaId: session.user.id,
+          email: session.user.email||'',
+          name: meta.full_name||meta.name||session.user.email||'',
+          phone: meta.phone||'', studio: meta.studio||'',
+          avatarUrl: meta.avatarUrl||meta.avatar_url||meta.picture||''
+        };
+        await loginWithSupaSession(session.user, session, userObj);
+        _authInitialized = true;
+        return;
+      }
+    }
+  } catch(e){ console.warn('getSession error:', e); }
+
+  // Fallback: show auth screen if no session after 4 seconds
   setTimeout(()=>{
     if(!_supaUserId){
       const authScreen = document.getElementById('auth-screen');
       if(authScreen) authScreen.classList.remove('hidden');
       if(window._showApp) window._showApp();
     }
-  }, 3000);
+  }, 4000);
 }
 
 initAuthFallback();
