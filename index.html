@@ -3645,6 +3645,15 @@ setTimeout(window._showApp, 4000);
 // ============================================================
 const COLORS=['#7c6ff7','#f7c948','#4fd1a5','#f76f7c','#64b5f6','#ff8a65','#ce93d8','#80cbc4'];
 let S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],teams:[],subscriptions:[],settings:{name:'',phone:'',email:'',address:'',terms:'',logo:'',taskTypes:['تصميم سوشيال ميديا','برانيدنج','لوجو','فيديو موشن','كونتنت','ويب ديزاين']}};
+
+// ── Time Tracker global state (declared early to avoid TDZ errors) ──
+let _tt={running:false,elapsed:0,startedAt:null,interval:null};
+let _ttFilter='all';
+let _ttRate=+localStorage.getItem('tt_rate')||150;
+let _ttCur=localStorage.getItem('tt_currency')||'EGP';
+// ── Contracts global state ──
+let _activeContractId=null;
+let _sigCanvas=null,_sigCtx=null,_sigDrawing=false;
 let invItems=[];
 
 function userKey(){const sess=getSession();return 'studioOS_v3_'+(sess?sess.id:'guest');}
@@ -3707,7 +3716,8 @@ function hasPageFeature(pageId){
   if(!f || Object.keys(f).length === 0) return true;
   const map = { tasks:'tasks', clients:'clients', finance:'finance',
     invoices:'invoices', schedule:'schedule', team:'team',
-    reports:'reports', meetings:'meetings', learning:'learning' };
+    reports:'reports', meetings:'meetings', learning:'learning',
+    timetracker:'timetracker', contracts:'contracts' };
   const key = map[pageId];
   if(!key) return true;
   if(!(key in f)) return true;
@@ -9863,10 +9873,7 @@ setTimeout(()=>{ initBackupTimers(); }, 1500);
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║  TIME TRACKER                                                    ║
 // ╚══════════════════════════════════════════════════════════════════╝
-let _tt={running:false,elapsed:0,startedAt:null,interval:null};
-let _ttFilter='all';
-let _ttRate=+localStorage.getItem('tt_rate')||150;
-let _ttCur=localStorage.getItem('tt_currency')||'EGP';
+// [vars moved early]
 
 function ttSym(){return{EGP:'ج',USD:'$',SAR:'ر.س'}[_ttCur]||'ج';}
 function ttFmt(s,sh){
@@ -10155,8 +10162,7 @@ function ttQuickRate(r){_ttRate=r;localStorage.setItem('tt_rate',r);renderTimeTr
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║  DIGITAL CONTRACTS                                               ║
 // ╚══════════════════════════════════════════════════════════════════╝
-let _activeContractId=null;
-let _sigCanvas=null,_sigCtx=null,_sigDrawing=false;
+// [contract vars moved early]
 
 const CT_TEMPLATES={
   design:`هذا العقد مبرم بين الطرفين لتقديم خدمات التصميم الجرافيكي.
