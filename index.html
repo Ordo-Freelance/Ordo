@@ -43,11 +43,10 @@ function applyPlatformConfig() {
   if(_isEmail(cfgName)) cfgName = '';
   const name = cfgName || 'Ordo - Tasks';
 
-  // PLATFORM logo = admin-set
-  let _rawLogo = cfg.logo || ''; let _rawFav = cfg.favicon || '';
-  if(_rawLogo === '__b64_logo__') _rawLogo = localStorage.getItem('platform_logo_b64') || '';
-  if(_rawFav === '__b64_favicon__') _rawFav = localStorage.getItem('platform_favicon_b64') || '';
-  const platformLogo = _rawLogo; const favicon = _rawFav;
+  let _rawLogo = cfg.logo||''; let _rawFav = cfg.favicon||'';
+  if(_rawLogo==='__b64_logo__') _rawLogo=localStorage.getItem('platform_logo_b64')||'';
+  if(_rawFav==='__b64_favicon__') _rawFav=localStorage.getItem('platform_favicon_b64')||'';
+  const platformLogo=_rawLogo; const favicon=_rawFav;
 
   // Sidebar logo: use PLATFORM logo (admin-set), NOT user's studio logo
   const imgEl = document.getElementById('_sidebar-logo-img');
@@ -58,7 +57,7 @@ function applyPlatformConfig() {
     if(hexEl) hexEl.style.display = 'none';
     const wrap = document.getElementById('_logo-mark-wrap');
     if(wrap){ wrap.style.width='auto'; wrap.style.height='auto'; wrap.style.maxWidth='150px'; wrap.style.background='transparent'; wrap.style.borderRadius='0'; }
-    // Name text stays visible beside logo
+    // sidebar name stays visible
   } else if(imgEl){
     imgEl.style.display = 'none';
     if(hexEl) hexEl.style.display = 'flex';
@@ -68,7 +67,6 @@ function applyPlatformConfig() {
     if(logoText) logoText.style.display = '';
   }
 
-  // Auth screen: platform logo
   const authLogoMark = document.querySelector('.auth-logo-mark');
   const _authSrc = platformLogo || favicon;
   if(authLogoMark && _authSrc){
@@ -147,14 +145,14 @@ function cloudSave(data){
       const payload = { user_id: _supaUserId, data: JSON.stringify(data), updated_at: new Date().toISOString() };
       const { error } = await supa.from('studio_data').upsert(payload, { onConflict: 'user_id' });
       if(error){
-        const _em = (error && typeof error.message === 'string') ? error.message : String(error);
-        console.error('cloudSave error:', _em);
+        const _em=(error&&typeof error.message==='string')?error.message:String(error);
+        console.error('cloudSave error:',_em);
         showSyncIndicator('⚠ فشل الحفظ', '#f76f7c');
       } else {
         showSyncIndicator('✅ محفوظ على السحابة', '#4fd1a5');
       }
     }catch(e){
-      const _em2 = (e && typeof e.message === 'string') ? e.message : 'unknown'; console.error('cloudSave error:', _em2);
+      const _em2=(e&&typeof e.message==='string')?e.message:'err'; console.error('cloudSave:',_em2);
       showSyncIndicator('⚠ فشل المزامنة', '#f76f7c');
     }
   }, 1000);
@@ -3402,12 +3400,21 @@ setTimeout(window._showApp, 4000);
           <option value="freelance">🎯 فري لانس / مشاريع</option>
           <option value="fulltime">🏢 دوام كامل</option>
           <option value="parttime">⏰ بارت تايم</option>
+          <option value="sub">🏛 تابع لعميل رئيسي</option>
         </select>
       </div>
       <div class="form-group" id="c-salary-wrap" style="display:none">
         <label class="form-label">الراتب الشهري (ج)</label>
         <input class="form-input" type="number" id="c-salary" placeholder="مثال: 5000">
       </div>
+    </div>
+    <!-- تابع لعميل رئيسي -->
+    <div class="form-group" id="c-parent-wrap" style="display:none">
+      <label class="form-label">العميل الرئيسي (التابع له)</label>
+      <select class="form-select" id="c-parent-client">
+        <option value="">— اختر العميل الرئيسي —</option>
+      </select>
+      <div style="font-size:11px;color:var(--text3);margin-top:5px">📌 هذا العميل تابع للعميل المختار — لن يظهر له راتب أو طبيعة عمل مستقلة</div>
     </div>
 
     <!-- ── إعدادات الراتب ── -->
@@ -3417,7 +3424,34 @@ setTimeout(window._showApp, 4000);
         <div class="form-group">
           <label class="form-label">يوم نزول الراتب (من الشهر)</label>
           <select class="form-select" id="c-salary-day">
-            ${Array.from({length:28},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+            <option value="17">17</option>
+            <option value="18">18</option>
+            <option value="19">19</option>
+            <option value="20">20</option>
+            <option value="21">21</option>
+            <option value="22">22</option>
+            <option value="23">23</option>
+            <option value="24">24</option>
+            <option value="25">25</option>
+            <option value="26">26</option>
+            <option value="27">27</option>
+            <option value="28">28</option>
           </select>
         </div>
         <div class="form-group">
@@ -4250,19 +4284,26 @@ function addTaskTypeFromSettings(){
   if(!S.settings.taskTypes) S.settings.taskTypes=[];
   if(!S.settings.taskTypes.includes(val)) S.settings.taskTypes.push(val);
   inp.value='';
-  lsSave();renderSettingsTaskTypes();fillTaskTypesDD();
+  lsSave(); cloudSave(S); renderSettingsTaskTypes(); fillTaskTypesDD();
   showToast('✅ تم إضافة نوع المهمة: '+val);
 }
 function removeTaskTypeFromSettings(i){
   if(!S.settings.taskTypes)return;
   const name=S.settings.taskTypes[i];
   S.settings.taskTypes.splice(i,1);
-  lsSave();renderSettingsTaskTypes();fillTaskTypesDD();
+  lsSave(); cloudSave(S); renderSettingsTaskTypes(); fillTaskTypesDD();
   showToast('🗑 تم حذف: '+name);
 }
 function saveSettings(){
-  S.settings={name:v('set-name'),phone:v('set-phone'),email:v('set-email'),address:v('set-address'),terms:v('set-terms'),logo:S.settings?.logo||'',policies:S.settings?.policies||[],socials:S.settings?.socials||[],waTemplates:S.settings?.waTemplates||{}};
-  lsSave();cloudSave(S);alert('✅ تم حفظ الإعدادات');
+  S.settings = Object.assign({}, S.settings, {
+    name:v('set-name'), phone:v('set-phone'), email:v('set-email'),
+    address:v('set-address'), terms:v('set-terms'),
+    logo:S.settings?.logo||'', policies:S.settings?.policies||[],
+    socials:S.settings?.socials||[], waTemplates:S.settings?.waTemplates||{},
+    taskTypes:S.settings?.taskTypes||[], taskStatuses:S.settings?.taskStatuses||[],
+    paymentAccounts:S.settings?.paymentAccounts||[],
+  });
+  lsSave(); cloudSave(S); alert('✅ تم حفظ الإعدادات');
 }
 
 async function forceCloudReload(){
@@ -5515,8 +5556,22 @@ function renderTasks(){
 function toggleClientSalary(){
   const wt = document.getElementById('c-worktype')?.value||'freelance';
   const isSal = wt==='fulltime'||wt==='parttime';
+  const isSub = wt==='sub';
   document.getElementById('c-salary-wrap').style.display    = isSal?'block':'none';
   document.getElementById('c-salary-section').style.display = isSal?'block':'none';
+  // Sub-client: show parent selector, hide salary
+  const parentWrap = document.getElementById('c-parent-wrap');
+  if(parentWrap) parentWrap.style.display = isSub ? 'block' : 'none';
+  if(isSub) _fillParentClientsDD();
+}
+function _fillParentClientsDD(){
+  const sel = document.getElementById('c-parent-client'); if(!sel) return;
+  const curId = document.getElementById('client-eid')?.value;
+  const opts = S.clients
+    .filter(c => c.workType !== 'sub' && String(c.id) !== String(curId))
+    .map(c => `<option value="${c.id}">${c.name}</option>`)
+    .join('');
+  sel.innerHTML = '<option value="">— اختر العميل الرئيسي —</option>' + opts;
 }
 
 function openClientModal(id){
@@ -5532,6 +5587,12 @@ function openClientModal(id){
     document.getElementById('c-type').value=c.type||'شركة';
     document.getElementById('c-channel').value=c.channel||'واتساب';
     document.getElementById('c-worktype').value=c.workType||'freelance';
+    // Sub client: fill parent dropdown then set value
+    if(c.workType==='sub'){
+      _fillParentClientsDD();
+      const psel=document.getElementById('c-parent-client');
+      if(psel) psel.value=c.parentClientId||'';
+    }
     document.getElementById('c-salary').value=c.salary||'';
     document.getElementById('c-salary-day').value=c.salaryDay||1;
     document.getElementById('c-salary-lastpaid').value=c.salaryLastPaid||'';
@@ -5571,6 +5632,7 @@ function saveClient(){
     salary:  isSal?(+v('c-salary')||0):0,
     salaryDay:   isSal?(+v('c-salary-day')||1):null,
     salaryLastPaid: isSal?v('c-salary-lastpaid'):null,
+    parentClientId: wt==='sub'?(v('c-parent-client')||null):null,
     followupEnabled: document.getElementById('c-followup-enabled')?.value||'off',
     followupMonths: Math.max(1, +(document.getElementById('c-followup-months')?.value)||3),
     followupMsg: document.getElementById('c-followup-msg')?.value||'',
@@ -7164,24 +7226,20 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   if(cloudData){
     S = cloudData;
     migrateSFields();
-    // Apply admin-set name/studio/phone if admin updated the user
     if(S._admin_updated && S._admin_name) {
       S.settings = S.settings || {};
       S.settings.name   = S._admin_name;
       S.settings.studio = S._admin_studio || S._admin_name;
       S.settings.phone  = S._admin_phone  || S.settings.phone || '';
-      // Update userObj too so badge shows correct name
       userObj.name   = S._admin_name;
       userObj.studio = S._admin_studio || S._admin_name;
-      // Clear flags after applying
       delete S._admin_updated; delete S._admin_name;
       delete S._admin_studio;  delete S._admin_phone;
+      cloudSave(S);
     }
     localStorage.setItem('studioOS_v3_'+supaUser.id, JSON.stringify(S));
     applyPlatformConfig();
-  } else {
-    lsLoad(); // fallback: local
-  }
+  } else { lsLoad(); }
 
   if(!S.settings.name && userObj.name){
     S.settings.name  = userObj.studio || userObj.name;
@@ -7410,7 +7468,7 @@ async function renderPlansListing() {
 
   const cfg = JSON.parse(localStorage.getItem('platform_config') || '{}');
   const wa  = cfg.whatsapp || '201090412218';
-  const appName = cfg.name || 'Ordo - Tasks';
+  const appName = cfg.name || 'Studio OS';
   const currentPlanId = _userSubscription?.planId || _userSubscription?.plan_id;
 
   let html = '<div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-align:center">اختر الباقة المناسبة — تواصل معنا للحصول على كود التفعيل</div>'
@@ -12252,7 +12310,6 @@ function _updateHeaderAvatar(){
     txtEl.style.display = 'flex';
     txtEl.textContent = (name[0]||'م').toUpperCase();
   }
-  // Sidebar logo controlled ONLY by applyPlatformConfig
   if(typeof applyPlatformConfig === 'function') applyPlatformConfig();
 }
 
@@ -13111,7 +13168,7 @@ _buildTrackingPageHTML = function(t){
   const steps=t.steps||[];
   const stepsTotal=steps.length, stepsDone=steps.filter(s=>s.done).length;
   const pct=stepsTotal?Math.round(stepsDone/stepsTotal*100):(t.done?100:0);
-  const studio   = S.settings?.name||session?.name||'Ordo - Tasks';
+  const studio   = S.settings?.name||session?.name||'Studio OS';
   const phone    = S.settings?.phone||session?.phone||'';
   const email    = S.settings?.email||'';
   const socials  = S.settings?.socials||[];
