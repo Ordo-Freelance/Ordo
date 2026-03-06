@@ -782,14 +782,14 @@ body {
   #tasks-cols{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:540px){
-  /* On mobile: horizontal scroll so each column is visible as a card */
-  #kanban-view{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+  /* On mobile: vertical stack — each column full width */
+  #kanban-view{overflow-x:unset !important;padding-bottom:8px}
   #status-cols{
-    display:flex;flex-direction:row;flex-wrap:nowrap;gap:10px;
-    grid-template-columns:unset;
-    min-width:max-content;padding-bottom:4px
+    display:flex !important;flex-direction:column !important;flex-wrap:nowrap !important;
+    gap:10px !important;grid-template-columns:unset !important;
+    min-width:unset !important;padding-bottom:4px
   }
-  #status-cols .kb-col{min-width:220px;max-width:220px;flex-shrink:0}
+  #status-cols .kb-col{min-width:unset !important;max-width:100% !important;width:100% !important;flex-shrink:unset !important}
   #tasks-cols{grid-template-columns:1fr}
 }
 .kb-col{background:var(--surface2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
@@ -2640,7 +2640,7 @@ setTimeout(window._showApp, 4000);
 
 <!-- COURSE MODAL -->
 <div class="modal-overlay" id="modal-course">
-  <div class="modal" style="width:520px">
+  <div class="modal" style="width:560px">
     <div class="modal-header">
       <div class="modal-title" id="course-modal-title">🎓 إضافة كورس / مادة تعليمية</div>
       <button class="close-btn" onclick="closeM('modal-course')">✕</button>
@@ -2665,17 +2665,27 @@ setTimeout(window._showApp, 4000);
         </select>
       </div>
     </div>
-    <div class="form-group"><label class="form-label">الرابط</label><input class="form-input" id="course-url" placeholder="https://youtube.com/watch?v=..." oninput="previewCourseEmbed()"></div>
+    <div class="form-group"><label class="form-label">الرابط الرئيسي</label><input class="form-input" id="course-url" placeholder="https://youtube.com/watch?v=..." oninput="previewCourseEmbed()"></div>
     <div id="course-embed-preview" style="margin-bottom:10px;border-radius:8px;overflow:hidden;display:none"></div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">التقدم %</label>
+      <div class="form-group"><label class="form-label">المصدر / المنصة</label><input class="form-input" id="course-platform" placeholder="Udemy, YouTube, Skillshare..."></div>
+      <div class="form-group"><label class="form-label">التقدم % <span style="font-size:10px;color:var(--text3)">(يُحسب تلقائياً من الخطوات)</span></label>
         <div style="display:flex;gap:8px;align-items:center">
           <input class="form-input" type="range" id="course-progress" min="0" max="100" value="0" oninput="document.getElementById('course-pct-disp').textContent=this.value+'%'" style="flex:1">
           <span id="course-pct-disp" style="font-size:12px;font-weight:700;color:var(--accent);width:35px">0%</span>
         </div>
       </div>
-      <div class="form-group"><label class="form-label">المصدر / المنصة</label><input class="form-input" id="course-platform" placeholder="Udemy, YouTube, Skillshare..."></div>
     </div>
+
+    <!-- ── خطوات / حلقات ── -->
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;color:var(--accent)">📋 الخطوات / الحلقات <span style="font-size:10px;font-weight:400;color:var(--text3)">(اختياري)</span></div>
+        <button onclick="addCourseStep()" style="padding:4px 12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">+ خطوة</button>
+      </div>
+      <div id="course-steps-list" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto"></div>
+    </div>
+
     <div class="form-group"><label class="form-label">ملاحظات / مواد إضافية</label><textarea class="form-textarea" id="course-notes" placeholder="ملاحظاتك، أهم النقاط..." style="min-height:70px"></textarea></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeM('modal-course')">إلغاء</button>
@@ -5666,7 +5676,6 @@ function openClientProfile(id){
       ${c.email?`<span style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--text2)">✉ ${c.email}</span>`:''}
       ${c.channel?`<span style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--text2)">${c.channel}</span>`:''}
       ${c.field?`<span style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--text2)">${c.field}</span>`:''}
-      ${c.workType==='sub'&&c.parentClientId?(()=>{const par=S.clients.find(x=>String(x.id)===String(c.parentClientId));return par?`<span style="background:rgba(100,181,246,.15);color:#64b5f6;padding:5px 12px;border-radius:20px;font-weight:700">🔗 تابع لـ ${par.name}</span>`:''})():''}
       ${(c.socials&&c.socials.length)?c.socials.map(s=>`<a href="${s.url}" target="_blank" style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--accent);font-size:12px;text-decoration:none;font-weight:600">${getSocialIconHTML(s.platform,14)} <span>${(SOCIAL_META[s.platform]||SOCIAL_META.other).label}</span></a>`).join(''):''}
     </div>
     ${c.notes?`<div class="hlbox" style="margin-bottom:16px;font-size:13px;color:var(--text2)">${c.notes}</div>`:''}
@@ -5789,7 +5798,7 @@ function renderClients(){
       <div style="font-size:15px;font-weight:700">${c.name}</div>
       <div style="font-size:12px;color:var(--text2);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <span>${c.type} · ${c.channel}${c.field?' · '+c.field:''}</span>
-        ${c.workType==='fulltime'?'<span class="jtype-badge jtype-fulltime">🏢 دوام</span>':c.workType==='parttime'?'<span class="jtype-badge jtype-parttime">⏰ بارت تايم</span>':c.workType==='sub'?'<span class="jtype-badge" style="background:rgba(100,181,246,.15);color:#64b5f6;border:1px solid rgba(100,181,246,.3)">🔗 تابع</span>':'<span class="jtype-badge jtype-freelance">🎯 فري لانس</span>'}
+        ${c.workType==='fulltime'?'<span class="jtype-badge jtype-fulltime">🏢 دوام</span>':c.workType==='parttime'?'<span class="jtype-badge jtype-parttime">⏰ بارت تايم</span>':'<span class="jtype-badge jtype-freelance">🎯 فري لانس</span>'}
       </div>
       ${c.salary?`<div style="font-size:12px;color:var(--accent3);margin-top:4px;font-weight:700">💰 ${c.salary.toLocaleString()} ج/شهر · يوم ${c.salaryDay}</div>`:''}
       ${c.phone?`<div style="font-size:12px;color:var(--text3);margin-top:6px;display:flex;align-items:center;gap:8px">📞 ${c.phone}<a href="https://wa.me/${c.phone.replace(/[^\d]/g,'')}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;text-decoration:none">💬 واتساب</a></div>`:''}
@@ -7223,8 +7232,18 @@ async function loginWithSupaSession(supaUser, session, userMeta){
 
   // ── حمّل من السحابة أولاً ──
   showSyncIndicator('☁️ جاري تحميل بياناتك...', 'var(--accent)');
+
+  // احفظ نسخة احتياطية من اللوكال ستوريج قبل أي overwrite
+  const _backupKey = 'studioOS_v3_backup_'+supaUser.id;
+  const _currentLocal = localStorage.getItem('studioOS_v3_'+supaUser.id);
+  if(_currentLocal && _currentLocal.length > 100) {
+    localStorage.setItem(_backupKey, _currentLocal);
+  }
+
   const cloudData = await cloudLoad();
-  if(cloudData){
+  // تحقق إن الـ cloud data فعلاً فيها بيانات حقيقية (مش object فاضي)
+  const _cloudValid = cloudData && (cloudData.tasks !== undefined || cloudData.clients !== undefined || cloudData.settings !== undefined);
+  if(_cloudValid){
     S = cloudData;
     migrateSFields();
     if(S._admin_updated && S._admin_name) {
@@ -7240,7 +7259,21 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     }
     localStorage.setItem('studioOS_v3_'+supaUser.id, JSON.stringify(S));
     applyPlatformConfig();
-  } else { lsLoad(); }
+  } else {
+    // Cloud فاشل أو فاضي — جرّب اللوكال أولاً
+    const localRaw = localStorage.getItem('studioOS_v3_'+supaUser.id);
+    if(localRaw && localRaw.length > 100) {
+      try { S = JSON.parse(localRaw); migrateSFields(); }
+      catch(e2) {
+        // جرّب الـ backup
+        const backupRaw = localStorage.getItem(_backupKey);
+        if(backupRaw) try { S = JSON.parse(backupRaw); migrateSFields(); } catch(e3){ lsLoad(); }
+        else lsLoad();
+      }
+    } else {
+      lsLoad();
+    }
+  }
 
   if(!S.settings.name && userObj.name){
     S.settings.name  = userObj.studio || userObj.name;
@@ -10186,6 +10219,7 @@ function previewCourseEmbed(){
 function openCourseModal(id){
   document.getElementById('course-modal-title').textContent=id?'✏ تعديل الكورس':'🎓 إضافة كورس / مادة تعليمية';
   document.getElementById('course-eid').value=id||'';
+  window._courseSteps = [];
   if(id){
     const c=S.courses.find(x=>x.id===id); if(!c) return;
     document.getElementById('course-title').value=c.title||'';
@@ -10196,6 +10230,7 @@ function openCourseModal(id){
     document.getElementById('course-pct-disp').textContent=(c.progress||0)+'%';
     document.getElementById('course-platform').value=c.platform||'';
     document.getElementById('course-notes').value=c.notes||'';
+    window._courseSteps = (c.steps||[]).map(s=>({...s}));
     previewCourseEmbed();
   } else {
     ['course-title','course-url','course-platform','course-notes'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});
@@ -10203,12 +10238,53 @@ function openCourseModal(id){
     document.getElementById('course-pct-disp').textContent='0%';
     document.getElementById('course-embed-preview').style.display='none';
   }
+  _renderCourseSteps();
   openM('modal-course');
+}
+
+function _renderCourseSteps(){
+  const el = document.getElementById('course-steps-list'); if(!el) return;
+  const steps = window._courseSteps || [];
+  if(!steps.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">لا خطوات بعد — اضغط "+ خطوة" لإضافة</div>';
+    return;
+  }
+  el.innerHTML = steps.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border-radius:8px;border:1px solid ${s.done?'var(--accent3)':'var(--border)'}">
+      <input type="checkbox" ${s.done?'checked':''} onchange="toggleCourseStep(${i})" style="width:16px;height:16px;accent-color:var(--accent3);flex-shrink:0">
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <input type="text" value="${(s.title||'').replace(/"/g,'&quot;')}" oninput="window._courseSteps[${i}].title=this.value" placeholder="عنوان الخطوة / الحلقة" style="background:transparent;border:none;color:var(--text);font-size:13px;font-family:var(--font);width:100%;outline:none;${s.done?'text-decoration:line-through;color:var(--text3)':''}">
+        <input type="text" value="${(s.url||'').replace(/"/g,'&quot;')}" oninput="window._courseSteps[${i}].url=this.value" placeholder="رابط الحلقة (اختياري)" style="background:transparent;border:none;color:var(--accent);font-size:11px;font-family:var(--mono);width:100%;outline:none">
+      </div>
+      <button onclick="removeCourseStep(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 4px" title="حذف">✕</button>
+    </div>`).join('');
+  // Update progress bar based on steps
+  const doneCount = steps.filter(s=>s.done).length;
+  const pct = steps.length ? Math.round((doneCount/steps.length)*100) : 0;
+  document.getElementById('course-progress').value = pct;
+  document.getElementById('course-pct-disp').textContent = pct+'%';
+}
+
+function addCourseStep(){
+  if(!window._courseSteps) window._courseSteps=[];
+  window._courseSteps.push({id:Date.now(),title:'',url:'',done:false});
+  _renderCourseSteps();
+}
+function removeCourseStep(i){
+  window._courseSteps.splice(i,1);
+  _renderCourseSteps();
+}
+function toggleCourseStep(i){
+  window._courseSteps[i].done = !window._courseSteps[i].done;
+  _renderCourseSteps();
 }
 function saveCourse(){
   const title=document.getElementById('course-title')?.value.trim(); if(!title) return alert('أدخل عنوان الكورس');
   const eid=document.getElementById('course-eid')?.value;
-  const d={id:eid?+eid:Date.now(),title,type:document.getElementById('course-type')?.value||'video',status:document.getElementById('course-status')?.value||'todo',url:document.getElementById('course-url')?.value||'',progress:+(document.getElementById('course-progress')?.value)||0,platform:document.getElementById('course-platform')?.value||'',notes:document.getElementById('course-notes')?.value||''};
+  const steps = (window._courseSteps||[]).map(s=>({...s}));
+  const doneCount = steps.filter(s=>s.done).length;
+  const autoProgress = steps.length ? Math.round((doneCount/steps.length)*100) : +(document.getElementById('course-progress')?.value)||0;
+  const d={id:eid?+eid:Date.now(),title,type:document.getElementById('course-type')?.value||'video',status:document.getElementById('course-status')?.value||'todo',url:document.getElementById('course-url')?.value||'',progress:autoProgress,platform:document.getElementById('course-platform')?.value||'',notes:document.getElementById('course-notes')?.value||'',steps};
   if(eid){const i=S.courses.findIndex(c=>c.id===+eid);if(i>-1)S.courses[i]=d;}
   else S.courses.push(d);
   lsSave(); closeM('modal-course'); renderCourses();
@@ -10248,6 +10324,7 @@ function renderCourses(){
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
         <span style="font-size:11px;font-weight:700;color:${stColor[c.status]};background:${stColor[c.status]}18;padding:2px 8px;border-radius:10px">${stLabel[c.status]||c.status}</span>
         ${c.platform?`<span style="font-size:11px;color:var(--text3);background:var(--surface3);padding:2px 8px;border-radius:10px">${c.platform}</span>`:''}
+        ${(c.steps&&c.steps.length)?`<span style="font-size:11px;color:var(--accent);background:rgba(124,111,247,.12);padding:2px 8px;border-radius:10px">${c.steps.filter(s=>s.done).length}/${c.steps.length} خطوة</span>`:''}
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <div style="flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden">
@@ -10255,12 +10332,30 @@ function renderCourses(){
         </div>
         <span style="font-size:11px;font-weight:700;color:var(--accent);width:32px">${c.progress||0}%</span>
       </div>
+      ${(c.steps&&c.steps.length)?`<div style="margin-bottom:10px;display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto">
+        ${c.steps.map((s,si)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:var(--surface2);border-radius:7px;cursor:pointer" onclick="quickToggleCourseStep(${c.id},${si})">
+          <div style="width:15px;height:15px;border-radius:4px;border:1.5px solid ${s.done?'var(--accent3)':'var(--border)'};background:${s.done?'var(--accent3)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            ${s.done?'<svg width="9" height="9" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg>':''}
+          </div>
+          <div style="flex:1;font-size:12px;${s.done?'text-decoration:line-through;color:var(--text3)':'color:var(--text)'}">${s.title||'بدون عنوان'}</div>
+          ${s.url?`<a href="${s.url}" target="_blank" onclick="event.stopPropagation()" style="font-size:10px;color:var(--accent3);flex-shrink:0">🔗</a>`:''}
+        </div>`).join('')}
+      </div>`:''}
       ${c.url?`<a href="${c.url}" target="_blank" style="font-size:11px;color:var(--accent3);display:block;margin-bottom:4px">🔗 فتح الكورس</a>`:''}
       ${ytMatch?`<button onclick="toggleCourseEmbed(${c.id})" class="btn btn-ghost btn-sm" style="width:100%;font-size:11px">▶ معاينة داخل التطبيق</button><div id="cembed-${c.id}" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="width:100%;height:180px;border:none;border-radius:8px" allowfullscreen></iframe></div>`:''}
     </div>`;}).join('');
 }
 function toggleCourseEmbed(id){
   const el=document.getElementById('cembed-'+id); if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+function quickToggleCourseStep(courseId, stepIdx){
+  const c = S.courses.find(x=>x.id===courseId); if(!c||!c.steps) return;
+  c.steps[stepIdx].done = !c.steps[stepIdx].done;
+  const doneCount = c.steps.filter(s=>s.done).length;
+  c.progress = Math.round((doneCount/c.steps.length)*100);
+  if(c.progress===100) c.status='done';
+  else if(doneCount>0) c.status='inprogress';
+  lsSave(); renderCourses();
 }
 
 // ============================================================
@@ -10335,6 +10430,13 @@ supa.auth.onAuthStateChange(async (event, session) => {
     _supaUserId = session.user.id;
     const existing = getSession();
     if(existing) saveSession({...existing, supaId:session.user.id, id:session.user.id});
+    // لو مفيش بيانات تانية في S (مثلاً بعد فترة طويلة)، نعمل sync خفيف
+    if(_authInitialized && S && (S.tasks||[]).length === 0 && (S.clients||[]).length === 0) {
+      const localRaw = localStorage.getItem('studioOS_v3_'+session.user.id);
+      if(localRaw && localRaw.length > 100) {
+        try { S = JSON.parse(localRaw); migrateSFields && migrateSFields(); renderAll && renderAll(); } catch(e){}
+      }
+    }
     return;
   }
 
@@ -11874,18 +11976,9 @@ var _notifTableExists = null; // null=unknown, true=exists, false=missing
 async function _checkNotifTableExists(){
   if(_notifTableExists !== null) return _notifTableExists;
   try {
-    // Try fetching just 1 row with limit — if table missing, error.code = 42P01 or status 404
-    const { error, status } = await supa.from('user_notifications').select('id').limit(1);
-    if(error) {
-      const isMissing = error.code === '42P01'
-        || error.message?.includes('does not exist')
-        || status === 404
-        || error.code === 'PGRST200'
-        || String(error.message).includes('404');
-      _notifTableExists = !isMissing;
-    } else {
-      _notifTableExists = true;
-    }
+    // Try fetching just 1 row with limit — if table missing, error.code = 42P01
+    const { error } = await supa.from('user_notifications').select('id').limit(1);
+    _notifTableExists = !(error && (error.code === '42P01' || error.message?.includes('does not exist')));
   } catch(e) { _notifTableExists = false; }
   return _notifTableExists;
 }
@@ -11905,9 +11998,7 @@ async function _loadServerNotifications(){
       .order('created_at', {ascending:false})
       .limit(30);
     if(res.error){
-      if(res.status === 404 || res.error.code === '42P01' || res.error.code === 'PGRST200') {
-        _notifTableExists = false;
-      }
+      _notifTableExists = false;
       return;
     }
     _notifTableExists = true;
@@ -12954,6 +13045,17 @@ function renderArchivedTasksLog(){
 
 // Add archive tab to tasks page
 window.addEventListener('load', function(){
+  // ── Periodic local backup every 10 min (safety net against data loss) ──
+  setInterval(function(){
+    if(_supaUserId && typeof S !== 'undefined' && S && (S.tasks||[]).length + (S.clients||[]).length > 0) {
+      try {
+        const key = 'studioOS_v3_'+_supaUserId;
+        localStorage.setItem(key, JSON.stringify(S));
+        localStorage.setItem(key+'_backup', JSON.stringify(S));
+      } catch(e){}
+    }
+  }, 10 * 60 * 1000); // 10 minutes
+
   setTimeout(function(){
     // Add "📦 الأرشيف" tab to task tabs
     const tabsWrap = document.querySelector('[id="ttab-active"]')?.parentElement;
