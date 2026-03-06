@@ -4,10 +4,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Studio OS">
+<meta name="apple-mobile-web-app-title" content="Ordo - Tasks">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#7c6ff7">
-<title>Studio OS — نظام الاستوديو</title>
+<title>Ordo - Tasks — نظام الاستوديو</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 
 <!-- ═══ SUPABASE SDK ═══ -->
@@ -24,7 +24,6 @@ const supa = supabase.createClient(SUPA_URL, SUPA_ANON, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storage: window.localStorage,
-    // Disable BroadcastChannel lock — prevents DataCloneError with Headers objects
     lock: async (name, acquireTimeout, fn) => fn()
   }
 });
@@ -42,16 +41,13 @@ function applyPlatformConfig() {
   // PLATFORM name = ONLY admin-set (sidebar + auth) — never user studio name
   let cfgName = cfg.name || '';
   if(_isEmail(cfgName)) cfgName = '';
-  const name = cfgName || 'Studio OS';
+  const name = cfgName || 'Ordo - Tasks';
 
-  // PLATFORM logo = admin-set cfg.logo (sidebar), favicon = cfg.favicon (tab + auth icon)
-  // Resolve b64 references stored separately to avoid localStorage quota issues
-  let rawLogo = cfg.logo || '';
-  let rawFavicon = cfg.favicon || '';
-  if(rawLogo === '__b64_logo__') rawLogo = localStorage.getItem('platform_logo_b64') || '';
-  if(rawFavicon === '__b64_favicon__') rawFavicon = localStorage.getItem('platform_favicon_b64') || '';
-  const platformLogo = rawLogo;
-  const favicon = rawFavicon;
+  // PLATFORM logo = admin-set cfg.logo (sidebar), favicon = cfg.favicon
+  let _rawLogo = cfg.logo || ''; let _rawFav = cfg.favicon || '';
+  if(_rawLogo === '__b64_logo__') _rawLogo = localStorage.getItem('platform_logo_b64') || '';
+  if(_rawFav === '__b64_favicon__') _rawFav = localStorage.getItem('platform_favicon_b64') || '';
+  const platformLogo = _rawLogo; const favicon = _rawFav;
 
   // Sidebar logo: use PLATFORM logo (admin-set), NOT user's studio logo
   const imgEl = document.getElementById('_sidebar-logo-img');
@@ -62,8 +58,8 @@ function applyPlatformConfig() {
     if(hexEl) hexEl.style.display = 'none';
     const wrap = document.getElementById('_logo-mark-wrap');
     if(wrap){ wrap.style.width='auto'; wrap.style.height='auto'; wrap.style.maxWidth='150px'; wrap.style.background='transparent'; wrap.style.borderRadius='0'; }
-    const logoText = document.querySelector('.logo-text');
-    if(logoText) logoText.style.display = 'none';
+    // Name text stays visible beside logo
+    // const logoText = document.querySelector('.logo-text'); logoText hidden removed
   } else if(imgEl){
     imgEl.style.display = 'none';
     if(hexEl) hexEl.style.display = 'flex';
@@ -73,14 +69,12 @@ function applyPlatformConfig() {
     if(logoText) logoText.style.display = '';
   }
 
-  // Auth screen: show PLATFORM logo (same as sidebar) — fallback to favicon
+  // Auth screen: platform logo (same as sidebar)
   const authLogoMark = document.querySelector('.auth-logo-mark');
-  const authLogoSrc = platformLogo || favicon;
-  if(authLogoMark && authLogoSrc){
-    authLogoMark.innerHTML = '<img src="'+authLogoSrc+'" style="width:52px;height:52px;object-fit:contain;border-radius:10px" onerror="this.parentNode.textContent=String.fromCharCode(11041)">';
-  } else if(authLogoMark){
-    if(!authLogoMark.querySelector('img')) authLogoMark.textContent = '⬡';
-  }
+  const _authSrc = platformLogo || favicon;
+  if(authLogoMark && _authSrc){
+    authLogoMark.innerHTML = '<img src="'+_authSrc+'" style="width:52px;height:52px;object-fit:contain;border-radius:10px" onerror="this.parentNode.textContent=String.fromCharCode(11041)">';
+  } else if(authLogoMark){ if(!authLogoMark.querySelector('img')) authLogoMark.textContent = '⬡'; }
 
   // Update title
   document.title = name + ' — نظام الاستوديو';
@@ -154,15 +148,14 @@ function cloudSave(data){
       const payload = { user_id: _supaUserId, data: JSON.stringify(data), updated_at: new Date().toISOString() };
       const { error } = await supa.from('studio_data').upsert(payload, { onConflict: 'user_id' });
       if(error){
-        const msg = (error && typeof error.message === 'string') ? error.message : String(error);
-        console.error('cloudSave error:', msg);
+        const _em = (error && typeof error.message === 'string') ? error.message : String(error);
+        console.error('cloudSave error:', _em);
         showSyncIndicator('⚠ فشل الحفظ', '#f76f7c');
       } else {
         showSyncIndicator('✅ محفوظ على السحابة', '#4fd1a5');
       }
     }catch(e){
-      const msg = (e && typeof e.message === 'string') ? e.message : 'unknown error';
-      console.error('cloudSave error:', msg);
+      const _em2 = (e && typeof e.message === 'string') ? e.message : 'unknown'; console.error('cloudSave error:', _em2);
       showSyncIndicator('⚠ فشل المزامنة', '#f76f7c');
     }
   }, 1000);
@@ -1564,7 +1557,7 @@ setTimeout(window._showApp, 4000);
       <div class="auth-logo">
         <div class="auth-logo-mark">⬡</div>
         <div class="auth-logo-text">
-          <div class="auth-app-name" data-platform-name>Studio OS</div>
+          <div class="auth-app-name" data-platform-name>Ordo - Tasks</div>
           <div class="auth-app-sub">نظام إدارة الاستوديو</div>
         </div>
       </div>
@@ -1673,7 +1666,7 @@ setTimeout(window._showApp, 4000);
       </div>
     </div>
 
-    <div class="auth-footer">Studio OS — نظام إدارة الاستوديو الاحترافي ⬡</div>
+    <div class="auth-footer">Ordo - Tasks — نظام إدارة الاستوديو الاحترافي ⬡</div>
 
     </div><!-- end auth-card-body -->
   </div>
@@ -1695,7 +1688,7 @@ setTimeout(window._showApp, 4000);
       <span id="_logo-mark-hex" style="font-size:18px;font-weight:900;color:#fff">⬡</span>
     </div>
     <div class="logo-text">
-      <div class="logo-title" data-platform-name>Studio OS</div>
+      <div class="logo-title" data-platform-name>Ordo - Tasks</div>
       <div class="logo-sub" id="_sidebar-logo-sub">نظام إدارة الاستوديو</div>
     </div>
   </div>
@@ -1746,7 +1739,7 @@ setTimeout(window._showApp, 4000);
 <header class="app-header">
   <button class="header-toggle" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="فتح القائمة" style="display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:10px;min-width:0;max-width:180px">
     <span id="toggle-icon" style="font-size:18px;flex-shrink:0">☰</span>
-    <span id="_header-studio-name" data-platform-name style="font-size:13px;font-weight:800;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">Studio OS</span>
+    <span id="_header-studio-name" data-platform-name style="font-size:13px;font-weight:800;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">Ordo - Tasks</span>
   </button>
   <div class="header-page-title" id="header-page-title">لوحة التحكم</div>
   <div class="header-actions">
@@ -7156,7 +7149,7 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     id       : supaUser.id,
     supaId   : supaUser.id,
     email    : supaUser.email || '',
-    name     : userMeta?.name  || meta.full_name || meta.name || (typeof S!=='undefined'&&S.settings?.name)||localStorage.getItem('studioName')||'Studio OS',
+    name     : userMeta?.name  || meta.full_name || meta.name || (typeof S!=='undefined'&&S.settings?.name)||localStorage.getItem('studioName')||supaUser?.email?.split('@')[0]||data?.user?.email?.split('@')[0]||'',
     phone    : userMeta?.phone || meta.phone || '',
     studio   : userMeta?.studio || meta.studio || '',
     avatarUrl: meta.avatarUrl || meta.avatar_url || meta.picture || ''
@@ -7408,7 +7401,7 @@ async function renderPlansListing() {
 
   const cfg = JSON.parse(localStorage.getItem('platform_config') || '{}');
   const wa  = cfg.whatsapp || '201090412218';
-  const appName = cfg.name || 'Studio OS';
+  const appName = cfg.name || 'Ordo - Tasks';
   const currentPlanId = _userSubscription?.planId || _userSubscription?.plan_id;
 
   let html = '<div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-align:center">اختر الباقة المناسبة — تواصل معنا للحصول على كود التفعيل</div>'
@@ -10306,7 +10299,7 @@ supa.auth.onAuthStateChange(async (event, session) => {
       id    : session.user.id,
       supaId: session.user.id,
       email : session.user.email || '',
-      name  : meta.full_name || meta.name || (typeof S!=='undefined'&&S.settings?.name)||localStorage.getItem('studioName')||'Studio OS',
+      name  : meta.full_name || meta.name || (typeof S!=='undefined'&&S.settings?.name)||localStorage.getItem('studioName')||supaUser?.email?.split('@')[0]||data?.user?.email?.split('@')[0]||'',
       phone : meta.phone  || '',
       studio: meta.studio || (meta.full_name ? meta.full_name + ' Studio' : ''),
       avatarUrl: meta.avatarUrl || meta.avatar_url || meta.picture || ''
@@ -10996,7 +10989,7 @@ function openClientPortal(clientId){
   const done=cTasks.filter(t=>t.done||t.status==='done').length;
   const pct=cTasks.length?Math.round((done/cTasks.length)*100):0;
   const d={
-    studio:S.settings?.name||'Studio OS',client:c.name,
+    studio:S.settings?.name||'Ordo - Tasks',client:c.name,
     tasks:cTasks.map(t=>({title:t.title,status:t.status,done:t.done,steps:t.steps||[]})),
     invoices:cInvs.map(i=>({num:i.num,date:i.date,total:i.total,status:i.status})),
     contracts:cContracts.map(ct=>({title:ct.title,status:ct.status,value:ct.value})),
@@ -12250,8 +12243,7 @@ function _updateHeaderAvatar(){
     txtEl.style.display = 'flex';
     txtEl.textContent = (name[0]||'م').toUpperCase();
   }
-  // Sidebar logo is ONLY controlled by applyPlatformConfig (admin-set platform logo)
-  // Do NOT override it here with user avatar or studio logo
+  // Sidebar logo controlled ONLY by applyPlatformConfig
   if(typeof applyPlatformConfig === 'function') applyPlatformConfig();
 }
 
@@ -12955,7 +12947,7 @@ _buildTrackingPageHTML = function(t){
   const pct=stepsTotal?Math.round(stepsDone/stepsTotal*100):(t.done?100:0);
 
   // Pull live system settings
-  const studio   = S.settings?.name||'Studio OS';
+  const studio   = S.settings?.name||'Ordo - Tasks';
   const phone    = S.settings?.phone||'';
   const email    = S.settings?.email||'';
   const logo     = S.settings?.logo||'';  // base64 or URL
@@ -13110,7 +13102,7 @@ _buildTrackingPageHTML = function(t){
   const steps=t.steps||[];
   const stepsTotal=steps.length, stepsDone=steps.filter(s=>s.done).length;
   const pct=stepsTotal?Math.round(stepsDone/stepsTotal*100):(t.done?100:0);
-  const studio   = S.settings?.name||session?.name||'Studio OS';
+  const studio   = S.settings?.name||session?.name||'Ordo - Tasks';
   const phone    = S.settings?.phone||session?.phone||'';
   const email    = S.settings?.email||'';
   const socials  = S.settings?.socials||[];
@@ -14028,7 +14020,7 @@ function _buildTrackingPageHTML(t){
   const steps=t.steps||[];
   const stepsTotal=steps.length, stepsDone=steps.filter(s=>s.done).length;
   const pct=stepsTotal?Math.round(stepsDone/stepsTotal*100):(t.done?100:0);
-  const studio=S.settings?.name||'Studio OS';
+  const studio=S.settings?.name||'Ordo - Tasks';
   const studioPhone=S.settings?.phone||'';
   const status={new:'جديد',progress:'قيد التنفيذ',review:'مراجعة',done:'مكتمل ✅'}[t.status]||t.status;
   const statusColor={new:'#5a5a80',progress:'#f7c948',review:'#7c6ff7',done:'#4fd1a5'}[t.status]||'#888';
@@ -14093,7 +14085,7 @@ function _buildTrackingPageHTML(t){
 }
 
 function _showTrackingShareModal(t){
-  const studio=S.settings?.name||'Studio OS';
+  const studio=S.settings?.name||'Ordo - Tasks';
   const clientName=t.client||'عزيزي العميل';
   const taskTitle=t.title||'المشروع';
   const pageHtml=_buildTrackingPageHTML(t);
