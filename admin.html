@@ -1105,13 +1105,33 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
             <input class="form-input" id="plt-keywords" placeholder="studio, design, إدارة, استوديو">
           </div>
           <div class="form-group">
-            <div class="form-label">رابط الأيقونة (Favicon URL)</div>
-            <input class="form-input" id="plt-favicon" dir="ltr" placeholder="https://example.com/icon.png">
-            <div style="font-size:11px;color:var(--text3);margin-top:4px">يظهر في تاب المتصفح — ارفع صورة على Imgur أو Cloudinary وضع الرابط</div>
+            <div class="form-label">أيقونة الموقع (Favicon)</div>
+            <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+              <div id="favicon-preview" style="width:32px;height:32px;border:1.5px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--surface2)">🌐</div>
+              <div style="flex:1">
+                <input class="form-input" id="plt-favicon" dir="ltr" placeholder="https://example.com/icon.png" oninput="updateFaviconPreview(this.value)" style="margin-bottom:6px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 12px;border-radius:8px;border:1.5px dashed var(--border);font-size:12px;color:var(--text2)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  رفع صورة مباشرة
+                  <input type="file" accept="image/*" onchange="uploadFaviconFile(this)" style="display:none">
+                </label>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text3)">تظهر في تاب المتصفح وصفحة تسجيل الدخول وبجانب اسم الموقع</div>
           </div>
           <div class="form-group">
-            <div class="form-label">رابط الشعار الرئيسي (للموقع)</div>
-            <input class="form-input" id="plt-logo" dir="ltr" placeholder="https://example.com/logo.png">
+            <div class="form-label">شعار القائمة الجانبية</div>
+            <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+              <div id="logo-preview" style="width:36px;height:36px;border:1.5px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--surface2);overflow:hidden">⬡</div>
+              <div style="flex:1">
+                <input class="form-input" id="plt-logo" dir="ltr" placeholder="https://example.com/logo.png" oninput="updateLogoPreview(this.value)" style="margin-bottom:6px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 12px;border-radius:8px;border:1.5px dashed var(--border);font-size:12px;color:var(--text2)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  رفع شعار
+                  <input type="file" accept="image/*" onchange="uploadLogoFile(this)" style="display:none">
+                </label>
+              </div>
+            </div>
           </div>
           <div class="form-group">
             <div class="form-label">رابط واتساب للدعم</div>
@@ -4479,6 +4499,65 @@ function openBanModal(uid, name) {
 // ── Update users table to use detail page ──
 // Patch onclick in rendered table
 const _origRenderUsers = applyUserFilters;
+
+// ══ Platform Image Upload Functions ══
+function updateFaviconPreview(url) {
+  const el = document.getElementById('favicon-preview');
+  if(!el) return;
+  if(url && (url.startsWith('http') || url.startsWith('data:'))) {
+    el.innerHTML = `<img src="${url}" style="width:28px;height:28px;object-fit:contain" onerror="this.parentNode.innerHTML='🌐'">`;
+  } else {
+    el.innerHTML = '🌐';
+  }
+}
+
+function updateLogoPreview(url) {
+  const el = document.getElementById('logo-preview');
+  if(!el) return;
+  if(url && (url.startsWith('http') || url.startsWith('data:'))) {
+    el.innerHTML = `<img src="${url}" style="width:34px;height:34px;object-fit:contain" onerror="this.parentNode.innerHTML='⬡'">`;
+  } else {
+    el.innerHTML = '⬡';
+  }
+}
+
+function uploadFaviconFile(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    document.getElementById('plt-favicon').value = dataUrl;
+    updateFaviconPreview(dataUrl);
+    toast('✅ تم رفع الأيقونة — اضغط حفظ التغييرات');
+  };
+  reader.readAsDataURL(file);
+}
+
+function uploadLogoFile(input) {
+  const file = input.files[0];
+  if(!file) return;
+  if(file.size > 200*1024) { toast('⚠ الحجم كبير — استخدم صورة أقل من 200KB'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    document.getElementById('plt-logo').value = dataUrl;
+    updateLogoPreview(dataUrl);
+    toast('✅ تم رفع الشعار — اضغط حفظ التغييرات');
+  };
+  reader.readAsDataURL(file);
+}
+
+// Update previews when platform page loads
+const _origLoadPlatformPage = loadPlatformPage;
+loadPlatformPage = function(){
+  _origLoadPlatformPage();
+  setTimeout(()=>{
+    updateFaviconPreview(document.getElementById('plt-favicon')?.value||'');
+    updateLogoPreview(document.getElementById('plt-logo')?.value||'');
+  }, 100);
+};
+
 </script>
 </body>
 </html>
