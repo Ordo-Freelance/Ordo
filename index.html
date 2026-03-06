@@ -13308,31 +13308,20 @@ window.addEventListener('load', function(){
 });
 
 function _renderTeamTasksBanner(myTasks, myName){
-  // Dashboard banner
-  const dash = document.getElementById('page-dashboard');
-  if(dash && !document.getElementById('_my-team-tasks-dash')){
-    const el=document.createElement('div');
-    el.id='_my-team-tasks-dash';
-    el.className='card';
-    el.style.cssText='margin-bottom:16px;border-color:rgba(100,181,246,.3);background:rgba(100,181,246,.05)';
-    el.innerHTML=`
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="section-title" style="margin:0;color:#64b5f6">👥 مهامك كعضو فريق (${myTasks.length})</div>
-        <button onclick="showPage('tasks')" class="btn btn-ghost btn-sm" style="font-size:11px;color:#64b5f6">عرض الكل ←</button>
-      </div>
-      ${myTasks.slice(0,3).map(t=>`
-        <div onclick="openTaskDetail(${t.id})" style="display:flex;align-items:center;gap:10px;padding:9px 10px;background:var(--surface2);border-radius:10px;margin-bottom:6px;cursor:pointer;border:1px solid rgba(100,181,246,.15)">
-          <div style="width:8px;height:8px;border-radius:50%;background:#64b5f6;flex-shrink:0"></div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
-            <div style="font-size:11px;color:var(--text3)">${t.client||''} ${t.deadline?'· تسليم '+t.deadline:''}</div>
-          </div>
-          <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(100,181,246,.15);color:#64b5f6;font-weight:700">${t.workerAmount?t.workerAmount.toLocaleString()+' ج':''}</span>
-        </div>`).join('')}
-      ${myTasks.length>3?`<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px">+ ${myTasks.length-3} مهام أخرى</div>`:''}`;
-    const firstCard = dash.querySelector('.card');
-    if(firstCard) dash.insertBefore(el, firstCard);
-    else dash.appendChild(el);
+  // Update the dash-team-tasks widget inside _dash-grid (new system)
+  const dashTeam = document.getElementById('dash-team-tasks');
+  if(dashTeam){
+    const header = dashTeam.closest('.card')?.querySelector('.section-title');
+    if(header) header.textContent = '👥 مهامك كعضو فريق (' + myTasks.length + ')';
+    dashTeam.innerHTML = myTasks.slice(0,3).map(t=>
+      `<div onclick="openTaskDetail(${t.id})" style="display:flex;align-items:center;gap:10px;padding:9px 10px;background:var(--surface2);border-radius:10px;margin-bottom:6px;cursor:pointer;border:1px solid rgba(100,181,246,.15)">
+        <div style="width:8px;height:8px;border-radius:50%;background:#64b5f6;flex-shrink:0"></div>
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">${t.title}</div>
+        <div style="font-size:11px;color:var(--text3)">${t.client||''} ${t.deadline?'· '+t.deadline:''}</div></div>
+        <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(100,181,246,.15);color:#64b5f6;font-weight:700">${t.workerAmount?t.workerAmount.toLocaleString()+' ج':''}</span>
+      </div>`).join('')+
+      (myTasks.length>3?`<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px">+ ${myTasks.length-3} مهام أخرى</div>`:'')
+    ;
   }
   // Also add section in tasks page
   const tasksPage = document.getElementById('page-tasks');
