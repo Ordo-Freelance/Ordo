@@ -7212,6 +7212,8 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   // ── الآن render بعد ما الاشتراك اتحمل ──
   renderAll();
   updateHeader('dashboard');
+  // Force dashboard update with cloud data
+  setTimeout(()=>{ updateDash(); _renderDashGrid && _renderDashGrid(); }, 100);
 
   // إخفاء اللوجين وإظهار التطبيق
   if(window._showApp) window._showApp();
@@ -10299,8 +10301,8 @@ supa.auth.onAuthStateChange(async (event, session) => {
       avatarUrl: meta.avatarUrl || meta.avatar_url || meta.picture || ''
     };
     // دايما نعمل loginWithSupaSession علشان نجيب البيانات من السحابة
+    _authInitialized = true; // Set BEFORE async call to prevent duplicate execution
     await loginWithSupaSession(session.user, session, userObj);
-    _authInitialized = true;
   }
 
   if(event === 'PASSWORD_RECOVERY'){
@@ -11800,9 +11802,9 @@ var _notifTableExists = null; // null=unknown, true=exists, false=missing
 async function _checkNotifTableExists(){
   if(_notifTableExists !== null) return _notifTableExists;
   try {
-    // Use a count query with limit 0 — faster and if table missing returns error silently
-    const { error } = await supa.from('user_notifications').select('id', { count: 'exact', head: true });
-    _notifTableExists = !error;
+    // Try fetching just 1 row with limit — if table missing, error.code = 42P01
+    const { error } = await supa.from('user_notifications').select('id').limit(1);
+    _notifTableExists = !(error && (error.code === '42P01' || error.message?.includes('does not exist')));
   } catch(e) { _notifTableExists = false; }
   return _notifTableExists;
 }
