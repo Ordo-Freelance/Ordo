@@ -1790,56 +1790,56 @@ setTimeout(window._showApp, 4000);
 <div class="page" id="page-tasks">
   <div class="page-header">
     <div><div class="page-title">المهام <span>والمشاريع</span></div><div class="page-subtitle">كل شغلتك في مكان واحد</div></div>
-    <button class="btn btn-primary" onclick="openTaskModal()">+ مهمة جديدة</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button id="_filter-toggle-btn" onclick="_toggleFilterPanel()" style="width:38px;height:38px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.18s;position:relative;flex-shrink:0" title="فلترة">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        <span id="_filter-active-dot" style="display:none;position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>
+      </button>
+      <button onclick="_toggleLogMenu(this)" style="width:38px;height:38px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.18s;flex-shrink:0;position:relative" title="السجلات والأرشيف" id="_log-icon-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </button>
+      <button class="btn btn-primary" onclick="openTaskModal()">+ مهمة جديدة</button>
+    </div>
   </div>
 
-  <!-- فلتر المهام -->
-  <div class="filter-bar">
-    <select id="tf-status" onchange="applyTaskFilters()">
-      <option value="">كل الحالات</option>
-      <option value="new">جديد</option>
-      <option value="progress">جاري</option>
-      <option value="review">مراجعة</option>
-      <option value="paused">⏸ موقوف مؤقتاً</option>
-      <option value="done">مكتمل</option>
-    </select>
-    <select id="tf-priority" onchange="applyTaskFilters()">
-      <option value="">كل الأولويات</option>
-      <option value="high">🔴 عالية</option>
-      <option value="med">🟡 متوسطة</option>
-      <option value="low">🟢 منخفضة</option>
-    </select>
-    <select id="tf-jobtype" onchange="applyTaskFilters()">
-      <option value="">كل أنواع العمل</option>
-      <option value="freelance">🎯 فري لانس</option>
-      <option value="fulltime">🏢 دوام</option>
-      <option value="parttime">⏰ بارت تايم</option>
-    </select>
-    <select id="tf-client" onchange="applyTaskFilters()">
-      <option value="">كل العملاء</option>
-    </select>
-    <select id="tf-month" onchange="applyTaskFilters()">
-      <option value="">كل الأشهر</option>
-      <option value="1">يناير</option><option value="2">فبراير</option>
-      <option value="3">مارس</option><option value="4">أبريل</option>
-      <option value="5">مايو</option><option value="6">يونيو</option>
-      <option value="7">يوليو</option><option value="8">أغسطس</option>
-      <option value="9">سبتمبر</option><option value="10">أكتوبر</option>
-      <option value="11">نوفمبر</option><option value="12">ديسمبر</option>
-    </select>
-    <select id="tf-year" onchange="applyTaskFilters()">
-      <option value="">كل السنوات</option>
-    </select>
-    <input id="tf-search" type="text" placeholder="🔍 بحث..." oninput="applyTaskFilters()" style="min-width:130px">
-    <button class="filter-reset" onclick="resetTaskFilters()">✕ إعادة تعيين</button>
-    <span class="filter-count" id="tf-count"></span>
-  </div>
-  <!-- Tasks Page Tabs -->
-  <div style="display:flex;gap:4px;margin-bottom:16px;background:var(--surface2);border-radius:12px;padding:4px">
-    <button id="ttab-active" onclick="switchTasksTab('active')" style="padding:7px 18px;font-size:12px;font-weight:700;border:none;background:rgba(124,111,247,.18);color:var(--accent);border-radius:9px;cursor:pointer;transition:.18s">📋 المهام النشطة</button>
-    <button id="ttab-log-day" onclick="switchTasksTab('log-day')" style="padding:7px 18px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text3);border-radius:9px;cursor:pointer;transition:.18s">📅 السجل اليومي</button>
-    <button id="ttab-log-month" onclick="switchTasksTab('log-month')" style="padding:7px 18px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text3);border-radius:9px;cursor:pointer;transition:.18s">📆 السجل الشهري</button>
-    <button id="ttab-log-year" onclick="switchTasksTab('log-year')" style="padding:7px 18px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text3);border-radius:9px;cursor:pointer;transition:.18s">📊 السجل السنوي</button>
+  <!-- COLLAPSIBLE FILTER PANEL -->
+  <div id="_filter-panel" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:12px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <select id="tf-status" onchange="applyTaskFilters()" class="filter-select">
+        <option value="">كل الحالات</option>
+        <option value="new">📋 جديد</option>
+        <option value="progress">⚡ جاري</option>
+        <option value="review">🔍 مراجعة</option>
+        <option value="paused">⏸ موقوف</option>
+        <option value="done">✅ مكتمل</option>
+      </select>
+      <select id="tf-priority" onchange="applyTaskFilters()" class="filter-select">
+        <option value="">كل الأولويات</option>
+        <option value="high">🔴 عاجل</option>
+        <option value="med">🟡 متوسط</option>
+        <option value="low">🟢 عادي</option>
+      </select>
+      <select id="tf-jobtype" onchange="applyTaskFilters()" class="filter-select">
+        <option value="">كل أنواع العمل</option>
+        <option value="freelance">🎯 فري لانس</option>
+        <option value="fulltime">🏢 دوام</option>
+        <option value="parttime">⏰ بارت تايم</option>
+      </select>
+      <select id="tf-month" onchange="applyTaskFilters()" class="filter-select">
+        <option value="">كل الأشهر</option>
+        <option value="1">يناير</option><option value="2">فبراير</option>
+        <option value="3">مارس</option><option value="4">أبريل</option>
+        <option value="5">مايو</option><option value="6">يونيو</option>
+        <option value="7">يوليو</option><option value="8">أغسطس</option>
+        <option value="9">سبتمبر</option><option value="10">أكتوبر</option>
+        <option value="11">نوفمبر</option><option value="12">ديسمبر</option>
+      </select>
+      <select id="tf-client" onchange="applyTaskFilters()" style="display:none"><option value="">كل العملاء</option></select>
+      <select id="tf-year" onchange="applyTaskFilters()" style="display:none"><option value="">كل السنوات</option></select>
+      <input id="tf-search" type="text" placeholder="🔍 بحث..." oninput="applyTaskFilters()" class="filter-select" style="min-width:140px;background-image:none!important;padding:0 12px!important">
+      <button onclick="resetTaskFilters()" style="height:34px;padding:0 12px;border-radius:20px;border:1.5px solid var(--border);background:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--font)">✕ مسح</button>
+      <span class="filter-count" id="tf-count"></span>
+    </div>
   </div>
 
   <!-- TASKS LOG VIEWS (hidden by default) -->
@@ -1876,18 +1876,23 @@ setTimeout(window._showApp, 4000);
 
   <!-- Kanban View Toggle -->
   <div id="tasks-active-view">
-  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
-    <div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:3px">
-      <button id="view-kanban-btn" class="btn btn-ghost btn-sm" style="padding:5px 12px;font-size:12px;background:var(--accent);color:#fff" onclick="switchTaskView('kanban')">📋 كانبان</button>
-      <button id="view-list-btn" class="btn btn-ghost btn-sm" style="padding:5px 12px;font-size:12px" onclick="switchTaskView('list')">📊 قائمة</button>
+  <!-- View toggle + progress bar: stacked layout -->
+  <div style="margin-bottom:14px">
+    <!-- View toggle: top right -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px">
+        <button id="view-kanban-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;background:var(--accent);color:#fff;border-radius:7px" onclick="switchTaskView('kanban')">📋 كانبان</button>
+        <button id="view-list-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;border-radius:7px" onclick="switchTaskView('list')">📊 قائمة</button>
+      </div>
     </div>
-    <div id="tasks-progress-bar-wrap" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 14px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    <!-- Progress bar: full width -->
+    <div id="tasks-progress-bar-wrap" style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
         <span style="font-size:11px;font-weight:700;color:var(--text2)">📊 نسبة التقدم الكلي</span>
-        <span id="tasks-progress-pct" style="font-size:12px;font-weight:900;color:var(--accent)">0%</span>
+        <span id="tasks-progress-pct" style="font-size:13px;font-weight:900;color:var(--accent)">0%</span>
       </div>
       <div id="tasks-global-progress-stacked" style="height:10px;border-radius:6px;overflow:hidden;display:flex;gap:1px;background:var(--surface3)"></div>
-      <div id="tasks-progress-legend" style="display:flex;gap:12px;margin-top:6px;flex-wrap:wrap"></div>
+      <div id="tasks-progress-legend" style="display:flex;gap:12px;margin-top:7px;flex-wrap:wrap"></div>
     </div>
   </div>
 
@@ -1948,8 +1953,8 @@ setTimeout(window._showApp, 4000);
       </div>
     </div>
 
-    <div class="card" style="margin-bottom:16px;border-color:rgba(79,209,165,.3)">
-      <div class="section-title" style="color:var(--accent3)">✅ مشاريع مكتملة</div>
+    <div class="card" style="margin-bottom:16px;border-color:rgba(79,209,165,.3)" ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDropDone(event)" data-status="done">
+      <div class="section-title" style="color:var(--accent3)">✅ مشاريع مكتملة <span style="font-size:10px;color:var(--text3);font-weight:400">— اسحب هنا لإكمال مهمة</span></div>
       <div id="col-done"><div class="empty" style="padding:16px 0;font-size:12px;color:var(--accent3)">لا مشاريع مكتملة</div></div>
     </div>
     <div class="card" style="display:none" id="col-paused-wrap">
@@ -9496,8 +9501,24 @@ function kbDrop(ev){
   if(task.status === newStatus){ _kbDragId=null; return; }
   task.status = newStatus;
   task.done   = false;
-  lsSave(); renderTasks();
-  showMiniNotif('✅ '+({'new':'📋 جديد','progress':'⚡ قيد التنفيذ','review':'🔍 مراجعة','paused':'⏸ موقوف'}[newStatus]||newStatus));
+  task.doneAt = null;
+  lsSave();
+  renderAll(); // use renderAll so custom cols also update
+  const statusLabels = {'new':'📋 جديد','progress':'⚡ قيد التنفيذ','review':'🔍 مراجعة','paused':'⏸ موقوف'};
+  const customLabel = (S.customStatuses||[]).find(c=>c.id===newStatus)?.label||newStatus;
+  showMiniNotif('✅ '+(statusLabels[newStatus]||customLabel));
+  _kbDragId = null;
+  document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
+}
+
+function kbDropDone(ev){
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('drag-over');
+  const taskId = +(_kbDragId || ev.dataTransfer.getData('text/plain'));
+  if(!taskId) return;
+  const task = S.tasks.find(t=>t.id===taskId);
+  if(!task || task.done) return;
+  completeTask(taskId);
   _kbDragId = null;
   document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
 }
@@ -11208,6 +11229,96 @@ window.addEventListener('load', function(){
 
 // ═══════════════════════════════════════════════════
 // Timer fixed in original ttStop function above
+
+// ═══════════════════════════════════════════════════
+// FILTER PANEL + LOG MENU TOGGLES
+// ═══════════════════════════════════════════════════
+(function(){
+  const s = document.createElement('style');
+  s.textContent = `
+    .filter-select{
+      height:34px;padding:0 12px;
+      background:var(--surface);border:1.5px solid var(--border);
+      border-radius:20px;color:var(--text2);font-size:12px;
+      font-family:var(--font);font-weight:600;
+      cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;
+      transition:.15s;
+    }
+    .filter-select:focus,.filter-select:hover{border-color:var(--accent);color:var(--text)}
+    select.filter-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:8px center;padding-left:26px;}
+    #_log-popup{position:fixed;z-index:9998;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:6px;min-width:200px;box-shadow:0 12px 32px rgba(0,0,0,.35);animation:_spIn .16s ease}
+    #_log-popup button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right;transition:.12s}
+    #_log-popup button:hover{background:var(--surface3);color:var(--accent)}
+    #_log-popup button.active{background:rgba(124,111,247,.15);color:var(--accent)}
+    ._filter-toggle-btn:hover{border-color:var(--accent)!important}
+  `;
+  document.head.appendChild(s);
+})();
+
+function _toggleFilterPanel(){
+  const panel = document.getElementById('_filter-panel');
+  const btn   = document.getElementById('_filter-toggle-btn');
+  if(!panel) return;
+  const open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : 'block';
+  if(btn) btn.style.borderColor = open ? 'var(--border)' : 'var(--accent)';
+  if(btn) btn.style.color = open ? 'var(--text2)' : 'var(--accent)';
+}
+
+function _toggleLogMenu(triggerEl){
+  const existing = document.getElementById('_log-popup');
+  if(existing){ existing.remove(); return; }
+  const logItems = [
+    {label:'📋 المهام النشطة', tab:'active'},
+    {label:'📅 السجل اليومي',   tab:'log-day'},
+    {label:'📆 السجل الشهري',   tab:'log-month'},
+    {label:'📊 السجل السنوي',   tab:'log-year'},
+    {label:'📦 الأرشيف',        tab:'archive'},
+  ];
+  const currentActive = document.getElementById('ttab-active')?.style.background?.includes('247') ? 'active'
+    : document.getElementById('ttab-log-day')?.style.background?.includes('247') ? 'log-day'
+    : document.getElementById('ttab-log-month')?.style.background?.includes('247') ? 'log-month'
+    : document.getElementById('ttab-log-year')?.style.background?.includes('247') ? 'log-year' : 'active';
+
+  const pop = document.createElement('div');
+  pop.id = '_log-popup';
+  pop.innerHTML = logItems.map(i=>`
+    <button onclick="switchTasksTab('${i.tab}');document.getElementById('_log-popup')?.remove()" class="${i.tab===currentActive?'active':''}">${i.label}</button>
+  `).join('');
+
+  const rect = triggerEl.getBoundingClientRect();
+  pop.style.top = (rect.bottom+6)+'px';
+  pop.style.left = Math.max(8, rect.left-100)+'px';
+  document.body.appendChild(pop);
+  setTimeout(()=>{
+    document.addEventListener('click', function _lpClose(e){
+      if(!pop.contains(e.target)&&!triggerEl.contains(e.target)){
+        pop.remove();
+        document.removeEventListener('click',_lpClose);
+      }
+    });
+  },100);
+}
+
+// Show active filter dot when any filter is active
+function _updateFilterDot(){
+  const dot = document.getElementById('_filter-active-dot');
+  if(!dot) return;
+  const active = ['tf-status','tf-priority','tf-jobtype','tf-month','tf-search'].some(id=>{
+    const el=document.getElementById(id);
+    return el && el.value;
+  });
+  dot.style.display = active ? 'block' : 'none';
+}
+// Hook into applyTaskFilters
+const _origApplyTF = typeof applyTaskFilters !== 'undefined' ? applyTaskFilters : null;
+window.addEventListener('load', function(){
+  const _orig = applyTaskFilters;
+  applyTaskFilters = function(){
+    _orig();
+    _updateFilterDot();
+  };
+});
 
 // ═══════════════════════════════════════════════════
 // STATUS SETTINGS POPOVER (kanban column gear icon)
