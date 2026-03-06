@@ -7036,6 +7036,8 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     S = cloudData;
     migrateSFields();
     localStorage.setItem('studioOS_v3_'+supaUser.id, JSON.stringify(S));
+    // Apply studio name immediately after S loads
+    applyPlatformConfig();
   } else {
     lsLoad(); // fallback: local
     // إذا مفيش بيانات محلية كمان، ابدأ بيانات جديدة
@@ -11664,14 +11666,22 @@ async function _adminSendMessage(userId){
 }
 
 // Load notifications from Supabase (admin messages)
+var _notifTableExists = null; // null=unknown, true=exists, false=missing
 async function _loadServerNotifications(){
   if(!_supaUserId || typeof supa === 'undefined') return;
+  if(_notifTableExists === false) return; // skip if known missing
   try {
     var res = await supa.from('user_notifications')
       .select('*')
       .or('user_id.eq.'+_supaUserId+',user_id.is.null')
       .order('created_at', {ascending:false})
       .limit(30);
+    if(res.error){
+      // Table doesn't exist — disable future calls
+      _notifTableExists = false;
+      return;
+    }
+    _notifTableExists = true;
     if(res.data && res.data.length){
       var newCount = 0;
       res.data.forEach(function(n){
@@ -11689,16 +11699,16 @@ async function _loadServerNotifications(){
       if(newCount > 0) {
         _saveNotifications();
         _updateNotifBell();
-        // Show a toast for new messages from admin
         if(typeof toast === 'function') toast('💬 لديك '+newCount+' رسالة جديدة من الإدارة');
       }
     }
-  } catch(e){ /* silent fail if table doesn't exist */ }
+  } catch(e){ _notifTableExists = false; }
 }
 
 // Mark server notifications as read in Supabase
 async function _markServerNotifsRead(){
   if(!_supaUserId || typeof supa === 'undefined') return;
+  if(_notifTableExists === false) return;
   try {
     var unreadIds = _notifications
       .filter(function(n){ return n.supaId && !n.read; })
@@ -12350,15 +12360,26 @@ function _loadThemeFromCloud(){
 async function _loadPlatformNameFromCloud(){
   try{
     if(!_supaUserId || typeof supa === 'undefined') return;
-    const { data, error } = await supa
-      .from('platform_config').select('*').limit(1).maybeSingle();
-    if(!error && data){
-      const cfg = { ...data };
+    // Use S.settings directly instead of separate platform_config table
+    if(typeof S !== 'undefined' && S?.settings?.name){
       const stored = JSON.parse(localStorage.getItem('platform_config')||'{}');
-      const merged = { ...stored, ...cfg };
+      const merged = { ...stored, name: S.settings.name };
       localStorage.setItem('platform_config', JSON.stringify(merged));
       applyPlatformConfig();
+      return;
     }
+    // Fallback: try platform_config table (may not exist)
+    try {
+      const { data, error } = await supa
+        .from('platform_config').select('*').limit(1).maybeSingle();
+      if(!error && data){
+        const cfg = { ...data };
+        const stored = JSON.parse(localStorage.getItem('platform_config')||'{}');
+        const merged = { ...stored, ...cfg };
+        localStorage.setItem('platform_config', JSON.stringify(merged));
+        applyPlatformConfig();
+      }
+    } catch(e){ /* table doesn't exist, use S.settings */ }
   } catch(e){}
 }
 
