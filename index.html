@@ -23,7 +23,10 @@ const supa = supabase.createClient(SUPA_URL, SUPA_ANON, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    storage: window.localStorage
+    storage: window.localStorage,
+    // Disable BroadcastChannel to prevent DataCloneError with Headers objects
+    // This error occurs when Supabase tries to sync auth state across tabs
+    lock: async (name, acquireTimeout, fn) => fn()
   }
 });
 
@@ -66,11 +69,12 @@ function applyPlatformConfig() {
     if(logoText) logoText.style.display = '';
   }
 
-  // Auth screen: show favicon as logo icon
+  // Auth screen: show PLATFORM logo (same as sidebar) — fallback to favicon
   const authLogoMark = document.querySelector('.auth-logo-mark');
-  if(authLogoMark && favicon && !authLogoMark.querySelector('img')){
-    authLogoMark.innerHTML = '<img src="'+favicon+'" style="width:36px;height:36px;object-fit:contain" onerror="this.parentNode.textContent=String.fromCharCode(11041)">';
-  } else if(authLogoMark && !favicon){
+  const authLogoSrc = platformLogo || favicon;
+  if(authLogoMark && authLogoSrc){
+    authLogoMark.innerHTML = '<img src="'+authLogoSrc+'" style="width:52px;height:52px;object-fit:contain;border-radius:10px" onerror="this.parentNode.textContent=String.fromCharCode(11041)">';
+  } else if(authLogoMark){
     if(!authLogoMark.querySelector('img')) authLogoMark.textContent = '⬡';
   }
 
@@ -143,16 +147,25 @@ function cloudSave(data){
   clearTimeout(_syncTimer);
   _syncTimer = setTimeout(async ()=>{
     try{
-      const payload = { user_id: _supaUserId, data: JSON.stringify(data), updated_at: new Date().toISOString() };
+      // Serialize payload as plain JSON string to avoid DataCloneError with Headers objects
+      const payload = {
+        user_id: _supaUserId,
+        data: JSON.stringify(data),
+        updated_at: new Date().toISOString()
+      };
       const { error } = await supa.from('studio_data').upsert(payload, { onConflict: 'user_id' });
       if(error){
-        console.error('cloudSave error:', error.message);
-        showSyncIndicator('⚠ فشل الحفظ: ' + error.message.substring(0,30), '#f76f7c');
+        // Extract only serializable string — avoid cloning the error object itself
+        const msg = (error && typeof error.message === 'string') ? error.message : String(error);
+        console.error('cloudSave error:', msg);
+        showSyncIndicator('⚠ فشل الحفظ', '#f76f7c');
       } else {
         showSyncIndicator('✅ محفوظ على السحابة', '#4fd1a5');
       }
     }catch(e){
-      console.error('cloudSave exception:', e);
+      // Use string extraction to prevent DataCloneError when logging complex objects
+      const msg = (e && typeof e.message === 'string') ? e.message : 'unknown error';
+      console.error('cloudSave error:', msg);
       showSyncIndicator('⚠ فشل المزامنة', '#f76f7c');
     }
   }, 1000);
@@ -6805,6 +6818,7 @@ function sendFollowupWA(clientId){
 }
 
 // helper: show toast notification
+function toast(msg,dur=3000){ showToast(msg,dur); }
 function showToast(msg,dur=3000){
   let t=document.getElementById('_toast');
   if(!t){t=document.createElement('div');t.id='_toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:9999;transition:.3s;border:1px solid rgba(124,111,247,.4);opacity:0';document.body.appendChild(t);}
