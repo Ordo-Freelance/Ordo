@@ -34,6 +34,20 @@ let _syncTimer = null;
 
 // ── Platform Name Sync ──
 function applyPlatformConfig() {
+  // Update sidebar logo with studio logo if available
+  const studioLogo = (typeof S !== 'undefined' && S.settings?.logo) ? S.settings.logo
+    : ((typeof getSession === 'function' && getSession()?.avatarUrl) || '');
+  const imgEl = document.getElementById('_sidebar-logo-img');
+  const hexEl = document.getElementById('_logo-mark-hex');
+  if(imgEl && studioLogo){
+    imgEl.src = studioLogo;
+    imgEl.style.display = 'block';
+    if(hexEl) hexEl.style.display = 'none';
+  } else if(imgEl){
+    imgEl.style.display = 'none';
+    if(hexEl) hexEl.style.display = 'flex';
+  }
+
   const cfg = JSON.parse(localStorage.getItem('platform_config') || '{}');
   const name = cfg.name || 'Studio OS';
   const favicon = cfg.favicon || '';
@@ -584,7 +598,8 @@ body {
 .nav-item:hover  { color: var(--text); background: var(--surface2); }
 .nav-item.active { color: var(--accent); border-right-color: var(--accent); background: rgba(124,111,247,.1); }
 .nav-label { flex:1; }
-.nav-icon  { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
+.nav-icon  { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; display:flex; align-items:center; justify-content:center; }
+.nav-icon svg { width:16px; height:16px; }
 .nav-badge {
   margin-right: auto;
   background: var(--accent4);
@@ -1605,32 +1620,35 @@ setTimeout(window._showApp, 4000);
 
 <!-- ╔══ SIDEBAR ══╗ -->
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-logo">
-    <div class="logo-mark">⬡</div>
+  <div class="sidebar-logo" id="_sidebar-logo-wrap">
+    <div class="logo-mark" id="_logo-mark-wrap" style="overflow:hidden;border-radius:8px;display:flex;align-items:center;justify-content:center">
+      <img id="_sidebar-logo-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none" onerror="this.style.display='none';document.getElementById('_logo-mark-hex').style.display='flex'">
+      <span id="_logo-mark-hex" style="font-size:18px;font-weight:900;color:#fff">⬡</span>
+    </div>
     <div class="logo-text">
       <div class="logo-title" data-platform-name>Studio OS</div>
       <div class="logo-sub">نظام إدارة الاستوديو</div>
     </div>
   </div>
   <div class="nav-section-label">الرئيسية</div>
-  <div class="nav-item active" onclick="showPage(&#39;dashboard&#39;,this)"><span class="nav-icon">⚡</span><span class="nav-label" data-ar="لوحة التحكم">لوحة التحكم</span></div>
-  <div class="nav-item" onclick="showPage(&#39;tasks&#39;,this)"><span class="nav-icon">✦</span><span class="nav-label" data-ar="المهام والمشاريع">المهام والمشاريع</span><span class="nav-badge" id="tasks-badge" style="display:none"></span></div>
-  <div class="nav-item" onclick="showPage(&#39;schedule&#39;,this)"><span class="nav-icon">◷</span><span class="nav-label" data-ar="تنظيم اليوم">تنظيم اليوم</span></div>
+  <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span class="nav-label" data-ar="لوحة التحكم">لوحة التحكم</span></div>
+  <div class="nav-item" onclick="showPage('tasks',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><span class="nav-label" data-ar="المهام والمشاريع">المهام والمشاريع</span><span class="nav-badge" id="tasks-badge" style="display:none"></span></div>
+  <div class="nav-item" onclick="showPage('schedule',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="nav-label" data-ar="تنظيم اليوم">تنظيم اليوم</span></div>
   <div class="nav-section-label">المال والعملاء</div>
-  <div class="nav-item" onclick="showPage(&#39;clients&#39;,this)"><span class="nav-icon">◈</span><span class="nav-label" data-ar="قاعدة العملاء">قاعدة العملاء</span></div>
-  <div class="nav-item" onclick="showPage(&#39;finance&#39;,this)"><span class="nav-icon">◎</span><span class="nav-label" data-ar="المالية">المالية</span></div>
-  <div class="nav-item" onclick="showPage(&#39;invoices&#39;,this)"><span class="nav-icon">◻</span><span class="nav-label" data-ar="الفواتير والعقود">الفواتير والعقود</span></div>
+  <div class="nav-item" onclick="showPage(&#39;clients&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nav-label" data-ar="قاعدة العملاء">قاعدة العملاء</span></div>
+  <div class="nav-item" onclick="showPage(&#39;finance&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="nav-label" data-ar="المالية">المالية</span></div>
+  <div class="nav-item" onclick="showPage(&#39;invoices&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><span class="nav-label" data-ar="الفواتير والعقود">الفواتير والعقود</span></div>
   <div class="nav-section-label">الفريق</div>
-  <div class="nav-item" onclick="showPage(&#39;team&#39;,this)"><span class="nav-icon">👥</span><span class="nav-label" data-ar="فريق العمل">فريق العمل</span><span class="nav-badge" id="team-badge" style="display:none"></span></div>
+  <div class="nav-item" onclick="showPage(&#39;team&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nav-label" data-ar="فريق العمل">فريق العمل</span><span class="nav-badge" id="team-badge" style="display:none"></span></div>
   <div class="nav-section-label">التطوير</div>
-  <div class="nav-item" onclick="showPage(&#39;learning&#39;,this)"><span class="nav-icon">◆</span><span class="nav-label" data-ar="التعلم والأهداف">التعلم والأهداف</span></div>
-  <div class="nav-item" onclick="showPage(&#39;meetings&#39;,this)"><span class="nav-icon">📅</span><span class="nav-label" data-ar="الميتنج">الميتنج</span><span class="nav-badge" id="meetings-badge" style="display:none;background:var(--accent4)"></span></div>
+  <div class="nav-item" onclick="showPage(&#39;learning&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span><span class="nav-label" data-ar="التعلم والأهداف">التعلم والأهداف</span></div>
+  <div class="nav-item" onclick="showPage(&#39;meetings&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="nav-label" data-ar="الميتنج">الميتنج</span><span class="nav-badge" id="meetings-badge" style="display:none;background:var(--accent4)"></span></div>
   <div class="nav-section-label">أدوات الفريلانسر</div>
-  <div class="nav-item" onclick="showPage(&#39;timetracker&#39;,this)"><span class="nav-icon">⏱</span><span class="nav-label" data-ar="تتبع الوقت">تتبع الوقت</span></div>
-  <div class="nav-item" onclick="showPage(&#39;freelancer-goals&#39;,this)"><span class="nav-icon">🎯</span><span class="nav-label" data-ar="الأهداف والإنجازات">الأهداف والإنجازات</span></div>
+  <div class="nav-item" onclick="showPage(&#39;timetracker&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><span class="nav-label" data-ar="تتبع الوقت">تتبع الوقت</span></div>
+  <div class="nav-item" onclick="showPage(&#39;freelancer-goals&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><span class="nav-label" data-ar="الأهداف والإنجازات">الأهداف والإنجازات</span></div>
   <div class="nav-section-label">الإعدادات</div>
-  <div class="nav-item" onclick="showPage(&#39;settings&#39;,this)"><span class="nav-icon">⚙</span><span class="nav-label" data-ar="إعدادات الاستوديو">إعدادات الاستوديو</span></div>
-  <div class="nav-item" onclick="openBackupModal()" style="color:var(--accent3)"><span class="nav-icon">💾</span>نسخ احتياطي<span id="backup-reminder-dot" style="display:none;width:8px;height:8px;background:var(--accent4);border-radius:50%;margin-right:auto;flex-shrink:0"></span></div>
+  <div class="nav-item" onclick="showPage(&#39;settings&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M20 12h2M2 12h2M12 20v2M12 2v2"/></svg></span><span class="nav-label" data-ar="إعدادات الاستوديو">إعدادات الاستوديو</span></div>
+  <div class="nav-item" onclick="openBackupModal()" style="color:var(--accent3)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>نسخ احتياطي<span id="backup-reminder-dot" style="display:none;width:8px;height:8px;background:var(--accent4);border-radius:50%;margin-right:auto;flex-shrink:0"></span></div>
   <!-- User badge -->
   <div class="sidebar-user" id="sidebar-user" onclick="openProfileModal()" style="cursor:pointer" title="الملف الشخصي">
     <div class="user-avatar" id="user-avatar-icon">م</div>
@@ -1662,8 +1680,12 @@ setTimeout(window._showApp, 4000);
   </button>
   <div class="header-page-title" id="header-page-title">لوحة التحكم</div>
   <div class="header-actions">
-    <button class="btn btn-ghost btn-sm" onclick="openBackupModal()" title="نسخ احتياطي" id="header-backup-btn" style="display:inline-flex">💾</button>
     <button class="btn btn-primary btn-sm" id="header-cta" onclick="openTaskModal()" style="display: inline-flex;">+ مهمة جديدة</button>
+    <!-- Profile Avatar Button -->
+    <button id="_header-avatar-btn" onclick="_toggleProfileMenu(this)" style="width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid var(--border);background:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;transition:.18s;position:relative" title="الملف الشخصي">
+      <img id="_header-avatar-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
+      <span id="_header-avatar-text" style="font-size:13px;font-weight:900;color:#fff">م</span>
+    </button>
   </div>
 </header>
 
@@ -5360,7 +5382,7 @@ function openClientProfile(id){
       ${c.email?`<span style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--text2)">✉ ${c.email}</span>`:''}
       ${c.channel?`<span style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--text2)">${c.channel}</span>`:''}
       ${c.field?`<span style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--text2)">${c.field}</span>`:''}
-      ${(c.socials&&c.socials.length)?c.socials.map(s=>`<a href="${s.url}" target="_blank" style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--accent);font-size:12px;text-decoration:none;font-weight:600">${s.icon||'🔗'} ${s.platform}</a>`).join(''):''}
+      ${(c.socials&&c.socials.length)?c.socials.map(s=>`<a href="${s.url}" target="_blank" style="background:var(--surface2);padding:5px 12px;border-radius:20px;color:var(--accent);font-size:12px;text-decoration:none;font-weight:600">${getSocialIconHTML(s.platform,14)} <span>${(SOCIAL_META[s.platform]||SOCIAL_META.other).label}</span></a>`).join(''):''}
     </div>
     ${c.notes?`<div class="hlbox" style="margin-bottom:16px;font-size:13px;color:var(--text2)">${c.notes}</div>`:''}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -8278,17 +8300,32 @@ function buildPoliciesHTML(policies){
 // QR CODE & SOCIAL LINKS
 // ============================================================
 const SOCIAL_META = {
-  instagram: { icon:'📸', label:'انستقرام', color:'#E1306C' },
-  facebook:  { icon:'📘', label:'فيسبوك',   color:'#1877F2' },
-  behance:   { icon:'🎨', label:'بيهانس',   color:'#1769FF' },
-  linkedin:  { icon:'💼', label:'لينكدإن',   color:'#0077B5' },
-  tiktok:    { icon:'🎵', label:'تيك توك',  color:'#010101' },
-  youtube:   { icon:'▶',  label:'يوتيوب',   color:'#FF0000' },
-  twitter:   { icon:'🐦', label:'تويتر/X',  color:'#1DA1F2' },
-  website:   { icon:'🌐', label:'موقع ويب', color:'#7c6ff7' },
-  whatsapp:  { icon:'💬', label:'واتساب',   color:'#25D366' },
-  other:     { icon:'🔗', label:'رابط',      color:'#888888' }
+  instagram: { label:'انستقرام', color:'#E1306C',
+    svg:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" fill="none" stroke="currentColor" stroke-width="2"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" stroke="currentColor" stroke-width="2"/></svg>' },
+  facebook:  { label:'فيسبوك',   color:'#1877F2',
+    svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+  behance:   { label:'بيهانس',   color:'#1769FF',
+    svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h7a4 4 0 0 1 0 8H3V5z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 13h8a4 4 0 0 1 0 6H3v-6z" fill="none" stroke="currentColor" stroke-width="2"/><line x1="14" y1="7" x2="21" y2="7" stroke="currentColor" stroke-width="2"/><path d="M14 12h7a3.5 3.5 0 0 0-7 0z" fill="none" stroke="currentColor" stroke-width="2"/></svg>' },
+  linkedin:  { label:'لينكدإن',   color:'#0077B5',
+    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>' },
+  tiktok:    { label:'تيك توك',  color:'#000000',
+    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>' },
+  youtube:   { label:'يوتيوب',   color:'#FF0000',
+    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="currentColor"/></svg>' },
+  twitter:   { label:'تويتر/X',  color:'#000000',
+    svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.259 5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>' },
+  website:   { label:'موقع ويب', color:'#7c6ff7',
+    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' },
+  whatsapp:  { label:'واتساب',   color:'#25D366',
+    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>' },
+  other:     { label:'رابط',      color:'#888888',
+    svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>' }
 };
+// Helper to get icon HTML from SOCIAL_META
+function getSocialIconHTML(platform, size=16) {
+  const meta = SOCIAL_META[platform] || SOCIAL_META.other;
+  return `<span style="display:inline-flex;width:${size}px;height:${size}px;color:${meta.color};flex-shrink:0">${meta.svg}</span>`;
+}
 
 /* Live QR preview while typing — delegated to the wrapper defined in <head> */
 // liveQR() is already defined above in the QR wrapper script block
@@ -8343,7 +8380,7 @@ function renderSocialsList(){
   el.innerHTML = socials.map((s,i)=>{
     const meta = SOCIAL_META[s.platform]||SOCIAL_META.other;
     return `<div class="social-item">
-      <span class="social-icon">${meta.icon}</span>
+      <span class="social-icon">${getSocialIconHTML(platform,20)}</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:11px;font-weight:700;color:${meta.color}">${meta.label}</div>
         <div class="social-url">${s.url}</div>
@@ -9538,9 +9575,9 @@ function renderClientSocials(socials){
   const el=document.getElementById('c-socials-list'); if(!el) return;
   if(!socials||!socials.length){ el.innerHTML='<div style="font-size:11px;color:var(--text3)">لا حسابات مضافة</div>'; return; }
   el.innerHTML=socials.map((s,i)=>`
-    <span class="social-tag" data-platform="${s.platform}" data-icon="${s.icon||'🔗'}" data-url="${s.url||''}"
+    <span class="social-tag" data-platform="${s.platform}" data-icon="${s.platform}" data-url="${s.url||''}"
       style="display:inline-flex;align-items:center;gap:5px;background:rgba(124,111,247,.15);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;margin:2px">
-      ${s.icon||'🔗'} ${s.platform}
+      ${getSocialIconHTML(s.platform,14)} <span>${(SOCIAL_META[s.platform]||SOCIAL_META.other).label}</span>
       <a href="${s.url}" target="_blank" style="color:var(--accent3);font-size:10px" onclick="event.stopPropagation()">↗</a>
       <button onclick="removeClientSocial(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:0;line-height:1">✕</button>
     </span>`).join('');
@@ -11519,7 +11556,94 @@ function clearAllTimeLogs(taskId){
 }
 
 // ═══════════════════════════════════════════════════
-// FILTER PANEL + LOG MENU TOGGLES
+// HEADER PROFILE MENU
+// ═══════════════════════════════════════════════════
+function _updateHeaderAvatar(){
+  const session = typeof getSession === 'function' ? getSession() : null;
+  const avatarUrl = session?.avatarUrl || (typeof S !== 'undefined' ? S.settings?.logo : '') || '';
+  const name = session?.name || session?.studio || 'م';
+  const imgEl = document.getElementById('_header-avatar-img');
+  const txtEl = document.getElementById('_header-avatar-text');
+  if(imgEl && avatarUrl){
+    imgEl.src = avatarUrl;
+    imgEl.style.display = 'block';
+    if(txtEl) txtEl.style.display = 'none';
+  } else if(txtEl){
+    if(imgEl) imgEl.style.display = 'none';
+    txtEl.style.display = 'flex';
+    txtEl.textContent = (name[0]||'م').toUpperCase();
+  }
+}
+
+function _toggleProfileMenu(triggerEl){
+  const existing = document.getElementById('_profile-menu-pop');
+  if(existing){ existing.remove(); return; }
+  const session = typeof getSession === 'function' ? getSession() : null;
+  const sub = typeof _userSubscription !== 'undefined' ? _userSubscription : null;
+  const planName = sub?.plan?.name || sub?.planId || 'مجاني';
+  const expiresAt = sub?.expiresAt ? new Date(sub.expiresAt).toLocaleDateString('ar-EG') : '';
+  const name = session?.name || 'المستخدم';
+  const email = session?.email || '';
+  const avatarUrl = session?.avatarUrl || (typeof S !== 'undefined' ? S.settings?.logo : '') || '';
+
+  const pop = document.createElement('div');
+  pop.id = '_profile-menu-pop';
+  pop.style.cssText = 'position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:0;min-width:260px;box-shadow:0 12px 36px rgba(0,0,0,.35);overflow:hidden;animation:_spIn .16s ease';
+  const rect = triggerEl.getBoundingClientRect();
+  pop.style.top = (rect.bottom+8)+'px';
+  pop.style.left = Math.max(8,rect.left-220)+'px';
+
+  pop.innerHTML = `
+    <div style="background:linear-gradient(135deg,var(--accent),rgba(124,111,247,.6));padding:16px 18px;position:relative">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.4);flex-shrink:0;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center">
+          ${avatarUrl ? `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover">` : `<span style="font-size:20px;font-weight:900;color:#fff">${(name[0]||'م').toUpperCase()}</span>`}
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:800;color:#fff">${name}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">${email}</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:10px">
+      <div style="background:var(--surface3);border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:10px;color:var(--text3);font-weight:700">الباقة الحالية</div>
+            <div style="font-size:13px;font-weight:800;color:var(--accent);margin-top:2px">✨ ${planName}</div>
+          </div>
+          ${expiresAt?`<div style="font-size:10px;color:var(--text3)">ينتهي ${expiresAt}</div>`:''}
+        </div>
+      </div>
+      <button onclick="_profile-menu-pop.remove();showPage('settings')" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right;transition:.12s" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='none'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+        الملف الشخصي والإعدادات
+      </button>
+      <button onclick="openBackupModal();document.getElementById('_profile-menu-pop')?.remove()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right;transition:.12s" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='none'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 15 21 21 3 21 3 15"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        نسخ احتياطي
+      </button>
+      <hr style="border:none;border-top:1px solid var(--border);margin:6px 0">
+      <button onclick="logoutUser();document.getElementById('_profile-menu-pop')?.remove()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--accent4);font-size:13px;font-family:var(--font);font-weight:700;cursor:pointer;border-radius:9px;text-align:right;transition:.12s" onmouseover="this.style.background='rgba(247,111,124,.08)'" onmouseout="this.style.background='none'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        تسجيل الخروج
+      </button>
+    </div>`;
+  document.body.appendChild(pop);
+  setTimeout(()=>{
+    document.addEventListener('click', function _pmClose(e){
+      if(!pop.contains(e.target)&&!triggerEl.contains(e.target)){
+        pop.remove(); document.removeEventListener('click',_pmClose);
+      }
+    });
+  },100);
+}
+
+// Hook into login to update header avatar
+window.addEventListener('load', function(){
+  setTimeout(_updateHeaderAvatar, 1000);
+  setInterval(_updateHeaderAvatar, 3000);
+});
 // ═══════════════════════════════════════════════════
 (function(){
   const s = document.createElement('style');
@@ -12214,9 +12338,11 @@ function _cardRenameApply(statusId){
     const idx=(S.customStatuses||[]).findIndex(s=>s.id===statusId);
     if(idx>-1)S.customStatuses[idx].label=label;
   }
-  lsSave(); renderAll(); buildDynamicStatusDropdowns(); renderTaskStatusesSettings();
   document.querySelectorAll('._card-rename-pop').forEach(el=>el.remove());
-  toast('✅ تم تحديث اسم الحالة');
+  lsSave();
+  // Re-render without losing scroll position
+  setTimeout(()=>{ renderAll(); buildDynamicStatusDropdowns(); renderTaskStatusesSettings(); },50);
+  toast('✅ تم تحديث اسم الحالة: '+label);
 }
 
 // ═══════════════════════════════════════════════════
