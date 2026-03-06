@@ -6628,7 +6628,7 @@ function showToast(msg,dur=3000){
 function updateDash(){
   // Ensure dashboard grid is initialized
   const grid = document.getElementById('_dash-grid');
-  if(grid && !grid.querySelector('[data-widget-id]')) _renderDashGrid();
+  if(grid && !grid.querySelector('[data-widget-card]')) _renderDashGrid();
 
   const inc=S.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const done=S.tasks.filter(t=>t.done).length,pending=S.tasks.filter(t=>!t.done).length;
@@ -11264,377 +11264,383 @@ window.addEventListener('load', function(){
 
 // ═══════════════════════════════════════════════════
 // Timer fixed in original ttStop function above
+// ═══════════════════════════════════════════════════
+// DASHBOARD CUSTOMIZABLE WIDGETS SYSTEM - CLEAN REWRITE
+// ═══════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════
-// DASHBOARD CUSTOMIZABLE WIDGETS SYSTEM
-// ═══════════════════════════════════════════════════
-// Preset layouts for dashboard
-const _DASH_PRESETS = {
-  default:{label:'افتراضي',icon:'⊞'},
-  compact:{label:'مركّز',icon:'◫'},
-  finance:{label:'مالي',icon:'💰'},
-  team:{label:'فريق',icon:'👥'},
-};
-const _DASH_PRESET_LAYOUTS = {
-  default:[
-    {id:'stats',visible:true,row:0},{id:'overdue',visible:true,row:1},{id:'subs',visible:true,row:2},
-    {id:'kanban',visible:true,row:3},{id:'uncollected',visible:true,row:4},{id:'team',visible:true,row:5},
-    {id:'teampay',visible:true,row:6},{id:'tasks',visible:true,row:7},{id:'schedule',visible:true,row:8},
-    {id:'invoices',visible:true,row:9},{id:'goals',visible:true,row:10},{id:'meetings',visible:true,row:11},
-  ],
-  compact:[
-    {id:'stats',visible:true,row:0},{id:'overdue',visible:true,row:1},{id:'kanban',visible:true,row:2},
-    {id:'tasks',visible:true,row:3},{id:'invoices',visible:true,row:4},{id:'subs',visible:false,row:5},
-    {id:'uncollected',visible:false,row:6},{id:'team',visible:false,row:7},{id:'teampay',visible:false,row:8},
-    {id:'schedule',visible:false,row:9},{id:'goals',visible:false,row:10},{id:'meetings',visible:false,row:11},
-  ],
-  finance:[
-    {id:'stats',visible:true,row:0},{id:'uncollected',visible:true,row:1},{id:'invoices',visible:true,row:2},
-    {id:'teampay',visible:true,row:3},{id:'subs',visible:true,row:4},{id:'kanban',visible:false,row:5},
-    {id:'overdue',visible:false,row:6},{id:'team',visible:false,row:7},{id:'tasks',visible:false,row:8},
-    {id:'schedule',visible:false,row:9},{id:'goals',visible:false,row:10},{id:'meetings',visible:false,row:11},
-  ],
-  team:[
-    {id:'stats',visible:true,row:0},{id:'team',visible:true,row:1},{id:'teampay',visible:true,row:2},
-    {id:'overdue',visible:true,row:3},{id:'meetings',visible:true,row:4},{id:'kanban',visible:false,row:5},
-    {id:'subs',visible:false,row:6},{id:'uncollected',visible:false,row:7},{id:'tasks',visible:false,row:8},
-    {id:'schedule',visible:false,row:9},{id:'goals',visible:false,row:10},{id:'invoices',visible:false,row:11},
-  ],
-};
-const _DASH_WIDGET_LABELS = {
-  stats:'📊 الإحصائيات',overdue:'⚠ مهام متأخرة',subs:'🔔 اشتراكات',
-  kanban:'⚡ المهام النشطة',uncollected:'💸 مبالغ',team:'👥 الفريق',
-  teampay:'💰 مستحقات الفريق',tasks:'📋 آخر المهام',schedule:'🗓 جدول اليوم',
-  invoices:'🧾 فواتير',goals:'🎯 أهداف',meetings:'📅 ميتنجات',
-};
-const _DASH_WIDGETS_DEFAULT = Object.values(_DASH_PRESET_LAYOUTS.default).map(w=>({...w, label:_DASH_WIDGET_LABELS[w.id]||w.id}));
+var _dashEditMode = false;
+var _dashDragSrc = null;
+
+var _WIDGET_DEFS = [
+  {id:'stats',       label:'📊 الإحصائيات',      full:true,  visible:true,  row:0},
+  {id:'overdue',     label:'⚠ مهام متأخرة',       full:false, visible:true,  row:1},
+  {id:'subs',        label:'🔔 اشتراكات قريبة',   full:false, visible:true,  row:1},
+  {id:'kanban',      label:'⚡ المهام النشطة',     full:false, visible:true,  row:2},
+  {id:'uncollected', label:'💸 مبالغ لم تُحصَّل', full:false, visible:true,  row:2},
+  {id:'team',        label:'👥 مهام الفريق',       full:false, visible:true,  row:3},
+  {id:'teampay',     label:'💰 مستحقات الفريق',   full:false, visible:true,  row:3},
+  {id:'tasks',       label:'📋 آخر المهام',        full:false, visible:true,  row:4},
+  {id:'schedule',    label:'🗓 جدول اليوم',        full:false, visible:true,  row:4},
+  {id:'invoices',    label:'🧾 فواتير معلقة',      full:false, visible:true,  row:5},
+  {id:'goals',       label:'🎯 أهداف التطوير',    full:false, visible:true,  row:5},
+  {id:'meetings',    label:'📅 الميتنجات',         full:true,  visible:true,  row:6},
+];
 
 function _getDashLayout(){
   try{
-    const stored = localStorage.getItem('_dashLayout_v2');
-    if(stored) return JSON.parse(stored);
+    var s = localStorage.getItem('_dLayout_v4');
+    if(s){ var p=JSON.parse(s); if(p&&p.length) return p; }
   }catch(e){}
-  return _DASH_WIDGETS_DEFAULT.map(w=>({...w}));
+  return _WIDGET_DEFS.map(function(w){ return {id:w.id,visible:w.visible,row:w.row,full:w.full}; });
 }
 
-function _saveDashLayout(layout){
-  localStorage.setItem('_dashLayout_v2', JSON.stringify(layout));
-}
+function _saveDashLayout(layout){ localStorage.setItem('_dLayout_v4',JSON.stringify(layout)); }
 
-let _dashEditMode = false;
-
-function _applyDashPreset(name){
-  const preset = _DASH_PRESET_LAYOUTS[name];
-  if(!preset) return;
-  const layout = preset.map(w=>({...w, label:_DASH_WIDGET_LABELS[w.id]||w.id}));
-  _saveDashLayout(layout);
-  _renderDashGrid();
-  if(typeof toast==='function') toast('✅ قالب: '+(_DASH_PRESETS[name]?.label||name));
-}
+function _getDef(id){ return _WIDGET_DEFS.find(function(w){ return w.id===id; })||{id:id,label:id,full:false}; }
 
 function _toggleDashEdit(){
   _dashEditMode = !_dashEditMode;
-  const btn    = document.getElementById('_dash-edit-btn');
-  const banner = document.getElementById('_dash-edit-banner');
+  var btn    = document.getElementById('_dash-edit-btn');
+  var banner = document.getElementById('_dash-edit-banner');
   if(btn){
     btn.style.borderColor = _dashEditMode ? 'var(--accent)' : 'var(--border)';
     btn.style.color = _dashEditMode ? 'var(--accent)' : 'var(--text3)';
+    btn.style.background = _dashEditMode ? 'rgba(124,111,247,.1)' : 'var(--surface2)';
   }
   if(banner) banner.style.display = _dashEditMode ? 'flex' : 'none';
-  if(!_dashEditMode){
-    const grid = document.getElementById('_dash-grid');
-    if(grid){
-      const layout = _getDashLayout();
-      const items = grid.querySelectorAll('[data-widget-id]');
-      items.forEach((el,i)=>{
-        const wid = el.dataset.widgetId;
-        const w = layout.find(x=>x.id===wid);
-        if(w) w.row = i;
-      });
-      _saveDashLayout(layout);
-    }
-  }
   _renderDashGrid();
 }
 
 function _hideWidget(id){
-  const layout = _getDashLayout();
-  const w = layout.find(x=>x.id===id);
-  if(w){ w.visible=false; _saveDashLayout(layout); _renderDashGrid(); toast('👁 تم إخفاء الودجت'); }
-}
-
-function _renderDashGrid(){
-  const grid = document.getElementById('_dash-grid');
-  if(!grid) return;
-  const layout = _getDashLayout().sort((a,b)=>a.row-b.row);
-  const visible = layout.filter(w=>w.visible);
-  const hidden  = layout.filter(w=>!w.visible);
-
-  // Group into pairs for 2-col rows where needed
-  let html = '';
-
-  // Stats always full width
-  const statsW = visible.find(w=>w.id==='stats');
-  const statsHide = _dashEditMode ? `<button onclick="_hideWidget('stats')" style="${_dashHideBtnStyle()}">✕</button>` : '';
-  if(statsW){
-    html += `<div data-widget-id="stats" draggable="${_dashEditMode}" ondragstart="_dashDragStart(event,'stats')" ondragover="_dashDragOver(event)" ondrop="_dashDrop(event,'stats')" style="${_dashWrapStyle(_dashEditMode)}">
-      ${statsHide}
-      <div class="grid grid-4" id="_dash-stats-inner">
-        <div class="card"><div class="stat-label">💰 إيرادات مسجلة</div><div class="stat-value green" id="dash-income">0 ج</div><div class="stat-change">إجمالي الدخل</div></div>
-        <div class="card"><div class="stat-label">📋 مشاريع نشطة</div><div class="stat-value purple" id="dash-projects">0</div><div class="stat-change">غير مكتملة</div></div>
-        <div class="card"><div class="stat-label">✅ مهام مكتملة</div><div class="stat-value yellow" id="dash-done">0</div><div class="stat-change" id="dash-pending-txt">0 معلقة</div></div>
-        <div class="card"><div class="stat-label">👥 العملاء</div><div class="stat-value" id="dash-clients">0</div><div class="stat-change">في قاعدة البيانات</div></div>
-      </div>
-    </div>`;
-  }
-
-  // Meetings full width
-  const meetW = visible.find(w=>w.id==='meetings');
-  // Pair remaining widgets 2 per row
-  const pairables = visible.filter(w=>w.id!=='stats'&&w.id!=='meetings');
-  for(let i=0;i<pairables.length;i+=2){
-    const w1=pairables[i], w2=pairables[i+1];
-    html += `<div style="display:grid;grid-template-columns:1fr${w2?'1fr':''}; gap:14px">`;
-    html += _dashWidgetHTML(w1);
-    if(w2) html += _dashWidgetHTML(w2);
-    html += '</div>';
-  }
-  if(meetW){
-    html += `<div data-widget-id="meetings" draggable="${_dashEditMode}" ondragstart="_dashDragStart(event,'meetings')" ondragover="_dashDragOver(event)" ondrop="_dashDrop(event,'meetings')" style="${_dashWrapStyle(_dashEditMode)}">
-      ${_dashEditMode?`<button onclick="_hideWidget('meetings')" style="${_dashHideBtnStyle()}">✕</button>`:''}
-      <div class="card" style="border-color:rgba(124,111,247,.3)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div class="section-title" style="margin:0;color:var(--accent)">📅 الميتنجات القادمة</div>
-          <div style="display:flex;gap:6px">
-            <button onclick="openMeetingModal()" class="btn btn-ghost btn-sm" style="font-size:11px">+ جديد</button>
-            <button onclick="showPage('meetings')" class="btn btn-ghost btn-sm" style="font-size:11px">عرض الكل ←</button>
-          </div>
-        </div>
-        <div id="dash-meetings-shortcut"><div class="empty" style="padding:8px 0"><div class="empty-icon">📅</div>لا ميتنجات قادمة</div></div>
-      </div>
-    </div>`;
-  }
-
-  // Hidden widgets restore bar
-  if(_dashEditMode && hidden.length){
-    html += `<div style="background:var(--surface2);border:1.5px dashed var(--border);border-radius:12px;padding:12px 14px">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:700">ودجتس مخفية — اضغط لإظهارها</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">
-        ${hidden.map(w=>`<button onclick="_showWidget('${w.id}')" style="padding:5px 12px;background:var(--surface3);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text2);cursor:pointer;font-family:var(--font)">${w.label}</button>`).join('')}
-      </div>
-    </div>`;
-  }
-
-  grid.innerHTML = html;
-  // Re-render dynamic content
-  updateDash();
+  var layout = _getDashLayout();
+  var w = layout.find(function(x){ return x.id===id; });
+  if(w){ w.visible=false; _saveDashLayout(layout); _renderDashGrid(); }
 }
 
 function _showWidget(id){
-  const layout = _getDashLayout();
-  const w = layout.find(x=>x.id===id);
+  var layout = _getDashLayout();
+  var w = layout.find(function(x){ return x.id===id; });
   if(w){ w.visible=true; _saveDashLayout(layout); _renderDashGrid(); }
 }
 
-function _dashWidgetHTML(w){
-  const ed = _dashEditMode;
-  const hideBtn = ed ? `<button onclick="_hideWidget('${w.id}')" style="${_dashHideBtnStyle()}" title="إخفاء">✕</button>` : '';
-  const dragAttr = `data-widget-id="${w.id}" draggable="${ed}" ondragstart="_dashDragStart(event,'${w.id}')" ondragover="_dashDragOver(event)" ondrop="_dashDrop(event,'${w.id}')"`;
-  const wrapStyle = _dashWrapStyle(ed);
-  const inner = {
-    overdue:`<div class="card" id="dash-overdue-section" style="border-color:rgba(247,111,124,.35)"><div class="section-title" style="color:var(--accent4)">⚠ مهام تجاوزت 24 ساعة</div><div id="dash-overdue-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">لا مهام متأخرة</div></div></div></div>`,
-    subs:`<div class="card" id="dash-subs-alert" style="border-color:rgba(124,111,247,.3)"><div class="section-title" style="color:var(--accent)">🔔 اشتراكات قريبة التجديد</div><div id="dash-subs-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">لا اشتراكات منتهية</div></div></div></div>`,
-    kanban:`<div class="card" id="dash-kanban-mini"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="section-title" style="margin:0">⚡ المهام النشطة</div><button onclick="showPage('tasks')" class="btn btn-ghost btn-sm" style="font-size:11px">عرض الكل ←</button></div><div id="dash-kanban-mini-list"><div class="empty" style="padding:8px 0"><div class="empty-icon">✦</div><div style="font-size:12px">لا مهام نشطة</div></div></div></div>`,
-    uncollected:`<div class="card" id="dash-uncollected-alert" style="border-color:rgba(247,201,72,.3)"><div class="section-title" style="color:var(--accent2)">💸 مبالغ لم تُحصَّل</div><div id="dash-uncollected-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">كل المبالغ محصّلة</div></div></div></div>`,
-    team:`<div class="card" id="dash-team-section" style="border-color:rgba(79,209,165,.25)"><div class="section-title" style="color:var(--accent3)">👥 مهام أعضاء الفريق</div><div id="dash-team-tasks"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">👥</div><div style="font-size:12px">لا مهام مسندة</div></div></div></div>`,
-    teampay:`<div class="card" id="dash-team-pay-section" style="border-color:rgba(100,181,246,.25)"><div class="section-title" style="color:#64b5f6">💰 مستحقات الفريق</div><div id="dash-team-pay-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">لا مستحقات متأخرة</div></div></div></div>`,
-    tasks:`<div class="card"><div class="section-title">📋 آخر المهام</div><div id="dash-tasks-list"><div class="empty"><div class="empty-icon">✦</div>لا مهام</div></div></div>`,
-    schedule:`<div class="card"><div class="section-title">🗓 جدول اليوم</div><div id="dash-sched-list"><div class="empty"><div class="empty-icon">◷</div>لا جدول اليوم</div></div></div>`,
-    invoices:`<div class="card"><div class="section-title">🧾 فواتير معلقة</div><div id="dash-inv-list"><div class="empty"><div class="empty-icon">◻</div>لا فواتير معلقة</div></div></div>`,
-    goals:`<div class="card"><div class="section-title">🎯 أهداف التطوير</div><div id="dash-goals-list"><div class="empty"><div class="empty-icon">◆</div>أضف أهدافك</div></div></div>`,
-  }[w.id] || `<div class="card"><div class="section-title">${w.label}</div></div>`;
-  return `<div ${dragAttr} style="${wrapStyle}">${hideBtn}${inner}</div>`;
+// Build inner HTML for each widget type
+function _widgetInnerHTML(id){
+  if(id==='stats'){
+    return '<div class="grid grid-4" id="_dash-stats-inner">' +
+      '<div class="card"><div class="stat-label">\uD83D\uDCB0 \u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0645\u0633\u062C\u0644\u0629</div><div class="stat-value green" id="dash-income">0 \u062C</div><div class="stat-change">\u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u062F\u062E\u0644</div></div>' +
+      '<div class="card"><div class="stat-label">\uD83D\uDCCB \u0645\u0634\u0627\u0631\u064A\u0639 \u0646\u0634\u0637\u0629</div><div class="stat-value purple" id="dash-projects">0</div><div class="stat-change">\u063A\u064A\u0631 \u0645\u0643\u062A\u0645\u0644\u0629</div></div>' +
+      '<div class="card"><div class="stat-label">\u2705 \u0645\u0647\u0627\u0645 \u0645\u0643\u062A\u0645\u0644\u0629</div><div class="stat-value yellow" id="dash-done">0</div><div class="stat-change" id="dash-pending-txt">0 \u0645\u0639\u0644\u0642\u0629</div></div>' +
+      '<div class="card"><div class="stat-label">\uD83D\uDC65 \u0627\u0644\u0639\u0645\u0644\u0627\u0621</div><div class="stat-value" id="dash-clients">0</div><div class="stat-change">\u0641\u064A \u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A</div></div>' +
+      '</div>';
+  }
+  if(id==='overdue'){
+    return '<div class="card" id="dash-overdue-section" style="border-color:rgba(247,111,124,.35);height:100%">' +
+      '<div class="section-title" style="color:var(--accent4)">\u26A0 \u0645\u0647\u0627\u0645 \u062A\u062C\u0627\u0648\u0632\u062A 24 \u0633\u0627\u0639\u0629</div>' +
+      '<div id="dash-overdue-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">\u2705</div><div style="font-size:12px">\u0644\u0627 \u0645\u0647\u0627\u0645 \u0645\u062A\u0623\u062E\u0631\u0629</div></div></div></div>';
+  }
+  if(id==='subs'){
+    return '<div class="card" id="dash-subs-alert" style="border-color:rgba(124,111,247,.3);height:100%">' +
+      '<div class="section-title" style="color:var(--accent)">\uD83D\uDD14 \u0627\u0634\u062A\u0631\u0627\u0643\u0627\u062A \u0642\u0631\u064A\u0628\u0629 \u0627\u0644\u062A\u062C\u062F\u064A\u062F</div>' +
+      '<div id="dash-subs-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">\u2705</div><div style="font-size:12px">\u0644\u0627 \u0627\u0634\u062A\u0631\u0627\u0643\u0627\u062A \u0645\u0646\u062A\u0647\u064A\u0629</div></div></div></div>';
+  }
+  if(id==='kanban'){
+    return '<div class="card" id="dash-kanban-mini" style="height:100%">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<div class="section-title" style="margin:0">\u26A1 \u0627\u0644\u0645\u0647\u0627\u0645 \u0627\u0644\u0646\u0634\u0637\u0629</div>' +
+      '<button onclick="showPage(\'tasks\')" class="btn btn-ghost btn-sm" style="font-size:11px">\u0639\u0631\u0636 \u0627\u0644\u0643\u0644 \u2190</button></div>' +
+      '<div id="dash-kanban-mini-list"><div class="empty" style="padding:8px 0"><div class="empty-icon">\u2746</div><div style="font-size:12px">\u0644\u0627 \u0645\u0647\u0627\u0645 \u0646\u0634\u0637\u0629</div></div></div></div>';
+  }
+  if(id==='uncollected'){
+    return '<div class="card" id="dash-uncollected-alert" style="border-color:rgba(247,201,72,.3);height:100%">' +
+      '<div class="section-title" style="color:var(--accent2)">\uD83D\uDCB8 \u0645\u0628\u0627\u0644\u063A \u0644\u0645 \u062A\u064F\u062D\u0635\u064E\u0651\u0644</div>' +
+      '<div id="dash-uncollected-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">\u2705</div><div style="font-size:12px">\u0643\u0644 \u0627\u0644\u0645\u0628\u0627\u0644\u063A \u0645\u062D\u0635\u0651\u0644\u0629</div></div></div></div>';
+  }
+  if(id==='team'){
+    return '<div class="card" id="dash-team-section" style="border-color:rgba(79,209,165,.25);height:100%">' +
+      '<div class="section-title" style="color:var(--accent3)">\uD83D\uDC65 \u0645\u0647\u0627\u0645 \u0623\u0639\u0636\u0627\u0621 \u0627\u0644\u0641\u0631\u064A\u0642</div>' +
+      '<div id="dash-team-tasks"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">\uD83D\uDC65</div><div style="font-size:12px">\u0644\u0627 \u0645\u0647\u0627\u0645 \u0645\u0633\u0646\u062F\u0629</div></div></div></div>';
+  }
+  if(id==='teampay'){
+    return '<div class="card" id="dash-team-pay-section" style="border-color:rgba(100,181,246,.25);height:100%">' +
+      '<div class="section-title" style="color:#64b5f6">\uD83D\uDCB0 \u0645\u0633\u062A\u062D\u0642\u0627\u062A \u0627\u0644\u0641\u0631\u064A\u0642</div>' +
+      '<div id="dash-team-pay-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">\u2705</div><div style="font-size:12px">\u0644\u0627 \u0645\u0633\u062A\u062D\u0642\u0627\u062A \u0645\u062A\u0623\u062E\u0631\u0629</div></div></div></div>';
+  }
+  if(id==='tasks'){
+    return '<div class="card" style="height:100%"><div class="section-title">\uD83D\uDCCB \u0622\u062E\u0631 \u0627\u0644\u0645\u0647\u0627\u0645</div>' +
+      '<div id="dash-tasks-list"><div class="empty"><div class="empty-icon">\u2746</div>\u0644\u0627 \u0645\u0647\u0627\u0645</div></div></div>';
+  }
+  if(id==='schedule'){
+    return '<div class="card" style="height:100%"><div class="section-title">\uD83D\uDDD3 \u062C\u062F\u0648\u0644 \u0627\u0644\u064A\u0648\u0645</div>' +
+      '<div id="dash-sched-list"><div class="empty"><div class="empty-icon">\u25F7</div>\u0644\u0627 \u062C\u062F\u0648\u0644 \u0627\u0644\u064A\u0648\u0645</div></div></div>';
+  }
+  if(id==='invoices'){
+    return '<div class="card" style="height:100%"><div class="section-title">\uD83E\uDDFE \u0641\u0648\u0627\u062A\u064A\u0631 \u0645\u0639\u0644\u0642\u0629</div>' +
+      '<div id="dash-inv-list"><div class="empty"><div class="empty-icon">\u25FB</div>\u0644\u0627 \u0641\u0648\u0627\u062A\u064A\u0631 \u0645\u0639\u0644\u0642\u0629</div></div></div>';
+  }
+  if(id==='goals'){
+    return '<div class="card" style="height:100%"><div class="section-title">\uD83C\uDFAF \u0623\u0647\u062F\u0627\u0641 \u0627\u0644\u062A\u0637\u0648\u064A\u0631</div>' +
+      '<div id="dash-goals-list"><div class="empty"><div class="empty-icon">\u25C6</div>\u0623\u0636\u0641 \u0623\u0647\u062F\u0627\u0641\u0643</div></div></div>';
+  }
+  if(id==='meetings'){
+    return '<div class="card" style="border-color:rgba(124,111,247,.3)">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<div class="section-title" style="margin:0;color:var(--accent)">\uD83D\uDCC5 \u0627\u0644\u0645\u064A\u062A\u0646\u062C\u0627\u062A \u0627\u0644\u0642\u0627\u062F\u0645\u0629</div>' +
+      '<div style="display:flex;gap:6px">' +
+      '<button onclick="openMeetingModal()" class="btn btn-ghost btn-sm" style="font-size:11px">+ \u062C\u062F\u064A\u062F</button>' +
+      '<button onclick="showPage(\'meetings\')" class="btn btn-ghost btn-sm" style="font-size:11px">\u0639\u0631\u0636 \u0627\u0644\u0643\u0644 \u2190</button>' +
+      '</div></div>' +
+      '<div id="dash-meetings-shortcut"><div class="empty" style="padding:8px 0"><div class="empty-icon">\uD83D\uDCC5</div>\u0644\u0627 \u0645\u064A\u062A\u0646\u062C\u0627\u062A \u0642\u0627\u062F\u0645\u0629</div></div></div>';
+  }
+  return '<div class="card">' + id + '</div>';
 }
 
-function _dashWrapStyle(editing){
-  return editing
-    ? 'position:relative;border-radius:12px;border:2px dashed rgba(124,111,247,.3);cursor:grab;transition:.15s'
-    : 'position:relative';
-}
-function _dashHideBtnStyle(){
-  return 'position:absolute;top:-8px;right:-8px;z-index:10;width:22px;height:22px;border-radius:50%;background:var(--accent4);border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1';
+function _renderDashGrid(){
+  var grid = document.getElementById('_dash-grid');
+  if(!grid) return;
+
+  var layout = _getDashLayout().sort(function(a,b){ return a.row - b.row; });
+  var visible = layout.filter(function(w){ return w.visible; });
+  var hidden  = layout.filter(function(w){ return !w.visible; });
+
+  var html = '';
+
+  // Render by rows — group consecutive non-full widgets into 2-col rows
+  var i = 0;
+  while(i < visible.length){
+    var w = visible[i];
+    var def = _getDef(w.id);
+    var isFull = w.full !== undefined ? w.full : def.full;
+
+    if(isFull){
+      // Full width widget
+      html += _wrapWidget(w, _widgetInnerHTML(w.id), true);
+      i++;
+    } else {
+      // Try to pair with next non-full widget
+      var w2 = visible[i+1];
+      var def2 = w2 ? _getDef(w2.id) : null;
+      var w2Full = w2 ? (w2.full !== undefined ? w2.full : def2.full) : true;
+      if(w2 && !w2Full){
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">';
+        html += _wrapWidget(w,  _widgetInnerHTML(w.id),  false);
+        html += _wrapWidget(w2, _widgetInnerHTML(w2.id), false);
+        html += '</div>';
+        i += 2;
+      } else {
+        html += _wrapWidget(w, _widgetInnerHTML(w.id), true);
+        i++;
+      }
+    }
+  }
+
+  // Hidden restore bar
+  if(_dashEditMode && hidden.length > 0){
+    var hidBtns = '';
+    for(var h=0; h<hidden.length; h++){
+      var hw = hidden[h];
+      var hd = _getDef(hw.id);
+      hidBtns += '<button onclick="_showWidget(\'' + hw.id + '\')" style="padding:5px 12px;background:var(--surface3);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text2);cursor:pointer;font-family:var(--font)">' + hd.label + '</button>';
+    }
+    html += '<div style="background:var(--surface2);border:1.5px dashed var(--border);border-radius:12px;padding:12px 14px">' +
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:700">ودجتس مخفية — اضغط لإظهارها</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px">' + hidBtns + '</div></div>';
+  }
+
+  grid.innerHTML = html;
+
+  // Setup drag in edit mode
+  if(_dashEditMode){
+    var cards = grid.querySelectorAll('[data-widget-card]');
+    cards.forEach(function(el){
+      el.draggable = true;
+      el.style.cursor = 'grab';
+      el.addEventListener('dragstart', function(e){
+        _dashDragSrc = el.dataset.widgetCard;
+        el.style.opacity = '0.5';
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      el.addEventListener('dragend', function(){ el.style.opacity='1'; });
+      el.addEventListener('dragover', function(e){ e.preventDefault(); el.style.outline='2px dashed var(--accent)'; });
+      el.addEventListener('dragleave', function(){ el.style.outline='none'; });
+      el.addEventListener('drop', function(e){
+        e.preventDefault(); el.style.outline='none';
+        var targetId = el.dataset.widgetCard;
+        if(!_dashDragSrc || _dashDragSrc === targetId) return;
+        var lay = _getDashLayout();
+        var si2 = lay.findIndex(function(x){ return x.id===_dashDragSrc; });
+        var ti2 = lay.findIndex(function(x){ return x.id===targetId; });
+        if(si2===-1||ti2===-1) return;
+        var tmp = lay[si2].row; lay[si2].row = lay[ti2].row; lay[ti2].row = tmp;
+        // Also swap full flags for layout
+        var tmpF = lay[si2].full; lay[si2].full = lay[ti2].full; lay[ti2].full = tmpF;
+        _saveDashLayout(lay);
+        _renderDashGrid();
+        updateDash();
+      });
+    });
+  }
+
+  updateDash();
 }
 
-let _dashDragSrc = null;
-function _dashDragStart(ev, id){ _dashDragSrc = id; ev.dataTransfer.effectAllowed='move'; }
-function _dashDragOver(ev){ ev.preventDefault(); ev.dataTransfer.dropEffect='move'; }
-function _dashDrop(ev, targetId){
-  ev.preventDefault();
-  if(!_dashDragSrc || _dashDragSrc===targetId) return;
-  const layout = _getDashLayout();
-  const si = layout.findIndex(w=>w.id===_dashDragSrc);
-  const ti = layout.findIndex(w=>w.id===targetId);
-  if(si===-1||ti===-1) return;
-  const tmp = layout[si].row;
-  layout[si].row = layout[ti].row;
-  layout[ti].row = tmp;
-  _saveDashLayout(layout);
-  _renderDashGrid();
-  _dashDragSrc=null;
+function _wrapWidget(w, innerHtml, fullWidth){
+  var def = _getDef(w.id);
+  var isFull = w.full !== undefined ? w.full : def.full;
+  var editStyle = _dashEditMode ? 'border:2px dashed rgba(124,111,247,.35);border-radius:14px;' : '';
+  var hideBtn = '';
+  if(_dashEditMode){
+    hideBtn = '<button onclick="_hideWidget(\'' + w.id + '\')" style="position:absolute;top:-7px;right:-7px;z-index:10;width:22px;height:22px;border-radius:50%;background:var(--accent4);border:none;color:#fff;font-size:11px;cursor:pointer;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1">\u2715</button>';
+  }
+  // Toggle full/half button in edit mode
+  var toggleBtn = '';
+  if(_dashEditMode && !['stats','meetings'].includes(w.id)){
+    var icon = isFull ? '\u25D6' : '\u25A1';
+    var tip = isFull ? '\u062C\u0639\u0644\u0647 \u0646\u0635\u0641' : '\u062C\u0639\u0644\u0647 \u0643\u0627\u0645\u0644';
+    toggleBtn = '<button onclick="_toggleWidgetFull(\'' + w.id + '\')" title="' + tip + '" style="position:absolute;top:-7px;left:20px;z-index:10;width:22px;height:22px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:10px;cursor:pointer;font-weight:900;display:flex;align-items:center;justify-content:center">' + icon + '</button>';
+  }
+  return '<div data-widget-card="' + w.id + '" style="position:relative;' + editStyle + '">' +
+    hideBtn + toggleBtn + innerHtml + '</div>';
 }
 
-// Override updateDash to call _renderDashGrid on first load
-window.addEventListener('load', function(){
-  setTimeout(()=>{ _renderDashGrid(); }, 300);
-});
+function _toggleWidgetFull(id){
+  var lay = _getDashLayout();
+  var w = lay.find(function(x){ return x.id===id; });
+  var def = _getDef(id);
+  if(w){
+    var curFull = w.full !== undefined ? w.full : def.full;
+    w.full = !curFull;
+    _saveDashLayout(lay);
+    _renderDashGrid();
+  }
+}
+
+// updateDash calls _renderDashGrid if grid is empty (see updateDash function above)
+window.addEventListener('load', function(){ setTimeout(_renderDashGrid, 400); });
 
 // ═══════════════════════════════════════════════════
 // TIME LOG EDIT/DELETE in task detail
 // ═══════════════════════════════════════════════════
 function deleteTimeLog(taskId, dateKey){
-  confirmDel('هل تريد حذف هذا السجل الزمني؟', ()=>{
-    const t = S.tasks.find(x=>x.id===taskId);
+  confirmDel('هل تريد حذف هذا السجل الزمني؟', function(){
+    var t = S.tasks.find(function(x){ return x.id===taskId; });
     if(!t) return;
-    if(!t.timeLogs) t.timeLogs=[];
-    t.timeLogs = t.timeLogs.filter(l=>l.date!==dateKey);
-    // Also remove from timeEntries
-    S.timeEntries = (S.timeEntries||[]).filter(e=>{
-      const d=(e.started_at||'').split('T')[0];
+    t.timeLogs = (t.timeLogs||[]).filter(function(l){ return l.date!==dateKey; });
+    S.timeEntries = (S.timeEntries||[]).filter(function(e){
+      var d=(e.started_at||'').split('T')[0];
       return !(d===dateKey && (e.task_title||'').toLowerCase()===(t.title||'').toLowerCase());
     });
     lsSave(); cloudSave(S);
-    openTaskDetail(taskId); // reopen to refresh
-    toast('🗑 تم حذف السجل');
+    openTaskDetail(taskId);
+    if(typeof toast==='function') toast('🗑 تم حذف السجل');
   });
 }
 
 function editTimeLog(taskId, dateKey){
-  const t = S.tasks.find(x=>x.id===taskId);
+  var t = S.tasks.find(function(x){ return x.id===taskId; });
   if(!t) return;
-  const log = (t.timeLogs||[]).find(l=>l.date===dateKey);
-  const curSecs = log?.seconds||0;
-  const curH = Math.floor(curSecs/3600);
-  const curM = Math.floor((curSecs%3600)/60);
-
-  let modal = document.getElementById('_modal-edit-timelog');
+  var log = (t.timeLogs||[]).find(function(l){ return l.date===dateKey; });
+  var curSecs = log ? (log.seconds||0) : 0;
+  var curH = Math.floor(curSecs/3600);
+  var curM = Math.floor((curSecs%3600)/60);
+  var modal = document.getElementById('_modal-edit-timelog');
   if(!modal){
     modal = document.createElement('div');
     modal.id='_modal-edit-timelog';
     modal.className='modal-overlay';
     modal.innerHTML='<div class="modal" style="width:340px" id="_modal-edit-timelog-inner"></div>';
     document.body.appendChild(modal);
-    modal.addEventListener('click',e=>{if(e.target===modal)closeM('_modal-edit-timelog');});
+    modal.addEventListener('click',function(e){ if(e.target===modal) closeM('_modal-edit-timelog'); });
   }
-  document.getElementById('_modal-edit-timelog-inner').innerHTML=`
-    <div class="modal-header">
-      <div class="modal-title">⏱ تعديل سجل الوقت</div>
-      <button class="close-btn" onclick="closeM('_modal-edit-timelog')">✕</button>
-    </div>
-    <div style="padding:20px">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">📅 التاريخ: ${dateKey}</div>
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px">
-        <div class="form-group" style="flex:1;margin:0">
-          <label class="form-label">الساعات</label>
-          <input id="_etl-hours" type="number" min="0" max="23" value="${curH}" class="form-input" style="text-align:center;font-size:18px;font-weight:700">
-        </div>
-        <div style="font-size:20px;color:var(--text3);margin-top:18px">:</div>
-        <div class="form-group" style="flex:1;margin:0">
-          <label class="form-label">الدقائق</label>
-          <input id="_etl-mins" type="number" min="0" max="59" value="${curM}" class="form-input" style="text-align:center;font-size:18px;font-weight:700">
-        </div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button onclick="deleteTimeLog(${taskId},'${dateKey}')" class="btn btn-danger" style="flex:1">🗑 حذف</button>
-        <button onclick="_saveEditedTimeLog(${taskId},'${dateKey}')" class="btn btn-primary" style="flex:1">💾 حفظ</button>
-      </div>
-    </div>`;
+  document.getElementById('_modal-edit-timelog-inner').innerHTML=
+    '<div class="modal-header">' +
+    '<div class="modal-title">⏱ تعديل سجل الوقت</div>' +
+    '<button class="close-btn" onclick="closeM(\'_modal-edit-timelog\')">✕</button></div>' +
+    '<div style="padding:20px">' +
+    '<div style="font-size:12px;color:var(--text3);margin-bottom:12px">📅 التاريخ: ' + dateKey + '</div>' +
+    '<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px">' +
+    '<div class="form-group" style="flex:1;margin:0"><label class="form-label">الساعات</label>' +
+    '<input id="_etl-hours" type="number" min="0" max="23" value="' + curH + '" class="form-input" style="text-align:center;font-size:18px;font-weight:700"></div>' +
+    '<div style="font-size:20px;color:var(--text3);margin-top:18px">:</div>' +
+    '<div class="form-group" style="flex:1;margin:0"><label class="form-label">الدقائق</label>' +
+    '<input id="_etl-mins" type="number" min="0" max="59" value="' + curM + '" class="form-input" style="text-align:center;font-size:18px;font-weight:700"></div></div>' +
+    '<div style="display:flex;gap:8px">' +
+    '<button onclick="deleteTimeLog(' + taskId + ',\'' + dateKey + '\')" class="btn btn-danger" style="flex:1">🗑 حذف</button>' +
+    '<button onclick="_saveEditedTimeLog(' + taskId + ',\'' + dateKey + '\')" class="btn btn-primary" style="flex:1">💾 حفظ</button>' +
+    '</div></div>';
   openM('_modal-edit-timelog');
 }
 
 function _saveEditedTimeLog(taskId, dateKey){
-  const h = parseInt(document.getElementById('_etl-hours')?.value)||0;
-  const m = parseInt(document.getElementById('_etl-mins')?.value)||0;
-  const newSecs = h*3600 + m*60;
-  if(newSecs<=0){ toast('أدخل وقتاً صحيحاً'); return; }
-  const t = S.tasks.find(x=>x.id===taskId);
+  var h = parseInt(document.getElementById('_etl-hours').value)||0;
+  var m = parseInt(document.getElementById('_etl-mins').value)||0;
+  var newSecs = h*3600 + m*60;
+  if(newSecs<=0){ if(typeof toast==='function') toast('أدخل وقتاً صحيحاً'); return; }
+  var t = S.tasks.find(function(x){ return x.id===taskId; });
   if(!t) return;
   if(!t.timeLogs) t.timeLogs=[];
-  const existing = t.timeLogs.find(l=>l.date===dateKey);
-  if(existing){ existing.seconds=newSecs; }
-  else { t.timeLogs.push({date:dateKey, seconds:newSecs}); }
+  var existing = t.timeLogs.find(function(l){ return l.date===dateKey; });
+  if(existing){ existing.seconds=newSecs; } else { t.timeLogs.push({date:dateKey,seconds:newSecs}); }
   lsSave(); cloudSave(S);
   closeM('_modal-edit-timelog');
   openTaskDetail(taskId);
-  toast('✅ تم تحديث الوقت');
+  if(typeof toast==='function') toast('✅ تم تحديث الوقت');
 }
 
 function addManualTimeLog(taskId){
-  const today = new Date().toISOString().split('T')[0];
-  let modal = document.getElementById('_modal-edit-timelog');
+  var today = new Date().toISOString().split('T')[0];
+  var modal = document.getElementById('_modal-edit-timelog');
   if(!modal){
     modal = document.createElement('div');
     modal.id='_modal-edit-timelog';
     modal.className='modal-overlay';
     modal.innerHTML='<div class="modal" style="width:340px" id="_modal-edit-timelog-inner"></div>';
     document.body.appendChild(modal);
-    modal.addEventListener('click',e=>{if(e.target===modal)closeM('_modal-edit-timelog');});
+    modal.addEventListener('click',function(e){ if(e.target===modal) closeM('_modal-edit-timelog'); });
   }
-  document.getElementById('_modal-edit-timelog-inner').innerHTML=`
-    <div class="modal-header">
-      <div class="modal-title">+ إضافة وقت يدوي</div>
-      <button class="close-btn" onclick="closeM('_modal-edit-timelog')">✕</button>
-    </div>
-    <div style="padding:20px">
-      <div class="form-group">
-        <label class="form-label">التاريخ</label>
-        <input id="_etl-date" type="date" value="${today}" class="form-input">
-      </div>
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px">
-        <div class="form-group" style="flex:1;margin:0">
-          <label class="form-label">الساعات</label>
-          <input id="_etl-hours" type="number" min="0" max="23" value="1" class="form-input" style="text-align:center;font-size:18px;font-weight:700">
-        </div>
-        <div style="font-size:20px;color:var(--text3);margin-top:18px">:</div>
-        <div class="form-group" style="flex:1;margin:0">
-          <label class="form-label">الدقائق</label>
-          <input id="_etl-mins" type="number" min="0" max="59" value="0" class="form-input" style="text-align:center;font-size:18px;font-weight:700">
-        </div>
-      </div>
-      <button onclick="_saveManualTimeLog(${taskId})" class="btn btn-primary" style="width:100%">💾 إضافة</button>
-    </div>`;
+  document.getElementById('_modal-edit-timelog-inner').innerHTML=
+    '<div class="modal-header"><div class="modal-title">+ إضافة وقت يدوي</div>' +
+    '<button class="close-btn" onclick="closeM(\'_modal-edit-timelog\')">✕</button></div>' +
+    '<div style="padding:20px">' +
+    '<div class="form-group"><label class="form-label">التاريخ</label>' +
+    '<input id="_etl-date" type="date" value="' + today + '" class="form-input"></div>' +
+    '<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px">' +
+    '<div class="form-group" style="flex:1;margin:0"><label class="form-label">الساعات</label>' +
+    '<input id="_etl-hours" type="number" min="0" max="23" value="1" class="form-input" style="text-align:center;font-size:18px;font-weight:700"></div>' +
+    '<div style="font-size:20px;color:var(--text3);margin-top:18px">:</div>' +
+    '<div class="form-group" style="flex:1;margin:0"><label class="form-label">الدقائق</label>' +
+    '<input id="_etl-mins" type="number" min="0" max="59" value="0" class="form-input" style="text-align:center;font-size:18px;font-weight:700"></div></div>' +
+    '<button onclick="_saveManualTimeLog(' + taskId + ')" class="btn btn-primary" style="width:100%">💾 إضافة</button></div>';
   openM('_modal-edit-timelog');
 }
 
 function _saveManualTimeLog(taskId){
-  const h = parseInt(document.getElementById('_etl-hours')?.value)||0;
-  const m = parseInt(document.getElementById('_etl-mins')?.value)||0;
-  const date = document.getElementById('_etl-date')?.value || new Date().toISOString().split('T')[0];
-  const newSecs = h*3600 + m*60;
-  if(newSecs<=0){ toast('أدخل وقتاً صحيحاً'); return; }
-  const t = S.tasks.find(x=>x.id===taskId);
+  var h = parseInt(document.getElementById('_etl-hours').value)||0;
+  var m = parseInt(document.getElementById('_etl-mins').value)||0;
+  var date = document.getElementById('_etl-date').value || new Date().toISOString().split('T')[0];
+  var newSecs = h*3600 + m*60;
+  if(newSecs<=0){ if(typeof toast==='function') toast('أدخل وقتاً صحيحاً'); return; }
+  var t = S.tasks.find(function(x){ return x.id===taskId; });
   if(!t) return;
   if(!t.timeLogs) t.timeLogs=[];
-  const existing = t.timeLogs.find(l=>l.date===date);
-  if(existing){ existing.seconds += newSecs; }
-  else { t.timeLogs.push({date, seconds:newSecs}); }
+  var existing = t.timeLogs.find(function(l){ return l.date===date; });
+  if(existing){ existing.seconds += newSecs; } else { t.timeLogs.push({date:date,seconds:newSecs}); }
   lsSave(); cloudSave(S);
   closeM('_modal-edit-timelog');
   openTaskDetail(taskId);
-  toast('✅ تمت إضافة الوقت');
+  if(typeof toast==='function') toast('✅ تمت إضافة الوقت');
 }
 
 function clearAllTimeLogs(taskId){
-  confirmDel('سيتم حذف كل سجلات الوقت لهذه المهمة. هل أنت متأكد؟', ()=>{
-    const t = S.tasks.find(x=>x.id===taskId);
+  confirmDel('سيتم حذف كل سجلات الوقت. هل أنت متأكد؟', function(){
+    var t = S.tasks.find(function(x){ return x.id===taskId; });
     if(!t) return;
     t.timeLogs = [];
-    // Remove from timeEntries too
-    S.timeEntries = (S.timeEntries||[]).filter(e=>
-      (e.task_title||'').toLowerCase() !== (t.title||'').toLowerCase()
-    );
+    S.timeEntries = (S.timeEntries||[]).filter(function(e){
+      return (e.task_title||'').toLowerCase() !== (t.title||'').toLowerCase();
+    });
     lsSave(); cloudSave(S);
     openTaskDetail(taskId);
-    toast('🗑 تم مسح كل سجلات الوقت');
+    if(typeof toast==='function') toast('🗑 تم مسح كل سجلات الوقت');
   });
 }
 
@@ -11642,11 +11648,11 @@ function clearAllTimeLogs(taskId){
 // HEADER PROFILE MENU
 // ═══════════════════════════════════════════════════
 function _updateHeaderAvatar(){
-  const session = typeof getSession === 'function' ? getSession() : null;
-  const avatarUrl = session?.avatarUrl || (typeof S !== 'undefined' ? S.settings?.logo : '') || '';
-  const name = session?.name || session?.studio || 'م';
-  const imgEl = document.getElementById('_header-avatar-img');
-  const txtEl = document.getElementById('_header-avatar-text');
+  var session = typeof getSession === 'function' ? getSession() : null;
+  var avatarUrl = (session && session.avatarUrl) ? session.avatarUrl : ((typeof S !== 'undefined' && S.settings && S.settings.logo) ? S.settings.logo : '');
+  var name = (session && session.name) ? session.name : ((session && session.studio) ? session.studio : 'م');
+  var imgEl = document.getElementById('_header-avatar-img');
+  var txtEl = document.getElementById('_header-avatar-text');
   if(imgEl && avatarUrl){
     imgEl.src = avatarUrl;
     imgEl.style.display = 'block';
@@ -11656,77 +11662,79 @@ function _updateHeaderAvatar(){
     txtEl.style.display = 'flex';
     txtEl.textContent = (name[0]||'م').toUpperCase();
   }
+  // Also update sidebar logo
+  var sidLogoImg = document.getElementById('_sidebar-logo-img');
+  var sidHex     = document.getElementById('_logo-mark-hex');
+  var logoUrl = (typeof S !== 'undefined' && S.settings && S.settings.logo) ? S.settings.logo : avatarUrl;
+  if(sidLogoImg && logoUrl){
+    sidLogoImg.src = logoUrl;
+    sidLogoImg.style.display = 'block';
+    if(sidHex) sidHex.style.display = 'none';
+  }
 }
 
 function _toggleProfileMenu(triggerEl){
-  const existing = document.getElementById('_profile-menu-pop');
+  var existing = document.getElementById('_profile-menu-pop');
   if(existing){ existing.remove(); return; }
-  const session = typeof getSession === 'function' ? getSession() : null;
-  const sub = typeof _userSubscription !== 'undefined' ? _userSubscription : null;
-  const planName = sub?.plan?.name || sub?.planId || 'مجاني';
-  const expiresAt = sub?.expiresAt ? new Date(sub.expiresAt).toLocaleDateString('ar-EG') : '';
-  const name = session?.name || 'المستخدم';
-  const email = session?.email || '';
-  const avatarUrl = session?.avatarUrl || (typeof S !== 'undefined' ? S.settings?.logo : '') || '';
+  var session = typeof getSession === 'function' ? getSession() : null;
+  var sub = typeof _userSubscription !== 'undefined' ? _userSubscription : null;
+  var planName = (sub && sub.plan && sub.plan.name) ? sub.plan.name : ((sub && sub.planId) ? sub.planId : 'مجاني');
+  var expiresAt = (sub && sub.expiresAt) ? new Date(sub.expiresAt).toLocaleDateString('ar-EG') : '';
+  var name = (session && session.name) ? session.name : 'المستخدم';
+  var email = (session && session.email) ? session.email : '';
+  var avatarUrl = (session && session.avatarUrl) ? session.avatarUrl : '';
 
-  const pop = document.createElement('div');
+  var avatarHtml = avatarUrl
+    ? '<img src="' + avatarUrl + '" style="width:100%;height:100%;object-fit:cover">'
+    : '<span style="font-size:20px;font-weight:900;color:#fff">' + (name[0]||'م').toUpperCase() + '</span>';
+
+  var expHtml = expiresAt ? '<div style="font-size:10px;color:var(--text3)">ينتهي ' + expiresAt + '</div>' : '';
+
+  var pop = document.createElement('div');
   pop.id = '_profile-menu-pop';
-  pop.style.cssText = 'position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:0;min-width:260px;box-shadow:0 12px 36px rgba(0,0,0,.35);overflow:hidden;animation:_spIn .16s ease';
-  const rect = triggerEl.getBoundingClientRect();
+  pop.style.cssText = 'position:fixed;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:16px;min-width:260px;box-shadow:0 12px 36px rgba(0,0,0,.35);overflow:hidden';
+  var rect = triggerEl.getBoundingClientRect();
   pop.style.top = (rect.bottom+8)+'px';
-  pop.style.left = Math.max(8,rect.left-220)+'px';
+  pop.style.left = Math.max(8, rect.left-220)+'px';
 
-  pop.innerHTML = `
-    <div style="background:linear-gradient(135deg,var(--accent),rgba(124,111,247,.6));padding:16px 18px;position:relative">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.4);flex-shrink:0;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center">
-          ${avatarUrl ? `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover">` : `<span style="font-size:20px;font-weight:900;color:#fff">${(name[0]||'م').toUpperCase()}</span>`}
-        </div>
-        <div>
-          <div style="font-size:14px;font-weight:800;color:#fff">${name}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">${email}</div>
-        </div>
-      </div>
-    </div>
-    <div style="padding:10px">
-      <div style="background:var(--surface3);border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:10px;color:var(--text3);font-weight:700">الباقة الحالية</div>
-            <div style="font-size:13px;font-weight:800;color:var(--accent);margin-top:2px">✨ ${planName}</div>
-          </div>
-          ${expiresAt?`<div style="font-size:10px;color:var(--text3)">ينتهي ${expiresAt}</div>`:''}
-        </div>
-      </div>
-      <button onclick="document.getElementById('_profile-menu-pop')?.remove();openProfileModal()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right;transition:.12s" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='none'">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
-        الملف الشخصي والإعدادات
-      </button>
-      <button onclick="openBackupModal();document.getElementById('_profile-menu-pop')?.remove()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right;transition:.12s" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='none'">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 15 21 21 3 21 3 15"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        نسخ احتياطي
-      </button>
-      <hr style="border:none;border-top:1px solid var(--border);margin:6px 0">
-      <button onclick="logoutUser();document.getElementById('_profile-menu-pop')?.remove()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--accent4);font-size:13px;font-family:var(--font);font-weight:700;cursor:pointer;border-radius:9px;text-align:right;transition:.12s" onmouseover="this.style.background='rgba(247,111,124,.08)'" onmouseout="this.style.background='none'">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        تسجيل الخروج
-      </button>
-    </div>`;
+  pop.innerHTML =
+    '<div style="background:linear-gradient(135deg,var(--accent),rgba(124,111,247,.6));padding:16px 18px">' +
+    '<div style="display:flex;align-items:center;gap:12px">' +
+    '<div style="width:48px;height:48px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.4);flex-shrink:0;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center">' +
+    avatarHtml + '</div>' +
+    '<div><div style="font-size:14px;font-weight:800;color:#fff">' + name + '</div>' +
+    '<div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">' + email + '</div></div></div></div>' +
+    '<div style="padding:10px">' +
+    '<div style="background:var(--surface3);border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--border)">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center">' +
+    '<div><div style="font-size:10px;color:var(--text3);font-weight:700">الباقة الحالية</div>' +
+    '<div style="font-size:13px;font-weight:800;color:var(--accent);margin-top:2px">✨ ' + planName + '</div></div>' +
+    expHtml + '</div></div>' +
+    '<button onclick="document.getElementById(\'_profile-menu-pop\').remove();showPage(\'settings\')" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right" onmouseover="this.style.background=\'var(--surface3)\'" onmouseout="this.style.background=\'none\'">' +
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>الملف الشخصي</button>' +
+    '<button onclick="openBackupModal();document.getElementById(\'_profile-menu-pop\')?.remove()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right" onmouseover="this.style.background=\'var(--surface3)\'" onmouseout="this.style.background=\'none\'">' +
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 15 21 21 3 21 3 15"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>نسخ احتياطي</button>' +
+    '<hr style="border:none;border-top:1px solid var(--border);margin:6px 0">' +
+    '<button onclick="logoutUser();document.getElementById(\'_profile-menu-pop\')?.remove()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--accent4);font-size:13px;font-family:var(--font);font-weight:700;cursor:pointer;border-radius:9px;text-align:right" onmouseover="this.style.background=\'rgba(247,111,124,.08)\'" onmouseout="this.style.background=\'none\'">' +
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>تسجيل الخروج</button>' +
+    '</div>';
+
   document.body.appendChild(pop);
-  setTimeout(()=>{
+  setTimeout(function(){
     document.addEventListener('click', function _pmClose(e){
-      if(!pop.contains(e.target)&&!triggerEl.contains(e.target)){
-        pop.remove(); document.removeEventListener('click',_pmClose);
+      var p2 = document.getElementById('_profile-menu-pop');
+      if(p2 && !p2.contains(e.target) && !triggerEl.contains(e.target)){
+        p2.remove(); document.removeEventListener('click',_pmClose);
       }
     });
-  },100);
+  }, 100);
 }
 
-// Hook into login to update header avatar
 window.addEventListener('load', function(){
   setTimeout(_updateHeaderAvatar, 1000);
   setInterval(_updateHeaderAvatar, 3000);
 });
+
 // ═══════════════════════════════════════════════════
 (function(){
   const s = document.createElement('style');
@@ -13722,229 +13730,4 @@ function _showTrackingShareModal(t){
   </div>
 </div>
 
-</body></htmlconst _DASH_WIDGETS_DEFAULT = [
-  {id:'stats',       label:'📊 الإحصائيات',        visible:true, row:0},
-  {id:'overdue',     label:'⚠ مهام متأخرة',         visible:true, row:1},
-  {id:'subs',        label:'🔔 اشتراكات قريبة',      visible:true, row:1},
-  {id:'kanban',      label:'⚡ المهام النشطة',        visible:true, row:2},
-  {id:'uncollected', label:'💸 مبالغ لم تُحصَّل',    visible:true, row:2},
-  {id:'team',        label:'👥 مهام الفريق',          visible:true, row:3},
-  {id:'teampay',     label:'💰 مستحقات الفريق',      visible:true, row:3},
-  {id:'tasks',       label:'📋 آخر المهام',          visible:true, row:4},
-  {id:'schedule',    label:'🗓 جدول اليوم',          visible:true, row:4},
-  {id:'invoices',    label:'🧾 فواتير معلقة',        visible:true, row:5},
-  {id:'goals',       label:'🎯 أهداف التطوير',       visible:true, row:5},
-  {id:'meetings',    label:'📅 الميتنجات القادمة',   visible:true, row:6},
-];
-
-// Preset grid layouts
-const _DASH_PRESETS = [
-  {id:'default', label:'افتراضي', icon:'⊞', layout:[
-    ['stats'],
-    ['overdue','subs'],
-    ['kanban','uncollected'],
-    ['team','teampay'],
-    ['tasks','schedule'],
-    ['invoices','goals'],
-    ['meetings'],
-  ]},
-  {id:'focus', label:'تركيز', icon:'◈', layout:[
-    ['stats'],
-    ['kanban'],
-    ['tasks','overdue'],
-    ['meetings'],
-  ]},
-  {id:'finance', label:'مالي', icon:'◎', layout:[
-    ['stats'],
-    ['invoices','uncollected'],
-    ['tasks','teampay'],
-    ['overdue','subs'],
-  ]},
-  {id:'compact', label:'مضغوط', icon:'⊟', layout:[
-    ['stats'],
-    ['kanban','tasks'],
-    ['overdue','invoices'],
-  ]},
-];
-
-function _getDashLayout(){
-  try{
-    const stored = localStorage.getItem('_dashLayout_v3');
-    if(stored){ const l=JSON.parse(stored); if(l.rows) return l; }
-  }catch(e){}
-  return _applyPreset('default', false);
-}
-
-function _applyPreset(presetId, save=true){
-  const preset = _DASH_PRESETS.find(p=>p.id===presetId) || _DASH_PRESETS[0];
-  // Build flat layout from preset
-  const all = _DASH_WIDGETS_DEFAULT.map(w=>({...w, visible:false}));
-  let row = 0;
-  const rows = preset.layout.map(rowIds => {
-    return rowIds.map(id => {
-      const w = all.find(x=>x.id===id);
-      if(w){ w.visible=true; w.row=row; }
-      row++;
-      return id;
-    });
-  });
-  const layout = { rows: preset.layout, widgets: all };
-  if(save){ localStorage.setItem('_dashLayout_v3', JSON.stringify(layout)); _renderDashGrid(); }
-  return layout;
-}
-
-function _saveDashLayout(rows, widgets){
-  localStorage.setItem('_dashLayout_v3', JSON.stringify({rows, widgets}));
-}
-
-let _dashEditMode = false;
-let _dashDragSrc = null;
-let _dashDragSrcRow = null;
-let _dashDragSrcCol = null;
-
-function _toggleDashEdit(){
-  _dashEditMode = !_dashEditMode;
-  const btn = document.getElementById('_dash-edit-btn');
-  const banner = document.getElementById('_dash-edit-banner');
-  if(btn){
-    btn.style.borderColor = _dashEditMode ? 'var(--accent)' : 'var(--border)';
-    btn.style.color = _dashEditMode ? 'var(--accent)' : 'var(--text3)';
-  }
-  if(banner) banner.style.display = _dashEditMode ? 'flex' : 'none';
-  _renderDashGrid();
-}
-
-function _hideWidget(id){
-  const l = _getDashLayout();
-  l.rows = l.rows.map(row => row.filter(wid => wid !== id));
-  l.rows = l.rows.filter(row => row.length > 0);
-  const w = l.widgets.find(x=>x.id===id);
-  if(w) w.visible = false;
-  _saveDashLayout(l.rows, l.widgets);
-  _renderDashGrid();
-  toast('تم إخفاء الودجت');
-}
-
-function _showWidget(id){
-  const l = _getDashLayout();
-  const w = l.widgets.find(x=>x.id===id);
-  if(w) w.visible = true;
-  l.rows.push([id]);
-  _saveDashLayout(l.rows, l.widgets);
-  _renderDashGrid();
-}
-
-function _renderDashGrid(){
-  const grid = document.getElementById('_dash-grid');
-  if(!grid) return;
-  const l = _getDashLayout();
-  const rows = l.rows || [];
-  const widgets = l.widgets || _DASH_WIDGETS_DEFAULT.map(w=>({...w}));
-  const allVisible = rows.flat();
-  const hidden = widgets.filter(w => !allVisible.includes(w.id));
-
-  let html = '';
-
-  // Preset picker row (show in edit mode)
-  if(_dashEditMode){
-    html += `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:var(--surface2);border-radius:12px;border:1px solid var(--border)">
-      <span style="font-size:11px;color:var(--text3);font-weight:700">🎨 تخطيطات جاهزة:</span>
-      ${_DASH_PRESETS.map(p=>`<button onclick="_applyPreset('${p.id}')" style="padding:5px 12px;background:var(--surface3);border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;font-family:var(--font);color:var(--text2);transition:.15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">${p.icon} ${p.label}</button>`).join('')}
-    </div>`;
-  }
-
-  // Render rows
-  rows.forEach((row, ri) => {
-    if(!row.length) return;
-    const cols = row.length === 1 ? '1fr' : row.map(()=>'1fr').join(' ');
-    html += `<div style="display:grid;grid-template-columns:${cols};gap:14px" data-row="${ri}">`;
-    row.forEach((wid, ci) => {
-      const wDef = _DASH_WIDGETS_DEFAULT.find(x=>x.id===wid) || {id:wid, label:wid};
-      html += _dashWidgetHTML(wDef, ri, ci, rows);
-    });
-    html += '</div>';
-  });
-
-  // Hidden restore bar
-  if(_dashEditMode && hidden.length){
-    html += `<div style="background:var(--surface2);border:1.5px dashed var(--border);border-radius:12px;padding:12px 14px">
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:700">مخفي — اضغط لإظهاره</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">
-        ${hidden.map(w=>`<button onclick="_showWidget('${w.id}')" style="padding:5px 12px;background:var(--surface3);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text2);cursor:pointer;font-family:var(--font);transition:.15s">${w.label}</button>`).join('')}
-      </div>
-    </div>`;
-  }
-
-  grid.innerHTML = html;
-  // Make items draggable if in edit mode
-  if(_dashEditMode){
-    grid.querySelectorAll('[data-widget-card]').forEach(el => {
-      el.draggable = true;
-      el.style.cursor = 'grab';
-      el.addEventListener('dragstart', e => {
-        _dashDragSrc = el.dataset.widgetCard;
-        _dashDragSrcRow = +el.dataset.widgetRow;
-        _dashDragSrcCol = +el.dataset.widgetCol;
-        el.style.opacity = '0.5';
-        e.dataTransfer.effectAllowed = 'move';
-      });
-      el.addEventListener('dragend', () => { el.style.opacity = '1'; });
-      el.addEventListener('dragover', e => { e.preventDefault(); el.style.outline = '2px dashed var(--accent)'; });
-      el.addEventListener('dragleave', () => { el.style.outline = 'none'; });
-      el.addEventListener('drop', e => {
-        e.preventDefault();
-        el.style.outline = 'none';
-        const targetId = el.dataset.widgetCard;
-        const targetRow = +el.dataset.widgetRow;
-        const targetCol = +el.dataset.widgetCol;
-        if(!_dashDragSrc || _dashDragSrc === targetId) return;
-        const l2 = _getDashLayout();
-        const r = l2.rows;
-        const srcVal = r[_dashDragSrcRow][_dashDragSrcCol];
-        const tgtVal = r[targetRow][targetCol];
-        r[_dashDragSrcRow][_dashDragSrcCol] = tgtVal;
-        r[targetRow][targetCol] = srcVal;
-        _saveDashLayout(r, l2.widgets);
-        _dashDragSrc = null;
-        _renderDashGrid();
-      });
-    });
-  }
-  updateDash();
-}
-
-function _dashWidgetHTML(wDef, ri, ci, rows){
-  const id = wDef.id;
-  const ed = _dashEditMode;
-  const editWrap = ed ? `data-widget-card="${id}" data-widget-row="${ri}" data-widget-col="${ci}" style="position:relative;border-radius:14px;outline:2px dashed transparent;transition:.15s"` : `style="position:relative"`;
-  const hideBtn = ed ? `<button onclick="event.stopPropagation();_hideWidget('${id}')" style="position:absolute;top:-6px;right:-6px;z-index:10;width:20px;height:20px;border-radius:50%;background:var(--accent4);border:none;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;box-shadow:0 2px 6px rgba(0,0,0,.3)">✕</button>` : '';
-
-  const inner = {
-    stats:`<div class="grid grid-4" id="_dash-stats-inner">
-      <div class="card"><div class="stat-label">💰 إيرادات مسجلة</div><div class="stat-value green" id="dash-income">0 ج</div><div class="stat-change">إجمالي الدخل</div></div>
-      <div class="card"><div class="stat-label">📋 مشاريع نشطة</div><div class="stat-value purple" id="dash-projects">0</div><div class="stat-change">غير مكتملة</div></div>
-      <div class="card"><div class="stat-label">✅ مهام مكتملة</div><div class="stat-value yellow" id="dash-done">0</div><div class="stat-change" id="dash-pending-txt">0 معلقة</div></div>
-      <div class="card"><div class="stat-label">👥 العملاء</div><div class="stat-value" id="dash-clients">0</div><div class="stat-change">في قاعدة البيانات</div></div>
-    </div>`,
-    overdue:`<div class="card" id="dash-overdue-section" style="border-color:rgba(247,111,124,.35);height:100%"><div class="section-title" style="color:var(--accent4)">⚠ مهام تجاوزت 24 ساعة</div><div id="dash-overdue-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">لا مهام متأخرة</div></div></div></div>`,
-    subs:`<div class="card" id="dash-subs-alert" style="border-color:rgba(124,111,247,.3);height:100%"><div class="section-title" style="color:var(--accent)">🔔 اشتراكات قريبة التجديد</div><div id="dash-subs-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">لا اشتراكات</div></div></div></div>`,
-    kanban:`<div class="card" id="dash-kanban-mini" style="height:100%"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="section-title" style="margin:0">⚡ المهام النشطة</div><button onclick="showPage('tasks')" class="btn btn-ghost btn-sm" style="font-size:11px">عرض الكل ←</button></div><div id="dash-kanban-mini-list"><div class="empty" style="padding:8px 0"><div class="empty-icon">✦</div><div style="font-size:12px">لا مهام</div></div></div></div>`,
-    uncollected:`<div class="card" id="dash-uncollected-alert" style="border-color:rgba(247,201,72,.3);height:100%"><div class="section-title" style="color:var(--accent2)">💸 مبالغ لم تُحصَّل</div><div id="dash-uncollected-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">كل المبالغ محصّلة</div></div></div></div>`,
-    team:`<div class="card" id="dash-team-section" style="border-color:rgba(79,209,165,.25);height:100%"><div class="section-title" style="color:var(--accent3)">👥 مهام أعضاء الفريق</div><div id="dash-team-tasks"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">👥</div><div style="font-size:12px">لا مهام مسندة</div></div></div></div>`,
-    teampay:`<div class="card" id="dash-team-pay-section" style="border-color:rgba(100,181,246,.25);height:100%"><div class="section-title" style="color:#64b5f6">💰 مستحقات الفريق</div><div id="dash-team-pay-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">✅</div><div style="font-size:12px">لا مستحقات</div></div></div></div>`,
-    tasks:`<div class="card" style="height:100%"><div class="section-title">📋 آخر المهام</div><div id="dash-tasks-list"><div class="empty"><div class="empty-icon">✦</div>لا مهام</div></div></div>`,
-    schedule:`<div class="card" style="height:100%"><div class="section-title">🗓 جدول اليوم</div><div id="dash-sched-list"><div class="empty"><div class="empty-icon">◷</div>لا جدول</div></div></div>`,
-    invoices:`<div class="card" style="height:100%"><div class="section-title">🧾 فواتير معلقة</div><div id="dash-inv-list"><div class="empty"><div class="empty-icon">◻</div>لا فواتير</div></div></div>`,
-    goals:`<div class="card" style="height:100%"><div class="section-title">🎯 أهداف التطوير</div><div id="dash-goals-list"><div class="empty"><div class="empty-icon">◆</div>أضف أهدافك</div></div></div>`,
-    meetings:`<div class="card" style="border-color:rgba(124,111,247,.3);height:100%"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="section-title" style="margin:0;color:var(--accent)">📅 الميتنجات القادمة</div><div style="display:flex;gap:6px"><button onclick="openMeetingModal()" class="btn btn-ghost btn-sm" style="font-size:11px">+ جديد</button><button onclick="showPage('meetings')" class="btn btn-ghost btn-sm" style="font-size:11px">عرض الكل ←</button></div></div><div id="dash-meetings-shortcut"><div class="empty" style="padding:8px 0"><div class="empty-icon">📅</div>لا ميتنجات</div></div></div>`,
-  }[id] || `<div class="card"><div class="section-title">${wDef.label}</div></div>`;
-
-  return `<div ${editWrap}>${hideBtn}${inner}</div>`;
-}
-
-window.addEventListener('load', function(){
-  setTimeout(()=>{ _renderDashGrid(); }, 300);
-});
-
-
->
+</body></html>
