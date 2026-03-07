@@ -5650,6 +5650,11 @@ function openClientProfile(id){
   const subClients = S.clients.filter(sc => String(sc.parentClientId) === String(c.id));
   const isParent = subClients.length > 0;
 
+  // Parent info for sub-clients
+  const parentClient = (c.workType==='sub' && c.parentClientId)
+    ? S.clients.find(p=>String(p.id)===String(c.parentClientId))
+    : null;
+
   // For parent: aggregate data from sub-clients too
   const allClientNames = isParent
     ? [c.name, ...subClients.map(sc=>sc.name)]
@@ -5657,10 +5662,17 @@ function openClientProfile(id){
 
   const cTasks = S.tasks.filter(t => allClientNames.includes(t.client));
   const cInvs  = S.invoices.filter(i => allClientNames.includes(i.client));
+  const cContracts = (S.contracts||[]).filter(ct => allClientNames.includes(ct.client_name||''));
   const cTrans = S.transactions.filter(t => allClientNames.includes(t.source));
   const totalInc   = cTrans.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const pendingInv = cInvs.filter(i=>i.status==='pending');
   const paidInv    = cInvs.filter(i=>i.status==='paid');
+
+  // Monthly stats (current month)
+  const now = new Date(); const curY=now.getFullYear(); const curM=now.getMonth()+1;
+  const monthStr = `${curY}-${String(curM).padStart(2,'0')}`;
+  const monthTasks = cTasks.filter(t=>(t.isoDate||t.createdAt||'').startsWith(monthStr) || (t.doneAt||'').startsWith(monthStr));
+  const monthInvs  = cInvs.filter(i=>(i.isoDate||i.date||'').includes(monthStr) || (i.createdAt||'').startsWith(monthStr));
 
   const statusBadgeLocal={new:'<span class="badge badge-gray">جديد</span>',progress:'<span class="badge badge-yellow">جاري</span>',review:'<span class="badge badge-purple">مراجعة</span>',done:'<span class="badge badge-green">مكتمل</span>'};
 
@@ -5688,13 +5700,14 @@ function openClientProfile(id){
       </div>
     </div>` : '';
 
-  document.getElementById('profile-title').innerHTML=`<span style="color:${c.color}">${c.name[0]}</span> ملف ${isParent?'الشركة':'العميل'} — ${c.name}${isParent?` <span style="font-size:11px;background:rgba(124,111,247,.15);color:var(--accent);padding:2px 8px;border-radius:10px;margin-right:6px">🏢 شركة</span>`:''}`;
+  document.getElementById('profile-title').innerHTML=`<span style="color:${c.color}">${c.name[0]}</span> ملف ${isParent?'الشركة':'العميل'} — ${c.name}${isParent?` <span style="font-size:11px;background:rgba(124,111,247,.15);color:var(--accent);padding:2px 8px;border-radius:10px;margin-right:6px">🏢 شركة</span>`:''}${parentClient?` <span style="font-size:11px;background:rgba(79,209,165,.12);color:var(--accent3);padding:2px 8px;border-radius:10px;margin-right:6px;cursor:pointer" onclick="closeM('modal-client-profile');setTimeout(()=>openClientProfile(${parentClient.id}),120)">🔗 تابع لـ ${parentClient.name} ←</span>`:''}`;
 
   document.getElementById('profile-body').innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
-      <div class="card" style="padding:14px"><div class="stat-label">إجمالي الدخل${isParent?' (مجمّع)':''}</div><div style="font-size:22px;font-weight:900;color:var(--accent3)">${totalInc.toLocaleString()} ج</div></div>
-      <div class="card" style="padding:14px"><div class="stat-label">المشاريع${isParent?' (مجمّع)':''}</div><div style="font-size:22px;font-weight:900;color:var(--accent)">${cTasks.length}</div></div>
-      <div class="card" style="padding:14px"><div class="stat-label">فواتير معلقة${isParent?' (مجمّع)':''}</div><div style="font-size:22px;font-weight:900;color:var(--accent2)">${pendingInv.reduce((s,i)=>s+i.total,0).toLocaleString()} ج</div></div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px">
+      <div class="card" style="padding:14px"><div class="stat-label">💰 إجمالي الدخل${isParent?' (مجمّع)':''}</div><div style="font-size:22px;font-weight:900;color:var(--accent3)">${totalInc.toLocaleString()} ج</div></div>
+      <div class="card" style="padding:14px"><div class="stat-label">📋 المشاريع${isParent?' (مجمّع)':''}</div><div style="font-size:22px;font-weight:900;color:var(--accent)">${cTasks.length}</div></div>
+      <div class="card" style="padding:14px"><div class="stat-label">⏳ فواتير معلقة${isParent?' (مجمّع)':''}</div><div style="font-size:22px;font-weight:900;color:var(--accent2)">${pendingInv.reduce((s,i)=>s+i.total,0).toLocaleString()} ج</div></div>
+      <div class="card" style="padding:14px"><div class="stat-label">📅 طلبات هذا الشهر</div><div style="font-size:22px;font-weight:900;color:var(--accent)">${monthTasks.length}</div><div style="font-size:11px;color:var(--text3)">${monthInvs.length} فاتورة هذا الشهر</div></div>
     </div>
     ${subClientsSection}
     <div style="display:flex;gap:8px;margin-bottom:16px;font-size:13px;flex-wrap:wrap;align-items:center">
@@ -5716,7 +5729,10 @@ function openClientProfile(id){
     </div>`:``}
     ${cInvs.length?`
     <div style="margin-bottom:20px">
-      <div class="section-title" style="margin-bottom:10px">🧾 الفواتير (${cInvs.length}) — إجمالي: ${cInvs.reduce((s,i)=>s+i.total,0).toLocaleString()} ج</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="section-title">🧾 الفواتير (${cInvs.length}) — إجمالي: ${cInvs.reduce((s,i)=>s+i.total,0).toLocaleString()} ج</div>
+        <button class="btn btn-ghost btn-sm" onclick="closeM('modal-client-profile');showPage('invoices')">عرض الكل ←</button>
+      </div>
       ${cInvs.slice(0,5).map(i=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
         <div>
           <div style="font-size:13px;font-weight:600">#${i.num||'—'} — ${i.date||''}</div>
@@ -5727,7 +5743,20 @@ function openClientProfile(id){
           <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${i.status==='paid'?'rgba(79,209,165,.15)':'rgba(247,201,72,.15)'};color:${i.status==='paid'?'var(--accent3)':'var(--accent2)'}">${i.status==='paid'?'✅ مدفوع':'⏳ معلق'}</span>
         </div>
       </div>`).join('')}
-      ${cInvs.length>5?`<div style="font-size:11px;color:var(--accent);margin-top:6px;cursor:pointer" onclick="closeM('modal-client-profile');showPage('invoices')">+ ${cInvs.length-5} فواتير أخرى ←</div>`:''}
+    </div>`:``}
+    ${cContracts.length?`
+    <div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="section-title">📝 العقود (${cContracts.length})</div>
+        <button class="btn btn-ghost btn-sm" onclick="closeM('modal-client-profile');showPage('invoices');setTimeout(()=>switchInvTab('contracts'),200)">عرض الكل ←</button>
+      </div>
+      ${cContracts.slice(0,3).map(ct=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600">${ct.title||'عقد'}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${ct.value?`<span style="font-weight:700;color:var(--accent3)">${Number(ct.value).toLocaleString()} ج</span>`:''}
+          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${ct.status==='signed'?'rgba(79,209,165,.15)':'rgba(124,111,247,.15)'};color:${ct.status==='signed'?'var(--accent3)':'var(--accent)'}">${ct.status==='signed'?'✅ موقّع':'📋 مسودة'}</span>
+        </div>
+      </div>`).join('')}
     </div>`:``}`;
 
   openM('modal-client-profile');
@@ -5772,7 +5801,7 @@ function renderClients(){
       <div style="font-size:15px;font-weight:700">${c.name}${(()=>{const subs=S.clients.filter(sc=>String(sc.parentClientId)===String(c.id));return subs.length?` <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:1px 7px;border-radius:8px;font-weight:600">🏢 ${subs.length} فرع</span>`:'';})()}</div>
       <div style="font-size:12px;color:var(--text2);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <span>${c.type} · ${c.channel}${c.field?' · '+c.field:''}</span>
-        ${c.workType==='fulltime'?'<span class="jtype-badge jtype-fulltime">🏢 دوام</span>':c.workType==='parttime'?'<span class="jtype-badge jtype-parttime">⏰ بارت تايم</span>':c.workType==='sub'?'<span class="jtype-badge" style="background:rgba(79,209,165,.12);color:var(--accent3)">🔗 تابع</span>':'<span class="jtype-badge jtype-freelance">🎯 فري لانس</span>'}
+        ${c.workType==='fulltime'?'<span class="jtype-badge jtype-fulltime">🏢 دوام</span>':c.workType==='parttime'?'<span class="jtype-badge jtype-parttime">⏰ بارت تايم</span>':c.workType==='sub'?(()=>{const par=S.clients.find(p=>String(p.id)===String(c.parentClientId));return `<span class="jtype-badge" style="background:rgba(79,209,165,.12);color:var(--accent3)">🔗 تابع${par?' لـ '+par.name:''}</span>`;})():'<span class="jtype-badge jtype-freelance">🎯 فري لانس</span>'}
       </div>
       ${c.salary?`<div style="font-size:12px;color:var(--accent3);margin-top:4px;font-weight:700">💰 ${c.salary.toLocaleString()} ج/شهر · يوم ${c.salaryDay}</div>`:''}
       ${c.phone?`<div style="font-size:12px;color:var(--text3);margin-top:6px;display:flex;align-items:center;gap:8px">📞 ${c.phone}<a href="https://wa.me/${c.phone.replace(/[^\d]/g,'')}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;text-decoration:none">💬 واتساب</a></div>`:''}
@@ -5781,6 +5810,7 @@ function renderClients(){
       <div style="display:flex;gap:16px;margin-top:12px">
         <div><div style="font-size:16px;font-weight:700;color:${c.color}">${cTasks(c.name)}</div><div style="font-size:11px;color:var(--text3)">مشاريع</div></div>
         <div><div style="font-size:16px;font-weight:700;color:var(--accent3)">${cInc(c.name).toLocaleString()}</div><div style="font-size:11px;color:var(--text3)">إجمالي ج</div></div>
+        <div><div style="font-size:16px;font-weight:700;color:var(--accent2)">${(()=>{const now=new Date();const ms=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;return S.tasks.filter(t=>t.client===c.name&&((t.isoDate||'').startsWith(ms)||(t.doneAt||'').startsWith(ms))).length;})()}</div><div style="font-size:11px;color:var(--text3)">هذا الشهر</div></div>
       </div>
     </div>`).join('');
 }
