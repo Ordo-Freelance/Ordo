@@ -582,6 +582,13 @@ function initApp(){
   const s = _userData.settings || {};
   const services = _userData.services || [];
 
+  // ─── Apply user brand identity ───
+  var accent = s.accent || '#7c6ff7';
+  var root = document.documentElement;
+  root.style.setProperty('--accent', accent);
+  // Derive a lighter shade for header gradient
+  root.style.setProperty('--hero-grad', 'linear-gradient(135deg,'+accent+','+accent+'bb)');
+
   // Studio name + logo
   document.getElementById('studio-name-el').textContent = s.name || 'الاستوديو';
   document.getElementById('about-name').textContent = s.name || 'الاستوديو';
@@ -599,11 +606,52 @@ function initApp(){
     document.getElementById('about-desc').textContent = s.bio || s.desc;
   }
 
+  // ─── Promo Banner ───
+  if(s.svc_banner){
+    var bannerWrap = document.getElementById('promo-banner-wrap');
+    if(!bannerWrap){
+      bannerWrap = document.createElement('div');
+      bannerWrap.id = 'promo-banner-wrap';
+      bannerWrap.style.cssText = 'border-radius:14px;overflow:hidden;margin-bottom:16px;max-height:150px';
+      bannerWrap.innerHTML = '<img src="'+s.svc_banner+'" style="width:100%;height:150px;object-fit:cover;display:block">';
+      var panelSvc = document.getElementById('panel-services');
+      if(panelSvc) panelSvc.insertBefore(bannerWrap, panelSvc.firstChild);
+    }
+  }
+
+  // ─── Social links in hero ───
+  var SOCIAL_ICONS = {
+    instagram:{icon:'📸',label:'انستقرام'},facebook:{icon:'📘',label:'فيسبوك'},
+    tiktok:{icon:'🎵',label:'تيك توك'},youtube:{icon:'▶️',label:'يوتيوب'},
+    twitter:{icon:'🐦',label:'تويتر'},linkedin:{icon:'💼',label:'لينكدإن'},
+    whatsapp:{icon:'💬',label:'واتساب'},website:{icon:'🌐',label:'موقع ويب'},
+    behance:{icon:'🎨',label:'بيهانس'}
+  };
+  var socials = s.socials || [];
+  var heroSocialWrap = document.getElementById('hero-socials');
+  if(!heroSocialWrap){
+    heroSocialWrap = document.createElement('div');
+    heroSocialWrap.id = 'hero-socials';
+    heroSocialWrap.style.cssText = 'display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px';
+    var heroEl = document.querySelector('.hero-section');
+    if(heroEl) heroEl.appendChild(heroSocialWrap);
+  }
+  if(socials.length){
+    heroSocialWrap.innerHTML = socials.map(function(sc){
+      var meta = SOCIAL_ICONS[sc.platform]||{icon:'🔗',label:sc.platform};
+      return '<a href="'+sc.url+'" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(255,255,255,.18);color:#fff;text-decoration:none;backdrop-filter:blur(4px);transition:.15s" onmouseover="this.style.background=\'rgba(255,255,255,.3)\'" onmouseout="this.style.background=\'rgba(255,255,255,.18)\'">'+meta.icon+' '+(sc.label||meta.label)+'</a>';
+    }).join('');
+  }
+
   // Contact links
   var contactHtml = '';
   if(s.phone) contactHtml += '<a href="https://wa.me/'+s.phone.replace(/\D/g,'')+'" target="_blank" class="contact-row"><span class="contact-icon">📱</span><div><div class="contact-label">واتساب</div><div class="contact-value">'+s.phone+'</div></div></a>';
   if(s.email) contactHtml += '<a href="mailto:'+s.email+'" class="contact-row"><span class="contact-icon">📧</span><div><div class="contact-label">البريد الإلكتروني</div><div class="contact-value">'+s.email+'</div></div></a>';
-  if(s.instagram) contactHtml += '<a href="https://instagram.com/'+s.instagram.replace('@','')+'" target="_blank" class="contact-row"><span class="contact-icon">📸</span><div><div class="contact-label">إنستاجرام</div><div class="contact-value">'+s.instagram+'</div></div></a>';
+  // Socials in about tab too
+  socials.forEach(function(sc){
+    var meta = SOCIAL_ICONS[sc.platform]||{icon:'🔗',label:sc.platform};
+    contactHtml += '<a href="'+sc.url+'" target="_blank" class="contact-row"><span class="contact-icon">'+meta.icon+'</span><div><div class="contact-label">'+( sc.label||meta.label)+'</div><div class="contact-value">'+sc.url+'</div></div></a>';
+  });
   document.getElementById('contact-links').innerHTML = contactHtml;
 
   // Render services
@@ -712,10 +760,12 @@ async function submitOrder(){
 
     // Add notification for owner
     ud._pending_notifications = ud._pending_notifications || [];
+    var orderId = order.id;
     ud._pending_notifications.push({
-      id: Date.now(), title: '🛍 طلب جديد!',
+      id: orderId+'_n', title: 'طلب جديد!',
       body: 'طلب من ' + name + ' — ' + order.service_name,
-      type: 'order', created_at: new Date().toISOString(), read: false
+      type: 'order', orderId: String(orderId),
+      created_at: new Date().toISOString(), read: false
     });
 
     var { error: saveErr } = await supa.from('studio_data')
@@ -748,6 +798,30 @@ async function submitOrder(){
 function showSuccess(){
   document.getElementById('success-screen').classList.add('show');
   document.getElementById('app').style.display = 'none';
+  // Add back button dynamically
+  var sc = document.getElementById('success-screen');
+  if(!document.getElementById('success-back-btn')){
+    var btn = document.createElement('button');
+    btn.id = 'success-back-btn';
+    btn.textContent = '← العودة لصفحة الخدمات';
+    btn.style.cssText = 'margin-top:24px;padding:12px 28px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:Cairo,sans-serif';
+    btn.onclick = function(){
+      document.getElementById('success-screen').classList.remove('show');
+      document.getElementById('app').style.display = '';
+      // Reset form
+      document.getElementById('ord-name').value='';
+      document.getElementById('ord-phone').value='';
+      document.getElementById('ord-email').value='';
+      document.getElementById('ord-desc').value='';
+      document.getElementById('submit-btn').disabled=false;
+      document.getElementById('submit-btn').innerHTML='<span>✅</span> إرسال الطلب';
+      _selectedService = null;
+      document.getElementById('order-form-wrap').style.display='none';
+      document.getElementById('selected-svc-display').style.display='';
+      switchTab('services');
+    };
+    sc.appendChild(btn);
+  }
 }
 
 function toast(msg){
