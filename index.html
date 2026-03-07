@@ -777,21 +777,22 @@ body {
 .grid-3        { grid-template-columns: repeat(3, 1fr); }
 /* ── Kanban Board ── */
 #status-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-#tasks-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+#tasks-cols{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+#tasks-cols .kb-col{width:100%}
+#tasks-cols .kb-col-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;padding:10px}
 @media(max-width:768px){
   #status-cols{grid-template-columns:repeat(2,1fr)}
-  #tasks-cols{grid-template-columns:repeat(2,1fr)}
+  #tasks-cols .kb-col-body{grid-template-columns:1fr 1fr}
 }
 @media(max-width:540px){
-  /* On mobile: horizontal scroll so each column is visible as a card */
-  #kanban-view{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+  #kanban-view{padding-bottom:8px}
   #status-cols{
     display:flex;flex-direction:row;flex-wrap:nowrap;gap:10px;
     grid-template-columns:unset;
     min-width:max-content;padding-bottom:4px
   }
   #status-cols .kb-col{min-width:220px;max-width:220px;flex-shrink:0}
-  #tasks-cols{grid-template-columns:1fr}
+  #tasks-cols .kb-col-body{grid-template-columns:1fr}
 }
 .kb-col{background:var(--surface2);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
 .kb-col-header{padding:10px 12px;display:flex;align-items:center;justify-content:space-between;user-select:none}
@@ -2255,6 +2256,10 @@ setTimeout(window._showApp, 4000);
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
       <button class="btn btn-ghost btn-sm" onclick="closeMemberProfile()">← رجوع</button>
       <div id="member-profile-title" style="font-size:16px;font-weight:700"></div>
+      <div style="margin-right:auto;display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="sendMemberWA('project')" style="background:#25D366;color:#fff;border:none">📲 واتساب مشروع</button>
+        <button class="btn btn-ghost btn-sm" onclick="sendMemberWA('delay')" style="background:#f7c948;color:#1a1a2e;border:none">⚠ تأخير</button>
+      </div>
     </div>
 
     <!-- Member Stats Row -->
@@ -2294,6 +2299,27 @@ setTimeout(window._showApp, 4000);
     <div class="card">
       <div class="section-title">✅ مهام مكتملة</div>
       <div id="mp-done-list"></div>
+    </div>
+    <!-- Account Statement -->
+    <div class="card" style="margin-top:12px">
+      <div class="section-title">📊 كشف الحساب التفصيلي</div>
+      <div id="mp-account-statement">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+          <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:20px;font-weight:900;color:var(--accent)" id="mp-stat-total-tasks">0</div>
+            <div style="font-size:11px;color:var(--text3)">إجمالي المهام</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:20px;font-weight:900;color:var(--accent2)" id="mp-stat-total-earned">0 ج</div>
+            <div style="font-size:11px;color:var(--text3)">إجمالي المستحق</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:20px;font-weight:900;color:var(--accent4)" id="mp-stat-balance">0 ج</div>
+            <div style="font-size:11px;color:var(--text3)">الرصيد المتبقي</div>
+          </div>
+        </div>
+        <div id="mp-statement-table"></div>
+      </div>
     </div>
   </div>
 
@@ -2369,6 +2395,9 @@ setTimeout(window._showApp, 4000);
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">رقم الواتساب</label><input class="form-input" id="member-phone" placeholder="20123..."></div>
+        <div class="form-group"><label class="form-label">البريد الإلكتروني</label><input class="form-input" type="email" id="member-email" placeholder="member@email.com"></div>
+      </div>
+      <div class="form-row">
         <div class="form-group"><label class="form-label">نسبة الربح الافتراضية (%)</label><input class="form-input" type="number" id="member-rate" placeholder="مثال: 50"></div>
       </div>
       <button class="btn btn-ghost" onclick="addMemberToForm()" style="width:100%;justify-content:center">+ إضافة</button>
@@ -3701,6 +3730,19 @@ setTimeout(window._showApp, 4000);
       </div>
     </div>
     <div class="form-group"><label class="form-label">وصف</label><input class="form-input" id="in-desc" placeholder="مثال: دفعة أولى مشروع لوجو"></div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">📎 إيصال الدفع <span style="font-size:11px;color:var(--text3);font-weight:400">— اختياري (سكرين شوت للتحويل)</span></div>
+      <div id="in-receipt-area" style="display:flex;gap:10px;align-items:center">
+        <label for="in-receipt-file" style="flex:1;border:2px dashed var(--border);border-radius:8px;padding:10px;text-align:center;cursor:pointer;color:var(--text3);font-size:12px">
+          <input type="file" id="in-receipt-file" accept="image/*" style="display:none" onchange="incReceiptPreview(this)">
+          <span id="in-receipt-ph">🖼 اضغط لرفع الإيصال</span>
+        </label>
+        <div id="in-receipt-prev" style="display:none;position:relative;flex-shrink:0">
+          <img id="in-receipt-img" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--border)" src="">
+          <button onclick="incReceiptClear()" style="position:absolute;top:-6px;left:-6px;width:18px;height:18px;border-radius:50%;background:#f76f7c;color:#fff;border:none;cursor:pointer;font-size:11px;line-height:1">✕</button>
+        </div>
+      </div>
+    </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeM(&#39;modal-income&#39;)">إلغاء</button>
       <button class="btn btn-success" onclick="saveTrans(&#39;income&#39;)">💾 تسجيل</button>
@@ -3742,6 +3784,23 @@ setTimeout(window._showApp, 4000);
       </div>
     </div>
     <div class="form-group"><label class="form-label">وصف</label><input class="form-input" id="ex-desc" placeholder="مثال: اشتراك Adobe CC"></div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">📊 تصنيف المصروف — هل يؤثر على هامش الربح؟</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;padding:7px 12px;border-radius:8px;background:var(--surface3);border:1px solid var(--border)">
+          <input type="radio" name="ex-profit-impact" value="work" checked style="accent-color:#f76f7c">
+          <span>🔴 <strong>تكلفة شغل</strong> — يُحتسب ويؤثر على هامش الربح</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;padding:7px 12px;border-radius:8px;background:var(--surface3);border:1px solid var(--border)">
+          <input type="radio" name="ex-profit-impact" value="dev" style="accent-color:#f7c948">
+          <span>🟡 <strong>تطوير / استثمار</strong> — لا يؤثر على هامش الربح</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;padding:7px 12px;border-radius:8px;background:var(--surface3);border:1px solid var(--border)">
+          <input type="radio" name="ex-profit-impact" value="personal" style="accent-color:#4fd1a5">
+          <span>🟢 <strong>سحب شخصي</strong> — لا يحتسب في أرباح العمل</span>
+        </label>
+      </div>
+    </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeM(&#39;modal-expense&#39;)">إلغاء</button>
       <button class="btn btn-danger" onclick="saveTrans(&#39;expense&#39;)">💾 تسجيل</button>
@@ -3810,6 +3869,19 @@ setTimeout(window._showApp, 4000);
         </select>
         <input class="form-input" id="inv-policy-text" placeholder="إضافة سياسة للفاتورة">
         <button class="btn btn-ghost btn-sm" onclick="addInvPolicy()" style="flex-shrink:0">+ إضافة</button>
+      </div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px">📎 إيصال الدفع <span style="font-size:11px;color:var(--text3);font-weight:400">— اختياري</span></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <label for="inv-receipt-file" style="flex:1;border:2px dashed var(--border);border-radius:8px;padding:10px;text-align:center;cursor:pointer;color:var(--text3);font-size:12px" ondragover="event.preventDefault()" ondrop="invReceiptDrop(event)">
+          <input type="file" id="inv-receipt-file" accept="image/*" style="display:none" onchange="invReceiptPreview(this)">
+          <span id="inv-receipt-ph">🖼 اضغط أو اسحب وأفلت الإيصال</span>
+        </label>
+        <div id="inv-receipt-prev" style="display:none;position:relative;flex-shrink:0">
+          <img id="inv-receipt-img" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border)" src="">
+          <button onclick="invReceiptClear()" style="position:absolute;top:-6px;left:-6px;width:20px;height:20px;border-radius:50%;background:#f76f7c;color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1">✕</button>
+        </div>
       </div>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -6687,20 +6759,25 @@ function saveTrans(type){
   const paymentType  = isInc ? (document.getElementById('in-payment-type')?.value||'full') : null;
   const payMethod    = isInc ? (document.getElementById('in-pay-method')?.value||'cash') : (document.getElementById('ex-pay-method')?.value||'cash');
   const expCat       = !isInc ? (v('ex-cat')||'أخرى') : null;
+  const expImpact    = !isInc ? (document.querySelector('input[name="ex-profit-impact"]:checked')?.value||'work') : null;
   // Auto-fill source from linked task
   let finalSource = source;
   if(isInc && linkedTaskId && !source){
     const lt = S.tasks.find(t=>t.id===linkedTaskId);
     if(lt) finalSource = lt.client||lt.title;
   }
+  const incRcpt = isInc ? (window._incReceiptData||null) : null;
   const d={type,amount,source:finalSource,desc:v(isInc?'in-desc':'ex-desc'),
     date:new Date(isoDate+'T00:00:00').toLocaleDateString('ar-EG'), isoDate,
     payMethod,
     ...(linkedTaskId ? {linkedTaskId} : {}),
     ...(paymentType  ? {paymentType}  : {}),
-    ...(expCat       ? {expCat}       : {})};
-  if(eid){const i=S.transactions.findIndex(t=>t.id==eid);if(i>-1){d.id=+eid;S.transactions[i]=d;}}
+    ...(expCat       ? {expCat}       : {}),
+    ...(expImpact    ? {expImpact}    : {}),
+    ...(incRcpt      ? {receiptImage:incRcpt} : {})};
+  if(eid){const i=S.transactions.findIndex(t=>t.id==eid);if(i>-1){d.id=+eid;if(!incRcpt&&S.transactions[i].receiptImage)d.receiptImage=S.transactions[i].receiptImage;S.transactions[i]=d;}}
   else{d.id=Date.now();S.transactions.push(d);}
+  if(isInc) window._incReceiptData=null;
   lsSave();closeM(isInc?'modal-income':'modal-expense');renderAll();
   // Auto-print receipt for income transactions
   if(isInc){
@@ -7055,10 +7132,12 @@ function saveInvoice(){
     items:invItems.map(i=>({...i})),total,deposit:+(v('inv-deposit')||0),
     from:S.settings?.name||'العمل',status:'pending',
     policies:invPolicies.map(p=>({...p})),
-    projectUrl:(document.getElementById('inv-project-url')?.value||'').trim()
+    projectUrl:(document.getElementById('inv-project-url')?.value||'').trim(),
+    receiptImage: window._invReceiptData||null
   };
-  if(eid){const i=S.invoices.findIndex(x=>x.id==eid);if(i>-1){d.id=+eid;d.status=S.invoices[i].status;S.invoices[i]=d;}}
+  if(eid){const i=S.invoices.findIndex(x=>x.id==eid);if(i>-1){d.id=+eid;d.status=S.invoices[i].status;if(!d.receiptImage&&S.invoices[i].receiptImage)d.receiptImage=S.invoices[i].receiptImage;S.invoices[i]=d;}}
   else{ if(!checkLimit('max_invoices', S.invoices.length)) return; d.id=Date.now();S.invoices.push(d);}
+  window._invReceiptData=null;
   lsSave();closeM('modal-invoice');renderInvoices();updateDash();previewInv(d.id);
 }
 function delInvoice(id){
@@ -9903,9 +9982,10 @@ function addMemberToForm(){
     name,
     role: document.getElementById('member-role')?.value||'أخرى',
     phone: document.getElementById('member-phone')?.value||'',
+    email: document.getElementById('member-email')?.value||'',
     rate: +(document.getElementById('member-rate')?.value)||0,
   });
-  ['member-name','member-phone','member-rate'].forEach(id=>{
+  ['member-name','member-phone','member-email','member-rate'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
   renderTeamMembersForm();
@@ -10157,6 +10237,46 @@ function openMemberProfile(memberName){
   set('mp-done-count',  doneTasks.length);
   set('mp-total-paid',  totalDeposits.toLocaleString()+' ج');
   set('mp-pending-pay', pendingPay.toLocaleString()+' ج');
+  // Fill account statement
+  set('mp-stat-total-tasks', allTasks.length);
+  set('mp-stat-total-earned', totalOwed.toLocaleString()+' ج');
+  set('mp-stat-balance', pendingPay.toLocaleString()+' ج');
+  const stmtTable = document.getElementById('mp-statement-table');
+  if(stmtTable){
+    if(!allTasks.length){
+      stmtTable.innerHTML='<div style="text-align:center;color:var(--text3);padding:16px">لا توجد مهام مسجلة لهذا العضو</div>';
+    } else {
+      stmtTable.innerHTML='<table style="width:100%;border-collapse:collapse">'+
+        '<thead><tr style="background:var(--surface2)">'+
+        '<th style="padding:8px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text3)">المهمة</th>'+
+        '<th style="padding:8px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text3)">الحالة</th>'+
+        '<th style="padding:8px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text3)">المستحق</th>'+
+        '<th style="padding:8px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text3)">المدفوع</th>'+
+        '<th style="padding:8px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text3)">المتبقي</th>'+
+        '</tr></thead><tbody>'+
+        allTasks.map(function(t){
+          var stM={new:'جديد',progress:'قيد التنفيذ',review:'مراجعة',done:'✅ مكتمل'};
+          var st=t.done?'✅ مكتمل':(stM[t.status]||t.status);
+          var owed=t.workerAmount||0;
+          var paid=t.workerDepositPaid?(t.workerDepositAmount||0):0;
+          var bal=owed-paid;
+          return '<tr style="border-bottom:1px solid var(--border)">'+
+            '<td style="padding:8px 10px;font-size:12px;font-weight:600">'+t.title+'</td>'+
+            '<td style="padding:8px 10px;font-size:11px">'+st+'</td>'+
+            '<td style="padding:8px 10px;font-size:12px;color:var(--accent2);font-weight:700">'+owed.toLocaleString()+' ج</td>'+
+            '<td style="padding:8px 10px;font-size:12px;color:var(--accent3);font-weight:700">'+paid.toLocaleString()+' ج</td>'+
+            '<td style="padding:8px 10px;font-size:12px;font-weight:700;color:'+(bal>0?'var(--accent4)':'var(--accent3)')+'">'+bal.toLocaleString()+' ج</td>'+
+            '</tr>';
+        }).join('')+
+        '</tbody>'+
+        '<tfoot><tr style="background:var(--surface2)">'+
+        '<td colspan="2" style="padding:8px 10px;font-size:12px;font-weight:800">الإجمالي</td>'+
+        '<td style="padding:8px 10px;font-size:12px;color:var(--accent2);font-weight:800">'+totalOwed.toLocaleString()+' ج</td>'+
+        '<td style="padding:8px 10px;font-size:12px;color:var(--accent3);font-weight:800">'+totalDeposits.toLocaleString()+' ج</td>'+
+        '<td style="padding:8px 10px;font-size:12px;font-weight:800;color:'+(pendingPay>0?'var(--accent4)':'var(--accent3)')+'">'+pendingPay.toLocaleString()+' ج</td>'+
+        '</tr></tfoot></table>';
+    }
+  }
 
   // Active tasks list
   const el1 = document.getElementById('mp-tasks-list');
@@ -10202,6 +10322,37 @@ function openMemberProfile(memberName){
       </div>
       ${t.workerAmount?`<span style="font-size:12px;font-weight:700;color:var(--accent3)">${t.workerAmount.toLocaleString()} ج</span>`:''}
     </div>`).join('') : '<div class="empty" style="padding:16px 0;font-size:12px">لا مهام مكتملة</div>';
+}
+
+function sendMemberWA(msgType){
+  var titleEl = document.getElementById('member-profile-title');
+  var memberName = titleEl ? titleEl.textContent.replace('👤 ','').trim() : '';
+  // Find member phone
+  var phone = '';
+  (S.teams||[]).forEach(function(t){
+    (t.members||[]).forEach(function(m){
+      if(m.name===memberName && m.phone) phone=m.phone.replace(/\D/g,'');
+    });
+  });
+  var studio = S.settings?.name||'';
+  var activeTasks = (S.tasks||[]).filter(function(t){return t.workerMember===memberName && !t.done;});
+  var text = '';
+  if(msgType==='project'){
+    var taskList = activeTasks.slice(0,5).map(function(t){return '• '+t.title+(t.deadline?' (موعد: '+t.deadline+')':'');}).join('\n');
+    text = 'مرحباً ' + memberName + ' 👋\n\n' +
+      'هذه مهامك الحالية لدى ' + studio + ':\n' + (taskList||'لا توجد مهام نشطة') +
+      '\n\nللاستفسار تواصل معنا 🙏';
+  } else {
+    var lateTasks = activeTasks.filter(function(t){return t.deadline && t.deadline < new Date().toISOString().split('T')[0];});
+    var taskList = lateTasks.slice(0,3).map(function(t){return '• '+t.title+' (كان المفترض: '+t.deadline+')';}).join('\n');
+    text = 'تنبيه هام ⚠\n\nعزيزي ' + memberName + '،\n' +
+      'يرجى الانتباه للمهام التالية المتأخرة:\n' + (taskList||activeTasks.slice(0,3).map(function(t){return '• '+t.title;}).join('\n')) +
+      '\n\nنرجو التواصل معنا في أقرب وقت. ' + studio;
+  }
+  var url = phone
+    ? 'https://wa.me/'+phone+'?text='+encodeURIComponent(text)
+    : 'https://wa.me/?text='+encodeURIComponent(text);
+  window.open(url,'_blank');
 }
 
 function closeMemberProfile(){
@@ -12858,14 +13009,28 @@ function applyContractTemplate(type){const tpl=CT_TEMPLATES[type];if(tpl){docume
 function ctShare(id){
   const c=ctContracts().find(x=>x.id===id);if(!c)return;
   const base=window.location.href.split('?')[0];
-  const url=base+'?ctsign='+encodeURIComponent(c.token||c.id);
+  // Generate token if not exists
+  if(!c.token){ c.token = 'ct_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
+  const url=base+'?ctsign='+encodeURIComponent(c.token);
   document.getElementById('ct-share-url').textContent=url;
-  const wa=`https://wa.me/?text=${encodeURIComponent('مرحباً '+c.client_name+'،\n\nيرجى مراجعة وتوقيع العقد:\n'+url)}`;
-  const mail=`mailto:${c.client_email||''}?subject=${encodeURIComponent('عقد: '+c.title)}&body=${encodeURIComponent('يرجى مراجعة وتوقيع العقد:\n'+url)}`;
+  // Find client phone for WA
+  const clientObj = (S.clients||[]).find(cl=>(cl.name||'').toLowerCase()===(c.client_name||'').toLowerCase());
+  const clientPhone = (c.client_phone||clientObj?.phone||'').replace(/\D/g,'');
+  const waText = 'مرحباً '+(c.client_name||'')+'،\n\nيرجى مراجعة وتوقيع العقد الخاص بك:\n\n'+url+'\n\nللاستفسار تواصل معنا.';
+  const wa = clientPhone
+    ? 'https://wa.me/'+clientPhone+'?text='+encodeURIComponent(waText)
+    : 'https://wa.me/?text='+encodeURIComponent(waText);
+  const mail=`mailto:${c.client_email||clientObj?.email||''}?subject=${encodeURIComponent('عقد: '+c.title)}&body=${encodeURIComponent('يرجى مراجعة وتوقيع العقد:\n'+url)}`;
   document.getElementById('ct-wa-link').href=wa;
   document.getElementById('ct-mail-link').href=mail;
+  // Save contract data to localStorage with token key so signing works even without login
+  try{ localStorage.setItem('ct_sign_'+c.token, JSON.stringify(c)); }catch(e){}
+  // Also save to Supabase if available
+  if(typeof supa !== 'undefined' && _supaUserId){
+    supa.from('shared_contracts').upsert([{token:c.token, data:JSON.stringify(c), user_id:_supaUserId, updated_at:new Date().toISOString()}]).then(()=>{}).catch(()=>{});
+  }
   const arr=ctContracts();const i=arr.findIndex(x=>x.id===id);
-  if(i>-1&&arr[i].status==='draft'){arr[i].status='sent';ctSave(arr);renderContractsList();}
+  if(i>-1){arr[i].token=c.token;if(arr[i].status==='draft'){arr[i].status='sent';}ctSave(arr);renderContractsList();}
   openM('modal-contract-share');
 }
 function ctCopyLink(){const text=document.getElementById('ct-share-url').textContent;navigator.clipboard.writeText(text).then(()=>toast('✅ تم نسخ الرابط'));}
@@ -12913,7 +13078,22 @@ function submitSignature(){
 function checkContractSignUrl(){
   const params=new URLSearchParams(window.location.search);
   const token=params.get('ctsign');if(!token)return;
-  const c=(S.contracts||[]).find(x=>x.token===token||x.id===token);
+  // Try S.contracts first (if logged in), then localStorage (works without login)
+  let c=(S.contracts||[]).find(x=>x.token===token||String(x.id)===String(token));
+  if(!c){
+    try{
+      const stored=localStorage.getItem('ct_sign_'+token);
+      if(stored) c=JSON.parse(stored);
+    }catch(e){}
+  }
+  // Try Supabase as last resort
+  if(!c && typeof supa !== 'undefined'){
+    supa.from('shared_contracts').select('data').eq('token',token).single().then(res=>{
+      if(res.data){ try{ buildClientSignOverlay(JSON.parse(res.data.data),token); }catch(e){ buildClientSignOverlay(null,token); } }
+      else buildClientSignOverlay(null,token);
+    }).catch(()=>buildClientSignOverlay(null,token));
+    return;
+  }
   buildClientSignOverlay(c,token);
 }
 function buildClientSignOverlay(c,token){
@@ -12978,16 +13158,21 @@ function submitCSig(id,btn){
 // ╚══════════════════════════════════════════════════════════════════╝
 function openClientPortal(clientId){
   const c=S.clients.find(x=>x.id===clientId);if(!c)return;
-  const cTasks=(S.tasks||[]).filter(t=>(t.client||'').toLowerCase()===c.name.toLowerCase());
-  const cInvs=(S.invoices||[]).filter(i=>(i.client||'').toLowerCase()===c.name.toLowerCase());
-  const cContracts=(S.contracts||[]).filter(ct=>(ct.client_name||'').toLowerCase()===c.name.toLowerCase());
+  const cn=(c.name||'').toLowerCase();
+  const cTasks=(S.tasks||[]).filter(t=>(t.client||'').toLowerCase()===cn);
+  const cInvs=(S.invoices||[]).filter(i=>(i.client||'').toLowerCase()===cn);
+  const cContracts=(S.contracts||[]).filter(ct=>(ct.client_name||'').toLowerCase()===cn);
   const done=cTasks.filter(t=>t.done||t.status==='done').length;
   const pct=cTasks.length?Math.round((done/cTasks.length)*100):0;
+  const totalBilled=cInvs.reduce((s,i)=>s+(+i.total||0),0);
+  const totalPaid=cInvs.filter(i=>i.status==='paid').reduce((s,i)=>s+(+i.total||0),0);
   const d={
     studio:S.settings?.name||'Ordo - Tasks',client:c.name,
-    tasks:cTasks.map(t=>({title:t.title,status:t.status,done:t.done,steps:t.steps||[]})),
+    phone:c.phone||'',email:c.email||'',
+    tasks:cTasks.map(t=>({title:t.title,status:t.status,done:t.done,steps:t.steps||[],deadline:t.deadline||''})),
     invoices:cInvs.map(i=>({num:i.num,date:i.date,total:i.total,status:i.status})),
     contracts:cContracts.map(ct=>({title:ct.title,status:ct.status,value:ct.value})),
+    totalBilled,totalPaid,totalDue:totalBilled-totalPaid,
     pct,done,total:cTasks.length,generated:new Date().toLocaleDateString('ar-EG')
   };
   const w=window.open('','_blank');
@@ -13012,78 +13197,216 @@ function copyPortalLink(){
 }
 
 function buildPortalHTML(d){
-  const stM={new:{l:'جديد',c:'#5a5a70',bg:'rgba(90,90,112,.2)'},progress:{l:'قيد التنفيذ',c:'#f7c948',bg:'rgba(247,201,72,.15)'},review:{l:'مراجعة',c:'#7c6ff7',bg:'rgba(124,111,247,.15)'},done:{l:'مكتمل ✅',c:'#4fd1a5',bg:'rgba(79,209,165,.15)'}};
-  const taskRows=d.tasks.map(t=>{
-    const st=t.done?stM.done:(stM[t.status]||stM.new);
-    const stepsT=t.steps?.length||0;const stepsD=t.steps?.filter(s=>s.done).length||0;
-    const tPct=stepsT?Math.round((stepsD/stepsT)*100):(t.done?100:0);
-    return `<tr><td style="padding:10px 12px;font-weight:600">${t.title}</td>
-      <td style="padding:10px 12px"><span style="background:${st.bg};color:${st.c};font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${st.l}</span></td>
-      <td style="padding:10px 12px"><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:6px;background:#eee;border-radius:3px"><div style="height:100%;width:${tPct}%;background:#7c6ff7;border-radius:3px"></div></div><span style="font-size:11px;color:#888">${tPct}%</span></div></td>
-    </tr>`;
+  var stM={new:{l:'جديد',c:'#5a5a70',bg:'rgba(90,90,112,.2)'},progress:{l:'قيد التنفيذ',c:'#f7c948',bg:'rgba(247,201,72,.15)'},review:{l:'مراجعة',c:'#7c6ff7',bg:'rgba(124,111,247,.15)'},done:{l:'مكتمل \u2705',c:'#4fd1a5',bg:'rgba(79,209,165,.15)'}};
+  // Task cards - no nested template literals
+  var taskCards=(d.tasks||[]).map(function(t){
+    var st=t.done?stM.done:(stM[t.status]||stM.new);
+    var stepsT=(t.steps||[]).length, stepsD=(t.steps||[]).filter(function(s){return s.done;}).length;
+    var tPct=stepsT?Math.round((stepsD/stepsT)*100):(t.done?100:0);
+    var stepsHtml='';
+    if(stepsT){
+      var rows=(t.steps||[]).map(function(s,i){
+        var dn=s.done, cr=!dn&&(t.steps||[]).slice(0,i).every(function(x){return x.done;});
+        var cStyle=dn?'background:#4fd1a5;color:#fff':cr?'background:#7c6ff7;color:#fff':'border:2px solid #ddd;color:#aaa';
+        var tStyle=dn?'text-decoration:line-through;color:#bbb':cr?'font-weight:700;color:#1a1a2e':'color:#888';
+        return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f5f5f5;font-size:12px">'+
+          '<div style="width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;'+cStyle+'">'+(dn?'\u2713':cr?'\u25b6':i+1)+'</div>'+
+          '<span style="'+tStyle+'">'+s.text+'</span>'+
+          '</div>';
+      }).join('');
+      stepsHtml='<div style="margin-top:10px">'+rows+'</div>';
+    }
+    return '<div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);border-right:4px solid '+st.c+'">'+
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px">'+
+      '<div style="font-size:14px;font-weight:700">'+t.title+'</div>'+
+      '<span style="background:'+st.bg+';color:'+st.c+';font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap">'+st.l+'</span>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'+
+      '<div style="flex:1;height:6px;background:#eee;border-radius:3px"><div style="height:100%;width:'+tPct+'%;background:linear-gradient(90deg,#7c6ff7,#4fd1a5);border-radius:3px"></div></div>'+
+      '<span style="font-size:11px;color:#888;font-weight:700">'+tPct+'%</span></div>'+
+      (t.deadline?'<div style="font-size:11px;color:#888">\u23f0 موعد التسليم: '+t.deadline+'</div>':'')+
+      stepsHtml+'</div>';
   }).join('');
-  const invRows=d.invoices.map(i=>{
-    const paid=i.status==='paid';
-    return `<tr><td style="padding:10px 12px;font-family:monospace">${i.num||'—'}</td><td style="padding:10px 12px">${i.date||'—'}</td>
-      <td style="padding:10px 12px;font-weight:700;color:#4fd1a5">${(i.total||0).toLocaleString()} ج</td>
-      <td style="padding:10px 12px"><span style="background:${paid?'rgba(79,209,165,.15)':'rgba(247,201,72,.15)'};color:${paid?'#2e7d5c':'#b8860b'};font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${paid?'✅ مدفوعة':'⏳ معلقة'}</span></td>
-    </tr>`;
+  // Invoice rows
+  var invRows=(d.invoices||[]).map(function(i){
+    var paid=i.status==='paid';
+    return '<tr><td style="padding:10px 12px;font-family:monospace;font-size:12px">'+(i.num||'\u2014')+'</td>'+
+      '<td style="padding:10px 12px;font-size:12px">'+(i.date||'\u2014')+'</td>'+
+      '<td style="padding:10px 12px;font-weight:700;color:#4fd1a5">'+(+i.total||0).toLocaleString()+' \u062c</td>'+
+      '<td style="padding:10px 12px"><span style="background:'+(paid?'rgba(79,209,165,.15)':'rgba(247,201,72,.15)')+';color:'+(paid?'#2e7d5c':'#b8860b')+';font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">'+(paid?'\u2705 مدفوعة':'\u23f3 معلقة')+'</span></td></tr>';
   }).join('');
-  const ctRows=d.contracts.map(ct=>{
-    const stC={draft:'#888',sent:'#64b5f6',signed:'#4fd1a5',rejected:'#f76f7c'};
-    const stL={draft:'مسودة',sent:'أُرسل',signed:'✅ موقّع',rejected:'مرفوض'};
-    return `<tr><td style="padding:10px 12px;font-weight:600">${ct.title}</td>
-      <td style="padding:10px 12px">${ct.value?Number(ct.value).toLocaleString()+' ج':'—'}</td>
-      <td style="padding:10px 12px"><span style="font-size:11px;font-weight:700;color:${stC[ct.status]||'#888'}">${stL[ct.status]||'مسودة'}</span></td>
-    </tr>`;
+  // Contract rows
+  var ctStC={draft:'#888',sent:'#64b5f6',signed:'#4fd1a5',rejected:'#f76f7c'};
+  var ctStL={draft:'مسودة',sent:'أُرسل',signed:'\u2705 موقّع',rejected:'مرفوض'};
+  var ctRows=(d.contracts||[]).map(function(ct){
+    return '<tr><td style="padding:10px 12px;font-weight:600">'+ct.title+'</td>'+
+      '<td style="padding:10px 12px">'+(ct.value?Number(ct.value).toLocaleString()+' \u062c':'\u2014')+'</td>'+
+      '<td style="padding:10px 12px"><span style="font-size:11px;font-weight:700;color:'+(ctStC[ct.status]||'#888')+'">'+(ctStL[ct.status]||'مسودة')+'</span></td></tr>';
   }).join('');
-  return `<!DOCTYPE html><html dir="rtl" lang="ar"><head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>بوابة العميل — ${d.client}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Cairo',sans-serif;background:#f5f6fb;color:#1a1a2e;direction:rtl}
-  .hdr{background:linear-gradient(135deg,#7c6ff7,#4fd1a5);padding:32px 28px;color:#fff;text-align:center}
-  .hdr h1{font-size:26px;font-weight:900}.hdr p{opacity:.85;margin-top:4px}
-  .con{max-width:800px;margin:0 auto;padding:24px 20px}
-  .card{background:#fff;border-radius:14px;padding:22px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-  .ct{font-size:15px;font-weight:800;margin-bottom:16px}
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
-  .stat{background:#f8f9ff;border-radius:10px;padding:14px;text-align:center}
-  .sv{font-size:28px;font-weight:900;color:#7c6ff7}.sl{font-size:11px;color:#888;margin-top:2px}
-  .pb{height:14px;background:#e8e8f0;border-radius:7px;overflow:hidden;margin-bottom:8px}
-  .pf{height:100%;background:linear-gradient(90deg,#7c6ff7,#4fd1a5);border-radius:7px}
-  table{width:100%;border-collapse:collapse}th{background:#f5f6fb;font-size:12px;font-weight:700;color:#666;padding:10px 12px;text-align:right}
-  td{border-bottom:1px solid #f0f0f0}tr:last-child td{border:none}
-  .ftr{text-align:center;padding:20px;font-size:12px;color:#aaa}
-  @media print{@page{size:A4;margin:1cm}}.btn-p{background:#7c6ff7;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-left:8px}
-  </style></head><body>
-  <div class="hdr"><h1>📋 متابعة مشروعك</h1><p>${d.studio} · ${d.client}</p></div>
-  <div class="con">
-    <div style="text-align:left;margin-bottom:16px">
-      <button class="btn-p" onclick="window.print()">🖨 طباعة</button>
-    </div>
-    <div class="stats">
-      <div class="stat"><div class="sv" style="color:#7c6ff7">${d.total}</div><div class="sl">إجمالي المهام</div></div>
-      <div class="stat"><div class="sv" style="color:#4fd1a5">${d.done}</div><div class="sl">مكتملة</div></div>
-      <div class="stat"><div class="sv" style="color:#f7c948">${d.pct}%</div><div class="sl">الإنجاز</div></div>
-    </div>
-    <div class="card">
-      <div class="ct">📊 نسبة الإنجاز</div>
-      <div class="pb"><div class="pf" style="width:${d.pct}%"></div></div>
-      <div style="font-size:13px;color:#666;text-align:center">${d.pct}% مكتمل</div>
-    </div>
-    ${d.tasks.length?`<div class="card"><div class="ct">✦ المهام (${d.tasks.length})</div>
-      <table><thead><tr><th>المهمة</th><th>الحالة</th><th>الإنجاز</th></tr></thead><tbody>${taskRows}</tbody></table></div>`:''}
-    ${d.invoices.length?`<div class="card"><div class="ct">🧾 الفواتير</div>
-      <table><thead><tr><th>رقم</th><th>التاريخ</th><th>المبلغ</th><th>الحالة</th></tr></thead><tbody>${invRows}</tbody></table></div>`:''}
-    ${d.contracts.length?`<div class="card"><div class="ct">📝 العقود</div>
-      <table><thead><tr><th>العقد</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>${ctRows}</tbody></table></div>`:''}
-    <div class="ftr">${d.studio} · ${d.generated}</div>
-  </div></body></html>`;
+  var tb=d.totalBilled||0, tp=d.totalPaid||0, tdue=d.totalDue||0;
+  var hasCt=(d.contracts||[]).length>0;
+  return '<!DOCTYPE html><html dir="rtl" lang="ar"><head>'+
+    '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>\u0628\u0648\u0627\u0628\u0629 \u0627\u0644\u0639\u0645\u064a\u0644 \u2014 '+d.client+'</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">'+
+    '<style>'+
+    '*{margin:0;padding:0;box-sizing:border-box}'+
+    'body{font-family:Cairo,sans-serif;background:#f0f2f8;color:#1a1a2e;direction:rtl;min-height:100vh}'+
+    '.hdr{background:linear-gradient(135deg,#7c6ff7,#4fd1a5);padding:32px 20px;color:#fff;text-align:center}'+
+    '.hdr h1{font-size:24px;font-weight:900;margin-bottom:4px}'+
+    '.tabs{display:flex;background:#fff;border-bottom:1px solid #e8e8f0;overflow-x:auto;position:sticky;top:0;z-index:99;box-shadow:0 2px 10px rgba(0,0,0,.08)}'+
+    '.tab{padding:13px 18px;font-size:13px;font-weight:700;color:#888;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:color .2s,border-color .2s}'+
+    '.tab.active{color:#7c6ff7;border-bottom-color:#7c6ff7}'+
+    '.tab-panel{display:none}.tab-panel.active{display:block}'+
+    '.con{max-width:860px;margin:0 auto;padding:20px 14px}'+
+    '.card{background:#fff;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)}'+
+    '.ct{font-size:14px;font-weight:800;margin-bottom:14px}'+
+    '.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}'+
+    '.fc{border-radius:12px;padding:14px;text-align:center}'+
+    '.fv{font-size:22px;font-weight:900;line-height:1.2}'+
+    '.fl{font-size:11px;font-weight:600;margin-top:4px}'+
+    '.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}'+
+    '.sc{background:#f8f9ff;border-radius:10px;padding:14px;text-align:center}'+
+    '.sv{font-size:24px;font-weight:900}.sl{font-size:11px;color:#888;margin-top:3px}'+
+    '.pb{height:10px;background:#e8e8f0;border-radius:5px;overflow:hidden;margin:10px 0}'+
+    '.pf{height:100%;background:linear-gradient(90deg,#7c6ff7,#4fd1a5);border-radius:5px}'+
+    'table{width:100%;border-collapse:collapse}'+
+    'th{background:#f5f6fb;font-size:11px;font-weight:700;color:#666;padding:9px 12px;text-align:right}'+
+    'td{border-bottom:1px solid #f0f0f0;font-size:13px}tr:last-child td{border:none}'+
+    '.ftr{text-align:center;padding:20px;font-size:11px;color:#aaa;border-top:1px solid #e8e8f0}'+
+    '.btn-p{background:#7c6ff7;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer}'+
+    '@media(max-width:540px){.fg,.sg{grid-template-columns:1fr 1fr}.hdr{padding:24px 14px}}'+
+    '@media print{.tabs,.btn-p{display:none!important}.tab-panel{display:block!important}}'+
+    '</style></head><body>'+
+    '<div class="hdr">'+
+    '<h1>\ud83c\udfe0 بوابة العميل الشاملة</h1>'+
+    '<div style="font-size:13px;opacity:.9">'+d.studio+'</div>'+
+    '<div style="margin-top:10px;font-size:20px;font-weight:900">'+d.client+'</div>'+
+    ((d.email||d.phone)?'<div style="margin-top:5px;font-size:11px;opacity:.8">'+(d.email?'\u2709 '+d.email:'')+(d.email&&d.phone?' · ':'')+(d.phone?'\ud83d\udcf1 '+d.phone:'')+'</div>':'')+
+    '</div>'+
+    '<div class="tabs">'+
+    '<div class="tab active" onclick="sw(\'ov\')">📊 نظرة عامة</div>'+
+    '<div class="tab" onclick="sw(\'tk\')">✦ المشاريع ('+d.total+')</div>'+
+    '<div class="tab" onclick="sw(\'fn\')">💰 الحساب المالي</div>'+
+    (hasCt?'<div class="tab" onclick="sw(\'ct\')">📝 العقود</div>':'')+
+    '</div>'+
+    // OVERVIEW
+    '<div class="tab-panel active" id="tab-ov"><div class="con">'+
+    '<div class="card"><div class="ct">📊 ملخص العمل</div>'+
+    '<div class="sg">'+
+    '<div class="sc"><div class="sv" style="color:#7c6ff7">'+d.total+'</div><div class="sl">إجمالي المهام</div></div>'+
+    '<div class="sc"><div class="sv" style="color:#4fd1a5">'+d.done+'</div><div class="sl">مكتملة</div></div>'+
+    '<div class="sc"><div class="sv" style="color:#f7c948">'+d.pct+'%</div><div class="sl">الإنجاز</div></div>'+
+    '</div><div style="margin-top:14px"><div style="font-size:12px;color:#888;margin-bottom:5px">نسبة الإنجاز الكلية</div>'+
+    '<div class="pb"><div class="pf" id="main-pb" style="width:0%"></div></div></div></div>'+
+    '<div class="card"><div class="ct">💰 ملخص مالي</div>'+
+    '<div class="fg">'+
+    '<div class="fc" style="background:rgba(124,111,247,.1)"><div class="fv" style="color:#7c6ff7">'+tb.toLocaleString()+'</div><div class="fl" style="color:#7c6ff7">إجمالي الفواتير</div></div>'+
+    '<div class="fc" style="background:rgba(79,209,165,.1)"><div class="fv" style="color:#2e9e7a">'+tp.toLocaleString()+'</div><div class="fl" style="color:#2e9e7a">\u2705 المدفوع</div></div>'+
+    '<div class="fc" style="background:'+(tdue>0?'rgba(247,111,124,.1)':'rgba(79,209,165,.08)')+'"><div class="fv" style="color:'+(tdue>0?'#f76f7c':'#4fd1a5')+'">'+tdue.toLocaleString()+'</div><div class="fl" style="color:'+(tdue>0?'#f76f7c':'#4fd1a5')+'">'+(tdue>0?'\u23f3 المتبقي':'\u2705 لا متأخرات')+'</div></div>'+
+    '</div></div>'+
+    '<div style="text-align:left"><button class="btn-p" onclick="window.print()">\ud83d\udda8 طباعة</button></div>'+
+    '</div></div>'+
+    // TASKS
+    '<div class="tab-panel" id="tab-tk"><div class="con">'+
+    (taskCards||'<div class="card" style="text-align:center;color:#aaa;padding:40px">لا توجد مهام</div>')+
+    '</div></div>'+
+    // FINANCE
+    '<div class="tab-panel" id="tab-fn"><div class="con">'+
+    '<div class="card"><div class="ct">💰 كشف الحساب المالي</div>'+
+    '<div class="fg" style="margin-bottom:16px">'+
+    '<div class="fc" style="background:rgba(124,111,247,.1)"><div class="fv" style="color:#7c6ff7">'+tb.toLocaleString()+' \u062c</div><div class="fl" style="color:#7c6ff7">إجمالي الفواتير</div></div>'+
+    '<div class="fc" style="background:rgba(79,209,165,.1)"><div class="fv" style="color:#2e9e7a">'+tp.toLocaleString()+' \u062c</div><div class="fl" style="color:#2e9e7a">\u2705 المدفوع</div></div>'+
+    '<div class="fc" style="background:'+(tdue>0?'rgba(247,111,124,.1)':'rgba(79,209,165,.08)')+'"><div class="fv" style="color:'+(tdue>0?'#f76f7c':'#4fd1a5')+'">'+tdue.toLocaleString()+' \u062c</div><div class="fl" style="color:'+(tdue>0?'#f76f7c':'#4fd1a5')+'">'+(tdue>0?'\u23f3 المتبقي':'\u2705 لا متأخرات')+'</div></div>'+
+    '</div>'+
+    ((d.invoices||[]).length?'<table><thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>المبلغ</th><th>الحالة</th></tr></thead><tbody>'+invRows+'</tbody></table>':'<div style="text-align:center;color:#aaa;padding:20px">لا توجد فواتير</div>')+
+    '</div></div></div>'+
+    // CONTRACTS
+    (hasCt?'<div class="tab-panel" id="tab-ct"><div class="con"><div class="card"><div class="ct">📝 العقود</div><table><thead><tr><th>العقد</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>'+ctRows+'</tbody></table></div></div></div>':'')+
+    '<div class="ftr">'+d.studio+' · آخر تحديث: '+d.generated+'</div>'+
+    '<script>'+
+    'function sw(n){'+
+    'document.querySelectorAll(".tab").forEach(function(t,i){var ns=["ov","tk","fn","ct"];t.classList.toggle("active",ns[i]===n);});'+
+    'document.querySelectorAll(".tab-panel").forEach(function(p){p.classList.toggle("active",p.id==="tab-"+n);});'+
+    '}'+
+    'window.onload=function(){var pb=document.getElementById("main-pb");if(pb)pb.style.width="'+d.pct+'%";};'+
+    '<\/script>'+
+    '</body></html>';
 }
 
 // Check sign URL on page load
 window.addEventListener('load',()=>setTimeout(checkContractSignUrl,800));
+
+// ═══════════════════════════════════════════════════
+// RECEIPT IMAGE HELPERS
+// ═══════════════════════════════════════════════════
+window._invReceiptData = null;
+window._incReceiptData = null;
+
+function invReceiptPreview(inp){
+  var file=inp.files[0]; if(!file) return;
+  var r=new FileReader();
+  r.onload=function(e){
+    window._invReceiptData=e.target.result;
+    var img=document.getElementById('inv-receipt-img');
+    var prev=document.getElementById('inv-receipt-prev');
+    var ph=document.getElementById('inv-receipt-ph');
+    if(img) img.src=e.target.result;
+    if(prev) prev.style.display='block';
+    if(ph) ph.style.display='none';
+  };
+  r.readAsDataURL(file);
+}
+function invReceiptClear(){
+  window._invReceiptData=null;
+  var img=document.getElementById('inv-receipt-img');
+  var prev=document.getElementById('inv-receipt-prev');
+  var ph=document.getElementById('inv-receipt-ph');
+  var fi=document.getElementById('inv-receipt-file');
+  if(img) img.src=''; if(prev) prev.style.display='none';
+  if(ph) ph.style.display=''; if(fi) fi.value='';
+}
+function invReceiptDrop(e){
+  e.preventDefault();
+  var file=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
+  if(!file||!file.type.startsWith('image/')) return;
+  var inp=document.getElementById('inv-receipt-file');
+  if(inp){ var dt=new DataTransfer(); dt.items.add(file); inp.files=dt.files; invReceiptPreview(inp); }
+}
+function incReceiptPreview(inp){
+  var file=inp.files[0]; if(!file) return;
+  var r=new FileReader();
+  r.onload=function(e){
+    window._incReceiptData=e.target.result;
+    var img=document.getElementById('in-receipt-img');
+    var prev=document.getElementById('in-receipt-prev');
+    var ph=document.getElementById('in-receipt-ph');
+    if(img) img.src=e.target.result;
+    if(prev) prev.style.display='block';
+    if(ph) ph.style.display='none';
+  };
+  r.readAsDataURL(file);
+}
+function incReceiptClear(){
+  window._incReceiptData=null;
+  var img=document.getElementById('in-receipt-img');
+  var prev=document.getElementById('in-receipt-prev');
+  var ph=document.getElementById('in-receipt-ph');
+  var fi=document.getElementById('in-receipt-file');
+  if(img) img.src=''; if(prev) prev.style.display='none';
+  if(ph) ph.style.display=''; if(fi) fi.value='';
+}
+
+// Re-trigger admin notifications after cloudLoad (user login)
+(function(){
+  var origCL=window.cloudLoad;
+  window.cloudLoad=async function(){
+    var res=origCL?await origCL.apply(this,arguments):null;
+    setTimeout(_loadServerNotifications,1500);
+    return res;
+  };
+})();
+
 
 // ═══════════════════════════════════════════════════
 // INJECT CSS ANIMATIONS
@@ -14131,10 +14454,14 @@ async function _markServerNotifsRead(){
   } catch(e){}
 }
 
-// Poll for new server notifications every 60s
+// Poll for new server notifications every 30s — retry after login
 window.addEventListener('load', function(){
-  setTimeout(_loadServerNotifications, 3000);
-  setInterval(_loadServerNotifications, 60000);
+  setTimeout(_loadServerNotifications, 2000);
+  setTimeout(_loadServerNotifications, 6000);
+  setInterval(_loadServerNotifications, 30000);
+});
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden) _loadServerNotifications();
 });
 // ═══════════════════════════════════════════════════
 
@@ -14305,6 +14632,25 @@ function _renderDashGrid(){
       el.addEventListener('dragend', function(){ el.style.opacity='1'; });
       el.addEventListener('dragover', function(e){ e.preventDefault(); el.style.outline='2px dashed var(--accent)'; });
       el.addEventListener('dragleave', function(){ el.style.outline='none'; });
+      // Touch drag support for mobile
+      el.addEventListener('touchstart', function(e){
+        _dashDragSrc = el.dataset.widgetCard;
+        el.style.opacity='0.6';
+        el.style.outline='2px dashed var(--accent)';
+      },{passive:true});
+      el.addEventListener('touchend', function(e){
+        el.style.opacity='1'; el.style.outline='none';
+        var touch = e.changedTouches[0];
+        var target = document.elementFromPoint(touch.clientX, touch.clientY);
+        var targetEl = target ? target.closest('[data-widget-card]') : null;
+        var targetId = targetEl ? targetEl.dataset.widgetCard : null;
+        if(!_dashDragSrc || !targetId || _dashDragSrc===targetId){_dashDragSrc=null;return;}
+        var lay=_getDashLayout();
+        var si=lay.findIndex(function(x){return x.id===_dashDragSrc;});
+        var ti=lay.findIndex(function(x){return x.id===targetId;});
+        if(si>-1&&ti>-1){var tmp=lay[si].row;lay[si].row=lay[ti].row;lay[ti].row=tmp;}
+        _saveDashLayout(lay); _dashDragSrc=null; _renderDashGrid();
+      },{passive:true});
       el.addEventListener('drop', function(e){
         e.preventDefault(); el.style.outline='none';
         var targetId = el.dataset.widgetCard;
@@ -14623,6 +14969,20 @@ function _checkAutoNotifications(){
   var expiring = (S.subscriptions||[]).filter(function(s){ return s.nextDate && s.nextDate <= soonStr && s.nextDate >= today; });
   if(expiring.length > 0){
     addNotification('🔔 ' + expiring.length + ' اشتراك قريب من التجديد', 'info');
+  }
+  // ─── تذكير يومي بالتحصيل المتأخر ───
+  var pendingInvs = (S.invoices||[]).filter(function(i){
+    if(i.status==='paid'||i.status==='cancelled') return false;
+    if(!i.date) return false;
+    var invD = new Date(i.isoDate||i.date);
+    var diff = Math.floor((new Date()-invD)/(1000*60*60*24));
+    return diff >= 3;
+  });
+  if(pendingInvs.length > 0){
+    var clients = [...new Set(pendingInvs.map(function(i){return i.client;}).filter(Boolean))];
+    var msg = '💰 ' + pendingInvs.length + ' فاتورة لم يتم تحصيلها';
+    if(clients.length && clients.length <= 3) msg += ': ' + clients.join('، ');
+    addNotification(msg, 'warning');
   }
 }
 
@@ -16702,3 +17062,4 @@ function _showTrackingShareModal(t){
 </div>
 
 </body></html>
+  
