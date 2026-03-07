@@ -6736,21 +6736,7 @@ function delClient(id){confirmDel('هل تريد حذف هذا العميل؟',(
 // 🚀 FEATURES & UPDATES SYSTEM
 // ═══════════════════════════════════════════════════
 
-var _ALL_UPDATES = [
-  {id:'u_recurring',date:'2025-01',version:'v2.1',emoji:'🔁',title:'مهام متكررة (Recurring Tasks)',desc:'حدّد أي مهمة كـ Recurring واختار التكرار والسيستم ينشئ النسخ تلقائياً.',nav:"openTaskModal()",navLabel:'+ مهمة جديدة'},
-  {id:'u_deadline_log',date:'2025-01',version:'v2.1',emoji:'⏰',title:'وعد التسليم + سجل التغييرات',desc:'لما بتعدّل موعد التسليم تطلع خانة سبب التغيير — كل تعديل بيتحفظ في سجل.',nav:"openTaskModal()",navLabel:'جرّب على مهمة'},
-  {id:'u_milestones',date:'2025-01',version:'v2.1',emoji:'🏁',title:'مراحل التسليم (Milestones)',desc:'قسّم المشروع الكبير لمراحل بمواعيد منفصلة.',nav:"openTaskModal()",navLabel:'+ مهمة بمراحل'},
-  {id:'u_dna',date:'2025-01',version:'v2.1',emoji:'🧬',title:'DNA العميل + Value Score',desc:'أسلوب التعامل وسجل الدفع وملاحظات سرية — تقييم تلقائي لكل عميل.',nav:"showPage('clients')",navLabel:'قاعدة العملاء'},
-  {id:'u_client_report',date:'2025-01',version:'v2.1',emoji:'📊',title:'تقرير العميل القابل للطباعة',desc:'تقرير شامل: المشاريع شهرياً + الفواتير + DNA + Value Score.',nav:"showPage('clients')",navLabel:'افتح عميل وجرّب'},
-  {id:'u_expected',date:'2025-01',version:'v2.1',emoji:'💰',title:'لوحة الدخل المتوقع وسعة العمل',desc:'الدخل المتوقع + متوسط 3 أشهر + ترشيح ذكي هل تقبل أوردرات جديدة ولا لا.',nav:"showPage('dashboard')",navLabel:'الداشبورد',settingsId:'feat-capacity'},
-  {id:'u_commitment',date:'2025-01',version:'v2.1',emoji:'🎯',title:'مؤشر الالتزام بالمواعيد',desc:'كام % من مهامك اتسلمت في موعدها — أحمر لو نزل عن 70%.',nav:"showPage('dashboard')",navLabel:'الداشبورد',settingsId:'feat-commitment-threshold'},
-  {id:'u_momentum',date:'2025-01',version:'v2.1',emoji:'⚡',title:'مقياس الزخم (7 أيام)',desc:'يقيس نشاطك آخر 7 أيام — مهام منتهية وجديدة وإيرادات.',nav:"showPage('dashboard')",navLabel:'الداشبورد'},
-  {id:'u_challenge',date:'2025-01',version:'v2.1',emoji:'🏆',title:'تحدي الأسبوع',desc:'كل أسبوع تحدي تلقائي مختلف مع شريط تقدم.',nav:"showPage('dashboard')",navLabel:'الداشبورد',settingsId:'feat-challenge-enabled'},
-  {id:'u_upcoming',date:'2025-01',version:'v2.1',emoji:'⏰',title:'تنبيه مواعيد 24/48 ساعة',desc:'بانر تحذيري في المهام + إشعار في الجرس.',nav:"showPage('tasks')",navLabel:'صفحة المهام',settingsId:'feat-alert-24'},
-  {id:'u_silent',date:'2025-01',version:'v2.1',emoji:'🔕',title:'تنبيه العميل الهادي',desc:'تنبيه لو عميل مش في تواصل أكتر من 30 يوم مع زر واتساب.',nav:"showPage('clients')",navLabel:'قاعدة العملاء',settingsId:'feat-silent-days'},
-  {id:'u_statements',date:'2024-12',version:'v2.0',emoji:'📄',title:'كشوفات الحساب',desc:'كشف حساب مرقّم لكل عميل قابل للطباعة والإرسال بواتساب.',nav:"showPage('invoices');setTimeout(()=>switchInvTab('statements'),100)",navLabel:'كشوفات الحساب'},
-  {id:'u_profile_tabs',date:'2024-12',version:'v2.0',emoji:'👤',title:'بروفايل العميل المتكامل',desc:'تابات: نظرة عامة · سجل · فواتير · عقود · كشوفات في صفحة واحدة.',nav:"showPage('clients')",navLabel:'قاعدة العملاء'},
-];
+
 
 function _getFeatSettings(){try{return JSON.parse(localStorage.getItem('_featSettings')||'{}');}catch(e){return {};}}
 function _saveFeatSettings(){
