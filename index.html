@@ -147,9 +147,13 @@ function cloudSave(data){
       if(error){
         const _em=(error&&typeof error.message==='string')?error.message:String(error);
         console.error('cloudSave error:',_em);
-        showSyncIndicator('⚠ فشل الحفظ', '#f76f7c');
+        showSyncIndicator('⚠ فشل الحفظ - محفوظ محلياً', '#f7c948');
+        // Save to backup localStorage when cloud fails
+        try{ if(_supaUserId) localStorage.setItem('studioOS_backup_'+_supaUserId, JSON.stringify(data)); }catch(e){}
       } else {
         showSyncIndicator('✅ محفوظ على السحابة', '#4fd1a5');
+        // Keep backup in sync
+        try{ if(_supaUserId) localStorage.setItem('studioOS_backup_'+_supaUserId, JSON.stringify(data)); }catch(e){}
       }
     }catch(e){
       const _em2=(e&&typeof e.message==='string')?e.message:'err'; console.error('cloudSave:',_em2);
@@ -1839,6 +1843,8 @@ setTimeout(window._showApp, 4000);
       <button onclick="_applyDashPreset('compact')" style="padding:4px 12px;background:var(--surface3);border:1px solid var(--border);border-radius:20px;font-size:11px;cursor:pointer;font-family:var(--font);color:var(--text2);transition:.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">◫ مركّز</button>
       <button onclick="_applyDashPreset('finance')" style="padding:4px 12px;background:var(--surface3);border:1px solid var(--border);border-radius:20px;font-size:11px;cursor:pointer;font-family:var(--font);color:var(--text2);transition:.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">💰 مالي</button>
       <button onclick="_applyDashPreset('team')" style="padding:4px 12px;background:var(--surface3);border:1px solid var(--border);border-radius:20px;font-size:11px;cursor:pointer;font-family:var(--font);color:var(--text2);transition:.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">👥 فريق</button>
+      <button onclick="_applyDashPreset('mobile')" style="padding:4px 12px;background:var(--surface3);border:1px solid var(--border);border-radius:20px;font-size:11px;cursor:pointer;font-family:var(--font);color:var(--text2);transition:.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">📱 موبايل كامل</button>
+      <button onclick="_resetDashLayout()" style="padding:4px 12px;background:rgba(247,111,124,.1);border:1px solid rgba(247,111,124,.3);border-radius:20px;font-size:11px;cursor:pointer;font-family:var(--font);color:var(--accent4);font-weight:700;transition:.15s">↺ إعادة الضبط</button>
     </div>
   </div>
 
@@ -2300,10 +2306,13 @@ setTimeout(window._showApp, 4000);
       <div class="section-title">✅ مهام مكتملة</div>
       <div id="mp-done-list"></div>
     </div>
-    <!-- Account Statement -->
-    <div class="card" style="margin-top:12px">
-      <div class="section-title">📊 كشف الحساب التفصيلي</div>
-      <div id="mp-account-statement">
+    <!-- Account Statement - Manual Only -->
+    <div class="card" style="margin-top:12px" id="mp-manual-stmt-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="section-title" style="margin:0">📊 كشف الحساب</div>
+        <button onclick="mpToggleStmt()" id="mp-stmt-toggle-btn" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:var(--font);color:var(--text2);font-weight:700">+ إنشاء كشف حساب</button>
+      </div>
+      <div id="mp-stmt-content" style="display:none">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
           <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center">
             <div style="font-size:20px;font-weight:900;color:var(--accent)" id="mp-stat-total-tasks">0</div>
@@ -2319,6 +2328,10 @@ setTimeout(window._showApp, 4000);
           </div>
         </div>
         <div id="mp-statement-table"></div>
+        <div style="text-align:left;margin-top:12px;display:flex;gap:8px">
+          <button onclick="mpPrintStmt()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;font-family:var(--font);font-weight:700">🖨 طباعة</button>
+          <button onclick="mpToggleStmt()" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;font-family:var(--font);color:var(--text2)">إغلاق</button>
+        </div>
       </div>
     </div>
   </div>
@@ -3750,6 +3763,134 @@ setTimeout(window._showApp, 4000);
   </div>
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════
+     SERVICES & PACKAGES PAGE
+═══════════════════════════════════════════════════ -->
+<div class="page" id="page-services">
+  <div class="page-header">
+    <div>
+      <div class="page-title">🛍 خدماتي والباقات</div>
+      <div class="page-subtitle">أضف خدماتك وأرسل لينك الطلب لعملائك</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button onclick="openSvcOrderLink()" class="btn btn-ghost btn-sm" style="gap:6px">🔗 لينك الطلب</button>
+      <button onclick="openSvcModal()" class="btn btn-primary btn-sm">+ خدمة جديدة</button>
+    </div>
+  </div>
+
+  <!-- Order Link Banner -->
+  <div id="svc-link-banner" style="background:linear-gradient(135deg,rgba(124,111,247,.12),rgba(79,209,165,.08));border:1.5px solid var(--accent);border-radius:14px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px">🔗 لينك طلب الخدمة الخاص بك</div>
+      <div id="svc-link-text" style="font-size:11px;color:var(--text3);font-family:var(--mono);word-break:break-all">جاري التحميل...</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button onclick="svcCopyLink()" class="btn btn-primary btn-sm">📋 نسخ</button>
+      <button onclick="svcShareWhatsApp()" class="btn btn-ghost btn-sm" style="background:#25D366;color:#fff;border:none">📲 واتساب</button>
+    </div>
+  </div>
+
+  <!-- Pending Orders Alert -->
+  <div id="svc-orders-alert" style="display:none;background:rgba(247,201,72,.1);border:1.5px solid rgba(247,201,72,.4);border-radius:12px;padding:12px 16px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:13px;font-weight:700;color:var(--accent3)">⏳ طلبات جديدة تنتظر موافقتك</div>
+      <span id="svc-orders-badge" style="background:var(--accent4);color:#fff;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700">0</span>
+    </div>
+    <div id="svc-orders-list" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+
+  <!-- Services Grid -->
+  <div id="svc-grid" class="grid grid-3">
+    <div class="empty card" style="grid-column:span 3">
+      <div class="empty-icon">🛍</div>
+      لا خدمات بعد — أضف خدمتك الأولى<br>
+      <button onclick="openSvcModal()" class="btn btn-primary" style="margin-top:12px">+ خدمة جديدة</button>
+    </div>
+  </div>
+</div>
+
+<!-- SERVICE MODAL -->
+<div class="modal-overlay" id="modal-svc">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <div class="modal-title" id="svc-modal-title">🛍 خدمة جديدة</div>
+      <button class="close-btn" onclick="closeM('modal-svc')">✕</button>
+    </div>
+    <input type="hidden" id="svc-eid">
+    <div class="form-group"><label class="form-label">اسم الخدمة *</label><input class="form-input" id="svc-name" placeholder="مثال: تصميم هوية بصرية"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">السعر الأساسي (ج)</label><input class="form-input" type="number" id="svc-price" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">الوحدة</label>
+        <select class="form-select" id="svc-unit">
+          <option value="للمشروع">للمشروع</option>
+          <option value="في الشهر">في الشهر</option>
+          <option value="في الساعة">في الساعة</option>
+          <option value="للقطعة">للقطعة</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">وصف الخدمة</label><textarea class="form-input" id="svc-desc" rows="2" placeholder="اكتب وصف مختصر للخدمة..."></textarea></div>
+    <!-- Packages -->
+    <div style="margin-top:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:13px;font-weight:700">📦 الباقات</div>
+        <button onclick="addSvcPackage()" class="btn btn-ghost btn-sm">+ باقة</button>
+      </div>
+      <div id="svc-packages-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+    <div class="form-row" style="margin-top:12px">
+      <button class="btn btn-ghost" onclick="closeM('modal-svc')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveSvc()" style="flex:1;justify-content:center">💾 حفظ الخدمة</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER REQUEST MODAL (shown to client via public link) -->
+<div class="modal-overlay" id="modal-svc-order">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title" id="svc-order-ttl">طلب خدمة</div>
+      <button class="close-btn" onclick="closeM('modal-svc-order')">✕</button>
+    </div>
+    <div class="form-group"><label class="form-label">اسمك الكريم *</label><input class="form-input" id="ord-name" placeholder="الاسم"></div>
+    <div class="form-group"><label class="form-label">رقم الواتساب *</label><input class="form-input" id="ord-phone" placeholder="01xxxxxxxxx"></div>
+    <div class="form-group"><label class="form-label">وصف طلبك</label><textarea class="form-input" id="ord-desc" rows="3" placeholder="اكتب تفاصيل ما تحتاج..."></textarea></div>
+    <div class="form-row" style="margin-top:12px">
+      <button class="btn btn-ghost" onclick="closeM('modal-svc-order')">إلغاء</button>
+      <button class="btn btn-primary" onclick="submitSvcOrder()" style="flex:1;justify-content:center">✅ إرسال الطلب</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER ACCEPT MODAL -->
+<div class="modal-overlay" id="modal-order-accept">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title">✅ قبول الطلب وتحويله لمهمة</div>
+      <button class="close-btn" onclick="closeM('modal-order-accept')">✕</button>
+    </div>
+    <input type="hidden" id="oa-order-id">
+    <div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px" id="oa-order-preview"></div>
+    <div class="form-group"><label class="form-label">عنوان المهمة *</label><input class="form-input" id="oa-title" placeholder="مثال: تصميم لوجو للعميل"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">المقابل المالي (ج)</label><input class="form-input" type="number" id="oa-amount" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">العربون (ج)</label><input class="form-input" type="number" id="oa-deposit" placeholder="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">موعد التسليم</label><input class="form-input" type="date" id="oa-deadline"></div>
+      <div class="form-group"><label class="form-label">المنفذ</label>
+        <select class="form-select" id="oa-worker"></select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">ملاحظات</label><input class="form-input" id="oa-notes" placeholder="ملاحظات إضافية"></div>
+    <div class="form-row" style="margin-top:12px">
+      <button class="btn btn-ghost" onclick="closeM('modal-order-accept')">إلغاء</button>
+      <button class="btn btn-primary" onclick="acceptOrderAsTask()" style="flex:1;justify-content:center">✅ إنشاء المهمة</button>
+    </div>
+  </div>
+</div>
+
 <!-- EXPENSE -->
 <div class="modal-overlay" id="modal-expense">
   <div class="modal" style="width:500px">
@@ -4027,7 +4168,7 @@ lsLoad();
 // ============================================================
 const BN_MAIN=['dashboard','tasks','invoices','clients'];
 // ── الصفحات المجانية بدون اشتراك ──
-const FREE_PAGES = ['dashboard', 'settings'];
+const FREE_PAGES = ['dashboard', 'settings', 'services'];
 
 function hasActiveSub(){
   if(!_supaUserId) return true;
@@ -7862,6 +8003,7 @@ function renderAll(){
   renderDashTeamPay();renderDashKanbanMini();renderDashMeetings();
   renderSalaryReminders();renderFollowupReminders();
   renderTimeTracker();renderContractsList();
+  if(typeof renderServices === 'function') renderServices();
   // Refresh freelancer goals page if active
   if(document.getElementById('page-freelancer-goals')?.classList.contains('active')){
     renderFreelancerGoalsPage();
@@ -7872,7 +8014,7 @@ function renderAll(){
 // SIDEBAR TOGGLE
 // ============================================================
 const PAGE_TITLES = {
-  dashboard:'لوحة التحكم', tasks:'المهام والمشاريع',
+  dashboard:'لوحة التحكم', tasks:'المهام والمشاريع', services:'🛍 خدماتي والباقات',
   schedule:'تنظيم اليوم',  clients:'قاعدة العملاء',
   finance:'المالية',       invoices:'الفواتير والعقود',
   learning:'الأهداف والإنجازات', 'freelancer-goals':'الأهداف والإنجازات',
@@ -8138,12 +8280,28 @@ async function loginWithSupaSession(supaUser, session, userMeta){
       cloudSave(S);
     }
     localStorage.setItem('studioOS_v3_'+supaUser.id, JSON.stringify(S));
+    // Also keep a backup copy
+    try{ localStorage.setItem('studioOS_backup_'+supaUser.id, JSON.stringify(S)); }catch(e){}
     applyPlatformConfig();
-  } else { lsLoad(); }
+  } else {
+    // Cloud returned null - try localStorage first, then backup
+    lsLoad();
+    // If S is still empty (no local data either), try backup
+    if(!S.tasks?.length && !S.clients?.length && !S.invoices?.length){
+      try{
+        const backup = localStorage.getItem('studioOS_backup_'+supaUser.id);
+        if(backup){ const bd=JSON.parse(backup); if(bd.tasks?.length||bd.clients?.length){ S=bd; migrateSFields(); toast('⚠ تم استعادة البيانات من النسخة الاحتياطية'); } }
+      }catch(e){}
+    }
+  }
 
   if(!S.settings.name && userObj.name){
-    S.settings.name  = userObj.studio || userObj.name;
+    // Import Google name for new users
+    const googleName = meta?.full_name || meta?.name || '';
+    S.settings.name  = userObj.studio || googleName || userObj.name;
     S.settings.phone = userObj.phone;
+    if(userObj.email) S.settings.email = userObj.email;
+    if(userObj.avatarUrl) S.settings.logo = userObj.avatarUrl;
     cloudSave(S);
   } else if(S.settings.name) {
     if(!S.settings.email && userObj.email) {
@@ -8640,6 +8798,8 @@ function migrateSFields(){
     });
     S.schedule.forEach(s=>{ if(s.done===undefined)s.done=false; if(s.linkedTaskId===undefined)s.linkedTaskId=null; });
     S.clients.forEach(c=>{ if(!c.followupEnabled)c.followupEnabled='off'; if(!c.followupMonths)c.followupMonths=3; });
+    if(!S.services) S.services=[];
+    if(!S.svc_orders) S.svc_orders=[];
   }catch(e){}
 }
 
@@ -10237,10 +10397,12 @@ function openMemberProfile(memberName){
   set('mp-done-count',  doneTasks.length);
   set('mp-total-paid',  totalDeposits.toLocaleString()+' ج');
   set('mp-pending-pay', pendingPay.toLocaleString()+' ج');
-  // Fill account statement
-  set('mp-stat-total-tasks', allTasks.length);
-  set('mp-stat-total-earned', totalOwed.toLocaleString()+' ج');
-  set('mp-stat-balance', pendingPay.toLocaleString()+' ج');
+  // Store data for manual statement generation
+  window._mpCurrentMember = memberName;
+  window._mpAllTasks = allTasks;
+  window._mpTotalOwed = totalOwed;
+  window._mpTotalDeposits = totalDeposits;
+  window._mpPendingPay = pendingPay;
   const stmtTable = document.getElementById('mp-statement-table');
   if(stmtTable){
     if(!allTasks.length){
@@ -10322,6 +10484,73 @@ function openMemberProfile(memberName){
       </div>
       ${t.workerAmount?`<span style="font-size:12px;font-weight:700;color:var(--accent3)">${t.workerAmount.toLocaleString()} ج</span>`:''}
     </div>`).join('') : '<div class="empty" style="padding:16px 0;font-size:12px">لا مهام مكتملة</div>';
+}
+
+function mpToggleStmt(){
+  var c = document.getElementById('mp-stmt-content');
+  var btn = document.getElementById('mp-stmt-toggle-btn');
+  if(!c) return;
+  var showing = c.style.display !== 'none';
+  if(showing){ c.style.display='none'; if(btn) btn.textContent='+ إنشاء كشف حساب'; return; }
+  // Build the statement
+  var allTasks = window._mpAllTasks || [];
+  var totalOwed = window._mpTotalOwed || 0;
+  var totalDeposits = window._mpTotalDeposits || 0;
+  var pendingPay = window._mpPendingPay || 0;
+  var set = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
+  set('mp-stat-total-tasks', allTasks.length);
+  set('mp-stat-total-earned', totalOwed.toLocaleString()+' ج');
+  set('mp-stat-balance', pendingPay.toLocaleString()+' ج');
+  var stmtTable = document.getElementById('mp-statement-table');
+  if(stmtTable){
+    if(!allTasks.length){
+      stmtTable.innerHTML='<div style="text-align:center;color:var(--text3);padding:16px">لا توجد مهام مسجلة</div>';
+    } else {
+      stmtTable.innerHTML='<table style="width:100%;border-collapse:collapse">'+
+        '<thead><tr style="background:var(--surface2)">'+
+        '<th style="padding:8px 10px;text-align:right;font-size:11px;color:var(--text3)">المهمة</th>'+
+        '<th style="padding:8px 10px;text-align:right;font-size:11px;color:var(--text3)">الحالة</th>'+
+        '<th style="padding:8px 10px;text-align:right;font-size:11px;color:var(--text3)">المستحق</th>'+
+        '<th style="padding:8px 10px;text-align:right;font-size:11px;color:var(--text3)">المدفوع</th>'+
+        '<th style="padding:8px 10px;text-align:right;font-size:11px;color:var(--text3)">المتبقي</th>'+
+        '</tr></thead><tbody>'+
+        allTasks.map(function(t){
+          var stM={new:'جديد',progress:'قيد التنفيذ',review:'مراجعة',done:'✅ مكتمل'};
+          var st=t.done?'✅ مكتمل':(stM[t.status]||t.status||'');
+          var owed=t.workerAmount||0, paid=t.workerDepositPaid?(t.workerDepositAmount||0):0, bal=owed-paid;
+          return '<tr style="border-bottom:1px solid var(--border)">'+
+            '<td style="padding:8px 10px;font-size:12px;font-weight:600">'+t.title+'</td>'+
+            '<td style="padding:8px 10px;font-size:11px">'+st+'</td>'+
+            '<td style="padding:8px 10px;font-size:12px;color:var(--accent2);font-weight:700">'+owed.toLocaleString()+' ج</td>'+
+            '<td style="padding:8px 10px;font-size:12px;color:var(--accent3);font-weight:700">'+paid.toLocaleString()+' ج</td>'+
+            '<td style="padding:8px 10px;font-size:12px;font-weight:700;color:'+(bal>0?'var(--accent4)':'var(--accent3)')+'">'+bal.toLocaleString()+' ج</td></tr>';
+        }).join('')+
+        '</tbody><tfoot><tr style="background:var(--surface2)">'+
+        '<td colspan="2" style="padding:8px 10px;font-size:12px;font-weight:800">الإجمالي</td>'+
+        '<td style="padding:8px 10px;font-size:12px;color:var(--accent2);font-weight:800">'+totalOwed.toLocaleString()+' ج</td>'+
+        '<td style="padding:8px 10px;font-size:12px;color:var(--accent3);font-weight:800">'+totalDeposits.toLocaleString()+' ج</td>'+
+        '<td style="padding:8px 10px;font-size:12px;font-weight:800;color:'+(pendingPay>0?'var(--accent4)':'var(--accent3)')+'">'+pendingPay.toLocaleString()+' ج</td>'+
+        '</tr></tfoot></table>';
+    }
+  }
+  c.style.display='block';
+  if(btn) btn.textContent='إخفاء الكشف';
+}
+function mpPrintStmt(){
+  var memberName = window._mpCurrentMember || '';
+  var studio = S.settings?.name||'Ordo';
+  var el = document.getElementById('mp-stmt-content');
+  if(!el) return;
+  var w = window.open('','_blank');
+  w.document.write('<html dir="rtl"><head><meta charset="UTF-8"><title>كشف حساب - '+memberName+'</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">'+
+    '<style>body{font-family:Cairo,sans-serif;padding:30px;color:#1a1a2e}table{width:100%;border-collapse:collapse}'+
+    'th{background:#f5f5f5;padding:10px;text-align:right;font-size:12px}td{padding:9px 10px;border-bottom:1px solid #eee;font-size:13px}'+
+    'h2{font-size:20px}h3{font-size:16px;color:#7c6ff7}</style></head><body>'+
+    '<h2>'+studio+' — كشف حساب</h2><h3>العضو: '+memberName+'</h3>'+
+    '<p style="color:#888;font-size:12px">تاريخ الكشف: '+new Date().toLocaleDateString('ar-EG')+'</p>'+
+    el.innerHTML+'</body></html>');
+  w.document.close(); w.print();
 }
 
 function sendMemberWA(msgType){
@@ -13397,6 +13626,352 @@ function incReceiptClear(){
   if(ph) ph.style.display=''; if(fi) fi.value='';
 }
 
+// ═══════════════════════════════════════════════════
+// SERVICES & PACKAGES SYSTEM
+// ═══════════════════════════════════════════════════
+(function(){
+  // Services are stored in S.services
+  if(!window._svcPackagesList) window._svcPackagesList = [];
+
+  function getSvcLink(){
+    var base = window.location.href.split('?')[0];
+    var uid = typeof _supaUserId !== 'undefined' ? _supaUserId : (typeof getSession === 'function' ? (getSession()?.id||'') : '');
+    return base + '?svcorder=' + encodeURIComponent(uid);
+  }
+
+  window.openSvcOrderLink = function(){
+    var link = getSvcLink();
+    document.getElementById('svc-link-text').textContent = link;
+    // Open in new tab
+    window.open(link, '_blank');
+  };
+
+  window.svcCopyLink = function(){
+    var link = getSvcLink();
+    navigator.clipboard.writeText(link).then(function(){ toast('✅ تم نسخ الرابط'); }).catch(function(){ toast('رابطك: ' + link); });
+  };
+
+  window.svcShareWhatsApp = function(){
+    var link = getSvcLink();
+    var name = (typeof S !== 'undefined' && S.settings?.name) ? S.settings.name : 'Ordo';
+    var text = 'مرحباً 👋\nيمكنك الاطلاع على خدماتي وطلب الخدمة مباشرة من هنا:\n' + link + '\n\n— ' + name;
+    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  };
+
+  window.renderServices = function(){
+    if(!document.getElementById('page-services')) return;
+    // Update link
+    var linkEl = document.getElementById('svc-link-text');
+    if(linkEl) linkEl.textContent = getSvcLink();
+
+    var svcs = (typeof S !== 'undefined' && S.services) ? S.services : [];
+    var grid = document.getElementById('svc-grid');
+    if(!grid) return;
+
+    // Render pending orders alert
+    var orders = (typeof S !== 'undefined' && S.svc_orders) ? S.svc_orders : [];
+    var pending = orders.filter(function(o){ return o.status === 'pending'; });
+    var alertEl = document.getElementById('svc-orders-alert');
+    var badgeEl = document.getElementById('svc-orders-badge');
+    var ordListEl = document.getElementById('svc-orders-list');
+    if(alertEl){
+      alertEl.style.display = pending.length ? 'block' : 'none';
+      if(badgeEl) badgeEl.textContent = pending.length;
+      if(ordListEl){
+        ordListEl.innerHTML = pending.map(function(o){
+          return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">'+
+            '<div>'+
+              '<div style="font-size:13px;font-weight:700">'+o.client_name+'</div>'+
+              '<div style="font-size:11px;color:var(--text3)">'+o.service_name+'</div>'+
+              '<div style="font-size:11px;color:var(--text3)">📱 '+o.client_phone+(o.desc?' — '+o.desc.slice(0,40):'')+'</div>'+
+              '<div style="font-size:10px;color:var(--text3)">'+new Date(o.created_at).toLocaleDateString('ar-EG')+'</div>'+
+            '</div>'+
+            '<div style="display:flex;gap:6px;flex-shrink:0">'+
+              '<button onclick="openOrderAccept('+JSON.stringify(String(o.id))+')" class="btn btn-primary btn-sm">✅ قبول</button>'+
+              '<button onclick="rejectOrder('+JSON.stringify(String(o.id))+')" class="btn btn-danger btn-sm">✕ رفض</button>'+
+            '</div>'+
+          '</div>';
+        }).join('');
+      }
+    }
+
+    if(!svcs.length){
+      grid.innerHTML = '<div class="empty card" style="grid-column:span 3"><div class="empty-icon">🛍</div>لا خدمات بعد — أضف خدمتك الأولى<br><button onclick="openSvcModal()" class="btn btn-primary" style="margin-top:12px">+ خدمة جديدة</button></div>';
+      return;
+    }
+
+    grid.innerHTML = svcs.map(function(svc){
+      var pkgs = (svc.packages||[]).map(function(p){
+        return '<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--surface2)">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+          '<div style="font-size:13px;font-weight:700">'+p.name+'</div>'+
+          '<div style="font-size:14px;font-weight:900;color:var(--accent)">'+Number(p.price||0).toLocaleString()+' ج</div>'+
+          '</div>'+
+          (p.items&&p.items.length?'<ul style="margin:0;padding-right:16px;font-size:11px;color:var(--text3)">'+p.items.map(function(i){return '<li>'+i+'</li>';}).join('')+'</ul>':'')+
+          '</div>';
+      }).join('');
+      return '<div class="card">'+
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">'+
+          '<div>'+
+            '<div style="font-size:15px;font-weight:800">'+svc.name+'</div>'+
+            (svc.desc?'<div style="font-size:12px;color:var(--text3);margin-top:3px">'+svc.desc+'</div>':'')+
+          '</div>'+
+          '<div style="display:flex;gap:4px">'+
+            '<button data-svcedit="'+svc.id+'" onclick="openSvcModal(+this.dataset.svcedit)" class="btn btn-ghost btn-sm">✏</button>'+
+            '<button data-svcdel="'+svc.id+'" onclick="delSvc(+this.dataset.svcdel)" class="btn btn-danger btn-sm">🗑</button>'+
+          '</div>'+
+        '</div>'+
+        '<div style="font-size:16px;font-weight:900;color:var(--accent);margin-bottom:10px">'+Number(svc.price||0).toLocaleString()+' ج <span style="font-size:11px;font-weight:500;color:var(--text3)">'+( svc.unit||'')+'</span></div>'+
+        (pkgs?'<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">'+pkgs+'</div>':'')+
+        '</div>';
+    }).join('');
+  };
+
+  window.openSvcModal = function(id){
+    window._svcPackagesList = [];
+    var svc = id && typeof S !== 'undefined' ? (S.services||[]).find(function(x){return x.id===id;}) : null;
+    document.getElementById('svc-eid').value = id||'';
+    document.getElementById('svc-modal-title').textContent = id ? '✏ تعديل الخدمة' : '🛍 خدمة جديدة';
+    document.getElementById('svc-name').value = svc ? svc.name : '';
+    document.getElementById('svc-price').value = svc ? (svc.price||'') : '';
+    document.getElementById('svc-unit').value = svc ? (svc.unit||'للمشروع') : 'للمشروع';
+    document.getElementById('svc-desc').value = svc ? (svc.desc||'') : '';
+    window._svcPackagesList = svc ? JSON.parse(JSON.stringify(svc.packages||[])) : [];
+    renderSvcPackages();
+    openM('modal-svc');
+  };
+
+  window.renderSvcPackages = function(){
+    var el = document.getElementById('svc-packages-list');
+    if(!el) return;
+    if(!window._svcPackagesList.length){
+      el.innerHTML = '<div style="text-align:center;font-size:12px;color:var(--text3);padding:8px">لا باقات بعد</div>';
+      return;
+    }
+    el.innerHTML = window._svcPackagesList.map(function(p, pi){
+      var nameVal = (p.name||'').replace(/"/g,'&quot;');
+      var itemsVal = (p.items||[]).join('&#10;').replace(/"/g,'&quot;');
+      return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px">'+
+        '<div style="display:flex;gap:8px;margin-bottom:8px">'+
+          '<input class="form-input" placeholder="اسم الباقة*" value="'+nameVal+'" data-pkgi="'+pi+'" oninput="_svcPkgName(this)" style="flex:2">'+
+          '<input class="form-input" type="number" placeholder="السعر" value="'+(p.price||'')+'" data-pkgi="'+pi+'" oninput="_svcPkgPrice(this)" style="flex:1">'+
+          '<button data-pkgi="'+pi+'" onclick="_svcPkgDel(this)" style="background:var(--accent4);color:#fff;border:none;border-radius:6px;padding:0 10px;cursor:pointer;font-size:14px">✕</button>'+
+        '</div>'+
+        '<textarea class="form-input" rows="2" placeholder="البنود (كل بند في سطر جديد)" data-pkgi="'+pi+'" onchange="_svcPkgItems(this)">'+itemsVal+'</textarea>'+
+      '</div>';
+    }).join('');
+  };
+  window.addSvcPackage = function(){
+    window._svcPackagesList.push({name:'',price:0,items:[]});
+    renderSvcPackages();
+  };
+
+  window.saveSvc = function(){
+    var name = document.getElementById('svc-name')?.value.trim();
+    if(!name){ toast('⚠ أدخل اسم الخدمة'); return; }
+    var eid = document.getElementById('svc-eid').value;
+    var svc = {
+      id: eid ? +eid : Date.now(),
+      name, price: +(document.getElementById('svc-price').value)||0,
+      unit: document.getElementById('svc-unit').value,
+      desc: document.getElementById('svc-desc').value.trim(),
+      packages: window._svcPackagesList.filter(function(p){return p.name;})
+    };
+    if(!S.services) S.services=[];
+    if(eid){ var idx=S.services.findIndex(function(x){return String(x.id)===String(eid);}); if(idx>-1) S.services[idx]=svc; else S.services.push(svc); }
+    else S.services.push(svc);
+    lsSave(); closeM('modal-svc'); renderServices(); toast('✅ تم حفظ الخدمة');
+  };
+
+  window.delSvc = function(id){
+    if(!confirm('حذف الخدمة؟')) return;
+    S.services = (S.services||[]).filter(function(x){return String(x.id)!==String(id);});
+    lsSave(); renderServices(); toast('🗑 تم الحذف');
+  };
+
+  // ─── ORDER ACCEPTANCE ───
+  window.openOrderAccept = function(orderId){
+    var order = (S.svc_orders||[]).find(function(o){return String(o.id)===String(orderId);});
+    if(!order) return;
+    document.getElementById('oa-order-id').value = orderId;
+    document.getElementById('oa-order-preview').innerHTML =
+      '<strong>العميل:</strong> '+order.client_name+' — 📱 '+order.client_phone+'<br>'+
+      '<strong>الخدمة:</strong> '+order.service_name+
+      (order.desc?'<br><strong>الوصف:</strong> '+order.desc:'');
+    document.getElementById('oa-title').value = order.service_name + ' — ' + order.client_name;
+    document.getElementById('oa-amount').value = order.price||'';
+    document.getElementById('oa-deposit').value = '';
+    document.getElementById('oa-deadline').value = '';
+    // Populate worker select
+    var workerSel = document.getElementById('oa-worker');
+    var workers = [];
+    (S.teams||[]).forEach(function(t){ (t.members||[]).forEach(function(m){ workers.push(m.name); }); });
+    workerSel.innerHTML = '<option value="">بدون تعيين</option>' + workers.map(function(w){return '<option value="'+w+'">'+w+'</option>';}).join('');
+    openM('modal-order-accept');
+  };
+
+  window.acceptOrderAsTask = function(){
+    var orderId = document.getElementById('oa-order-id').value;
+    var title = document.getElementById('oa-title').value.trim();
+    if(!title){ toast('⚠ أدخل عنوان المهمة'); return; }
+    var order = (S.svc_orders||[]).find(function(o){return String(o.id)===String(orderId);});
+    var task = {
+      id: Date.now(), title,
+      client: order ? order.client_name : '',
+      amount: +(document.getElementById('oa-amount').value)||0,
+      depositAmount: +(document.getElementById('oa-deposit').value)||0,
+      depositPaid: !!(+(document.getElementById('oa-deposit').value)),
+      deadline: document.getElementById('oa-deadline').value,
+      workerMember: document.getElementById('oa-worker').value,
+      notes: document.getElementById('oa-notes').value,
+      status: 'new', done: false,
+      steps: [], createdAt: new Date().toISOString(),
+      fromOrder: orderId
+    };
+    if(!S.tasks) S.tasks=[];
+    S.tasks.push(task);
+    // Mark order as accepted
+    if(order) order.status = 'accepted';
+    lsSave(); closeM('modal-order-accept');
+    renderServices(); renderTasks && renderTasks();
+    addNotification('✅ تم إنشاء مهمة جديدة: ' + title, 'success');
+    toast('✅ تم إنشاء المهمة من الطلب');
+  };
+
+  window.rejectOrder = function(orderId){
+    if(!confirm('رفض هذا الطلب؟')) return;
+    var order = (S.svc_orders||[]).find(function(o){return String(o.id)===String(orderId);});
+    if(order) order.status = 'rejected';
+    lsSave(); renderServices(); toast('✕ تم رفض الطلب');
+  };
+
+  // ─── PUBLIC ORDER PAGE (when client opens the link) ───
+  window._checkSvcOrderUrl = function(){
+    var params = new URLSearchParams(window.location.search);
+    var uid = params.get('svcorder');
+    if(!uid) return;
+    // Build public order page
+    _buildSvcOrderPage(uid);
+  };
+
+  function _buildSvcOrderPage(userId){
+    if(typeof supa === 'undefined'){ _showSvcOrderFallback(); return; }
+    supa.from('studio_data').select('data').eq('user_id', userId).single().then(function(res){
+      if(!res.data){ _showSvcOrderFallback(); return; }
+      var ud = null;
+      try{ ud = typeof res.data.data==='string' ? JSON.parse(res.data.data) : res.data.data; }catch(e){}
+      if(!ud){ _showSvcOrderFallback(); return; }
+      var services = ud.services||[];
+      var studioName = (ud.settings&&ud.settings.name)||'Ordo';
+      var studioLogo = (ud.settings&&ud.settings.logo)||'';
+      var ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;inset:0;background:#f8f9fc;z-index:9999;overflow-y:auto;font-family:Cairo,sans-serif;direction:rtl';
+      var cardsHtml = '';
+      if(!services.length){
+        cardsHtml = '<div style="text-align:center;padding:40px;color:#aaa">لا خدمات متاحة حالياً</div>';
+      } else {
+        services.forEach(function(svc){
+          var pkgCards = '';
+          if(svc.packages&&svc.packages.length){
+            svc.packages.forEach(function(p){
+              var itemsList = p.items&&p.items.length ? '<ul style="margin:6px 0 0;padding-right:16px;font-size:11px;color:#666">'+p.items.map(function(i){return '<li>'+i+'</li>';}).join('')+'</ul>' : '';
+              pkgCards += '<div class="svc-order-card" data-svcname="'+encodeURIComponent(svc.name)+'" data-pkgname="'+encodeURIComponent(p.name)+'" data-price="'+(p.price||0)+'" style="cursor:pointer;border:2px solid #e0e0f0;border-radius:12px;padding:14px;margin-bottom:8px">'+
+                '<div style="display:flex;justify-content:space-between;align-items:center">'+
+                '<div><div style="font-size:14px;font-weight:700">'+p.name+'</div>'+itemsList+'</div>'+
+                '<div style="font-size:18px;font-weight:900;color:#7c6ff7">'+Number(p.price||0).toLocaleString()+' ج</div>'+
+                '</div></div>';
+            });
+          }
+          cardsHtml += '<div class="svc-order-card" data-svcname="'+encodeURIComponent(svc.name)+'" data-pkgname="" data-price="'+(svc.price||0)+'" style="background:#fff;border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.08);cursor:pointer">'+
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
+            '<div><div style="font-size:16px;font-weight:800">'+svc.name+'</div>'+(svc.desc?'<div style="font-size:12px;color:#888;margin-top:3px">'+svc.desc+'</div>':'')+
+            '</div><div style="font-size:18px;font-weight:900;color:#7c6ff7">'+Number(svc.price||0).toLocaleString()+' ج <span style="font-size:11px;color:#aaa;font-weight:500">'+(svc.unit||'')+'</span></div></div>'+
+            (pkgCards?'<div style="margin-top:8px">'+pkgCards+'</div>':'')+
+          '</div>';
+        });
+      }
+      ov.innerHTML = '<div style="max-width:600px;margin:0 auto;padding:20px 14px">'+
+        '<div style="text-align:center;margin-bottom:28px;padding:28px 20px;background:linear-gradient(135deg,#7c6ff7,#4fd1a5);border-radius:18px;color:#fff">'+
+          (studioLogo?'<img src="'+studioLogo+'" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin-bottom:12px;border:3px solid rgba(255,255,255,.3)"><br>':'')+
+          '<div style="font-size:22px;font-weight:900;margin-bottom:4px">'+studioName+'</div>'+
+          '<div style="font-size:13px;opacity:.9">اختر الخدمة التي تحتاجها</div>'+
+        '</div>'+cardsHtml+'</div>';
+      document.body.appendChild(ov);
+      window._svcOrderUserId = userId;
+      // Add click handlers
+      ov.querySelectorAll('.svc-order-card').forEach(function(card){
+        card.addEventListener('mouseover', function(){ this.style.borderColor='#7c6ff7'; });
+        card.addEventListener('mouseout', function(){ this.style.borderColor=''; });
+        card.addEventListener('click', function(){
+          var svcName = decodeURIComponent(this.dataset.svcname||'');
+          var pkgName = decodeURIComponent(this.dataset.pkgname||'');
+          var price = +this.dataset.price||0;
+          window._selectSvcForOrder(userId, svcName, pkgName, price);
+        });
+      });
+    }).catch(function(){ _showSvcOrderFallback(); });
+  }
+  window._selectSvcForOrder = function(userId, svcName, pkgName, price){
+    document.getElementById('svc-order-ttl').textContent = 'طلب: ' + svcName + (pkgName?' — '+pkgName:'');
+    window._pendingOrderData = { userId, svcName, pkgName, price };
+    openM('modal-svc-order');
+  };
+
+  window.submitSvcOrder = function(){
+    var name = document.getElementById('ord-name')?.value.trim();
+    var phone = document.getElementById('ord-phone')?.value.trim();
+    if(!name||!phone){ toast('⚠ الاسم والواتساب مطلوبان'); return; }
+    var od = window._pendingOrderData||{};
+    var order = {
+      id: Date.now(), status: 'pending',
+      client_name: name, client_phone: phone,
+      service_name: od.svcName+(od.pkgName?' — '+od.pkgName:''),
+      price: od.price||0,
+      desc: document.getElementById('ord-desc')?.value.trim()||'',
+      created_at: new Date().toISOString()
+    };
+    if(typeof supa !== 'undefined' && od.userId){
+      supa.from('studio_data').select('data').eq('user_id', od.userId).single().then(function(res){
+        var ud = null;
+        try{ ud = typeof res.data?.data==='string' ? JSON.parse(res.data.data) : res.data?.data; }catch(e){}
+        if(!ud) return;
+        ud.svc_orders = ud.svc_orders||[];
+        ud.svc_orders.push(order);
+        ud._pending_notifications = ud._pending_notifications||[];
+        ud._pending_notifications.push({
+          id: Date.now(), title: '🛍 طلب جديد!',
+          body: 'طلب من '+name+' — '+order.service_name,
+          type: 'order', created_at: new Date().toISOString(), read:false
+        });
+        supa.from('studio_data').update({data:JSON.stringify(ud), updated_at:new Date().toISOString()}).eq('user_id', od.userId).then(function(){
+          closeM('modal-svc-order');
+          toast('✅ تم إرسال طلبك بنجاح! سيتواصل معك قريباً');
+          setTimeout(function(){
+            document.querySelector('[onclick*="_selectSvcForOrder"]')?.closest('div[style*="overflow-y:auto"]')?.remove();
+            document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px"><div style="font-size:60px">✅</div><div style="font-size:22px;font-weight:900;margin-top:16px;color:#4fd1a5">تم إرسال طلبك!</div><div style="font-size:14px;color:#888;margin-top:8px">سيتواصل معك الفريق على واتساب قريباً</div></div>');
+          },500);
+        });
+      });
+    } else {
+      closeM('modal-svc-order');
+      toast('✅ تم إرسال الطلب');
+    }
+  };
+
+  function _showSvcOrderFallback(){
+    document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;background:#f8f8f8;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;font-family:Cairo,sans-serif"><div><div style="font-size:48px">🔒</div><div style="font-size:18px;font-weight:700;margin-top:14px">الرابط غير صالح</div><div style="font-size:13px;color:#aaa;margin-top:6px">تحقق من صحة الرابط</div></div></div>');
+  }
+
+  // Check on page load
+  window.addEventListener('load', function(){
+    setTimeout(window._checkSvcOrderUrl, 500);
+    // Also render services if already on the page
+    if(typeof S !== 'undefined') renderServices();
+  });
+
+})();
+
+
 // Re-trigger admin notifications after cloudLoad (user login)
 (function(){
   var origCL=window.cloudLoad;
@@ -14241,7 +14816,33 @@ var _DASH_PRESETS_MAP = {
     {id:'invoices',    visible:false, row:6, full:false},
     {id:'goals',       visible:false, row:7, full:false},
   ],
+  // Mobile: all cards full-width stacked
+  mobile: [
+    {id:'stats',       visible:true,  row:0, full:true},
+    {id:'overdue',     visible:true,  row:1, full:true},
+    {id:'kanban',      visible:true,  row:2, full:true},
+    {id:'tasks',       visible:true,  row:3, full:true},
+    {id:'upcoming',    visible:true,  row:4, full:true},
+    {id:'uncollected', visible:true,  row:5, full:true},
+    {id:'invoices',    visible:true,  row:6, full:true},
+    {id:'schedule',    visible:false, row:7, full:true},
+    {id:'subs',        visible:false, row:8, full:true},
+    {id:'team',        visible:false, row:9, full:true},
+    {id:'teampay',     visible:false, row:10, full:true},
+    {id:'goals',       visible:false, row:11, full:true},
+    {id:'meetings',    visible:false, row:12, full:true},
+    {id:'commitment',  visible:false, row:13, full:true},
+    {id:'momentum',    visible:false, row:14, full:true},
+    {id:'expected',    visible:false, row:15, full:true},
+  ],
 };
+
+function _resetDashLayout(){
+  if(!confirm('هل تريد إعادة الداشبورد للإعدادات الافتراضية؟')) return;
+  localStorage.removeItem('_dash_layout_v3');
+  _renderDashGrid();
+  toast('✅ تم إعادة الضبط للافتراضي');
+}
 
 function _applyDashPreset(name) {
   var preset = _DASH_PRESETS_MAP[name] || _DASH_PRESETS_MAP.default;
@@ -14366,8 +14967,8 @@ async function _adminSendMessage(userId){
   var type  = document.getElementById('_amsg-type')?.value || 'message';
   if(!body){ toast('⚠ أدخل نص الرسالة'); return; }
 
+  var sent = false;
   try {
-    // Store notification in Supabase for the user to receive
     if(typeof supa !== 'undefined'){
       var notif = {
         user_id: userId || null,
@@ -14375,10 +14976,29 @@ async function _adminSendMessage(userId){
         created_at: new Date().toISOString(),
         read: false
       };
-      await supa.from('user_notifications').insert([notif]);
+      // Try user_notifications table first
+      var res = await supa.from('user_notifications').insert([notif]);
+      if(!res.error) sent = true;
+      
+      // ALSO: inject into user's studio_data as pending_notification (fallback)
+      if(userId){
+        try{
+          var { data: ud } = await supa.from('studio_data').select('data').eq('user_id', userId).single();
+          if(ud && ud.data){
+            var userData = typeof ud.data==='string' ? JSON.parse(ud.data) : ud.data;
+            userData._pending_notifications = userData._pending_notifications || [];
+            userData._pending_notifications.push({
+              id: Date.now(), title, body, type,
+              created_at: new Date().toISOString(), read: false
+            });
+            await supa.from('studio_data').update({data: JSON.stringify(userData), updated_at: new Date().toISOString()}).eq('user_id', userId);
+            sent = true;
+          }
+        }catch(e2){ console.warn('Fallback notification failed:', e2.message); }
+      }
     }
     closeM('_modal-admin-msg');
-    if(typeof toast === 'function') toast('✅ تم إرسال الرسالة');
+    if(typeof toast === 'function') toast(sent ? '✅ تم إرسال الرسالة' : '⚠ تم الحفظ محلياً');
   } catch(e){
     if(typeof toast === 'function') toast('❌ '+e.message);
   }
@@ -14400,8 +15020,33 @@ async function _checkNotifTableExists(){
 
 async function _loadServerNotifications(){
   if(!_supaUserId || typeof supa === 'undefined') return;
+  
+  // METHOD 1: Check _pending_notifications in S (injected by admin into studio_data)
+  if(typeof S !== 'undefined' && S._pending_notifications && S._pending_notifications.length){
+    var newCount = 0;
+    S._pending_notifications.forEach(function(n){
+      var exists = _notifications.find(function(x){ return x.id === 'pn_'+n.id; });
+      if(!exists){
+        _notifications.unshift({
+          id: 'pn_'+n.id,
+          msg: (n.title ? '**'+n.title+'**\n' : '')+n.body,
+          type: n.type||'message',
+          time: n.created_at, read: false
+        });
+        if(!n.read) newCount++;
+      }
+    });
+    // Clear pending after loading
+    S._pending_notifications = [];
+    try{ localStorage.setItem(userKey(), JSON.stringify(S)); }catch(e){}
+    if(newCount > 0){
+      _saveNotifications(); _updateNotifBell();
+      if(typeof toast === 'function') toast('💬 لديك '+newCount+' رسالة جديدة من الإدارة');
+    }
+  }
+  
+  // METHOD 2: user_notifications table (if exists)
   if(_notifTableExists === false) return;
-  // Check table exists first (silent)
   if(_notifTableExists === null) {
     const exists = await _checkNotifTableExists();
     if(!exists) return;
@@ -14418,7 +15063,7 @@ async function _loadServerNotifications(){
     }
     _notifTableExists = true;
     if(res.data && res.data.length){
-      var newCount = 0;
+      var newCount2 = 0;
       res.data.forEach(function(n){
         var exists = _notifications.find(function(x){ return x.id === 'srv_'+n.id; });
         if(!exists){
@@ -14428,13 +15073,12 @@ async function _loadServerNotifications(){
             type: n.type==='broadcast'?'message':n.type||'message',
             time: n.created_at, read: false
           });
-          if(!n.read) newCount++;
+          if(!n.read) newCount2++;
         }
       });
-      if(newCount > 0) {
-        _saveNotifications();
-        _updateNotifBell();
-        if(typeof toast === 'function') toast('💬 لديك '+newCount+' رسالة جديدة من الإدارة');
+      if(newCount2 > 0) {
+        _saveNotifications(); _updateNotifBell();
+        if(typeof toast === 'function') toast('💬 لديك '+newCount2+' رسالة جديدة من الإدارة');
       }
     }
   } catch(e){ _notifTableExists = false; }
@@ -17062,4 +17706,3 @@ function _showTrackingShareModal(t){
 </div>
 
 </body></html>
-  
