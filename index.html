@@ -3331,7 +3331,7 @@ setTimeout(window._showApp, 4000);
   <div id="svc-orders-table-wrap" style="display:none">
     <div id="svc-orders-table"></div>
   </div>
-</div>
+</div><!-- end page-services -->
 
 </div><!-- end app-body -->
 </div><!-- end app-shell -->
@@ -8517,6 +8517,11 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   setTimeout(function(){ if(typeof window.renderServices==='function') window.renderServices(); }, 500);
 
   // ── فحص عضوية الفريق: هل هذا المستخدم مضاف كعضو في فريق شخص آخر؟ ──
+  // Store email in S for team membership search by others
+  if(supaUser.email && typeof S !== 'undefined'){
+    S._user_email = supaUser.email.toLowerCase().trim();
+    cloudSave(S);
+  }
   _checkTeamMembership(supaUser.email || userObj.email);
 
   // إخفاء اللوجين وإظهار التطبيق
@@ -10366,28 +10371,39 @@ function saveTeam(){
         const {data:authUsers} = await supa.from('profiles').select('id,email').eq('email',email).maybeSingle().catch(()=>({data:null}));
         let targetUserId = authUsers?.id;
         if(!targetUserId){
-          // Search within studio_data settings email
+          // Search within studio_data settings email OR _user_email field
           for(const row of rows){
             try {
               const ud = typeof row.data==='string' ? JSON.parse(row.data) : row.data;
-              if(ud?.settings?.email && ud.settings.email.toLowerCase().trim()===email){ targetUserId=row.user_id; break; }
+              const storedEmail = (ud?.settings?.email||ud?._user_email||'').toLowerCase().trim();
+              if(storedEmail && storedEmail===email){ targetUserId=row.user_id; break; }
             } catch(e){}
           }
         }
-        if(!targetUserId) return;
-        const targetRow = rows.find(r=>r.user_id===targetUserId);
-        if(!targetRow) return;
+        if(!targetUserId){
+          console.warn('Team notify: لم يتم العثور على المستخدم بالإيميل:', email);
+          return;
+        }
+        // Find or create the target row
+        let targetRow = rows.find(r=>r.user_id===targetUserId);
         let ud = null;
-        try{ ud = typeof targetRow.data==='string' ? JSON.parse(targetRow.data) : targetRow.data; }catch(e){ return; }
-        if(!ud) return;
+        if(targetRow){
+          try{ ud = typeof targetRow.data==='string' ? JSON.parse(targetRow.data) : targetRow.data; }catch(e){}
+        }
+        if(!ud) ud = {};
         ud._pending_notifications = ud._pending_notifications||[];
+        // Avoid duplicate notifications for same team
+        const alreadyNotified = ud._pending_notifications.find(function(n){ return n.type==='team' && n.body && n.body.includes('"'+name+'"'); });
+        if(alreadyNotified) return;
         const ownerName = (S.settings&&S.settings.name)||'مشرف';
         ud._pending_notifications.push({
-          id: Date.now(), title: '👥 تمت إضافتك لفريق!',
+          id: Date.now()+'_'+Math.random().toString(36).slice(2,7),
+          title: '👥 تمت إضافتك لفريق!',
           body: 'تمت إضافتك كـ '+m.role+' في فريق "'+name+'" — '+ownerName,
           type: 'team', created_at: new Date().toISOString(), read: false
         });
         await supa.from('studio_data').update({data:JSON.stringify(ud),updated_at:new Date().toISOString()}).eq('user_id',targetUserId);
+        console.log('Team notify: ✅ إشعار أُرسل إلى', email);
       } catch(e){ console.warn('Team notify error:',e); }
     });
   }
@@ -13954,10 +13970,14 @@ function incReceiptClear(){
             await supa.from('studio_data').update({data:JSON.stringify(ud),updated_at:new Date().toISOString()}).eq('user_id',_supaUserId);
           }
         }
-        // Re-check team memberships (tasks might have changed)
-        if(window._myTeamMemberships && window._myTeamMemberships.length){
-          var anyChanged = false;
-          // quick check: just re-run membership check
+        // Re-check team memberships (tasks might have changed + new invites)
+        var _currentUserEmail = null;
+        try {
+          var _sess = JSON.parse(localStorage.getItem('studioOS_auth_v1')||'{}');
+          _currentUserEmail = _sess && _sess.email ? _sess.email : null;
+        } catch(e){}
+        if(_currentUserEmail && typeof window._checkTeamMembership === 'function'){
+          window._checkTeamMembership(_currentUserEmail);
         }
       } catch(e){}
     }
