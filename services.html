@@ -3,492 +3,380 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>خدماتنا</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --surface2: #1c1c28;
-    --border: rgba(255,255,255,.08);
-    --text: #f0f0f5;
-    --text2: #a0a0b8;
-    --text3: #5a5a72;
-    --accent: #7c6ff7;
-    --accent2: #f9c846;
-    --accent3: #4fd1a5;
-    --accent4: #f76f7c;
-    --grad: linear-gradient(135deg, #7c6ff7 0%, #4fd1a5 100%);
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: 'Cairo', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+:root {
+  --bg      : #0a0a0f;
+  --surface : #13131a;
+  --surface2: #1c1c28;
+  --surface3: #25253a;
+  --border  : rgba(255,255,255,.08);
+  --text    : #f0f0f5;
+  --text2   : #a0a0b8;
+  --text3   : #5a5a72;
+  --accent  : #7c6ff7;
+  --accent2 : #f9c846;
+  --accent3 : #4fd1a5;
+  --accent4 : #f76f7c;
+  --font    : 'Cairo', sans-serif;
+  --radius  : 16px;
+}
+*{ margin:0; padding:0; box-sizing:border-box; }
+html{ scroll-behavior:smooth; }
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+body::before{
+  content:'';
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 15%, rgba(124,111,247,.13) 0%,transparent 70%),
+    radial-gradient(ellipse 50% 35% at 80% 80%, rgba(79,209,165,.09) 0%,transparent 70%),
+    radial-gradient(ellipse 40% 30% at 60% 5%,  rgba(249,200,70,.06)  0%,transparent 70%);
+}
 
-  /* ── Background mesh ── */
-  body::before {
-    content: '';
-    position: fixed; inset: 0; z-index: 0;
-    background:
-      radial-gradient(ellipse 60% 40% at 20% 20%, rgba(124,111,247,.12) 0%, transparent 70%),
-      radial-gradient(ellipse 50% 35% at 80% 80%, rgba(79,209,165,.08) 0%, transparent 70%),
-      radial-gradient(ellipse 40% 30% at 60% 10%, rgba(249,200,70,.05) 0%, transparent 70%);
-    pointer-events: none;
-  }
+/* ── LOADER ── */
+#loader{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  transition:opacity .5s;
+}
+#loader.gone{ opacity:0;pointer-events:none; }
+.spin{
+  width:46px;height:46px;
+  border:3px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-  /* ── Loader ── */
-  #loader {
-    position: fixed; inset: 0; z-index: 1000;
-    background: var(--bg);
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
-    transition: opacity .5s;
-  }
-  #loader.hidden { opacity: 0; pointer-events: none; }
-  .loader-ring {
-    width: 48px; height: 48px;
-    border: 3px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin .8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* ── ERROR / EMPTY ── */
+#error-wrap,#empty-wrap{
+  position:fixed;inset:0;z-index:990;background:var(--bg);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:40px;gap:14px;
+}
+#error-wrap.show,#empty-wrap.show{ display:flex; }
 
-  /* ── Error / Empty ── */
-  #error-page, #empty-page {
-    position: fixed; inset: 0; z-index: 999;
-    background: var(--bg);
-    display: none; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; padding: 30px;
-  }
-  #error-page.show, #empty-page.show { display: flex; }
-  .error-icon { font-size: 64px; margin-bottom: 20px; }
-  .error-title { font-size: 22px; font-weight: 900; margin-bottom: 8px; }
-  .error-sub { font-size: 14px; color: var(--text3); }
+/* ── APP ── */
+#app{ position:relative;z-index:1;display:none;min-height:100vh; }
+#app.show{ display:block; }
 
-  /* ── Main app wrapper ── */
-  #app { position: relative; z-index: 1; display: none; min-height: 100vh; }
-  #app.show { display: block; }
+/* ── HERO ── */
+.hero{
+  padding:40px 20px 28px;
+  text-align:center;
+  position:relative;
+}
+.brand-logo{
+  width:76px;height:76px;border-radius:22px;object-fit:cover;
+  margin:0 auto 16px;display:block;
+  border:2.5px solid rgba(124,111,247,.4);
+  box-shadow:0 8px 32px rgba(124,111,247,.25);
+}
+.brand-logo-ph{
+  width:76px;height:76px;border-radius:22px;
+  background:linear-gradient(135deg,var(--accent),var(--accent3));
+  margin:0 auto 16px;display:flex;align-items:center;justify-content:center;
+  font-size:34px;
+  box-shadow:0 8px 32px rgba(124,111,247,.25);
+}
+.brand-name{
+  font-size:26px;font-weight:900;
+  background:linear-gradient(135deg,var(--accent),var(--accent3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;margin-bottom:6px;
+}
+.brand-tagline{ font-size:13px;color:var(--text2); }
+.live-badge{
+  display:inline-flex;align-items:center;gap:7px;
+  margin-top:14px;padding:6px 16px;
+  background:rgba(79,209,165,.1);border:1px solid rgba(79,209,165,.25);
+  border-radius:20px;font-size:12px;color:var(--accent3);font-weight:700;
+}
+.live-badge::before{
+  content:'';width:7px;height:7px;
+  background:var(--accent3);border-radius:50%;
+  animation:pulse 1.5s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+#hero-socials{
+  display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px;
+}
 
-  /* ── HEADER ── */
-  .hero {
-    padding: 40px 20px 32px;
-    text-align: center;
-    position: relative;
-  }
-  .studio-logo {
-    width: 72px; height: 72px;
-    border-radius: 20px;
-    object-fit: cover;
-    margin: 0 auto 16px;
-    display: block;
-    border: 2.5px solid rgba(124,111,247,.4);
-    box-shadow: 0 8px 32px rgba(124,111,247,.25);
-  }
-  .studio-logo-placeholder {
-    width: 72px; height: 72px;
-    border-radius: 20px;
-    background: var(--grad);
-    margin: 0 auto 16px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 32px;
-    box-shadow: 0 8px 32px rgba(124,111,247,.25);
-  }
-  .studio-name {
-    font-size: 26px; font-weight: 900;
-    background: var(--grad);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 6px;
-  }
-  .studio-tagline {
-    font-size: 14px; color: var(--text2);
-  }
-  .hero-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    margin-top: 14px;
-    padding: 6px 14px;
-    background: rgba(79,209,165,.1);
-    border: 1px solid rgba(79,209,165,.25);
-    border-radius: 20px;
-    font-size: 12px; color: var(--accent3); font-weight: 700;
-  }
-  .hero-badge::before { content: ''; width: 7px; height: 7px; background: var(--accent3); border-radius: 50%; animation: pulse 1.5s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+/* ── TABS ── */
+.tabs-bar{
+  display:flex;max-width:600px;margin:0 auto 22px;padding:0 16px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;
+}
+.tab-btn{
+  flex:1;padding:12px 8px;background:none;border:none;
+  color:var(--text3);font-family:var(--font);
+  font-size:13px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  border-radius:10px;margin:4px;transition:all .2s;
+}
+.tab-btn.active{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(124,111,247,.4);}
+.tab-btn:hover:not(.active){color:var(--text);background:var(--surface2);}
 
-  /* ── TABS ── */
-  .tabs-bar {
-    display: flex;
-    gap: 0;
-    max-width: 600px;
-    margin: 0 auto 24px;
-    padding: 0 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
-  }
-  .tab-btn {
-    flex: 1;
-    padding: 12px 8px;
-    background: none;
-    border: none;
-    color: var(--text3);
-    font-family: 'Cairo', sans-serif;
-    font-size: 13px; font-weight: 700;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    transition: all .2s;
-    border-radius: 10px;
-    margin: 4px;
-  }
-  .tab-btn.active {
-    background: var(--accent);
-    color: #fff;
-    box-shadow: 0 4px 16px rgba(124,111,247,.4);
-  }
-  .tab-btn:hover:not(.active) { color: var(--text); background: var(--surface2); }
+/* ── PANELS ── */
+.panel{ display:none;padding:0 16px 60px;max-width:720px;margin:0 auto; }
+.panel.active{ display:block; }
 
-  /* ── TAB PANELS ── */
-  .tab-panel { display: none; padding: 0 16px 40px; max-width: 700px; margin: 0 auto; }
-  .tab-panel.active { display: block; }
+/* ── PROMO BANNER ── */
+#promo-banner{
+  border-radius:16px;overflow:hidden;margin-bottom:18px;
+  box-shadow:0 4px 24px rgba(0,0,0,.3);
+}
+#promo-banner img{ width:100%;height:auto;display:block;max-height:160px;object-fit:cover; }
 
-  /* ── SERVICE CARDS ── */
-  .services-grid {
-    display: flex; flex-direction: column; gap: 16px;
-  }
-  .svc-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    overflow: hidden;
-    transition: transform .2s, border-color .2s, box-shadow .2s;
-    cursor: pointer;
-  }
-  .svc-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(124,111,247,.35);
-    box-shadow: 0 8px 30px rgba(124,111,247,.12);
-  }
-  .svc-card-img {
-    width: 100%; height: 180px;
-    object-fit: cover;
-    display: block;
-  }
-  .svc-card-img-placeholder {
-    width: 100%; height: 120px;
-    background: linear-gradient(135deg, var(--surface2), var(--surface));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 40px;
-  }
-  .svc-card-body { padding: 16px; }
-  .svc-card-head {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    margin-bottom: 8px;
-  }
-  .svc-card-name { font-size: 16px; font-weight: 800; }
-  .svc-card-price {
-    font-size: 18px; font-weight: 900;
-    color: var(--accent);
-    white-space: nowrap;
-    text-align: left;
-  }
-  .svc-card-price-unit {
-    font-size: 11px; color: var(--text3); font-weight: 500;
-    display: block;
-  }
-  .svc-card-desc { font-size: 12px; color: var(--text2); line-height: 1.7; margin-bottom: 12px; }
-  .svc-card-packages {
-    display: flex; flex-direction: column; gap: 8px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border);
-  }
-  .svc-card-packages-title { font-size: 11px; color: var(--text3); font-weight: 700; margin-bottom: 4px; }
-  .pkg-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 12px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: border-color .15s;
-  }
-  .pkg-row:hover { border-color: rgba(124,111,247,.4); }
-  .pkg-row-img {
-    width: 44px; height: 44px;
-    border-radius: 8px; object-fit: cover; flex-shrink: 0;
-  }
-  .pkg-row-img-ph {
-    width: 44px; height: 44px;
-    border-radius: 8px; background: var(--surface);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px; flex-shrink: 0;
-  }
-  .pkg-row-info { flex: 1; }
-  .pkg-row-name { font-size: 13px; font-weight: 700; }
-  .pkg-row-items { font-size: 11px; color: var(--text3); margin-top: 2px; }
-  .pkg-row-price {
-    font-size: 15px; font-weight: 900;
-    color: var(--accent3);
-    white-space: nowrap;
-  }
+/* ── SERVICES GRID ── */
+.svc-grid{ display:flex;flex-direction:column;gap:14px; }
 
-  .order-btn {
-    width: 100%;
-    padding: 12px;
-    background: var(--grad);
-    border: none;
-    border-radius: 12px;
-    color: #fff;
-    font-family: 'Cairo', sans-serif;
-    font-size: 14px; font-weight: 700;
-    cursor: pointer;
-    margin-top: 14px;
-    transition: opacity .2s, transform .15s;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-  }
-  .order-btn:hover { opacity: .9; transform: scale(.99); }
+.svc-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;
+  transition:transform .2s,border-color .2s,box-shadow .2s;
+  cursor:pointer;
+}
+.svc-card:hover{
+  transform:translateY(-3px);
+  border-color:rgba(124,111,247,.35);
+  box-shadow:0 10px 36px rgba(124,111,247,.14);
+}
+.svc-card-img{
+  width:100%;height:190px;object-fit:cover;display:block;
+}
+.svc-card-img-ph{
+  width:100%;height:90px;
+  background:linear-gradient(135deg,var(--surface2),var(--surface3));
+  display:flex;align-items:center;justify-content:center;font-size:44px;
+}
+.svc-body{ padding:18px; }
+.svc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.svc-name{font-size:16px;font-weight:800;line-height:1.4;}
+.svc-price{font-size:19px;font-weight:900;color:var(--accent);text-align:left;white-space:nowrap;}
+.svc-unit{font-size:10px;color:var(--text3);font-weight:500;display:block;text-align:left;}
+.svc-desc{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px;}
+.svc-badges{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;}
+.badge-purple{background:rgba(124,111,247,.12);color:var(--accent);}
+.badge-green{background:rgba(79,209,165,.12);color:var(--accent3);}
 
-  /* ── ORDER PANEL ── */
-  #order-panel {
-    display: none;
-  }
-  #order-panel.active { display: block; }
-  .order-header {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 20px;
-    margin-bottom: 16px;
-  }
-  .order-header-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
-  .order-header-svc {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 14px;
-    background: rgba(124,111,247,.08);
-    border: 1px solid rgba(124,111,247,.2);
-    border-radius: 10px;
-  }
-  .order-header-svc-icon { font-size: 20px; }
-  .order-header-svc-name { font-size: 13px; font-weight: 700; flex: 1; }
-  .order-header-svc-price { font-size: 15px; font-weight: 900; color: var(--accent); }
+/* ── PACKAGES ── */
+.pkgs-section{
+  margin-top:14px;padding-top:14px;border-top:1px solid var(--border);
+}
+.pkgs-title{font-size:11px;color:var(--text3);font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
+.pkg-row{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:12px;cursor:pointer;transition:border-color .15s;
+  margin-bottom:8px;
+}
+.pkg-row:hover{border-color:rgba(124,111,247,.4);}
+.pkg-row:last-child{margin-bottom:0;}
+.pkg-img{width:46px;height:46px;border-radius:10px;object-fit:cover;flex-shrink:0;}
+.pkg-img-ph{width:46px;height:46px;border-radius:10px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.pkg-info{flex:1;}
+.pkg-name{font-size:13px;font-weight:700;margin-bottom:2px;}
+.pkg-items{font-size:11px;color:var(--text3);}
+.pkg-price{font-size:16px;font-weight:900;color:var(--accent3);white-space:nowrap;}
 
-  .form-label { font-size: 12px; font-weight: 700; color: var(--text2); margin-bottom: 6px; display: block; }
-  .form-input {
-    width: 100%; padding: 12px 14px;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    font-family: 'Cairo', sans-serif;
-    font-size: 14px;
-    outline: none;
-    transition: border-color .15s;
-  }
-  .form-input:focus { border-color: var(--accent); }
-  .form-input::placeholder { color: var(--text3); }
-  textarea.form-input { resize: vertical; min-height: 80px; }
-  .form-group { margin-bottom: 14px; }
+.order-btn{
+  width:100%;padding:13px;
+  background:linear-gradient(135deg,var(--accent),var(--accent3));
+  border:none;border-radius:12px;color:#fff;
+  font-family:var(--font);font-size:14px;font-weight:700;
+  cursor:pointer;margin-top:14px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity .2s,transform .15s;
+}
+.order-btn:hover{opacity:.9;transform:scale(.99);}
 
-  .submit-btn {
-    width: 100%;
-    padding: 15px;
-    background: var(--grad);
-    border: none;
-    border-radius: 14px;
-    color: #fff;
-    font-family: 'Cairo', sans-serif;
-    font-size: 16px; font-weight: 900;
-    cursor: pointer;
-    transition: opacity .2s, transform .15s;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    margin-top: 20px;
-  }
-  .submit-btn:hover { opacity: .9; transform: scale(.99); }
-  .submit-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+/* ── ORDER PANEL ── */
+.select-first{
+  background:var(--surface);border:1.5px dashed var(--border);
+  border-radius:16px;padding:32px 20px;text-align:center;color:var(--text3);
+}
+.sel-icon{font-size:40px;margin-bottom:12px;}
 
-  .select-first {
-    background: var(--surface);
-    border: 1px dashed var(--border);
-    border-radius: 14px;
-    padding: 28px 20px;
-    text-align: center;
-    color: var(--text3);
-  }
-  .select-first-icon { font-size: 36px; margin-bottom: 10px; }
+.order-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px;margin-bottom:16px;
+}
+.order-card-title{font-size:13px;font-weight:700;margin-bottom:10px;}
+.svc-pill{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;background:rgba(124,111,247,.08);
+  border:1px solid rgba(124,111,247,.2);border-radius:12px;
+}
+.svc-pill-name{font-size:13px;font-weight:700;flex:1;}
+.svc-pill-price{font-size:16px;font-weight:900;color:var(--accent);}
+.change-link{
+  text-align:center;margin-top:8px;font-size:11px;color:var(--text3);
+  cursor:pointer;transition:.15s;
+}
+.change-link:hover{color:var(--accent);}
 
-  /* ── ABOUT TAB ── */
-  .about-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 24px;
-    text-align: center;
-    margin-bottom: 14px;
-  }
-  .about-logo {
-    width: 80px; height: 80px;
-    border-radius: 20px;
-    margin: 0 auto 16px;
-    display: block;
-    object-fit: cover;
-  }
-  .about-logo-ph {
-    width: 80px; height: 80px;
-    border-radius: 20px;
-    background: var(--grad);
-    margin: 0 auto 16px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 36px;
-  }
-  .about-name { font-size: 22px; font-weight: 900; margin-bottom: 8px; }
-  .about-desc { font-size: 13px; color: var(--text2); line-height: 1.8; }
-  .contact-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 14px 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-bottom: 8px;
-    text-decoration: none;
-    color: var(--text);
-    transition: border-color .15s;
-  }
-  .contact-row:hover { border-color: rgba(124,111,247,.35); }
-  .contact-icon { font-size: 20px; }
-  .contact-label { font-size: 12px; color: var(--text3); }
-  .contact-value { font-size: 13px; font-weight: 700; }
+.form-group{margin-bottom:14px;}
+.form-label{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;display:block;}
+.form-input{
+  width:100%;padding:13px 14px;
+  background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:12px;color:var(--text);
+  font-family:var(--font);font-size:14px;outline:none;
+  transition:border-color .15s;
+}
+.form-input:focus{border-color:var(--accent);}
+.form-input::placeholder{color:var(--text3);}
+textarea.form-input{resize:vertical;min-height:84px;}
 
-  /* ── SUCCESS SCREEN ── */
-  #success-screen {
-    display: none;
-    position: fixed; inset: 0; z-index: 500;
-    background: var(--bg);
-    flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; padding: 30px;
-  }
-  #success-screen.show { display: flex; }
-  .success-icon {
-    font-size: 80px;
-    margin-bottom: 20px;
-    animation: bounceIn .6s cubic-bezier(.3,1.5,.5,1);
-  }
-  @keyframes bounceIn { 0%{transform:scale(0);opacity:0} 100%{transform:scale(1);opacity:1} }
-  .success-title { font-size: 26px; font-weight: 900; color: var(--accent3); margin-bottom: 10px; }
-  .success-sub { font-size: 14px; color: var(--text2); line-height: 1.7; }
+.submit-btn{
+  width:100%;padding:16px;
+  background:linear-gradient(135deg,var(--accent),var(--accent3));
+  border:none;border-radius:14px;color:#fff;
+  font-family:var(--font);font-size:16px;font-weight:900;
+  cursor:pointer;margin-top:20px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity .2s,transform .15s;
+}
+.submit-btn:hover{opacity:.9;transform:scale(.99);}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
 
-  /* ── Animations ── */
-  @keyframes fadeUp { 0%{opacity:0;transform:translateY(20px)} 100%{opacity:1;transform:translateY(0)} }
-  .fade-up { animation: fadeUp .4s ease both; }
-  .delay-1 { animation-delay: .05s; }
-  .delay-2 { animation-delay: .1s; }
-  .delay-3 { animation-delay: .15s; }
-  .delay-4 { animation-delay: .2s; }
+/* ── ABOUT PANEL ── */
+.about-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:26px;text-align:center;margin-bottom:14px;
+}
+.about-logo{width:84px;height:84px;border-radius:20px;object-fit:cover;margin:0 auto 16px;display:block;}
+.about-logo-ph{width:84px;height:84px;border-radius:20px;background:linear-gradient(135deg,var(--accent),var(--accent3));margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:38px;}
+.about-name{font-size:22px;font-weight:900;margin-bottom:8px;}
+.about-desc{font-size:13px;color:var(--text2);line-height:1.8;}
+.contact-row{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;background:var(--surface);
+  border:1px solid var(--border);border-radius:12px;
+  margin-bottom:8px;text-decoration:none;color:var(--text);
+  transition:border-color .15s;
+}
+.contact-row:hover{border-color:rgba(124,111,247,.35);}
+.contact-icon{font-size:22px;}
+.contact-label{font-size:11px;color:var(--text3);}
+.contact-val{font-size:13px;font-weight:700;}
 
-  /* ── Notification bar ── */
-  #notif-bar {
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 30px;
-    padding: 10px 20px;
-    font-size: 13px; font-weight: 700;
-    z-index: 9999;
-    opacity: 0; pointer-events: none;
-    transition: opacity .3s;
-    white-space: nowrap;
-    box-shadow: 0 8px 30px rgba(0,0,0,.4);
-  }
-  #notif-bar.show { opacity: 1; }
+/* ── SUCCESS ── */
+#success-wrap{
+  display:none;position:fixed;inset:0;z-index:500;
+  background:var(--bg);flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:40px;
+}
+#success-wrap.show{display:flex;}
+.success-icon{font-size:84px;margin-bottom:20px;animation:bounceIn .6s cubic-bezier(.3,1.5,.5,1);}
+@keyframes bounceIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+.success-title{font-size:26px;font-weight:900;color:var(--accent3);margin-bottom:10px;}
+.success-sub{font-size:14px;color:var(--text2);line-height:1.8;}
+
+/* ── TOAST ── */
+#toast-bar{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:30px;padding:10px 22px;
+  font-size:13px;font-weight:700;z-index:9999;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+  white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.4);
+  max-width:calc(100vw - 40px);
+}
+#toast-bar.show{opacity:1;}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .4s ease both;}
+.d1{animation-delay:.06s;}
+.d2{animation-delay:.12s;}
+.d3{animation-delay:.18s;}
 </style>
 </head>
 <body>
 
-<!-- Loader -->
+<!-- ── LOADER ── -->
 <div id="loader">
-  <div class="loader-ring"></div>
+  <div class="spin"></div>
   <div style="font-size:13px;color:var(--text3)">جاري التحميل...</div>
 </div>
 
-<!-- Error page -->
-<div id="error-page">
-  <div class="error-icon">🔒</div>
-  <div class="error-title">الرابط غير صالح</div>
-  <div class="error-sub">تحقق من صحة الرابط أو تواصل مع من أرسله لك</div>
+<!-- ── ERROR ── -->
+<div id="error-wrap">
+  <div style="font-size:64px;margin-bottom:16px">🔒</div>
+  <div style="font-size:22px;font-weight:900;margin-bottom:8px">الرابط غير صالح</div>
+  <div style="font-size:13px;color:var(--text3)">تحقق من صحة الرابط أو تواصل مع من أرسله لك</div>
 </div>
 
-<!-- Empty page -->
-<div id="empty-page">
-  <div class="error-icon">🛍</div>
-  <div class="error-title">لا خدمات متاحة حالياً</div>
-  <div class="error-sub">سيتم إضافة الخدمات قريباً — تواصل معنا للاستفسار</div>
-</div>
-
-<!-- Success screen -->
-<div id="success-screen">
-  <div class="success-icon">✅</div>
+<!-- ── SUCCESS ── -->
+<div id="success-wrap">
+  <div class="success-icon">🎉</div>
   <div class="success-title">تم إرسال طلبك!</div>
-  <div class="success-sub">شكراً لك 🙏<br>سيتواصل معك الفريق على واتساب في أقرب وقت</div>
+  <div class="success-sub">شكراً لك 🙏<br>سيتواصل معك الفريق في أقرب وقت</div>
 </div>
 
-<!-- Main App -->
+<!-- ── MAIN APP ── -->
 <div id="app">
+
   <!-- Hero -->
-  <div class="hero fade-up">
-    <div id="studio-logo-wrap"></div>
-    <div class="studio-name" id="studio-name-el">الاستوديو</div>
-    <div class="studio-tagline" id="studio-tagline-el">اختر الخدمة التي تحتاجها</div>
-    <div class="hero-badge">متاح الآن للطلب</div>
+  <div class="hero fu">
+    <div id="logo-wrap"></div>
+    <div class="brand-name" id="brand-name-el">—</div>
+    <div class="brand-tagline" id="brand-tagline-el">اختر الخدمة التي تحتاجها</div>
+    <div class="live-badge">متاح الآن للطلب</div>
+    <div id="hero-socials"></div>
   </div>
 
   <!-- Tabs -->
-  <div class="tabs-bar fade-up delay-1">
-    <button class="tab-btn active" onclick="switchTab('services')" id="tab-services">
-      🛍 الخدمات
-    </button>
-    <button class="tab-btn" onclick="switchTab('order')" id="tab-order">
-      📝 اطلب الآن
-    </button>
-    <button class="tab-btn" onclick="switchTab('about')" id="tab-about">
-      ℹ️ من نحن
-    </button>
+  <div class="tabs-bar fu d1">
+    <button class="tab-btn active" onclick="switchTab('services')" id="tab-services">🛍 الخدمات</button>
+    <button class="tab-btn" onclick="switchTab('order')"    id="tab-order">📝 اطلب الآن</button>
+    <button class="tab-btn" onclick="switchTab('about')"    id="tab-about">ℹ️ من نحن</button>
   </div>
 
-  <!-- Services Tab -->
-  <div class="tab-panel active" id="panel-services">
-    <div class="services-grid fade-up delay-2" id="services-grid"></div>
+  <!-- SERVICES PANEL -->
+  <div class="panel active" id="panel-services">
+    <div id="promo-banner" style="display:none"></div>
+    <div class="svc-grid fu d2" id="services-grid"></div>
   </div>
 
-  <!-- Order Tab -->
-  <div class="tab-panel" id="panel-order">
-    <div id="selected-svc-display" class="select-first fade-up">
-      <div class="select-first-icon">👆</div>
-      <div style="font-size:14px;font-weight:700;margin-bottom:6px">اختر خدمة أولاً</div>
+  <!-- ORDER PANEL -->
+  <div class="panel" id="panel-order">
+    <!-- Show when no service selected -->
+    <div id="svc-not-selected" class="select-first fu">
+      <div class="sel-icon">👆</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px">اختر خدمة أولاً</div>
       <div style="font-size:12px">اذهب لتبويب الخدمات واختر ما تحتاجه</div>
     </div>
 
+    <!-- Order form (hidden until service selected) -->
     <div id="order-form-wrap" style="display:none">
-      <div class="order-header fade-up">
-        <div class="order-header-title">📋 تفاصيل طلبك</div>
-        <div class="order-header-svc">
-          <span class="order-header-svc-icon">🛍</span>
-          <span class="order-header-svc-name" id="order-svc-name">—</span>
-          <span class="order-header-svc-price" id="order-svc-price">—</span>
+      <div class="order-card fu">
+        <div class="order-card-title">📋 تفاصيل طلبك</div>
+        <div class="svc-pill">
+          <span style="font-size:20px">🛍</span>
+          <span class="svc-pill-name" id="ord-svc-name">—</span>
+          <span class="svc-pill-price" id="ord-svc-price">—</span>
         </div>
-        <div style="margin-top:10px;font-size:11px;color:var(--text3);text-align:center;cursor:pointer" onclick="switchTab('services')">
-          🔄 تغيير الخدمة
-        </div>
+        <div class="change-link" onclick="switchTab('services')">🔄 تغيير الخدمة</div>
       </div>
 
-      <div class="fade-up delay-1">
+      <div class="fu d1">
         <div class="form-group">
           <label class="form-label">اسمك الكريم *</label>
           <input class="form-input" id="ord-name" placeholder="أدخل اسمك الكامل">
@@ -498,12 +386,12 @@
           <input class="form-input" id="ord-phone" placeholder="01xxxxxxxxx" type="tel">
         </div>
         <div class="form-group">
-          <label class="form-label">البريد الإلكتروني <span style="font-weight:400;color:var(--text3)">(اختياري)</span></label>
+          <label class="form-label">البريد الإلكتروني <span style="color:var(--text3);font-weight:400">(اختياري)</span></label>
           <input class="form-input" id="ord-email" placeholder="example@email.com" type="email">
         </div>
         <div class="form-group">
           <label class="form-label">وصف طلبك</label>
-          <textarea class="form-input" id="ord-desc" placeholder="اشرح ما تحتاجه بالتفصيل، وأي تفاصيل إضافية..."></textarea>
+          <textarea class="form-input" id="ord-desc" placeholder="اشرح ما تحتاجه بالتفصيل..."></textarea>
         </div>
         <button class="submit-btn" onclick="submitOrder()" id="submit-btn">
           <span>✅</span> إرسال الطلب
@@ -512,279 +400,299 @@
     </div>
   </div>
 
-  <!-- About Tab -->
-  <div class="tab-panel" id="panel-about">
-    <div class="about-card fade-up">
+  <!-- ABOUT PANEL -->
+  <div class="panel" id="panel-about">
+    <div class="about-card fu">
       <div id="about-logo-wrap"></div>
-      <div class="about-name" id="about-name">الاستوديو</div>
-      <div class="about-desc" id="about-desc">نقدم أفضل الخدمات الإبداعية لمساعدتك في تحقيق أهدافك.</div>
+      <div class="about-name" id="about-name-el">—</div>
+      <div class="about-desc" id="about-desc-el">نقدم أفضل الخدمات لمساعدتك في تحقيق أهدافك.</div>
     </div>
-    <div id="contact-links"></div>
+    <div id="contact-links-wrap"></div>
   </div>
-</div>
 
-<!-- Notification bar -->
-<div id="notif-bar"></div>
+</div><!-- /app -->
+
+<!-- TOAST -->
+<div id="toast-bar"></div>
 
 <script>
-// ── CONFIG ──
+// ════════════════════════════════════════════
+//  CONFIG — same Supabase as main app
+// ════════════════════════════════════════════
 const SUPA_URL  = 'https://mpfmcjgigpvdxbhgzufo.supabase.co';
 const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wZm1jamdpZ3B2ZHhiaGd6dWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2Mjc3MzMsImV4cCI6MjA4ODIwMzczM30.fICNxH_7DEBHripIoyMcUugTnd4JEBx-ypegpPvb6PM';
 const supa = supabase.createClient(SUPA_URL, SUPA_ANON);
 
-let _userId = null;
+// ── State ──
+let _userId   = null;
 let _userData = null;
-let _selectedService = null;
-let _selectedPackage = null;
+let _selectedSvc = null; // { svcName, pkgName, price, svcId }
 
-// ── INIT ──
+function esc(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
+// ════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════
 window.addEventListener('load', async function(){
-  // Get user ID from URL
-  const params = new URLSearchParams(window.location.search);
-  _userId = params.get('u') || params.get('uid') || params.get('svcorder');
+  const p = new URLSearchParams(window.location.search);
+  _userId = p.get('u') || p.get('uid') || p.get('svcorder');
 
-  if(!_userId){
-    showError();
-    return;
-  }
+  if(!_userId){ showError('الرابط لا يحتوي على معرّف مستخدم'); return; }
 
   try {
     const { data, error } = await supa.from('studio_data').select('data').eq('user_id', _userId).single();
-    if(error || !data){ showError(); return; }
+    if(error || !data){ showError('لم يتم العثور على بيانات'); return; }
 
-    _userData = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
-    if(!_userData){ showError(); return; }
+    _userData = typeof data.data==='string' ? JSON.parse(data.data) : data.data;
+    if(!_userData){ showError('بيانات غير صالحة'); return; }
 
-    const services = _userData.services || [];
-    if(!services.length){ showEmpty(); return; }
-
-    initApp();
+    buildApp();
   } catch(e){
     console.error(e);
-    showError();
+    showError('حدث خطأ في الاتصال');
   }
 });
 
-function showError(){
-  document.getElementById('loader').classList.add('hidden');
-  document.getElementById('error-page').classList.add('show');
-}
-function showEmpty(){
-  document.getElementById('loader').classList.add('hidden');
-  // Still show app but with empty state
-  initApp();
+function showError(msg){
+  document.getElementById('loader').classList.add('gone');
+  var el = document.getElementById('error-wrap');
+  if(msg) el.querySelector('div:last-child').textContent = msg;
+  el.classList.add('show');
 }
 
-function initApp(){
-  document.getElementById('loader').classList.add('hidden');
-  document.getElementById('app').classList.add('show');
+// ════════════════════════════════════════════
+//  BUILD APP
+// ════════════════════════════════════════════
+function buildApp(){
+  document.getElementById('loader').classList.add('gone');
 
-  const s = _userData.settings || {};
-  const services = _userData.services || [];
+  var s = _userData.settings || {};
+  var services = _userData.services || [];
 
-  // ─── Apply user brand identity ───
-  var accent = s.accent || '#7c6ff7';
-  var root = document.documentElement;
-  root.style.setProperty('--accent', accent);
-  // Derive a lighter shade for header gradient
-  root.style.setProperty('--hero-grad', 'linear-gradient(135deg,'+accent+','+accent+'bb)');
+  // ── Apply brand color ──
+  if(s.accentColor){
+    document.documentElement.style.setProperty('--accent', s.accentColor);
+  }
 
-  // Studio name + logo
-  document.getElementById('studio-name-el').textContent = s.name || 'الاستوديو';
-  document.getElementById('about-name').textContent = s.name || 'الاستوديو';
-  document.title = (s.name || 'الاستوديو') + ' — الخدمات';
+  // ── Title ──
+  var bName = s.name || 'الاستوديو';
+  document.getElementById('brand-name-el').textContent    = bName;
+  document.getElementById('about-name-el').textContent    = bName;
+  document.getElementById('brand-tagline-el').textContent = s.tagline || 'اختر الخدمة التي تحتاجها';
+  document.title = bName + ' — الخدمات';
 
+  // ── Logo ──
   if(s.logo){
-    document.getElementById('studio-logo-wrap').innerHTML = '<img class="studio-logo" src="'+s.logo+'" alt="logo">';
-    document.getElementById('about-logo-wrap').innerHTML = '<img class="about-logo" src="'+s.logo+'" alt="logo">';
+    document.getElementById('logo-wrap').innerHTML       = '<img class="brand-logo" src="'+esc(s.logo)+'" alt="logo">';
+    document.getElementById('about-logo-wrap').innerHTML = '<img class="about-logo" src="'+esc(s.logo)+'" alt="logo">';
   } else {
-    document.getElementById('studio-logo-wrap').innerHTML = '<div class="studio-logo-placeholder">🎨</div>';
+    document.getElementById('logo-wrap').innerHTML       = '<div class="brand-logo-ph">🎨</div>';
     document.getElementById('about-logo-wrap').innerHTML = '<div class="about-logo-ph">🎨</div>';
   }
 
-  if(s.bio || s.desc){
-    document.getElementById('about-desc').textContent = s.bio || s.desc;
+  // ── Bio ──
+  if(s.bio || s.desc || s.address){
+    document.getElementById('about-desc-el').textContent = s.bio || s.desc || s.address;
   }
 
-  // ─── Promo Banner ───
+  // ── Promo banner ──
   if(s.svc_banner){
-    var bannerWrap = document.getElementById('promo-banner-wrap');
-    if(!bannerWrap){
-      bannerWrap = document.createElement('div');
-      bannerWrap.id = 'promo-banner-wrap';
-      bannerWrap.style.cssText = 'border-radius:14px;overflow:hidden;margin-bottom:16px;max-height:150px';
-      bannerWrap.innerHTML = '<img src="'+s.svc_banner+'" style="width:100%;height:150px;object-fit:cover;display:block">';
-      var panelSvc = document.getElementById('panel-services');
-      if(panelSvc) panelSvc.insertBefore(bannerWrap, panelSvc.firstChild);
-    }
+    var pb = document.getElementById('promo-banner');
+    pb.innerHTML = '<img src="'+esc(s.svc_banner)+'" alt="بانر">';
+    pb.style.display = '';
   }
 
-  // ─── Social links in hero ───
-  var SOCIAL_ICONS = {
-    instagram:{icon:'📸',label:'انستقرام'},facebook:{icon:'📘',label:'فيسبوك'},
-    tiktok:{icon:'🎵',label:'تيك توك'},youtube:{icon:'▶️',label:'يوتيوب'},
-    twitter:{icon:'🐦',label:'تويتر'},linkedin:{icon:'💼',label:'لينكدإن'},
-    whatsapp:{icon:'💬',label:'واتساب'},website:{icon:'🌐',label:'موقع ويب'},
-    behance:{icon:'🎨',label:'بيهانس'}
+  // ── Socials ──
+  var SICONS = {
+    instagram:{i:'📸',l:'انستقرام'}, facebook:{i:'📘',l:'فيسبوك'},
+    tiktok:{i:'🎵',l:'تيك توك'},    youtube:{i:'▶️',l:'يوتيوب'},
+    twitter:{i:'🐦',l:'تويتر'},     linkedin:{i:'💼',l:'لينكدإن'},
+    whatsapp:{i:'💬',l:'واتساب'},   website:{i:'🌐',l:'الموقع'},
+    behance:{i:'🎨',l:'بيهانس'},    snapchat:{i:'👻',l:'سناب شات'},
   };
   var socials = s.socials || [];
-  var heroSocialWrap = document.getElementById('hero-socials');
-  if(!heroSocialWrap){
-    heroSocialWrap = document.createElement('div');
-    heroSocialWrap.id = 'hero-socials';
-    heroSocialWrap.style.cssText = 'display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px';
-    var heroEl = document.querySelector('.hero-section');
-    if(heroEl) heroEl.appendChild(heroSocialWrap);
-  }
   if(socials.length){
-    heroSocialWrap.innerHTML = socials.map(function(sc){
-      var meta = SOCIAL_ICONS[sc.platform]||{icon:'🔗',label:sc.platform};
-      return '<a href="'+sc.url+'" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(255,255,255,.18);color:#fff;text-decoration:none;backdrop-filter:blur(4px);transition:.15s" onmouseover="this.style.background=\'rgba(255,255,255,.3)\'" onmouseout="this.style.background=\'rgba(255,255,255,.18)\'">'+meta.icon+' '+(sc.label||meta.label)+'</a>';
+    document.getElementById('hero-socials').innerHTML = socials.map(function(sc){
+      var m = SICONS[sc.platform]||{i:'🔗',l:sc.platform};
+      return '<a href="'+esc(sc.url)+'" target="_blank" rel="noopener"'
+        +' style="display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:20px;'
+        +'font-size:11px;font-weight:700;background:rgba(255,255,255,.1);color:var(--text);'
+        +'text-decoration:none;border:1px solid var(--border);transition:.15s"'
+        +' onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+        +m.i+' '+(sc.label||m.l)
+        +'</a>';
     }).join('');
   }
 
-  // Contact links
-  var contactHtml = '';
-  if(s.phone) contactHtml += '<a href="https://wa.me/'+s.phone.replace(/\D/g,'')+'" target="_blank" class="contact-row"><span class="contact-icon">📱</span><div><div class="contact-label">واتساب</div><div class="contact-value">'+s.phone+'</div></div></a>';
-  if(s.email) contactHtml += '<a href="mailto:'+s.email+'" class="contact-row"><span class="contact-icon">📧</span><div><div class="contact-label">البريد الإلكتروني</div><div class="contact-value">'+s.email+'</div></div></a>';
-  // Socials in about tab too
+  // ── Contact links ──
+  var cHtml = '';
+  if(s.phone) cHtml += '<a href="https://wa.me/'+s.phone.replace(/\D/g,'')+'" target="_blank" class="contact-row">'
+    +'<span class="contact-icon">📱</span>'
+    +'<div><div class="contact-label">واتساب</div><div class="contact-val">'+esc(s.phone)+'</div></div></a>';
+  if(s.email) cHtml += '<a href="mailto:'+esc(s.email)+'" class="contact-row">'
+    +'<span class="contact-icon">📧</span>'
+    +'<div><div class="contact-label">البريد الإلكتروني</div><div class="contact-val">'+esc(s.email)+'</div></div></a>';
   socials.forEach(function(sc){
-    var meta = SOCIAL_ICONS[sc.platform]||{icon:'🔗',label:sc.platform};
-    contactHtml += '<a href="'+sc.url+'" target="_blank" class="contact-row"><span class="contact-icon">'+meta.icon+'</span><div><div class="contact-label">'+( sc.label||meta.label)+'</div><div class="contact-value">'+sc.url+'</div></div></a>';
+    var m = SICONS[sc.platform]||{i:'🔗',l:sc.platform};
+    cHtml += '<a href="'+esc(sc.url)+'" target="_blank" rel="noopener" class="contact-row">'
+      +'<span class="contact-icon">'+m.i+'</span>'
+      +'<div><div class="contact-label">'+(sc.label||m.l)+'</div><div class="contact-val">'+esc(sc.url)+'</div></div></a>';
   });
-  document.getElementById('contact-links').innerHTML = contactHtml;
+  document.getElementById('contact-links-wrap').innerHTML = cHtml;
 
-  // Render services
+  // ── Render services ──
   renderServices(services);
+
+  // Show app
+  document.getElementById('app').classList.add('show');
 }
 
+// ════════════════════════════════════════════
+//  RENDER SERVICES
+// ════════════════════════════════════════════
 function renderServices(services){
   var grid = document.getElementById('services-grid');
-  if(!services.length){
-    grid.innerHTML = '<div class="select-first"><div class="select-first-icon">🛍</div><div style="font-size:14px;font-weight:700">لا خدمات متاحة حالياً</div><div style="font-size:12px;margin-top:6px">تواصل معنا للاستفسار</div></div>';
+
+  if(!services || !services.length){
+    grid.innerHTML =
+      '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:44px 20px;text-align:center">'
+        +'<div style="font-size:52px;margin-bottom:14px">🛍</div>'
+        +'<div style="font-size:17px;font-weight:800;margin-bottom:8px">لا خدمات متاحة حالياً</div>'
+        +'<div style="font-size:12px;color:var(--text3)">سيتم إضافة الخدمات قريباً — تواصل معنا للاستفسار</div>'
+      +'</div>';
     return;
   }
 
-  grid.innerHTML = services.map(function(svc, i){
+  grid.innerHTML = services.map(function(svc, idx){
+    // ── Packages HTML ──
     var pkgsHtml = '';
     if(svc.packages && svc.packages.length){
-      pkgsHtml = '<div class="svc-card-packages">'+
-        '<div class="svc-card-packages-title">📦 الباقات المتاحة</div>'+
-        svc.packages.map(function(p){
+      pkgsHtml = '<div class="pkgs-section">'
+        +'<div class="pkgs-title">📦 الباقات المتاحة</div>'
+        +svc.packages.map(function(p){
           var imgEl = p.image
-            ? '<img class="pkg-row-img" src="'+p.image+'" alt="">'
-            : '<div class="pkg-row-img-ph">📦</div>';
-          var itemsText = p.items && p.items.length ? p.items.slice(0,2).join(' · ')+(p.items.length>2?' · ...':'') : '';
-          return '<div class="pkg-row" onclick="selectService(\''+encodeURIComponent(svc.name)+'\',\''+encodeURIComponent(p.name)+'\','+p.price+')">'+
-            imgEl+
-            '<div class="pkg-row-info"><div class="pkg-row-name">'+p.name+'</div>'+(itemsText?'<div class="pkg-row-items">'+itemsText+'</div>':'')+
-            '</div><div class="pkg-row-price">'+Number(p.price||0).toLocaleString()+' ج</div>'+
-            '</div>';
-        }).join('')+
-      '</div>';
+            ? '<img class="pkg-img" src="'+esc(p.image)+'" alt="" onerror="this.parentNode.className=\'pkg-img-ph\';this.remove()">'
+            : '<div class="pkg-img-ph">📦</div>';
+          var items2 = p.items && p.items.length ? p.items.slice(0,3).join(' · ')+(p.items.length>3?' · ...':'') : '';
+          return '<div class="pkg-row" onclick="event.stopPropagation();selectSvc('+idx+',\''+esc(p.name)+'\','+p.price+')">'
+            +imgEl
+            +'<div class="pkg-info">'
+              +'<div class="pkg-name">'+esc(p.name)+'</div>'
+              +(items2?'<div class="pkg-items">'+esc(items2)+'</div>':'')
+            +'</div>'
+            +'<div class="pkg-price">'+Number(p.price||0).toLocaleString()+' ج</div>'
+          +'</div>';
+        }).join('')
+      +'</div>';
+    }
+
+    // ── Min price ──
+    var minPrice = svc.price || 0;
+    if(svc.packages && svc.packages.length){
+      var pp = svc.packages.map(function(p){return p.price||0;}).filter(Boolean);
+      if(pp.length) minPrice = Math.min.apply(null,pp);
     }
 
     var imgHtml = svc.image
-      ? '<img class="svc-card-img" src="'+svc.image+'" alt="'+svc.name+'">'
-      : '<div class="svc-card-img-placeholder">🛍</div>';
+      ? '<img class="svc-card-img" src="'+esc(svc.image)+'" alt="'+esc(svc.name)+'" loading="lazy">'
+      : '<div class="svc-card-img-ph">🛍</div>';
 
-    return '<div class="svc-card fade-up" style="animation-delay:'+(i*.07)+'s">'+
-      imgHtml+
-      '<div class="svc-card-body">'+
-        '<div class="svc-card-head">'+
-          '<div class="svc-card-name">'+svc.name+'</div>'+
-          '<div style="text-align:left"><div class="svc-card-price">'+Number(svc.price||0).toLocaleString()+' ج</div><span class="svc-card-price-unit">'+(svc.unit||'')+'</span></div>'+
-        '</div>'+
-        (svc.desc?'<div class="svc-card-desc">'+svc.desc+'</div>':'')+
-        pkgsHtml+
-        '<button class="order-btn" onclick="selectService(\''+encodeURIComponent(svc.name)+'\',\'\','+svc.price+')">📝 اطلب هذه الخدمة</button>'+
-      '</div>'+
-    '</div>';
+    return '<div class="svc-card fu" style="animation-delay:'+(idx*.07)+'s">'
+      +imgHtml
+      +'<div class="svc-body">'
+        +'<div class="svc-head">'
+          +'<div class="svc-name">'+esc(svc.name)+'</div>'
+          +'<div>'
+            +'<div class="svc-price">'+(minPrice?Number(minPrice).toLocaleString()+' ج':'—')+'</div>'
+            +'<span class="svc-unit">'+esc(svc.unit||'للمشروع')+'</span>'
+          +'</div>'
+        +'</div>'
+        +(svc.desc?'<div class="svc-desc">'+esc(svc.desc)+'</div>':'')
+        +'<div class="svc-badges">'
+          +(svc.packages&&svc.packages.length?'<span class="badge badge-purple">'+svc.packages.length+' باقة</span>':'')
+        +'</div>'
+        +pkgsHtml
+        +'<button class="order-btn" onclick="event.stopPropagation();selectSvc('+idx+',\'\','+svc.price+')">📝 اطلب هذه الخدمة</button>'
+      +'</div>'
+    +'</div>';
   }).join('');
 }
 
-function selectService(svcEnc, pkgEnc, price){
-  var svcName = decodeURIComponent(svcEnc);
-  var pkgName = decodeURIComponent(pkgEnc);
-  _selectedService = { svcName, pkgName, price };
+// ════════════════════════════════════════════
+//  SELECT SERVICE / PACKAGE
+// ════════════════════════════════════════════
+function selectSvc(svcIdx, pkgName, price){
+  var services = _userData ? (_userData.services||[]) : [];
+  var svc = services[svcIdx];
+  if(!svc) return;
 
-  var displayName = svcName + (pkgName ? ' — ' + pkgName : '');
-  document.getElementById('order-svc-name').textContent = displayName;
-  document.getElementById('order-svc-price').textContent = Number(price||0).toLocaleString() + ' ج';
-  document.getElementById('selected-svc-display').style.display = 'none';
-  document.getElementById('order-form-wrap').style.display = 'block';
+  _selectedSvc = { svcName: svc.name, pkgName: pkgName||'', price: price||svc.price||0, svcId: svc.id };
+
+  var displayName = svc.name + (pkgName ? ' — '+pkgName : '');
+  document.getElementById('ord-svc-name').textContent  = displayName;
+  document.getElementById('ord-svc-price').textContent = Number(_selectedSvc.price||0).toLocaleString()+' ج';
+  document.getElementById('svc-not-selected').style.display  = 'none';
+  document.getElementById('order-form-wrap').style.display   = '';
+
   switchTab('order');
 }
 
-function switchTab(tab){
-  ['services','order','about'].forEach(function(t){
-    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
-    document.getElementById('panel-'+t).classList.toggle('active', t===tab);
-  });
-  window.scrollTo({top:0, behavior:'smooth'});
-}
-
+// ════════════════════════════════════════════
+//  SUBMIT ORDER
+// ════════════════════════════════════════════
 async function submitOrder(){
-  var name = document.getElementById('ord-name').value.trim();
+  var name  = document.getElementById('ord-name').value.trim();
   var phone = document.getElementById('ord-phone').value.trim();
   var email = document.getElementById('ord-email').value.trim();
-  var desc = document.getElementById('ord-desc').value.trim();
+  var desc  = document.getElementById('ord-desc').value.trim();
 
-  if(!name){ toast('⚠ أدخل اسمك'); return; }
-  if(!phone){ toast('⚠ أدخل رقم واتساب'); return; }
-  if(!_selectedService){ toast('⚠ اختر خدمة أولاً'); return; }
+  if(!name)  { toast('⚠ أدخل اسمك'); return; }
+  if(!phone) { toast('⚠ أدخل رقم الواتساب'); return; }
+  if(!_selectedSvc){ toast('⚠ اختر خدمة أولاً'); return; }
 
   var btn = document.getElementById('submit-btn');
   btn.disabled = true;
-  btn.innerHTML = '<div class="loader-ring" style="width:20px;height:20px;border-width:2px"></div> جاري الإرسال...';
+  btn.innerHTML = '<div class="spin" style="width:20px;height:20px;border-width:2px"></div> جاري الإرسال...';
 
   var order = {
-    id: Date.now(),
-    status: 'pending',
-    client_name: name,
-    client_phone: phone,
-    client_email: email,
-    service_name: _selectedService.svcName + (_selectedService.pkgName ? ' — ' + _selectedService.pkgName : ''),
-    price: _selectedService.price || 0,
-    desc: desc,
-    created_at: new Date().toISOString()
+    id           : Date.now(),
+    status       : 'pending',
+    client_name  : name,
+    client_phone : phone,
+    client_email : email,
+    service_name : _selectedSvc.svcName + (_selectedSvc.pkgName ? ' — '+_selectedSvc.pkgName : ''),
+    service_id   : _selectedSvc.svcId || '',
+    price        : _selectedSvc.price || 0,
+    desc         : desc,
+    created_at   : new Date().toISOString()
   };
 
   try {
-    var { data: rowData, error: fetchErr } = await supa.from('studio_data').select('data').eq('user_id', _userId).single();
-    if(fetchErr || !rowData){ throw new Error('fetch failed'); }
+    // Fetch latest studio data
+    var { data: row, error: fe } = await supa.from('studio_data').select('data').eq('user_id',_userId).single();
+    if(fe || !row) throw new Error('fetch failed');
 
-    var ud = typeof rowData.data === 'string' ? JSON.parse(rowData.data) : rowData.data;
+    var ud = typeof row.data==='string' ? JSON.parse(row.data) : row.data;
     ud.svc_orders = ud.svc_orders || [];
     ud.svc_orders.push(order);
 
-    // Add notification for owner
+    // Notification for owner
     ud._pending_notifications = ud._pending_notifications || [];
-    var orderId = order.id;
     ud._pending_notifications.push({
-      id: orderId+'_n', title: 'طلب جديد!',
-      body: 'طلب من ' + name + ' — ' + order.service_name,
-      type: 'order', orderId: String(orderId),
-      created_at: new Date().toISOString(), read: false
+      id         : order.id+'_n',
+      title      : '🛍 طلب جديد!',
+      body       : 'طلب من '+name+' — '+order.service_name,
+      type       : 'order',
+      orderId    : String(order.id),
+      created_at : new Date().toISOString(),
+      read       : false
     });
 
-    var { error: saveErr } = await supa.from('studio_data')
+    var { error: se } = await supa.from('studio_data')
       .update({ data: JSON.stringify(ud), updated_at: new Date().toISOString() })
       .eq('user_id', _userId);
 
-    if(saveErr) throw new Error('save failed');
-
-    // Also try user_notifications table
-    try {
-      await supa.from('user_notifications').insert([{
-        user_id: _userId,
-        title: '🛍 طلب جديد!',
-        body: 'طلب من ' + name + ' — ' + order.service_name,
-        type: 'order',
-        read: false,
-        created_at: new Date().toISOString()
-      }]);
-    } catch(e2){}
+    if(se) throw new Error('save failed');
 
     showSuccess();
   } catch(e){
@@ -796,39 +704,56 @@ async function submitOrder(){
 }
 
 function showSuccess(){
-  document.getElementById('success-screen').classList.add('show');
+  document.getElementById('success-wrap').classList.add('show');
   document.getElementById('app').style.display = 'none';
-  // Add back button dynamically
-  var sc = document.getElementById('success-screen');
-  if(!document.getElementById('success-back-btn')){
-    var btn = document.createElement('button');
-    btn.id = 'success-back-btn';
-    btn.textContent = '← العودة لصفحة الخدمات';
-    btn.style.cssText = 'margin-top:24px;padding:12px 28px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:Cairo,sans-serif';
-    btn.onclick = function(){
-      document.getElementById('success-screen').classList.remove('show');
-      document.getElementById('app').style.display = '';
+
+  // Back button
+  var sw = document.getElementById('success-wrap');
+  if(!document.getElementById('back-btn-suc')){
+    var b = document.createElement('button');
+    b.id = 'back-btn-suc';
+    b.textContent = '← العودة للخدمات';
+    b.style.cssText = 'margin-top:26px;padding:13px 28px;background:var(--accent);color:#fff;'
+      +'border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font)';
+    b.onclick = function(){
+      sw.classList.remove('show');
+      document.getElementById('app').style.display='';
       // Reset form
-      document.getElementById('ord-name').value='';
-      document.getElementById('ord-phone').value='';
-      document.getElementById('ord-email').value='';
-      document.getElementById('ord-desc').value='';
+      ['ord-name','ord-phone','ord-email','ord-desc'].forEach(function(id){
+        var el=document.getElementById(id); if(el) el.value='';
+      });
       document.getElementById('submit-btn').disabled=false;
       document.getElementById('submit-btn').innerHTML='<span>✅</span> إرسال الطلب';
-      _selectedService = null;
+      _selectedSvc = null;
       document.getElementById('order-form-wrap').style.display='none';
-      document.getElementById('selected-svc-display').style.display='';
+      document.getElementById('svc-not-selected').style.display='';
       switchTab('services');
     };
-    sc.appendChild(btn);
+    sw.appendChild(b);
   }
 }
 
+// ════════════════════════════════════════════
+//  TAB SWITCHER
+// ════════════════════════════════════════════
+function switchTab(tab){
+  ['services','order','about'].forEach(function(t){
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('panel-'+t).classList.toggle('active', t===tab);
+  });
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════
+var _toastTimer;
 function toast(msg){
-  var bar = document.getElementById('notif-bar');
-  bar.textContent = msg;
-  bar.classList.add('show');
-  setTimeout(function(){ bar.classList.remove('show'); }, 3000);
+  var b = document.getElementById('toast-bar');
+  b.textContent = msg;
+  b.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){ b.classList.remove('show'); }, 3000);
 }
 </script>
 </body>
