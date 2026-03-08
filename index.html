@@ -1971,10 +1971,6 @@ setTimeout(window._showApp, 4000);
       <span id="_notif-dot" style="display:none;position:absolute;top:5px;right:5px;width:8px;height:8px;background:var(--accent4);border-radius:50%;border:2px solid var(--surface)"></span>
     </button>
     <button class="btn btn-primary btn-sm" id="header-cta" onclick="openTaskModal()" style="display: inline-flex;" data-i18n="btn_new_task"><i class="fa-solid fa-plus" style="margin-left:4px"></i> مهمة جديدة</button>
-    <!-- Language Toggle -->
-    <button id="_lang-toggle-btn" onclick="_toggleLang()" title="Switch Language / تغيير اللغة" style="width:34px;height:34px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;font-size:11px;font-weight:900;font-family:'Cairo',sans-serif;flex-shrink:0">
-      <i class="fa-solid fa-language" style="font-size:15px"></i>
-    </button>
     <!-- Profile Avatar Button -->
     <button id="_header-avatar-btn" onclick="_toggleProfileMenu(this)" style="width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid var(--border);background:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;transition:.18s;position:relative" title="الملف الشخصي">
       <img id="_header-avatar-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
@@ -3192,14 +3188,6 @@ setTimeout(window._showApp, 4000);
         <div style="display:flex;gap:8px">
           <button id="btn-dark-mode" class="btn btn-primary" onclick="setDisplayMode('dark')" style="flex:1;justify-content:center"><i class="fa-solid fa-moon" style="margin-left:5px"></i> ليلي</button>
           <button id="btn-light-mode" class="btn btn-ghost" onclick="setDisplayMode('light')" style="flex:1;justify-content:center"><i class="fa-solid fa-sun" style="margin-left:5px"></i> نهاري</button>
-        </div>
-      </div>
-      <!-- اللغة -->
-      <div style="flex:1;min-width:200px">
-        <div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:10px">اللغة / Language</div>
-        <div style="display:flex;gap:8px">
-          <button id="btn-lang-ar" class="btn btn-primary" onclick="setLanguage('ar')" style="flex:1;justify-content:center">🇪🇬 العربية</button>
-          <button id="btn-lang-en" class="btn btn-ghost" onclick="setLanguage('en')" style="flex:1;justify-content:center">🇬🇧 English</button>
         </div>
       </div>
       <!-- لون النظام -->
@@ -9452,11 +9440,51 @@ function openSubscriptionInfo() {
             style="display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;padding:10px 20px;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px">
             <i class="fa-solid fa-rocket"></i> ترقية الباقة
           </a>
+        </div>
+        <div style="text-align:center;padding-top:10px">
+          <button onclick="cancelMySubscription()" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;font-family:var(--font);text-decoration:underline">
+            <i class="fa-solid fa-ban"></i> إلغاء الاشتراك
+          </button>
         </div>`}
     `;
   }
   openM('modal-subscription-info');
   switchSubTab('current');
+}
+
+// ══ إلغاء اشتراك المستخدم بنفسه ══
+async function cancelMySubscription() {
+  if(!_userSubscription) return;
+  if(!confirm('هل أنت متأكد من إلغاء اشتراكك؟\nستفقد الوصول للميزات المدفوعة فوراً.')) return;
+  const uid = _supaUserId;
+  if(!uid) { showToast('⚠ خطأ: لم يتم التعرف على المستخدم'); return; }
+  try {
+    // مسح admin_subscription من studio_data
+    const { data: sd } = await supa.from('studio_data').select('data').eq('user_id', uid).maybeSingle();
+    if(sd?.data) {
+      let parsed = typeof sd.data === 'string' ? JSON.parse(sd.data) : sd.data;
+      if(parsed.admin_subscription) {
+        delete parsed.admin_subscription;
+        await supa.from('studio_data')
+          .update({ data: JSON.stringify(parsed), updated_at: new Date().toISOString() })
+          .eq('user_id', uid);
+        // حدّث النسخة المحلية
+        try { appData = parsed; saveLocal(); } catch(e) {}
+      }
+    }
+    // مسح من serial_keys
+    await supa.from('serial_keys')
+      .update({ status: 'expired', user_id: null, activated_at: null, expires_at: null })
+      .eq('user_id', uid);
+    _userSubscription = null;
+    updateSubscriptionBar();
+    _updateNavLocks();
+    closeM('modal-subscription-info');
+    showToast('تم إلغاء الاشتراك');
+  } catch(e) {
+    console.error('cancelMySubscription:', e);
+    showToast('⚠ حدث خطأ أثناء الإلغاء، حاول مجدداً');
+  }
 }
 
 // ══ ADMIN CHOICE OVERLAY ══
