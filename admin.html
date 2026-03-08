@@ -490,57 +490,13 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
   .main { margin-right:0; padding:16px; }
   .grid-4 { grid-template-columns:repeat(2,1fr); }
   .grid-3 { grid-template-columns:repeat(2,1fr); }
-  .mobile-header { display:flex !important; }
+  .mobile-header {
+    display:flex !important;
+  }
   .form-row { grid-template-columns:1fr; }
 }
-
-/* ── Mobile modal: full-screen bottom sheet ── */
-@media(max-width:600px) {
+@media(max-width:500px) {
   .grid-4, .grid-3, .grid-2 { grid-template-columns:1fr; }
-
-  /* Overlay fills screen, modal slides from bottom */
-  .modal-overlay {
-    padding:0;
-    align-items:flex-end;
-  }
-  .modal {
-    width:100% !important;
-    max-width:100% !important;
-    max-height:92dvh;
-    border-radius:clamp(14px,4vw,20px) clamp(14px,4vw,20px) 0 0;
-    padding:clamp(14px,4vw,22px);
-    transform:translateY(100%);
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-  }
-  .modal-overlay.open .modal { transform:translateY(0); }
-
-  /* Create plan modal — extra tall */
-  #modal-create-plan .modal {
-    max-height:95dvh;
-  }
-
-  /* Compress accordion rows on mobile */
-  .acc-row { padding:6px 0; font-size:12px; }
-  .acc-header { padding:10px 12px; font-size:13px; }
-  .acc-body { padding:8px 10px; }
-
-  /* Stat cards single column */
-  .main { padding:12px 12px 16px; }
-  .modal-header { margin-bottom:12px; }
-  .modal-title { font-size:15px; }
-
-  /* Shrink plan cards on mobile */
-  .plan-card { padding:14px; }
-  .plan-price { font-size:22px; }
-
-  /* Form inputs */
-  .form-input, .form-select { font-size:14px; padding:10px 12px; }
-}
-
-@media(max-width:400px) {
-  .grid-4, .grid-3, .grid-2 { grid-template-columns:1fr; }
-  .modal { padding:12px 12px clamp(14px,4vw,18px); }
 }
 .mobile-header {
   display:none; align-items:center; justify-content:space-between;
@@ -730,6 +686,14 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           <button class="btn btn-primary btn-sm" onclick="openResetByAdminModal()">🔑 إعادة ضبط كلمة مرور</button>
         </div>
       </div>
+      <!-- Bulk Actions Bar (Users) -->
+      <div id="users-bulk-bar" style="display:none;align-items:center;gap:10px;background:rgba(108,99,255,.12);border:1px solid var(--accent);border-radius:10px;padding:10px 16px;margin-bottom:12px;flex-wrap:wrap">
+        <span style="font-weight:700;color:var(--accent)" id="users-bulk-count">0 محدد</span>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost btn-sm" onclick="bulkCopyUserEmails()">📋 نسخ الإيميلات</button>
+        <button class="btn btn-danger btn-sm" onclick="bulkDeleteUsers()">🗑 حذف المحددين</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearUsersSelection()">✕ إلغاء التحديد</button>
+      </div>
 
       <div class="filter-bar">
         <div class="search-wrap">
@@ -753,6 +717,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           <table id="users-table">
             <thead>
               <tr>
+                <th style="width:36px"><input type="checkbox" id="users-select-all" onchange="toggleSelectAllUsers(this)" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent)"></th>
                 <th>المستخدم</th>
                 <th>البريد الإلكتروني</th>
                 <th>الباقة</th>
@@ -764,7 +729,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
               </tr>
             </thead>
             <tbody id="users-tbody">
-              <tr><td colspan="8"><div class="loading-wrap"><div class="spinner"></div> جاري التحميل...</div></td></tr>
+              <tr><td colspan="9"><div class="loading-wrap"><div class="spinner"></div> جاري التحميل...</div></td></tr>
             </tbody>
           </table>
         </div>
@@ -827,6 +792,14 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           <button class="btn btn-primary" onclick="openCreateSerialModal()">🔑 إنشاء كود جديد</button>
           <button class="btn btn-ghost btn-sm" onclick="openBulkSerialModal()">📦 إنشاء دفعة</button>
         </div>
+      </div>
+      <!-- Bulk Actions Bar (Serials) -->
+      <div id="serials-bulk-bar" style="display:none;align-items:center;gap:10px;background:rgba(108,99,255,.12);border:1px solid var(--accent);border-radius:10px;padding:10px 16px;margin-bottom:12px;flex-wrap:wrap">
+        <span style="font-weight:700;color:var(--accent)" id="serials-bulk-count">0 محدد</span>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost btn-sm" onclick="bulkCopyCodes()">📋 نسخ الأكواد</button>
+        <button class="btn btn-danger btn-sm" onclick="bulkDeleteSerials()">🗑 حذف المحددة</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearSerialsSelection()">✕ إلغاء التحديد</button>
       </div>
 
       <div class="filter-bar">
@@ -1376,9 +1349,10 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
         <div class="form-label">السعر السنوي (ج)</div>
         <input class="form-input" type="number" id="cp-price-annual" placeholder="0 = مجاني">
       </div>
-    </div>
-    <div style="background:rgba(79,209,165,.08);border:1px solid rgba(79,209,165,.2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);margin-bottom:12px">
-      📅 المدة تُحسب تلقائياً: <b>شهري = شهر كامل</b> من تاريخ التفعيل · <b>سنوي = سنة كاملة</b> · <b>مدى الحياة = بلا انتهاء</b>
+      <div class="form-group">
+        <div class="form-label">مدة الاشتراك (يوم)</div>
+        <input class="form-input" type="number" id="cp-duration" value="30">
+      </div>
     </div>
     <div class="form-group">
       <div class="form-label">الوصف</div>
@@ -1540,12 +1514,6 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           <div class="acc-row acc-check"><label>⏱ تتبع الوقت</label><input type="checkbox" id="feat-timetracker" checked></div>
           <div class="acc-row acc-check"><label>📝 العقود الرقمية</label><input type="checkbox" id="feat-contracts" checked></div>
           <div class="acc-row acc-check"><label>🔗 بوابة العميل</label><input type="checkbox" id="feat-client-portal" checked></div>
-          <div class="acc-row acc-check"><label>🏆 تحدي الأسبوع (Dashboard)</label><input type="checkbox" id="feat-weekly-challenge" checked></div>
-          <div class="acc-row acc-check"><label>📊 مقياس الزخم (7 أيام)</label><input type="checkbox" id="feat-momentum" checked></div>
-          <div class="acc-row acc-check"><label>🎯 أهداف التطوير والكورسات</label><input type="checkbox" id="feat-learning" checked></div>
-          <div class="acc-row acc-check"><label>⏰ لوحة تنظيم اليوم</label><input type="checkbox" id="feat-schedule" checked></div>
-          <div class="acc-row acc-check"><label>📅 الميتنجات والمواعيد</label><input type="checkbox" id="feat-meetings" checked></div>
-          <div class="acc-row acc-check"><label>🔔 تذكيرات ونشرة التحديثات</label><input type="checkbox" id="feat-notifications" checked></div>
         </div>
       </div>
 
@@ -1904,7 +1872,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
 <div id="toast"></div>
 
 <!-- ═══ PLATFORM UPDATES PAGE ═══ -->
-<div class="page" id="page-platform-updates" style="display:none">
+<div class="page" id="page-platform-updates">
   <div class="page-header">
     <div>
       <div class="page-title">تحديثات <span>المنصة</span></div>
@@ -2217,14 +2185,11 @@ supa.auth.onAuthStateChange((event, session) => {
 //  NAVIGATION
 // ══════════════════════════════════════════════════
 function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => {
-    p.classList.remove('active');
-    p.style.display = 'none';
-  });
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const page = document.getElementById('page-'+name);
   const nav  = document.getElementById('nav-'+name);
-  if(page){ page.classList.add('active'); page.style.display = 'block'; }
+  if(page) page.classList.add('active');
   if(nav)  nav.classList.add('active');
   closeSidebar();
   // Load data for page
@@ -2586,7 +2551,7 @@ function applyUserFilters() {
   }
 
   if(!users.length) {
-    tbody.innerHTML = `<tr><td colspan="8">${emptyState('لا توجد نتائج')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9">${emptyState('لا توجد نتائج')}</td></tr>`;
     return;
   }
 
@@ -2602,6 +2567,7 @@ function applyUserFilters() {
     const initial = (name||'م')[0];
     return `
       <tr>
+        <td><input type="checkbox" class="user-row-cb" data-uid="${uid}" onchange="onUserCheckChange()" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent)"></td>
         <td>
           <div style="display:flex;align-items:center;gap:8px">
             <div class="u-avatar">${initial}</div>
@@ -2632,6 +2598,10 @@ function applyUserFilters() {
         </td>
       </tr>`;
   }).join('');
+  // reset select-all
+  const sa = document.getElementById('users-select-all');
+  if(sa) sa.checked = false;
+  updateUsersBulkBar();
 }
 
 // ══════════════════════════════════════════════════
@@ -2792,8 +2762,7 @@ function openUserDetail(uid) {
           ${sub.expiresAt ? `<div style="font-size:11px;color:var(--text2)">انتهاء: <b>${new Date(sub.expiresAt).toLocaleDateString('ar-EG')}</b></div>` : ''}
         </div>
         ${sub.expiresAt && sub.billing !== 'lifetime' ? (() => {
-          const totalMs = sub.billing==="annual" ? 365*86400000 : 30*86400000;
-          const pct = Math.max(0, Math.min(100, 100 - (new Date(sub.expiresAt)-Date.now())/totalMs));
+          const pct = Math.max(0, Math.min(100, 100 - (new Date(sub.expiresAt)-Date.now())/(plan.duration_days*864000)));
           return `<div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:${pct}%"></div></div>`;
         })() : ''}
       </div>` : `
@@ -2948,7 +2917,13 @@ function renderSerials() {
     return;
   }
 
-  el.innerHTML = serials.map(s => {
+  // Select-all bar above cards
+  const selectAllBar = `<div style="display:flex;align-items:center;gap:8px;padding:8px 4px;margin-bottom:8px">
+    <input type="checkbox" id="serials-select-all" onchange="toggleSelectAllSerials(this)" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent)">
+    <label for="serials-select-all" style="font-size:12px;color:var(--text2);cursor:pointer">تحديد الكل</label>
+  </div>`;
+
+  el.innerHTML = selectAllBar + serials.map(s => {
     const plan = PLANS.find(p=>p.id===s.planId);
     const status = !s.userId ? 'unused' : (isExpired(s) ? 'expired' : 'active');
     const statusLabel = {unused:'🟢 غير مستخدم', active:'✅ نشط', expired:'⛔ منتهي'};
@@ -2956,7 +2931,10 @@ function renderSerials() {
     const user = s.userId ? getStudioUser(s.userId) : null;
     const userName = user?.settings?.name || (s.userId ? s.userId.substring(0,8)+'...' : '—');
     return `
-      <div class="serial-card">
+      <div class="serial-card" style="position:relative">
+        <div style="display:flex;align-items:center;padding-left:4px">
+          <input type="checkbox" class="serial-row-cb" data-sid="${s.id}" onchange="onSerialCheckChange()" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent);flex-shrink:0">
+        </div>
         <div style="font-size:22px">${plan?.icon||'🔑'}</div>
         <div style="flex:1;min-width:0">
           <div class="serial-code">${s.code}</div>
@@ -2976,6 +2954,7 @@ function renderSerials() {
         </div>
       </div>`;
   }).join('');
+  updateSerialsBulkBar();
 }
 
 function filterSerials() { renderSerials(); }
@@ -3055,12 +3034,10 @@ async function assignSerial() {
   if(serial.billing === 'lifetime') {
     serial.expiresAt = null;
   } else if(serial.billing === 'annual') {
-    // سنة كاملة من الكالندر
     const e = new Date(now); e.setFullYear(e.getFullYear() + 1);
     serial.expiresAt = e.toISOString();
   } else {
-    // شهري — شهر واحد من الكالندر
-    const e = new Date(now); e.setMonth(e.getMonth() + 1);
+    const e = new Date(now); e.setDate(e.getDate() + (plan?.duration_days || 30));
     serial.expiresAt = e.toISOString();
   }
 
@@ -3121,7 +3098,7 @@ function openCreatePlanModal() {
   document.getElementById('cp-edit-id').value = '';
   ['cp-name','cp-icon','cp-desc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   ['cp-price-monthly','cp-price-annual','cp-max-clients'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  
+  document.getElementById('cp-duration').value = '30';
   ['tasks','clients','finance','invoices','schedule','reports','cloud'].forEach(f => {
     const el = document.getElementById('feat-'+f); if(el) el.checked = ['tasks','clients','invoices','cloud'].includes(f);
   });
@@ -3145,6 +3122,7 @@ function editPlan(id) {
   setVal('cp-desc',          plan.desc||'');
   setVal('cp-price-monthly', plan.price_monthly||'');
   setVal('cp-price-annual',  plan.price_annual||'');
+  setVal('cp-duration',      plan.duration_days||30);
 
   const f = plan.features || {};
 
@@ -3160,8 +3138,7 @@ function editPlan(id) {
     'pay-cash','pay-instapay','pay-vodafone',
     'inv-create','inv-pdf','inv-whatsapp','inv-policies',
     'rep-monthly','rep-clients','other-on',
-    'timetracker','contracts','client-portal',
-    'weekly-challenge','momentum','learning','schedule','meetings','notifications'
+    'timetracker','contracts','client-portal'
   ]);
 
   const allChecks = [
@@ -3173,7 +3150,6 @@ function editPlan(id) {
     'inv-create','inv-pdf','inv-whatsapp','inv-contracts','inv-policies',
     'schedule-day','schedule-export','rep-monthly','rep-clients','rep-export','other-on',
     'timetracker','contracts','client-portal',
-    'weekly-challenge','momentum','notifications',
     'services','svc-packages','svc-images','svc-portfolio','svc-order-link','svc-orders','svc-auto-task','client-portal-svc',
     'corporate','corp-mode','corp-emp-tasks','corp-emp-projects','corp-emp-files','corp-emp-others','corp-emp-finance','corp-emp-clients','corp-invite-email','corp-invite-accept',
     'specializations','spec-manage','spec-multi','team-invite','team-invite-accept',
@@ -3235,6 +3211,7 @@ function savePlan() {
   const desc   = document.getElementById('cp-desc')?.value.trim();
   const pm     = _num('cp-price-monthly');
   const pa     = _num('cp-price-annual');
+  const dur    = _num('cp-duration') || 30;
   if(!name) { toast('⚠ أدخل اسم الباقة'); return; }
 
   const features = {
@@ -3294,12 +3271,6 @@ function savePlan() {
     timetracker:        _chk('feat-timetracker'),
     contracts:          _chk('feat-contracts'),
     client_portal:      _chk('feat-client-portal'),
-    weekly_challenge:   _chk('feat-weekly-challenge'),
-    momentum:           _chk('feat-momentum'),
-    learning:           _chk('feat-learning'),
-    schedule:           _chk('feat-schedule'),
-    meetings:           _chk('feat-meetings'),
-    notifications:      _chk('feat-notifications'),
     // الخدمات والباقات
     services:           _chk('feat-services'),
     max_services:       _num('feat-max-services'),
@@ -3340,9 +3311,9 @@ function savePlan() {
 
   if(editId) {
     const idx = PLANS.findIndex(p => p.id === editId);
-    if(idx > -1) PLANS[idx] = { ...PLANS[idx], name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, features };
+    if(idx > -1) PLANS[idx] = { ...PLANS[idx], name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, duration_days:dur, features };
   } else {
-    PLANS.push({ id: Date.now().toString(), name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, features });
+    PLANS.push({ id: Date.now().toString(), name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, duration_days:dur, features });
   }
   lsSet('plans', PLANS);
   closeModal('modal-create-plan');
@@ -4139,7 +4110,7 @@ function loadDetailOverview(uid, p, sub, plan) {
               <span style="color:var(--text3)">المتبقي</span>
               <span style="font-weight:700;color:${daysLeft<7?'var(--accent4)':'var(--text)'}">${daysLeft} يوم</span>
             </div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${sub.billing==="annual" ? Math.min(100,(daysLeft/365)*100) : Math.min(100,(daysLeft/30)*100)}%;background:${daysLeft<7?'var(--accent4)':'var(--accent)'}"></div></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,(daysLeft/(plan?.duration_days||30))*100)}%;background:${daysLeft<7?'var(--accent4)':'var(--accent)'}"></div></div>
           </div>` : '<div style="text-align:center;font-size:12px;color:var(--accent3);margin-bottom:12px">♾️ مدى الحياة</div>'}
         <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
           <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">نوع الاشتراك</span><span>${getBillingLabel(sub.billing)}</span></div>
@@ -4389,12 +4360,10 @@ async function saveEditSubscription() {
       serial.expiresAt = new Date(expires).toISOString();
     } else if(billing === 'lifetime') {
       serial.expiresAt = null;
-    } else if(billing === 'annual') {
-      const exp = new Date(); exp.setFullYear(exp.getFullYear() + 1);
-      serial.expiresAt = exp.toISOString();
     } else {
-      // شهري — شهر من الكالندر
-      const exp = new Date(); exp.setMonth(exp.getMonth() + 1);
+      const plan = PLANS.find(p => p.id === planId);
+      const exp = new Date();
+      exp.setDate(exp.getDate() + (plan?.duration_days || 30));
       serial.expiresAt = exp.toISOString();
     }
   } else {
@@ -4465,6 +4434,25 @@ async function revokeSubscriptionDirect(uid) {
     const updated = SERIALS.find(s => String(s.id) === String(old.id));
     return updated ? supaUpsertSerial(updated) : Promise.resolve();
   }));
+
+  // ✅ مسح admin_subscription من studio_data حتى يتلغى عند المستخدم فوراً
+  try {
+    const { data: sd } = await supa.from('studio_data').select('data').eq('user_id', uid).maybeSingle();
+    if(sd?.data) {
+      let parsed = typeof sd.data === 'string' ? JSON.parse(sd.data) : sd.data;
+      if(parsed.admin_subscription) {
+        delete parsed.admin_subscription;
+        await supa.from('studio_data')
+          .update({ data: JSON.stringify(parsed), updated_at: new Date().toISOString() })
+          .eq('user_id', uid);
+      }
+    }
+    // مسح كذلك من serial_keys إذا في سجل
+    await supa.from('serial_keys')
+      .update({ status: 'expired', user_id: null, activated_at: null, expires_at: null })
+      .eq('user_id', uid);
+  } catch(e) { console.warn('revokeSubscriptionDirect studio_data clear:', e); }
+
   if(_currentDetailUid === uid) openUserDetailPage(uid);
   renderUsersTable();
   const userName = ALL_STUDIO_DATA[uid]?.parsed?.settings?.name || uid.substring(0,8);
@@ -5077,6 +5065,129 @@ async function sendPlatformUpdate(id){
     console.error('sendPlatformUpdate error:', e);
     toast('⚠ خطأ في الإرسال: ' + (e.message||''));
   }
+}
+
+// ══════════════════════════════════════════════════
+//  BULK SELECTION — USERS
+// ══════════════════════════════════════════════════
+function getCheckedUserIds() {
+  return [...document.querySelectorAll('.user-row-cb:checked')].map(cb => cb.dataset.uid);
+}
+function onUserCheckChange() {
+  updateUsersBulkBar();
+  const all = document.querySelectorAll('.user-row-cb');
+  const checked = document.querySelectorAll('.user-row-cb:checked');
+  const sa = document.getElementById('users-select-all');
+  if(sa) sa.indeterminate = checked.length > 0 && checked.length < all.length;
+  if(sa) sa.checked = all.length > 0 && all.length === checked.length;
+}
+function toggleSelectAllUsers(cb) {
+  document.querySelectorAll('.user-row-cb').forEach(el => el.checked = cb.checked);
+  updateUsersBulkBar();
+}
+function updateUsersBulkBar() {
+  const ids = getCheckedUserIds();
+  const bar = document.getElementById('users-bulk-bar');
+  const cnt = document.getElementById('users-bulk-count');
+  if(!bar) return;
+  if(ids.length > 0) {
+    bar.style.display = 'flex';
+    if(cnt) cnt.textContent = ids.length + ' محدد';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+function clearUsersSelection() {
+  document.querySelectorAll('.user-row-cb').forEach(el => el.checked = false);
+  const sa = document.getElementById('users-select-all');
+  if(sa) { sa.checked = false; sa.indeterminate = false; }
+  updateUsersBulkBar();
+}
+function bulkCopyUserEmails() {
+  const ids = getCheckedUserIds();
+  const emails = ids.map(uid => {
+    const u = ALL_STUDIO_DATA[uid];
+    return u?.parsed?.settings?.email || '';
+  }).filter(Boolean);
+  if(!emails.length) { toast('⚠ لا إيميلات للمحددين'); return; }
+  navigator.clipboard.writeText(emails.join('\n')).then(() => toast(`✅ تم نسخ ${emails.length} إيميل`));
+}
+async function bulkDeleteUsers() {
+  const ids = getCheckedUserIds();
+  if(!ids.length) { toast('⚠ لم تحدد أي مستخدم'); return; }
+  if(!confirm(`هل أنت متأكد من حذف ${ids.length} مستخدم؟\nهذه العملية لا يمكن التراجع عنها!`)) return;
+  let deleted = 0;
+  for(const uid of ids) {
+    try {
+      const { error } = await supa.from('studio_data').delete().eq('user_id', uid);
+      if(!error) { delete ALL_STUDIO_DATA[uid]; deleted++; }
+    } catch(e) {}
+  }
+  toast(`🗑 تم حذف ${deleted} مستخدم`);
+  clearUsersSelection();
+  renderUsersTable();
+  loadDashboard();
+}
+
+// ══════════════════════════════════════════════════
+//  BULK SELECTION — SERIALS
+// ══════════════════════════════════════════════════
+function getCheckedSerialIds() {
+  return [...document.querySelectorAll('.serial-row-cb:checked')].map(cb => cb.dataset.sid);
+}
+function onSerialCheckChange() {
+  updateSerialsBulkBar();
+  const all = document.querySelectorAll('.serial-row-cb');
+  const checked = document.querySelectorAll('.serial-row-cb:checked');
+  const sa = document.getElementById('serials-select-all');
+  if(sa) sa.indeterminate = checked.length > 0 && checked.length < all.length;
+  if(sa) sa.checked = all.length > 0 && all.length === checked.length;
+}
+function toggleSelectAllSerials(cb) {
+  document.querySelectorAll('.serial-row-cb').forEach(el => el.checked = cb.checked);
+  updateSerialsBulkBar();
+}
+function updateSerialsBulkBar() {
+  const ids = getCheckedSerialIds();
+  const bar = document.getElementById('serials-bulk-bar');
+  const cnt = document.getElementById('serials-bulk-count');
+  if(!bar) return;
+  if(ids.length > 0) {
+    bar.style.display = 'flex';
+    if(cnt) cnt.textContent = ids.length + ' محدد';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+function clearSerialsSelection() {
+  document.querySelectorAll('.serial-row-cb').forEach(el => el.checked = false);
+  const sa = document.getElementById('serials-select-all');
+  if(sa) { sa.checked = false; sa.indeterminate = false; }
+  updateSerialsBulkBar();
+}
+function bulkCopyCodes() {
+  const ids = getCheckedSerialIds();
+  const codes = ids.map(sid => {
+    const s = SERIALS.find(x => String(x.id) === String(sid));
+    return s?.code || '';
+  }).filter(Boolean);
+  if(!codes.length) { toast('⚠ لا أكواد للمحددة'); return; }
+  navigator.clipboard.writeText(codes.join('\n')).then(() => toast(`✅ تم نسخ ${codes.length} كود`));
+}
+async function bulkDeleteSerials() {
+  const ids = getCheckedSerialIds();
+  if(!ids.length) { toast('⚠ لم تحدد أي كود'); return; }
+  if(!confirm(`هل أنت متأكد من حذف ${ids.length} كود؟`)) return;
+  for(const sid of ids) {
+    const serial = SERIALS.find(s => String(s.id) === String(sid));
+    SERIALS = SERIALS.filter(s => String(s.id) !== String(sid));
+    if(serial) await supaDeleteSerial(serial);
+    else lsSet('serials', SERIALS);
+  }
+  toast(`🗑 تم حذف ${ids.length} كود`);
+  clearSerialsSelection();
+  renderSerials();
+  updateDashStats();
 }
 
 </script>
