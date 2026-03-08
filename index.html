@@ -212,7 +212,7 @@ async function cloudLoad(){
     if(!data){ console.warn('cloudLoad: no data row'); return null; }
     try {
       const parsed = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
-      console.log('cloudLoad: <i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> loaded', Object.keys(parsed||{}).join(','));
+      console.log('cloudLoad: ✅ loaded', Object.keys(parsed||{}).join(','));
       return parsed;
     } catch(parseErr){
       console.error('cloudLoad parse error:', parseErr);
@@ -230,7 +230,7 @@ function showSyncIndicator(msg, color){
     document.body.appendChild(el);
   }
   el.style.color = color || 'var(--accent3)';
-  el.textContent = msg;
+  el.innerHTML = msg;
   el.style.opacity = '1';
   clearTimeout(el._t);
   el._t = setTimeout(()=>{ el.style.opacity='0'; }, 2500);
@@ -3036,8 +3036,6 @@ setTimeout(window._showApp, 4000);
           </div>
         </div>
         <button class="btn btn-primary" onclick="saveSettings()" data-i18n="btn_save_settings"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ الإعدادات</button>
-        <button class="btn btn-ghost" style="margin-right:8px" onclick="forceCloudReload()" title="إعادة تحميل البيانات من السحابة"><i class="fa-solid fa-cloud"></i>️ تحديث من السحابة</button>
-        <button class="btn btn-ghost" style="margin-right:8px;color:var(--accent2)" onclick="forcePushToCloud()" title="رفع البيانات المحلية للسحابة">⬆ رفع للسحابة</button>
       </div>
 
       <div class="card">
@@ -3072,14 +3070,15 @@ setTimeout(window._showApp, 4000);
       <!-- Cloud Sync Status Card -->
       <div class="card" id="cloud-diag-card" style="border-color:rgba(108,99,255,.25);grid-column:1/-1">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div class="section-title" style="margin:0;color:var(--accent)"><i class="fa-solid fa-cloud"></i>️ حالة المزامنة مع السحابة</div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-ghost btn-sm" onclick="forceCloudReload()">⬇ تحميل من السحابة</button>
-            <button class="btn btn-ghost btn-sm" style="color:var(--accent2)" onclick="forcePushToCloud()">⬆ رفع للسحابة</button>
-          </div>
+          <div class="section-title" style="margin:0;color:var(--accent)"><i class="fa-solid fa-cloud"></i> حالة المزامنة مع السحابة</div>
+          <button class="btn btn-ghost btn-sm" onclick="openBackupModal()"><i class="fa-solid fa-hard-drive" style="margin-left:4px"></i> النسخ الاحتياطي</button>
         </div>
         <div id="cloud-diag-info" style="font-size:12px;color:var(--text2);line-height:2">
-          <div style="color:var(--text3)">افتح الإعدادات لرؤية حالة المزامنة...</div>
+          <div style="color:var(--text3)">جاري تحميل حالة السحابة...</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick="forceCloudReload()"><i class="fa-solid fa-cloud-arrow-down" style="margin-left:5px"></i> تحديث من السحابة</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;color:var(--accent2)" onclick="forcePushToCloud()"><i class="fa-solid fa-cloud-arrow-up" style="margin-left:5px"></i> رفع للسحابة</button>
         </div>
       </div>
 
@@ -3197,7 +3196,16 @@ setTimeout(window._showApp, 4000);
     <div id="payment-accounts-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
     <div id="payment-accounts-add" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <input class="form-input" id="new-account-name" placeholder="اسم الحساب (مثال: فودافون كاش)" style="flex:1;min-width:160px">
-      <input class="form-input" id="new-account-icon" placeholder="<i class="fa-solid fa-mobile-screen"></i>" style="width:66px;text-align:center">
+      <select class="form-select" id="new-account-icon" style="width:100px;flex-shrink:0">
+        <option value="fa-money-bill">💵 نقدي</option>
+        <option value="fa-mobile-screen">📱 موبايل</option>
+        <option value="fa-credit-card">💳 بطاقة</option>
+        <option value="fa-building-columns">🏦 بنك</option>
+        <option value="fa-wallet">👛 محفظة</option>
+        <option value="fa-coins">🪙 عملة</option>
+        <option value="fa-dollar-sign">$ دولار</option>
+        <option value="fa-sterling-sign">£ جنيه</option>
+      </select>
       <input class="form-input" id="new-account-color" type="color" value="#7c6ff7" style="width:44px;height:36px;padding:2px;cursor:pointer;border-radius:8px">
       <button class="btn btn-ghost btn-sm" onclick="addPaymentAccount()">+ إضافة</button>
     </div>
@@ -3430,7 +3438,7 @@ setTimeout(window._showApp, 4000);
           <div style="font-size:11px;color:var(--text3);margin-bottom:12px">هل الموقع يستقبل طلبات جديدة؟</div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border-radius:12px;border:1.5px solid var(--border)">
             <div>
-              <div style="font-size:13px;font-weight:800" id="orders-status-label">متاح <i class="fa-solid fa-square-check" style="color:var(--accent3)"></i></div>
+              <div style="font-size:13px;font-weight:800" id="orders-status-label"><i class="fa-solid fa-circle-check" style="color:var(--accent3);margin-left:5px"></i> متاح لاستقبال الطلبات</div>
               <div style="font-size:11px;color:var(--text3)" id="orders-status-sub">العملاء يمكنهم إرسال طلبات</div>
             </div>
             <div onclick="toggleOrdersOpen()" id="orders-open-toggle" style="width:52px;height:28px;border-radius:20px;background:var(--accent3);cursor:pointer;position:relative;transition:.3s;flex-shrink:0">
@@ -5062,7 +5070,7 @@ function saveSettings(){
     taskTypes:S.settings?.taskTypes||[], taskStatuses:S.settings?.taskStatuses||[],
     paymentAccounts:S.settings?.paymentAccounts||[],
   });
-  lsSave(); cloudSave(S); alert('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الإعدادات');
+  lsSave(); cloudSave(S); toast('✅ تم حفظ الإعدادات');
 }
 
 async function forceCloudReload(){
@@ -5077,7 +5085,7 @@ async function forceCloudReload(){
       renderAll();
       applyPlatformConfig();
       showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم التحديث من السحابة', '#4fd1a5');
-      toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تحميل البيانات من السحابة');
+      toast('✅ تم تحميل البيانات من السحابة');
       _updateCloudDiag();
     } else {
       showSyncIndicator('<i class="fa-solid fa-triangle-exclamation"></i> لا بيانات في السحابة', '#f7c948');
@@ -5109,7 +5117,7 @@ async function forcePushToCloud(){
     const { error } = await supa.from('studio_data').upsert(payload, { onConflict: 'user_id' });
     if(error) throw error;
     showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم الرفع', '#4fd1a5');
-    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع البيانات للسحابة بنجاح');
+    toast('✅ تم رفع البيانات للسحابة بنجاح');
     _updateCloudDiag();
   } catch(e) {
     showSyncIndicator('<i class="fa-solid fa-circle-xmark"></i> فشل الرفع', '#f76f7c');
@@ -5423,6 +5431,14 @@ function t(arabicText) {
 function setLanguage(lang) {
   _currentLang = lang;
   localStorage.setItem('studioLang', lang);
+  localStorage.setItem('_lang', lang);
+  // Update language button indicator
+  var li = document.querySelector('._lang-indicator');
+  if(li) li.textContent = lang==='ar'?'EN':'AR';
+  // Sync document direction
+  document.documentElement.lang = lang;
+  document.documentElement.dir  = lang==='ar'?'rtl':'ltr';
+  document.body.classList.toggle('lang-en', lang==='en');
 
   // HTML dir/lang
   document.documentElement.lang = lang === 'en' ? 'en' : 'ar';
@@ -5445,27 +5461,58 @@ function setLanguage(lang) {
 function applyTranslations(lang) {
   const dict = lang === 'en' ? TRANSLATIONS.en : null;
   if(!dict) {
-    // Restore Arabic — reload all [data-i18n-ar] elements
+    // Restore Arabic
     document.querySelectorAll('[data-i18n-ar]').forEach(el => {
-      el.textContent = el.getAttribute('data-i18n-ar');
+      el.innerHTML = el.getAttribute('data-i18n-ar');
+    });
+    document.querySelectorAll('.nav-label[data-ar]').forEach(el => {
+      const icon = el.querySelector('i,svg');
+      const ar = el.getAttribute('data-ar');
+      if(ar){ el.textContent = ar; if(icon) el.prepend(icon); }
     });
     return;
   }
-  // Translate all elements with data-i18n attribute
+  // Translate [data-i18n] elements — preserve FA icons inside
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    if(dict[key]) el.textContent = dict[key];
+    if(!dict[key]) return;
+    const icon = el.querySelector('i.fa-solid, i.fa-regular, svg');
+    if(icon){
+      // Save original AR for restoration
+      if(!el.getAttribute('data-i18n-ar')) el.setAttribute('data-i18n-ar', el.innerHTML);
+      el.innerHTML = '';
+      el.appendChild(icon.cloneNode(true));
+      el.appendChild(document.createTextNode(' ' + dict[key]));
+    } else {
+      if(!el.getAttribute('data-i18n-ar')) el.setAttribute('data-i18n-ar', el.innerHTML);
+      el.textContent = dict[key];
+    }
   });
-  // Also translate nav items text nodes
+  // Translate nav labels — preserve icons
   document.querySelectorAll('.nav-label').forEach(el => {
     const ar = el.getAttribute('data-ar') || el.textContent.trim();
     el.setAttribute('data-ar', ar);
-    el.textContent = dict[ar] || ar;
+    const icon = el.querySelector('i,svg');
+    if(icon){
+      el.innerHTML = '';
+      el.appendChild(icon.cloneNode(true));
+      el.appendChild(document.createTextNode(' ' + (dict[ar] || ar)));
+    } else {
+      el.textContent = dict[ar] || ar;
+    }
   });
-  // Translate buttons with known text
-  document.querySelectorAll('button, .btn').forEach(el => {
+  // Translate buttons with data-ar — preserve icons
+  document.querySelectorAll('button[data-ar], .btn[data-ar]').forEach(el => {
     const ar = el.getAttribute('data-ar');
-    if(ar) el.textContent = dict[ar] || ar;
+    if(!ar || !dict[ar]) return;
+    const icon = el.querySelector('i.fa-solid, i.fa-regular, svg');
+    if(icon){
+      el.innerHTML = '';
+      el.appendChild(icon.cloneNode(true));
+      el.appendChild(document.createTextNode(' ' + dict[ar]));
+    } else {
+      el.textContent = dict[ar];
+    }
   });
 }
 
@@ -8877,8 +8924,12 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     S.settings.name  = userObj.studio || googleName || userObj.name;
     S.settings.phone = userObj.phone;
     if(userObj.email) S.settings.email = userObj.email;
-    if(userObj.avatarUrl) S.settings.logo = userObj.avatarUrl;
-    cloudSave(S);
+    if(userObj.avatarUrl && !S.settings.logo) S.settings.logo = userObj.avatarUrl;
+    // New user: force immediate save (not debounced) to create the row
+    try{
+      const _p={user_id:supaUser.id,data:JSON.stringify(S),updated_at:new Date().toISOString()};
+      await supa.from('studio_data').upsert(_p,{onConflict:'user_id'});
+    }catch(e){ cloudSave(S); }
   } else if(S.settings.name) {
     if(!S.settings.email && userObj.email) {
       S.settings.email = userObj.email;
@@ -11695,7 +11746,8 @@ function restorePayMethod(id){
 
 function addPaymentAccount(){
   const name  = document.getElementById('new-account-name')?.value.trim();
-  const icon  = document.getElementById('new-account-icon')?.value.trim()||'<i class="fa-solid fa-credit-card"></i>';
+  const _iconClass = document.getElementById('new-account-icon')?.value.trim()||'fa-credit-card';
+  const icon  = '<i class="fa-solid '+_iconClass+'"></i>';
   const color = document.getElementById('new-account-color')?.value||'#7c6ff7';
   if(!name) return alert('أدخل اسم الحساب');
   const id = 'acc_'+Date.now();
@@ -13446,10 +13498,12 @@ supa.auth.onAuthStateChange(async (event, session) => {
   // SIGNED_IN أو INITIAL_SESSION — نفس المعاملة
   if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && session.user){
     // لو بالفعل initialized بنفس المستخدم — مش محتاج نعمل حاجة
-    if(_supaUserId === session.user.id && _authInitialized) return;
+    // Exception: SIGNED_IN after OAuth redirect should always proceed
+    const isOAuthRedirect = event === 'SIGNED_IN' && session.user.app_metadata?.provider === 'google';
+    if(_supaUserId === session.user.id && _authInitialized && !isOAuthRedirect) return;
     // لو فيه مستخدم تاني logged in في tab تاني — ignore
     const existingSession = getSession();
-    if(existingSession && existingSession.id && existingSession.id !== session.user.id && _authInitialized){
+    if(existingSession && existingSession.id && existingSession.id !== session.user.id && _authInitialized && !isOAuthRedirect){
       console.warn('Session conflict: ignoring auth change for different user');
       return;
     }
@@ -15113,19 +15167,19 @@ function _setOrdersOpenUI(isOpen){
   var sub=document.getElementById('orders-status-sub');
   if(tog) tog.style.background=isOpen?'var(--accent3)':'var(--border)';
   if(knob) knob.style.right=isOpen?'3px':'calc(100% - 25px)';
-  if(lbl) lbl.textContent=isOpen?'متاح لاستقبال الطلبات <i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>':'مغلق — لا يستقبل طلبات <i class="fa-solid fa-circle"></i>';
+  if(lbl) lbl.innerHTML=isOpen?'<i class="fa-solid fa-circle-check" style="color:var(--accent3);margin-left:5px"></i> متاح لاستقبال الطلبات':'<i class="fa-solid fa-circle-xmark" style="color:var(--accent4);margin-left:5px"></i> مغلق — لا يستقبل طلبات';
   if(sub) sub.textContent=isOpen?'العملاء يمكنهم إرسال طلبات الآن':'الموقع لا يستقبل طلبات جديدة حالياً';
 }
 function toggleOrdersOpen(){
   if(!S.settings) S.settings={};
   S.settings.svc_orders_open=!(S.settings.svc_orders_open!==false);
   _setOrdersOpenUI(S.settings.svc_orders_open);
-  lsSave(); cloudSave(S); toast(S.settings.svc_orders_open?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> فُتح الاستقبال':'<i class="fa-solid fa-circle"></i> أُغلق الاستقبال');
+  lsSave(); cloudSave(S); toast(S.settings.svc_orders_open?'✅ فُتح الاستقبال':'⏸ أُغلق الاستقبال');
 }
 function saveSiteDesc(){
   if(!S.settings) S.settings={};
   S.settings.svc_site_desc=(document.getElementById('svc-site-desc')||{}).value||'';
-  lsSave(); cloudSave(S); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الوصف');
+  lsSave(); cloudSave(S); toast('✅ تم حفظ الوصف');
 }
 function saveSocials(){
   if(!S.settings) S.settings={};
@@ -19111,7 +19165,7 @@ function _toggleProfileMenu(triggerEl){
     '<button onclick="document.getElementById(\'_profile-menu-pop\').remove();openProfileModal()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right" onmouseover="this.style.background=\'var(--surface3)\'" onmouseout="this.style.background=\'none\'">' +
     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>الملف الشخصي</button>' +
     '<button onclick="openBackupModal();document.getElementById(\'_profile-menu-pop\')?.remove()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right" onmouseover="this.style.background=\'var(--surface3)\'" onmouseout="this.style.background=\'none\'">' +
-    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 15 21 21 3 21 3 15"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg data-i18n="nav_backup"><i class="fa-solid fa-cloud-arrow-up" style="margin-left:6px"></i> نسخ احتياطي</button>' +
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 15 21 21 3 21 3 15"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><i class="fa-solid fa-cloud-arrow-up" style="margin-left:6px"></i> نسخ احتياطي</button>' +
     '<hr style="border:none;border-top:1px solid var(--border);margin:6px 0">' +
     '<button onclick="logoutUser();document.getElementById(\'_profile-menu-pop\')?.remove()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--accent4);font-size:13px;font-family:var(--font);font-weight:700;cursor:pointer;border-radius:9px;text-align:right" onmouseover="this.style.background=\'rgba(247,111,124,.08)\'" onmouseout="this.style.background=\'none\'">' +
     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>تسجيل الخروج</button>' +
@@ -21083,6 +21137,16 @@ function _showTrackingShareModal(t){
         <input type="file" id="backup-file-input" accept=".json" style="display:none" onchange="readBackupFile(this)">
       </div>
 
+
+      <!-- Cloud Sync Section -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px"><i class="fa-solid fa-cloud"></i> المزامنة مع السحابة</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="forceCloudReload()"><i class="fa-solid fa-cloud-arrow-down" style="margin-left:5px"></i> تحديث من السحابة</button>
+          <button class="btn btn-ghost" style="flex:1;justify-content:center;color:var(--accent2)" onclick="forcePushToCloud()"><i class="fa-solid fa-cloud-arrow-up" style="margin-left:5px"></i> رفع للسحابة</button>
+        </div>
+      </div>
+
       <!-- Reminder Settings -->
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px">
         <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px"><i class="fa-solid fa-alarm-clock"></i> إعدادات التذكير</div>
@@ -21856,4 +21920,3 @@ if(document.readyState === 'loading'){
 })();
 </script>
 </body></html>
-        
