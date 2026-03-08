@@ -3277,74 +3277,98 @@ setTimeout(window._showApp, 4000);
 
   <!-- ══ TAB: WEBSITE SETTINGS ══ -->
   <div id="svc-website-wrap" style="display:none">
-    <div style="display:flex;flex-direction:column;gap:14px;max-width:640px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
 
-      <!-- Banner -->
-      <div class="card" style="padding:16px">
-        <div style="font-size:13px;font-weight:800;margin-bottom:12px">🖼 بانر الموقع</div>
-        <div id="svc-banner-preview" style="display:none;border-radius:12px;overflow:hidden;margin-bottom:10px;max-height:160px">
-          <img id="svc-banner-img" src="" style="width:100%;height:160px;object-fit:cover;display:block">
+      <!-- RIGHT COL -->
+      <div style="display:flex;flex-direction:column;gap:14px">
+
+        <!-- Banner -->
+        <div class="card" style="padding:16px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:10px">🖼 بانر الموقع</div>
+          <div id="svc-banner-preview" style="display:none;border-radius:10px;overflow:hidden;margin-bottom:10px;max-height:130px">
+            <img id="svc-banner-img" src="" style="width:100%;height:130px;object-fit:cover;display:block">
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+            <input type="file" id="svc-banner-input" accept="image/*" style="display:none" onchange="handleSvcBanner(this)">
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('svc-banner-input').click()">📁 رفع بانر</button>
+            <button class="btn btn-danger btn-sm" id="svc-banner-clear-btn" style="display:none" onclick="clearSvcBanner()">✕</button>
+            <span style="font-size:10px;color:var(--text3)">JPG/PNG · 2MB</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">مقاس البانر:</div>
+          <div style="display:flex;gap:6px">
+            <button onclick="setSvcBannerSize('sm')" id="banner-size-sm" class="filter-chip" style="flex:1;justify-content:center">صغير</button>
+            <button onclick="setSvcBannerSize('md')" id="banner-size-md" class="filter-chip active" style="flex:1;justify-content:center">متوسط</button>
+            <button onclick="setSvcBannerSize('lg')" id="banner-size-lg" class="filter-chip" style="flex:1;justify-content:center">كبير</button>
+          </div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <input type="file" id="svc-banner-input" accept="image/*" style="display:none" onchange="handleSvcBanner(this)">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('svc-banner-input').click()">📁 رفع بانر</button>
-          <button class="btn btn-danger btn-sm" id="svc-banner-clear-btn" style="display:none" onclick="clearSvcBanner()">✕ حذف</button>
-          <span style="font-size:11px;color:var(--text3)">JPG/PNG · أقصى 2MB</span>
+
+        <!-- Orders Status -->
+        <div class="card" style="padding:16px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:4px">📥 استقبال الطلبات</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:12px">هل الموقع يستقبل طلبات جديدة؟</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border-radius:12px;border:1.5px solid var(--border)">
+            <div>
+              <div style="font-size:13px;font-weight:800" id="orders-status-label">متاح ✅</div>
+              <div style="font-size:11px;color:var(--text3)" id="orders-status-sub">العملاء يمكنهم إرسال طلبات</div>
+            </div>
+            <div onclick="toggleOrdersOpen()" id="orders-open-toggle" style="width:52px;height:28px;border-radius:20px;background:var(--accent3);cursor:pointer;position:relative;transition:.3s;flex-shrink:0">
+              <div id="orders-open-knob" style="position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.3s;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>
+            </div>
+          </div>
         </div>
-        <!-- Banner Size Option -->
-        <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
-          <span style="font-size:11px;color:var(--text3);align-self:center">مقاس البانر:</span>
-          <button onclick="setSvcBannerSize('sm')" id="banner-size-sm" class="filter-chip">صغير</button>
-          <button onclick="setSvcBannerSize('md')" id="banner-size-md" class="filter-chip active">متوسط</button>
-          <button onclick="setSvcBannerSize('lg')" id="banner-size-lg" class="filter-chip">كبير</button>
+
+        <!-- Site Description -->
+        <div class="card" style="padding:16px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:10px">📝 وصف الموقع</div>
+          <textarea class="form-input" id="svc-site-desc" rows="4" placeholder="وصف مختصر يظهر في صفحتك العامة..." style="resize:vertical"></textarea>
+          <button onclick="saveSiteDesc()" class="btn btn-primary btn-sm" style="margin-top:10px;width:100%;justify-content:center">💾 حفظ</button>
         </div>
+
       </div>
 
-      <!-- Site Description -->
-      <div class="card" style="padding:16px">
-        <div style="font-size:13px;font-weight:800;margin-bottom:12px">📝 وصف الموقع</div>
-        <textarea class="form-input" id="svc-site-desc" rows="3" placeholder="اكتب وصفاً مختصراً يظهر في الصفحة العامة..." style="resize:vertical"></textarea>
-        <button onclick="saveSiteDesc()" class="btn btn-primary btn-sm" style="margin-top:10px">💾 حفظ الوصف</button>
-      </div>
+      <!-- LEFT COL -->
+      <div style="display:flex;flex-direction:column;gap:14px">
 
-      <!-- Orders Status -->
-      <div class="card" style="padding:16px">
-        <div style="font-size:13px;font-weight:800;margin-bottom:4px">📥 حالة استقبال الطلبات</div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:14px">تحكم في ما إذا كان الموقع يستقبل طلبات جديدة أم لا</div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface2);border-radius:12px;border:1.5px solid var(--border)">
-          <div>
-            <div style="font-size:13px;font-weight:800" id="orders-status-label">متاح لاستقبال الطلبات ✅</div>
-            <div style="font-size:11px;color:var(--text3)" id="orders-status-sub">العملاء يمكنهم إرسال طلبات الآن</div>
+        <!-- Social Links -->
+        <div class="card" style="padding:16px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:12px">🔗 روابط التواصل الاجتماعي</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:18px;width:24px;text-align:center">📸</span>
+              <input class="form-input" id="social-instagram" placeholder="رابط انستجرام" style="flex:1">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:18px;width:24px;text-align:center">💼</span>
+              <input class="form-input" id="social-behance" placeholder="رابط Behance" style="flex:1">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:18px;width:24px;text-align:center">🎵</span>
+              <input class="form-input" id="social-tiktok" placeholder="رابط تيك توك" style="flex:1">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:18px;width:24px;text-align:center">🐦</span>
+              <input class="form-input" id="social-twitter" placeholder="رابط تويتر / X" style="flex:1">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:18px;width:24px;text-align:center">💬</span>
+              <input class="form-input" id="social-whatsapp" placeholder="رقم واتساب" style="flex:1">
+            </div>
           </div>
-          <div onclick="toggleOrdersOpen()" id="orders-open-toggle" style="width:52px;height:28px;border-radius:20px;background:var(--accent3);cursor:pointer;position:relative;transition:.3s;flex-shrink:0">
-            <div id="orders-open-knob" style="position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.3s;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>
+          <button onclick="saveSocials()" class="btn btn-primary btn-sm" style="margin-top:12px;width:100%;justify-content:center">💾 حفظ الروابط</button>
+        </div>
+
+        <!-- Preview link -->
+        <div class="card" style="padding:16px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:10px">🔗 رابط الموقع العام</div>
+          <div id="svc-website-link-preview" style="font-size:11px;color:var(--text3);font-family:var(--mono);word-break:break-all;margin-bottom:10px;padding:8px;background:var(--surface2);border-radius:8px">جاري التحميل...</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button onclick="svcCopyLink()" class="btn btn-primary btn-sm" style="flex:1;justify-content:center">📋 نسخ</button>
+            <button onclick="svcPreviewPublic()" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center">👁 معاينة</button>
+            <button onclick="svcShareWhatsApp()" class="btn btn-ghost btn-sm" style="background:#25D366;color:#fff;border:none;flex:1;justify-content:center">📲 واتساب</button>
           </div>
         </div>
-      </div>
 
-      <!-- Social Links -->
-      <div class="card" style="padding:16px">
-        <div style="font-size:13px;font-weight:800;margin-bottom:12px">🔗 روابط التواصل الاجتماعي</div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div class="form-row" style="grid-template-columns:auto 1fr;align-items:center;gap:8px">
-            <span style="font-size:18px">📸</span><input class="form-input" id="social-instagram" placeholder="رابط انستجرام">
-          </div>
-          <div class="form-row" style="grid-template-columns:auto 1fr;align-items:center;gap:8px">
-            <span style="font-size:18px">💼</span><input class="form-input" id="social-behance" placeholder="رابط Behance">
-          </div>
-          <div class="form-row" style="grid-template-columns:auto 1fr;align-items:center;gap:8px">
-            <span style="font-size:18px">🎵</span><input class="form-input" id="social-tiktok" placeholder="رابط تيك توك">
-          </div>
-          <div class="form-row" style="grid-template-columns:auto 1fr;align-items:center;gap:8px">
-            <span style="font-size:18px">🐦</span><input class="form-input" id="social-twitter" placeholder="رابط تويتر / X">
-          </div>
-          <div class="form-row" style="grid-template-columns:auto 1fr;align-items:center;gap:8px">
-            <span style="font-size:18px">💬</span><input class="form-input" id="social-whatsapp" placeholder="رقم واتساب">
-          </div>
-        </div>
-        <button onclick="saveSocials()" class="btn btn-primary btn-sm" style="margin-top:12px;width:100%;justify-content:center">💾 حفظ الروابط</button>
       </div>
-
     </div>
   </div>
 
@@ -3372,29 +3396,42 @@ setTimeout(window._showApp, 4000);
 
 <!-- ══ MODAL: ADD/EDIT SERVICE ══ -->
 <div class="modal-overlay" id="modal-svc">
-  <div class="modal" style="width:min(680px,96vw);max-height:92vh;overflow-y:auto">
+  <div class="modal" style="width:min(600px,96vw);max-height:92vh;overflow-y:auto">
     <div class="modal-header">
       <div class="modal-title" id="svc-modal-title">🛍 خدمة جديدة</div>
       <button class="close-btn" onclick="closeM('modal-svc')">✕</button>
     </div>
     <input type="hidden" id="svc-eid">
+
+    <!-- Row 1: Name -->
     <div class="form-group"><label class="form-label">عنوان الخدمة *</label><input class="form-input" id="svc-name" placeholder="مثال: تصميم هوية بصرية كاملة"></div>
-    <div class="form-group"><label class="form-label">وصف الخدمة *</label><textarea class="form-textarea" id="svc-desc" rows="3" placeholder="اشرح ما تقدمه بالتفصيل..."></textarea></div>
-    <div class="form-row" style="grid-template-columns:1fr 1fr">
+
+    <!-- Row 2: Cat + Delivery + Price -->
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
       <div class="form-group">
         <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
           التصنيف
-          <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 8px" onclick="openSvcCatsSettings()" title="إدارة التصنيفات">⚙ تخصيص</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 6px" onclick="openSvcCatsSettings()">⚙</button>
         </label>
-        <select class="form-input" id="svc-cat">
-          <option value="">— اختر —</option>
-        </select>
+        <select class="form-input" id="svc-cat"><option value="">— اختر —</option></select>
       </div>
-      <div class="form-group"><label class="form-label">وقت التسليم</label><input class="form-input" id="svc-delivery" placeholder="مثال: 3 أيام عمل"></div>
+      <div class="form-group"><label class="form-label">وقت التسليم</label><input class="form-input" id="svc-delivery" placeholder="مثال: 3 أيام"></div>
+      <div class="form-group"><label class="form-label">السعر (ج) *</label><input class="form-input" type="number" id="svc-price" placeholder="0" min="0"></div>
     </div>
+
+    <!-- Description -->
+    <div class="form-group"><label class="form-label">وصف الخدمة *</label><textarea class="form-textarea" id="svc-desc" rows="3" placeholder="اشرح ما تقدمه بالتفصيل..."></textarea></div>
+
+    <!-- Terms/Features (bullet points) -->
+    <div class="form-group">
+      <label class="form-label">بنود الخدمة <span style="color:var(--text3);font-size:10px">(كل بند في سطر)</span></label>
+      <textarea class="form-input" id="svc-terms" rows="4" placeholder="تصميم شعار احترافي&#10;ملفات قابلة للتعديل&#10;5 تعديلات مجانية&#10;تسليم خلال 3 أيام"></textarea>
+    </div>
+
+    <!-- Image -->
     <div class="form-group">
       <label class="form-label">صورة الخدمة</label>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <input type="file" id="svc-img-input" accept="image/*" style="display:none" onchange="handleSvcImg(this)">
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('svc-img-input').click()">📁 رفع صورة</button>
         <span id="svc-img-name" style="font-size:11px;color:var(--text3)">لا توجد صورة</span>
@@ -3403,42 +3440,19 @@ setTimeout(window._showApp, 4000);
       <img id="svc-img-preview" src="" style="display:none;margin-top:8px;max-height:120px;border-radius:10px;object-fit:cover;width:100%">
     </div>
 
-    <!-- Packages -->
-    <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
-        <span>📦 الباقات</span>
-        <button class="btn btn-ghost btn-sm" onclick="addPkgRow()">+ باقة</button>
-      </div>
-      <div id="svc-pkgs-list" style="display:flex;flex-direction:column;gap:10px"></div>
-      <div id="svc-pkgs-empty" style="font-size:11px;color:var(--text3);text-align:center;padding:10px 0">لا توجد باقات — اضغط "+ باقة" لإضافة</div>
-    </div>
-
-    <!-- Portfolio -->
-    <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
-        <span>🖼 معرض الأعمال</span>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-ghost btn-sm" onclick="addPortfolioRow('behance')" title="إضافة مشروع Behance">+ Behance</button>
-          <button class="btn btn-ghost btn-sm" onclick="addPortfolioRow('drive')" title="إضافة رابط Google Drive">+ Drive</button>
-        </div>
-      </div>
-      <div id="svc-portfolio-list" style="display:flex;flex-direction:column;gap:8px"></div>
-      <div id="svc-portfolio-empty" style="font-size:11px;color:var(--text3);text-align:center;padding:10px 0">لا توجد أعمال — اختر Behance أو Drive</div>
-    </div>
-
-    <!-- Portfolio Category Link + Active Toggle -->
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:12px;background:var(--surface2);border-radius:10px;margin-bottom:8px">
-      <div style="flex:1;min-width:160px">
-        <label class="form-label" style="margin-bottom:4px">سابقة أعمال (اختياري)</label>
+    <!-- Portfolio Link + Active -->
+    <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;padding:12px;background:var(--surface2);border-radius:12px;margin-bottom:8px">
+      <div class="form-group" style="margin:0">
+        <label class="form-label" style="margin-bottom:6px">سابقة أعمال (ربط بتصنيف بورتفوليو)</label>
         <select class="form-input" id="svc-portfolio-cat-link">
-          <option value="">— ربط بتصنيف بورتفوليو —</option>
+          <option value="">— اختر تصنيف —</option>
         </select>
       </div>
-      <div>
-        <label class="form-label" style="margin-bottom:4px">حالة الخدمة</label>
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border-radius:8px;cursor:pointer" onclick="toggleSvcModalActive()">
+      <div style="text-align:center">
+        <label class="form-label" style="margin-bottom:6px;display:block">حالة الخدمة</label>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border-radius:8px;cursor:pointer;white-space:nowrap" onclick="toggleSvcModalActive()">
           <span id="svc-modal-active-label" style="font-size:12px;font-weight:700">● نشطة</span>
-          <div id="svc-modal-active-toggle" style="width:40px;height:22px;border-radius:20px;background:var(--accent3);position:relative;transition:.3s">
+          <div id="svc-modal-active-toggle" style="width:40px;height:22px;border-radius:20px;background:var(--accent3);position:relative;transition:.3s;flex-shrink:0">
             <div id="svc-modal-active-knob" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.3s"></div>
           </div>
         </div>
@@ -14833,6 +14847,8 @@ function switchSvcTab(tab){
 // WEBSITE TAB
 // ══════════════════════════════════
 function initWebsiteTab(){
+  // update preview link
+  try{ var wl=document.getElementById('svc-website-link-preview'); if(wl) wl.textContent=getSvcLink(); }catch(e){}
   var descEl=document.getElementById('svc-site-desc');
   if(descEl) descEl.value=(S.settings&&S.settings.svc_site_desc)||'';
   // orders open toggle
@@ -14897,7 +14913,11 @@ function setSvcBannerSize(sz){
 // ══════════════════════════════════
 var _pkgStActive=true;
 function openPkgStandaloneModal(id){
-  _pkgStActive=true;
+  _pkgStActive=true; _pkgStThumbData='';
+  var ptPrev=document.getElementById('pkg-st-thumb-preview'); if(ptPrev){ptPrev.src='';ptPrev.style.display='none';}
+  var ptNm=document.getElementById('pkg-st-thumb-name'); if(ptNm) ptNm.textContent='لا توجد صورة';
+  var ptCl=document.getElementById('pkg-st-thumb-clear'); if(ptCl) ptCl.style.display='none';
+  var ptInp=document.getElementById('pkg-st-thumb-input'); if(ptInp) ptInp.value='';
   document.getElementById('pkg-standalone-title').textContent=id?'📦 تعديل الباقة':'📦 باقة جديدة';
   document.getElementById('pkg-st-id').value=id||'';
   ['pkg-st-name','pkg-st-price','pkg-st-desc','pkg-st-delivery','pkg-st-revisions'].forEach(function(i){ var el=document.getElementById(i); if(el) el.value=''; });
@@ -14918,6 +14938,7 @@ function openPkgStandaloneModal(id){
       document.getElementById('pkg-st-revisions').value=pkg.revisions||'';
       document.getElementById('pkg-st-items').value=(pkg.items||[]).join('\n');
       if(pfCatSel) pfCatSel.value=pkg.portfolio_cat||'';
+      if(pkg.thumb){ _pkgStThumbData=pkg.thumb; var ptP=document.getElementById('pkg-st-thumb-preview'); if(ptP){ptP.src=pkg.thumb;ptP.style.display='';} var ptN=document.getElementById('pkg-st-thumb-name'); if(ptN) ptN.textContent='صورة محفوظة'; var ptC=document.getElementById('pkg-st-thumb-clear'); if(ptC) ptC.style.display=''; }
       _pkgStActive=pkg.active!==false;
     }
   }
@@ -14925,6 +14946,26 @@ function openPkgStandaloneModal(id){
   openM('modal-pkg-standalone');
 }
 function togglePkgStActive(){ _pkgStActive=!_pkgStActive; _updatePkgStToggle(); }
+var _pkgStThumbData='';
+function handlePkgStThumb(input){
+  var file=input.files[0]; if(!file) return;
+  if(file.size>1*1024*1024){ toast('⚠ حجم الصورة أكبر من 1 ميجا'); input.value=''; return; }
+  var r=new FileReader();
+  r.onload=function(e){
+    _pkgStThumbData=e.target.result;
+    var pv=document.getElementById('pkg-st-thumb-preview'); if(pv){pv.src=e.target.result;pv.style.display='';}
+    var nm=document.getElementById('pkg-st-thumb-name'); if(nm) nm.textContent=file.name;
+    var cl=document.getElementById('pkg-st-thumb-clear'); if(cl) cl.style.display='';
+  };
+  r.readAsDataURL(file);
+}
+function clearPkgStThumb(){
+  _pkgStThumbData='';
+  var pv=document.getElementById('pkg-st-thumb-preview'); if(pv){pv.src='';pv.style.display='none';}
+  var nm=document.getElementById('pkg-st-thumb-name'); if(nm) nm.textContent='لا توجد صورة';
+  var cl=document.getElementById('pkg-st-thumb-clear'); if(cl) cl.style.display='none';
+  var inp=document.getElementById('pkg-st-thumb-input'); if(inp) inp.value='';
+}
 function _updatePkgStToggle(){
   var tog=document.getElementById('pkg-st-active-toggle');
   var knob=document.getElementById('pkg-st-active-knob');
@@ -14941,7 +14982,7 @@ function savePkgStandalone(){
   var items=itemsRaw.split('\n').map(function(s){return s.trim();}).filter(Boolean);
   var pfCat=(document.getElementById('pkg-st-portfolio-cat')||{}).value||'';
   var eid=(document.getElementById('pkg-st-id')||{}).value||'';
-  var d={name:name.trim(),price:+price||0,desc:desc.trim(),delivery:delivery.trim(),revisions:+revisions||0,items:items,portfolio_cat:pfCat,active:_pkgStActive,updatedAt:new Date().toISOString()};
+  var d={name:name.trim(),price:+price||0,desc:desc.trim(),delivery:delivery.trim(),revisions:+revisions||0,items:items,portfolio_cat:pfCat,thumb:_pkgStThumbData,active:_pkgStActive,updatedAt:new Date().toISOString()};
   if(!S.standalone_packages) S.standalone_packages=[];
   if(eid){ var i=S.standalone_packages.findIndex(function(p){return String(p.id)===String(eid);}); if(i>-1){d.id=+eid;d.createdAt=S.standalone_packages[i].createdAt||d.updatedAt;S.standalone_packages[i]=d;} }
   else { d.id=Date.now(); d.createdAt=d.updatedAt; S.standalone_packages.push(d); }
@@ -15199,6 +15240,8 @@ function toggleSvcModalActive(){
 }
 function openSvcModal(id){
   _svcImgData = '';
+  var priceEl2=document.getElementById('svc-price'); if(priceEl2) priceEl2.value='';
+  var termsEl2=document.getElementById('svc-terms'); if(termsEl2) termsEl2.value='';
   document.getElementById('svc-eid').value = id||'';
   document.getElementById('svc-modal-title').textContent = id ? '✏ تعديل الخدمة' : '🛍 خدمة جديدة';
   document.getElementById('svc-name').value = '';
@@ -15229,9 +15272,12 @@ function openSvcModal(id){
       }
       (svc.packages||[]).forEach(function(p){ addPkgRow(p); });
       (svc.portfolio||[]).forEach(function(p){ _renderPortfolioRow(p); });
+      // price & terms
+      var priceEl=document.getElementById('svc-price'); if(priceEl) priceEl.value=svc.price||'';
+      var termsEl=document.getElementById('svc-terms'); if(termsEl) termsEl.value=(svc.terms||[]).join('\n');
       // portfolio cat link
       var pfSel=document.getElementById('svc-portfolio-cat-link');
-      if(pfSel){ var pfCats=_getPfCats(); pfSel.innerHTML='<option value="">— ربط بتصنيف بورتفوليو —</option>'+pfCats.map(function(c){return '<option value="'+escapeHtml(c)+'"'+(c===(svc.portfolio_cat||'')?'selected':'')+'>'+escapeHtml(c)+'</option>';}).join(''); }
+      if(pfSel){ var pfCats=_getPfCats(); pfSel.innerHTML='<option value="">— اختر تصنيف —</option>'+pfCats.map(function(c){return '<option value="'+escapeHtml(c)+'"'+(c===(svc.portfolio_cat||'')?'selected':'')+'>'+escapeHtml(c)+'</option>';}).join(''); }
       // active
       _svcModalActive=svc.active!==false;
       var tog=document.getElementById('svc-modal-active-toggle'); var knob=document.getElementById('svc-modal-active-knob'); var lbl=document.getElementById('svc-modal-active-label'); var flag=document.getElementById('svc-active-flag');
@@ -15433,10 +15479,13 @@ function saveSvc(){
   var d = {
     name: name, desc: desc,
     cat: catEl ? catEl.value : '',
-    delivery: document.getElementById('svc-delivery').value.trim(),
+    delivery: (document.getElementById('svc-delivery')||{}).value||'',
+    price: +((document.getElementById('svc-price')||{}).value)||0,
+    terms: (((document.getElementById('svc-terms')||{}).value)||'').split('\n').map(function(s){return s.trim();}).filter(Boolean),
     image: _svcImgData,
-    packages: collectPackages(),
     portfolio: collectPortfolio(),
+    portfolio_cat: (document.getElementById('svc-portfolio-cat-link')||{}).value||'',
+    active: (document.getElementById('svc-active-flag')||{}).value!=='0',
     createdAt: new Date().toISOString()
   };
   if(eid){
@@ -15648,17 +15697,97 @@ function renderSvcOrdersTable(){
   if(!orders.length){ el.innerHTML='<div class="empty card" style="text-align:center;padding:40px"><div style="font-size:36px;margin-bottom:12px">📋</div><div>لا توجد طلبات بعد</div></div>'; return; }
   el.innerHTML=orders.map(function(o){
     var statusColor={pending:'var(--accent2)',accepted:'var(--accent3)',rejected:'var(--accent4)'}[o.status]||'var(--text3)';
-    var statusLabel={pending:'معلق',accepted:'مقبول',rejected:'مرفوض'}[o.status]||o.status;
-    return '<div class="order-row '+o.status+'">'+
-      '<div style="flex:1;min-width:0">'+
-        '<div style="font-size:13px;font-weight:800">'+escapeHtml(o.client_name)+'</div>'+
-        '<div style="font-size:11px;color:var(--text3)">'+escapeHtml(o.service_name)+(o.pkg_name?' — '+escapeHtml(o.pkg_name):'')+'</div>'+
-        '<div style="font-size:11px;color:var(--text3)">'+(o.client_phone?'📱 '+escapeHtml(o.client_phone):'')+'</div>'+
+    var statusLabel={pending:'⏳ معلق',accepted:'✅ مقبول',rejected:'✕ مرفوض'}[o.status]||o.status;
+    // Find linked task
+    var linkedTask=o.status==='accepted'?(S.tasks||[]).find(function(t){return t.source_order_id===o.id;}):null;
+    var progress=linkedTask&&linkedTask.steps&&linkedTask.steps.length?Math.round(linkedTask.steps.filter(function(s){return s.done;}).length/linkedTask.steps.length*100):(linkedTask&&linkedTask.done?100:0);
+    return '<div class="order-row '+o.status+'" style="cursor:pointer;flex-direction:column;align-items:stretch;gap:0" onclick="openOrderFullDetail(\''+o.id+'\')">'+
+      '<div style="display:flex;align-items:center;gap:12px">'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:13px;font-weight:800">'+escapeHtml(o.client_name)+'</div>'+
+          '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+escapeHtml(o.service_name)+(o.pkg_name?' — <span style="color:var(--accent)">'+escapeHtml(o.pkg_name)+'</span>':'')+'</div>'+
+          (o.client_phone?'<div style="font-size:11px;color:var(--text3)">📱 '+escapeHtml(o.client_phone)+'</div>':'')+
+          (o.price?'<div style="font-size:12px;font-weight:700;color:var(--accent);margin-top:3px">'+Number(o.price).toLocaleString()+' ج</div>':'')+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'+
+          '<span style="font-size:11px;font-weight:700;color:'+statusColor+'">'+statusLabel+'</span>'+
+          (o.status==='pending'?
+            '<div style="display:flex;gap:5px" onclick="event.stopPropagation()">'+
+              '<button class="btn btn-primary btn-sm" onclick="openOrderAccept(\''+o.id+'\')">✓ قبول</button>'+
+              '<button class="btn btn-danger btn-sm" onclick="rejectSvcOrder(\''+o.id+'\')">✕</button>'+
+            '</div>':
+            '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openOrderFullDetail(\''+o.id+'\')" style="font-size:11px">عرض التفاصيل ↗</button>'
+          )+
+        '</div>'+
       '</div>'+
-      '<span style="font-size:11px;font-weight:700;color:'+statusColor+';white-space:nowrap">'+statusLabel+'</span>'+
-      (o.status==='pending'?'<button class="btn btn-primary btn-sm" onclick="openOrderAccept(\''+o.id+'\')">عرض</button>':'')+
-    '</div>';
+      (linkedTask?
+        '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">'+
+          '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px">'+
+            '<span style="color:var(--text3)">📋 '+escapeHtml(linkedTask.title)+'</span>'+
+            '<span style="font-weight:700;color:var(--accent3)">'+progress+'%</span>'+
+          '</div>'+
+          '<div style="height:5px;background:var(--border);border-radius:3px">'+
+            '<div style="height:100%;background:var(--accent3);border-radius:3px;width:'+progress+'%"></div>'+
+          '</div>'+
+        '</div>':'')
+    +'</div>';
   }).join('');
+}
+
+function openOrderFullDetail(orderId){
+  var order=(S.svc_orders||[]).find(function(o){return String(o.id)===String(orderId);}); if(!order) return;
+  var linkedTask=order.status==='accepted'?(S.tasks||[]).find(function(t){return t.source_order_id===order.id;}):null;
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px';
+  var statusColor={pending:'var(--accent2)',accepted:'var(--accent3)',rejected:'var(--accent4)'}[order.status]||'var(--text3)';
+  var statusLabel={pending:'⏳ معلق',accepted:'✅ مقبول',rejected:'✕ مرفوض'}[order.status]||order.status;
+  var progress=linkedTask&&linkedTask.steps&&linkedTask.steps.length?Math.round(linkedTask.steps.filter(function(s){return s.done;}).length/linkedTask.steps.length*100):(linkedTask&&linkedTask.done?100:0);
+  var stepsHtml=linkedTask&&linkedTask.steps&&linkedTask.steps.length?
+    '<div style="margin-top:14px"><div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:8px">خطوات المهمة</div>'+
+    '<div style="display:flex;flex-direction:column;gap:6px">'+
+    linkedTask.steps.map(function(s){
+      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface2);border-radius:10px;font-size:12px">'+
+        '<span style="font-size:15px">'+(s.done?'✅':'⏳')+'</span>'+
+        '<span style="flex:1;'+(s.done?'text-decoration:line-through;color:var(--text3)':'')+'">'+escapeHtml(s.text)+'</span>'+
+      '</div>';
+    }).join('')+'</div>':'';
+
+  overlay.innerHTML='<div style="background:var(--surface);border-radius:20px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;padding:24px">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'+
+      '<div>'+
+        '<div style="font-size:16px;font-weight:900">'+escapeHtml(order.client_name)+'</div>'+
+        '<div style="font-size:12px;color:var(--text3);margin-top:3px">'+escapeHtml(order.service_name)+(order.pkg_name?' — '+escapeHtml(order.pkg_name):'')+'</div>'+
+      '</div>'+
+      '<button onclick="this.closest(\'[style*=fixed]\').remove()" class="close-btn">✕</button>'+
+    '</div>'+
+    '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">'+
+      (order.client_phone?'<div><div style="color:var(--text3)">📱 واتساب</div><div style="font-weight:700">'+escapeHtml(order.client_phone)+'</div></div>':'')+
+      (order.client_email?'<div><div style="color:var(--text3)">📧 إيميل</div><div style="font-weight:700">'+escapeHtml(order.client_email)+'</div></div>':'')+
+      (order.price?'<div><div style="color:var(--text3)">💰 السعر</div><div style="font-weight:700;color:var(--accent)">'+Number(order.price).toLocaleString()+' ج</div></div>':'')+
+      '<div><div style="color:var(--text3)">📅 تاريخ الطلب</div><div style="font-weight:700">'+(order.created_at?new Date(order.created_at).toLocaleDateString('ar-EG'):'—')+'</div></div>'+
+      '<div style="grid-column:span 2"><div style="color:var(--text3)">الحالة</div><div style="font-weight:700;color:'+statusColor+'">'+statusLabel+'</div></div>'+
+    '</div>'+
+    (order.desc?'<div style="font-size:12px;color:var(--text3);margin-bottom:14px"><div style="font-weight:700;margin-bottom:5px">وصف المشروع</div><div style="padding:10px;background:var(--surface2);border-radius:10px;line-height:1.7">'+escapeHtml(order.desc)+'</div></div>':'')+
+    (linkedTask?
+      '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+          '<div style="font-size:13px;font-weight:800">📋 '+escapeHtml(linkedTask.title)+'</div>'+
+          '<span style="font-size:12px;font-weight:700;color:var(--accent3)">'+progress+'%</span>'+
+        '</div>'+
+        '<div style="height:8px;background:var(--border);border-radius:4px;margin-bottom:12px"><div style="height:100%;background:var(--accent3);border-radius:4px;width:'+progress+'%"></div></div>'+
+        stepsHtml+
+        '<button onclick="this.closest(\'[style*=fixed]\').remove();showPage(\'tasks\');setTimeout(function(){openTask('+linkedTask.id+')},300)" class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%;justify-content:center">↗ فتح المهمة الكاملة</button>'+
+      '</div>':
+      (order.status==='pending'?
+        '<div style="display:flex;gap:8px;margin-bottom:14px">'+
+          '<button onclick="openOrderAccept(\''+order.id+'\');this.closest(\'[style*=fixed]\').remove()" class="btn btn-primary" style="flex:1;justify-content:center">✓ قبول الطلب وإنشاء مهمة</button>'+
+          '<button onclick="rejectSvcOrder(\''+order.id+'\');this.closest(\'[style*=fixed]\').remove()" class="btn btn-danger">✕ رفض</button>'+
+        '</div>':'')
+    )+
+    (order.client_phone?'<a href="https://wa.me/'+order.client_phone.replace(/[^0-9]/g,'')+'" target="_blank" class="btn btn-ghost" style="width:100%;justify-content:center;background:#25D366;color:#fff;border:none">📲 تواصل واتساب</a>':'')+
+  '</div>';
+  overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};
+  document.body.appendChild(overlay);
 }
 
 // ── Client Portals ──
@@ -20285,6 +20414,17 @@ function _showTrackingShareModal(t){
       <div onclick="togglePkgStActive()" id="pkg-st-active-toggle" style="width:46px;height:26px;border-radius:20px;background:var(--accent3);cursor:pointer;position:relative;transition:.3s;flex-shrink:0">
         <div id="pkg-st-active-knob" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.3s;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>
       </div>
+    </div>
+    <!-- Thumbnail -->
+    <div class="form-group">
+      <label class="form-label">صورة مصغرة <span style="color:var(--text3);font-size:10px">(أقصى 1MB)</span></label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="file" id="pkg-st-thumb-input" accept="image/*" style="display:none" onchange="handlePkgStThumb(this)">
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pkg-st-thumb-input').click()">📁 رفع صورة</button>
+        <span id="pkg-st-thumb-name" style="font-size:11px;color:var(--text3)">لا توجد صورة</span>
+        <button class="btn btn-danger btn-sm" id="pkg-st-thumb-clear" style="display:none" onclick="clearPkgStThumb()">✕</button>
+      </div>
+      <img id="pkg-st-thumb-preview" src="" style="display:none;margin-top:8px;width:100%;max-height:110px;object-fit:cover;border-radius:10px">
     </div>
     <div style="display:flex;gap:8px;margin-top:12px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="savePkgStandalone()">💾 حفظ الباقة</button>
