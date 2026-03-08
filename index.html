@@ -76,10 +76,10 @@ function applyPlatformConfig() {
   const hexEl = document.getElementById('_logo-mark-hex');
   if(imgEl && platformLogo){
     imgEl.src = platformLogo;
-    imgEl.style.display = 'block';
+    imgEl.style.cssText = 'width:auto;height:34px;max-width:120px;object-fit:contain;display:block;border-radius:0;background:transparent;border:none;box-shadow:none';
     if(hexEl) hexEl.style.display = 'none';
     const wrap = document.getElementById('_logo-mark-wrap');
-    if(wrap){ wrap.style.width='auto'; wrap.style.height='auto'; wrap.style.maxWidth='150px'; wrap.style.background='transparent'; wrap.style.borderRadius='0'; }
+    if(wrap){ wrap.style.width='auto'; wrap.style.height='auto'; wrap.style.maxWidth='120px'; wrap.style.background='transparent'; wrap.style.borderRadius='0'; wrap.style.border='none'; wrap.style.boxShadow='none'; wrap.style.padding='0'; wrap.style.overflow='visible'; }
     // sidebar name stays visible
   } else if(imgEl){
     imgEl.style.display = 'none';
@@ -2729,7 +2729,10 @@ setTimeout(window._showApp, 4000);
 <div class="page" id="page-meetings">
   <div class="page-header">
     <div><div class="page-title">الميتنج <span>والاجتماعات</span></div><div class="page-subtitle">ارتب مواعيدك مع عملائك</div></div>
-    <button class="btn btn-primary" onclick="openMeetingModal()">+ ميتنج جديد</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" onclick="openMeetingSlotSettings()" title="إعدادات الأوقات المتاحة">⚙ أوقات متاحة</button>
+      <button class="btn btn-primary" onclick="openMeetingModal()">+ ميتنج جديد</button>
+    </div>
   </div>
 
   <div class="grid grid-2">
@@ -2811,6 +2814,99 @@ setTimeout(window._showApp, 4000);
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeM('modal-meeting')">إلغاء</button>
       <button class="btn btn-primary" onclick="saveMeeting()">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- MEETING SLOT SETTINGS MODAL -->
+<div class="modal-overlay" id="modal-meeting-slots">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">⚙ إعدادات الأوقات المتاحة للحجز</div>
+      <button class="close-btn" onclick="closeM('modal-meeting-slots')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7">حدد الأوقات التي تسمح فيها للعملاء بحجز موعد ميتنج — فقط هذه الأوقات ستظهر في صفحة الحجز.</div>
+    <div id="meeting-slots-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;max-height:320px;overflow-y:auto"></div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--text2)">➕ إضافة وقت متاح</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">اليوم</label>
+          <select class="form-select" id="new-slot-day">
+            <option value="السبت">السبت</option>
+            <option value="الأحد">الأحد</option>
+            <option value="الاثنين">الاثنين</option>
+            <option value="الثلاثاء">الثلاثاء</option>
+            <option value="الأربعاء">الأربعاء</option>
+            <option value="الخميس">الخميس</option>
+            <option value="الجمعة">الجمعة</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">من</label>
+          <input class="form-input" type="time" id="new-slot-from" value="10:00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">إلى</label>
+          <input class="form-input" type="time" id="new-slot-to" value="11:00">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addMeetingSlot()" style="width:100%;justify-content:center">+ إضافة</button>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveMeetingSlots()">💾 حفظ الإعدادات</button>
+      <button class="btn btn-ghost" onclick="closeM('modal-meeting-slots')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT FORM MODAL (Public Page) -->
+<div class="modal-overlay" id="modal-pub-contact">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title">📬 تواصل معنا</div>
+      <button class="close-btn" onclick="closeM('modal-pub-contact')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px">أرسل لنا رسالتك وسنتواصل معك في أقرب وقت</div>
+    <div class="form-group"><label class="form-label">الاسم الكامل *</label><input class="form-input" id="pub-contact-name" placeholder="اسمك الكامل"></div>
+    <div class="form-group"><label class="form-label">رقم الواتساب *</label><input class="form-input" type="tel" id="pub-contact-phone" placeholder="01xxxxxxxxx"></div>
+    <div class="form-group"><label class="form-label">البريد الإلكتروني</label><input class="form-input" type="email" id="pub-contact-email" placeholder="email@example.com" dir="ltr"></div>
+    <div class="form-group"><label class="form-label">موضوع الرسالة *</label><input class="form-input" id="pub-contact-subject" placeholder="موضوع تواصلك معنا..."></div>
+    <div class="form-group"><label class="form-label">الرسالة</label><textarea class="form-input" id="pub-contact-msg" rows="3" placeholder="تفاصيل إضافية..."></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="submitPubContactForm()">📤 إرسال الرسالة</button>
+      <button class="btn btn-ghost" onclick="closeM('modal-pub-contact')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONVERT ORDER TO TASK MODAL -->
+<div class="modal-overlay" id="modal-order-to-task">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title">✅ تحويل الطلب إلى مهمة</div>
+      <button class="close-btn" onclick="closeM('modal-order-to-task')">✕</button>
+    </div>
+    <input type="hidden" id="ott-order-id">
+    <div id="ott-order-summary" style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px"></div>
+    <div class="form-group"><label class="form-label">عنوان المهمة *</label><input class="form-input" id="ott-title" placeholder="عنوان المهمة"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">العميل</label><input class="form-input" id="ott-client" placeholder="اسم العميل" readonly style="background:var(--surface3)"></div>
+      <div class="form-group"><label class="form-label">الحالة</label>
+        <select class="form-select" id="ott-status">
+          <option value="جديد">🆕 جديد</option>
+          <option value="قيد التنفيذ">⚡ قيد التنفيذ</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">القيمة (ج)</label><input class="form-input" type="number" id="ott-amount" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">موعد التسليم</label><input class="form-input" type="date" id="ott-deadline"></div>
+    </div>
+    <div class="form-group"><label class="form-label">ملاحظات</label><textarea class="form-input" id="ott-notes" rows="2" placeholder="ملاحظات إضافية..."></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="confirmOrderToTask()">🚀 إنشاء المهمة</button>
+      <button class="btn btn-ghost" onclick="closeM('modal-order-to-task')">إلغاء</button>
     </div>
   </div>
 </div>
@@ -12706,6 +12802,108 @@ function saveMeeting(){
 }
 function delMeeting(id){ confirmDel('حذف هذا الميتنج؟',()=>{ S.meetings=S.meetings.filter(m=>m.id!==id); lsSave(); renderMeetings(); }); }
 function toggleMeetingDone(id){ const m=S.meetings.find(x=>x.id===id); if(m){m.done=!m.done;lsSave();renderMeetings();} }
+
+// ── Meeting Slot Settings ──
+function openMeetingSlotSettings(){
+  if(!S.settings) S.settings={};
+  if(!S.settings.meeting_slots) S.settings.meeting_slots=[];
+  renderMeetingSlotsList();
+  openM('modal-meeting-slots');
+}
+function renderMeetingSlotsList(){
+  const el=document.getElementById('meeting-slots-list'); if(!el) return;
+  const slots=S.settings.meeting_slots||[];
+  if(!slots.length){ el.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">لا أوقات متاحة بعد — أضف وقتاً أدناه</div>'; return; }
+  el.innerHTML=slots.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+      <div style="flex:1">
+        <span style="font-weight:700;color:var(--accent)">${s.day}</span>
+        <span style="font-size:12px;color:var(--text2);margin-right:8px">${s.from} — ${s.to}</span>
+      </div>
+      <button onclick="removeMeetingSlot(${i})" class="btn btn-danger btn-sm" style="padding:3px 8px">✕</button>
+    </div>`).join('');
+}
+function addMeetingSlot(){
+  const day=document.getElementById('new-slot-day')?.value;
+  const from=document.getElementById('new-slot-from')?.value;
+  const to=document.getElementById('new-slot-to')?.value;
+  if(!day||!from||!to){ alert('اختر اليوم والوقت'); return; }
+  if(from>=to){ alert('وقت البداية يجب أن يكون قبل وقت النهاية'); return; }
+  if(!S.settings) S.settings={};
+  if(!S.settings.meeting_slots) S.settings.meeting_slots=[];
+  S.settings.meeting_slots.push({day,from,to});
+  renderMeetingSlotsList();
+}
+function removeMeetingSlot(idx){
+  if(!S.settings||!S.settings.meeting_slots) return;
+  S.settings.meeting_slots.splice(idx,1);
+  renderMeetingSlotsList();
+}
+function saveMeetingSlots(){
+  lsSave(); closeM('modal-meeting-slots');
+  showMiniNotif('✅ تم حفظ الأوقات المتاحة');
+}
+
+// ── Contact form submission (internal) ──
+function submitPubContactForm(){
+  const name=(document.getElementById('pub-contact-name')||{}).value||'';
+  const phone=(document.getElementById('pub-contact-phone')||{}).value||'';
+  const subject=(document.getElementById('pub-contact-subject')||{}).value||'';
+  const email=(document.getElementById('pub-contact-email')||{}).value||'';
+  const msg=(document.getElementById('pub-contact-msg')||{}).value||'';
+  if(!name||!phone||!subject){ alert('الاسم والهاتف وموضوع الرسالة مطلوبة'); return; }
+  const m={id:Date.now()+'_c',type:'contact',client_name:name,client_phone:phone,client_email:email,subject,message:msg,created_at:new Date().toISOString(),read:false};
+  if(!S.support_msgs) S.support_msgs=[];
+  S.support_msgs.push(m);
+  lsSave(); closeM('modal-pub-contact');
+  showMiniNotif('✅ تم إرسال الرسالة');
+}
+
+// ── Convert Order to Task ──
+function openOrderToTask(orderId){
+  const order=(S.svc_orders||[]).find(o=>String(o.id)===String(orderId)); if(!order) return;
+  document.getElementById('ott-order-id').value=orderId;
+  document.getElementById('ott-title').value=order.service_name+(order.pkg_name?' — '+order.pkg_name:'');
+  document.getElementById('ott-client').value=order.client_name||'';
+  document.getElementById('ott-amount').value=order.price||'';
+  document.getElementById('ott-notes').value=order.desc||'';
+  document.getElementById('ott-deadline').value='';
+  document.getElementById('ott-status').value='جديد';
+  const sum=document.getElementById('ott-order-summary');
+  if(sum) sum.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+    <div><div style="font-size:10px;color:var(--text3)">العميل</div><div style="font-weight:800">${escapeHtml(order.client_name)}</div></div>
+    <div><div style="font-size:10px;color:var(--text3)">الخدمة</div><div style="font-weight:700">${escapeHtml(order.service_name)}</div></div>
+    ${order.price?`<div><div style="font-size:10px;color:var(--text3)">القيمة</div><div style="font-weight:800;color:var(--accent)">${Number(order.price).toLocaleString()} ج</div></div>`:''}
+  </div>`;
+  openM('modal-order-to-task');
+}
+function confirmOrderToTask(){
+  const orderId=document.getElementById('ott-order-id')?.value;
+  const title=document.getElementById('ott-title')?.value?.trim(); if(!title){ alert('أدخل عنوان المهمة'); return; }
+  const client=document.getElementById('ott-client')?.value||'';
+  const amount=document.getElementById('ott-amount')?.value||'';
+  const deadline=document.getElementById('ott-deadline')?.value||'';
+  const notes=document.getElementById('ott-notes')?.value||'';
+  const status=document.getElementById('ott-status')?.value||'جديد';
+  const order=(S.svc_orders||[]).find(o=>String(o.id)===String(orderId));
+  const newTask={
+    id:Date.now(), title, client, status,
+    amount:+amount||0, deadline, notes,
+    type:'مشروع', created_at:new Date().toISOString(),
+    steps:[], done:false,
+    source_order_id:orderId
+  };
+  if(!S.tasks) S.tasks=[];
+  S.tasks.unshift(newTask);
+  // mark order as accepted + linked
+  if(order){ order.status='accepted'; order.linked_task_id=newTask.id; }
+  lsSave();
+  closeM('modal-order-to-task');
+  closeM('modal-oa');
+  showMiniNotif('✅ تم إنشاء المهمة: '+title);
+  setTimeout(()=>{ showPage('tasks'); },400);
+}
+
 function renderMeetings(){
   const list=document.getElementById('meetings-list'); if(!list) return;
   // Fill client filter
@@ -15923,7 +16121,10 @@ function renderSvcOrdersTable(){
               '<button class="btn btn-primary btn-sm" onclick="openOrderAccept(\''+o.id+'\')">✓ قبول</button>'+
               '<button class="btn btn-danger btn-sm" onclick="rejectSvcOrder(\''+o.id+'\')">✕</button>'+
             '</div>':
-            '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openOrderFullDetail(\''+o.id+'\')" style="font-size:11px">عرض التفاصيل ↗</button>'
+            (o.status==='accepted'&&!linkedTask?
+              '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openOrderToTask(\''+o.id+'\')" style="font-size:11px;color:var(--accent3)">✅ تحويل لمهمة</button>':
+              '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openOrderFullDetail(\''+o.id+'\')" style="font-size:11px">عرض التفاصيل ↗</button>'
+            )
           )+
         '</div>'+
       '</div>'+
@@ -15989,7 +16190,10 @@ function openOrderFullDetail(orderId){
         '<div style="display:flex;gap:8px;margin-bottom:14px">'+
           '<button onclick="openOrderAccept(\''+order.id+'\');this.closest(\'[style*=fixed]\').remove()" class="btn btn-primary" style="flex:1;justify-content:center">✓ قبول الطلب وإنشاء مهمة</button>'+
           '<button onclick="rejectSvcOrder(\''+order.id+'\');this.closest(\'[style*=fixed]\').remove()" class="btn btn-danger">✕ رفض</button>'+
-        '</div>':'')
+        '</div>':
+        (order.status==='accepted'&&!linkedTask?
+          '<div style="margin-bottom:14px"><button onclick="this.closest(\'[style*=fixed]\').remove();openOrderToTask(\''+order.id+'\')" class="btn btn-primary" style="width:100%;justify-content:center">✅ تحويل الطلب إلى مهمة</button></div>':'')
+      )
     )+
     (order.client_phone?'<a href="https://wa.me/'+order.client_phone.replace(/[^0-9]/g,'')+'" target="_blank" class="btn btn-ghost" style="width:100%;justify-content:center;background:#25D366;color:#fff;border:none">📲 تواصل واتساب</a>':'')+
   '</div>';
@@ -16169,7 +16373,7 @@ function _buildSvcOrderPage(userId){
 
       // ── Hero/Banner ──
       '._hero{border-radius:20px;overflow:hidden;margin:24px 0 40px;box-shadow:0 8px 40px rgba(0,0,0,.3);position:relative}'+
-      '._hero img{width:100%;height:'+bannerH+';object-fit:cover;display:block}'+
+      '._hero img{width:100%;max-height:'+bannerH+';height:auto;object-fit:contain;display:block;background:'+surface2+'}'+
       '._hero-ph{height:'+bannerH+';background:linear-gradient(135deg,'+accent+'33 0%,'+accent+'11 50%,transparent 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}'+
       '._hero-ph-title{font-size:clamp(24px,5vw,48px);font-weight:900;color:'+textMain+';margin-bottom:12px;line-height:1.2}'+
       '._hero-ph-sub{font-size:clamp(12px,2vw,16px);color:'+textSub+';max-width:500px;line-height:1.7}'+
@@ -16293,6 +16497,7 @@ function _buildSvcOrderPage(userId){
           '<button class="_nav-link" onclick="scrollToId(\'_sec-contact\')">تواصل معنا</button>'+
         '</div>'+
         (phone||socials.length?'<button class="_nav-book-btn" onclick="_openBookingForm()">📅 حجز موعد</button>':'')+
+        '<button class="_nav-book-btn" onclick="_openPublicContactForm()" style="background:transparent;border:1.5px solid '+accent+'55;color:'+textMain+'">📬 تواصل معنا</button>'+
         '<button class="_mob-menu-btn" onclick="_toggleMobMenu()" aria-label="قائمة">☰</button>'+
       '</div>'+
     '</nav>'+
@@ -16303,6 +16508,7 @@ function _buildSvcOrderPage(userId){
       (pfProjects.length?'<button class="_mob-link" onclick="scrollToId(\'_sec-pf\');_toggleMobMenu()">🖼 أعمالنا</button>':'')+
       '<button class="_mob-link" onclick="scrollToId(\'_sec-contact\');_toggleMobMenu()">📞 تواصل معنا</button>'+
       (phone?'<button class="_mob-link" style="color:'+accent+';font-weight:800" onclick="_openBookingForm();_toggleMobMenu()">📅 حجز موعد</button>':'')+
+      '<button class="_mob-link" style="font-weight:800" onclick="_openPublicContactForm();_toggleMobMenu()">📬 تواصل معنا</button>'+
     '</div>';
 
     // ── HERO/BANNER ──
@@ -16408,6 +16614,10 @@ function _buildSvcOrderPage(userId){
           '<span style="font-size:22px">📧</span>'+
           '<div><div style="font-size:11px;color:'+textMuted+'">البريد الإلكتروني</div><div style="font-size:14px;font-weight:700">'+escapeHtml(settings.email)+'</div></div>'+
         '</a>':'')+
+        '<button onclick="_openPublicContactForm()" style="display:flex;align-items:center;gap:14px;padding:16px 18px;background:linear-gradient(135deg,'+accent+'22,'+accent+'0a);border:1.5px solid '+accent+'44;border-radius:14px;width:100%;cursor:pointer;color:'+textMain+';font-family:Cairo,sans-serif;text-align:right;transition:.15s" onmouseover="this.style.borderColor=\''+accent+'\'" onmouseout="this.style.borderColor=\''+accent+'44\'">'+
+          '<span style="font-size:22px">📬</span>'+
+          '<div><div style="font-size:11px;color:'+textMuted+'">إرسال رسالة</div><div style="font-size:14px;font-weight:700;color:'+accent+'">تواصل معنا مباشرة</div></div>'+
+        '</button>'+
       '</div>'+
     '</div>';
 
@@ -16557,25 +16767,57 @@ window._openBookingForm=function(){
   var accent=window._pubAccent||'#7c6ff7';
   var userId=window._pubUserId;
   var C=window._pubColors;
-  var phone=(window._pubSettings||{}).phone||'';
+  var ud=window._pubUd||{};
+  var slots=(ud.settings&&ud.settings.meeting_slots)||[];
   var ex=document.getElementById('_book-overlay'); if(ex) ex.remove();
   var ov=document.createElement('div');
   ov.id='_book-overlay'; ov.className='_ord-overlay';
+
+  // Build available slots HTML
+  var slotsHtml='';
+  if(slots.length){
+    slotsHtml='<div style="margin-bottom:14px">'+
+      '<div style="font-size:12px;font-weight:700;color:'+C.textSub+';margin-bottom:8px">⏰ الأوقات المتاحة للحجز</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px" id="_book-slots-wrap">'+
+      slots.map(function(s,i){
+        return '<button onclick="_selectBookSlot(this,\''+s.day+' '+s.from+' - '+s.to+'\')" '+
+          'style="padding:7px 12px;border-radius:8px;border:1.5px solid '+accent+'44;background:transparent;color:'+C.textMain+';font-family:Cairo,sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:.15s" '+
+          'onmouseover="this.style.background=\''+accent+'22\'" onmouseout="if(!this.dataset.sel)this.style.background=\'transparent\'" '+
+          '>'+s.day+' · '+s.from+' - '+s.to+'</button>';
+      }).join('')+
+      '</div></div>';
+  }
+
   ov.innerHTML='<div class="_ord-sheet">'+
     '<div class="_ord-handle"></div>'+
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">'+
       '<div style="font-size:18px;font-weight:900;color:'+C.textMain+'">📅 حجز موعد</div>'+
       '<button onclick="document.getElementById(\'_book-overlay\').remove()" style="background:'+C.cardBg+';border:1px solid '+C.borderC+';width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;color:'+C.textMain+'">✕</button>'+
     '</div>'+
+    slotsHtml+
     '<input id="_book-name" class="_ord-input" placeholder="الاسم الكامل *">'+
     '<input id="_book-phone" class="_ord-input" placeholder="رقم الواتساب *" type="tel">'+
-    '<input id="_book-time" class="_ord-input" placeholder="الوقت المناسب لك (مثال: الأحد 3م)" >'+
+    '<input id="_book-time" class="_ord-input" placeholder="'+(slots.length?'الوقت المختار':'الوقت المناسب لك (مثال: الأحد 3م)')+'" '+(slots.length?'readonly style="background:'+C.cardBg+'"':'')+'>'+
     '<textarea id="_book-msg" class="_ord-input" rows="3" placeholder="موضوع الموعد..."></textarea>'+
     '<button class="_ord-submit" onclick="_submitBooking(\''+userId+'\')">إرسال طلب الموعد 📅</button>'+
   '</div>';
   ov.onclick=function(e){if(e.target===ov)ov.remove();};
   document.body.appendChild(ov);
 };
+
+window._selectBookSlot=function(btn,slotLabel){
+  // Deselect all
+  var wrap=document.getElementById('_book-slots-wrap');
+  if(wrap) wrap.querySelectorAll('button').forEach(function(b){
+    b.style.background='transparent'; b.style.borderColor=window._pubAccent+'44'; delete b.dataset.sel;
+  });
+  // Select this
+  btn.style.background=window._pubAccent+'33';
+  btn.style.borderColor=window._pubAccent;
+  btn.dataset.sel='1';
+  var inp=document.getElementById('_book-time'); if(inp) inp.value=slotLabel;
+};
+
 
 window._submitBooking=function(userId){
   var name=(document.getElementById('_book-name')||{}).value||'';
@@ -16598,6 +16840,56 @@ window._submitBooking=function(userId){
     document.getElementById('_book-overlay')&&document.getElementById('_book-overlay').remove();
     alert('✅ تم إرسال طلب الموعد! سنتواصل معك قريباً.');
   }).catch(function(){if(btn){btn.disabled=false;btn.textContent='إرسال طلب الموعد 📅';}});
+};
+
+// ── Public Contact Form ──
+window._openPublicContactForm=function(){
+  var accent=window._pubAccent||'#7c6ff7';
+  var userId=window._pubUserId;
+  var C=window._pubColors;
+  var ex=document.getElementById('_contact-overlay'); if(ex) ex.remove();
+  var ov=document.createElement('div');
+  ov.id='_contact-overlay'; ov.className='_ord-overlay';
+  ov.innerHTML='<div class="_ord-sheet">'+
+    '<div class="_ord-handle"></div>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">'+
+      '<div style="font-size:18px;font-weight:900;color:'+C.textMain+'">📬 تواصل معنا</div>'+
+      '<button onclick="document.getElementById(\'_contact-overlay\').remove()" style="background:'+C.cardBg+';border:1px solid '+C.borderC+';width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;color:'+C.textMain+'">✕</button>'+
+    '</div>'+
+    '<div style="font-size:12px;color:'+C.textSub+';margin-bottom:14px">أرسل لنا رسالتك وسنتواصل معك في أقرب وقت</div>'+
+    '<input id="_cnt-name" class="_ord-input" placeholder="الاسم الكامل *">'+
+    '<input id="_cnt-phone" class="_ord-input" placeholder="رقم الواتساب *" type="tel">'+
+    '<input id="_cnt-email" class="_ord-input" placeholder="البريد الإلكتروني (اختياري)" type="email" dir="ltr">'+
+    '<input id="_cnt-subject" class="_ord-input" placeholder="موضوع الرسالة *">'+
+    '<textarea id="_cnt-msg" class="_ord-input" rows="3" placeholder="تفاصيل رسالتك..."></textarea>'+
+    '<button class="_ord-submit" onclick="_submitPublicContact(\''+userId+'\')">إرسال الرسالة 📬</button>'+
+  '</div>';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  document.body.appendChild(ov);
+};
+
+window._submitPublicContact=function(userId){
+  var name=(document.getElementById('_cnt-name')||{}).value||'';
+  var phone=(document.getElementById('_cnt-phone')||{}).value||'';
+  var subject=(document.getElementById('_cnt-subject')||{}).value||'';
+  var email=(document.getElementById('_cnt-email')||{}).value||'';
+  var msg=(document.getElementById('_cnt-msg')||{}).value||'';
+  if(!name||!phone||!subject){alert('الاسم والهاتف والموضوع مطلوبة');return;}
+  var btn=document.querySelector('._ord-submit[onclick*="_submitPublicContact"]');
+  if(btn){btn.disabled=true;btn.textContent='⏳ جاري الإرسال...';}
+  var contact={id:Date.now()+'_c',type:'contact',client_name:name,client_phone:phone,client_email:email,subject:subject,message:msg,created_at:new Date().toISOString(),read:false};
+  supa.from('studio_data').select('data').eq('user_id',userId).maybeSingle().then(function(res){
+    if(!res||!res.data) return;
+    var ud=null;try{ud=typeof res.data.data==='string'?JSON.parse(res.data.data):res.data.data;}catch(e){}
+    if(!ud) return;
+    ud.support_msgs=ud.support_msgs||[]; ud.support_msgs.push(contact);
+    ud._pending_notifications=ud._pending_notifications||[];
+    ud._pending_notifications.push({id:contact.id+'_n',title:'📬 رسالة جديدة!',body:'رسالة من '+name+' — '+subject,type:'contact',created_at:new Date().toISOString(),read:false});
+    return supa.from('studio_data').update({data:JSON.stringify(ud),updated_at:new Date().toISOString()}).eq('user_id',userId);
+  }).then(function(){
+    document.getElementById('_contact-overlay')&&document.getElementById('_contact-overlay').remove();
+    alert('✅ تم إرسال رسالتك! سنتواصل معك قريباً.');
+  }).catch(function(){if(btn){btn.disabled=false;btn.textContent='إرسال الرسالة 📬';}});
 };
 
 function _buildNewOrderPortalPage(userId, portalId){
@@ -17022,8 +17314,8 @@ function renderSupport(){
     return;
   }
   el.innerHTML=msgs.map(function(m){
-    var typeIcon={meeting:'📅',support:'🆘',message:'💬',svc_order:'📥'}[m.type]||'💬';
-    var typeLabel={meeting:'طلب اجتماع',support:'طلب دعم',message:'رسالة',svc_order:'طلب خدمة',meeting_request:'طلب اجتماع'}[m.type]||m.type||'رسالة';
+    var typeIcon={meeting:'📅',support:'🆘',message:'💬',svc_order:'📥',contact:'📬',meeting_request:'📅'}[m.type]||'💬';
+    var typeLabel={meeting:'طلب اجتماع',support:'طلب دعم',message:'رسالة',svc_order:'طلب خدمة',meeting_request:'طلب اجتماع',contact:'رسالة تواصل'}[m.type]||m.type||'رسالة';
     return '<div class="support-msg-card '+(m.read?'':'unread')+'" onclick="openSupportMsg(\''+m.id+'\')">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
         '<div style="display:flex;align-items:center;gap:8px">'+
@@ -17033,7 +17325,7 @@ function renderSupport(){
         '</div>'+
         (!m.read?'<span style="width:8px;height:8px;background:var(--accent4);border-radius:50%;display:inline-block"></span>':'')+
       '</div>'+
-      (m.message||m.body?'<div style="font-size:12px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:8px">'+escapeHtml((m.message||m.body||'').slice(0,100))+'</div>':'')+
+      (m.message||m.body?'<div style="font-size:12px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:8px">'+escapeHtml((m.subject?m.subject+': ':'')+(m.message||m.body||'').slice(0,100))+'</div>':'')+
       (m.preferred_time?'<div style="font-size:11px;color:var(--text3)">⏰ '+escapeHtml(m.preferred_time)+'</div>':'')+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">'+
         '<div style="font-size:10px;color:var(--text3)">'+(m.created_at?new Date(m.created_at).toLocaleDateString('ar-EG'):'')+'</div>'+
