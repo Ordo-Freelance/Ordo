@@ -584,6 +584,9 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
     <a class="nav-item" onclick="showPage('plans')" id="nav-plans">
       <span class="nav-icon"><i class="fa-solid fa-boxes-stacked"></i></span>الباقات والخطط
     </a>
+    <a class="nav-item" onclick="showPage('sales')" id="nav-sales">
+      <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>مبيعات الأكواد
+    </a>
 
     <div class="sb-section">المتابعة</div>
     <a class="nav-item" onclick="showPage('activity')" id="nav-activity">
@@ -594,6 +597,9 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
         <i class="fa-solid fa-comment-dots"></i>
         <span id="msgs-nav-dot" style="display:none;position:absolute;top:-3px;left:-3px;width:7px;height:7px;background:var(--accent4);border-radius:50%;border:1.5px solid var(--surface)"></span>
       </span>الرسائل
+    </a>
+    <a class="nav-item" onclick="showPage('updates')" id="nav-updates">
+      <span class="nav-icon"><i class="fa-solid fa-bullhorn"></i></span>التحديثات والإعلانات
     </a>
     <a class="nav-item" onclick="showPage('backup')" id="nav-backup">
       <span class="nav-icon"><i class="fa-solid fa-database"></i></span>نسخ احتياطي
@@ -677,6 +683,33 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
       <div class="card">
         <div style="font-size:13px;font-weight:700;margin-bottom:14px">📈 نشاط التسجيل (آخر 30 يوم)</div>
         <div id="dash-chart" style="display:flex;align-items:flex-end;gap:4px;height:80px;padding-bottom:6px"></div>
+      </div>
+
+      <!-- مبيعات الأكواد -->
+      <div class="card" style="margin-top:16px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+          <span><i class="fa-solid fa-chart-line" style="color:var(--accent2)"></i> مبيعات الأكواد</span>
+          <button class="btn btn-ghost btn-sm" onclick="showPage('sales')"><i class="fa-solid fa-arrow-left"></i> تقرير مفصل</button>
+        </div>
+        <div class="grid grid-4" style="margin-bottom:14px">
+          <div style="padding:12px;background:var(--surface2);border-radius:10px;text-align:center">
+            <div style="font-size:22px;font-weight:900;color:var(--accent2)" id="dash-sales-revenue">—</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">إجمالي الإيراد (ج)</div>
+          </div>
+          <div style="padding:12px;background:var(--surface2);border-radius:10px;text-align:center">
+            <div style="font-size:22px;font-weight:900;color:var(--accent)" id="dash-sales-paid">—</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">أكواد مباعة</div>
+          </div>
+          <div style="padding:12px;background:var(--surface2);border-radius:10px;text-align:center">
+            <div style="font-size:22px;font-weight:900;color:var(--accent3)" id="dash-sales-free">—</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">أكواد مجانية</div>
+          </div>
+          <div style="padding:12px;background:var(--surface2);border-radius:10px;text-align:center">
+            <div style="font-size:22px;font-weight:900;color:var(--accent4)" id="dash-sales-unused">—</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">غير مستخدمة</div>
+          </div>
+        </div>
+        <div id="dash-sales-chart" style="display:flex;align-items:flex-end;gap:3px;height:60px"></div>
       </div>
     </div>
 
@@ -1378,6 +1411,115 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
       </div>
     </div>
 
+
+    <!-- ═══ SALES PAGE ═══ -->
+    <div class="page" id="page-sales">
+      <div class="page-header">
+        <div>
+          <div class="page-title">مبيعات <span>الأكواد</span></div>
+          <div class="page-sub">سجل المبيعات اليومي والشهري والسنوي</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="exportSalesCSV()"><i class="fa-solid fa-file-csv"></i> تصدير CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="openCreateSerialModal()"><i class="fa-solid fa-plus"></i> كود جديد</button>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="grid grid-4" style="margin-bottom:16px" id="sales-kpi-cards">
+        <div class="card card-sm">
+          <div class="stat-lbl"><i class="fa-solid fa-coins" style="color:var(--accent2)"></i> إجمالي الإيراد</div>
+          <div class="stat-val yellow" id="sales-total-rev">—</div>
+          <div class="stat-delta" id="sales-rev-month">هذا الشهر: —</div>
+        </div>
+        <div class="card card-sm">
+          <div class="stat-lbl"><i class="fa-solid fa-tag" style="color:var(--accent)"></i> أكواد مباعة</div>
+          <div class="stat-val purple" id="sales-paid-count">—</div>
+          <div class="stat-delta" id="sales-paid-month">هذا الشهر: —</div>
+        </div>
+        <div class="card card-sm">
+          <div class="stat-lbl"><i class="fa-solid fa-gift" style="color:var(--accent3)"></i> أكواد مجانية</div>
+          <div class="stat-val green" id="sales-free-count">—</div>
+          <div class="stat-delta" id="sales-free-pct">نسبة من الإجمالي</div>
+        </div>
+        <div class="card card-sm">
+          <div class="stat-lbl"><i class="fa-solid fa-hourglass" style="color:var(--accent4)"></i> غير مستخدمة</div>
+          <div class="stat-val red" id="sales-unused-count">—</div>
+          <div class="stat-delta" id="sales-unused-pct">انتظار التفعيل</div>
+        </div>
+      </div>
+
+      <!-- Period Tabs + Chart -->
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <div style="font-size:13px;font-weight:700;flex:1"><i class="fa-solid fa-chart-bar" style="color:var(--accent)"></i> رسم بياني للمبيعات</div>
+          <div style="display:flex;gap:4px;background:var(--surface2);border-radius:8px;padding:3px">
+            <button id="sales-tab-day"   onclick="setSalesPeriod('day')"   class="btn btn-primary btn-sm" style="font-size:11px">يومي</button>
+            <button id="sales-tab-month" onclick="setSalesPeriod('month')" class="btn btn-ghost btn-sm"   style="font-size:11px">شهري</button>
+            <button id="sales-tab-year"  onclick="setSalesPeriod('year')"  class="btn btn-ghost btn-sm"   style="font-size:11px">سنوي</button>
+          </div>
+        </div>
+        <div id="sales-chart-wrap" style="display:flex;align-items:flex-end;gap:3px;height:100px;overflow-x:auto"></div>
+        <div style="display:flex;gap:14px;margin-top:10px;font-size:11px;color:var(--text3)">
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--accent);margin-left:4px"></span>مباع</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--accent3);margin-left:4px"></span>مجاني</span>
+        </div>
+      </div>
+
+      <!-- Sales Table -->
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <div style="font-size:13px;font-weight:700;flex:1"><i class="fa-solid fa-list" style="color:var(--accent)"></i> سجل الأكواد المباعة</div>
+          <select class="filter-sel" id="sales-filter-type" onchange="renderSalesTable()" style="font-size:12px">
+            <option value="">الكل</option>
+            <option value="paid">مباع فقط</option>
+            <option value="free">مجاني فقط</option>
+          </select>
+          <select class="filter-sel" id="sales-filter-status" onchange="renderSalesTable()" style="font-size:12px">
+            <option value="">كل الحالات</option>
+            <option value="active">نشط</option>
+            <option value="unused">غير مستخدم</option>
+            <option value="expired">منتهي</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px" id="sales-table">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);color:var(--text3)">
+                <th style="text-align:right;padding:8px 6px">الكود</th>
+                <th style="text-align:right;padding:8px 6px">الباقة</th>
+                <th style="text-align:right;padding:8px 6px">النوع</th>
+                <th style="text-align:right;padding:8px 6px">السعر</th>
+                <th style="text-align:right;padding:8px 6px">الحالة</th>
+                <th style="text-align:right;padding:8px 6px">المستخدم</th>
+                <th style="text-align:right;padding:8px 6px">تاريخ الإنشاء</th>
+              </tr>
+            </thead>
+            <tbody id="sales-table-body">
+              <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text3)">جاري التحميل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--text3);text-align:left" id="sales-table-footer"></div>
+      </div>
+    </div>
+
+    <!-- ═══ UPDATES / ANNOUNCEMENTS PAGE ═══ -->
+    <div class="page" id="page-updates">
+      <div class="page-header">
+        <div>
+          <div class="page-title">رسائل <span>التحديثات</span></div>
+          <div class="page-sub">أرسل إعلانات وتحديثات لجميع المستخدمين</div>
+        </div>
+        <button class="btn btn-primary" onclick="openNewUpdateModal()"><i class="fa-solid fa-plus"></i> رسالة جديدة</button>
+      </div>
+
+      <div class="card" style="margin-bottom:16px" id="updates-list-card">
+        <div style="font-size:13px;font-weight:700;margin-bottom:14px"><i class="fa-solid fa-inbox" style="color:var(--accent)"></i> الرسائل المحفوظة</div>
+        <div id="updates-list"><div style="text-align:center;padding:30px;color:var(--text3)">لا رسائل بعد</div></div>
+      </div>
+    </div>
+
   </div><!-- end main -->
 </div><!-- end app -->
 
@@ -1417,7 +1559,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
 <div class="modal-overlay" id="modal-create-serial">
   <div class="modal" style="max-width:500px">
     <div class="modal-header">
-      <div class="modal-title">🔑 إنشاء كود اشتراك</div>
+      <div class="modal-title"><i class="fa-solid fa-key"></i> إنشاء كود اشتراك</div>
       <button class="close-btn" onclick="closeModal('modal-create-serial')">✕</button>
     </div>
     <div class="form-group">
@@ -1438,14 +1580,33 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
         <input class="form-input" id="cs-code" placeholder="سيُولَّد تلقائياً" dir="ltr" style="font-family:monospace">
       </div>
     </div>
+    <!-- نوع الكود: مباع أم مجاني -->
+    <div class="form-group">
+      <div class="form-label">نوع الكود</div>
+      <div style="display:flex;gap:8px">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:border-color .15s" id="cs-type-paid-lbl">
+          <input type="radio" name="cs-type" id="cs-type-paid" value="paid" checked onchange="onCsTypeChange()" style="accent-color:var(--accent)">
+          <i class="fa-solid fa-tag" style="color:var(--accent2)"></i> <strong>مباع</strong> — بسعر الباقة
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:border-color .15s" id="cs-type-free-lbl">
+          <input type="radio" name="cs-type" id="cs-type-free" value="free" onchange="onCsTypeChange()" style="accent-color:var(--accent)">
+          <i class="fa-solid fa-gift" style="color:var(--accent3)"></i> <strong>مجاني</strong> — تجربة/هدية
+        </label>
+      </div>
+    </div>
+    <!-- السعر (يظهر لما نوع = مباع) -->
+    <div class="form-group" id="cs-price-wrap">
+      <div class="form-label">السعر المدفوع (ج)</div>
+      <input class="form-input" id="cs-price" type="number" placeholder="0" min="0" style="direction:ltr">
+    </div>
     <div class="form-group">
       <div class="form-label">ملاحظة (اختياري)</div>
-      <input class="form-input" id="cs-note" placeholder="مثال: للعميل محمود / مجاني">
+      <input class="form-input" id="cs-note" placeholder="مثال: للعميل محمود / مجاني للتجربة">
     </div>
     <div id="cs-plan-preview" style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;margin-bottom:16px;display:none"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal('modal-create-serial')">إلغاء</button>
-      <button class="btn btn-primary" onclick="createSerial()">✅ إنشاء الكود</button>
+      <button class="btn btn-primary" onclick="createSerial()"><i class="fa-solid fa-plus"></i> إنشاء الكود</button>
     </div>
   </div>
 </div>
@@ -2332,6 +2493,8 @@ function showPage(name) {
   if(name === 'admins')       renderAdminsPage();
   if(name === 'messages')     loadMessagesPage();
   if(name === 'backup')       renderBackupPage();
+  if(name === 'sales')        renderSalesPage();
+  if(name === 'updates')      renderUpdatesPage();
 }
 
 function toggleSidebar() {
@@ -2623,6 +2786,7 @@ function loadDashboard() {
   renderDashRecentUsers();
   renderDashExpiring();
   renderDashChart();
+  renderDashSales();
 }
 
 function renderDashRecentUsers() {
@@ -3013,14 +3177,39 @@ function generateCode() {
   return code;
 }
 
+function onCsTypeChange() {
+  const isPaid = document.getElementById('cs-type-paid')?.checked;
+  const wrap = document.getElementById('cs-price-wrap');
+  const paidLbl = document.getElementById('cs-type-paid-lbl');
+  const freeLbl = document.getElementById('cs-type-free-lbl');
+  if(wrap) wrap.style.display = isPaid ? 'block' : 'none';
+  if(paidLbl) paidLbl.style.borderColor = isPaid ? 'var(--accent)' : 'var(--border)';
+  if(freeLbl) freeLbl.style.borderColor = !isPaid ? 'var(--accent3)' : 'var(--border)';
+  // Auto-fill price from plan if paid
+  if(isPaid) {
+    const planId = document.getElementById('cs-plan')?.value;
+    const billing = document.getElementById('cs-billing')?.value;
+    const plan = PLANS.find(p => p.id === planId);
+    if(plan && !document.getElementById('cs-price')?.value) {
+      const price = billing === 'annual' ? plan.price_annual : billing === 'lifetime' ? (plan.price_annual * 5) : plan.price_monthly;
+      if(document.getElementById('cs-price')) document.getElementById('cs-price').value = price || '';
+    }
+  }
+}
+
 function openCreateSerialModal() {
   const planSel = document.getElementById('cs-plan');
   planSel.innerHTML = PLANS.map(p => `<option value="${p.id}">${p.icon} ${p.name}</option>`).join('');
   document.getElementById('cs-code').value = '';
   document.getElementById('cs-note').value = '';
+  document.getElementById('cs-price').value = '';
+  // Reset type to paid
+  const paidRad = document.getElementById('cs-type-paid');
+  if(paidRad) { paidRad.checked = true; onCsTypeChange(); }
   onCreateSerialPlanChange();
   openModal('modal-create-serial');
 }
+
 
 function onCreateSerialPlanChange() {
   const planId = document.getElementById('cs-plan')?.value;
@@ -3040,16 +3229,21 @@ async function createSerial() {
   const billing = document.getElementById('cs-billing')?.value;
   const code    = (document.getElementById('cs-code')?.value.trim().toUpperCase()) || generateCode();
   const note    = document.getElementById('cs-note')?.value.trim();
+  const codeType = document.querySelector('input[name="cs-type"]:checked')?.value || 'paid';
+  const price   = codeType === 'paid' ? (parseFloat(document.getElementById('cs-price')?.value) || 0) : 0;
 
   if(!planId) { toast('⚠ اختر الباقة'); return; }
   if(SERIALS.find(s => s.code === code)) { toast('⚠ الكود موجود مسبقاً'); return; }
 
-  const btn = document.querySelector('#modal-create-serial .btn-success, #modal-create-serial .login-btn');
+  const btn = document.querySelector('#modal-create-serial .btn-primary');
   if(btn) { btn.disabled=true; btn.textContent='⏳ جاري الحفظ...'; }
 
   const serial = {
     id: Date.now() + Math.random(),
-    code, planId, billing, note: note||'',
+    code, planId, billing,
+    note: note||'',
+    codeType,   // 'paid' | 'free'
+    price,      // السعر المدفوع
     status: 'unused',
     createdAt: new Date().toISOString(),
     userId: null, activatedAt: null, expiresAt: null
@@ -3057,12 +3251,12 @@ async function createSerial() {
   SERIALS.push(serial);
   const saved = await supaUpsertSerial(serial);
 
-  if(btn) { btn.disabled=false; btn.textContent='إنشاء الكود'; }
+  if(btn) { btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-plus"></i> إنشاء الكود'; }
   closeModal('modal-create-serial');
   renderSerials();
   updateDashStats();
-  logActivity('إنشاء كود', `كود ${code} — باقة ${planId}`, 'var(--accent)');
-  toast(saved ? `✅ تم إنشاء الكود: ${code}` : `⚠ حُفظ محلياً: ${code} (تحقق من Supabase)`);
+  logActivity('إنشاء كود', `كود ${code} — باقة ${planId} — ${codeType === 'paid' ? price+'ج' : 'مجاني'}`, 'var(--accent)');
+  toast(saved ? `✅ تم إنشاء الكود: ${code}` : `⚠ حُفظ محلياً: ${code}`);
 }
 
 function openBulkSerialModal() {
@@ -5126,8 +5320,353 @@ loadPlatformPage = function(){
 // ══════════════════════════════════════════════════
 //  PLATFORM UPDATES SYSTEM
 // ══════════════════════════════════════════════════
-//  BACKUP & RESTORE SYSTEM
+//  SALES SYSTEM
 // ══════════════════════════════════════════════════
+
+let _salesPeriod = 'day';
+
+function _getSalesStats() {
+  const paid   = SERIALS.filter(s => s.codeType === 'paid' || (!s.codeType && s.userId));
+  const free   = SERIALS.filter(s => s.codeType === 'free');
+  const unused = SERIALS.filter(s => !s.userId);
+  const revenue = SERIALS.reduce((sum, s) => sum + (s.price || 0), 0);
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const paidThisMonth = paid.filter(s => s.createdAt && new Date(s.createdAt) >= monthStart).length;
+  const revThisMonth  = SERIALS.filter(s => s.createdAt && new Date(s.createdAt) >= monthStart)
+                               .reduce((sum, s) => sum + (s.price || 0), 0);
+  return { paid: paid.length, free: free.length, unused: unused.length, revenue, paidThisMonth, revThisMonth };
+}
+
+function renderDashSales() {
+  const st = _getSalesStats();
+  setText('dash-sales-revenue', st.revenue.toLocaleString('ar-EG') + ' ج');
+  setText('dash-sales-paid',    st.paid);
+  setText('dash-sales-free',    st.free);
+  setText('dash-sales-unused',  st.unused);
+  // Mini chart — last 14 days paid codes
+  const el = document.getElementById('dash-sales-chart');
+  if(!el) return;
+  const days = 14;
+  const counts = Array(days).fill(0);
+  const now = new Date(); now.setHours(23,59,59,999);
+  SERIALS.forEach(s => {
+    if(!s.createdAt) return;
+    const d = Math.floor((now - new Date(s.createdAt)) / 86400000);
+    if(d >= 0 && d < days) counts[days - 1 - d]++;
+  });
+  const max = Math.max(...counts, 1);
+  el.innerHTML = counts.map((c, i) => {
+    const h = Math.max(4, Math.round((c / max) * 52));
+    const isToday = i === days - 1;
+    return `<div title="${c} كود" style="flex:1;height:${h}px;background:${isToday ? 'var(--accent2)' : 'var(--accent)'};border-radius:3px 3px 0 0;opacity:${c===0?0.2:0.85};min-width:8px"></div>`;
+  }).join('');
+}
+
+function setSalesPeriod(period) {
+  _salesPeriod = period;
+  ['day','month','year'].forEach(p => {
+    const btn = document.getElementById('sales-tab-' + p);
+    if(btn) { btn.className = p === period ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'; btn.style.fontSize = '11px'; }
+  });
+  renderSalesChart();
+}
+
+function renderSalesPage() {
+  const st = _getSalesStats();
+  setText('sales-total-rev',   st.revenue.toLocaleString('ar-EG') + ' ج');
+  setText('sales-paid-count',  st.paid);
+  setText('sales-free-count',  st.free);
+  setText('sales-unused-count',st.unused);
+  setText('sales-rev-month',   'هذا الشهر: ' + st.revThisMonth.toLocaleString('ar-EG') + ' ج');
+  setText('sales-paid-month',  'هذا الشهر: ' + st.paidThisMonth);
+  const total = st.paid + st.free;
+  setText('sales-free-pct',    total ? Math.round(st.free / total * 100) + '% من الإجمالي' : '0%');
+  setText('sales-unused-pct',  SERIALS.length ? Math.round(st.unused / SERIALS.length * 100) + '% انتظار التفعيل' : '');
+  setSalesPeriod(_salesPeriod);
+  renderSalesTable();
+}
+
+function renderSalesChart() {
+  const el = document.getElementById('sales-chart-wrap');
+  if(!el) return;
+  const now = new Date();
+  let labels = [], paidData = [], freeData = [];
+
+  if(_salesPeriod === 'day') {
+    // Last 30 days
+    for(let i = 29; i >= 0; i--) {
+      const d = new Date(now); d.setDate(d.getDate() - i); d.setHours(0,0,0,0);
+      const next = new Date(d); next.setDate(next.getDate() + 1);
+      labels.push(i === 0 ? 'اليوم' : `${d.getDate()}/${d.getMonth()+1}`);
+      paidData.push(SERIALS.filter(s => s.createdAt && s.codeType !== 'free' && new Date(s.createdAt) >= d && new Date(s.createdAt) < next).length);
+      freeData.push(SERIALS.filter(s => s.createdAt && s.codeType === 'free' && new Date(s.createdAt) >= d && new Date(s.createdAt) < next).length);
+    }
+  } else if(_salesPeriod === 'month') {
+    // Last 12 months
+    for(let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const next = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      const monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+      labels.push(monthNames[d.getMonth()]);
+      paidData.push(SERIALS.filter(s => s.createdAt && s.codeType !== 'free' && new Date(s.createdAt) >= d && new Date(s.createdAt) < next).length);
+      freeData.push(SERIALS.filter(s => s.createdAt && s.codeType === 'free' && new Date(s.createdAt) >= d && new Date(s.createdAt) < next).length);
+    }
+  } else {
+    // Last 5 years
+    for(let i = 4; i >= 0; i--) {
+      const yr = now.getFullYear() - i;
+      labels.push(yr);
+      paidData.push(SERIALS.filter(s => s.createdAt && s.codeType !== 'free' && new Date(s.createdAt).getFullYear() === yr).length);
+      freeData.push(SERIALS.filter(s => s.createdAt && s.codeType === 'free' && new Date(s.createdAt).getFullYear() === yr).length);
+    }
+  }
+
+  const maxVal = Math.max(...paidData.map((v,i) => v + freeData[i]), 1);
+  el.innerHTML = labels.map((lbl, i) => {
+    const ph = Math.max(2, Math.round((paidData[i] / maxVal) * 90));
+    const fh = Math.max(0, Math.round((freeData[i] / maxVal) * 90));
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:28px;gap:2px" title="${lbl}: ${paidData[i]} مباع، ${freeData[i]} مجاني">
+        <div style="display:flex;align-items:flex-end;gap:1px;height:90px">
+          <div style="width:8px;height:${ph}px;background:var(--accent);border-radius:2px 2px 0 0"></div>
+          <div style="width:8px;height:${fh}px;background:var(--accent3);border-radius:2px 2px 0 0"></div>
+        </div>
+        <div style="font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;max-width:32px;text-overflow:ellipsis">${lbl}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderSalesTable() {
+  const tbody  = document.getElementById('sales-table-body');
+  const footer = document.getElementById('sales-table-footer');
+  if(!tbody) return;
+  const typeF   = document.getElementById('sales-filter-type')?.value   || '';
+  const statusF = document.getElementById('sales-filter-status')?.value || '';
+
+  let rows = [...SERIALS].reverse();
+  if(typeF)   rows = rows.filter(s => typeF === 'free' ? s.codeType === 'free' : (s.codeType !== 'free'));
+  if(statusF) rows = rows.filter(s => {
+    const st = !s.userId ? 'unused' : (isExpired(s) ? 'expired' : 'active');
+    return st === statusF;
+  });
+
+  const totalRev = rows.filter(s => s.codeType !== 'free').reduce((sum, s) => sum + (s.price || 0), 0);
+  if(footer) footer.textContent = `${rows.length} كود — إجمالي الإيراد: ${totalRev.toLocaleString('ar-EG')} ج`;
+
+  tbody.innerHTML = rows.map(s => {
+    const plan   = PLANS.find(p => p.id === s.planId);
+    const status = !s.userId ? 'unused' : (isExpired(s) ? 'expired' : 'active');
+    const stLabel = {unused:'<span style="color:var(--accent3)">غير مستخدم</span>', active:'<span style="color:var(--accent)">نشط</span>', expired:'<span style="color:var(--accent4)">منتهي</span>'}[status];
+    const user   = s.userId ? getStudioUser(s.userId) : null;
+    const uName  = user?.settings?.name || (s.userId ? s.userId.substring(0,8)+'...' : '—');
+    const isPaid = s.codeType !== 'free';
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px 6px;font-family:monospace;font-size:11px;color:var(--accent)">${s.code}</td>
+      <td style="padding:8px 6px">${plan?.icon||''} ${plan?.name||s.planId}</td>
+      <td style="padding:8px 6px">${isPaid ? '<span style="color:var(--accent2);font-weight:700"><i class="fa-solid fa-tag"></i> مباع</span>' : '<span style="color:var(--accent3)"><i class="fa-solid fa-gift"></i> مجاني</span>'}</td>
+      <td style="padding:8px 6px;font-weight:700">${isPaid && s.price ? s.price.toLocaleString('ar-EG')+' ج' : '—'}</td>
+      <td style="padding:8px 6px">${stLabel}</td>
+      <td style="padding:8px 6px;color:var(--text2)">${uName}</td>
+      <td style="padding:8px 6px;color:var(--text3)">${s.createdAt ? new Date(s.createdAt).toLocaleDateString('ar-EG') : '—'}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">لا توجد بيانات</td></tr>';
+}
+
+function exportSalesCSV() {
+  const rows = [...SERIALS].reverse();
+  const header = 'الكود,الباقة,النوع,السعر,الحالة,المستخدم,تاريخ الإنشاء\n';
+  const csv = header + rows.map(s => {
+    const plan = PLANS.find(p => p.id === s.planId);
+    const status = !s.userId ? 'غير مستخدم' : (isExpired(s) ? 'منتهي' : 'نشط');
+    const user = s.userId ? getStudioUser(s.userId) : null;
+    return [s.code, plan?.name||s.planId, s.codeType==='free'?'مجاني':'مباع', s.price||0, status,
+      user?.settings?.name||s.userId||'—',
+      s.createdAt?new Date(s.createdAt).toLocaleDateString('ar-EG'):''
+    ].join(',');
+  }).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ordo-sales-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('✅ تم تصدير CSV');
+}
+
+// ══════════════════════════════════════════════════
+//  UPDATES / ANNOUNCEMENTS SYSTEM
+// ══════════════════════════════════════════════════
+
+let _updates = JSON.parse(localStorage.getItem('admin_updates') || '[]');
+
+function _saveUpdates() {
+  localStorage.setItem('admin_updates', JSON.stringify(_updates));
+  _syncUpdatesToCloud();
+}
+
+async function _syncUpdatesToCloud() {
+  try {
+    const cfg = { admin_updates: _updates };
+    await supa.from('platform_settings').upsert({ id: 1, config: JSON.stringify(cfg), updated_at: new Date().toISOString() }, { onConflict: 'id' });
+  } catch(e) { console.warn('updates sync failed:', e); }
+}
+
+async function renderUpdatesPage() {
+  // Load from cloud first
+  try {
+    const { data } = await supa.from('platform_settings').select('config').eq('id', 1).maybeSingle();
+    if(data?.config) {
+      const cfg = typeof data.config === 'string' ? JSON.parse(data.config) : data.config;
+      if(cfg.admin_updates?.length) { _updates = cfg.admin_updates; localStorage.setItem('admin_updates', JSON.stringify(_updates)); }
+    }
+  } catch(e) {}
+
+  const list = document.getElementById('updates-list');
+  if(!list) return;
+  if(!_updates.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)"><i class="fa-solid fa-inbox" style="font-size:32px;margin-bottom:12px;display:block;opacity:.3"></i>لا رسائل بعد — أنشئ أول إعلان</div>';
+    return;
+  }
+  list.innerHTML = _updates.map((u, i) => `
+    <div style="display:flex;gap:14px;padding:14px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--surface2)">
+      <div style="font-size:28px;flex-shrink:0">${u.emoji||'📢'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+          <div style="font-size:14px;font-weight:700">${u.title}</div>
+          <span style="font-size:10px;color:var(--text3)">${u.date ? new Date(u.date).toLocaleDateString('ar-EG') : ''}</span>
+          ${u.sent ? `<span style="font-size:10px;background:rgba(79,209,165,.15);color:var(--accent3);padding:2px 8px;border-radius:8px;font-weight:700">✅ مُرسَل (${u.sentCount||0} مستخدم)</span>` : '<span style="font-size:10px;background:rgba(247,201,72,.15);color:var(--accent2);padding:2px 8px;border-radius:8px">⏳ مسودة</span>'}
+        </div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7">${u.body}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+        ${!u.sent ? `<button class="btn btn-primary btn-sm" onclick="sendUpdate('${u.id}')"><i class="fa-solid fa-paper-plane"></i></button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="editUpdate('${u.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="deleteUpdate('${u.id}')"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>`).join('');
+}
+
+function openNewUpdateModal() {
+  const exists = document.getElementById('modal-new-update');
+  if(exists) { exists.remove(); }
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.id = 'modal-new-update';
+  m.style.display = 'flex';
+  m.innerHTML = `
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fa-solid fa-bullhorn"></i> رسالة تحديث جديدة</div>
+        <button class="close-btn" onclick="document.getElementById('modal-new-update').remove()">✕</button>
+      </div>
+      <input type="hidden" id="upd-edit-id">
+      <div class="form-row">
+        <div class="form-group" style="flex:0 0 65px">
+          <div class="form-label">رمز</div>
+          <input class="form-input" id="upd-emoji" value="📢" style="text-align:center;font-size:18px">
+        </div>
+        <div class="form-group">
+          <div class="form-label">العنوان *</div>
+          <input class="form-input" id="upd-title" placeholder="مثال: ميزة جديدة 🎉">
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">المحتوى *</div>
+        <textarea class="form-input" id="upd-body" rows="4" placeholder="اشرح التفاصيل هنا..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">التاريخ</div>
+          <input class="form-input" type="date" id="upd-date" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div class="form-group">
+          <div class="form-label">إرسال إلى</div>
+          <select class="form-select" id="upd-target">
+            <option value="all">الكل</option>
+            <option value="active">المشتركون النشطون</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal-new-update').remove()">إلغاء</button>
+        <button class="btn btn-ghost" onclick="saveUpdate(false)"><i class="fa-solid fa-floppy-disk"></i> حفظ مسودة</button>
+        <button class="btn btn-primary" onclick="saveUpdate(true)"><i class="fa-solid fa-paper-plane"></i> إرسال للكل</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+}
+
+function editUpdate(id) {
+  const u = _updates.find(x => x.id === id);
+  if(!u) return;
+  openNewUpdateModal();
+  setTimeout(() => {
+    document.getElementById('upd-edit-id').value = id;
+    document.getElementById('upd-emoji').value  = u.emoji || '📢';
+    document.getElementById('upd-title').value  = u.title || '';
+    document.getElementById('upd-body').value   = u.body  || '';
+    document.getElementById('upd-date').value   = u.date  || new Date().toISOString().split('T')[0];
+  }, 50);
+}
+
+async function saveUpdate(sendNow) {
+  const title = document.getElementById('upd-title')?.value.trim();
+  const body  = document.getElementById('upd-body')?.value.trim();
+  if(!title || !body) { toast('⚠ العنوان والمحتوى مطلوبان'); return; }
+  const editId = document.getElementById('upd-edit-id')?.value;
+  const update = {
+    id: editId || 'upd_' + Date.now(),
+    emoji: document.getElementById('upd-emoji')?.value.trim() || '📢',
+    title, body,
+    date: document.getElementById('upd-date')?.value || new Date().toISOString().split('T')[0],
+    target: document.getElementById('upd-target')?.value || 'all',
+    sent: false, sentCount: 0,
+    createdAt: new Date().toISOString()
+  };
+  if(editId) { const idx = _updates.findIndex(x => x.id === editId); if(idx>-1) _updates[idx] = update; else _updates.unshift(update); }
+  else _updates.unshift(update);
+  _saveUpdates();
+  document.getElementById('modal-new-update')?.remove();
+  if(sendNow) await sendUpdate(update.id);
+  else { renderUpdatesPage(); toast('✅ تم حفظ المسودة'); }
+}
+
+async function sendUpdate(id) {
+  const update = _updates.find(x => x.id === id);
+  if(!update) return;
+  if(!confirm(`إرسال "${update.title}" لجميع المستخدمين؟`)) return;
+  toast('⏳ جاري الإرسال...');
+  let ok = 0, fail = 0;
+  try {
+    const { data: allRows } = await supa.from('studio_data').select('user_id, data');
+    for(const row of (allRows||[])) {
+      try {
+        let ud = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+        if(!ud) continue;
+        if(!ud._notifications) ud._notifications = [];
+        if(!ud._notifications.find(n => n.id === update.id)) {
+          ud._notifications.unshift({ id: update.id, emoji: update.emoji, title: update.title, body: update.body, date: update.date, readAt: null });
+          ud._notifications = ud._notifications.slice(0, 50);
+        }
+        const { error } = await supa.from('studio_data').update({ data: JSON.stringify(ud), updated_at: new Date().toISOString() }).eq('user_id', row.user_id);
+        if(error) fail++; else ok++;
+      } catch(e) { fail++; }
+    }
+    update.sent = true; update.sentAt = new Date().toISOString(); update.sentCount = ok;
+    _saveUpdates(); renderUpdatesPage();
+    toast(`✅ أُرسل لـ ${ok} مستخدم${fail ? ` (${fail} خطأ)` : ''}`, 4000);
+    logActivity('إرسال تحديث', `"${update.title}" — ${ok} مستخدم`, 'var(--accent3)');
+  } catch(e) { toast('⚠ خطأ في الإرسال: ' + e.message); }
+}
+
+function deleteUpdate(id) {
+  if(!confirm('حذف هذه الرسالة؟')) return;
+  _updates = _updates.filter(x => x.id !== id);
+  _saveUpdates(); renderUpdatesPage();
+  toast('🗑 تم الحذف');
+}
+
+
 
 let _bkData = null; // loaded backup file for import
 
