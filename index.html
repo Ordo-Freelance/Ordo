@@ -4863,7 +4863,7 @@ function _updateNavLocks(){
     if(lockChar){
       const ic=document.createElement('span');
       ic.className='_nl';ic.style.cssText='font-size:10px;opacity:.55;margin-right:auto;flex-shrink:0';
-      ic.textContent=lockChar; el.appendChild(ic);
+      ic.innerHTML=lockChar; el.appendChild(ic);
     }
   });
   // قفّل / افتح قسم وسائل الدفع
@@ -5002,7 +5002,7 @@ function loadSettings(){
   renderExpenseCats();
   ['name','phone','email','address','terms'].forEach(k=>{const e=document.getElementById('set-'+k);if(e)e.value=s[k]||'';});
   // Reflect current theme state in buttons
-  const mode = localStorage.getItem('studioDisplayMode') || 'dark';
+  const mode = localStorage.getItem('studioDisplayMode') || 'light';
   const color = localStorage.getItem('studioAccentColor') || '#7c6ff7';
   const lang  = localStorage.getItem('studioLang') || 'ar';
   const btnDark  = document.getElementById('btn-dark-mode');
@@ -5309,7 +5309,7 @@ function toggleDeposit(){document.getElementById('deposit-row').style.display=do
 // THEME / LANGUAGE / DARK MODE
 // ============================================================
 function toggleDarkLight() {
-  const current = localStorage.getItem('studioDisplayMode') || 'dark';
+  const current = localStorage.getItem('studioDisplayMode') || 'light';
   const next = current === 'dark' ? 'light' : 'dark';
   setDisplayMode(next);
   const btn = document.getElementById('dark-toggle-btn');
@@ -5517,7 +5517,7 @@ function applyTranslations(lang) {
 }
 
 function loadThemePreferences() {
-  const mode  = localStorage.getItem('studioDisplayMode') || 'dark';
+  const mode  = localStorage.getItem('studioDisplayMode') || 'light';
   const color = localStorage.getItem('studioAccentColor') || '#7c6ff7';
   const lang  = localStorage.getItem('studioLang') || 'ar';
   setDisplayMode(mode);
@@ -8998,6 +8998,18 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   // إظهار الداش بورد مباشرة بعد التحقق من الاشتراك
   showPage('dashboard');
   showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> أهلاً ' + (userObj.name||''), '#4fd1a5');
+
+  // ── إشعار ترحيب للمستخدم الجديد ──
+  var _newUserKey = 'ordo_welcome_shown_' + supaUser.id;
+  if(!localStorage.getItem(_newUserKey)){
+    localStorage.setItem(_newUserKey, '1');
+    setTimeout(function(){
+      addNotification('<i class="fa-solid fa-rocket"></i> أهلاً بك في Ordo! 🎉 اكتشف المهام، الفواتير، تتبع الوقت، وتحدي الأسبوع', 'success');
+      setTimeout(function(){
+        addNotification('<i class="fa-solid fa-lightbulb"></i> نصيحة: ابدأ بإضافة مهمة أو عميل من القائمة الجانبية لتستفيد من كل مميزات النظام', 'info');
+      }, 1500);
+    }, 2000);
+  }
 }
 
 // ══ SUBSCRIPTION SYSTEM ══
@@ -18872,6 +18884,8 @@ function _toggleDashEdit(){
 }
 
 function _hideWidget(id){
+  // تحدي الأسبوع لا يمكن إخفاؤه — يثبت دائماً في الصفحة الرئيسية
+  if(id === 'challenge') return;
   var layout = _getDashLayout();
   var w = layout.find(function(x){ return x.id===id; });
   if(w){ w.visible=false; _saveDashLayout(layout); _renderDashGrid(); }
@@ -18959,6 +18973,8 @@ function _renderDashGrid(){
   if(!grid) return;
 
   var layout = _getDashLayout().sort(function(a,b){ return a.row - b.row; });
+  // تحدي الأسبوع دائماً مرئي — لا يمكن إخفاؤه
+  layout.forEach(function(w){ if(w.id==='challenge') w.visible=true; });
   var visible = layout.filter(function(w){ return w.visible; });
   var hidden  = layout.filter(function(w){ return !w.visible; });
 
@@ -19322,6 +19338,13 @@ function _saveNotifications(){
 
 function addNotification(msg, type, link){
   _loadNotifications();
+  // ── منع الإشعارات المكررة: إذا نفس الرسالة موجودة في آخر 10 إشعارات تجاهلها ──
+  var msgText = (msg||'').replace(/<[^>]*>/g,'').trim().slice(0,80);
+  var isDup = _notifications.slice(0,10).some(function(n){
+    var nText = (n.msg||'').replace(/<[^>]*>/g,'').trim().slice(0,80);
+    return nText === msgText;
+  });
+  if(isDup) return;
   _notifications.unshift({
     id: Date.now(),
     msg: msg,
@@ -19537,7 +19560,7 @@ function _syncThemeToCloud(){
     if(typeof S === 'undefined' || !S) return;
     if(!S.settings) S.settings = {};
     S.settings.accentColor = localStorage.getItem('studioAccentColor') || '#7c6ff7';
-    S.settings.displayMode = localStorage.getItem('studioDisplayMode') || 'dark';
+    S.settings.displayMode = localStorage.getItem('studioDisplayMode') || 'light';
     if(typeof lsSave === 'function') lsSave();
     if(typeof cloudSave === 'function') cloudSave(S);
   }, 800);
