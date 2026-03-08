@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#7c6ff7">
 <title>Ordo - Tasks — نظام إدارة الأعمال</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
 
 <!-- ═══ SUPABASE SDK ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -1782,7 +1783,7 @@ setTimeout(window._showApp, 4000);
       </div>
     </div>
 
-    <div class="auth-footer">Ordo - Tasks — نظام إدارة الأعمال الاحترافي ⬡</div>
+    <div class="auth-footer">Ordo - Tasks — نظام إدارة الأعمال الاحترافي <i class="fa-solid fa-bolt"></i></i></div>
 
     </div><!-- end auth-card-body -->
   </div>
@@ -1801,42 +1802,42 @@ setTimeout(window._showApp, 4000);
   <div class="sidebar-logo" id="_sidebar-logo-wrap">
     <div class="logo-mark" id="_logo-mark-wrap" style="display:flex;align-items:center;justify-content:center;flex-shrink:0">
       <img id="_sidebar-logo-img" src="" alt="" style="display:none" onerror="this.style.display='none';document.getElementById('_logo-mark-hex').style.display='flex';document.getElementById('_logo-mark-wrap').classList.remove('has-logo')">
-      <span id="_logo-mark-hex" style="font-size:18px;font-weight:900;color:#fff">⬡</span>
+      <span id="_logo-mark-hex" style="font-size:18px;font-weight:900;color:#fff"><i class="fa-solid fa-bolt"></i></i></span>
     </div>
     <div class="logo-text">
       <div class="logo-title" data-platform-name>Ordo - Tasks</div>
       <div class="logo-sub" id="_sidebar-logo-sub">نظام إدارة الأعمال</div>
     </div>
   </div>
-  <div class="nav-section-label">الرئيسية</div>
-  <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span class="nav-label" data-ar="لوحة التحكم">لوحة التحكم</span></div>
-  <div class="nav-item" onclick="showPage('tasks',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><span class="nav-label" data-ar="المهام والمشاريع">المهام والمشاريع</span><span class="nav-badge" id="tasks-badge" style="display:none"></span></div>
-  <div class="nav-item" onclick="showPage('schedule',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="nav-label" data-ar="تنظيم اليوم">تنظيم اليوم</span></div>
-  <div class="nav-item" onclick="showPage(&#39;meetings&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="nav-label" data-ar="الميتنج">الميتنج</span><span class="nav-badge" id="meetings-badge" style="display:none;background:var(--accent4)"></span></div>
+  <div class="nav-section-label" data-i18n="sec_main">الرئيسية</div>
+  <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span class="nav-label" data-ar="لوحة التحكم" data-i18n="nav_dashboard">لوحة التحكم</span></div>
+  <div class="nav-item" onclick="showPage('tasks',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><span class="nav-label" data-ar="المهام والمشاريع" data-i18n="nav_tasks">المهام والمشاريع</span><span class="nav-badge" id="tasks-badge" style="display:none"></span></div>
+  <div class="nav-item" onclick="showPage('schedule',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="nav-label" data-ar="تنظيم اليوم" data-i18n="nav_schedule">تنظيم اليوم</span></div>
+  <div class="nav-item" onclick="showPage(&#39;meetings&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="nav-label" data-ar="الميتنج" data-i18n="nav_meetings">الميتنج</span><span class="nav-badge" id="meetings-badge" style="display:none;background:var(--accent4)"></span></div>
 
-  <div class="nav-section-label">المال والعملاء</div>
-  <div class="nav-item" onclick="showPage(&#39;clients&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nav-label" data-ar="قاعدة العملاء">قاعدة العملاء</span></div>
-  <div class="nav-item" onclick="showPage(&#39;finance&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="nav-label" data-ar="المالية">المالية</span></div>
-  <div class="nav-item" onclick="showPage(&#39;invoices&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><span class="nav-label" data-ar="الفواتير والعقود">الفواتير والعقود</span></div>
-  <div class="nav-section-label">الخدمات والمبيعات</div>
+  <div class="nav-section-label" data-i18n="sec_finance">المال والعملاء</div>
+  <div class="nav-item" onclick="showPage(&#39;clients&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nav-label" data-ar="قاعدة العملاء" data-i18n="nav_clients">قاعدة العملاء</span></div>
+  <div class="nav-item" onclick="showPage(&#39;finance&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="nav-label" data-ar="المالية" data-i18n="nav_finance">المالية</span></div>
+  <div class="nav-item" onclick="showPage(&#39;invoices&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><span class="nav-label" data-ar="الفواتير والعقود" data-i18n="nav_invoices">الفواتير والعقود</span></div>
+  <div class="nav-section-label" data-i18n="sec_services">الخدمات والمبيعات</div>
   <div class="nav-item" onclick="showPage('services',this)" id="nav-services">
     <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span>
-    <span class="nav-label" data-ar="خدماتي والباقات">خدماتي والباقات</span>
+    <span class="nav-label" data-ar="خدماتي والباقات" data-i18n="nav_services">خدماتي والباقات</span>
     <span class="nav-badge" id="svc-orders-nav-badge" style="display:none;background:var(--accent2);color:#1a1a2e"></span>
   </div>
   <div class="nav-item" onclick="showPage('support',this)" id="nav-support">
     <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-    <span class="nav-label" data-ar="الدعم والرسائل">الدعم والرسائل</span>
+    <span class="nav-label" data-ar="الدعم والرسائل" data-i18n="nav_support">الدعم والرسائل</span>
     <span class="nav-badge" id="support-badge" style="display:none;background:var(--accent4);color:#fff"></span>
   </div>
-  <div class="nav-section-label">الفريق</div>
-  <div class="nav-item" onclick="showPage(&#39;team&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nav-label" data-ar="فريق العمل">فريق العمل</span><span class="nav-badge" id="team-badge" style="display:none"></span></div>
-  <div class="nav-section-label">أدوات الفريلانسر</div>
-  <div class="nav-item" onclick="showPage(&#39;timetracker&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><span class="nav-label" data-ar="تتبع الوقت">تتبع الوقت</span></div>
-  <div class="nav-item" onclick="showPage(&#39;freelancer-goals&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><span class="nav-label" data-ar="الأهداف والإنجازات">الأهداف والإنجازات</span></div>
-  <div class="nav-section-label">الإعدادات</div>
-  <div class="nav-item" onclick="showPage(&#39;settings&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M20 12h2M2 12h2M12 20v2M12 2v2"/></svg></span><span class="nav-label" data-ar="إعدادات النظام">إعدادات النظام</span></div>
-  <div class="nav-item" onclick="openBackupModal()" style="color:var(--accent3)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>نسخ احتياطي<span id="backup-reminder-dot" style="display:none;width:8px;height:8px;background:var(--accent4);border-radius:50%;margin-right:auto;flex-shrink:0"></span></div>
+  <div class="nav-section-label" data-i18n="sec_team">الفريق</div>
+  <div class="nav-item" onclick="showPage(&#39;team&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nav-label" data-ar="فريق العمل" data-i18n="nav_team">فريق العمل</span><span class="nav-badge" id="team-badge" style="display:none"></span></div>
+  <div class="nav-section-label" data-i18n="sec_tools">أدوات الفريلانسر</div>
+  <div class="nav-item" onclick="showPage(&#39;timetracker&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><span class="nav-label" data-ar="تتبع الوقت" data-i18n="nav_timetracker">تتبع الوقت</span></div>
+  <div class="nav-item" onclick="showPage(&#39;freelancer-goals&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><span class="nav-label" data-ar="الأهداف والإنجازات" data-i18n="nav_goals">الأهداف والإنجازات</span></div>
+  <div class="nav-section-label" data-i18n="sec_settings">الإعدادات</div>
+  <div class="nav-item" onclick="showPage(&#39;settings&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M20 12h2M2 12h2M12 20v2M12 2v2"/></svg></span><span class="nav-label" data-ar="إعدادات النظام" data-i18n="nav_settings">إعدادات النظام</span></div>
+  <div class="nav-item" onclick="openBackupModal()" style="color:var(--accent3)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span data-i18n="nav_backup" data-i18n="nav_backup"><i class="fa-solid fa-cloud-arrow-up" style="margin-left:6px"></i> نسخ احتياطي</span><span id="backup-reminder-dot" style="display:none;width:8px;height:8px;background:var(--accent4);border-radius:50%;margin-right:auto;flex-shrink:0"></span></div>
   <!-- User badge -->
   <div class="sidebar-user" id="sidebar-user" onclick="openProfileModal()" style="cursor:pointer" title="الملف الشخصي">
     <div class="user-avatar" id="user-avatar-icon">م</div>
@@ -1844,8 +1845,8 @@ setTimeout(window._showApp, 4000);
       <div class="user-name" id="user-display-name">محمود</div>
       <div class="user-phone" id="user-display-phone">01090412218</div>
     </div>
-    <button class="logout-btn" onclick="event.stopPropagation();doLogout()" title="تسجيل الخروج">⏻</button>
-    <button class="logout-btn" onclick="event.stopPropagation();toggleDarkLight()" title="تبديل الوضع" style="margin-right:4px" id="dark-toggle-btn">🌙</button>
+    <button class="logout-btn" onclick="event.stopPropagation();doLogout()" title="تسجيل الخروج"><i class="fa-solid fa-right-from-bracket"></i></i></button>
+    <button class="logout-btn" onclick="event.stopPropagation();toggleDarkLight()" title="تبديل الوضع" style="margin-right:4px" id="dark-toggle-btn"><i class="fa-solid fa-moon" id="_dark-mode-icon"></i></button>
   </div>
   <!-- Subscription Status Bar -->
   <div id="sub-status-bar" class="sub-status-bar none" onclick="openSubscriptionInfo()" title="حالة الاشتراك">
@@ -1854,7 +1855,7 @@ setTimeout(window._showApp, 4000);
       <div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="sub-bar-plan">لا يوجد اشتراك</div>
       <div id="sub-bar-detail" style="color:var(--text3);font-size:10px;margin-top:1px">اضغط للتفاصيل</div>
     </div>
-    <span style="font-size:14px">↗</span>
+    <span style="font-size:14px"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:11px"></i></span>
   </div>
 </aside><!-- end sidebar -->
 
@@ -1864,17 +1865,21 @@ setTimeout(window._showApp, 4000);
 <!-- TOP HEADER -->
 <header class="app-header">
   <button class="header-toggle" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="فتح القائمة" style="display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:10px;min-width:0;max-width:180px">
-    <span id="toggle-icon" style="font-size:18px;flex-shrink:0">☰</span>
+    <span id="toggle-icon" style="font-size:18px;flex-shrink:0"><i class="fa-solid fa-bars"></i></i></span>
     <span id="_header-studio-name" data-platform-name style="font-size:13px;font-weight:800;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">Ordo - Tasks</span>
   </button>
-  <div class="header-page-title" id="header-page-title">لوحة التحكم</div>
+  <div class="header-page-title" id="header-page-title" data-i18n="nav_dashboard">لوحة التحكم</div>
   <div class="header-actions">
     <!-- Notifications Bell -->
     <button id="_notif-bell-btn" onclick="_toggleNotifPanel(this)" style="position:relative;width:34px;height:34px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s" title="الإشعارات">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <span id="_notif-dot" style="display:none;position:absolute;top:5px;right:5px;width:8px;height:8px;background:var(--accent4);border-radius:50%;border:2px solid var(--surface)"></span>
     </button>
-    <button class="btn btn-primary btn-sm" id="header-cta" onclick="openTaskModal()" style="display: inline-flex;">+ مهمة جديدة</button>
+    <button class="btn btn-primary btn-sm" id="header-cta" onclick="openTaskModal()" style="display: inline-flex;" data-i18n="btn_new_task"><i class="fa-solid fa-plus" style="margin-left:4px"></i> مهمة جديدة</button>
+    <!-- Language Toggle -->
+    <button id="_lang-toggle-btn" onclick="_toggleLang()" title="Switch Language / تغيير اللغة" style="width:34px;height:34px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;font-size:11px;font-weight:900;font-family:'Cairo',sans-serif;flex-shrink:0">
+      <i class="fa-solid fa-language" style="font-size:15px"></i>
+    </button>
     <!-- Profile Avatar Button -->
     <button id="_header-avatar-btn" onclick="_toggleProfileMenu(this)" style="width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid var(--border);background:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;transition:.18s;position:relative" title="الملف الشخصي">
       <img id="_header-avatar-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
@@ -1889,34 +1894,34 @@ setTimeout(window._showApp, 4000);
 <!-- BOTTOM NAV (mobile) -->
 <div class="bn-overlay" id="bn-overlay" onclick="closeBnMore()"></div>
 <div class="bn-more-menu" id="bn-more-menu">
-  <div class="bn-more-item" onclick="showPage(&#39;clients&#39;);closeBnMore()" id="bnm-clients"><span>◈</span>قاعدة العملاء</div>
-  <div class="bn-more-item" onclick="showPage(&#39;team&#39;);closeBnMore()" id="bnm-team"><span>👥</span>فريق العمل</div>
-  <div class="bn-more-item" onclick="showPage(&#39;finance&#39;);closeBnMore()" id="bnm-finance"><span>◎</span>المالية</div>
-  <div class="bn-more-item" onclick="showPage(&#39;invoices&#39;);closeBnMore()" id="bnm-invoices"><span>◻</span>الفواتير والعقود</div>
-  <div class="bn-more-item" onclick="showPage('freelancer-goals');switchFgTab('courses');closeBnMore()" id="bnm-learning"><span>◆</span>التعلم والأهداف</div>
-  <div class="bn-more-item" onclick="showPage(&#39;meetings&#39;);closeBnMore()" id="bnm-meetings"><span>📅</span>الميتنج</div>
-  <div class="bn-more-item" onclick="showPage(&#39;schedule&#39;);closeBnMore()" id="bnm-schedule"><span>◷</span>تنظيم اليوم</div>
-  <div class="bn-more-item" onclick="showPage(&#39;settings&#39;);closeBnMore()" id="bnm-settings"><span>⚙</span>الإعدادات</div>
-  <div class="bn-more-item" onclick="showPage('services');closeBnMore()" id="bnm-services"><span>🛍</span>خدماتي والباقات</div>
-  <div class="bn-more-item" onclick="showPage('support');closeBnMore()" id="bnm-support"><span>💬</span>الدعم والرسائل</div>
-  <div class="bn-more-item" onclick="toggleDarkLight();closeBnMore()" id="bnm-darkmode"><span id="bnm-dark-icon">🌙</span>تبديل المظهر</div>
+  <div class="bn-more-item" onclick="showPage(&#39;clients&#39;);closeBnMore()" id="bnm-clients"><span><i class="fa-solid fa-address-book"></i></i></span><span data-i18n="nav_clients">قاعدة العملاء</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;team&#39;);closeBnMore()" id="bnm-team"><span><i class="fa-solid fa-people-group"></i></i></span><span data-i18n="nav_team">فريق العمل</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;finance&#39;);closeBnMore()" id="bnm-finance"><span><i class="fa-solid fa-coins"></i></i></span><span data-i18n="nav_finance">المالية</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;invoices&#39;);closeBnMore()" id="bnm-invoices"><span><i class="fa-solid fa-file-invoice-dollar"></i></i></span><span data-i18n="nav_invoices">الفواتير والعقود</span></div>
+  <div class="bn-more-item" onclick="showPage('freelancer-goals');switchFgTab('courses');closeBnMore()" id="bnm-learning"><span><i class="fa-solid fa-graduation-cap"></i></i></span><span data-i18n="nav_goals">التعلم والأهداف</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;meetings&#39;);closeBnMore()" id="bnm-meetings"><span><i class="fa-solid fa-calendar-check"></i></i></span><span data-i18n="nav_meetings">الميتنج</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;schedule&#39;);closeBnMore()" id="bnm-schedule"><span><i class="fa-solid fa-clock"></i></i></span><span data-i18n="nav_schedule">تنظيم اليوم</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;settings&#39;);closeBnMore()" id="bnm-settings"><span><i class="fa-solid fa-gear"></i></i></span><span data-i18n="nav_settings">الإعدادات</span></div>
+  <div class="bn-more-item" onclick="showPage('services');closeBnMore()" id="bnm-services"><span><i class="fa-solid fa-store"></i></i></span><span data-i18n="nav_services">خدماتي والباقات</span></div>
+  <div class="bn-more-item" onclick="showPage('support');closeBnMore()" id="bnm-support"><span><i class="fa-solid fa-comments"></i></i></span><span data-i18n="nav_support">الدعم والرسائل</span></div>
+  <div class="bn-more-item" onclick="toggleDarkLight();closeBnMore()" id="bnm-darkmode"><span id="bnm-dark-icon"><i class="fa-solid fa-moon"></i></i></span><span data-i18n="nav_theme">تبديل المظهر</span></div>
 </div>
 <div class="bottom-nav">
   <div class="bottom-nav-inner">
     <button class="bn-item active" id="bn-dashboard" onclick="showPage(&#39;dashboard&#39;)">
-      <span class="bn-icon">⚡</span><span>الرئيسية</span>
+      <span class="bn-icon"><i class="fa-solid fa-house"></i></i></span><span data-i18n="nav_dashboard">الرئيسية</span>
     </button>
     <button class="bn-item" id="bn-tasks" onclick="showPage(&#39;tasks&#39;)">
-      <span class="bn-icon">✦</span><span>المهام</span>
+      <span class="bn-icon"><i class="fa-solid fa-list-check"></i></i></span><span data-i18n="nav_tasks">المهام</span>
     </button>
     <button class="bn-item" id="bn-invoices" onclick="showPage(&#39;invoices&#39;)">
-      <span class="bn-icon">◻</span><span>الفواتير</span>
+      <span class="bn-icon"><i class="fa-solid fa-file-invoice"></i></i></span><span data-i18n="nav_invoices">الفواتير</span>
     </button>
     <button class="bn-item" id="bn-clients" onclick="showPage(&#39;clients&#39;)">
-      <span class="bn-icon">◈</span><span>العملاء</span>
+      <span class="bn-icon"><i class="fa-solid fa-users"></i></i></span><span data-i18n="nav_clients">العملاء</span>
     </button>
     <button class="bn-item" id="bn-more" onclick="toggleBnMore()">
-      <span class="bn-icon">⋯</span><span>المزيد</span>
+      <span class="bn-icon"><i class="fa-solid fa-ellipsis"></i></i></span><span data-i18n="nav_more">المزيد</span>
     </button>
   </div>
 </div>
@@ -1926,12 +1931,12 @@ setTimeout(window._showApp, 4000);
 <!-- DASHBOARD -->
 <div class="page active" id="page-dashboard">
   <div class="page-header">
-    <div><div class="page-title">أهلاً، <span id="studio-name-disp">محمود</span> 👋</div><div class="page-subtitle">نظرة عامة على استوديوك</div></div>
+    <div><div class="page-title">أهلاً، <span id="studio-name-disp">محمود</span> 👋</div><div class="page-subtitle" data-i18n="sub_dashboard">نظرة عامة على استوديوك</div></div>
     <div style="display:flex;gap:8px;align-items:center">
       <button onclick="_toggleDashEdit()" id="_dash-edit-btn" style="width:36px;height:36px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.18s" title="تخصيص اللوحة">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
-      <button class="btn btn-primary" onclick="openTaskModal()">+ مهمة جديدة</button>
+      <button class="btn btn-primary" onclick="openTaskModal()" data-i18n="btn_new_task"><i class="fa-solid fa-plus" style="margin-left:4px"></i> مهمة جديدة</button>
     </div>
   </div>
 
@@ -1963,7 +1968,7 @@ setTimeout(window._showApp, 4000);
 <!-- TASKS -->
 <div class="page" id="page-tasks">
   <div class="page-header">
-    <div><div class="page-title">المهام <span>والمشاريع</span></div><div class="page-subtitle">كل شغلتك في مكان واحد</div></div>
+    <div><div class="page-title"><span data-i18n="title_tasks">المهام</span> <span data-i18n="title_tasks2">والمشاريع</span></div><div class="page-subtitle" data-i18n="sub_tasks">كل شغلتك في مكان واحد</div></div>
     <div style="display:flex;gap:8px;align-items:center">
       <button id="_filter-toggle-btn" onclick="_toggleFilterPanel()" style="width:38px;height:38px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.18s;position:relative;flex-shrink:0" title="فلترة">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
@@ -1972,7 +1977,7 @@ setTimeout(window._showApp, 4000);
       <button onclick="_toggleLogMenu(this)" style="width:38px;height:38px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.18s;flex-shrink:0;position:relative" title="السجلات والأرشيف" id="_log-icon-btn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       </button>
-      <button class="btn btn-primary" onclick="openTaskModal()">+ مهمة جديدة</button>
+      <button class="btn btn-primary" onclick="openTaskModal()" data-i18n="btn_new_task"><i class="fa-solid fa-plus" style="margin-left:4px"></i> مهمة جديدة</button>
     </div>
   </div>
 
@@ -2169,8 +2174,8 @@ setTimeout(window._showApp, 4000);
 <!-- SCHEDULE -->
 <div class="page" id="page-schedule">
   <div class="page-header">
-    <div><div class="page-title">تنظيم <span>اليوم</span></div><div class="page-subtitle">خطط يومك ساعة بساعة</div></div>
-    <button class="btn btn-primary" onclick="openSchedModal()">+ إضافة وقت</button>
+    <div><div class="page-title"><span data-i18n="title_schedule">تنظيم</span> <span data-i18n="title_schedule2">اليوم</span></div><div class="page-subtitle" data-i18n="sub_schedule">خطط يومك ساعة بساعة</div></div>
+    <button class="btn btn-primary" onclick="openSchedModal()" data-i18n="btn_add_time"><i class="fa-solid fa-plus" style="margin-left:4px"></i> إضافة وقت</button>
   </div>
   <div class="grid grid-2">
     <div class="card"><div class="section-title">جدول اليوم</div><div id="sched-list"><div class="empty"><div class="empty-icon">◷</div>أضف وقت لجدول اليوم</div></div></div>
@@ -2190,8 +2195,8 @@ setTimeout(window._showApp, 4000);
 <!-- CLIENTS -->
 <div class="page" id="page-clients">
   <div class="page-header">
-    <div><div class="page-title">قاعدة <span>العملاء</span></div><div class="page-subtitle">سجل كل عميل وتاريخه معك</div></div>
-    <button class="btn btn-primary" onclick="openClientModal()">+ عميل جديد</button>
+    <div><div class="page-title"><span data-i18n="title_clients">قاعدة</span> <span data-i18n="title_clients2">العملاء</span></div><div class="page-subtitle" data-i18n="sub_clients">سجل كل عميل وتاريخه معك</div></div>
+    <button class="btn btn-primary" onclick="openClientModal()" data-i18n="btn_new_client"><i class="fa-solid fa-plus" style="margin-left:4px"></i> عميل جديد</button>
   </div>
   <!-- فلتر العملاء -->
   <div class="filter-bar" style="gap:8px">
@@ -2220,8 +2225,8 @@ setTimeout(window._showApp, 4000);
 <!-- TIME TRACKER PAGE -->
 <div class="page" id="page-timetracker">
   <div class="page-header">
-    <div><div class="page-title">⏱ تتبع <span>الوقت</span></div><div class="page-subtitle">سجّل وقتك واحسب أرباحك الفعلية</div></div>
-    <button class="btn btn-primary" onclick="openManualTimeEntry()">+ تسجيل وقت</button>
+    <div><div class="page-title"><i class="fa-solid fa-stopwatch"></i></i> <span data-i18n="title_time">تتبع</span> <span data-i18n="title_time2">الوقت</span></div><div class="page-subtitle" data-i18n="sub_time">سجّل وقتك واحسب أرباحك الفعلية</div></div>
+    <button class="btn btn-primary" onclick="openManualTimeEntry()" data-i18n="btn_log_time"><i class="fa-solid fa-plus" style="margin-left:4px"></i> تسجيل وقت</button>
   </div>
 
   <!-- Timer Card + Stats Row -->
@@ -2333,8 +2338,8 @@ setTimeout(window._showApp, 4000);
 <!-- FREELANCER GOALS PAGE -->
 <div class="page" id="page-freelancer-goals">
   <div class="page-header">
-    <div><div class="page-title">🎯 الأهداف <span>والإنجازات</span></div><div class="page-subtitle">حدد أهدافك وتابع تقدمك في كل المجالات</div></div>
-    <button class="btn btn-primary" id="fg-cta-btn" onclick="openFreelancerGoalModal()">+ هدف جديد</button>
+    <div><div class="page-title"><i class="fa-solid fa-bullseye"></i></i> <span data-i18n="title_goals">الأهداف</span> <span data-i18n="title_goals2">والإنجازات</span></div><div class="page-subtitle" data-i18n="sub_goals">حدد أهدافك وتابع تقدمك في كل المجالات</div></div>
+    <button class="btn btn-primary" id="fg-cta-btn" onclick="openFreelancerGoalModal()" data-i18n="btn_new_goal"><i class="fa-solid fa-plus" style="margin-left:4px"></i> هدف جديد</button>
   </div>
   <div id="fg-banner" style="margin-bottom:16px"></div>
 
@@ -2357,13 +2362,13 @@ setTimeout(window._showApp, 4000);
 <!-- TEAM -->
 <div class="page" id="page-team">
   <div class="page-header">
-    <div><div class="page-title">فريق <span>العمل</span></div><div class="page-subtitle">تابع أعضاء الفريق ومشاريعهم</div></div>
+    <div><div class="page-title"><span data-i18n="title_team">فريق</span> <span data-i18n="title_team2">العمل</span></div><div class="page-subtitle" data-i18n="sub_team">تابع أعضاء الفريق ومشاريعهم</div></div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn btn-ghost btn-sm" onclick="openTeamInviteInbox()" id="team-invite-inbox-btn" style="position:relative">
         📬 الدعوات
         <span id="team-invite-inbox-badge" style="display:none;position:absolute;top:-5px;left:-5px;background:var(--accent4);color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">0</span>
       </button>
-      <button class="btn btn-primary" onclick="openTeamModal()">+ فريق جديد</button>
+      <button class="btn btn-primary" onclick="openTeamModal()" data-i18n="btn_new_team"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فريق جديد</button>
     </div>
   </div>
 
@@ -2459,7 +2464,7 @@ setTimeout(window._showApp, 4000);
     </div>
     <!-- فرقك أنت -->
     <div id="teams-grid" class="grid grid-3">
-      <div class="empty card" style="grid-column:span 3"><div class="empty-icon">👥</div>لا فرق بعد — أضف فريق عمل<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="openTeamModal()">+ فريق جديد</button></div></div>
+      <div class="empty card" style="grid-column:span 3"><div class="empty-icon"><i class="fa-solid fa-people-group"></i></div>لا فرق بعد — أضف فريق عمل<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="openTeamModal()" data-i18n="btn_new_team"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فريق جديد</button></div></div>
     </div>
   </div>
 </div>
@@ -2545,7 +2550,7 @@ setTimeout(window._showApp, 4000);
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;position:sticky;bottom:0;background:var(--surface);padding-top:12px">
       <button class="btn btn-ghost" onclick="closeM('modal-team')">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveTeam()">💾 حفظ الفريق</button>
+      <button class="btn btn-primary" onclick="saveTeam()" data-i18n="btn_save_team"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ الفريق</button>
     </div>
   </div>
 </div>
@@ -2553,7 +2558,7 @@ setTimeout(window._showApp, 4000);
 <!-- FINANCE -->
 <div class="page" id="page-finance">
   <div class="page-header">
-    <div><div class="page-title">المالية <span>والحسابات</span></div><div class="page-subtitle">تتبع الدخل والمصروفات</div></div>
+    <div><div class="page-title"><span data-i18n="title_finance">المالية</span> <span data-i18n="title_finance2">والحسابات</span></div><div class="page-subtitle" data-i18n="sub_finance">تتبع الدخل والمصروفات</div></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-success" onclick="openIncomeModal()">+ دخل</button>
       <button class="btn btn-danger" onclick="openExpenseModal()">+ مصروف</button>
@@ -2661,8 +2666,8 @@ setTimeout(window._showApp, 4000);
 <!-- INVOICES -->
 <div class="page" id="page-invoices">
   <div class="page-header">
-    <div><div class="page-title">الفواتير <span>والعقود</span></div><div class="page-subtitle">احترف تعاملاتك المالية</div></div>
-    <button class="btn btn-primary" id="inv-add-btn" onclick="openInvoiceModal()">+ فاتورة جديدة</button>
+    <div><div class="page-title"><span data-i18n="title_invoices">الفواتير</span> <span data-i18n="title_invoices2">والعقود</span></div><div class="page-subtitle" data-i18n="sub_invoices">احترف تعاملاتك المالية</div></div>
+    <button class="btn btn-primary" id="inv-add-btn" onclick="openInvoiceModal()" data-i18n="btn_new_invoice"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فاتورة جديدة</button>
   </div>
   <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px">
     <button class="filter-chip active" id="inv-tab-inv" onclick="switchInvTab('invoices')">◻ الفواتير</button>
@@ -2722,7 +2727,7 @@ setTimeout(window._showApp, 4000);
       <!-- Right: detail/new -->
       <div id="stmt-detail-area">
         <div class="card" style="display:flex;align-items:center;justify-content:center;min-height:380px">
-          <div class="empty"><div class="empty-icon">📊</div><div>اختر كشفاً أو أنشئ كشفاً جديداً</div>
+          <div class="empty"><div class="empty-icon"><i class="fa-solid fa-chart-bar"></i></div><div>اختر كشفاً أو أنشئ كشفاً جديداً</div>
             <button class="btn btn-primary" style="margin-top:14px" onclick="_stmtNewDialog()">+ كشف حساب جديد</button>
           </div>
         </div>
@@ -2744,10 +2749,10 @@ setTimeout(window._showApp, 4000);
 <!-- MEETINGS -->
 <div class="page" id="page-meetings">
   <div class="page-header">
-    <div><div class="page-title">الميتنج <span>والاجتماعات</span></div><div class="page-subtitle">ارتب مواعيدك مع عملائك</div></div>
+    <div><div class="page-title"><span data-i18n="title_meetings">الميتنج</span> <span data-i18n="title_meetings2">والاجتماعات</span></div><div class="page-subtitle" data-i18n="sub_meetings">ارتب مواعيدك مع عملائك</div></div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" onclick="openMeetingSlotSettings()" title="إعدادات الأوقات المتاحة">⚙ أوقات متاحة</button>
-      <button class="btn btn-primary" onclick="openMeetingModal()">+ ميتنج جديد</button>
+      <button class="btn btn-primary" onclick="openMeetingModal()" data-i18n="btn_new_meeting"><i class="fa-solid fa-plus" style="margin-left:4px"></i> ميتنج جديد</button>
     </div>
   </div>
 
@@ -2764,7 +2769,7 @@ setTimeout(window._showApp, 4000);
           <option value="done">منتهية</option>
         </select>
       </div>
-      <div id="meetings-list"><div class="empty card"><div class="empty-icon">📅</div>لا اجتماعات مسجلة</div></div>
+      <div id="meetings-list"><div class="empty card"><div class="empty-icon"><i class="fa-solid fa-calendar"></i></div>لا اجتماعات مسجلة</div></div>
     </div>
     <div class="card" id="meeting-detail-card" style="display:none">
       <div id="meeting-detail-body"></div>
@@ -2829,7 +2834,7 @@ setTimeout(window._showApp, 4000);
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeM('modal-meeting')">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveMeeting()">💾 حفظ</button>
+      <button class="btn btn-primary" onclick="saveMeeting()" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
     </div>
   </div>
 </div>
@@ -2870,7 +2875,7 @@ setTimeout(window._showApp, 4000);
       <button class="btn btn-primary btn-sm" onclick="addMeetingSlot()" style="width:100%;justify-content:center">+ إضافة</button>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveMeetingSlots()">💾 حفظ الإعدادات</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveMeetingSlots()" data-i18n="btn_save_settings"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ الإعدادات</button>
       <button class="btn btn-ghost" onclick="closeM('modal-meeting-slots')">إلغاء</button>
     </div>
   </div>
@@ -2890,7 +2895,7 @@ setTimeout(window._showApp, 4000);
     <div class="form-group"><label class="form-label">موضوع الرسالة *</label><input class="form-input" id="pub-contact-subject" placeholder="موضوع تواصلك معنا..."></div>
     <div class="form-group"><label class="form-label">الرسالة</label><textarea class="form-input" id="pub-contact-msg" rows="3" placeholder="تفاصيل إضافية..."></textarea></div>
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="submitPubContactForm()">📤 إرسال الرسالة</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="submitPubContactForm()"><i class="fa-solid fa-paper-plane" style="margin-left:5px"></i> إرسال الرسالة</button>
       <button class="btn btn-ghost" onclick="closeM('modal-pub-contact')">إلغاء</button>
     </div>
   </div>
@@ -2921,7 +2926,7 @@ setTimeout(window._showApp, 4000);
     </div>
     <div class="form-group"><label class="form-label">ملاحظات</label><textarea class="form-input" id="ott-notes" rows="2" placeholder="ملاحظات إضافية..."></textarea></div>
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="confirmOrderToTask()">🚀 إنشاء المهمة</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="confirmOrderToTask()"><i class="fa-solid fa-rocket" style="margin-left:5px"></i> إنشاء المهمة</button>
       <button class="btn btn-ghost" onclick="closeM('modal-order-to-task')">إلغاء</button>
     </div>
   </div>
@@ -2979,7 +2984,7 @@ setTimeout(window._showApp, 4000);
       <div style="font-size:11px;color:var(--text3)" id="course-steps-progress-info"></div>
       <div style="display:flex;gap:10px">
         <button class="btn btn-ghost" onclick="closeM('modal-course')">إلغاء</button>
-        <button class="btn btn-primary" onclick="saveCourse()">💾 حفظ</button>
+        <button class="btn btn-primary" onclick="saveCourse()" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
       </div>
     </div>
   </div>
@@ -2989,8 +2994,8 @@ setTimeout(window._showApp, 4000);
 <div class="page" id="page-settings">
   <div class="page-header">
     <div>
-      <div class="page-title">إعدادات <span>النظام</span></div>
-      <div class="page-subtitle">خصّص النظام كما تريد</div>
+      <div class="page-title"><span data-i18n="title_settings">إعدادات</span> <span data-i18n="title_settings2">النظام</span></div>
+      <div class="page-subtitle" data-i18n="sub_settings">خصّص النظام كما تريد</div>
     </div>
   </div>
 
@@ -3030,7 +3035,7 @@ setTimeout(window._showApp, 4000);
             <button class="btn btn-ghost btn-sm" onclick="addPolicy()" style="flex-shrink:0">+ إضافة</button>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="saveSettings()">💾 حفظ الإعدادات</button>
+        <button class="btn btn-primary" onclick="saveSettings()" data-i18n="btn_save_settings"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ الإعدادات</button>
         <button class="btn btn-ghost" style="margin-right:8px" onclick="forceCloudReload()" title="إعادة تحميل البيانات من السحابة">☁️ تحديث من السحابة</button>
         <button class="btn btn-ghost" style="margin-right:8px;color:var(--accent2)" onclick="forcePushToCloud()" title="رفع البيانات المحلية للسحابة">⬆ رفع للسحابة</button>
       </div>
@@ -3091,8 +3096,8 @@ setTimeout(window._showApp, 4000);
       <div style="flex:1;min-width:200px">
         <div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:10px">وضع العرض</div>
         <div style="display:flex;gap:8px">
-          <button id="btn-dark-mode" class="btn btn-primary" onclick="setDisplayMode('dark')" style="flex:1;justify-content:center">🌙 ليلي</button>
-          <button id="btn-light-mode" class="btn btn-ghost" onclick="setDisplayMode('light')" style="flex:1;justify-content:center">☀️ نهاري</button>
+          <button id="btn-dark-mode" class="btn btn-primary" onclick="setDisplayMode('dark')" style="flex:1;justify-content:center"><i class="fa-solid fa-moon" style="margin-left:5px"></i> ليلي</button>
+          <button id="btn-light-mode" class="btn btn-ghost" onclick="setDisplayMode('light')" style="flex:1;justify-content:center"><i class="fa-solid fa-sun" style="margin-left:5px"></i> نهاري</button>
         </div>
       </div>
       <!-- اللغة -->
@@ -3325,8 +3330,8 @@ setTimeout(window._showApp, 4000);
   <!-- ══ HEADER ══ -->
   <div class="page-header" style="flex-wrap:wrap;gap:10px">
     <div>
-      <div class="page-title">🛍 المتجر <span>الإلكتروني</span></div>
-      <div class="page-subtitle">أدر خدماتك، باقاتك، بورتفوليوك، وموقعك العام</div>
+      <div class="page-title"><i class="fa-solid fa-store"></i></i> <span data-i18n="title_services">المتجر</span> <span data-i18n="title_services2">الإلكتروني</span></div>
+      <div class="page-subtitle" data-i18n="sub_services">أدر خدماتك، باقاتك، بورتفوليوك، وموقعك العام</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button onclick="openSvcModal()" class="btn btn-primary btn-sm">+ خدمة جديدة</button>
@@ -3341,7 +3346,7 @@ setTimeout(window._showApp, 4000);
       <div id="svc-link-text" style="font-size:11px;color:var(--text3);font-family:var(--mono);word-break:break-all">جاري التحميل...</div>
     </div>
     <div style="display:flex;gap:6px;flex-shrink:0">
-      <button onclick="svcCopyLink()" class="btn btn-primary btn-sm">📋 نسخ</button>
+      <button onclick="svcCopyLink()" class="btn btn-primary btn-sm"><i class="fa-solid fa-copy" style="margin-left:5px"></i> نسخ</button>
       <button onclick="svcPreviewPublic()" class="btn btn-ghost btn-sm">👁 معاينة</button>
       <button onclick="svcShareWhatsApp()" class="btn btn-ghost btn-sm" style="background:#25D366;color:#fff;border:none">📲 واتساب</button>
     </div>
@@ -3438,7 +3443,7 @@ setTimeout(window._showApp, 4000);
         <div class="card" style="padding:16px">
           <div style="font-size:13px;font-weight:800;margin-bottom:10px">📝 وصف الموقع</div>
           <textarea class="form-input" id="svc-site-desc" rows="4" placeholder="وصف مختصر يظهر في صفحتك العامة..." style="resize:vertical"></textarea>
-          <button onclick="saveSiteDesc()" class="btn btn-primary btn-sm" style="margin-top:10px;width:100%;justify-content:center">💾 حفظ</button>
+          <button onclick="saveSiteDesc()" class="btn btn-primary btn-sm" style="margin-top:10px;width:100%;justify-content:center" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
         </div>
 
       </div>
@@ -3479,7 +3484,7 @@ setTimeout(window._showApp, 4000);
           <div style="font-size:13px;font-weight:800;margin-bottom:10px">🔗 رابط الموقع العام</div>
           <div id="svc-website-link-preview" style="font-size:11px;color:var(--text3);font-family:var(--mono);word-break:break-all;margin-bottom:10px;padding:8px;background:var(--surface2);border-radius:8px">جاري التحميل...</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button onclick="svcCopyLink()" class="btn btn-primary btn-sm" style="flex:1;justify-content:center">📋 نسخ</button>
+            <button onclick="svcCopyLink()" class="btn btn-primary btn-sm" style="flex:1;justify-content:center"><i class="fa-solid fa-copy" style="margin-left:5px"></i> نسخ</button>
             <button onclick="svcPreviewPublic()" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center">👁 معاينة</button>
             <button onclick="svcShareWhatsApp()" class="btn btn-ghost btn-sm" style="background:#25D366;color:#fff;border:none;flex:1;justify-content:center">📲 واتساب</button>
           </div>
@@ -3502,8 +3507,8 @@ setTimeout(window._showApp, 4000);
 <div class="page" id="page-support">
   <div class="page-header">
     <div>
-      <div class="page-title">💬 الدعم <span>والرسائل</span></div>
-      <div class="page-subtitle">كل رسائل العملاء وطلبات الاجتماعات في مكان واحد</div>
+      <div class="page-title"><i class="fa-solid fa-comments"></i></i> <span data-i18n="title_support">الدعم</span> <span data-i18n="title_support2">والرسائل</span></div>
+      <div class="page-subtitle" data-i18n="sub_support">كل رسائل العملاء وطلبات الاجتماعات في مكان واحد</div>
     </div>
   </div>
   <div id="support-grid" class="grid grid-2" style="gap:12px"></div>
@@ -3959,7 +3964,7 @@ setTimeout(window._showApp, 4000);
 
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
       <button class="btn btn-ghost" onclick="closeM(&#39;modal-task&#39;)">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveTask()">💾 حفظ</button>
+      <button class="btn btn-primary" onclick="saveTask()" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
     </div>
   </div>
 </div>
@@ -4138,7 +4143,7 @@ setTimeout(window._showApp, 4000);
 
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeM(&#39;modal-client&#39;)">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveClient()">💾 حفظ</button>
+      <button class="btn btn-primary" onclick="saveClient()" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
     </div>
   </div>
 </div>
@@ -4419,7 +4424,7 @@ setTimeout(window._showApp, 4000);
     <div class="form-group"><label class="form-label">التقدم الحالي: <span id="g-pct-display">0%</span></label><input class="form-input" type="range" id="g-progress" min="0" max="100" value="0" oninput="document.getElementById(&#39;g-pct-display&#39;).textContent=this.value+&#39;%&#39;"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeM(&#39;modal-goal&#39;)">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveGoal()">💾 حفظ</button>
+      <button class="btn btn-primary" onclick="saveGoal()" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
     </div>
   </div>
 </div>
@@ -4445,7 +4450,7 @@ setTimeout(window._showApp, 4000);
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeM(&#39;modal-schedule&#39;)">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveSched()">💾 حفظ</button>
+      <button class="btn btn-primary" onclick="saveSched()" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
     </div>
   </div>
 </div>
@@ -5300,7 +5305,7 @@ function toggleDarkLight() {
   const next = current === 'dark' ? 'light' : 'dark';
   setDisplayMode(next);
   const btn = document.getElementById('dark-toggle-btn');
-  if(btn) btn.textContent = next === 'dark' ? '🌙' : '☀️';
+  if(btn) { var ic=btn.querySelector('i'); if(ic) ic.className=next==='dark'?'fa-solid fa-moon':'fa-solid fa-sun'; }
 }
 
 function setDisplayMode(mode) {
@@ -5313,7 +5318,7 @@ function setDisplayMode(mode) {
     btnLight.className = mode === 'light' ? 'btn btn-primary' : 'btn btn-ghost';
   }
   const toggleBtn = document.getElementById('dark-toggle-btn');
-  if(toggleBtn) toggleBtn.textContent = mode === 'dark' ? '🌙' : '☀️';
+  if(toggleBtn){ var tic=toggleBtn.querySelector('i'); if(tic) tic.className=mode==='dark'?'fa-solid fa-moon':'fa-solid fa-sun'; var bi=document.querySelector('#bnm-dark-icon i'); if(bi) bi.className=mode==='dark'?'fa-solid fa-moon':'fa-solid fa-sun'; }
   // Sync to cloud
   if(typeof S !== 'undefined' && S){
     if(!S.settings) S.settings={};
@@ -5473,7 +5478,7 @@ function loadThemePreferences() {
   setLanguage(lang);
   // Update sidebar toggle icon
   const btn = document.getElementById('dark-toggle-btn');
-  if(btn) btn.textContent = mode === 'dark' ? '🌙' : '☀️';
+  if(btn){ var _ic=btn.querySelector('i'); if(_ic) _ic.className=mode==='dark'?'fa-solid fa-moon':'fa-solid fa-sun'; }
 }
 
 // ============================================================
@@ -6683,7 +6688,7 @@ function _renderProfileTab(tab, id){
       <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
         <div class="card" style="padding:10px 16px;flex:1;min-width:120px"><div style="font-size:18px;font-weight:900;color:var(--accent3)">${totalPaid.toLocaleString()} ج</div><div style="font-size:10px;color:var(--text3)">✅ محصّل</div></div>
         <div class="card" style="padding:10px 16px;flex:1;min-width:120px"><div style="font-size:18px;font-weight:900;color:var(--accent2)">${totalPend.toLocaleString()} ج</div><div style="font-size:10px;color:var(--text3)">⏳ معلق</div></div>
-        <button class="btn btn-primary btn-sm" style="align-self:center" onclick="openInvoiceModal();document.getElementById('inv-client').value='${c.name.replace(/'/g,"\\'")}'" >+ فاتورة جديدة</button>
+        <button class="btn btn-primary btn-sm" style="align-self:center" onclick="openInvoiceModal();document.getElementById('inv-client').value='${c.name.replace(/'/g,"\\'")}'" ><i class="fa-solid fa-file-plus" style="margin-left:5px"></i> فاتورة جديدة</button>
       </div>
       ${cInvs.length?cInvs.map(i=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)">
@@ -7164,7 +7169,7 @@ function _renderFeaturesPanel(){
         </div>`:''}
         ${c.checkId?`<div style="margin-bottom:8px"><label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="${c.checkId}" style="accent-color:var(--accent)" onchange="${c.save}"> ${c.checkLabel}</label>${c.checkId2?`<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;margin-top:4px"><input type="checkbox" id="${c.checkId2}" style="accent-color:var(--accent2)" onchange="${c.save}"> ${c.checkLabel2}</label>`:''}</div>`:''}
         <div style="display:flex;gap:5px;flex-wrap:wrap">
-          ${c.save?`<button class="btn btn-primary btn-sm" onclick="${c.save}">💾 حفظ</button>`:''}
+          ${c.save?`<button class="btn btn-primary btn-sm" onclick="${c.save}" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="${c.go}">${c.goLabel} →</button>
         </div>
       </div>`).join('');
@@ -8128,7 +8133,7 @@ function renderGoals(){
 
   const grid=document.getElementById('goals-grid');if(!grid)return;
   if(!total){
-    grid.innerHTML='<div class="empty card"><div class="empty-icon">◆</div>أضف أهدافك التعليمية والمهنية<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="openGoalModal()">+ هدف جديد</button></div></div>';
+    grid.innerHTML='<div class="empty card"><div class="empty-icon">◆</div>أضف أهدافك التعليمية والمهنية<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="openGoalModal()"><i class="fa-solid fa-bullseye" style="margin-left:5px"></i> هدف جديد</button></div></div>';
     return;
   }
 
@@ -10395,7 +10400,7 @@ function openSocialIconEditor(idx){
       </div>
       <div style="display:flex;gap:8px;margin-top:4px">
         <button onclick="_resetSocialIcon(${idx})" class="btn btn-ghost" style="flex:1">↺ إعادة الافتراضي</button>
-        <button onclick="_saveSocialIcon(${idx})" class="btn btn-primary" style="flex:1">💾 حفظ</button>
+        <button onclick="_saveSocialIcon(${idx})" class="btn btn-primary" style="flex:1" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
       </div>
     </div>`;
   openM('_modal-social-icon');
@@ -10866,7 +10871,7 @@ function delTeam(id){
 function renderTeams(){
   const grid = document.getElementById('teams-grid'); if(!grid) return;
   if(!S.teams.length){
-    grid.innerHTML = '<div class="empty card" style="grid-column:span 3"><div class="empty-icon">👥</div>لا فرق بعد — أضف فريق عمل<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="openTeamModal()">+ فريق جديد</button></div></div>';
+    grid.innerHTML = '<div class="empty card" style="grid-column:span 3"><div class="empty-icon"><i class="fa-solid fa-people-group"></i></div>لا فرق بعد — أضف فريق عمل<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="openTeamModal()" data-i18n="btn_new_team"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فريق جديد</button></div></div>';
     // Update badge
     const badge = document.getElementById('team-badge'); if(badge) badge.style.display='none';
     return;
@@ -11447,7 +11452,7 @@ function renderDailyLog(){
       <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">دخل اليوم</div><div class="stat-value" style="font-size:20px;color:var(--accent3)">${inc.toLocaleString()} ج</div></div>
       <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">مصروف اليوم</div><div class="stat-value" style="font-size:20px;color:var(--accent4)">${exp.toLocaleString()} ج</div></div>
     </div>
-    ${tasks.length ? tasks.map(_taskLogCard).join('') : '<div class="empty"><div class="empty-icon">📋</div>لا مهام مكتملة في هذا اليوم</div>'}`;
+    ${tasks.length ? tasks.map(_taskLogCard).join('') : '<div class="empty"><div class="empty-icon"><i class="fa-solid fa-clipboard-list"></i></div>لا مهام مكتملة في هذا اليوم</div>'}`;
 }
 
 function renderMonthlyLog(){
@@ -11468,7 +11473,7 @@ function renderMonthlyLog(){
       <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">إجمالي المصروف</div><div class="stat-value" style="font-size:20px;color:var(--accent4)">${exp.toLocaleString()} ج</div></div>
       <div class="card" style="flex:1;min-width:120px;text-align:center"><div class="stat-label">الصافي</div><div class="stat-value" style="font-size:20px;color:${(inc-exp)>=0?'var(--accent3)':'var(--accent4)'}">${(inc-exp).toLocaleString()} ج</div></div>
     </div>
-    ${tasks.length ? tasks.map(_taskLogCard).join('') : '<div class="empty"><div class="empty-icon">📋</div>لا مهام مكتملة في هذا الشهر</div>'}`;
+    ${tasks.length ? tasks.map(_taskLogCard).join('') : '<div class="empty"><div class="empty-icon"><i class="fa-solid fa-clipboard-list"></i></div>لا مهام مكتملة في هذا الشهر</div>'}`;
 }
 
 function renderAnnualLog(){
@@ -12572,7 +12577,7 @@ function _renderTasksUpcomingBanner(){
     <div style="font-size:12px;color:var(--text2);margin-bottom:8px">كم مهمة نشطة تستطيع إدارتها في نفس الوقت؟</div>
     <input id="_cap-input" type="number" min="1" max="50" class="form-input" style="margin-bottom:12px" placeholder="مثال: 10">
     <div style="display:flex;gap:8px">
-      <button class="btn btn-primary" style="flex:1" onclick="_saveCapacity()">💾 حفظ</button>
+      <button class="btn btn-primary" style="flex:1" onclick="_saveCapacity()" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
       <button class="btn btn-ghost" onclick="document.getElementById('_capacity-modal').style.display='none'">إلغاء</button>
     </div>
   </div>`;
@@ -12937,7 +12942,7 @@ function renderMeetings(){
   if(sf==='upcoming') mtgs=mtgs.filter(m=>!m.done);
   if(sf==='done') mtgs=mtgs.filter(m=>m.done);
   const typeIcon={online:'🖥',offline:'📍',phone:'📞',whatsapp:'💬'};
-  if(!mtgs.length){ list.innerHTML='<div class="empty card"><div class="empty-icon">📅</div>لا اجتماعات مطابقة</div>'; return; }
+  if(!mtgs.length){ list.innerHTML='<div class="empty card"><div class="empty-icon"><i class="fa-solid fa-calendar"></i></div>لا اجتماعات مطابقة</div>'; return; }
   list.innerHTML=mtgs.map(m=>`
     <div class="meeting-card ${m.done?'past':'upcoming'}" onclick="openMeetingDetail(${m.id})">
       <div style="display:flex;align-items:start;gap:10px">
@@ -13155,7 +13160,7 @@ function openCourseDetailPage(courseId){
         </div>
         <div style="display:flex;flex-direction:column;gap:8px" id="_cd-steps-list">
           ${stepsHtml}
-        </div>` : `<div class="empty card" style="text-align:center;padding:30px"><div class="empty-icon">📋</div><div style="margin-bottom:12px">لم تضف خطوات بعد</div><button onclick="openCourseModal(${courseId})" class="btn btn-primary">+ إضافة خطوات</button></div>`}
+        </div>` : `<div class="empty card" style="text-align:center;padding:30px"><div class="empty-icon"><i class="fa-solid fa-clipboard-list"></i></div><div style="margin-bottom:12px">لم تضف خطوات بعد</div><button onclick="openCourseModal(${courseId})" class="btn btn-primary">+ إضافة خطوات</button></div>`}
     </div>
     <!-- Step editor panel (inside detail page) -->
     <div id="_cd-step-editor" style="display:none;position:absolute;inset:0;background:var(--bg);z-index:10;flex-direction:column"></div>
@@ -13199,7 +13204,7 @@ function _openStepEditorInDetail(courseId, stepIdx){
             ${s.done?'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>':''}
           </div>مكتملة
         </label>
-        <button onclick="_saveStepFromDetail(${courseId},${stepIdx})" style="background:var(--accent);color:#fff;border:none;border-radius:9px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">💾 حفظ</button>
+        <button onclick="_saveStepFromDetail(${courseId},${stepIdx})" style="background:var(--accent);color:#fff;border:none;border-radius:9px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
       </div>
     </div>
     <div style="padding:12px 18px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0">
@@ -13403,7 +13408,7 @@ function renderDashKanbanMini(){
 function renderDashMeetings(){
   const el=document.getElementById('dash-meetings-shortcut'); if(!el) return;
   const upcoming=(S.meetings||[]).filter(m=>!m.done && m.date>=new Date().toISOString().split('T')[0]).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
-  if(!upcoming.length){ el.innerHTML='<div class="empty" style="padding:8px 0"><div class="empty-icon">📅</div>لا ميتنجات قادمة</div>'; return; }
+  if(!upcoming.length){ el.innerHTML='<div class="empty" style="padding:8px 0"><div class="empty-icon"><i class="fa-solid fa-calendar"></i></div>لا ميتنجات قادمة</div>'; return; }
   const typeIcon={online:'🖥',offline:'📍',phone:'📞',whatsapp:'💬'};
   el.innerHTML=upcoming.map(m=>`
     <div onclick="showPage('meetings')" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(42,42,58,.25);cursor:pointer">
@@ -17828,7 +17833,7 @@ function renderFgFinancial(){
   const el = document.getElementById('fg-panel-financial'); if(!el) return;
   const fg = S.freelancerGoals||{};
   if(!fg.financial){
-    el.innerHTML=`<div class="card" style="text-align:center;padding:40px"><div class="empty-icon">💰</div><div style="margin-bottom:16px">لم تحدد هدفاً مالياً بعد</div><button class="btn btn-primary" onclick="openFreelancerGoalModal('financial')">+ تحديد الهدف</button></div>`;
+    el.innerHTML=`<div class="card" style="text-align:center;padding:40px"><div class="empty-icon"><i class="fa-solid fa-coins"></i></div><div style="margin-bottom:16px">لم تحدد هدفاً مالياً بعد</div><button class="btn btn-primary" onclick="openFreelancerGoalModal('financial')">+ تحديد الهدف</button></div>`;
     return;
   }
   const {target,month,year}=fg.financial;
@@ -17875,7 +17880,7 @@ function renderFgTasks(){
   const el=document.getElementById('fg-panel-tasks'); if(!el) return;
   const fg=S.freelancerGoals||{};
   if(!fg.tasks){
-    el.innerHTML=`<div class="card" style="text-align:center;padding:40px"><div class="empty-icon">📋</div><div style="margin-bottom:16px">لم تحدد هدف أوردرات بعد</div><button class="btn btn-primary" onclick="openFreelancerGoalModal('tasks')">+ تحديد الهدف</button></div>`;
+    el.innerHTML=`<div class="card" style="text-align:center;padding:40px"><div class="empty-icon"><i class="fa-solid fa-clipboard-list"></i></div><div style="margin-bottom:16px">لم تحدد هدف أوردرات بعد</div><button class="btn btn-primary" onclick="openFreelancerGoalModal('tasks')">+ تحديد الهدف</button></div>`;
     return;
   }
   const {target,startDate,endDate}=fg.tasks;
@@ -17910,7 +17915,7 @@ function renderFgLearning(){
   el.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <div class="section-title" style="margin:0">🎯 الأهداف التعليمية (${goals.length})</div>
-      <button onclick="openGoalModal()" class="btn btn-primary btn-sm">+ هدف جديد</button>
+      <button onclick="openGoalModal()" class="btn btn-primary btn-sm"><i class="fa-solid fa-bullseye" style="margin-left:5px"></i> هدف جديد</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">
       ${active.map(g=>`<div class="card" style="padding:16px">
@@ -17934,7 +17939,7 @@ function renderFgLearning(){
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-top:10px">
       ${done.map(g=>`<div class="card" style="padding:12px;opacity:.7"><div style="font-size:13px;font-weight:700;text-decoration:line-through">${g.title||''}</div></div>`).join('')}
     </div>`:''}
-    ${!goals.length?`<div class="empty card"><div class="empty-icon">◆</div><div>أضف أهدافك التعليمية</div><div style="margin-top:12px"><button class="btn btn-primary" onclick="openGoalModal()">+ هدف جديد</button></div></div>`:''}`;
+    ${!goals.length?`<div class="empty card"><div class="empty-icon">◆</div><div>أضف أهدافك التعليمية</div><div style="margin-top:12px"><button class="btn btn-primary" onclick="openGoalModal()"><i class="fa-solid fa-bullseye" style="margin-left:5px"></i> هدف جديد</button></div></div>`:''}`;
 }
 
 function markGoalDoneNow(id){
@@ -18014,7 +18019,7 @@ function renderFgCustomGoals(){
   };
 
   if(!customs.length){
-    el.innerHTML = `<div class="empty card" style="padding:40px;text-align:center"><div class="empty-icon">⭐</div><div style="margin-bottom:16px">أضف أهدافك الخاصة — صحة، مهارات، مشاريع...</div><button class="btn btn-primary" onclick="openCustomGoalModal()">+ هدف جديد</button></div>`;
+    el.innerHTML = `<div class="empty card" style="padding:40px;text-align:center"><div class="empty-icon">⭐</div><div style="margin-bottom:16px">أضف أهدافك الخاصة — صحة، مهارات، مشاريع...</div><button class="btn btn-primary" onclick="openCustomGoalModal()"><i class="fa-solid fa-bullseye" style="margin-left:5px"></i> هدف جديد</button></div>`;
     return;
   }
 
@@ -18117,7 +18122,7 @@ function openCustomGoalModal(id, presetCat){
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:14px;border-top:1px solid var(--border);margin-top:10px;flex-shrink:0">
       <button class="btn btn-ghost" onclick="document.getElementById('_modal-custom-goal').remove()">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveCustomGoal()">💾 حفظ</button>
+      <button class="btn btn-primary" onclick="saveCustomGoal()" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
     </div>
   </div>`;
   document.body.appendChild(wrap);
@@ -18966,7 +18971,7 @@ function editTimeLog(taskId, dateKey){
     '<input id="_etl-mins" type="number" min="0" max="59" value="' + curM + '" class="form-input" style="text-align:center;font-size:18px;font-weight:700"></div></div>' +
     '<div style="display:flex;gap:8px">' +
     '<button onclick="deleteTimeLog(' + taskId + ',\'' + dateKey + '\')" class="btn btn-danger" style="flex:1">🗑 حذف</button>' +
-    '<button onclick="_saveEditedTimeLog(' + taskId + ',\'' + dateKey + '\')" class="btn btn-primary" style="flex:1">💾 حفظ</button>' +
+    '<button onclick="_saveEditedTimeLog(' + taskId + ',\'' + dateKey + '\')" class="btn btn-primary" style="flex:1" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>' +
     '</div></div>';
   openM('_modal-edit-timelog');
 }
@@ -19106,7 +19111,7 @@ function _toggleProfileMenu(triggerEl){
     '<button onclick="document.getElementById(\'_profile-menu-pop\').remove();openProfileModal()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right" onmouseover="this.style.background=\'var(--surface3)\'" onmouseout="this.style.background=\'none\'">' +
     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>الملف الشخصي</button>' +
     '<button onclick="openBackupModal();document.getElementById(\'_profile-menu-pop\')?.remove()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right" onmouseover="this.style.background=\'var(--surface3)\'" onmouseout="this.style.background=\'none\'">' +
-    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 15 21 21 3 21 3 15"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>نسخ احتياطي</button>' +
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 15 21 21 3 21 3 15"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg data-i18n="nav_backup"><i class="fa-solid fa-cloud-arrow-up" style="margin-left:6px"></i> نسخ احتياطي</button>' +
     '<hr style="border:none;border-top:1px solid var(--border);margin:6px 0">' +
     '<button onclick="logoutUser();document.getElementById(\'_profile-menu-pop\')?.remove()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--accent4);font-size:13px;font-family:var(--font);font-weight:700;cursor:pointer;border-radius:9px;text-align:right" onmouseover="this.style.background=\'rgba(247,111,124,.08)\'" onmouseout="this.style.background=\'none\'">' +
     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>تسجيل الخروج</button>' +
@@ -19728,7 +19733,7 @@ function renderArchivedTasksLog(){
   const el = document.getElementById('tasks-archive-log'); if(!el) return;
   const arch = (S.archivedTasks||[]).slice().sort((a,b)=>b.archivedAt?.localeCompare(a.archivedAt||'')||0);
   if(!arch.length){
-    el.innerHTML='<div class="empty" style="padding:32px"><div class="empty-icon">📦</div>لا مهام مؤرشفة</div>';
+    el.innerHTML='<div class="empty" style="padding:32px"><div class="empty-icon"><i class="fa-solid fa-box"></i></div>لا مهام مؤرشفة</div>';
     return;
   }
   // Group by archivedAt date
@@ -20586,7 +20591,7 @@ renderFgFinancial = function(){
       <div class="section-title" style="margin:0">💰 الهدف المالي</div>
       <button onclick="openFreelancerGoalModal('financial')" class="btn btn-primary">+ تحديد الهدف</button>
     </div>
-    <div class="card" style="text-align:center;padding:40px"><div class="empty-icon">💰</div><div>حدد هدفك المالي الشهري وتابع تقدمك</div></div>`;
+    <div class="card" style="text-align:center;padding:40px"><div class="empty-icon"><i class="fa-solid fa-coins"></i></div><div>حدد هدفك المالي الشهري وتابع تقدمك</div></div>`;
     return;
   }
   const {name,target,month,year,desc,lvl1,lvl2,lvl3}=fg.financial;
@@ -20993,7 +20998,7 @@ function _showTrackingShareModal(t){
         <label class="form-label">🔗 رابط صفحة المتابعة</label>
         <div style="display:flex;gap:8px">
           <input id="_trk-url" class="form-input" value="${blobUrl}" readonly style="flex:1;font-size:11px;direction:ltr">
-          <button onclick="navigator.clipboard.writeText(document.getElementById('_trk-url').value);toast('✅ تم نسخ الرابط')" class="btn btn-ghost btn-sm">📋 نسخ</button>
+          <button onclick="navigator.clipboard.writeText(document.getElementById('_trk-url').value);toast('✅ تم نسخ الرابط')" class="btn btn-ghost btn-sm"><i class="fa-solid fa-copy" style="margin-left:5px"></i> نسخ</button>
         </div>
         <div style="font-size:10px;color:var(--text3);margin-top:4px">⚠ الرابط مؤقت ويعمل في نفس الجهاز — لرابط دائم يحتاج نشر على سيرفر</div>
       </div>
@@ -21178,7 +21183,7 @@ function _showTrackingShareModal(t){
     <div class="form-group"><label class="form-label">ملاحظة</label><textarea class="form-input" id="tte-note" rows="2" placeholder="ملاحظة اختيارية..."></textarea></div>
     <input type="hidden" id="tte-id">
     <div class="form-row" style="margin-top:8px">
-      <button class="btn btn-primary" onclick="ttSaveEntry()" style="flex:1;justify-content:center">💾 حفظ</button>
+      <button class="btn btn-primary" onclick="ttSaveEntry()" style="flex:1;justify-content:center" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
       <button class="btn btn-ghost" onclick="closeM(&#39;modal-tt-entry&#39;)">إلغاء</button>
     </div>
   </div>
@@ -21433,8 +21438,350 @@ function _showTrackingShareModal(t){
       <button class="filter-chip" onclick="document.getElementById(&#39;rs-rate&#39;).value=25;document.getElementById(&#39;rs-currency&#39;).value=&#39;USD&#39;">25$</button>
       <button class="filter-chip" onclick="document.getElementById(&#39;rs-rate&#39;).value=50;document.getElementById(&#39;rs-currency&#39;).value=&#39;USD&#39;">50$</button>
     </div>
-    <button class="btn btn-primary" onclick="saveRateSettings()" style="width:100%;justify-content:center">💾 حفظ</button>
+    <button class="btn btn-primary" onclick="saveRateSettings()" style="width:100%;justify-content:center" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════
+     i18n ENGINE  —  Arabic ↔ English
+     ═══════════════════════════════════════════════════════ -->
+<script>
+(function(){
+'use strict';
+
+// ── Translation dictionary ──────────────────────────────
+var DICT = {
+  /* Navigation sections */
+  sec_main:      {ar:'الرئيسية',         en:'Home'},
+  sec_finance:   {ar:'المال والعملاء',   en:'Finance & Clients'},
+  sec_services:  {ar:'الخدمات والمبيعات',en:'Services & Sales'},
+  sec_team:      {ar:'الفريق',           en:'Team'},
+  sec_tools:     {ar:'أدوات الفريلانسر', en:'Freelancer Tools'},
+  sec_settings:  {ar:'الإعدادات',        en:'Settings'},
+
+  /* Navigation labels */
+  nav_dashboard: {ar:'لوحة التحكم',           en:'Dashboard'},
+  nav_tasks:     {ar:'المهام والمشاريع',       en:'Tasks & Projects'},
+  nav_schedule:  {ar:'تنظيم اليوم',            en:'Day Schedule'},
+  nav_meetings:  {ar:'الميتنج',                en:'Meetings'},
+  nav_clients:   {ar:'قاعدة العملاء',          en:'Clients'},
+  nav_finance:   {ar:'المالية',                en:'Finance'},
+  nav_invoices:  {ar:'الفواتير والعقود',       en:'Invoices & Contracts'},
+  nav_services:  {ar:'خدماتي والباقات',        en:'My Services & Packages'},
+  nav_support:   {ar:'الدعم والرسائل',         en:'Support & Messages'},
+  nav_team:      {ar:'فريق العمل',             en:'Work Team'},
+  nav_timetracker:{ar:'تتبع الوقت',            en:'Time Tracker'},
+  nav_goals:     {ar:'الأهداف والإنجازات',     en:'Goals & Achievements'},
+  nav_settings:  {ar:'إعدادات النظام',         en:'System Settings'},
+  nav_backup:    {ar:'نسخ احتياطي',            en:'Backup'},
+  nav_more:      {ar:'المزيد',                 en:'More'},
+  nav_theme:     {ar:'تبديل المظهر',           en:'Toggle Theme'},
+
+  /* Page titles */
+  title_tasks:   {ar:'المهام',           en:'Tasks'},
+  title_tasks2:  {ar:'والمشاريع',        en:'& Projects'},
+  sub_tasks:     {ar:'كل شغلتك في مكان واحد', en:'All your work in one place'},
+  title_schedule:{ar:'تنظيم',            en:'Day'},
+  title_schedule2:{ar:'اليوم',           en:'Schedule'},
+  sub_schedule:  {ar:'خطط يومك ساعة بساعة', en:'Plan your day hour by hour'},
+  title_clients: {ar:'قاعدة',            en:'Client'},
+  title_clients2:{ar:'العملاء',          en:'Database'},
+  sub_clients:   {ar:'سجل كل عميل وتاريخه معك', en:'Track every client and their history'},
+  title_time:    {ar:'تتبع',             en:'Time'},
+  title_time2:   {ar:'الوقت',            en:'Tracker'},
+  sub_time:      {ar:'سجّل وقتك واحسب أرباحك الفعلية', en:'Log your time and calculate real earnings'},
+  title_goals:   {ar:'الأهداف',          en:'Goals'},
+  title_goals2:  {ar:'والإنجازات',       en:'& Achievements'},
+  sub_goals:     {ar:'حدد أهدافك وتابع تقدمك في كل المجالات', en:'Set goals and track your progress'},
+  title_team:    {ar:'فريق',             en:'Work'},
+  title_team2:   {ar:'العمل',            en:'Team'},
+  sub_team:      {ar:'تابع أعضاء الفريق ومشاريعهم', en:'Manage team members and their projects'},
+  title_finance: {ar:'المالية',          en:'Finance'},
+  title_finance2:{ar:'والحسابات',        en:'& Accounts'},
+  sub_finance:   {ar:'تتبع الدخل والمصروفات', en:'Track income and expenses'},
+  title_invoices:{ar:'الفواتير',         en:'Invoices'},
+  title_invoices2:{ar:'والعقود',         en:'& Contracts'},
+  sub_invoices:  {ar:'احترف تعاملاتك المالية', en:'Professionalize your financial dealings'},
+  title_meetings:{ar:'الميتنج',          en:'Meetings'},
+  title_meetings2:{ar:'والاجتماعات',     en:'& Appointments'},
+  sub_meetings:  {ar:'ارتب مواعيدك مع عملائك', en:'Schedule your client appointments'},
+  title_settings:{ar:'إعدادات',          en:'System'},
+  title_settings2:{ar:'النظام',          en:'Settings'},
+  sub_settings:  {ar:'خصّص النظام كما تريد', en:'Customize the system your way'},
+  title_services:{ar:'المتجر',           en:'Online'},
+  title_services2:{ar:'الإلكتروني',      en:'Store'},
+  sub_services:  {ar:'أدر خدماتك، باقاتك، بورتفوليوك، وموقعك العام', en:'Manage your services, packages, portfolio & public site'},
+  title_support: {ar:'الدعم',            en:'Support'},
+  title_support2:{ar:'والرسائل',         en:'& Messages'},
+  sub_support:   {ar:'كل رسائل العملاء وطلبات الاجتماعات في مكان واحد', en:'All client messages and meeting requests in one place'},
+  sub_dashboard: {ar:'نظرة عامة على استوديوك', en:'Your studio overview'},
+
+  /* Buttons */
+  btn_new_task:     {ar:'مهمة جديدة',       en:'New Task'},
+  btn_add_time:     {ar:'إضافة وقت',         en:'Add Time'},
+  btn_new_client:   {ar:'عميل جديد',         en:'New Client'},
+  btn_log_time:     {ar:'تسجيل وقت',         en:'Log Time'},
+  btn_new_goal:     {ar:'هدف جديد',          en:'New Goal'},
+  btn_new_team:     {ar:'فريق جديد',         en:'New Team'},
+  btn_new_invoice:  {ar:'فاتورة جديدة',      en:'New Invoice'},
+  btn_new_meeting:  {ar:'ميتنج جديد',        en:'New Meeting'},
+  btn_save:         {ar:'حفظ',               en:'Save'},
+  btn_save_team:    {ar:'حفظ الفريق',        en:'Save Team'},
+  btn_save_settings:{ar:'حفظ الإعدادات',     en:'Save Settings'},
+};
+
+// Flat text patterns for innerHTML sweep (Arabic → English)
+var TEXT_MAP_AR_EN = [
+  /* Dashboard cards */
+  ['المهام النشطة','Active Tasks'],['الإيرادات هذا الشهر','Revenue This Month'],
+  ['إجمالي العملاء','Total Clients'],['المهام المكتملة','Completed Tasks'],
+  ['مهام اليوم','Today\'s Tasks'],['لا توجد مهام اليوم','No tasks today'],
+  ['لا توجد مهام','No tasks found'],['لا يوجد عملاء بعد','No clients yet'],
+  /* Tasks */
+  ['جديد','New'],['قيد التنفيذ','In Progress'],['مكتمل','Completed'],['ملغي','Cancelled'],
+  ['الأولوية','Priority'],['عالية','High'],['متوسطة','Medium'],['منخفضة','Low'],
+  ['الموعد النهائي','Deadline'],['المبلغ','Amount'],['ملاحظات','Notes'],
+  ['الخطوات','Steps'],['إضافة خطوة','Add Step'],['لا توجد خطوات','No steps'],
+  /* Finance */
+  ['إجمالي الدخل','Total Income'],['إجمالي المصروفات','Total Expenses'],
+  ['صافي الربح','Net Profit'],['دخل','Income'],['مصروف','Expense'],
+  ['هذا الشهر','This Month'],['الشهر السابق','Last Month'],['هذا العام','This Year'],
+  /* Clients */
+  ['اسم العميل','Client Name'],['رقم الهاتف','Phone Number'],
+  ['البريد الإلكتروني','Email'],['القناة','Channel'],['ملاحظات','Notes'],
+  /* Meetings */
+  ['العنوان','Title'],['التاريخ','Date'],['الوقت','Time'],
+  ['رابط الاجتماع','Meeting Link'],['وصف','Description'],
+  /* Settings */
+  ['اسم الاستوديو','Studio Name'],['الهاتف','Phone'],['العنوان','Address'],
+  ['البايو','Bio'],['اللون الرئيسي','Primary Color'],
+  /* Common */
+  ['حفظ','Save'],['إلغاء','Cancel'],['حذف','Delete'],['تعديل','Edit'],
+  ['إضافة','Add'],['بحث','Search'],['تصفية','Filter'],['عرض الكل','View All'],
+  ['لا يوجد','None'],['جاري التحميل','Loading'],['نعم','Yes'],['لا','No'],
+  ['تأكيد','Confirm'],['رجوع','Back'],['إغلاق','Close'],['نسخ','Copy'],
+  ['مشاركة','Share'],['تحميل','Download'],['رفع','Upload'],['معاينة','Preview'],
+  /* Status */
+  ['نشط','Active'],['غير نشط','Inactive'],['معلق','Pending'],
+  ['مدفوع','Paid'],['غير مدفوع','Unpaid'],['منتهي','Expired'],
+  /* Invoices */
+  ['رقم الفاتورة','Invoice #'],['تاريخ الإصدار','Issue Date'],
+  ['تاريخ الاستحقاق','Due Date'],['إجمالي','Total'],['الضريبة','Tax'],
+  ['الخصم','Discount'],['المجموع','Subtotal'],
+  /* Support */
+  ['رسائل غير مقروءة','Unread Messages'],['طلبات الاجتماع','Meeting Requests'],
+  ['استفسار','Inquiry'],['شكوى','Complaint'],['اقتراح','Suggestion'],
+  /* Services */
+  ['الخدمات','Services'],['الباقات','Packages'],['البورتفوليو','Portfolio'],
+  ['موقع العميل','Client Site'],['السعر','Price'],['مدة التسليم','Delivery Time'],
+  ['التعديلات','Revisions'],['ما يشمله','Includes'],['تفاصيل','Details'],
+];
+
+var TEXT_MAP_EN_AR = TEXT_MAP_AR_EN.map(function(p){return [p[1],p[0]];});
+
+// ── State ────────────────────────────────────────────────
+var currentLang = (function(){
+  try { return localStorage.getItem('_lang') || 'ar'; } catch(e){ return 'ar'; }
+})();
+
+// ── Core: apply translations to data-i18n elements ───────
+function applyI18n(lang) {
+  // 1. data-i18n attributes
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var key = el.getAttribute('data-i18n');
+    if(DICT[key] && DICT[key][lang]) {
+      // Preserve inner HTML tags (icons etc), only replace text nodes
+      var entry = DICT[key][lang];
+      // If element has icon child, keep it and update text after
+      var icon = el.querySelector('i,svg');
+      if(icon) {
+        // set text after icon
+        var nodes = el.childNodes;
+        var textSet = false;
+        for(var i=0;i<nodes.length;i++){
+          if(nodes[i].nodeType===3 && nodes[i].textContent.trim()){
+            nodes[i].textContent = ' '+entry;
+            textSet = true; break;
+          }
+        }
+        if(!textSet) el.appendChild(document.createTextNode(' '+entry));
+      } else {
+        el.textContent = entry;
+      }
+    }
+  });
+
+  // 2. header-page-title — sync with current page
+  var hpt = document.getElementById('header-page-title');
+  if(hpt) {
+    var pageKey = hpt.getAttribute('data-page-key');
+    if(pageKey && DICT[pageKey]) hpt.textContent = DICT[pageKey][lang] || hpt.textContent;
+  }
+
+  // 3. Document direction & lang
+  document.documentElement.lang = lang;
+  document.documentElement.dir  = lang==='ar' ? 'rtl' : 'ltr';
+
+  // 4. Layout direction classes
+  document.body.classList.toggle('lang-en', lang==='en');
+
+  // 5. Lang button indicator
+  var btn = document.getElementById('_lang-toggle-btn');
+  if(btn) {
+    btn.title = lang==='ar' ? 'Switch to English' : 'التحويل للعربية';
+    btn.setAttribute('data-lang', lang);
+    // Update button inner text indicator
+    var indicator = btn.querySelector('._lang-indicator');
+    if(indicator) indicator.textContent = lang==='ar' ? 'EN' : 'AR';
+  }
+
+  // 6. Sidebar logo sub
+  var sub = document.getElementById('_sidebar-logo-sub');
+  if(sub) sub.textContent = lang==='ar' ? 'نظام إدارة الأعمال' : 'Business Management';
+
+  // 7. Dark mode toggle icon title
+  var darkBtn = document.getElementById('dark-toggle-btn');
+  if(darkBtn) darkBtn.title = lang==='ar' ? 'تبديل الوضع' : 'Toggle Theme';
+
+  // 8. Persist
+  try { localStorage.setItem('_lang', lang); } catch(e){}
+  currentLang = lang;
+}
+
+// ── Toggle ───────────────────────────────────────────────
+window._toggleLang = function(){
+  var next = currentLang === 'ar' ? 'en' : 'ar';
+  applyI18n(next);
+
+  // Sweep static text in the DOM (non-scripted content)
+  var map = next==='en' ? TEXT_MAP_AR_EN : TEXT_MAP_EN_AR;
+  sweepTextNodes(document.body, map);
+
+  // Notify
+  var msg = next==='ar' ? '🌐 تم التحويل إلى العربية' : '🌐 Switched to English';
+  if(typeof toast === 'function') toast(msg);
+};
+
+// ── Text node sweep ──────────────────────────────────────
+function sweepTextNodes(root, map){
+  var walker = document.createTreeWalker(
+    root,
+    NodeFilter.SHOW_TEXT,
+    {acceptNode: function(node){
+      var p = node.parentElement;
+      if(!p) return NodeFilter.FILTER_REJECT;
+      var tag = p.tagName;
+      // Skip scripts, styles, inputs
+      if(tag==='SCRIPT'||tag==='STYLE'||tag==='INPUT'||tag==='TEXTAREA'||tag==='CODE') return NodeFilter.FILTER_REJECT;
+      // Skip dynamically rendered JS content (supabase fetched)
+      if(p.closest('[data-dynamic]')) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }}
+  );
+  var node;
+  var changes = [];
+  while((node = walker.nextNode())){
+    var t = node.textContent;
+    var orig = t;
+    for(var i=0;i<map.length;i++){
+      if(t.indexOf(map[i][0]) !== -1){
+        t = t.split(map[i][0]).join(map[i][1]);
+      }
+    }
+    if(t !== orig) changes.push([node, t]);
+  }
+  changes.forEach(function(c){ c[0].textContent = c[1]; });
+}
+
+// ── showPage hook — update header title ──────────────────
+(function(){
+  var _origSP = window.showPage;
+  var PAGE_KEYS = {
+    dashboard:'nav_dashboard', tasks:'nav_tasks', schedule:'nav_schedule',
+    meetings:'nav_meetings', clients:'nav_clients', finance:'nav_finance',
+    invoices:'nav_invoices', services:'nav_services', support:'nav_support',
+    team:'nav_team', timetracker:'nav_timetracker', settings:'nav_settings',
+    'freelancer-goals':'nav_goals'
+  };
+  window.showPage = function(id, el){
+    if(_origSP) _origSP.call(this, id, el);
+    var hpt = document.getElementById('header-page-title');
+    if(hpt && PAGE_KEYS[id]){
+      hpt.setAttribute('data-page-key', PAGE_KEYS[id]);
+      if(DICT[PAGE_KEYS[id]]) hpt.textContent = DICT[PAGE_KEYS[id]][currentLang] || hpt.textContent;
+    }
+  };
+})();
+
+// ── Dark mode icon sync ───────────────────────────────────
+(function(){
+  var _orig = window.toggleDarkLight;
+  window.toggleDarkLight = function(){
+    if(_orig) _orig.call(this);
+    setTimeout(syncDarkIcon, 50);
+  };
+})();
+function syncDarkIcon(){
+  var isDark = !document.body.classList.contains('light-mode');
+  var icons = [
+    document.querySelector('#dark-toggle-btn i'),
+    document.querySelector('#bnm-dark-icon i')
+  ];
+  icons.forEach(function(ic){
+    if(!ic) return;
+    ic.className = isDark ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+  });
+}
+
+// ── CSS for English LTR layout ────────────────────────────
+var styleTag = document.createElement('style');
+styleTag.textContent = [
+  /* Lang button pulse animation */
+  '@keyframes _langPop{0%{transform:scale(1)}50%{transform:scale(1.15)}100%{transform:scale(1)}}',
+  '#_lang-toggle-btn:active{animation:_langPop .2s ease}',
+  /* English: flip layout to LTR */
+  'body.lang-en{direction:ltr}',
+  'body.lang-en .sidebar{border-right:1px solid var(--border);border-left:none;right:auto;left:0}',
+  'body.lang-en .app-body{margin-right:0;margin-left:var(--sidebar-w)}',
+  'body.lang-en .app-shell{flex-direction:row}',
+  'body.lang-en .nav-item{border-right:none;border-left:3px solid transparent;text-align:left}',
+  'body.lang-en .nav-item.active{border-left-color:var(--accent);border-right-color:transparent}',
+  'body.lang-en .nav-item:hover{border-left-color:var(--border)}',
+  'body.lang-en .app-header{direction:ltr}',
+  'body.lang-en .header-actions{flex-direction:row-reverse}',
+  'body.lang-en .card{text-align:left}',
+  'body.lang-en .modal,.lang-en .modal-content{direction:ltr;text-align:left}',
+  'body.lang-en input,body.lang-en textarea,body.lang-en select{direction:ltr;text-align:left}',
+  'body.lang-en .page-header,.lang-en .page-title,.lang-en .page-subtitle{text-align:left}',
+  /* FA icon size consistency */
+  '.fa-solid,.fa-regular,.fa-brands{display:inline-block;line-height:1}',
+  '.nav-icon .fa-solid,.nav-icon .fa-regular{font-size:15px;width:16px;text-align:center}',
+  '.bn-icon .fa-solid{font-size:17px}',
+  '.bn-more-item .fa-solid{font-size:14px;width:18px;text-align:center}',
+].join('\n');
+document.head.appendChild(styleTag);
+
+// ── Init on load ─────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function(){
+  // Build lang button with indicator
+  var btn = document.getElementById('_lang-toggle-btn');
+  if(btn){
+    btn.innerHTML = '<i class="fa-solid fa-language" style="font-size:14px"></i><span class="_lang-indicator" style="font-size:9px;font-weight:900;position:absolute;bottom:3px;right:3px;line-height:1;font-family:monospace">' + (currentLang==='ar'?'EN':'AR') + '</span>';
+    btn.style.position = 'relative';
+  }
+  applyI18n(currentLang);
+  syncDarkIcon();
+});
+
+// Also apply after short delay for dynamically rendered content
+window.addEventListener('load', function(){
+  applyI18n(currentLang);
+  syncDarkIcon();
+});
+
+// Expose for external use
+window._i18n = { apply: applyI18n, lang: function(){ return currentLang; }, dict: DICT };
+
+})();
+</script>
 </body></html>
