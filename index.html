@@ -1282,8 +1282,19 @@ body.sidebar-collapsed .sidebar-overlay {
   .btn-sm { padding: 4px 8px; font-size: 11px; }
   .inv-actions { gap: 3px; }
   #tasks-cols { grid-template-columns: 1fr !important; }
-  .app-header { padding: 0 var(--space-sm); gap: var(--space-sm); }
-  .header-page-title { font-size: 14px; }
+  .app-header { padding: 0 var(--space-sm); gap: 6px; }
+  .header-page-title { font-size: 13px; }
+  /* Hide lang button on tiny screens */
+  #_lang-toggle-btn { display: none !important; }
+  /* Shrink header CTA text */
+  #header-cta { font-size: 11px; padding: 6px 10px; }
+  #header-cta span[data-i18n] { display: none; }
+  /* Shrink studio name in header */
+  #_header-studio-name { max-width: 80px; font-size: 11px; }
+  /* Dashboard page header buttons */
+  .page-header { flex-wrap: wrap; gap: 8px; }
+  /* Stat cards always single column on mobile */
+  #_dash-stats-inner { grid-template-columns: 1fr 1fr !important; }
 }
 
 /* ── Time Tracker ── */
@@ -9124,9 +9135,13 @@ function updateSubscriptionBar() {
     bar.className = 'sub-status-bar active';
     if(planEl) planEl.innerHTML = (plan?.icon||'<i class="fa-solid fa-box"></i>') + ' ' + (plan?.name||sub.planId);
     if(detailEl) {
-      detailEl.textContent = sub.billing === 'lifetime'
-        ? '♾️ مدى الحياة'
-        : (daysLeft !== null ? `<i class="fa-solid fa-alarm-clock"></i> متبقي ${daysLeft} يوم` : 'نشط');
+      if(sub.billing === 'lifetime'){
+        detailEl.textContent = '♾️ مدى الحياة';
+      } else if(daysLeft !== null) {
+        detailEl.innerHTML = '<i class="fa-solid fa-alarm-clock"></i> متبقي ' + daysLeft + ' يوم';
+      } else {
+        detailEl.textContent = 'نشط';
+      }
     }
     if(dotEl) dotEl.style.background = 'var(--accent3)';
   }
@@ -18997,10 +19012,17 @@ function _renderDashGrid(){
       var def2 = w2 ? _getDef(w2.id) : null;
       var w2Full = w2 ? (w2.full !== undefined ? w2.full : def2.full) : true;
       if(w2 && !w2Full){
-        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">';
-        html += _wrapWidget(w,  _widgetInnerHTML(w.id),  false);
-        html += _wrapWidget(w2, _widgetInnerHTML(w2.id), false);
-        html += '</div>';
+        // Responsive: 2-col on desktop, 1-col on mobile
+        var isMobile = window.innerWidth <= 540;
+        if(isMobile){
+          html += _wrapWidget(w,  _widgetInnerHTML(w.id),  true);
+          html += _wrapWidget(w2, _widgetInnerHTML(w2.id), true);
+        } else {
+          html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">';
+          html += _wrapWidget(w,  _widgetInnerHTML(w.id),  false);
+          html += _wrapWidget(w2, _widgetInnerHTML(w2.id), false);
+          html += '</div>';
+        }
         i += 2;
       } else {
         html += _wrapWidget(w, _widgetInnerHTML(w.id), true);
@@ -19831,7 +19853,7 @@ function _spSaveEdit(statusId){
     const col = document.querySelector(`[data-status="${statusId}"]`);
     if(col){
       const hdr = col.previousElementSibling;
-      if(hdr) hdr.querySelector('div').textContent = (icon?icon+' ':'')+label;
+      if(hdr) hdr.querySelector('div').innerHTML = (icon?icon+' ':'')+label;
     }
   } else {
     const idx = (S.customStatuses||[]).findIndex(s=>s.id===statusId);
