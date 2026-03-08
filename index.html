@@ -3484,19 +3484,7 @@ setTimeout(window._showApp, 4000);
 </div>
 
 <!-- ══ MODAL: ORDER DETAIL / ACCEPT ══ -->
-<div class="modal-overlay" id="modal-order-accept">
-  <div class="modal" style="width:min(540px,96vw)">
-    <div class="modal-header">
-      <div class="modal-title">📥 تفاصيل الطلب</div>
-      <button class="close-btn" onclick="closeM('modal-order-accept')">✕</button>
-    </div>
-    <div id="order-accept-body"></div>
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn btn-danger btn-sm" style="flex:1;justify-content:center" onclick="rejectSvcOrder(window._currentOrderId)">✕ رفض</button>
-      <button class="btn btn-primary" style="flex:2;justify-content:center" onclick="acceptSvcOrder(window._currentOrderId)">✅ قبول وتحويل لمهمة</button>
-    </div>
-  </div>
-</div>
+<!-- modal-order-accept moved below -->
 
 <!-- ══ MODAL: CLIENT PORTAL ══ -->
 <div class="modal-overlay" id="modal-portal">
@@ -4106,28 +4094,42 @@ setTimeout(window._showApp, 4000);
 
 <!-- SERVICE MODAL -->
 <div class="modal-overlay" id="modal-order-accept">
-  <div class="modal" style="max-width:500px">
+  <div class="modal" style="max-width:520px">
     <div class="modal-header">
-      <div class="modal-title">✅ قبول الطلب وتحويله لمهمة</div>
+      <div class="modal-title" id="oa-modal-title">📥 تفاصيل الطلب</div>
       <button class="close-btn" onclick="closeM('modal-order-accept')">✕</button>
     </div>
     <input type="hidden" id="oa-order-id">
-    <div style="background:var(--surface2);border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px" id="oa-order-preview"></div>
-    <div class="form-group"><label class="form-label">عنوان المهمة *</label><input class="form-input" id="oa-title" placeholder="مثال: تصميم لوجو للعميل"></div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">المقابل المالي (ج)</label><input class="form-input" type="number" id="oa-amount" placeholder="0"></div>
-      <div class="form-group"><label class="form-label">العربون (ج)</label><input class="form-input" type="number" id="oa-deposit" placeholder="0"></div>
+
+    <!-- Order Summary -->
+    <div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px" id="oa-order-preview"></div>
+
+    <!-- Status Change (for already-accepted orders) -->
+    <div id="oa-status-section" style="display:none;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:8px">تعديل حالة المهمة</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="oa-status-btns"></div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">موعد التسليم</label><input class="form-input" type="date" id="oa-deadline"></div>
-      <div class="form-group"><label class="form-label">المنفذ</label>
-        <select class="form-select" id="oa-worker"></select>
+
+    <!-- New Task Form (for pending orders) -->
+    <div id="oa-new-task-section">
+      <div class="form-group"><label class="form-label">عنوان المهمة *</label><input class="form-input" id="oa-title" placeholder="مثال: تصميم لوجو للعميل"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">المقابل المالي (ج)</label><input class="form-input" type="number" id="oa-amount" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">العربون (ج)</label><input class="form-input" type="number" id="oa-deposit" placeholder="0"></div>
       </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">موعد التسليم</label><input class="form-input" type="date" id="oa-deadline"></div>
+        <div class="form-group"><label class="form-label">المنفذ</label>
+          <select class="form-select" id="oa-worker"></select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">ملاحظات</label><input class="form-input" id="oa-notes" placeholder="ملاحظات إضافية"></div>
     </div>
-    <div class="form-group"><label class="form-label">ملاحظات</label><input class="form-input" id="oa-notes" placeholder="ملاحظات إضافية"></div>
-    <div class="form-row" style="margin-top:12px">
+
+    <div style="display:flex;gap:8px;margin-top:4px" id="oa-action-btns">
       <button class="btn btn-ghost" onclick="closeM('modal-order-accept')">إلغاء</button>
-      <button class="btn btn-primary" onclick="acceptOrderAsTask()" style="flex:1;justify-content:center">✅ إنشاء المهمة</button>
+      <button class="btn btn-danger btn-sm" id="oa-reject-btn" onclick="rejectSvcOrder(document.getElementById('oa-order-id').value)" style="flex:1;justify-content:center">✕ رفض</button>
+      <button class="btn btn-primary" id="oa-accept-btn" onclick="acceptOrderAsTask()" style="flex:2;justify-content:center">✅ قبول وإنشاء مهمة</button>
     </div>
   </div>
 </div>
@@ -15251,12 +15253,19 @@ function openSvcModal(id){
   document.getElementById('svc-img-preview').style.display = 'none';
   document.getElementById('svc-img-preview').src = '';
   var clrBtn=document.getElementById('svc-img-clear-btn'); if(clrBtn) clrBtn.style.display='none';
-  document.getElementById('svc-pkgs-list').innerHTML = '';
-  document.getElementById('svc-portfolio-list').innerHTML = '';
-  document.getElementById('svc-img-input').value = '';
-  var pkgEmpty=document.getElementById('svc-pkgs-empty'); if(pkgEmpty) pkgEmpty.style.display='';
-  var pfEmpty=document.getElementById('svc-portfolio-empty'); if(pfEmpty) pfEmpty.style.display='';
+  // (packages removed from service modal - using standalone packages tab)
+  var inp=document.getElementById('svc-img-input'); if(inp) inp.value='';
   _populateSvcCatSelect('');
+  // populate portfolio cat select for new service
+  var pfSelNew=document.getElementById('svc-portfolio-cat-link');
+  if(pfSelNew){ var pfCatsNew=_getPfCats(); pfSelNew.innerHTML='<option value="">— اختر تصنيف —</option>'+pfCatsNew.map(function(c){return '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>';}).join(''); }
+  // reset active toggle
+  _svcModalActive=true;
+  var tog0=document.getElementById('svc-modal-active-toggle'); var knob0=document.getElementById('svc-modal-active-knob'); var lbl0=document.getElementById('svc-modal-active-label'); var flag0=document.getElementById('svc-active-flag');
+  if(tog0) tog0.style.background='var(--accent3)';
+  if(knob0) knob0.style.right='2px';
+  if(lbl0) lbl0.textContent='● نشطة';
+  if(flag0) flag0.value='1';
   if(id){
     var svc = (S.services||[]).find(function(x){ return String(x.id)===String(id); });
     if(svc){
@@ -15270,8 +15279,7 @@ function openSvcModal(id){
         document.getElementById('svc-img-name').textContent='صورة محفوظة';
         if(clrBtn) clrBtn.style.display='';
       }
-      (svc.packages||[]).forEach(function(p){ addPkgRow(p); });
-      (svc.portfolio||[]).forEach(function(p){ _renderPortfolioRow(p); });
+      // Note: packages are managed in the standalone packages tab
       // price & terms
       var priceEl=document.getElementById('svc-price'); if(priceEl) priceEl.value=svc.price||'';
       var termsEl=document.getElementById('svc-terms'); if(termsEl) termsEl.value=(svc.terms||[]).join('\n');
@@ -15635,29 +15643,118 @@ function openSvcDetail(id){
 function openOrderAccept(orderId){
   window._currentOrderId = orderId;
   var order=(S.svc_orders||[]).find(function(o){return String(o.id)===String(orderId);}); if(!order) return;
-  var body=document.getElementById('order-accept-body'); if(!body) return;
-  body.innerHTML=
-    '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px">'+
-      '<div style="font-size:13px;font-weight:800;margin-bottom:10px">👤 بيانات العميل</div>'+
+  var isPending=order.status==='pending';
+  var isAccepted=order.status==='accepted';
+
+  // Set modal title
+  var titleEl=document.getElementById('oa-modal-title');
+  if(titleEl) titleEl.textContent = isPending?'📥 قبول الطلب':'📋 تفاصيل الطلب';
+
+  // Fill order ID
+  var oidEl=document.getElementById('oa-order-id'); if(oidEl) oidEl.value=orderId;
+
+  // Order preview
+  var preview=document.getElementById('oa-order-preview');
+  if(preview){
+    var statusColor={pending:'var(--accent2)',accepted:'var(--accent3)',rejected:'var(--accent4)'}[order.status]||'var(--text3)';
+    var statusLabel={pending:'⏳ معلق',accepted:'✅ مقبول',rejected:'✕ مرفوض'}[order.status]||order.status;
+    preview.innerHTML=
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">'+
-        '<div><span style="color:var(--text3)">الاسم:</span> <strong>'+escapeHtml(order.client_name)+'</strong></div>'+
-        '<div><span style="color:var(--text3)">الواتساب:</span> <strong>'+escapeHtml(order.client_phone||'—')+'</strong></div>'+
-        '<div><span style="color:var(--text3)">الإيميل:</span> <strong>'+escapeHtml(order.client_email||'—')+'</strong></div>'+
-        '<div><span style="color:var(--text3)">الخدمة:</span> <strong>'+escapeHtml(order.service_name)+'</strong></div>'+
-        (order.pkg_name?'<div><span style="color:var(--text3)">الباقة:</span> <strong>'+escapeHtml(order.pkg_name)+'</strong></div>':'')+
-        (order.price?'<div><span style="color:var(--text3)">السعر:</span> <strong>'+Number(order.price).toLocaleString()+' ج</strong></div>':'')+
+        '<div><div style="color:var(--text3);font-size:10px">العميل</div><div style="font-weight:800">'+escapeHtml(order.client_name)+'</div></div>'+
+        '<div><div style="color:var(--text3);font-size:10px">الخدمة</div><div style="font-weight:700">'+escapeHtml(order.service_name)+(order.pkg_name?' — '+escapeHtml(order.pkg_name):'')+'</div></div>'+
+        (order.client_phone?'<div><div style="color:var(--text3);font-size:10px">واتساب</div><div style="font-weight:700">'+escapeHtml(order.client_phone)+'</div></div>':'')+
+        (order.price?'<div><div style="color:var(--text3);font-size:10px">السعر</div><div style="font-weight:800;color:var(--accent)">'+Number(order.price).toLocaleString()+' ج</div></div>':'')+
+        '<div style="grid-column:span 2"><div style="color:var(--text3);font-size:10px">الحالة</div><div style="font-weight:700;color:'+statusColor+'">'+statusLabel+'</div></div>'+
       '</div>'+
-      (order.desc?'<div style="margin-top:10px;font-size:12px"><span style="color:var(--text3)">وصف المشروع:</span><div style="margin-top:4px;padding:8px;background:var(--surface);border-radius:8px;line-height:1.6">'+escapeHtml(order.desc)+'</div></div>':'')+
-      (order.attachment&&order.attachment.startsWith('data:image')?'<div style="margin-top:10px"><div style="font-size:12px;color:var(--text3);margin-bottom:6px">📎 المرفق:</div><img src="'+order.attachment+'" style="max-width:100%;max-height:180px;border-radius:10px;object-fit:cover"></div>':order.attachment_name?'<div style="margin-top:8px;font-size:12px;color:var(--text3)">📎 ملف مرفق: <strong>'+escapeHtml(order.attachment_name)+'</strong></div>':'')+
-      (order.client_phone?'<div style="margin-top:12px"><a href="https://wa.me/'+order.client_phone.replace(/[^0-9]/g,'')+'" target="_blank" class="btn btn-ghost btn-sm" style="background:#25D366;color:#fff;border:none;gap:6px">📲 تواصل واتساب</a></div>':'')+
-    '</div>'+
-    '<div style="font-size:12px;color:var(--text3)">📅 تاريخ الطلب: '+(order.created_at?new Date(order.created_at).toLocaleDateString('ar-EG'):'—')+'</div>';
+      (order.desc?'<div style="margin-top:10px;font-size:12px"><div style="color:var(--text3);font-size:10px;margin-bottom:4px">وصف المشروع</div><div style="padding:8px;background:var(--surface);border-radius:8px;line-height:1.6">'+escapeHtml(order.desc)+'</div></div>':'')+
+      (order.client_phone?'<div style="margin-top:10px"><a href="https://wa.me/'+order.client_phone.replace(/[^0-9]/g,'')+'" target="_blank" class="btn btn-ghost btn-sm" style="background:#25D366;color:#fff;border:none">📲 تواصل واتساب</a></div>':'')+
+      (order.created_at?'<div style="font-size:10px;color:var(--text3);margin-top:8px">📅 '+new Date(order.created_at).toLocaleDateString('ar-EG')+'</div>':'');
+  }
+
+  // Show/hide sections based on status
+  var newTaskSec=document.getElementById('oa-new-task-section');
+  var statusSec=document.getElementById('oa-status-section');
+  var acceptBtn=document.getElementById('oa-accept-btn');
+  var rejectBtn=document.getElementById('oa-reject-btn');
+
+  if(isPending){
+    if(newTaskSec) newTaskSec.style.display='';
+    if(statusSec) statusSec.style.display='none';
+    if(acceptBtn){ acceptBtn.style.display=''; acceptBtn.textContent='✅ قبول وإنشاء مهمة'; }
+    if(rejectBtn) rejectBtn.style.display='';
+    // Prefill task form
+    var titleF=document.getElementById('oa-title'); if(titleF) titleF.value=order.service_name+(order.pkg_name?' — '+order.pkg_name:'');
+    var amtF=document.getElementById('oa-amount'); if(amtF) amtF.value=order.price||'';
+    var depF=document.getElementById('oa-deposit'); if(depF) depF.value='';
+    var dlF=document.getElementById('oa-deadline'); if(dlF) dlF.value='';
+    var notesF=document.getElementById('oa-notes'); if(notesF) notesF.value='';
+    // Populate worker dropdown
+    var workerSel=document.getElementById('oa-worker');
+    if(workerSel){
+      var members=(S.teams||[]).flatMap(function(t){return t.members||[];});
+      workerSel.innerHTML='<option value="me">أنا</option>'+members.map(function(m){return '<option value="'+escapeHtml(m.id||m.name)+'">'+escapeHtml(m.name)+'</option>';}).join('');
+    }
+  } else if(isAccepted){
+    if(newTaskSec) newTaskSec.style.display='none';
+    if(acceptBtn) acceptBtn.style.display='none';
+    if(rejectBtn) rejectBtn.style.display='none';
+    if(statusSec){
+      statusSec.style.display='';
+      // Find linked task
+      var linkedTask=(S.tasks||[]).find(function(t){return t.source_order_id===order.id;});
+      var statuses=['جديد','قيد التنفيذ','مراجعة','موقوفة','مكتملة'];
+      var statusColors={'جديد':'var(--accent)','قيد التنفيذ':'var(--accent2)','مراجعة':'#a78bfa','موقوفة':'var(--accent4)','مكتملة':'var(--accent3)'};
+      var currentStatus=linkedTask?linkedTask.status:'جديد';
+      var btnsEl=document.getElementById('oa-status-btns');
+      if(btnsEl){
+        btnsEl.innerHTML=statuses.map(function(st){
+          var isActive=st===currentStatus;
+          return '<button class="btn '+(isActive?'btn-primary':'btn-ghost')+' btn-sm" '+
+            'style="border-color:'+statusColors[st]+';'+(isActive?'background:'+statusColors[st]+';':'color:'+statusColors[st]+';')+'" '+
+            'onclick="changeLinkedTaskStatus(this.dataset.s,this.dataset.o)" data-s="'+st+'" data-o="'+orderId+'">'+
+            st+'</button>';
+        }).join('');
+      }
+      // Show "go to task" button
+      if(linkedTask){
+        var actionBtns=document.getElementById('oa-action-btns');
+        if(actionBtns){
+          var tid2=linkedTask.id;
+          actionBtns.innerHTML=
+            '<button class="btn btn-ghost" onclick="closeM(\'modal-order-accept\')">إغلاق</button>'+
+            '<button class="btn btn-primary" style="flex:1;justify-content:center" onclick="closeM(\'modal-order-accept\');showPage(\'tasks\');setTimeout(function(){openTask('+tid2+')},300)">↗ فتح المهمة الكاملة</button>';
+        }
+      }
+    }
+  } else {
+    // rejected
+    if(newTaskSec) newTaskSec.style.display='none';
+    if(statusSec) statusSec.style.display='none';
+    if(acceptBtn) acceptBtn.style.display='none';
+    if(rejectBtn) rejectBtn.style.display='none';
+    var actionBtns2=document.getElementById('oa-action-btns');
+    if(actionBtns2) actionBtns2.innerHTML='<button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="closeM(\'modal-order-accept\')">إغلاق</button>';
+  }
+
   openM('modal-order-accept');
+}
+
+function changeLinkedTaskStatus(newStatus, orderId){
+  var order=(S.svc_orders||[]).find(function(o){return String(o.id)===String(orderId);}); if(!order) return;
+  var task=(S.tasks||[]).find(function(t){return t.source_order_id===order.id;}); if(!task) return;
+  task.status=newStatus;
+  task.done=(newStatus==='مكتملة');
+  lsSave(); cloudSave(S);
+  openOrderAccept(orderId); // re-render modal
+  renderAll();
+  toast('✅ تم تغيير الحالة إلى: '+newStatus);
 }
 function acceptSvcOrder(orderId){
   var order=(S.svc_orders||[]).find(function(o){return String(o.id)===String(orderId);}); if(!order) return;
   order.status='accepted';
-  // Add/update client
+  order.accepted_at=new Date().toISOString();
+
+  // ── Add/update client ──
   if(!S.clients) S.clients=[];
   var existing=S.clients.find(function(c){ return (c.phone&&c.phone===order.client_phone)||(c.email&&c.email===order.client_email); });
   if(existing){
@@ -15665,31 +15762,137 @@ function acceptSvcOrder(orderId){
   } else {
     S.clients.push({ id:Date.now(), name:order.client_name, phone:order.client_phone||'', email:order.client_email||'', channel:'خدمة', addedAt:new Date().toISOString() });
   }
-  // Create task
+
+  // ── Create Task (appears in kanban as جديد) ──
   var title = order.service_name + (order.pkg_name?' — '+order.pkg_name:'');
   var task = {
-    id: Date.now(), title: title, desc: order.desc||'', status: 'جديد',
-    client: order.client_name, clientPhone: order.client_phone||'',
-    price: order.price||0, workerType:'me', workerMember:null, workerAmount:0,
-    workerDepositPaid:false, workerDepositAmount:0, paymentCollected:false,
-    steps:[], taskType:'خدمة', addedAt:new Date().toISOString(), done:false,
-    source_order_id: order.id
+    id: Date.now(),
+    title: title,
+    desc: order.desc||'',
+    status: 'جديد',           // ← shows in kanban New column
+    kanbanCol: 'new',
+    client: order.client_name,
+    clientPhone: order.client_phone||'',
+    clientEmail: order.client_email||'',
+    price: order.price||0,
+    currency: 'EGP',
+    workerType:'me', workerMember:null, workerAmount:0,
+    workerDepositPaid:false, workerDepositAmount:0,
+    paymentCollected:false,
+    steps:[], taskType:'خدمة',
+    addedAt:new Date().toISOString(),
+    done:false,
+    source_order_id: order.id,
+    source_service: order.service_name
   };
   if(!S.tasks) S.tasks=[];
   S.tasks.push(task);
-  // Create client portal
+
+  // ── Create client portal ──
   if(!S.client_portals) S.client_portals=[];
-  var portal={ id: 'cp_'+Date.now(), order_id:order.id, task_id:task.id, client_name:order.client_name, client_email:order.client_email||'', client_phone:order.client_phone||'', service_name:order.service_name, status:'نشط', created_at:new Date().toISOString() };
+  var portal={
+    id: 'cp_'+Date.now(),
+    order_id: order.id,
+    task_id: task.id,
+    client_name: order.client_name,
+    client_email: order.client_email||'',
+    client_phone: order.client_phone||'',
+    service_name: order.service_name,
+    status: 'نشط',
+    created_at: new Date().toISOString()
+  };
   S.client_portals.push(portal);
-  lsSave(); cloudSave(S); closeM('modal-order-accept');
-  renderAll(); toast('✅ تم القبول وإنشاء مهمة جديدة');
+
+  lsSave(); cloudSave(S);
+  closeM('modal-order-accept');
+  renderAll();
+  toast('✅ تم القبول — ظهرت مهمة جديدة في الكانبان!');
   addNotification('✅ طلب جديد من '+order.client_name+' تحوّل لمهمة', 'success');
+  
+  // ── Auto-navigate hint ──
+  setTimeout(function(){
+    if(confirm('تم إنشاء المهمة! هل تريد الذهاب لصفحة المهام الآن؟')){
+      showPage('tasks');
+    }
+  }, 400);
 }
 function rejectSvcOrder(orderId){
   var order=(S.svc_orders||[]).find(function(o){return String(o.id)===String(orderId);}); if(!order) return;
   if(!confirm('رفض هذا الطلب؟')) return;
   order.status='rejected';
-  lsSave(); cloudSave(S); closeM('modal-order-accept'); renderServices(); toast('✕ تم الرفض');
+  lsSave(); cloudSave(S); closeM('modal-order-accept'); renderServices(); renderSvcOrdersTable(); toast('✕ تم الرفض');
+}
+
+function acceptOrderAsTask(){
+  var orderId=document.getElementById('oa-order-id').value; if(!orderId) return;
+  var order=(S.svc_orders||[]).find(function(o){return String(o.id)===String(orderId);}); if(!order) return;
+  if(order.status!=='pending'){ toast('هذا الطلب تم معالجته مسبقاً'); return; }
+
+  var titleVal=(document.getElementById('oa-title')||{}).value||'';
+  if(!titleVal.trim()){ toast('⚠ أدخل عنوان المهمة'); return; }
+  var amtVal=+((document.getElementById('oa-amount')||{}).value||0);
+  var depVal=+((document.getElementById('oa-deposit')||{}).value||0);
+  var dlVal=(document.getElementById('oa-deadline')||{}).value||'';
+  var notesVal=(document.getElementById('oa-notes')||{}).value||'';
+  var workerVal=(document.getElementById('oa-worker')||{}).value||'me';
+
+  order.status='accepted';
+  order.accepted_at=new Date().toISOString();
+
+  // Add/update client
+  if(!S.clients) S.clients=[];
+  var existing=S.clients.find(function(c){return (c.phone&&c.phone===order.client_phone)||(c.email&&c.email===order.client_email);});
+  if(!existing){
+    S.clients.push({id:Date.now(),name:order.client_name,phone:order.client_phone||'',email:order.client_email||'',channel:'خدمة',addedAt:new Date().toISOString()});
+  }
+
+  // Create task — appears in kanban as جديد
+  var task={
+    id: Date.now(),
+    title: titleVal.trim(),
+    desc: (order.desc||'')+(notesVal?' / '+notesVal:''),
+    status: 'جديد',
+    client: order.client_name,
+    clientPhone: order.client_phone||'',
+    clientEmail: order.client_email||'',
+    price: amtVal||order.price||0,
+    depositAmount: depVal,
+    depositPaid: false,
+    paymentCollected: false,
+    deadline: dlVal,
+    workerType: workerVal==='me'?'me':'member',
+    workerMember: workerVal!=='me'?workerVal:null,
+    workerAmount: 0,
+    steps: [],
+    taskType: 'خدمة',
+    addedAt: new Date().toISOString(),
+    done: false,
+    source_order_id: order.id,
+    source_service: order.service_name
+  };
+  if(!S.tasks) S.tasks=[];
+  S.tasks.push(task);
+
+  // Create client portal
+  if(!S.client_portals) S.client_portals=[];
+  S.client_portals.push({
+    id:'cp_'+Date.now(), order_id:order.id, task_id:task.id,
+    client_name:order.client_name, client_email:order.client_email||'',
+    client_phone:order.client_phone||'', service_name:order.service_name,
+    status:'نشط', created_at:new Date().toISOString()
+  });
+
+  lsSave(); cloudSave(S);
+  closeM('modal-order-accept');
+  renderAll();
+  addNotification('✅ طلب '+order.client_name+' تحوّل لمهمة جديدة في الكانبان!','success');
+  toast('✅ تم القبول — المهمة ظهرت في الكانبان!');
+
+  setTimeout(function(){
+    if(confirm('تم إنشاء المهمة في الكانبان! هل تريد الذهاب لصفحة المهام؟')){
+      showPage('tasks');
+    }
+  },300);
 }
 function renderSvcOrdersTable(){
   var el=document.getElementById('svc-orders-table'); if(!el) return;
