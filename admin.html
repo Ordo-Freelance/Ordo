@@ -8,6 +8,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ordo - Tasks — لوحة الإدارة</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+.fa-solid,.fa-regular,.fa-brands{font-family:"Font Awesome 6 Free","Font Awesome 6 Brands","Font Awesome 6 Pro"!important;font-style:normal!important;font-variant:normal!important;text-rendering:auto!important;-webkit-font-smoothing:antialiased!important;display:inline-block!important;line-height:1}
+.fa-solid{font-weight:900!important}
+.fa-regular{font-weight:400!important}
+</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root {
@@ -560,43 +566,43 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
 
     <div class="sb-section">الرئيسية</div>
     <a class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
-      <span class="nav-icon" style="display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>نظرة عامة
+      <span class="nav-icon"><i class="fa-solid fa-gauge-high"></i></span>نظرة عامة
     </a>
 
     <div class="sb-section">المستخدمون</div>
     <a class="nav-item" onclick="showPage('users')" id="nav-users">
-      <span class="nav-icon" style="display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>المستخدمون
+      <span class="nav-icon"><i class="fa-solid fa-users"></i></span>المستخدمون
     </a>
     <a class="nav-item" onclick="showPage('registrations')" id="nav-registrations">
-      <span class="nav-icon" style="display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span>التسجيلات
+      <span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span>التسجيلات
     </a>
 
     <div class="sb-section">الاشتراكات</div>
     <a class="nav-item" onclick="showPage('serials')" id="nav-serials">
-      <span class="nav-icon" style="display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></span>أكواد الاشتراك
+      <span class="nav-icon"><i class="fa-solid fa-key"></i></span>أكواد الاشتراك
     </a>
     <a class="nav-item" onclick="showPage('plans')" id="nav-plans">
-      <span class="nav-icon" style="display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>الباقات والخطط
+      <span class="nav-icon"><i class="fa-solid fa-boxes-stacked"></i></span>الباقات والخطط
     </a>
 
     <div class="sb-section">المتابعة</div>
     <a class="nav-item" onclick="showPage('activity')" id="nav-activity">
-      <span class="nav-icon" style="display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6l4.5 4.5"/><path d="M22.5 6 18 10.5"/><path d="M18 2.5C15.6.4 12.9-.3 10.3.1"/><path d="M6 2.5C8.4.4 11.1-.3 13.7.1"/><circle cx="12" cy="14" r="3"/><line x1="12" y1="17" x2="12" y2="22"/></svg></span>سجل النشاط
+      <span class="nav-icon"><i class="fa-solid fa-wave-square"></i></span>سجل النشاط
     </a>
     <a class="nav-item" onclick="showPage('messages')" id="nav-messages">
-      <span class="nav-icon" style="display:inline-flex;align-items:center;justify-content:center;position:relative">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span id="msgs-nav-dot" style="display:none;position:absolute;top:-2px;left:-2px;width:7px;height:7px;background:var(--accent4);border-radius:50%;border:1.5px solid var(--surface)"></span>
+      <span class="nav-icon" style="position:relative">
+        <i class="fa-solid fa-comment-dots"></i>
+        <span id="msgs-nav-dot" style="display:none;position:absolute;top:-3px;left:-3px;width:7px;height:7px;background:var(--accent4);border-radius:50%;border:1.5px solid var(--surface)"></span>
       </span>الرسائل
     </a>
-    <a class="nav-item" onclick="showPage('platform-updates')" id="nav-platform-updates">
-      <span class="nav-icon" style="display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>تحديثات المنصة
+    <a class="nav-item" onclick="showPage('backup')" id="nav-backup">
+      <span class="nav-icon"><i class="fa-solid fa-database"></i></span>نسخ احتياطي
     </a>
     <a class="nav-item" onclick="showPage('admins')" id="nav-admins">
-      <span class="nav-icon" style="display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>المشرفون
+      <span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span>المشرفون
     </a>
     <a class="nav-item" onclick="showPage('platform')" id="nav-platform">
-      <span class="nav-icon" style="display:inline-flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M20 12h2M2 12h2M12 20v2M12 2v2"/></svg></span>إعدادات المنصة
+      <span class="nav-icon"><i class="fa-solid fa-sliders"></i></span>إعدادات المنصة
     </a>
 
     <div class="sb-footer">
@@ -1892,57 +1898,134 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
 <div id="toast"></div>
 
 <!-- ═══ PLATFORM UPDATES PAGE ═══ -->
-<div class="page" id="page-platform-updates">
+<div class="page" id="page-backup">
   <div class="page-header">
     <div>
-      <div class="page-title">تحديثات <span>المنصة</span></div>
-      <div class="page-sub">أرسل تحديثات للمستخدمين — تظهر في صفحة الإعدادات > التحديثات</div>
+      <div class="page-title">النسخ <span>الاحتياطي</span></div>
+      <div class="page-sub">تصدير كامل لبيانات قاعدة البيانات أو استيرادها بعد التحديث</div>
     </div>
-    <button class="btn btn-primary" onclick="openNewPlatformUpdate()">➕ تحديث جديد</button>
+    <button class="btn btn-primary" onclick="exportFullBackup()">
+      <i class="fa-solid fa-download"></i> تصدير النسخة الآن
+    </button>
   </div>
 
-  <!-- Saved Updates -->
+  <!-- Export Card -->
   <div class="card" style="margin-bottom:16px">
-    <div style="font-size:13px;font-weight:700;margin-bottom:14px">📋 التحديثات المحفوظة</div>
-    <div id="platform-updates-list">
-      <div style="text-align:center;padding:30px;color:var(--text3)">لا تحديثات بعد</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div style="width:52px;height:52px;background:rgba(108,99,255,.12);border:1.5px solid rgba(108,99,255,.25);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">
+        <i class="fa-solid fa-server" style="color:var(--accent)"></i>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:800">تصدير كامل لقاعدة البيانات</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px">يشمل: بيانات جميع المستخدمين، الاشتراكات، الأكواد، إعدادات المنصة</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:20px">
+      <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="bk-include-studio" checked style="accent-color:var(--accent)"> بيانات الاستوديو (studio_data)
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="bk-include-serials" checked style="accent-color:var(--accent)"> أكواد الاشتراك (serial_keys)
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="bk-include-plans" checked style="accent-color:var(--accent)"> الباقات (subscription_plans)
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="bk-include-platform" checked style="accent-color:var(--accent)"> إعدادات المنصة (platform_settings)
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="bk-include-invites" checked style="accent-color:var(--accent)"> دعوات الفريق (team_invites)
+      </label>
+    </div>
+
+    <div id="bk-progress" style="display:none;margin-bottom:16px">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px" id="bk-progress-text">جاري التحميل...</div>
+      <div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden">
+        <div id="bk-progress-bar" style="height:100%;background:var(--accent);border-radius:3px;transition:width .3s;width:0%"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="exportFullBackup()" style="flex:1;min-width:160px">
+        <i class="fa-solid fa-file-arrow-down"></i> تحميل النسخة الاحتياطية
+      </button>
+      <button class="btn btn-ghost" onclick="previewBackupStats()" style="min-width:140px">
+        <i class="fa-solid fa-chart-bar"></i> إحصائيات قبل التصدير
+      </button>
+    </div>
+
+    <div id="bk-stats-box" style="display:none;margin-top:14px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-size:12px"></div>
+  </div>
+
+  <!-- Import Card -->
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+      <div style="width:52px;height:52px;background:rgba(79,209,165,.1);border:1.5px solid rgba(79,209,165,.2);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">
+        <i class="fa-solid fa-upload" style="color:var(--accent3)"></i>
+      </div>
+      <div>
+        <div style="font-size:15px;font-weight:800">استيراد نسخة احتياطية</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px">رفع ملف JSON سابق لاستعادة بيانات المستخدمين بعد التحديث</div>
+      </div>
+    </div>
+
+    <div style="border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;margin-bottom:16px;cursor:pointer;transition:border-color .2s"
+         id="bk-drop-zone"
+         ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+         ondragleave="this.style.borderColor='var(--border)'"
+         ondrop="bkHandleDrop(event)">
+      <i class="fa-solid fa-cloud-arrow-up" style="font-size:32px;color:var(--accent);margin-bottom:10px;display:block"></i>
+      <div style="font-weight:700;margin-bottom:4px">اسحب ملف JSON هنا</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px">أو اختره من جهازك</div>
+      <input type="file" id="bk-file-input" accept=".json" style="display:none" onchange="bkReadFile(this)">
+      <button class="btn btn-ghost" onclick="document.getElementById('bk-file-input').click()">
+        <i class="fa-solid fa-folder-open"></i> اختيار ملف
+      </button>
+    </div>
+
+    <div id="bk-import-preview" style="display:none;margin-bottom:16px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px"></div>
+
+    <div style="background:rgba(255,107,107,.07);border:1px solid rgba(255,107,107,.2);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--text2);margin-bottom:14px;display:flex;gap:10px;align-items:flex-start">
+      <i class="fa-solid fa-triangle-exclamation" style="color:var(--accent4);margin-top:1px;flex-shrink:0"></i>
+      <span>الاستيراد يدمج البيانات مع الموجود في قاعدة البيانات — <strong>لن يُحذف</strong> أي مستخدم موجود. البيانات الجديدة فقط تُضاف، والمستخدمون الموجودون يُحدَّثون.</span>
+    </div>
+
+    <div id="bk-import-options" style="display:none">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">اختر ما تريد استيراده:</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:16px">
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="imp-studio" checked style="accent-color:var(--accent)"> بيانات الاستوديو
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="imp-serials" checked style="accent-color:var(--accent)"> أكواد الاشتراك
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="imp-plans" checked style="accent-color:var(--accent)"> الباقات
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="imp-platform" checked style="accent-color:var(--accent)"> إعدادات المنصة
+        </label>
+      </div>
+
+      <div id="bk-import-progress" style="display:none;margin-bottom:16px">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px" id="bk-import-progress-text">جاري الاستيراد...</div>
+        <div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden">
+          <div id="bk-import-progress-bar" style="height:100%;background:var(--accent3);border-radius:3px;transition:width .3s;width:0%"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="importBackup()" style="width:100%">
+        <i class="fa-solid fa-cloud-arrow-up"></i> بدء الاستيراد
+      </button>
     </div>
   </div>
 
-  <!-- Create/Edit Update Form -->
-  <div class="card" id="platform-update-form" style="display:none">
-    <div style="font-size:13px;font-weight:700;margin-bottom:14px" id="puf-title">➕ تحديث جديد</div>
-    <input type="hidden" id="puf-edit-id">
-    <div class="form-row">
-      <div class="form-group" style="flex:0 0 60px">
-        <div class="form-label">أيقونة</div>
-        <input class="form-input" id="puf-emoji" placeholder="📢" style="text-align:center;font-size:18px" value="📢">
-      </div>
-      <div class="form-group">
-        <div class="form-label">عنوان التحديث *</div>
-        <input class="form-input" id="puf-title-text" placeholder="مثال: ميزة جديدة — إدارة الخدمات">
-      </div>
-    </div>
-    <div class="form-group">
-      <div class="form-label">محتوى التحديث *</div>
-      <textarea class="form-input" id="puf-body" rows="4" placeholder="اشرح هنا التفاصيل — ما الذي أضفناه، وكيف تستخدمه..."></textarea>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <div class="form-label">التاريخ</div>
-        <input class="form-input" type="date" id="puf-date">
-      </div>
-      <div class="form-group">
-        <div class="form-label">إرسال إلى</div>
-        <select class="form-select" id="puf-target">
-          <option value="all">الكل</option>
-          <option value="active">المشتركون النشطون فقط</option>
-        </select>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn btn-ghost" onclick="document.getElementById('platform-update-form').style.display='none'">إلغاء</button>
-      <button class="btn btn-primary" onclick="savePlatformUpdate()">💾 حفظ وإرسال</button>
+  <!-- History / Log -->
+  <div class="card" style="margin-top:16px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px"><i class="fa-solid fa-clock-rotate-left" style="color:var(--accent)"></i> سجل النسخ الاحتياطية</div>
+    <div id="bk-history-list">
+      <div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">لا يوجد سجل بعد — قم بأول تصدير</div>
     </div>
   </div>
 </div>
@@ -2247,7 +2330,7 @@ function showPage(name) {
   if(name === 'activity')     renderActivityLog();
   if(name === 'admins')       renderAdminsPage();
   if(name === 'messages')     loadMessagesPage();
-  if(name === 'platform-updates') renderPlatformUpdatesPage();
+  if(name === 'backup')       renderBackupPage();
 }
 
 function toggleSidebar() {
@@ -5041,199 +5124,281 @@ loadPlatformPage = function(){
 
 // ══════════════════════════════════════════════════
 //  PLATFORM UPDATES SYSTEM
-// بيخزن التحديثات في studio_data للمستخدمين
 // ══════════════════════════════════════════════════
-let _platformUpdates = [];
+//  BACKUP & RESTORE SYSTEM
+// ══════════════════════════════════════════════════
 
-function _loadPlatformUpdates(){
-  try { _platformUpdates = JSON.parse(localStorage.getItem('admin_platform_updates')||'[]'); } catch(e){ _platformUpdates=[]; }
-}
-function _savePlatformUpdatesLocal(){
-  localStorage.setItem('admin_platform_updates', JSON.stringify(_platformUpdates));
-}
+let _bkData = null; // loaded backup file for import
 
-// Save updates to Supabase platform_settings table
-async function _savePlatformUpdatesToCloud(){
-  try {
-    if(typeof supa === 'undefined') return;
-    const existing = await supa.from('platform_settings').select('id').eq('id',1).maybeSingle();
-    const config = { platform_updates: _platformUpdates };
-    if(existing.data){
-      await supa.from('platform_settings').update({ config: JSON.stringify(config), updated_at: new Date().toISOString() }).eq('id',1);
-    } else {
-      await supa.from('platform_settings').insert([{ id:1, config: JSON.stringify(config), updated_at: new Date().toISOString() }]);
-    }
-  } catch(e){ console.warn('Cloud save updates failed:', e); }
+function renderBackupPage() {
+  _renderBkHistory();
 }
 
-// Load updates from Supabase (merge with localStorage)
-async function _loadPlatformUpdatesFromCloud(){
-  try {
-    if(typeof supa === 'undefined') return;
-    const { data, error } = await supa.from('platform_settings').select('config').eq('id',1).maybeSingle();
-    if(error || !data) return;
-    const cfg = typeof data.config === 'string' ? JSON.parse(data.config) : data.config;
-    if(cfg && cfg.platform_updates && cfg.platform_updates.length){
-      // Merge cloud with local (cloud is authoritative)
-      _platformUpdates = cfg.platform_updates;
-      _savePlatformUpdatesLocal();
-    }
-  } catch(e){ console.warn('Cloud load updates failed:', e); }
-}
-
-async function renderPlatformUpdatesPage(){
-  _loadPlatformUpdates();
-  const list = document.getElementById('platform-updates-list');
+function _renderBkHistory() {
+  const list = document.getElementById('bk-history-list');
   if(!list) return;
-  // Show loading state
-  list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)"><div class="spinner" style="display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite"></div> جاري التحميل...</div>';
-  // Load from cloud
-  await _loadPlatformUpdatesFromCloud();
-  if(!_platformUpdates.length){
-    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px">📢</div><div style="font-weight:700">لا تحديثات بعد</div><div style="font-size:12px;margin-top:6px">أنشئ أول تحديث وأرسله للمستخدمين</div></div>';
+  const history = JSON.parse(localStorage.getItem('admin_bk_history') || '[]');
+  if(!history.length) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">لا يوجد سجل بعد — قم بأول تصدير</div>';
     return;
   }
-  list.innerHTML = _platformUpdates.map((u,i) =>
-    `<div style="display:flex;gap:14px;align-items:flex-start;padding:14px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--surface2)">
-      <div style="font-size:28px;flex-shrink:0">${u.emoji||'📢'}</div>
+  list.innerHTML = history.slice(0,10).map(h => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--surface2)">
+      <i class="fa-solid fa-file-code" style="color:var(--accent);font-size:16px;flex-shrink:0"></i>
       <div style="flex:1">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
-          <div style="font-size:14px;font-weight:700">${u.title}</div>
-          <span style="font-size:10px;color:var(--text3)">${u.date?new Date(u.date).toLocaleDateString('ar-EG'):''}</span>
-          <span style="font-size:10px;background:${u.sent?'rgba(79,209,165,.15)':'rgba(247,201,72,.15)'};color:${u.sent?'var(--accent3)':'var(--accent2)'};padding:2px 8px;border-radius:8px;font-weight:700">${u.sent?'✅ مُرسَل ('+( u.sentCount||0)+' مستخدم)':'⏳ مسودة'}</span>
-        </div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.7">${u.body}</div>
+        <div style="font-size:13px;font-weight:700">${h.filename}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${h.date} — ${h.tables} — ${h.size}</div>
       </div>
-      <div style="display:flex;gap:6px;flex-shrink:0;flex-direction:column">
-        ${!u.sent?`<button class="btn btn-primary btn-sm" onclick="sendPlatformUpdate('${u.id}')">📤 إرسال للكل</button>`:''}
-        <button class="btn btn-ghost btn-sm" onclick="editPlatformUpdate('${u.id}')">✏ تعديل</button>
-        <button class="btn btn-danger btn-sm" onclick="deletePlatformUpdate('${u.id}')">🗑</button>
-      </div>
-    </div>`
-  ).join('');
+      <span style="font-size:10px;background:rgba(79,209,165,.12);color:var(--accent3);padding:3px 8px;border-radius:6px;font-weight:700">✅ مُصدَّر</span>
+    </div>`).join('');
 }
 
-function openNewPlatformUpdate(){
-  document.getElementById('puf-edit-id').value = '';
-  document.getElementById('puf-title').textContent = '➕ تحديث جديد';
-  document.getElementById('puf-emoji').value = '📢';
-  document.getElementById('puf-title-text').value = '';
-  document.getElementById('puf-body').value = '';
-  document.getElementById('puf-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('platform-update-form').style.display = 'block';
-  document.getElementById('platform-update-form').scrollIntoView({behavior:'smooth'});
-}
-
-function editPlatformUpdate(id){
-  _loadPlatformUpdates();
-  const u = _platformUpdates.find(x => x.id === id);
-  if(!u) return;
-  document.getElementById('puf-edit-id').value = id;
-  document.getElementById('puf-title').textContent = '✏ تعديل التحديث';
-  document.getElementById('puf-emoji').value = u.emoji||'📢';
-  document.getElementById('puf-title-text').value = u.title||'';
-  document.getElementById('puf-body').value = u.body||'';
-  document.getElementById('puf-date').value = u.date||new Date().toISOString().split('T')[0];
-  document.getElementById('platform-update-form').style.display = 'block';
-  document.getElementById('platform-update-form').scrollIntoView({behavior:'smooth'});
-}
-
-function savePlatformUpdate(){
-  _loadPlatformUpdates();
-  const editId = document.getElementById('puf-edit-id').value;
-  const titleText = document.getElementById('puf-title-text').value.trim();
-  const body = document.getElementById('puf-body').value.trim();
-  if(!titleText || !body){ toast('⚠ العنوان والمحتوى مطلوبان'); return; }
-  const update = {
-    id: editId || 'upd_'+Date.now(),
-    emoji: document.getElementById('puf-emoji').value.trim()||'📢',
-    title: titleText,
-    body: body,
-    date: document.getElementById('puf-date').value || new Date().toISOString().split('T')[0],
-    target: document.getElementById('puf-target').value,
-    sent: false,
-    createdAt: new Date().toISOString()
-  };
-  if(editId){
-    const idx = _platformUpdates.findIndex(x => x.id === editId);
-    if(idx > -1) { update.sent = _platformUpdates[idx].sent; _platformUpdates[idx] = update; }
-    else _platformUpdates.unshift(update);
-  } else {
-    _platformUpdates.unshift(update);
+async function previewBackupStats() {
+  const box = document.getElementById('bk-stats-box');
+  box.style.display = 'block';
+  box.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحساب...';
+  try {
+    const counts = {};
+    const tables = [];
+    if(document.getElementById('bk-include-studio')?.checked) {
+      const { data } = await supa.from('studio_data').select('user_id', { count: 'exact', head: false });
+      counts.studio_data = data?.length || 0; tables.push('studio_data');
+    }
+    if(document.getElementById('bk-include-serials')?.checked) {
+      const { data } = await supa.from('serial_keys').select('id', { count: 'exact', head: false });
+      counts.serial_keys = data?.length || 0; tables.push('serial_keys');
+    }
+    if(document.getElementById('bk-include-plans')?.checked) {
+      const { data } = await supa.from('subscription_plans').select('id', { count: 'exact', head: false });
+      counts.subscription_plans = data?.length || 0; tables.push('subscription_plans');
+    }
+    if(document.getElementById('bk-include-platform')?.checked) {
+      counts.platform_settings = 1; tables.push('platform_settings');
+    }
+    if(document.getElementById('bk-include-invites')?.checked) {
+      const { data } = await supa.from('team_invites').select('id', { count: 'exact', head: false });
+      counts.team_invites = data?.length || 0; tables.push('team_invites');
+    }
+    box.innerHTML = `
+      <div style="font-weight:700;margin-bottom:10px"><i class="fa-solid fa-chart-bar" style="color:var(--accent)"></i> إحصائيات قبل التصدير</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">
+        ${Object.entries(counts).map(([t,c]) => `
+          <div style="padding:8px 12px;background:var(--surface3);border-radius:8px;text-align:center">
+            <div style="font-size:20px;font-weight:900;color:var(--accent)">${c}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">${t}</div>
+          </div>`).join('')}
+      </div>`;
+  } catch(e) {
+    box.innerHTML = '<span style="color:var(--accent4)">⚠ خطأ في تحميل الإحصائيات: ' + (e.message||'') + '</span>';
   }
-  _savePlatformUpdatesLocal();
-  _savePlatformUpdatesToCloud();
-  document.getElementById('platform-update-form').style.display = 'none';
-  renderPlatformUpdatesPage();
-  toast('✅ تم حفظ التحديث');
 }
 
-function deletePlatformUpdate(id){
-  if(!confirm('حذف هذا التحديث؟')) return;
-  _loadPlatformUpdates();
-  _platformUpdates = _platformUpdates.filter(x => x.id !== id);
-  _savePlatformUpdatesLocal();
-  _savePlatformUpdatesToCloud();
-  renderPlatformUpdatesPage();
-  toast('🗑 تم الحذف');
-}
+async function exportFullBackup() {
+  const prog = document.getElementById('bk-progress');
+  const progText = document.getElementById('bk-progress-text');
+  const progBar  = document.getElementById('bk-progress-bar');
+  if(prog) prog.style.display = 'block';
 
-async function sendPlatformUpdate(id){
-  _loadPlatformUpdates();
-  const update = _platformUpdates.find(x => x.id === id);
-  if(!update){ toast('⚠ التحديث غير موجود'); return; }
-  if(!confirm('إرسال هذا التحديث لجميع المستخدمين؟\nسيظهر في صفحة الإعدادات > التحديثات')){ return; }
+  const setProgress = (pct, text) => {
+    if(progBar) progBar.style.width = pct + '%';
+    if(progText) progText.textContent = text;
+  };
 
-  toast('⏳ جاري الإرسال...');
-  let successCount = 0, failCount = 0;
+  const backup = {
+    _meta: {
+      exported_at: new Date().toISOString(),
+      exported_by: 'Ordo Admin',
+      version: '1.0'
+    }
+  };
 
   try {
-    // Get all users from studio_data
-    const { data: allRows, error } = await supa.from('studio_data').select('user_id, data');
-    if(error){ toast('⚠ خطأ في تحميل المستخدمين'); return; }
+    const total = 5; let done = 0;
 
-    for(const row of (allRows||[])){
-      try {
-        let ud = null;
-        try { ud = typeof row.data === 'string' ? JSON.parse(row.data) : row.data; } catch(e){ continue; }
-        if(!ud) continue;
-
-        // Check target filter
-        if(update.target === 'active'){
-          // Check if user has active subscription (skip for now, send to all)
-        }
-
-        // Inject update into user's studio_data
-        if(!ud._platform_updates) ud._platform_updates = [];
-        // Avoid duplicates
-        if(!ud._platform_updates.find(u => u.id === update.id)){
-          ud._platform_updates.unshift(update);
-          // Keep only last 30 updates
-          ud._platform_updates = ud._platform_updates.slice(0,30);
-        }
-
-        const { error: saveErr } = await supa.from('studio_data')
-          .update({ data: JSON.stringify(ud), updated_at: new Date().toISOString() })
-          .eq('user_id', row.user_id);
-
-        if(!saveErr) successCount++;
-        else failCount++;
-      } catch(e){ failCount++; }
+    if(document.getElementById('bk-include-studio')?.checked) {
+      setProgress((done/total)*100, 'جاري تحميل بيانات المستخدمين...');
+      const { data, error } = await supa.from('studio_data').select('*');
+      if(!error) backup.studio_data = data || [];
+      done++;
     }
 
-    // Mark as sent
-    update.sent = true;
-    update.sentAt = new Date().toISOString();
-    update.sentCount = successCount;
-    _savePlatformUpdatesLocal();
-    renderPlatformUpdatesPage();
-    toast(`✅ تم الإرسال لـ ${successCount} مستخدم${failCount?` (فشل: ${failCount})`:''}`, 4000);
-    logActivity('إرسال تحديث', `"${update.title}" — ${successCount} مستخدم`, 'var(--accent3)');
-  } catch(e){
-    console.error('sendPlatformUpdate error:', e);
-    toast('⚠ خطأ في الإرسال: ' + (e.message||''));
+    if(document.getElementById('bk-include-serials')?.checked) {
+      setProgress((done/total)*100, 'جاري تحميل أكواد الاشتراك...');
+      const { data, error } = await supa.from('serial_keys').select('*');
+      if(!error) backup.serial_keys = data || [];
+      done++;
+    }
+
+    if(document.getElementById('bk-include-plans')?.checked) {
+      setProgress((done/total)*100, 'جاري تحميل الباقات...');
+      const { data, error } = await supa.from('subscription_plans').select('*');
+      if(!error) backup.subscription_plans = data || [];
+      done++;
+    }
+
+    if(document.getElementById('bk-include-platform')?.checked) {
+      setProgress((done/total)*100, 'جاري تحميل إعدادات المنصة...');
+      const { data, error } = await supa.from('platform_settings').select('*');
+      if(!error) backup.platform_settings = data || [];
+      done++;
+    }
+
+    if(document.getElementById('bk-include-invites')?.checked) {
+      setProgress((done/total)*100, 'جاري تحميل دعوات الفريق...');
+      const { data, error } = await supa.from('team_invites').select('*');
+      if(!error) backup.team_invites = data || [];
+      done++;
+    }
+
+    setProgress(100, 'جاري إنشاء الملف...');
+
+    // Build JSON and download
+    const json = JSON.stringify(backup, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const now  = new Date();
+    const dateStr = now.toISOString().replace(/[:.]/g,'-').slice(0,19);
+    const filename = `ordo-backup-${dateStr}.json`;
+
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Save to history
+    const sizeMB = (blob.size / 1024).toFixed(1) + ' KB';
+    const tables  = Object.keys(backup).filter(k => k !== '_meta').join('، ');
+    const history = JSON.parse(localStorage.getItem('admin_bk_history') || '[]');
+    history.unshift({ filename, date: now.toLocaleString('ar-EG'), tables, size: sizeMB });
+    localStorage.setItem('admin_bk_history', JSON.stringify(history.slice(0,20)));
+    _renderBkHistory();
+
+    setTimeout(() => { if(prog) prog.style.display = 'none'; }, 1500);
+    toast('✅ تم تحميل النسخة الاحتياطية: ' + filename, 5000);
+    logActivity('نسخة احتياطية', 'تم تصدير ' + tables, 'var(--accent3)');
+
+  } catch(e) {
+    if(prog) prog.style.display = 'none';
+    toast('⚠ خطأ في التصدير: ' + (e.message||''), 5000);
+    console.error('exportFullBackup error:', e);
   }
 }
+
+function bkHandleDrop(event) {
+  event.preventDefault();
+  document.getElementById('bk-drop-zone').style.borderColor = 'var(--border)';
+  const file = event.dataTransfer.files[0];
+  if(file && file.name.endsWith('.json')) bkReadFile(null, file);
+  else toast('⚠ يرجى رفع ملف JSON فقط');
+}
+
+function bkReadFile(input, file) {
+  const f = file || input.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      _bkData = JSON.parse(e.target.result);
+      if(!_bkData._meta) { toast('⚠ الملف غير صحيح — تأكد أنه ملف Ordo backup'); _bkData = null; return; }
+      const preview = document.getElementById('bk-import-preview');
+      const options = document.getElementById('bk-import-options');
+      const tables  = Object.keys(_bkData).filter(k => k !== '_meta');
+      const counts  = tables.map(t => `<span style="background:rgba(108,99,255,.12);color:var(--accent);padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">${t} (${Array.isArray(_bkData[t]) ? _bkData[t].length : 1} سجل)</span>`).join(' ');
+      preview.style.display = 'block';
+      preview.innerHTML = `
+        <div style="font-weight:700;margin-bottom:8px"><i class="fa-solid fa-file-circle-check" style="color:var(--accent3)"></i> تم قراءة الملف بنجاح</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px">📅 تاريخ التصدير: ${new Date(_bkData._meta.exported_at).toLocaleString('ar-EG')}</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">🗂 الجداول المتوفرة: ${counts}</div>
+        <div style="font-size:11px;color:var(--text3)">📁 اسم الملف: ${f.name}</div>`;
+      options.style.display = 'block';
+    } catch(err) {
+      toast('⚠ خطأ في قراءة الملف: ' + err.message);
+      _bkData = null;
+    }
+  };
+  reader.readAsText(f);
+}
+
+async function importBackup() {
+  if(!_bkData) { toast('⚠ لم يتم تحميل أي ملف'); return; }
+  if(!confirm('هل أنت متأكد من الاستيراد؟ سيتم دمج البيانات مع قاعدة البيانات الحالية.')) return;
+
+  const impProg    = document.getElementById('bk-import-progress');
+  const impProgBar = document.getElementById('bk-import-progress-bar');
+  const impProgTxt = document.getElementById('bk-import-progress-text');
+  if(impProg) impProg.style.display = 'block';
+
+  const setP = (pct, txt) => {
+    if(impProgBar) impProgBar.style.width = pct + '%';
+    if(impProgTxt) impProgTxt.textContent = txt;
+  };
+
+  let errors = 0; let imported = 0;
+
+  try {
+    // Import studio_data
+    if(document.getElementById('imp-studio')?.checked && _bkData.studio_data?.length) {
+      setP(10, 'جاري استيراد بيانات المستخدمين...');
+      const rows = _bkData.studio_data;
+      // Upsert in chunks of 50
+      for(let i = 0; i < rows.length; i += 50) {
+        const chunk = rows.slice(i, i+50);
+        const { error } = await supa.from('studio_data').upsert(chunk, { onConflict: 'user_id' });
+        if(error) { console.warn('studio_data import error:', error.message); errors++; }
+        else imported += chunk.length;
+        setP(10 + ((i/rows.length)*30), `بيانات المستخدمين: ${Math.min(i+50, rows.length)}/${rows.length}`);
+      }
+    }
+
+    // Import serial_keys
+    if(document.getElementById('imp-serials')?.checked && _bkData.serial_keys?.length) {
+      setP(40, 'جاري استيراد أكواد الاشتراك...');
+      for(let i = 0; i < _bkData.serial_keys.length; i += 50) {
+        const chunk = _bkData.serial_keys.slice(i, i+50);
+        const { error } = await supa.from('serial_keys').upsert(chunk, { onConflict: 'id' });
+        if(error) errors++; else imported += chunk.length;
+      }
+    }
+
+    // Import subscription_plans
+    if(document.getElementById('imp-plans')?.checked && _bkData.subscription_plans?.length) {
+      setP(60, 'جاري استيراد الباقات...');
+      for(let i = 0; i < _bkData.subscription_plans.length; i += 50) {
+        const chunk = _bkData.subscription_plans.slice(i, i+50);
+        const { error } = await supa.from('subscription_plans').upsert(chunk, { onConflict: 'id' });
+        if(error) errors++; else imported += chunk.length;
+      }
+    }
+
+    // Import platform_settings
+    if(document.getElementById('imp-platform')?.checked && _bkData.platform_settings?.length) {
+      setP(80, 'جاري استيراد إعدادات المنصة...');
+      const { error } = await supa.from('platform_settings')
+        .upsert(_bkData.platform_settings, { onConflict: 'id' });
+      if(error) errors++; else imported++;
+    }
+
+    setP(100, 'اكتمل الاستيراد!');
+    setTimeout(() => { if(impProg) impProg.style.display = 'none'; }, 2000);
+
+    const msg = errors
+      ? `✅ تم استيراد ${imported} سجل — ⚠ ${errors} خطأ (راجع الكونسول)`
+      : `✅ تم استيراد ${imported} سجل بنجاح`;
+    toast(msg, 5000);
+    logActivity('استيراد نسخة احتياطية', `${imported} سجل — ${errors} خطأ`, errors ? 'var(--accent2)' : 'var(--accent3)');
+
+    // Refresh user table
+    setTimeout(() => { loadDashboard(); }, 1000);
+
+  } catch(e) {
+    if(impProg) impProg.style.display = 'none';
+    toast('⚠ خطأ في الاستيراد: ' + (e.message||''), 6000);
+    console.error('importBackup error:', e);
+  }
+}
+
+
 
 // ══════════════════════════════════════════════════
 //  BULK SELECTION — USERS
