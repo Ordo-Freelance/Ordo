@@ -1216,6 +1216,26 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           <div style="color:#545454;font-size:14px" id="seo-desc-preview">نظام إدارة الاستوديو الاحترافي</div>
         </div>
       </div>
+
+      <!-- رسالة الترحيب للمستخدمين الجدد -->
+      <div class="card" style="margin-top:16px">
+        <div class="section-title">👋 رسالة الترحيب للمستخدمين الجدد</div>
+        <div class="form-group">
+          <div class="form-label">عنوان الرسالة</div>
+          <input class="form-input" id="plt-welcome-title" placeholder="أهلاً بك في Ordo! 🎉">
+        </div>
+        <div class="form-group">
+          <div class="form-label">نص الرسالة</div>
+          <textarea class="form-input" id="plt-welcome-body" rows="3" placeholder="نظام متكامل لإدارة أعمالك كفريلانسر..." style="resize:vertical"></textarea>
+        </div>
+        <div class="form-group">
+          <div class="form-label">ملاحظة التجربة المجانية (يدعم HTML بسيط)</div>
+          <input class="form-input" id="plt-welcome-note" placeholder="لديك 7 أيام تجريبية مجانية بكل المميزات.">
+        </div>
+        <div style="text-align:left;margin-top:4px">
+          <button class="btn btn-ghost" style="font-size:12px" onclick="toast('✅ احفظ التغييرات أولاً ثم تحقق من المستخدمين الجدد')">🔄 معاينة</button>
+        </div>
+      </div>
     </div>
 
   </div><!-- end main -->
@@ -2649,8 +2669,7 @@ function applyUserFilters() {
   }
   if(statF) {
     users = users.filter(([uid]) => {
-      const sub = getSubscription(uid);
-      const status = sub?.status || 'none';
+      const status = getEffectiveStatus(uid);
       return status === statF;
     });
   }
@@ -2667,9 +2686,13 @@ function applyUserFilters() {
     const clients = p?.clients?.length || 0;
     const date    = u.updated_at ? new Date(u.updated_at).toLocaleDateString('ar-EG') : '—';
     const sub     = getSubscription(uid);
-    const planName = sub ? (PLANS.find(pl=>pl.id===sub.planId)?.name || sub.planId) : '—';
-    const statusBadge = getStatusBadge(sub?.status || 'none');
+    const effectiveStatus = getEffectiveStatus(uid);
+    const trial   = getUserTrialInfo(uid);
+    const planName = sub ? (PLANS.find(pl=>pl.id===sub.planId)?.name || sub.planId) : (trial && trial.active ? 'تجريبي' : '—');
+    const statusBadge = getStatusBadge(effectiveStatus);
     const initial = (name||'م')[0];
+    // PHASE 4: Show trial dates if on trial
+    const trialInfo = (trial && !sub) ? `<div style="font-size:10px;color:var(--accent2);margin-top:2px">تبدأ: ${trial.start.toLocaleDateString('ar-EG')} — تنتهي: ${trial.end.toLocaleDateString('ar-EG')}${trial.active ? ' (' + trial.daysLeft + ' يوم)' : ' <span style="color:var(--accent4)">منتهية</span>'}</div>` : '';
     return `
       <tr>
         <td><input type="checkbox" class="user-row-cb" data-uid="${uid}" onchange="onUserCheckChange()" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent)"></td>
@@ -2683,7 +2706,7 @@ function applyUserFilters() {
           </div>
         </td>
         <td style="color:var(--text2);font-size:12px">${email}</td>
-        <td>${sub ? `<span class="badge badge-purple">${planName}</span>` : '<span class="badge badge-gray">لا يوجد</span>'}</td>
+        <td>${sub ? `<span class="badge badge-purple">${planName}</span>` : (trial && trial.active ? '<span class="badge badge-yellow">🆓 تجريبي</span>' : '<span class="badge badge-gray">لا يوجد</span>')}${trialInfo}</td>
         <td>${statusBadge}</td>
         <td style="font-size:12px;color:var(--text2)">${date}</td>
         <td>
@@ -3671,6 +3694,32 @@ function getStatusBadge(status) {
   return map[status] || `<span class="badge badge-gray">${status}</span>`;
 }
 
+// PHASE 4 ADMIN: Get trial info from studio_data
+function getUserTrialInfo(uid) {
+  try {
+    const userData = ALL_STUDIO_DATA[uid];
+    if(!userData || !userData.parsed) return null;
+    const trialStart = userData.parsed._trial_start;
+    if(!trialStart) return null;
+    const start = new Date(trialStart);
+    const end   = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const now   = new Date();
+    return { start, end, active: now < end, daysLeft: Math.max(0, Math.ceil((end - now) / 86400000)) };
+  } catch(e) { return null; }
+}
+
+// PHASE 4 ADMIN: Augment getSubscription to include trial status
+function getEffectiveStatus(uid) {
+  const sub = getSubscription(uid);
+  if(sub && sub.status === 'active') return 'active';
+  if(sub && sub.status === 'expired') return 'expired';
+  // Check trial
+  const trial = getUserTrialInfo(uid);
+  if(trial && trial.active) return 'trial';
+  if(sub) return sub.status;
+  return 'none';
+}
+
 function getStatusText(status) {
   return {active:'نشط', expired:'منتهي', trial:'تجريبي', none:'لا يوجد'}[status] || status;
 }
@@ -3897,12 +3946,15 @@ let _platformConfig = JSON.parse(localStorage.getItem('platform_config') || '{}'
 function loadPlatformPage() {
   const cfg = _platformConfig;
   const set = (id, val) => { const el = document.getElementById(id); if(el && val !== undefined) el.value = val || ''; };
-  set('plt-name',      cfg.name      || 'Ordo - Tasks');
-  set('plt-desc',      cfg.description || '');
-  set('plt-keywords',  cfg.keywords  || '');
-  set('plt-favicon',   cfg.favicon   || '');
-  set('plt-logo',      cfg.logo      || '');
-  set('plt-whatsapp',  cfg.whatsapp  || '201090412218');
+  set('plt-name',          cfg.name           || 'Ordo - Tasks');
+  set('plt-desc',          cfg.description    || '');
+  set('plt-keywords',      cfg.keywords       || '');
+  set('plt-favicon',       cfg.favicon        || '');
+  set('plt-logo',          cfg.logo           || '');
+  set('plt-whatsapp',      cfg.whatsapp       || '201090412218');
+  set('plt-welcome-title', cfg.welcome_title  || '');
+  set('plt-welcome-body',  cfg.welcome_body   || '');
+  set('plt-welcome-note',  cfg.welcome_note   || '');
   // mode buttons
   const isDark = !cfg.mode || cfg.mode === 'dark';
   document.getElementById('plt-btn-dark')?.classList.toggle('btn-primary', isDark);
@@ -3955,13 +4007,16 @@ document.addEventListener('input', e => {
 });
 
 function savePlatformConfig() {
-  _platformConfig.name        = document.getElementById('plt-name')?.value?.trim()     || 'Ordo - Tasks';
-  _platformConfig.description = document.getElementById('plt-desc')?.value?.trim()     || '';
-  _platformConfig.keywords    = document.getElementById('plt-keywords')?.value?.trim() || '';
-  _platformConfig.favicon     = document.getElementById('plt-favicon')?.value?.trim()  || '';
-  _platformConfig.logo        = document.getElementById('plt-logo')?.value?.trim()     || '';
-  _platformConfig.whatsapp    = document.getElementById('plt-whatsapp')?.value?.trim() || '201090412218';
-  _platformConfig._ts         = Date.now();
+  _platformConfig.name         = document.getElementById('plt-name')?.value?.trim()          || 'Ordo - Tasks';
+  _platformConfig.description  = document.getElementById('plt-desc')?.value?.trim()          || '';
+  _platformConfig.keywords     = document.getElementById('plt-keywords')?.value?.trim()       || '';
+  _platformConfig.favicon      = document.getElementById('plt-favicon')?.value?.trim()        || '';
+  _platformConfig.logo         = document.getElementById('plt-logo')?.value?.trim()           || '';
+  _platformConfig.whatsapp     = document.getElementById('plt-whatsapp')?.value?.trim()       || '201090412218';
+  _platformConfig.welcome_title= document.getElementById('plt-welcome-title')?.value?.trim() || '';
+  _platformConfig.welcome_body = document.getElementById('plt-welcome-body')?.value?.trim()  || '';
+  _platformConfig.welcome_note = document.getElementById('plt-welcome-note')?.value?.trim()  || '';
+  _platformConfig._ts          = Date.now();
 
   localStorage.setItem('platform_config', JSON.stringify(_platformConfig));
 
