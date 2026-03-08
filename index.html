@@ -10,6 +10,20 @@
 <title>Ordo - Tasks — نظام إدارة الأعمال</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+<style>
+/* PHASE 1 FIX: Ensure Font Awesome icons never render as text */
+.fa-solid, .fa-regular, .fa-brands, .fa-light, .fa-thin, .fa-duotone {
+  font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", "Font Awesome 6 Pro" !important;
+  font-style: normal !important;
+  font-variant: normal !important;
+  text-rendering: auto !important;
+  -webkit-font-smoothing: antialiased !important;
+  display: inline-block !important;
+  line-height: 1;
+}
+.fa-solid { font-weight: 900 !important; }
+.fa-regular { font-weight: 400 !important; }
+</style>
 
 <!-- ═══ SUPABASE SDK ═══ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -23,7 +37,28 @@ const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
 // Supabase uses BroadcastChannel internally to sync sessions across tabs,
 // but postMessage fails when Headers objects are in the payload (iframe/preview env).
 (function() {
-  try { window.BroadcastChannel = undefined; } catch(e) {}
+  try {
+    // Override with a no-op stub instead of just setting to undefined
+    // (setting to undefined can fail in strict mode or be ignored)
+    const noop = function() {};
+    const stub = function BroadcastChannelStub(name) {
+      this.name = name;
+      this.onmessage = null;
+      this.onmessageerror = null;
+      this.postMessage = noop;
+      this.close = noop;
+      this.addEventListener = noop;
+      this.removeEventListener = noop;
+      this.dispatchEvent = function(){ return true; };
+    };
+    Object.defineProperty(window, 'BroadcastChannel', {
+      value: stub,
+      writable: true,
+      configurable: true
+    });
+  } catch(e) {
+    try { window.BroadcastChannel = undefined; } catch(e2) {}
+  }
 })();
 
 // ── Safe custom storage ──
@@ -172,24 +207,42 @@ function cloudSave(data){
   clearTimeout(_syncTimer);
   _syncTimer = setTimeout(async ()=>{
     try{
-      // Sanitize: deep-clone via JSON to strip any non-serializable objects
+      // Deep-sanitize: remove any non-plain values (Headers, Response, DOM nodes, etc.)
       let _safeData;
-      try { _safeData = JSON.parse(JSON.stringify(data)); } catch(e) { _safeData = data; }
+      try {
+        const _replacer = (key, val) => {
+          if(val === null || val === undefined) return val;
+          const t = typeof val;
+          if(t === 'string' || t === 'number' || t === 'boolean') return val;
+          if(Array.isArray(val)) return val;
+          if(t === 'object') {
+            // Reject known non-serializable types
+            if(val instanceof Headers || val instanceof Response || val instanceof Request ||
+               val instanceof Blob || val instanceof File || val instanceof ArrayBuffer ||
+               val instanceof ImageData || (typeof Node !== 'undefined' && val instanceof Node)) {
+              return undefined;
+            }
+            return val;
+          }
+          return undefined; // functions, symbols, etc.
+        };
+        _safeData = JSON.parse(JSON.stringify(data, _replacer));
+      } catch(e) {
+        try { _safeData = JSON.parse(JSON.stringify(data)); } catch(e2) { _safeData = {}; }
+      }
       const payload = { user_id: _supaUserId, data: JSON.stringify(_safeData), updated_at: new Date().toISOString() };
       const { error } = await supa.from('studio_data').upsert(payload, { onConflict: 'user_id' });
       if(error){
         const _em=(error&&typeof error.message==='string')?error.message:String(error);
         console.error('cloudSave error:',_em);
         showSyncIndicator('<i class="fa-solid fa-triangle-exclamation"></i> فشل الحفظ - محفوظ محلياً', '#f7c948');
-        // Save to backup localStorage when cloud fails
-        try{ if(_supaUserId) localStorage.setItem('studioOS_backup_'+_supaUserId, JSON.stringify(data)); }catch(e){}
+        try{ if(_supaUserId) localStorage.setItem('studioOS_backup_'+_supaUserId, JSON.stringify(_safeData)); }catch(e){}
       } else {
         showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محفوظ على السحابة', '#4fd1a5');
-        // Keep backup in sync
-        try{ if(_supaUserId) localStorage.setItem('studioOS_backup_'+_supaUserId, JSON.stringify(data)); }catch(e){}
+        try{ if(_supaUserId) localStorage.setItem('studioOS_backup_'+_supaUserId, JSON.stringify(_safeData)); }catch(e){}
       }
     }catch(e){
-      const _em2=(e&&typeof e.message==='string')?e.message:'err'; console.error('cloudSave:',_em2);
+      const _em2=(e&&typeof e.message==='string')?e.message:'err'; console.error('cloudSave error:',_em2);
       showSyncIndicator('<i class="fa-solid fa-triangle-exclamation"></i> فشل المزامنة', '#f76f7c');
     }
   }, 1000);
@@ -4638,11 +4691,44 @@ lsLoad();
 // ============================================================
 const BN_MAIN=['dashboard','tasks','invoices','clients'];
 // ── الصفحات المجانية بدون اشتراك ──
-const FREE_PAGES = ['dashboard', 'settings', 'services', 'support'];
+const FREE_PAGES = ['dashboard', 'settings'];
+
+// ══ TRIAL SYSTEM ══
+function _getTrialInfo() {
+  if(!_supaUserId) return null;
+  const key = '_trial_start_' + _supaUserId;
+  const ts = (S && S._trial_start) || localStorage.getItem(key);
+  if(!ts) return null;
+  const start = new Date(ts);
+  const end   = new Date(start.getTime() + 7 * 86400000);
+  const now   = new Date();
+  const daysLeft = Math.max(0, Math.ceil((end - now) / 86400000));
+  return { start, end, daysLeft, active: now < end };
+}
+
+function _isTrialActive() {
+  if(!_supaUserId) return false;
+  if(_isAdminUser) return true;
+  const info = _getTrialInfo();
+  return info ? info.active : false;
+}
+
+async function _activateTrial(uid) {
+  if(!uid) return;
+  const key  = '_trial_start_' + uid;
+  const existing = localStorage.getItem(key);
+  if(existing) return; // already activated
+  const now = new Date().toISOString();
+  localStorage.setItem(key, now);
+  if(S) S._trial_start = now;
+  try { await cloudSave(S); } catch(e) {}
+}
+
 
 function hasActiveSub(){
   if(!_supaUserId) return true;
   if(_isAdminUser) return true;  // المشرف له اشتراك مدى الحياة تلقائياً
+  if(_isTrialActive()) return true;  // التجربة المجانية تعادل اشتراكاً نشطاً
   if(!_userSubscription) return false;
   if(_userSubscription.billing==='lifetime') return true;
   if(!_userSubscription.expiresAt) return true;
@@ -4785,7 +4871,7 @@ function _showPageLock(id, el, reason){
         <div style="width:76px;height:76px;background:rgba(108,99,255,.12);border:1.5px solid rgba(108,99,255,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px"><i class="fa-solid fa-lock"></i></div>
         <div style="font-size:20px;font-weight:900;margin-bottom:6px">${names[id]||id}</div>
         <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px">Premium — مدفوع</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:24px;line-height:1.8">هذه الصفحة تتطلب اشتراكاً نشطاً<br>فعّل كودك أو اشترك للوصول إليها</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:24px;line-height:1.8">انتهى اشتراكك. يرجى الاشتراك أو تفعيل كود للمتابعة.</div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;text-align:right">
           <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px"><i class="fa-solid fa-key"></i> تفعيل كود الاشتراك</div>
           <div style="display:flex;gap:8px;margin-bottom:6px">
@@ -8903,6 +8989,8 @@ async function doRegister(){
   }
 
   showAuthMsg('register-success','<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إنشاء الحساب بنجاح!');
+  // تفعيل التجربة المجانية 7 أيام للمستخدم الجديد
+  if(data.user) await _activateTrial(data.user.id);
   setTimeout(()=>{ loginWithSupaSession(data.user, data.session, {name, phone, studio: studio||name+' Studio'}); }, 800);
 }
 
@@ -9051,6 +9139,15 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   // ── حمّل الاشتراك قبل أي render ──
   await loadUserSubscription(supaUser.id);
 
+  // ── استرجع أو فعّل التجربة المجانية ──
+  const _trialKey = '_trial_start_' + supaUser.id;
+  if(S && S._trial_start && !localStorage.getItem(_trialKey)){
+    localStorage.setItem(_trialKey, S._trial_start);
+  } else if(!localStorage.getItem(_trialKey) && !_userSubscription){
+    // مستخدم قديم بدون تجربة مسجّلة — فعّلها من الآن
+    await _activateTrial(supaUser.id);
+  }
+
   // ── حمّل الثيم من السحابة ──
   _loadThemeFromCloud();
   _updateHeaderAvatar();
@@ -9091,21 +9188,53 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   showPage('dashboard');
   showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> أهلاً ' + (userObj.name||''), '#4fd1a5');
 
-  // ── إشعار ترحيب للمستخدم الجديد ──
+  // ── بوبأب ترحيب للمستخدم الجديد ──
   var _newUserKey = 'ordo_welcome_shown_' + supaUser.id;
   if(!localStorage.getItem(_newUserKey)){
     localStorage.setItem(_newUserKey, '1');
-    setTimeout(function(){
-      addNotification('<i class="fa-solid fa-rocket"></i> أهلاً بك في Ordo! 🎉 اكتشف المهام، الفواتير، تتبع الوقت، وتحدي الأسبوع', 'success');
-      setTimeout(function(){
-        addNotification('<i class="fa-solid fa-lightbulb"></i> نصيحة: ابدأ بإضافة مهمة أو عميل من القائمة الجانبية لتستفيد من كل مميزات النظام', 'info');
-      }, 1500);
-    }, 2000);
+    setTimeout(function(){ _showWelcomePopup(supaUser.id, userObj); }, 1200);
   }
 }
 
 // ══ SUBSCRIPTION SYSTEM ══
 let _userSubscription = null;
+
+// ══ WELCOME POPUP ══
+function _showWelcomePopup(uid, userObj) {
+  const cfg = JSON.parse(localStorage.getItem('platform_config') || '{}');
+  const trial = _getTrialInfo();
+  const name  = (userObj && userObj.name) ? userObj.name.split(' ')[0] : '';
+
+  const title = cfg.welcome_title || ('أهلاً بك في ' + (cfg.name || 'Ordo') + '! 🎉');
+  const body  = cfg.welcome_body  || 'نظام متكامل لإدارة أعمالك كفريلانسر — مهام، فواتير، عملاء، تتبع وقت، وأكثر.';
+  const note  = cfg.welcome_note  || (trial && trial.active
+    ? 'لديك <strong>' + trial.daysLeft + ' أيام تجريبية مجانية</strong> بكل المميزات — استمتع!'
+    : '');
+
+  // Remove any existing popup
+  const old = document.getElementById('_welcome_popup_overlay');
+  if(old) old.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = '_welcome_popup_overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(7,8,15,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:20px;animation:_fadeIn .35s ease';
+  overlay.innerHTML = `
+    <style>@keyframes _fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}</style>
+    <div style="max-width:420px;width:100%;background:var(--surface,#12131a);border:1px solid rgba(108,99,255,.25);border-radius:22px;padding:36px 28px;text-align:center;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.6)">
+      <div style="width:80px;height:80px;background:linear-gradient(135deg,rgba(108,99,255,.2),rgba(79,209,165,.15));border:1.5px solid rgba(108,99,255,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 18px">🎉</div>
+      <div style="font-size:22px;font-weight:900;margin-bottom:10px;line-height:1.4">${name ? 'مرحباً ' + name + '،' : ''}<br>${title}</div>
+      <div style="font-size:14px;color:var(--text2,#a0a6b8);line-height:1.8;margin-bottom:${note ? '14px' : '28px'}">${body}</div>
+      ${note ? `<div style="background:rgba(108,99,255,.1);border:1px solid rgba(108,99,255,.2);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text,#e8eaf0);margin-bottom:28px;line-height:1.7">${note}</div>` : ''}
+      <button onclick="document.getElementById('_welcome_popup_overlay').remove()"
+        style="width:100%;background:var(--accent,#6c63ff);color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s"
+        onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+        🚀 ابدأ الآن
+      </button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+
 
 async function loadUserSubscription(uid) {
   try {
@@ -9193,10 +9322,19 @@ function updateSubscriptionBar() {
   if(!bar) return;
 
   if(!_userSubscription) {
-    bar.className = 'sub-status-bar none';
-    if(planEl)  planEl.textContent = 'لا يوجد اشتراك';
-    if(detailEl) detailEl.textContent = 'اضغط لطلب اشتراك';
-    if(dotEl) dotEl.style.background = 'var(--accent2)';
+    // فحص التجربة المجانية
+    const trial = _getTrialInfo();
+    if(trial && trial.active) {
+      bar.className = 'sub-status-bar active';
+      if(planEl)  planEl.innerHTML = '🚀 تجربة مجانية';
+      if(detailEl) detailEl.innerHTML = '<i class="fa-solid fa-alarm-clock"></i> متبقي ' + trial.daysLeft + ' يوم';
+      if(dotEl) dotEl.style.background = 'var(--accent3)';
+    } else {
+      bar.className = 'sub-status-bar none';
+      if(planEl)  planEl.textContent = 'لا يوجد اشتراك';
+      if(detailEl) detailEl.textContent = 'اضغط لطلب اشتراك';
+      if(dotEl) dotEl.style.background = 'var(--accent2)';
+    }
     return;
   }
 
@@ -13698,6 +13836,9 @@ function renderDashMeetings(){
 // AUTH STATE — Single source of truth
 // ══════════════════════════════════════════════════
 let _authInitialized = false;
+// PHASE 2 FIX: Debounce auth state changes to prevent login loops
+let _authDebounceTimer = null;
+let _authProcessingUserId = null;
 
 supa.auth.onAuthStateChange(async (event, session) => {
   // ── Public service/portal pages: skip all auth handling ──
@@ -13716,6 +13857,9 @@ supa.auth.onAuthStateChange(async (event, session) => {
 
   // SIGNED_IN أو INITIAL_SESSION — نفس المعاملة
   if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && session.user){
+    // PHASE 2 FIX: Prevent duplicate processing for same user
+    if(_authProcessingUserId === session.user.id) return;
+
     // لو بالفعل initialized بنفس المستخدم — مش محتاج نعمل حاجة
     // Exception: SIGNED_IN after OAuth redirect should always proceed
     const isOAuthRedirect = event === 'SIGNED_IN' && session.user.app_metadata?.provider === 'google';
@@ -13728,8 +13872,6 @@ supa.auth.onAuthStateChange(async (event, session) => {
     }
 
     // FIX: Check if this login was manually triggered by the user
-    // If admin is logged into admin dashboard in another tab and this tab isn't the source, skip auto-login
-    const storedAdminSession = localStorage.getItem('_admin_active_session');
     const isAdminTabSession = (
       session.user.app_metadata?.role === 'admin' ||
       session.user.app_metadata?.is_admin === true ||
@@ -13737,7 +13879,6 @@ supa.auth.onAuthStateChange(async (event, session) => {
       session.user.user_metadata?.is_admin === true
     );
     // ALWAYS block admin accounts from auto-logging into user site
-    // Admin users should only access via admin.html
     if(isAdminTabSession){
       const authScreen = document.getElementById('auth-screen');
       if(authScreen && !_supaUserId){ authScreen.classList.remove('hidden'); }
@@ -13757,7 +13898,9 @@ supa.auth.onAuthStateChange(async (event, session) => {
     };
     // دايما نعمل loginWithSupaSession علشان نجيب البيانات من السحابة
     _authInitialized = true; // Set BEFORE async call to prevent duplicate execution
+    _authProcessingUserId = session.user.id; // PHASE 2 FIX: Track processing user
     await loginWithSupaSession(session.user, session, userObj);
+    _authProcessingUserId = null; // PHASE 2 FIX: Clear after done
   }
 
   if(event === 'PASSWORD_RECOVERY'){
@@ -13767,6 +13910,7 @@ supa.auth.onAuthStateChange(async (event, session) => {
   if(event === 'SIGNED_OUT'){
     _supaUserId = null;
     _authInitialized = false;
+    _authProcessingUserId = null; // PHASE 2 FIX
   }
 
   // لو مفيش session — اعرض شاشة اللوجين
@@ -14754,6 +14898,20 @@ window._inboxAcceptInvite = function(idx){
   invites.splice(idx, 1);
   window._pendingTeamInvites = invites;
   _updateInboxBadge();
+  // PHASE 3 FIX: Save acceptance locally
+  if(inv) {
+    var localKey = '_accepted_team_invites_' + (_supaUserId||'');
+    var localList = JSON.parse(localStorage.getItem(localKey) || '[]');
+    var alreadySaved = localList.some(function(li){ return li.teamId===String(inv.teamId) && li.ownerId===inv.ownerId; });
+    if(!alreadySaved) {
+      localList.push({ teamId: String(inv.teamId||inv.id), ownerId: inv.ownerId||'', teamName: inv.teamName });
+      localStorage.setItem(localKey, JSON.stringify(localList));
+    }
+    // Update team_invites table
+    if(typeof supa !== 'undefined' && inv.id) {
+      supa.from('team_invites').update({status:'accepted'}).eq('id', String(inv.id).replace('pn_','')).catch(()=>null);
+    }
+  }
   // Re-check membership
   var em = null;
   try{ var _s=JSON.parse(localStorage.getItem('studioOS_auth_v1')||'{}'); em=_s&&_s.email?_s.email:null; }catch(e){}
