@@ -560,6 +560,11 @@ function showSyncIndicator(msg, color){
   --transition: 0.28s cubic-bezier(.4,0,.2,1);
 }
 
+/* على الموبايل والتابلت: الـ sidebar overlay فمش محتاجين margin */
+@media (max-width: 1024px) {
+  :root { --sidebar-w: 0px; }
+}
+
 /* ═══ LIGHT MODE ═══ */
 body.light-mode {
   --bg:      #f0f2f8;
@@ -582,16 +587,24 @@ body.light-mode .modal   { box-shadow: 0 20px 60px rgba(0,0,0,.15); }
    RESET & BASE
 ═══════════════════════════════════════════════════ */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html { direction: rtl; font-size: 16px; -webkit-text-size-adjust: 100%; }
+html {
+  direction: rtl;
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
 body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
   min-height: 100vh;
+  max-width: 100vw;
   overflow-x: hidden;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: contain;
   transition: background var(--transition), color var(--transition);
 }
 
@@ -614,13 +627,16 @@ body {
   display: flex;
   flex-direction: row-reverse;   /* RTL: sidebar on the right */
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
 }
 
 /* ═══════════════════════════════════════════════════
    SIDEBAR
 ═══════════════════════════════════════════════════ */
 .sidebar {
-  width: var(--sidebar-w);
+  width: 240px;            /* ثابت دايماً — overlay على كل الشاشات */
   flex-shrink: 0;
   background: var(--surface);
   border-left: 1px solid var(--border);
@@ -636,6 +652,14 @@ body {
   padding: var(--space-md) 0 var(--space-xl);
   transition: transform var(--transition);
   will-change: transform;
+  /* مخبي بالـ transform على الموبايل، مش بـ display */
+  transform: translateX(100%);
+}
+/* على الديسكتوب فقط: الـ sidebar ظاهر */
+@media (min-width: 1025px) {
+  .sidebar {
+    transform: translateX(0);
+  }
 }
 /* Sidebar brand */
 .sidebar-logo {
@@ -791,14 +815,29 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  margin-right: var(--sidebar-w);   /* push content beside sidebar */
+  width: 100%;
+  overflow-x: hidden;
+  /* لا margin هنا — بنضيفه على الديسكتوب فقط في media query */
   transition: margin-right 0.3s ease;
+}
+
+/* على الديسكتوب: نحرك المحتوى بجانب الـ sidebar الثابت */
+@media (min-width: 1025px) {
+  .app-body {
+    margin-right: 240px;
+  }
+  body.sidebar-collapsed .app-body {
+    margin-right: 0 !important;
+  }
 }
 .main {
   flex: 1;
   padding: var(--space-xl);
   max-width: 1600px;
   width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -1235,34 +1274,38 @@ body.sidebar-collapsed .sidebar-overlay {
 
 /* ── Tablet landscape (769px – 1024px) ── */
 @media (max-width: 1024px) {
-  :root { --sidebar-w: 210px; }
   .main { padding: var(--space-lg); }
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
-  /* Sidebar hidden by default on mobile/tablet, slides in when open */
-  .sidebar {
-    transform: translateX(100%); /* RTL: off-canvas to the right */
-  }
   .sidebar.open {
     transform: translateX(0);
     box-shadow: -8px 0 40px rgba(0,0,0,.4);
   }
   .sidebar-overlay { display: block; }
-  .app-body { margin-right: 0; }
 }
 
 /* ── Tablet portrait ── */
 @media (max-width: 768px) {
-  .main { padding: var(--space-md); padding-bottom: 76px; }
+  .main { padding: var(--space-md); padding-bottom: 80px; }
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
   .grid-3 { grid-template-columns: repeat(2, 1fr); }
   .grid-2 { grid-template-columns: 1fr; }
   .bottom-nav { display: block; }
   .page-header { margin-bottom: var(--space-md); }
+  .app-body { margin-right: 0 !important; }
 }
 
 /* ── Mobile ── */
 @media (max-width: 540px) {
-  .main { padding: var(--space-sm); padding-bottom: 76px; }
+  html, body { overflow-x: hidden; }
+  .app-shell { overflow-x: hidden; }
+  .app-body  { margin-right: 0 !important; width: 100% !important; max-width: 100vw; }
+  .main {
+    padding: var(--space-sm);
+    padding-bottom: 84px;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
   .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
   .page-title { font-size: 19px; }
@@ -1284,16 +1327,12 @@ body.sidebar-collapsed .sidebar-overlay {
   #tasks-cols { grid-template-columns: 1fr !important; }
   .app-header { padding: 0 var(--space-sm); gap: 6px; }
   .header-page-title { font-size: 13px; }
-  /* Hide lang button on tiny screens */
   #_lang-toggle-btn { display: none !important; }
-  /* Shrink header CTA text */
   #header-cta { font-size: 11px; padding: 6px 10px; }
   #header-cta span[data-i18n] { display: none; }
-  /* Shrink studio name in header */
   #_header-studio-name { max-width: 80px; font-size: 11px; }
-  /* Dashboard page header buttons */
   .page-header { flex-wrap: wrap; gap: 8px; }
-  /* Stat cards always single column on mobile */
+  /* Stat cards 2×2 grid */
   #_dash-stats-inner { grid-template-columns: 1fr 1fr !important; }
 }
 
@@ -1445,6 +1484,48 @@ body.sidebar-collapsed .sidebar-overlay {
   .profile-stats { grid-template-columns:1fr 1fr; }
   .pw-reset-row  { grid-template-columns:1fr; }
   #modal-profile .modal { width:100%!important; }
+}
+
+/* ══ Mobile: كل المودالات تبقى bottom sheets ══ */
+@media(max-width:600px){
+  /* Overlay يغطي الشاشة والمودال يطلع من تحت */
+  .modal-overlay {
+    padding:0 !important;
+    align-items:flex-end !important;
+  }
+  .modal {
+    width:100% !important;
+    max-width:100% !important;
+    min-width:unset !important;
+    border-radius:clamp(14px,4vw,22px) clamp(14px,4vw,22px) 0 0 !important;
+    padding:clamp(14px,4vw,20px) !important;
+    max-height:92dvh !important;
+    overflow-y:auto !important;
+    -webkit-overflow-scrolling:touch;
+    transform:translateY(100%) !important;
+    transition:transform .28s cubic-bezier(.4,0,.2,1) !important;
+    box-shadow:0 -8px 40px rgba(0,0,0,.35) !important;
+  }
+  .modal-overlay.open .modal {
+    transform:translateY(0) !important;
+  }
+  /* مودال المهام — أطول شوية */
+  #modal-task-detail .modal {
+    max-height:96dvh !important;
+  }
+  /* فاصل بصري علشان المستخدم يعرف إنه ممكن يسحب */
+  .modal::before {
+    content:'';
+    display:block;
+    width:36px; height:4px;
+    background:var(--border);
+    border-radius:2px;
+    margin:0 auto clamp(10px,3vw,16px);
+  }
+  /* Form rows عمود واحد على الموبايل */
+  .form-row { grid-template-columns:1fr !important; }
+  .modal-title { font-size:clamp(14px,4vw,17px); }
+  .modal-header { margin-bottom:12px; }
 }
 </style>
 <!-- QR Code library — qrcodejs via CDN (reliable, proven) -->
@@ -2482,7 +2563,7 @@ setTimeout(window._showApp, 4000);
 
 <!-- SUBSCRIPTION MODAL -->
 <div class="modal-overlay" id="modal-subscription">
-  <div class="modal" style="width:540px">
+  <div class="modal" style="max-width:540px">
     <div class="modal-header">
       <div class="modal-title"><i class="fa-solid fa-rotate"></i> إدارة الاشتراكات الشهرية</div>
       <button class="close-btn" onclick="closeM('modal-subscription')"><i class="fa-solid fa-xmark"></i></button>
@@ -2516,7 +2597,7 @@ setTimeout(window._showApp, 4000);
 
 <!-- TEAM MODAL -->
 <div class="modal-overlay" id="modal-team">
-  <div class="modal" style="width:600px;max-height:90vh;overflow-y:auto">
+  <div class="modal" style="max-width:600px;max-height:90vh;overflow-y:auto">
     <div class="modal-header" style="position:sticky;top:0;background:var(--surface);z-index:2;padding-bottom:14px">
       <div class="modal-title" id="team-modal-ttl"><i class="fa-solid fa-users"></i> فريق جديد</div>
       <button class="close-btn" onclick="closeM('modal-team')"><i class="fa-solid fa-xmark"></i></button>
@@ -2790,7 +2871,7 @@ setTimeout(window._showApp, 4000);
 
 <!-- MEETING MODAL -->
 <div class="modal-overlay" id="modal-meeting">
-  <div class="modal" style="width:560px;max-height:90vh;overflow-y:auto">
+  <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
     <div class="modal-header">
       <div class="modal-title" id="mtg-modal-title"><i class="fa-solid fa-calendar-days"></i> ميتنج جديد</div>
       <button class="close-btn" onclick="closeM('modal-meeting')"><i class="fa-solid fa-xmark"></i></button>
@@ -2945,7 +3026,7 @@ setTimeout(window._showApp, 4000);
 
 <!-- COURSE MODAL -->
 <div class="modal-overlay" id="modal-course">
-  <div class="modal" style="width:580px;max-height:88vh;display:flex;flex-direction:column">
+  <div class="modal" style="max-width:580px;max-height:88vh;display:flex;flex-direction:column">
     <div class="modal-header" style="flex-shrink:0">
       <div class="modal-title" id="course-modal-title"><i class="fa-solid fa-graduation-cap"></i> إضافة كورس / مادة تعليمية</div>
       <button class="close-btn" onclick="closeM('modal-course')"><i class="fa-solid fa-xmark"></i></button>
@@ -3722,7 +3803,7 @@ setTimeout(window._showApp, 4000);
 
 <!-- COMPLETE PROJECT MODAL -->
 <div class="modal-overlay" id="modal-complete">
-  <div class="modal" style="width:480px">
+  <div class="modal" style="max-width:480px">
     <div class="modal-header">
       <div class="modal-title"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> إكمال المشروع</div>
       <button class="close-btn" onclick="closeM(&#39;modal-complete&#39;)"><i class="fa-solid fa-xmark"></i></button>
@@ -3774,7 +3855,7 @@ setTimeout(window._showApp, 4000);
 
 <!-- CLIENT PROFILE MODAL -->
 <div class="modal-overlay" id="modal-client-profile">
-  <div class="modal" style="width:820px;max-width:98vw">
+  <div class="modal" style="max-width:820px;max-width:98vw">
     <div class="modal-header" style="flex-wrap:wrap;gap:8px">
       <div class="modal-title" id="profile-title">ملف العميل</div>
       <div style="display:flex;gap:6px;align-items:center;margin-right:auto" id="profile-header-actions"></div>
@@ -4170,7 +4251,7 @@ setTimeout(window._showApp, 4000);
 <!-- INCOME -->
 <datalist id="clients-datalist"></datalist>
 <div class="modal-overlay" id="modal-income">
-  <div class="modal" style="width:500px">
+  <div class="modal" style="max-width:500px">
     <div class="modal-header"><div class="modal-title" id="income-ttl"><i class="fa-solid fa-coins"></i> تسجيل دخل</div><button class="close-btn" onclick="closeM(&#39;modal-income&#39;)"><i class="fa-solid fa-xmark"></i></button></div>
     <input type="hidden" id="income-eid">
     <div class="form-row">
@@ -4277,7 +4358,7 @@ setTimeout(window._showApp, 4000);
 
 <!-- EXPENSE -->
 <div class="modal-overlay" id="modal-expense">
-  <div class="modal" style="width:500px">
+  <div class="modal" style="max-width:500px">
     <div class="modal-header"><div class="modal-title" id="expense-ttl"><i class="fa-solid fa-money-bill-wave"></i> تسجيل مصروف</div><button class="close-btn" onclick="closeM(&#39;modal-expense&#39;)"><i class="fa-solid fa-xmark"></i></button></div>
     <input type="hidden" id="expense-eid">
     <div class="form-row">
@@ -4335,7 +4416,7 @@ setTimeout(window._showApp, 4000);
 
 <!-- INVOICE -->
 <div class="modal-overlay" id="modal-invoice">
-  <div class="modal" style="width:660px">
+  <div class="modal" style="max-width:660px">
     <div class="modal-header"><div class="modal-title" id="inv-modal-ttl"><i class="fa-solid fa-square"></i> إنشاء فاتورة جديدة</div><button class="close-btn" onclick="closeM(&#39;modal-invoice&#39;)"><i class="fa-solid fa-xmark"></i></button></div>
     <input type="hidden" id="inv-eid">
     <div class="form-row">
@@ -4432,7 +4513,7 @@ setTimeout(window._showApp, 4000);
 
 <!-- GOAL -->
 <div class="modal-overlay" id="modal-goal">
-  <div class="modal" style="width:460px">
+  <div class="modal" style="max-width:460px">
     <div class="modal-header"><div class="modal-title" id="goal-modal-ttl"><i class="fa-solid fa-diamond"></i> هدف تعليمي</div><button class="close-btn" onclick="closeM(&#39;modal-goal&#39;)"><i class="fa-solid fa-xmark"></i></button></div>
     <input type="hidden" id="goal-eid">
     <div class="form-group"><label class="form-label">الهدف *</label><input class="form-input" id="g-title" placeholder="مثال: إتقان After Effects"></div>
@@ -4450,7 +4531,7 @@ setTimeout(window._showApp, 4000);
 
 <!-- SCHEDULE -->
 <div class="modal-overlay" id="modal-schedule">
-  <div class="modal" style="width:460px">
+  <div class="modal" style="max-width:460px">
     <div class="modal-header"><div class="modal-title" id="sched-modal-ttl"><i class="fa-solid fa-clock"></i> وقت في الجدول</div><button class="close-btn" onclick="closeM(&#39;modal-schedule&#39;)"><i class="fa-solid fa-xmark"></i></button></div>
     <input type="hidden" id="sched-eid">
     <div class="form-row">
@@ -4492,7 +4573,7 @@ setTimeout(window._showApp, 4000);
 
 <!-- CONFIRM -->
 <div class="modal-overlay" id="modal-confirm">
-  <div class="modal" style="width:360px">
+  <div class="modal" style="max-width:360px">
     <div class="modal-header"><div class="modal-title"><i class="fa-solid fa-triangle-exclamation"></i> تأكيد</div><button class="close-btn" onclick="closeM(&#39;modal-confirm&#39;)"><i class="fa-solid fa-xmark"></i></button></div>
     <p style="color:var(--text2);margin-bottom:20px" id="confirm-msg">هل تريد الحذف؟</p>
     <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -4814,8 +4895,14 @@ async function _activateCode(inputId, msgId, onSuccess){
     }
     const now=new Date();
     let exp=null;
-    if(data.billing!=='lifetime' && plan?.duration_days){
-      const d=new Date(now);d.setDate(d.getDate()+plan.duration_days);exp=d.toISOString();
+    if(data.billing==='lifetime'){
+      exp=null; // مدى الحياة
+    } else if(data.billing==='annual'){
+      // سنة كاملة من تاريخ التفعيل بالكالندر
+      const d=new Date(now); d.setFullYear(d.getFullYear()+1); exp=d.toISOString();
+    } else {
+      // شهري — شهر واحد من تاريخ التفعيل بالكالندر (30 يوم أو نهاية الشهر)
+      const d=new Date(now); d.setMonth(d.getMonth()+1); exp=d.toISOString();
     }
     // update بـ id (UUID) — مش بالـ code — علشان يعمل صح
     const {error:e2}=await supa
@@ -9818,7 +9905,7 @@ function renderProfileBody(user, users, tab='profile'){
       const isExpired = sub.expiresAt && sub.billing !== 'lifetime' && new Date(sub.expiresAt) < new Date();
       const daysLeft  = (sub.expiresAt && sub.billing !== 'lifetime')
         ? Math.max(0, Math.ceil((new Date(sub.expiresAt) - Date.now()) / 86400000)) : null;
-      const dur = plan?.duration_days || 30;
+      const dur = sub.billing === 'annual' ? 365 : 30;
       const pct = daysLeft !== null ? Math.min(100, Math.max(0, (daysLeft/dur)*100)) : 100;
       const barColor = daysLeft === null ? 'var(--accent3)' : daysLeft<7 ? 'var(--accent4)' : daysLeft<14 ? 'var(--accent2)' : 'var(--accent3)';
       const feats = Object.entries(plan?.features||{}).filter(([,v])=>v)
@@ -10481,7 +10568,7 @@ function openSocialIconEditor(idx){
     modal = document.createElement('div');
     modal.id = '_modal-social-icon';
     modal.className = 'modal-overlay';
-    modal.innerHTML = '<div class="modal" style="width:460px" id="_modal-social-icon-inner"></div>';
+    modal.innerHTML = '<div class="modal" style="max-width:460px" id="_modal-social-icon-inner"></div>';
     document.body.appendChild(modal);
     modal.addEventListener('click',e=>{if(e.target===modal)closeM('_modal-social-icon');});
   }
@@ -18290,7 +18377,7 @@ function openCustomGoalModal(id, presetCat){
   wrap.id = '_modal-custom-goal';
   wrap.className = 'modal-overlay';
   wrap.style.display='flex';
-  wrap.innerHTML = `<div class="modal" style="width:540px;max-height:85vh;display:flex;flex-direction:column">
+  wrap.innerHTML = `<div class="modal" style="max-width:540px;max-height:85vh;display:flex;flex-direction:column">
     <div class="modal-header" style="flex-shrink:0">
       <div class="modal-title">${g?'<i class="fa-solid fa-pen"></i> تعديل الهدف':'<i class="fa-solid fa-star"></i> هدف جديد'}</div>
       <button class="close-btn" onclick="document.getElementById('_modal-custom-goal').remove()"><i class="fa-solid fa-xmark"></i></button>
@@ -18413,7 +18500,7 @@ function openFreelancerGoalModal(type){
     modal=document.createElement('div');
     modal.id='_modal-fg';
     modal.className='modal-overlay';
-    modal.innerHTML='<div class="modal" style="width:460px" id="_modal-fg-inner"></div>';
+    modal.innerHTML='<div class="modal" style="max-width:460px" id="_modal-fg-inner"></div>';
     document.body.appendChild(modal);
     modal.addEventListener('click',e=>{if(e.target===modal)closeM('_modal-fg');});
   }
@@ -18637,7 +18724,7 @@ function openAdminCreateUser(){
     modal = document.createElement('div');
     modal.id = '_modal-admin-create-user';
     modal.className = 'modal-overlay';
-    modal.innerHTML = '<div class="modal" style="width:420px" id="_modal-admin-cu-inner"></div>';
+    modal.innerHTML = '<div class="modal" style="max-width:420px" id="_modal-admin-cu-inner"></div>';
     document.body.appendChild(modal);
     modal.addEventListener('click',function(e){ if(e.target===modal) closeM('_modal-admin-create-user'); });
   }
@@ -18709,7 +18796,7 @@ function openAdminSendMessage(userId, userName){
     modal = document.createElement('div');
     modal.id = '_modal-admin-msg';
     modal.className = 'modal-overlay';
-    modal.innerHTML = '<div class="modal" style="width:420px" id="_modal-admin-msg-inner"></div>';
+    modal.innerHTML = '<div class="modal" style="max-width:420px" id="_modal-admin-msg-inner"></div>';
     document.body.appendChild(modal);
     modal.addEventListener('click',function(e){ if(e.target===modal) closeM('_modal-admin-msg'); });
   }
@@ -19164,7 +19251,7 @@ function editTimeLog(taskId, dateKey){
     modal = document.createElement('div');
     modal.id='_modal-edit-timelog';
     modal.className='modal-overlay';
-    modal.innerHTML='<div class="modal" style="width:340px" id="_modal-edit-timelog-inner"></div>';
+    modal.innerHTML='<div class="modal" style="max-width:340px" id="_modal-edit-timelog-inner"></div>';
     document.body.appendChild(modal);
     modal.addEventListener('click',function(e){ if(e.target===modal) closeM('_modal-edit-timelog'); });
   }
@@ -19210,7 +19297,7 @@ function addManualTimeLog(taskId){
     modal = document.createElement('div');
     modal.id='_modal-edit-timelog';
     modal.className='modal-overlay';
-    modal.innerHTML='<div class="modal" style="width:340px" id="_modal-edit-timelog-inner"></div>';
+    modal.innerHTML='<div class="modal" style="max-width:340px" id="_modal-edit-timelog-inner"></div>';
     document.body.appendChild(modal);
     modal.addEventListener('click',function(e){ if(e.target===modal) closeM('_modal-edit-timelog'); });
   }
@@ -20363,7 +20450,7 @@ function openStatusManagerModal(){
     modal=document.createElement('div');
     modal.id='_modal-status-mgr';
     modal.className='modal-overlay';
-    modal.innerHTML='<div class="modal" style="width:520px;max-height:85vh;overflow-y:auto" id="_modal-status-mgr-inner"></div>';
+    modal.innerHTML='<div class="modal" style="max-width:520px;max-height:85vh;overflow-y:auto" id="_modal-status-mgr-inner"></div>';
     document.body.appendChild(modal);
     modal.addEventListener('click',e=>{if(e.target===modal)closeM('_modal-status-mgr');});
   }
@@ -20722,7 +20809,7 @@ openFreelancerGoalModal = function(type){
     modal = document.createElement('div');
     modal.id = '_modal-fg';
     modal.className = 'modal-overlay';
-    modal.innerHTML = '<div class="modal" style="width:480px;max-height:85vh;overflow-y:auto" id="_modal-fg-inner"></div>';
+    modal.innerHTML = '<div class="modal" style="max-width:480px;max-height:85vh;overflow-y:auto" id="_modal-fg-inner"></div>';
     document.body.appendChild(modal);
     modal.addEventListener('click',e=>{if(e.target===modal)closeM('_modal-fg');});
   }
@@ -21198,7 +21285,7 @@ function _showTrackingShareModal(t){
     modal=document.createElement('div');
     modal.id='_modal-tracking';
     modal.className='modal-overlay';
-    modal.innerHTML='<div class="modal" style="width:500px" id="_modal-tracking-inner"></div>';
+    modal.innerHTML='<div class="modal" style="max-width:500px" id="_modal-tracking-inner"></div>';
     document.body.appendChild(modal);
     modal.addEventListener('click',e=>{if(e.target===modal)closeM('_modal-tracking');});
   }
@@ -21264,7 +21351,7 @@ function _showTrackingShareModal(t){
 
 <!-- ═══ BACKUP MODAL ═══ -->
 <div class="modal-overlay" id="modal-backup">
-  <div class="modal" style="width:520px">
+  <div class="modal" style="max-width:520px">
     <div class="modal-header">
       <div class="modal-title"><i class="fa-solid fa-floppy-disk"></i> النسخ الاحتياطي المحلي</div>
       <button class="close-btn" onclick="closeM('modal-backup')"><i class="fa-solid fa-xmark"></i></button>
@@ -21378,7 +21465,7 @@ function _showTrackingShareModal(t){
 </div>
 
 <div class="modal-overlay" id="modal-profile">
-  <div class="modal" style="width:480px">
+  <div class="modal" style="max-width:480px">
     <div class="modal-header">
       <div class="modal-title" id="profile-modal-title"><i class="fa-solid fa-user"></i> الملف الشخصي</div>
       <button class="close-btn" onclick="closeM(&#39;modal-profile&#39;)"><i class="fa-solid fa-xmark"></i></button>
@@ -21694,40 +21781,55 @@ function saveCache(){
   try { localStorage.setItem('_transCache', JSON.stringify(_cache)); } catch(e){}
 }
 
-// ── MyMemory API translator ─────────────────────────────────
+// ── Google Translate (unofficial free API) ──────────────────
 function translateText(text, from, to, cb){
   if(!text || !text.trim()){ cb(text); return; }
   var key = from+'|'+to+'|'+text;
   if(_cache[key]){ cb(_cache[key]); return; }
 
-  var url = 'https://api.mymemory.translated.net/get?q='+
-    encodeURIComponent(text)+'&langpair='+from+'|'+to;
+  // Google Translate unofficial endpoint — works without API key
+  var url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl='+
+    encodeURIComponent(from)+'&tl='+encodeURIComponent(to)+
+    '&dt=t&q='+encodeURIComponent(text);
 
   fetch(url)
     .then(function(r){ return r.json(); })
     .then(function(data){
-      var t = (data && data.responseData && data.responseData.translatedText) || text;
-      _cache[key] = t;
+      // Response: [[["translated","original",null,null,10],...],null,"ar"]
+      var translated = '';
+      if(data && data[0]){
+        data[0].forEach(function(part){ if(part && part[0]) translated += part[0]; });
+      }
+      var result = translated || text;
+      _cache[key] = result;
       saveCache();
-      cb(t);
+      cb(result);
     })
-    .catch(function(){ cb(text); });
+    .catch(function(){ 
+      // Fallback to MyMemory
+      var fallbackUrl = 'https://api.mymemory.translated.net/get?q='+
+        encodeURIComponent(text)+'&langpair='+from+'|'+to;
+      fetch(fallbackUrl)
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          var t = (d && d.responseData && d.responseData.translatedText) || text;
+          _cache[key] = t; saveCache(); cb(t);
+        })
+        .catch(function(){ cb(text); });
+    });
 }
 
-// Batch translate array of texts
+// Batch translate — translate each separately to avoid delimiter issues
 function translateBatch(texts, from, to, cb){
-  // Join with delimiter to minimize API calls
-  var DELIM = ' ||| ';
-  var combined = texts.join(DELIM);
-  translateText(combined, from, to, function(result){
-    var parts = result.split(DELIM);
-    // If split count doesn't match, translate individually
-    if(parts.length === texts.length){
-      cb(parts);
-    } else {
-      // Fallback: return originals (cache misses translate on next call)
-      cb(texts);
-    }
+  var results = new Array(texts.length);
+  var done = 0;
+  if(texts.length === 0){ cb(results); return; }
+  texts.forEach(function(text, idx){
+    translateText(text, from, to, function(translated){
+      results[idx] = translated;
+      done++;
+      if(done === texts.length) cb(results);
+    });
   });
 }
 
@@ -21878,12 +21980,19 @@ function applyDirection(lang){
     appShell.style.flexDirection = isAr ? 'row-reverse' : 'row';
   }
   if(appBody){
-    if(isAr){
-      appBody.style.marginRight = 'var(--sidebar-w)';
-      appBody.style.marginLeft  = '0';
+    // الـ margin بس على الديسكتوب — على الموبايل الـ sidebar overlay
+    var isDesktop = window.innerWidth >= 1025;
+    if(isDesktop){
+      if(isAr){
+        appBody.style.marginRight = '240px';
+        appBody.style.marginLeft  = '0';
+      } else {
+        appBody.style.marginLeft  = '240px';
+        appBody.style.marginRight = '0';
+      }
     } else {
-      appBody.style.marginLeft  = 'var(--sidebar-w)';
       appBody.style.marginRight = '0';
+      appBody.style.marginLeft  = '0';
     }
   }
 
@@ -21970,7 +22079,7 @@ _styleEl.textContent = [
   // Direction-aware flex
   'body.lang-ltr .app-shell{flex-direction:row!important}',
   'body.lang-ltr .sidebar{right:auto!important;left:0!important;border-left:none!important;border-right:1px solid var(--border)!important}',
-  'body.lang-ltr .app-body{margin-right:0!important;margin-left:var(--sidebar-w)!important}',
+  '@media(min-width:1025px){body.lang-ltr .app-body{margin-right:0!important;margin-left:240px!important}}',
   'body.lang-ltr .app-header{direction:ltr!important}',
   'body.lang-ltr .header-actions{flex-direction:row!important}',
   // Nav items
