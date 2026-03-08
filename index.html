@@ -636,7 +636,20 @@ body {
 .logo-title { font-size: 16px; font-weight: 900; color: var(--accent); line-height: 1.2; }
 .logo-sub   { font-size: 10px; color: var(--text3); margin-top: 2px; }
 
-.nav-section-label {
+/* ── header toggle always visible ── */
+.header-toggle {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  flex-shrink: 0;
+}
+.header-toggle:hover {
+  background: var(--surface3);
+  border-color: var(--accent);
+}
   font-size: 10px;
   color: var(--text3);
   padding: var(--space-sm) var(--space-md) 4px;
@@ -2975,7 +2988,6 @@ setTimeout(window._showApp, 4000);
     </div>
   </div>
 
-  </div><!-- end card appearance -->
   </div><!-- end stabp-appearance -->
 
   <!-- TAB: فريق وتخصصات -->
@@ -3163,8 +3175,7 @@ setTimeout(window._showApp, 4000);
     </div>
   </div><!-- end stabp-features -->
 
-
-</div>
+</div><!-- end page-settings -->
 
 
 <!-- ══════════════════════════════════════════════════════
@@ -14671,7 +14682,7 @@ function renderCorpEmployees(){
 // ── Helpers ──
 function getSvcLink(){
   var uid = typeof _supaUserId!=='undefined' ? _supaUserId : '';
-  if(!uid) return window.location.origin + window.location.pathname + '?svcorder=';
+  if(!uid) return window.location.origin + window.location.pathname + '?svcorder=' + uid;
   return window.location.origin + window.location.pathname + '?svcorder=' + uid;
 }
 function svcCopyLink(){
