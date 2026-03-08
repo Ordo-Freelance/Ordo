@@ -490,13 +490,57 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
   .main { margin-right:0; padding:16px; }
   .grid-4 { grid-template-columns:repeat(2,1fr); }
   .grid-3 { grid-template-columns:repeat(2,1fr); }
-  .mobile-header {
-    display:flex !important;
-  }
+  .mobile-header { display:flex !important; }
   .form-row { grid-template-columns:1fr; }
 }
-@media(max-width:500px) {
+
+/* ── Mobile modal: full-screen bottom sheet ── */
+@media(max-width:600px) {
   .grid-4, .grid-3, .grid-2 { grid-template-columns:1fr; }
+
+  /* Overlay fills screen, modal slides from bottom */
+  .modal-overlay {
+    padding:0;
+    align-items:flex-end;
+  }
+  .modal {
+    width:100% !important;
+    max-width:100% !important;
+    max-height:92dvh;
+    border-radius:clamp(14px,4vw,20px) clamp(14px,4vw,20px) 0 0;
+    padding:clamp(14px,4vw,22px);
+    transform:translateY(100%);
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .modal-overlay.open .modal { transform:translateY(0); }
+
+  /* Create plan modal — extra tall */
+  #modal-create-plan .modal {
+    max-height:95dvh;
+  }
+
+  /* Compress accordion rows on mobile */
+  .acc-row { padding:6px 0; font-size:12px; }
+  .acc-header { padding:10px 12px; font-size:13px; }
+  .acc-body { padding:8px 10px; }
+
+  /* Stat cards single column */
+  .main { padding:12px 12px 16px; }
+  .modal-header { margin-bottom:12px; }
+  .modal-title { font-size:15px; }
+
+  /* Shrink plan cards on mobile */
+  .plan-card { padding:14px; }
+  .plan-price { font-size:22px; }
+
+  /* Form inputs */
+  .form-input, .form-select { font-size:14px; padding:10px 12px; }
+}
+
+@media(max-width:400px) {
+  .grid-4, .grid-3, .grid-2 { grid-template-columns:1fr; }
+  .modal { padding:12px 12px clamp(14px,4vw,18px); }
 }
 .mobile-header {
   display:none; align-items:center; justify-content:space-between;
@@ -1332,10 +1376,9 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
         <div class="form-label">السعر السنوي (ج)</div>
         <input class="form-input" type="number" id="cp-price-annual" placeholder="0 = مجاني">
       </div>
-      <div class="form-group">
-        <div class="form-label">مدة الاشتراك (يوم)</div>
-        <input class="form-input" type="number" id="cp-duration" value="30">
-      </div>
+    </div>
+    <div style="background:rgba(79,209,165,.08);border:1px solid rgba(79,209,165,.2);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);margin-bottom:12px">
+      📅 المدة تُحسب تلقائياً: <b>شهري = شهر كامل</b> من تاريخ التفعيل · <b>سنوي = سنة كاملة</b> · <b>مدى الحياة = بلا انتهاء</b>
     </div>
     <div class="form-group">
       <div class="form-label">الوصف</div>
@@ -1497,6 +1540,12 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           <div class="acc-row acc-check"><label>⏱ تتبع الوقت</label><input type="checkbox" id="feat-timetracker" checked></div>
           <div class="acc-row acc-check"><label>📝 العقود الرقمية</label><input type="checkbox" id="feat-contracts" checked></div>
           <div class="acc-row acc-check"><label>🔗 بوابة العميل</label><input type="checkbox" id="feat-client-portal" checked></div>
+          <div class="acc-row acc-check"><label>🏆 تحدي الأسبوع (Dashboard)</label><input type="checkbox" id="feat-weekly-challenge" checked></div>
+          <div class="acc-row acc-check"><label>📊 مقياس الزخم (7 أيام)</label><input type="checkbox" id="feat-momentum" checked></div>
+          <div class="acc-row acc-check"><label>🎯 أهداف التطوير والكورسات</label><input type="checkbox" id="feat-learning" checked></div>
+          <div class="acc-row acc-check"><label>⏰ لوحة تنظيم اليوم</label><input type="checkbox" id="feat-schedule" checked></div>
+          <div class="acc-row acc-check"><label>📅 الميتنجات والمواعيد</label><input type="checkbox" id="feat-meetings" checked></div>
+          <div class="acc-row acc-check"><label>🔔 تذكيرات ونشرة التحديثات</label><input type="checkbox" id="feat-notifications" checked></div>
         </div>
       </div>
 
@@ -2168,11 +2217,14 @@ supa.auth.onAuthStateChange((event, session) => {
 //  NAVIGATION
 // ══════════════════════════════════════════════════
 function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const page = document.getElementById('page-'+name);
   const nav  = document.getElementById('nav-'+name);
-  if(page) page.classList.add('active');
+  if(page){ page.classList.add('active'); page.style.display = 'block'; }
   if(nav)  nav.classList.add('active');
   closeSidebar();
   // Load data for page
@@ -2740,7 +2792,8 @@ function openUserDetail(uid) {
           ${sub.expiresAt ? `<div style="font-size:11px;color:var(--text2)">انتهاء: <b>${new Date(sub.expiresAt).toLocaleDateString('ar-EG')}</b></div>` : ''}
         </div>
         ${sub.expiresAt && sub.billing !== 'lifetime' ? (() => {
-          const pct = Math.max(0, Math.min(100, 100 - (new Date(sub.expiresAt)-Date.now())/(plan.duration_days*864000)));
+          const totalMs = sub.billing==="annual" ? 365*86400000 : 30*86400000;
+          const pct = Math.max(0, Math.min(100, 100 - (new Date(sub.expiresAt)-Date.now())/totalMs));
           return `<div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:${pct}%"></div></div>`;
         })() : ''}
       </div>` : `
@@ -3002,10 +3055,12 @@ async function assignSerial() {
   if(serial.billing === 'lifetime') {
     serial.expiresAt = null;
   } else if(serial.billing === 'annual') {
+    // سنة كاملة من الكالندر
     const e = new Date(now); e.setFullYear(e.getFullYear() + 1);
     serial.expiresAt = e.toISOString();
   } else {
-    const e = new Date(now); e.setDate(e.getDate() + (plan?.duration_days || 30));
+    // شهري — شهر واحد من الكالندر
+    const e = new Date(now); e.setMonth(e.getMonth() + 1);
     serial.expiresAt = e.toISOString();
   }
 
@@ -3066,7 +3121,7 @@ function openCreatePlanModal() {
   document.getElementById('cp-edit-id').value = '';
   ['cp-name','cp-icon','cp-desc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   ['cp-price-monthly','cp-price-annual','cp-max-clients'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  document.getElementById('cp-duration').value = '30';
+  
   ['tasks','clients','finance','invoices','schedule','reports','cloud'].forEach(f => {
     const el = document.getElementById('feat-'+f); if(el) el.checked = ['tasks','clients','invoices','cloud'].includes(f);
   });
@@ -3090,7 +3145,6 @@ function editPlan(id) {
   setVal('cp-desc',          plan.desc||'');
   setVal('cp-price-monthly', plan.price_monthly||'');
   setVal('cp-price-annual',  plan.price_annual||'');
-  setVal('cp-duration',      plan.duration_days||30);
 
   const f = plan.features || {};
 
@@ -3106,7 +3160,8 @@ function editPlan(id) {
     'pay-cash','pay-instapay','pay-vodafone',
     'inv-create','inv-pdf','inv-whatsapp','inv-policies',
     'rep-monthly','rep-clients','other-on',
-    'timetracker','contracts','client-portal'
+    'timetracker','contracts','client-portal',
+    'weekly-challenge','momentum','learning','schedule','meetings','notifications'
   ]);
 
   const allChecks = [
@@ -3118,6 +3173,7 @@ function editPlan(id) {
     'inv-create','inv-pdf','inv-whatsapp','inv-contracts','inv-policies',
     'schedule-day','schedule-export','rep-monthly','rep-clients','rep-export','other-on',
     'timetracker','contracts','client-portal',
+    'weekly-challenge','momentum','notifications',
     'services','svc-packages','svc-images','svc-portfolio','svc-order-link','svc-orders','svc-auto-task','client-portal-svc',
     'corporate','corp-mode','corp-emp-tasks','corp-emp-projects','corp-emp-files','corp-emp-others','corp-emp-finance','corp-emp-clients','corp-invite-email','corp-invite-accept',
     'specializations','spec-manage','spec-multi','team-invite','team-invite-accept',
@@ -3179,7 +3235,6 @@ function savePlan() {
   const desc   = document.getElementById('cp-desc')?.value.trim();
   const pm     = _num('cp-price-monthly');
   const pa     = _num('cp-price-annual');
-  const dur    = _num('cp-duration') || 30;
   if(!name) { toast('⚠ أدخل اسم الباقة'); return; }
 
   const features = {
@@ -3239,6 +3294,12 @@ function savePlan() {
     timetracker:        _chk('feat-timetracker'),
     contracts:          _chk('feat-contracts'),
     client_portal:      _chk('feat-client-portal'),
+    weekly_challenge:   _chk('feat-weekly-challenge'),
+    momentum:           _chk('feat-momentum'),
+    learning:           _chk('feat-learning'),
+    schedule:           _chk('feat-schedule'),
+    meetings:           _chk('feat-meetings'),
+    notifications:      _chk('feat-notifications'),
     // الخدمات والباقات
     services:           _chk('feat-services'),
     max_services:       _num('feat-max-services'),
@@ -3279,9 +3340,9 @@ function savePlan() {
 
   if(editId) {
     const idx = PLANS.findIndex(p => p.id === editId);
-    if(idx > -1) PLANS[idx] = { ...PLANS[idx], name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, duration_days:dur, features };
+    if(idx > -1) PLANS[idx] = { ...PLANS[idx], name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, features };
   } else {
-    PLANS.push({ id: Date.now().toString(), name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, duration_days:dur, features });
+    PLANS.push({ id: Date.now().toString(), name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, features });
   }
   lsSet('plans', PLANS);
   closeModal('modal-create-plan');
@@ -4078,7 +4139,7 @@ function loadDetailOverview(uid, p, sub, plan) {
               <span style="color:var(--text3)">المتبقي</span>
               <span style="font-weight:700;color:${daysLeft<7?'var(--accent4)':'var(--text)'}">${daysLeft} يوم</span>
             </div>
-            <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100,(daysLeft/(plan?.duration_days||30))*100)}%;background:${daysLeft<7?'var(--accent4)':'var(--accent)'}"></div></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${sub.billing==="annual" ? Math.min(100,(daysLeft/365)*100) : Math.min(100,(daysLeft/30)*100)}%;background:${daysLeft<7?'var(--accent4)':'var(--accent)'}"></div></div>
           </div>` : '<div style="text-align:center;font-size:12px;color:var(--accent3);margin-bottom:12px">♾️ مدى الحياة</div>'}
         <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
           <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">نوع الاشتراك</span><span>${getBillingLabel(sub.billing)}</span></div>
@@ -4328,10 +4389,12 @@ async function saveEditSubscription() {
       serial.expiresAt = new Date(expires).toISOString();
     } else if(billing === 'lifetime') {
       serial.expiresAt = null;
+    } else if(billing === 'annual') {
+      const exp = new Date(); exp.setFullYear(exp.getFullYear() + 1);
+      serial.expiresAt = exp.toISOString();
     } else {
-      const plan = PLANS.find(p => p.id === planId);
-      const exp = new Date();
-      exp.setDate(exp.getDate() + (plan?.duration_days || 30));
+      // شهري — شهر من الكالندر
+      const exp = new Date(); exp.setMonth(exp.getMonth() + 1);
       serial.expiresAt = exp.toISOString();
     }
   } else {
