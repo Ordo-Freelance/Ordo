@@ -2276,72 +2276,96 @@ function showRlsWarning(){
         لكي يتمكن الأدمن من رؤية المستخدمين، يجب تنفيذ هذا الـ SQL في Supabase SQL Editor:<br>
         <b style="color:var(--accent2)">⚠ غيّر كلمة YOUR_ADMIN_EMAIL بإيميل حساب الأدمن بتاعك قبل التشغيل</b>
       </div>
-      <pre id="rls-sql-block" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;margin-top:8px;overflow-x:auto;direction:ltr;text-align:left;color:#a5d6a7">-- ══ الخطوة 1: شغّل ده في Supabase → SQL Editor ══
--- غيّر YOUR_ADMIN_EMAIL بإيميل حسابك في Supabase Auth
+      <pre id="rls-sql-block" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;margin-top:8px;overflow-x:auto;direction:ltr;text-align:left;color:#a5d6a7">-- ════════════════════════════════════════════════
+-- شغّل الكود ده كله دفعة واحدة في:
+-- Supabase → SQL Editor → New query → Run
+-- غيّر YOUR_ADMIN_EMAIL بإيميل حساب الأدمن
+-- ════════════════════════════════════════════════
 
--- ── Step 1: أضف role=admin لحساب الأدمن ──
+-- ① أضف role=admin لحساب الأدمن
 UPDATE auth.users
 SET raw_app_meta_data = raw_app_meta_data || '{"role":"admin","is_admin":true}'::jsonb
 WHERE email = 'YOUR_ADMIN_EMAIL';
 
--- ── Step 2: أضف policies للـ RLS ──
-DROP POLICY IF EXISTS "admin_read_all_studio_data" ON studio_data;
-DROP POLICY IF EXISTS "admin_update_studio_data" ON studio_data;
-DROP POLICY IF EXISTS "admin_delete_studio_data" ON studio_data;
-DROP POLICY IF EXISTS "admin_manage_serial_keys" ON serial_keys;
-DROP POLICY IF EXISTS "users_read_serial_keys" ON serial_keys;
+-- ② تفعيل RLS على الجداول
+ALTER TABLE studio_data ENABLE ROW LEVEL SECURITY;
+ALTER TABLE serial_keys ENABLE ROW LEVEL SECURITY;
 
--- قراءة كل studio_data
+-- ③ احذف الـ policies القديمة
+DROP POLICY IF EXISTS "admin_read_all_studio_data"  ON studio_data;
+DROP POLICY IF EXISTS "admin_update_studio_data"    ON studio_data;
+DROP POLICY IF EXISTS "admin_delete_studio_data"    ON studio_data;
+DROP POLICY IF EXISTS "admin_insert_studio_data"    ON studio_data;
+DROP POLICY IF EXISTS "users_insert_studio_data"    ON studio_data;
+DROP POLICY IF EXISTS "users_read_studio_data"      ON studio_data;
+DROP POLICY IF EXISTS "users_update_studio_data"    ON studio_data;
+DROP POLICY IF EXISTS "admin_manage_serial_keys"    ON serial_keys;
+DROP POLICY IF EXISTS "users_read_serial_keys"      ON serial_keys;
+DROP POLICY IF EXISTS "users_insert_serial_keys"    ON serial_keys;
+DROP POLICY IF EXISTS "users_update_serial_keys"    ON serial_keys;
+
+-- ④ studio_data — المستخدمين العاديين
+CREATE POLICY "users_read_studio_data" ON studio_data
+FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "users_insert_studio_data" ON studio_data
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "users_update_studio_data" ON studio_data
+FOR UPDATE USING (auth.uid() = user_id);
+
+-- ⑤ studio_data — الأدمن (يقرأ ويعدّل ويحذف كل شيء)
 CREATE POLICY "admin_read_all_studio_data" ON studio_data
 FOR SELECT USING (
   (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
   (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
-  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb) OR
-  auth.uid() = user_id
+  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb)
 );
 
--- تعديل studio_data
 CREATE POLICY "admin_update_studio_data" ON studio_data
 FOR UPDATE USING (
   (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
   (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
-  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb) OR
-  auth.uid() = user_id
+  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb)
 );
 
--- حذف من studio_data
 CREATE POLICY "admin_delete_studio_data" ON studio_data
 FOR DELETE USING (
   (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
   (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
-  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb) OR
-  auth.uid() = user_id
+  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb)
 );
 
--- إدارة serial_keys
+CREATE POLICY "admin_insert_studio_data" ON studio_data
+FOR INSERT WITH CHECK (
+  (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
+  (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
+  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb)
+);
+
+-- ⑥ serial_keys — المستخدمين
+CREATE POLICY "users_read_serial_keys" ON serial_keys
+FOR SELECT USING (
+  auth.uid() = user_id OR (status = 'unused' AND user_id IS NULL)
+);
+
+CREATE POLICY "users_insert_serial_keys" ON serial_keys
+FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "users_update_serial_keys" ON serial_keys
+FOR UPDATE USING (auth.uid() = user_id);
+
+-- ⑦ serial_keys — الأدمن
 CREATE POLICY "admin_manage_serial_keys" ON serial_keys
 FOR ALL USING (
   (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
   (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
-  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb) OR
-  auth.uid() = user_id
+  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb)
 ) WITH CHECK (
   (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
   (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
-  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb) OR
-  auth.uid() = user_id
-);
-
--- المستخدمين يقدرون يقرأوا serial_keys بتاعتهم
-CREATE POLICY "users_read_serial_keys" ON serial_keys
-FOR SELECT USING (
-  auth.uid() = user_id OR
-  (status = 'unused' AND user_id IS NULL)
-);
-
--- تفعيل RLS على الجدولين
-ALTER TABLE studio_data ENABLE ROW LEVEL SECURITY;
-ALTER TABLE serial_keys ENABLE ROW LEVEL SECURITY;</pre>
+  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb)
+);</pre>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
         <button onclick="this.closest('#dash-rls-warn').style.display='none'"
           style="background:none;border:1px solid var(--border);color:var(--text2);padding:5px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--font)">
