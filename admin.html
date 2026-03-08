@@ -2142,18 +2142,41 @@ async function adminLogin() {
   errEl.textContent = '';
   if(!email || !pw) { errEl.textContent = '⚠ يرجى إدخال البريد وكلمة المرور'; return; }
   btn.textContent = '⏳ جاري التحقق...'; btn.disabled = true;
+
   const { data, error } = await supa.auth.signInWithPassword({ email, password: pw });
   btn.textContent = 'تسجيل الدخول'; btn.disabled = false;
   if(error) { errEl.textContent = '⚠ بيانات غير صحيحة'; return; }
-  // Check admin role in metadata
-  const meta = data.user?.user_metadata || {};
-  const isAdmin = meta.role === 'admin' || meta.is_admin === true;
+
+  const user = data.user;
+  const appMeta  = user?.app_metadata  || {};
+  const userMeta = user?.user_metadata || {};
+
+  // تحقق من صلاحيات الأدمن في كلا الـ metadata
+  const isAdmin =
+    appMeta.role === 'admin'  || appMeta.is_admin === true  || appMeta.is_admin === 'true'  ||
+    userMeta.role === 'admin' || userMeta.is_admin === true || userMeta.is_admin === 'true';
+
   if(!isAdmin) {
-    errEl.textContent = '⛔ ليس لديك صلاحيات الإدارة';
-    await supa.auth.signOut();
+    // حاول تحديث الـ session للحصول على آخر JWT
+    btn.textContent = '⏳ جاري التحقق...'; btn.disabled = true;
+    const { data: refreshed } = await supa.auth.refreshSession();
+    btn.textContent = 'تسجيل الدخول'; btn.disabled = false;
+
+    const rApp  = refreshed?.user?.app_metadata  || {};
+    const rUser = refreshed?.user?.user_metadata || {};
+    const isAdminAfterRefresh =
+      rApp.role === 'admin'  || rApp.is_admin === true  || rApp.is_admin === 'true'  ||
+      rUser.role === 'admin' || rUser.is_admin === true || rUser.is_admin === 'true';
+
+    if(!isAdminAfterRefresh) {
+      errEl.innerHTML = '⛔ ليس لديك صلاحيات الإدارة<br><span style="font-size:11px;color:var(--text3)">تأكد من تشغيل الـ SQL في Supabase وأضف role=admin لحسابك</span>';
+      await supa.auth.signOut();
+      return;
+    }
+    showApp(refreshed.user);
     return;
   }
-  showApp(data.user);
+  showApp(user);
 }
 
 function showApp(user) {
@@ -2238,6 +2261,10 @@ async function loadAll() {
 function showRlsWarning(){
   const dashWarn = document.getElementById('dash-rls-warn');
   if(dashWarn){ dashWarn.style.display='flex'; return; }
+
+  // جيب الإيميل الحالي للأدمن المسجل
+  const currentAdminEmail = supa.auth.getUser ? '' : '';
+
   const warn = document.createElement('div');
   warn.id = 'dash-rls-warn';
   warn.style.cssText = 'background:rgba(247,201,72,.08);border:1px solid rgba(247,201,72,.25);border-radius:12px;padding:16px 18px;margin:12px 0;display:flex;gap:12px;align-items:flex-start';
@@ -2246,85 +2273,112 @@ function showRlsWarning(){
     <div style="flex:1">
       <div style="font-weight:700;margin-bottom:6px;color:var(--accent2)">مطلوب: إعداد RLS في Supabase</div>
       <div style="font-size:12px;color:var(--text2);line-height:1.8">
-        لكي يتمكن الأدمن من رؤية المستخدمين، يجب تنفيذ هذا الـ SQL في Supabase SQL Editor:
+        لكي يتمكن الأدمن من رؤية المستخدمين، يجب تنفيذ هذا الـ SQL في Supabase SQL Editor:<br>
+        <b style="color:var(--accent2)">⚠ غيّر كلمة YOUR_ADMIN_EMAIL بإيميل حساب الأدمن بتاعك قبل التشغيل</b>
       </div>
-      <pre style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;margin-top:8px;overflow-x:auto;direction:ltr;text-align:left;color:#a5d6a7">-- ══ شغّل الكود ده في Supabase → SQL Editor ══
--- (DROP IF EXISTS لتجنب خطأ "already exists")
+      <pre id="rls-sql-block" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;margin-top:8px;overflow-x:auto;direction:ltr;text-align:left;color:#a5d6a7">-- ══ الخطوة 1: شغّل ده في Supabase → SQL Editor ══
+-- غيّر YOUR_ADMIN_EMAIL بإيميل حسابك في Supabase Auth
 
+-- ── Step 1: أضف role=admin لحساب الأدمن ──
+UPDATE auth.users
+SET raw_app_meta_data = raw_app_meta_data || '{"role":"admin","is_admin":true}'::jsonb
+WHERE email = 'YOUR_ADMIN_EMAIL';
+
+-- ── Step 2: أضف policies للـ RLS ──
 DROP POLICY IF EXISTS "admin_read_all_studio_data" ON studio_data;
 DROP POLICY IF EXISTS "admin_update_studio_data" ON studio_data;
+DROP POLICY IF EXISTS "admin_delete_studio_data" ON studio_data;
 DROP POLICY IF EXISTS "admin_manage_serial_keys" ON serial_keys;
 DROP POLICY IF EXISTS "users_read_serial_keys" ON serial_keys;
 
--- ══ السماح للأدمن بقراءة كل بيانات studio_data ══
+-- قراءة كل studio_data
 CREATE POLICY "admin_read_all_studio_data" ON studio_data
 FOR SELECT USING (
   (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
   (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
-  (auth.jwt()->'user_metadata'->>'role' = 'admin') OR
-  (auth.jwt()->'user_metadata'->>'is_admin' = 'true') OR
+  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb) OR
   auth.uid() = user_id
 );
 
--- ══ السماح للأدمن بتعديل studio_data لأي مستخدم ══
+-- تعديل studio_data
 CREATE POLICY "admin_update_studio_data" ON studio_data
-FOR ALL USING (
+FOR UPDATE USING (
   (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
   (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
-  (auth.jwt()->'user_metadata'->>'role' = 'admin') OR
-  (auth.jwt()->'user_metadata'->>'is_admin' = 'true') OR
-  auth.uid() = user_id
-) WITH CHECK (
-  (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
-  (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
-  (auth.jwt()->'user_metadata'->>'role' = 'admin') OR
-  (auth.jwt()->'user_metadata'->>'is_admin' = 'true') OR
+  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb) OR
   auth.uid() = user_id
 );
 
--- ══ السماح للأدمن بإدارة serial_keys ══
+-- حذف من studio_data
+CREATE POLICY "admin_delete_studio_data" ON studio_data
+FOR DELETE USING (
+  (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
+  (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
+  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb) OR
+  auth.uid() = user_id
+);
+
+-- إدارة serial_keys
 CREATE POLICY "admin_manage_serial_keys" ON serial_keys
 FOR ALL USING (
   (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
   (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
-  (auth.jwt()->'user_metadata'->>'role' = 'admin') OR
-  (auth.jwt()->'user_metadata'->>'is_admin' = 'true') OR
+  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb) OR
   auth.uid() = user_id
 ) WITH CHECK (
   (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
   (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
-  (auth.jwt()->'user_metadata'->>'role' = 'admin') OR
-  (auth.jwt()->'user_metadata'->>'is_admin' = 'true') OR
+  (auth.jwt()->'app_metadata'->'is_admin' = 'true'::jsonb) OR
   auth.uid() = user_id
 );
 
--- ══ السماح للمستخدمين بقراءة serial_keys الخاصة بيهم ══
+-- المستخدمين يقدرون يقرأوا serial_keys بتاعتهم
 CREATE POLICY "users_read_serial_keys" ON serial_keys
 FOR SELECT USING (
   auth.uid() = user_id OR
   (status = 'unused' AND user_id IS NULL)
 );
 
--- ══ مهم: تأكد إن RLS مفعّل على الجدولين ══
+-- تفعيل RLS على الجدولين
 ALTER TABLE studio_data ENABLE ROW LEVEL SECURITY;
-ALTER TABLE serial_keys ENABLE ROW LEVEL SECURITY;
-
--- ══ إضافة role=admin لحساب الأدمن (شغّل مرة واحدة) ══
--- غيّر الـ email ده بإيميل حساب الأدمن بتاعك:
--- UPDATE auth.users SET raw_app_meta_data = raw_app_meta_data || '{"role":"admin","is_admin":"true"}'
--- WHERE email = 'admin@yourdomain.com';</pre>
-      <button onclick="this.closest('#dash-rls-warn').style.display='none'"
-        style="margin-top:8px;background:none;border:1px solid var(--border);color:var(--text2);padding:4px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--font)">
-        إخفاء
-      </button>
-      <button onclick="navigator.clipboard.writeText(this.closest('#dash-rls-warn').querySelector('pre').textContent).then(()=>this.textContent='✅ تم النسخ!')"
-        style="margin-top:8px;margin-right:6px;background:var(--accent);border:none;color:#fff;padding:4px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--font);font-weight:700">
-        📋 نسخ الـ SQL
-      </button>
+ALTER TABLE serial_keys ENABLE ROW LEVEL SECURITY;</pre>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button onclick="this.closest('#dash-rls-warn').style.display='none'"
+          style="background:none;border:1px solid var(--border);color:var(--text2);padding:5px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--font)">
+          إخفاء
+        </button>
+        <button onclick="_copyRlsSql(this)"
+          style="background:var(--accent);border:none;color:#fff;padding:5px 16px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--font);font-weight:700">
+          📋 نسخ الـ SQL
+        </button>
+        <button onclick="_openSupabaseSqlEditor()"
+          style="background:var(--accent3);border:none;color:#fff;padding:5px 16px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--font);font-weight:700">
+          🔗 فتح Supabase SQL Editor
+        </button>
+      </div>
     </div>`;
   const dash = document.getElementById('page-dashboard');
   if(dash){ const firstChild = dash.querySelector('.stats-grid,.page-header'); if(firstChild) dash.insertBefore(warn,firstChild); else dash.prepend(warn); }
 }
+
+function _copyRlsSql(btn) {
+  const pre = document.getElementById('rls-sql-block');
+  if(!pre) return;
+  // استبدل YOUR_ADMIN_EMAIL بإيميل الأدمن الحالي لو موجود
+  supa.auth.getUser().then(({data}) => {
+    let sql = pre.textContent;
+    if(data?.user?.email) sql = sql.replace('YOUR_ADMIN_EMAIL', data.user.email);
+    navigator.clipboard.writeText(sql).then(() => { btn.textContent = '✅ تم النسخ!'; setTimeout(()=>btn.textContent='📋 نسخ الـ SQL',2500); });
+  });
+}
+
+function _openSupabaseSqlEditor() {
+  // استخرج project ref من الـ SUPA_URL
+  const match = SUPA_URL.match(/https:\/\/([^.]+)\.supabase\.co/);
+  const ref = match ? match[1] : '';
+  window.open(`https://supabase.com/dashboard/project/${ref}/sql/new`, '_blank');
+}
+
 
 async function loadUsers() {
   try {
