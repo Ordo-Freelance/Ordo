@@ -636,20 +636,6 @@ body {
 .logo-title { font-size: 16px; font-weight: 900; color: var(--accent); line-height: 1.2; }
 .logo-sub   { font-size: 10px; color: var(--text3); margin-top: 2px; }
 
-/* ── header toggle always visible ── */
-.header-toggle {
-  background: var(--surface2);
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  color: var(--text);
-  cursor: pointer;
-  transition: background var(--transition), border-color var(--transition);
-  flex-shrink: 0;
-}
-.header-toggle:hover {
-  background: var(--surface3);
-  border-color: var(--accent);
-}
 .nav-section-label {
   font-size: 10px;
   color: var(--text3);
@@ -14685,7 +14671,7 @@ function renderCorpEmployees(){
 // ── Helpers ──
 function getSvcLink(){
   var uid = typeof _supaUserId!=='undefined' ? _supaUserId : '';
-  if(!uid) return window.location.origin + window.location.pathname + '?svcorder=' + uid;
+  if(!uid) return window.location.origin + window.location.pathname + '?svcorder=';
   return window.location.origin + window.location.pathname + '?svcorder=' + uid;
 }
 function svcCopyLink(){
