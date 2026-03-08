@@ -687,12 +687,14 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
         </div>
       </div>
       <!-- Bulk Actions Bar (Users) -->
-      <div id="users-bulk-bar" style="display:none;align-items:center;gap:10px;background:rgba(108,99,255,.12);border:1px solid var(--accent);border-radius:10px;padding:10px 16px;margin-bottom:12px;flex-wrap:wrap">
-        <span style="font-weight:700;color:var(--accent)" id="users-bulk-count">0 محدد</span>
+      <div id="users-bulk-bar" style="display:none;align-items:center;gap:8px;background:rgba(108,99,255,.12);border:1px solid var(--accent);border-radius:10px;padding:10px 16px;margin-bottom:12px;flex-wrap:wrap">
+        <span style="font-weight:700;color:var(--accent);flex-shrink:0" id="users-bulk-count">0 محدد</span>
         <div style="flex:1"></div>
-        <button class="btn btn-ghost btn-sm" onclick="bulkCopyUserEmails()">📋 نسخ الإيميلات</button>
-        <button class="btn btn-danger btn-sm" onclick="bulkDeleteUsers()">🗑 حذف المحددين</button>
-        <button class="btn btn-ghost btn-sm" onclick="clearUsersSelection()">✕ إلغاء التحديد</button>
+        <button class="btn btn-ghost btn-sm" onclick="bulkCopyUserEmails()" title="نسخ الإيميلات">📋 نسخ الإيميلات</button>
+        <button class="btn btn-ghost btn-sm" style="border-color:var(--accent2);color:var(--accent2)" onclick="bulkRevokeSubscriptions()" title="إلغاء اشتراك المحددين">⛔ إلغاء الاشتراك</button>
+        <button class="btn btn-ghost btn-sm" style="border-color:var(--accent4);color:var(--accent4)" onclick="bulkToggleSuspend()" title="إيقاف/تفعيل الحسابات المحددة" id="bulk-suspend-btn">⏸ إيقاف الحسابات</button>
+        <button class="btn btn-danger btn-sm" onclick="bulkDeleteUsers()" title="حذف المحددين نهائياً">🗑 حذف</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearUsersSelection()">✕ إلغاء</button>
       </div>
 
       <div class="filter-bar">
@@ -5080,6 +5082,16 @@ function onUserCheckChange() {
   const sa = document.getElementById('users-select-all');
   if(sa) sa.indeterminate = checked.length > 0 && checked.length < all.length;
   if(sa) sa.checked = all.length > 0 && all.length === checked.length;
+  // تحديث نص زرار الإيقاف/التفعيل حسب حالة المحددين
+  const ids = getCheckedUserIds();
+  const btn = document.getElementById('bulk-suspend-btn');
+  if(btn && ids.length) {
+    const suspendedCount = ids.filter(uid => getUserStatus(uid).banned).length;
+    const willSuspend = suspendedCount < ids.length / 2;
+    btn.textContent = willSuspend ? '⏸ إيقاف الحسابات' : '▶ تفعيل الحسابات';
+    btn.style.borderColor = willSuspend ? 'var(--accent4)' : 'var(--accent3)';
+    btn.style.color = willSuspend ? 'var(--accent4)' : 'var(--accent3)';
+  }
 }
 function toggleSelectAllUsers(cb) {
   document.querySelectorAll('.user-row-cb').forEach(el => el.checked = cb.checked);
@@ -5115,19 +5127,118 @@ function bulkCopyUserEmails() {
 async function bulkDeleteUsers() {
   const ids = getCheckedUserIds();
   if(!ids.length) { toast('⚠ لم تحدد أي مستخدم'); return; }
-  if(!confirm(`هل أنت متأكد من حذف ${ids.length} مستخدم؟\nهذه العملية لا يمكن التراجع عنها!`)) return;
-  let deleted = 0;
+  if(!confirm(`هل أنت متأكد من حذف ${ids.length} مستخدم نهائياً؟\n⚠ سيتم إلغاء اشتراكاتهم أولاً ثم حذف بياناتهم.\nهذه العملية لا يمكن التراجع عنها!`)) return;
+
+  let deleted = 0, failed = 0;
   for(const uid of ids) {
     try {
+      // 1. تحرير الأكواد المرتبطة (إلغاء الاشتراك أولاً)
+      SERIALS = SERIALS.map(s => s.userId === uid
+        ? {...s, userId:null, status:'unused', activatedAt:null, expiresAt:null}
+        : s
+      );
+      await supa.from('serial_keys')
+        .update({ user_id: null, status: 'unused', activated_at: null, expires_at: null })
+        .eq('user_id', uid);
+
+      // 2. مسح admin_subscription من studio_data ثم الحذف
       const { error } = await supa.from('studio_data').delete().eq('user_id', uid);
-      if(!error) { delete ALL_STUDIO_DATA[uid]; deleted++; }
-    } catch(e) {}
+      if(!error) {
+        delete ALL_STUDIO_DATA[uid];
+        ALL_USERS = ALL_USERS ? ALL_USERS.filter(u => u.id !== uid) : ALL_USERS;
+        deleted++;
+      } else { failed++; }
+    } catch(e) { failed++; }
   }
-  toast(`🗑 تم حذف ${deleted} مستخدم`);
+  lsSet('serials', SERIALS);
+  toast(`🗑 تم حذف ${deleted} مستخدم${failed ? ` (فشل: ${failed})` : ''}`);
   clearUsersSelection();
   renderUsersTable();
+  updateDashStats();
   loadDashboard();
 }
+
+// ─── إلغاء اشتراك المحددين ───
+async function bulkRevokeSubscriptions() {
+  const ids = getCheckedUserIds();
+  if(!ids.length) { toast('⚠ لم تحدد أي مستخدم'); return; }
+  if(!confirm(`إلغاء اشتراك ${ids.length} مستخدم محدد؟`)) return;
+
+  let done = 0;
+  for(const uid of ids) {
+    try {
+      // تحرير serial_keys
+      SERIALS = SERIALS.map(s => s.userId === uid
+        ? {...s, userId:null, status:'unused', activatedAt:null, expiresAt:null}
+        : s
+      );
+      await supa.from('serial_keys')
+        .update({ user_id: null, status: 'unused', activated_at: null, expires_at: null })
+        .eq('user_id', uid);
+
+      // مسح admin_subscription من studio_data
+      const { data: sd } = await supa.from('studio_data').select('data').eq('user_id', uid).maybeSingle();
+      if(sd?.data) {
+        let parsed = typeof sd.data === 'string' ? JSON.parse(sd.data) : sd.data;
+        delete parsed.admin_subscription;
+        await supa.from('studio_data')
+          .update({ data: JSON.stringify(parsed), updated_at: new Date().toISOString() })
+          .eq('user_id', uid);
+        if(ALL_STUDIO_DATA[uid]) ALL_STUDIO_DATA[uid].raw = parsed;
+      }
+      done++;
+    } catch(e) { console.warn('bulkRevoke uid:', uid, e); }
+  }
+  lsSet('serials', SERIALS);
+  toast(`⛔ تم إلغاء اشتراك ${done} مستخدم`);
+  clearUsersSelection();
+  renderUsersTable();
+  updateDashStats();
+}
+
+// ─── إيقاف/تفعيل الحسابات المحددة (مع الحفاظ على الاشتراك) ───
+async function bulkToggleSuspend() {
+  const ids = getCheckedUserIds();
+  if(!ids.length) { toast('⚠ لم تحدد أي مستخدم'); return; }
+
+  // تحديد: هل معظمهم موقوفين أم لا؟
+  const suspendedCount = ids.filter(uid => getUserStatus(uid).banned).length;
+  const willSuspend = suspendedCount < ids.length / 2; // لو أقل من النص موقوفين → نوقف الكل
+  const action = willSuspend ? 'إيقاف' : 'تفعيل';
+
+  if(!confirm(`${action} ${ids.length} حساب محدد؟\n${willSuspend ? '⚠ سيتم إيقاف الحسابات مؤقتاً مع الحفاظ على الاشتراكات.' : '✅ سيتم إعادة تفعيل الحسابات مع استعادة اشتراكاتهم.'}`)) return;
+
+  let done = 0;
+  for(const uid of ids) {
+    try {
+      const st = getUserStatus(uid);
+      st.banned = willSuspend;
+      st.bannedAt = willSuspend ? new Date().toISOString() : null;
+      if(!willSuspend) st.bannedReason = null;
+      USER_STATUS[uid] = st;
+
+      // تحديث studio_data بالإيقاف/التفعيل فقط — بدون مس الاشتراك
+      const { data: sd } = await supa.from('studio_data').select('data').eq('user_id', uid).maybeSingle();
+      if(sd?.data) {
+        let parsed = typeof sd.data === 'string' ? JSON.parse(sd.data) : sd.data;
+        parsed._account_banned = willSuspend;
+        parsed._banned_at = willSuspend ? new Date().toISOString() : null;
+        await supa.from('studio_data')
+          .update({ data: JSON.stringify(parsed), updated_at: new Date().toISOString() })
+          .eq('user_id', uid);
+        if(ALL_STUDIO_DATA[uid]) ALL_STUDIO_DATA[uid].raw = parsed;
+      }
+      done++;
+    } catch(e) { console.warn('bulkSuspend uid:', uid, e); }
+  }
+  saveUserStatuses();
+  const color = willSuspend ? 'var(--accent4)' : 'var(--accent3)';
+  logActivity(action + ' حسابات', `تم ${action} ${done} حساب`, color);
+  toast(`${willSuspend ? '⏸ تم إيقاف' : '▶ تم تفعيل'} ${done} حساب`);
+  clearUsersSelection();
+  renderUsersTable();
+}
+
 
 // ══════════════════════════════════════════════════
 //  BULK SELECTION — SERIALS
