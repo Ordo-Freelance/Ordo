@@ -43,10 +43,10 @@ const supa = supabase.createClient(SUPA_URL, SUPA_ANON, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: true,
     storage: _safeStorage,
     lock: async (name, acquireTimeout, fn) => fn(),
-    flowType: 'implicit',
+    flowType: 'pkce',
     debug: false,
     multiTab: false
   }
@@ -9493,14 +9493,32 @@ function initAuth(){
 // GOOGLE LOGIN
 // ============================================================
 async function doGoogleLogin(){
+  // Show loading state on both Google buttons
+  document.querySelectorAll('.auth-btn-google').forEach(function(b){
+    b.disabled = true;
+    b._origHTML = b.innerHTML;
+    b.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الاتصال...';
+  });
+
+  const redirectUrl = window.location.href.split('#')[0].split('?')[0];
+
   const { error } = await supa.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.origin + window.location.pathname,
-      queryParams: { access_type: 'offline', prompt: 'consent' }
+      redirectTo: redirectUrl,
+      queryParams: { access_type: 'offline', prompt: 'select_account' }
     }
   });
-  if(error) showAuthMsg('login-error','<i class="fa-solid fa-triangle-exclamation"></i> فشل تسجيل الدخول بـ Google: ' + error.message);
+
+  if(error){
+    document.querySelectorAll('.auth-btn-google').forEach(function(b){
+      b.disabled = false;
+      if(b._origHTML) b.innerHTML = b._origHTML;
+    });
+    showAuthMsg('login-error','<i class="fa-solid fa-triangle-exclamation"></i> فشل تسجيل الدخول بـ Google: ' + error.message);
+    showAuthMsg('register-error','<i class="fa-solid fa-triangle-exclamation"></i> فشل تسجيل الدخول بـ Google: ' + error.message);
+  }
+  // If no error, browser will redirect to Google — no need to re-enable buttons
 }
 
 // ============================================================
@@ -9549,9 +9567,18 @@ async function doForgotPassword(){
 // Handle password reset redirect (when user comes back from email link)
 async function checkPasswordResetFlow(){
   const hash = window.location.hash;
-  if(hash.includes('type=recovery') || new URLSearchParams(window.location.search).get('reset')){
-    // Show password reset UI
+  const params = new URLSearchParams(window.location.search);
+
+  if(hash.includes('type=recovery') || params.get('reset')){
     showResetPasswordFromEmail();
+    return;
+  }
+
+  // Handle OAuth redirect: clean URL hash after Supabase processes it
+  if(hash && (hash.includes('access_token') || hash.includes('code=') || params.get('code'))){
+    setTimeout(function(){
+      try { window.history.replaceState({}, document.title, window.location.pathname); } catch(e){}
+    }, 1500);
   }
 }
 
