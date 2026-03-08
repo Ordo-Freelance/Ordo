@@ -650,6 +650,7 @@ body {
   background: var(--surface3);
   border-color: var(--accent);
 }
+.nav-section-label {
   font-size: 10px;
   color: var(--text3);
   padding: var(--space-sm) var(--space-md) 4px;
@@ -15337,6 +15338,21 @@ function _buildSvcOrderPage(userId){
     var phone=settings.phone||'';
     var socials=settings.socials||[];
 
+    // ── resolve theme colors from user settings ──
+    var isLight = settings.displayMode === 'light' || settings.theme === 'light' || settings.colorMode === 'light';
+    var bg        = isLight ? '#f0f2f8' : '#0a0a0f';
+    var surface   = isLight ? '#ffffff' : '#111118';
+    var surface2  = isLight ? '#f5f6fb' : '#16161f';
+    var surface3  = isLight ? '#eceef5' : '#1c1c28';
+    var textMain  = isLight ? '#1a1a2e' : '#f0f0f5';
+    var textSub   = isLight ? '#555577' : '#aaaacc';
+    var textMuted = isLight ? '#888899' : '#888888';
+    var borderC   = isLight ? 'rgba(0,0,0,.1)' : 'rgba(255,255,255,.08)';
+    var cardBg    = isLight ? 'rgba(0,0,0,.04)' : 'rgba(255,255,255,.06)';
+    var cardBorder= isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.09)';
+    var sheetBg   = isLight ? '#ffffff' : '#1a1a28';
+    var tabsBg    = isLight ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.05)';
+
     // ── inject Google Font + page CSS ──
     var styleEl=document.createElement('style');
     styleEl.textContent=
@@ -15344,7 +15360,7 @@ function _buildSvcOrderPage(userId){
       '      @import url(\'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap\');\n'+
       '      *{box-sizing:border-box;margin:0;padding:0}\n'+
       '      html{scroll-behavior:smooth}\n'+
-      '      body{font-family:\'Cairo\',sans-serif;background:#0d0d14;color:#f0f0f5;min-height:100vh;direction:rtl}\n'+
+      '      body{font-family:\'Cairo\',sans-serif;background:'+bg+';color:'+textMain+';min-height:100vh;direction:rtl}\n'+
       '      body::before{content:\'\';position:fixed;inset:0;z-index:0;pointer-events:none;\n'+
       '        background:radial-gradient(ellipse 70% 50% at 20% 10%,\'+accent+\'28 0%,transparent 65%),\n'+
       '          radial-gradient(ellipse 50% 40% at 80% 85%,\'+accent+\'15 0%,transparent 65%);}\n'+
@@ -15356,22 +15372,22 @@ function _buildSvcOrderPage(userId){
       '      ._pub-logo-wrap{display:flex;align-items:center;gap:12px}\n'+
       '      ._pub-logo{width:52px;height:52px;border-radius:16px;object-fit:cover;border:2.5px solid \'+accent+\'60;box-shadow:0 4px 20px \'+accent+\'35}\n'+
       '      ._pub-logo-ph{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,\'+accent+\',\'+accent+\'aa);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:900;box-shadow:0 4px 20px \'+accent+\'50}\n'+
-      '      ._pub-name{font-size:18px;font-weight:900;color:#fff;line-height:1.2}\n'+
-      '      ._pub-phone{font-size:11px;color:#aaa;margin-top:3px}\n'+
+      '      ._pub-name{font-size:18px;font-weight:900;color:'+textMain+';line-height:1.2}\n'+
+      '      ._pub-phone{font-size:11px;color:'+textSub+';margin-top:3px}\n'+
       '      ._pub-socials{display:flex;gap:7px;flex-wrap:wrap;padding-bottom:4px}\n'+
       '      ._pub-soc-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:20px;\n'+
-      '        font-size:11px;font-weight:700;background:rgba(255,255,255,.07);color:#ccc;\n'+
-      '        text-decoration:none;border:1px solid rgba(255,255,255,.1);transition:.15s;cursor:pointer}\n'+
-      '      ._pub-soc-btn:hover{background:rgba(255,255,255,.12);border-color:\'+accent+\'88;color:#fff}\n'+
+      '        font-size:11px;font-weight:700;background:'+cardBg+';color:'+textSub+';\n'+
+      '        text-decoration:none;border:1px solid '+borderC+';transition:.15s;cursor:pointer}\n'+
+      '      ._pub-soc-btn:hover{background:'+surface2+';border-color:\'+accent+\'88;color:'+textMain+'}\n'+
       '\n'+
       '      /* ── tabs bar ── */\n'+
-      '      ._pub-tabs{display:flex;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);\n'+
+      '      ._pub-tabs{display:flex;background:'+tabsBg+';border:1px solid '+borderC+';\n'+
       '        border-radius:14px;padding:4px;gap:4px;margin-bottom:20px}\n'+
-      '      ._pub-tab{flex:1;padding:10px 8px;background:none;border:none;color:#888;font-family:inherit;\n'+
+      '      ._pub-tab{flex:1;padding:10px 8px;background:none;border:none;color:'+textMuted+';font-family:inherit;\n'+
       '        font-size:13px;font-weight:700;cursor:pointer;border-radius:10px;transition:.2s;\n'+
       '        display:flex;align-items:center;justify-content:center;gap:6px}\n'+
       '      ._pub-tab.active{background:\'+accent+\';color:#fff;box-shadow:0 4px 14px \'+accent+\'55}\n'+
-      '      ._pub-tab:hover:not(.active){color:#ddd;background:rgba(255,255,255,.07)}\n'+
+      '      ._pub-tab:hover:not(.active){color:'+textMain+';background:'+cardBg+'}\n'+
       '\n'+
       '      /* ── panels ── */\n'+
       '      ._pub-panel{display:none}\n'+
@@ -15394,7 +15410,7 @@ function _buildSvcOrderPage(userId){
       '      /* ── services grid 2-col ── */\n'+
       '      ._svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}\n'+
       '      @media(max-width:480px){._svc-grid{grid-template-columns:1fr}}\n'+
-      '      ._svc-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);\n'+
+      '      ._svc-card{background:'+cardBg+';border:1px solid '+cardBorder+';\n'+
       '        border-radius:16px;overflow:hidden;cursor:pointer;\n'+
       '        transition:transform .2s,border-color .2s,box-shadow .2s}\n'+
       '      ._svc-card:hover{transform:translateY(-4px);border-color:\'+accent+\'55;box-shadow:0 12px 32px \'+accent+\'20}\n'+
@@ -15402,9 +15418,9 @@ function _buildSvcOrderPage(userId){
       '      ._svc-img-ph{width:100%;height:80px;background:linear-gradient(135deg,\'+accent+\'22,\'+accent+\'0a);\n'+
       '        display:flex;align-items:center;justify-content:center;font-size:32px}\n'+
       '      ._svc-body{padding:12px}\n'+
-      '      ._svc-name{font-size:13px;font-weight:800;color:#f0f0f5;margin-bottom:3px;line-height:1.35}\n'+
+      '      ._svc-name{font-size:13px;font-weight:800;color:'+textMain+';margin-bottom:3px;line-height:1.35}\n'+
       '      ._svc-cat{font-size:10px;font-weight:700;color:\'+accent+\';margin-bottom:5px}\n'+
-      '      ._svc-desc{font-size:11px;color:#aaa;line-height:1.6;margin-bottom:8px;\n'+
+      '      ._svc-desc{font-size:11px;color:'+textSub+';line-height:1.6;margin-bottom:8px;\n'+
       '        overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}\n'+
       '      ._svc-foot{display:flex;align-items:center;justify-content:space-between;gap:6px}\n'+
       '      ._svc-price{font-size:15px;font-weight:900;color:\'+accent+\'}\n'+
@@ -15415,53 +15431,53 @@ function _buildSvcOrderPage(userId){
       '      ._detail-ov{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.78);\n'+
       '        display:flex;align-items:flex-end;justify-content:center;\n'+
       '        animation:_pubFadeIn .25s ease}\n'+
-      '      ._detail-sheet{background:#1a1a28;border-radius:22px 22px 0 0;\n'+
+      '      ._detail-sheet{background:'+sheetBg+';border-radius:22px 22px 0 0;\n'+
       '        max-width:760px;width:100%;\n'+
       '        max-height:85vh;overflow-y:auto;\n'+
       '        padding:20px 20px 36px;\n'+
       '        animation:_pubSlideUp .3s cubic-bezier(.25,1.2,.5,1)}\n'+
       '      @keyframes _pubFadeIn{from{opacity:0}to{opacity:1}}\n'+
       '      @keyframes _pubSlideUp{from{transform:translateY(100px);opacity:0}to{transform:translateY(0);opacity:1}}\n'+
-      '      ._sheet-handle{width:44px;height:4px;background:rgba(255,255,255,.2);border-radius:4px;margin:0 auto 18px}\n'+
+      '      ._sheet-handle{width:44px;height:4px;background:'+borderC+';border-radius:4px;margin:0 auto 18px}\n'+
       '\n'+
       '      /* ── packages in detail (2-col small cards) ── */\n'+
       '      ._pkg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}\n'+
       '      @media(max-width:420px){._pkg-grid{grid-template-columns:1fr}}\n'+
-      '      ._pkg-card{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.09);\n'+
+      '      ._pkg-card{background:'+cardBg+';border:1.5px solid '+cardBorder+';\n'+
       '        border-radius:14px;padding:14px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:6px}\n'+
-      '      ._pkg-card:hover{border-color:\'+accent+\'66;background:rgba(255,255,255,.1)}\n'+
-      '      ._pkg-name{font-size:12px;font-weight:800;color:#f0f0f5}\n'+
-      '      ._pkg-meta{font-size:10px;color:#888;line-height:1.5}\n'+
+      '      ._pkg-card:hover{border-color:\'+accent+\'66;background:'+surface2+'}\n'+
+      '      ._pkg-name{font-size:12px;font-weight:800;color:'+textMain+'}\n'+
+      '      ._pkg-meta{font-size:10px;color:'+textMuted+';line-height:1.5}\n'+
       '      ._pkg-price{font-size:16px;font-weight:900;color:\'+accent+\';margin-top:auto}\n'+
       '\n'+
       '      /* ── portfolio in detail ── */\n'+
       '      ._port-item{display:flex;align-items:center;gap:10px;padding:10px;\n'+
-      '        background:rgba(255,255,255,.05);border-radius:10px;margin-bottom:6px}\n'+
+      '        background:'+cardBg+';border-radius:10px;margin-bottom:6px}\n'+
       '      ._port-thumb{width:52px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0}\n'+
-      '      ._port-thumb-ph{width:52px;height:40px;border-radius:8px;background:rgba(255,255,255,.08);\n'+
+      '      ._port-thumb-ph{width:52px;height:40px;border-radius:8px;background:'+surface3+';\n'+
       '        display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}\n'+
       '\n'+
       '      /* ── about ── */\n'+
-      '      ._about-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);\n'+
+      '      ._about-card{background:'+cardBg+';border:1px solid '+cardBorder+';\n'+
       '        border-radius:18px;padding:28px 22px;text-align:center;margin-bottom:14px}\n'+
       '      ._about-logo{width:84px;height:84px;border-radius:22px;object-fit:cover;margin:0 auto 14px;display:block;border:2.5px solid \'+accent+\'55}\n'+
       '      ._about-logo-ph{width:84px;height:84px;border-radius:22px;background:linear-gradient(135deg,\'+accent+\',\'+accent+\'aa);margin:0 auto 14px;\n'+
       '        display:flex;align-items:center;justify-content:center;font-size:36px;color:#fff;font-weight:900}\n'+
-      '      ._about-name{font-size:20px;font-weight:900;color:#fff;margin-bottom:8px}\n'+
-      '      ._about-bio{font-size:13px;color:#aaa;line-height:1.8}\n'+
+      '      ._about-name{font-size:20px;font-weight:900;color:'+textMain+';margin-bottom:8px}\n'+
+      '      ._about-bio{font-size:13px;color:'+textSub+';line-height:1.8}\n'+
       '      ._contact-row{display:flex;align-items:center;gap:14px;padding:14px 16px;\n'+
       '        background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);\n'+
       '        border-radius:12px;margin-bottom:8px;text-decoration:none;color:#ddd;transition:.15s}\n'+
-      '      ._contact-row:hover{border-color:\'+accent+\'55;background:rgba(255,255,255,.08)}\n'+
+      '      ._contact-row:hover{border-color:\'+accent+\'55;background:'+surface2+'}\n'+
       '      ._contact-icon{font-size:20px}\n'+
-      '      ._contact-label{font-size:10px;color:#888}\n'+
+      '      ._contact-label{font-size:10px;color:'+textMuted+'}\n'+
       '      ._contact-val{font-size:13px;font-weight:700}\n'+
       '\n'+
       '      /* ── contact/meeting panel ── */\n'+
       '      ._form-group{margin-bottom:12px}\n'+
-      '      ._form-input{width:100%;padding:12px 14px;background:rgba(255,255,255,.07);\n'+
-      '        border:1.5px solid rgba(255,255,255,.1);border-radius:12px;\n'+
-      '        color:#f0f0f5;font-family:inherit;font-size:13px;outline:none;transition:.15s}\n'+
+      '      ._form-input{width:100%;padding:12px 14px;background:'+cardBg+';\n'+
+      '        border:1.5px solid '+borderC+';border-radius:12px;\n'+
+      '        color:'+textMain+';font-family:inherit;font-size:13px;outline:none;transition:.15s}\n'+
       '      ._form-input:focus{border-color:\'+accent+\'}\n'+
       '      ._form-input::placeholder{color:#555}\n'+
       '      textarea._form-input{resize:vertical;min-height:90px}\n'+
@@ -15549,15 +15565,15 @@ function _buildSvcOrderPage(userId){
       '</div>'+
       // ── Contact Panel ──
       '<div class="_pub-panel" id="_ppanel-contact">'+
-        '<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:24px;margin-bottom:14px">'+
-          '<div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:16px">📩 أرسل لنا رسالة</div>'+
+        '<div style="background:'+cardBg+';border:1px solid '+cardBorder+';border-radius:18px;padding:24px;margin-bottom:14px">'+
+          '<div style="font-size:14px;font-weight:800;color:'+textMain+';margin-bottom:16px">📩 أرسل لنا رسالة</div>'+
           '<div class="_form-group"><input class="_form-input" id="_ct-name" placeholder="اسمك *"></div>'+
           '<div class="_form-group"><input class="_form-input" id="_ct-phone" placeholder="رقم الواتساب *" type="tel"></div>'+
           '<div class="_form-group"><textarea class="_form-input" id="_ct-msg" placeholder="رسالتك..."></textarea></div>'+
           '<button class="_submit-btn" onclick="_submitContactMsg('+userId+')">إرسال الرسالة ✉️</button>'+
         '</div>'+
-        '<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:24px">'+
-          '<div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:16px">📅 حجز اجتماع</div>'+
+        '<div style="background:'+cardBg+';border:1px solid '+cardBorder+';border-radius:18px;padding:24px">'+
+          '<div style="font-size:14px;font-weight:800;color:'+textMain+';margin-bottom:16px">📅 حجز اجتماع</div>'+
           '<div class="_form-group"><input class="_form-input" id="_mt-name" placeholder="اسمك *"></div>'+
           '<div class="_form-group"><input class="_form-input" id="_mt-time" placeholder="الوقت المفضل"></div>'+
           '<div class="_form-group"><textarea class="_form-input" id="_mt-msg" placeholder="موضوع الاجتماع..."></textarea></div>'+
@@ -15621,7 +15637,7 @@ function _showPublicSvcDetail(svcEnc, userId, accent){
   var pkgHtml='';
   if(svc.packages&&svc.packages.length){
     pkgHtml='<div style="margin-bottom:20px">'+
-      '<div style="font-size:11px;font-weight:700;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">📦 الباقات المتاحة</div>'+
+      '<div style="font-size:11px;font-weight:700;color:'+textMuted+';margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">📦 الباقات المتاحة</div>'+
       '<div class="_pkg-grid">'+
       svc.packages.map(function(p){
         var a1=encodeURIComponent(svc.name);
@@ -15645,7 +15661,7 @@ function _showPublicSvcDetail(svcEnc, userId, accent){
   var portHtml='';
   if(svc.portfolio&&svc.portfolio.length){
     portHtml='<div style="margin-bottom:20px">'+
-      '<div style="font-size:11px;font-weight:700;color:#888;margin-bottom:10px">🖼 معرض الأعمال</div>'+
+      '<div style="font-size:11px;font-weight:700;color:'+textMuted+';margin-bottom:10px">🖼 معرض الأعمال</div>'+
       svc.portfolio.map(function(p){
         var thumbEl;
         if(p.thumb){
@@ -15657,8 +15673,8 @@ function _showPublicSvcDetail(svcEnc, userId, accent){
         return '<div class="_port-item">'+
           thumbEl+
           '<div style="flex:1;min-width:0">'+
-            '<div style="font-size:12px;font-weight:700;color:#f0f0f5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(p.label||p.type)+'</div>'+
-            (p.url?'<div style="font-size:10px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(p.url.replace(/^https?:\/\//,'').replace(/\/.*$/,''))+'</div>':'')+
+            '<div style="font-size:12px;font-weight:700;color:'+textMain+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(p.label||p.type)+'</div>'+
+            (p.url?'<div style="font-size:10px;color:'+textMuted+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(p.url.replace(/^https?:\/\//,'').replace(/\/.*$/,''))+'</div>':'')+
           '</div>'+
           (p.url?'<a href="'+escapeHtml(p.url)+'" target="_blank" rel="noopener" style="font-size:11px;color:'+accent+';font-weight:700;text-decoration:none;white-space:nowrap;flex-shrink:0">عرض ↗</a>':'')+
         '</div>';
@@ -15676,13 +15692,13 @@ function _showPublicSvcDetail(svcEnc, userId, accent){
     '<div class="_detail-sheet">'+
       '<div class="_sheet-handle"></div>'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'+
-        '<div style="font-size:16px;font-weight:900;color:#f0f0f5">'+escapeHtml(svc.name)+'</div>'+
+        '<div style="font-size:16px;font-weight:900;color:'+textMain+'">'+escapeHtml(svc.name)+'</div>'+
         '<button onclick="document.getElementById(\'_pub-svc-detail\').remove();document.body.style.overflow=\'\'" style="background:rgba(255,255,255,.1);border:none;width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;color:#ccc;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>'+
       '</div>'+
       (svc.image?'<img src="'+escapeHtml(svc.image)+'" style="width:100%;max-height:200px;object-fit:cover;border-radius:14px;margin-bottom:14px;display:block">':'')+
       (svc.cat?'<div style="font-size:11px;font-weight:700;color:'+accent+';margin-bottom:8px">'+escapeHtml(svc.cat)+'</div>':'')+
-      (svc.desc?'<p style="font-size:13px;color:#aaa;line-height:1.8;margin-bottom:16px">'+escapeHtml(svc.desc)+'</p>':'')+
-      (svc.delivery?'<div style="font-size:12px;color:#888;margin-bottom:14px;display:flex;align-items:center;gap:6px"><span>⏱</span> وقت التسليم: <strong style="color:#ccc">'+escapeHtml(svc.delivery)+'</strong></div>':'')+
+      (svc.desc?'<p style="font-size:13px;color:'+textSub+';line-height:1.8;margin-bottom:16px">'+escapeHtml(svc.desc)+'</p>':'')+
+      (svc.delivery?'<div style="font-size:12px;color:'+textMuted+';margin-bottom:14px;display:flex;align-items:center;gap:6px"><span>⏱</span> وقت التسليم: <strong style="color:#ccc">'+escapeHtml(svc.delivery)+'</strong></div>':'')+
       pkgHtml+portHtml+noOrderBtn+
     '</div>';
   ov.onclick=function(e){ if(e.target===ov){ ov.remove(); document.body.style.overflow=''; } };
@@ -15697,9 +15713,9 @@ function _openOrderForm(userId, svcNameEnc, pkgNameEnc, priceEnc){
   var ov=document.createElement('div');
   ov.id='_order-form-ov';
   ov.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center';
-  ov.innerHTML='<div style="background:#fff;border-radius:20px 20px 0 0;max-width:680px;width:100%;padding:24px;max-height:92vh;overflow-y:auto">'+
+  ov.innerHTML='<div style="background:'+sheetBg+';border-radius:20px 20px 0 0;max-width:680px;width:100%;padding:24px;max-height:92vh;overflow-y:auto">'+
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">'+
-      '<div><div style="font-size:16px;font-weight:900;color:#1a1a2e">طلب الخدمة</div>'+
+      '<div><div style="font-size:16px;font-weight:900;color:'+textMain+'">طلب الخدمة</div>'+
       '<div style="font-size:12px;color:#666;margin-top:2px">'+escapeHtml(svcName)+(pkgName?' — '+escapeHtml(pkgName):'')+'</div></div>'+
       '<button onclick="document.getElementById(\'_order-form-ov\').remove()" style="background:none;border:none;font-size:20px;cursor:pointer">✕</button>'+
     '</div>'+
