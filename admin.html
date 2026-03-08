@@ -1351,11 +1351,9 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
         <div class="form-label">السعر السنوي (ج)</div>
         <input class="form-input" type="number" id="cp-price-annual" placeholder="0 = مجاني">
       </div>
-      <div class="form-group">
-        <div class="form-label">مدة الاشتراك (يوم)</div>
-        <input class="form-input" type="number" id="cp-duration" value="30">
-      </div>
     </div>
+    <!-- مخفي — المدة تتحسب تلقائياً من نوع الكود (شهري/سنوي/مدى الحياة) -->
+    <input type="hidden" id="cp-duration" value="30">
     <div class="form-group">
       <div class="form-label">الوصف</div>
       <input class="form-input" id="cp-desc" placeholder="وصف مختصر للباقة">
@@ -2250,69 +2248,78 @@ function showRlsWarning(){
       <div style="font-size:12px;color:var(--text2);line-height:1.8">
         لكي يتمكن الأدمن من رؤية المستخدمين، يجب تنفيذ هذا الـ SQL في Supabase SQL Editor:
       </div>
-      <pre style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;margin-top:8px;overflow-x:auto;direction:ltr;text-align:left;color:#a5d6a7">-- شغّل الكود ده في Supabase → SQL Editor
+      <pre style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;margin-top:8px;overflow-x:auto;direction:ltr;text-align:left;color:#a5d6a7">-- ══ شغّل الكود ده في Supabase → SQL Editor ══
 -- (DROP IF EXISTS لتجنب خطأ "already exists")
 
 DROP POLICY IF EXISTS "admin_read_all_studio_data" ON studio_data;
+DROP POLICY IF EXISTS "admin_update_studio_data" ON studio_data;
 DROP POLICY IF EXISTS "admin_manage_serial_keys" ON serial_keys;
 DROP POLICY IF EXISTS "users_read_serial_keys" ON serial_keys;
 
--- السماح للأدمن بقراءة كل بيانات studio_data
+-- ══ السماح للأدمن بقراءة كل بيانات studio_data ══
 CREATE POLICY "admin_read_all_studio_data" ON studio_data
 FOR SELECT USING (
+  (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
+  (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
   (auth.jwt()->'user_metadata'->>'role' = 'admin') OR
   (auth.jwt()->'user_metadata'->>'is_admin' = 'true') OR
   auth.uid() = user_id
 );
 
--- السماح للأدمن بقراءة وتعديل serial_keys
-CREATE POLICY "admin_manage_serial_keys" ON serial_keys
-FOR ALL USING (
-  (auth.jwt()->'user_metadata'->>'role' = 'admin') OR
-  (auth.jwt()->'user_metadata'->>'is_admin' = 'true') OR
-  auth.uid() = user_id
-) WITH CHECK (
-  (auth.jwt()->'user_metadata'->>'role' = 'admin') OR
-  (auth.jwt()->'user_metadata'->>'is_admin' = 'true') OR
-  auth.uid() = user_id
-);
-
--- جدول تتبع نشاط المستخدمين (أنشئه في Supabase)
--- CREATE TABLE IF NOT EXISTS user_activity (
---   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
---   user_id UUID REFERENCES auth.users(id),
---   event TEXT,           -- 'login', 'page_view', etc
---   metadata JSONB,
---   created_at TIMESTAMPTZ DEFAULT NOW()
--- );
--- ALTER TABLE user_activity ENABLE ROW LEVEL SECURITY;
--- CREATE POLICY "users_insert_own_activity" ON user_activity FOR INSERT WITH CHECK (auth.uid() = user_id);
--- CREATE POLICY "admin_read_all_activity" ON user_activity FOR SELECT USING (
---   (auth.jwt()->'user_metadata'->>'role' = 'admin') OR auth.uid() = user_id
--- );
-
--- السماح للأدمن بتعديل studio_data لأي مستخدم
-DROP POLICY IF EXISTS "admin_update_studio_data" ON studio_data;
+-- ══ السماح للأدمن بتعديل studio_data لأي مستخدم ══
 CREATE POLICY "admin_update_studio_data" ON studio_data
 FOR ALL USING (
+  (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
+  (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
   (auth.jwt()->'user_metadata'->>'role' = 'admin') OR
   (auth.jwt()->'user_metadata'->>'is_admin' = 'true') OR
   auth.uid() = user_id
 ) WITH CHECK (
+  (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
+  (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
   (auth.jwt()->'user_metadata'->>'role' = 'admin') OR
   (auth.jwt()->'user_metadata'->>'is_admin' = 'true') OR
   auth.uid() = user_id
 );
 
--- السماح للمستخدمين بقراءة serial_keys
+-- ══ السماح للأدمن بإدارة serial_keys ══
+CREATE POLICY "admin_manage_serial_keys" ON serial_keys
+FOR ALL USING (
+  (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
+  (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
+  (auth.jwt()->'user_metadata'->>'role' = 'admin') OR
+  (auth.jwt()->'user_metadata'->>'is_admin' = 'true') OR
+  auth.uid() = user_id
+) WITH CHECK (
+  (auth.jwt()->'app_metadata'->>'role' = 'admin') OR
+  (auth.jwt()->'app_metadata'->>'is_admin' = 'true') OR
+  (auth.jwt()->'user_metadata'->>'role' = 'admin') OR
+  (auth.jwt()->'user_metadata'->>'is_admin' = 'true') OR
+  auth.uid() = user_id
+);
+
+-- ══ السماح للمستخدمين بقراءة serial_keys الخاصة بيهم ══
 CREATE POLICY "users_read_serial_keys" ON serial_keys
 FOR SELECT USING (
   auth.uid() = user_id OR
   (status = 'unused' AND user_id IS NULL)
-);</pre>
+);
+
+-- ══ مهم: تأكد إن RLS مفعّل على الجدولين ══
+ALTER TABLE studio_data ENABLE ROW LEVEL SECURITY;
+ALTER TABLE serial_keys ENABLE ROW LEVEL SECURITY;
+
+-- ══ إضافة role=admin لحساب الأدمن (شغّل مرة واحدة) ══
+-- غيّر الـ email ده بإيميل حساب الأدمن بتاعك:
+-- UPDATE auth.users SET raw_app_meta_data = raw_app_meta_data || '{"role":"admin","is_admin":"true"}'
+-- WHERE email = 'admin@yourdomain.com';</pre>
       <button onclick="this.closest('#dash-rls-warn').style.display='none'"
         style="margin-top:8px;background:none;border:1px solid var(--border);color:var(--text2);padding:4px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--font)">
         إخفاء
+      </button>
+      <button onclick="navigator.clipboard.writeText(this.closest('#dash-rls-warn').querySelector('pre').textContent).then(()=>this.textContent='✅ تم النسخ!')"
+        style="margin-top:8px;margin-right:6px;background:var(--accent);border:none;color:#fff;padding:4px 14px;border-radius:6px;cursor:pointer;font-size:11px;font-family:var(--font);font-weight:700">
+        📋 نسخ الـ SQL
       </button>
     </div>`;
   const dash = document.getElementById('page-dashboard');
@@ -3036,10 +3043,14 @@ async function assignSerial() {
   if(serial.billing === 'lifetime') {
     serial.expiresAt = null;
   } else if(serial.billing === 'annual') {
-    const e = new Date(now); e.setFullYear(e.getFullYear() + 1);
+    // سنة كاملة بالتقويم من تاريخ التفعيل
+    const e = new Date(now);
+    e.setFullYear(e.getFullYear() + 1);
     serial.expiresAt = e.toISOString();
   } else {
-    const e = new Date(now); e.setDate(e.getDate() + (plan?.duration_days || 30));
+    // شهر كامل بالتقويم (مش 30 يوم ثابت)
+    const e = new Date(now);
+    e.setMonth(e.getMonth() + 1);
     serial.expiresAt = e.toISOString();
   }
 
@@ -3313,9 +3324,9 @@ function savePlan() {
 
   if(editId) {
     const idx = PLANS.findIndex(p => p.id === editId);
-    if(idx > -1) PLANS[idx] = { ...PLANS[idx], name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, duration_days:dur, features };
+    if(idx > -1) PLANS[idx] = { ...PLANS[idx], name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, features };
   } else {
-    PLANS.push({ id: Date.now().toString(), name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, duration_days:dur, features });
+    PLANS.push({ id: Date.now().toString(), name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, features });
   }
   lsSet('plans', PLANS);
   closeModal('modal-create-plan');
@@ -4363,9 +4374,13 @@ async function saveEditSubscription() {
     } else if(billing === 'lifetime') {
       serial.expiresAt = null;
     } else {
-      const plan = PLANS.find(p => p.id === planId);
       const exp = new Date();
-      exp.setDate(exp.getDate() + (plan?.duration_days || 30));
+      if(billing === 'annual') {
+        exp.setFullYear(exp.getFullYear() + 1);
+      } else {
+        // شهر كامل بالتقويم
+        exp.setMonth(exp.getMonth() + 1);
+      }
       serial.expiresAt = exp.toISOString();
     }
   } else {
