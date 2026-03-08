@@ -101,7 +101,7 @@ function applyPlatformConfig() {
   const _authSrc = platformLogo || favicon;
   if(authLogoMark && _authSrc){
     authLogoMark.innerHTML = '<img src="'+_authSrc+'" style="width:52px;height:52px;object-fit:contain;border-radius:10px" onerror="this.parentNode.textContent=String.fromCharCode(11041)">';
-  } else if(authLogoMark){ if(!authLogoMark.querySelector('img')) authLogoMark.textContent = '<i class="fa-solid fa-bolt"></i>'; }
+  } else if(authLogoMark){ if(!authLogoMark.querySelector('img')) authLogoMark.innerHTML='<i class="fa-solid fa-bolt"></i>'; }
 
   // Update title
   document.title = name + ' — نظام إدارة الأعمال';
@@ -1783,7 +1783,7 @@ setTimeout(window._showApp, 4000);
       </div>
     </div>
 
-    <div class="auth-footer">Ordo - Tasks — نظام إدارة الأعمال الاحترافي <i class="fa-solid fa-bolt"></i></i></div>
+    <div class="auth-footer">Ordo - Tasks — نظام إدارة الأعمال الاحترافي <i class="fa-solid fa-bolt"></i></div>
 
     </div><!-- end auth-card-body -->
   </div>
@@ -1802,7 +1802,7 @@ setTimeout(window._showApp, 4000);
   <div class="sidebar-logo" id="_sidebar-logo-wrap">
     <div class="logo-mark" id="_logo-mark-wrap" style="display:flex;align-items:center;justify-content:center;flex-shrink:0">
       <img id="_sidebar-logo-img" src="" alt="" style="display:none" onerror="this.style.display='none';document.getElementById('_logo-mark-hex').style.display='flex';document.getElementById('_logo-mark-wrap').classList.remove('has-logo')">
-      <span id="_logo-mark-hex" style="font-size:18px;font-weight:900;color:#fff"><i class="fa-solid fa-bolt"></i></i></span>
+      <span id="_logo-mark-hex" style="font-size:18px;font-weight:900;color:#fff"><i class="fa-solid fa-bolt"></i></span>
     </div>
     <div class="logo-text">
       <div class="logo-title" data-platform-name>Ordo - Tasks</div>
@@ -1845,7 +1845,7 @@ setTimeout(window._showApp, 4000);
       <div class="user-name" id="user-display-name">محمود</div>
       <div class="user-phone" id="user-display-phone">01090412218</div>
     </div>
-    <button class="logout-btn" onclick="event.stopPropagation();doLogout()" title="تسجيل الخروج"><i class="fa-solid fa-right-from-bracket"></i></i></button>
+    <button class="logout-btn" onclick="event.stopPropagation();doLogout()" title="تسجيل الخروج"><i class="fa-solid fa-right-from-bracket"></i></button>
     <button class="logout-btn" onclick="event.stopPropagation();toggleDarkLight()" title="تبديل الوضع" style="margin-right:4px" id="dark-toggle-btn"><i class="fa-solid fa-moon" id="_dark-mode-icon"></i></button>
   </div>
   <!-- Subscription Status Bar -->
@@ -1865,7 +1865,7 @@ setTimeout(window._showApp, 4000);
 <!-- TOP HEADER -->
 <header class="app-header">
   <button class="header-toggle" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="فتح القائمة" style="display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:10px;min-width:0;max-width:180px">
-    <span id="toggle-icon" style="font-size:18px;flex-shrink:0"><i class="fa-solid fa-bars"></i></i></span>
+    <span id="toggle-icon" style="font-size:18px;flex-shrink:0"><i class="fa-solid fa-bars"></i></span>
     <span id="_header-studio-name" data-platform-name style="font-size:13px;font-weight:800;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">Ordo - Tasks</span>
   </button>
   <div class="header-page-title" id="header-page-title" data-i18n="nav_dashboard">لوحة التحكم</div>
@@ -1894,34 +1894,34 @@ setTimeout(window._showApp, 4000);
 <!-- BOTTOM NAV (mobile) -->
 <div class="bn-overlay" id="bn-overlay" onclick="closeBnMore()"></div>
 <div class="bn-more-menu" id="bn-more-menu">
-  <div class="bn-more-item" onclick="showPage(&#39;clients&#39;);closeBnMore()" id="bnm-clients"><span><i class="fa-solid fa-address-book"></i></i></span><span data-i18n="nav_clients">قاعدة العملاء</span></div>
-  <div class="bn-more-item" onclick="showPage(&#39;team&#39;);closeBnMore()" id="bnm-team"><span><i class="fa-solid fa-people-group"></i></i></span><span data-i18n="nav_team">فريق العمل</span></div>
-  <div class="bn-more-item" onclick="showPage(&#39;finance&#39;);closeBnMore()" id="bnm-finance"><span><i class="fa-solid fa-coins"></i></i></span><span data-i18n="nav_finance">المالية</span></div>
-  <div class="bn-more-item" onclick="showPage(&#39;invoices&#39;);closeBnMore()" id="bnm-invoices"><span><i class="fa-solid fa-file-invoice-dollar"></i></i></span><span data-i18n="nav_invoices">الفواتير والعقود</span></div>
-  <div class="bn-more-item" onclick="showPage('freelancer-goals');switchFgTab('courses');closeBnMore()" id="bnm-learning"><span><i class="fa-solid fa-graduation-cap"></i></i></span><span data-i18n="nav_goals">التعلم والأهداف</span></div>
-  <div class="bn-more-item" onclick="showPage(&#39;meetings&#39;);closeBnMore()" id="bnm-meetings"><span><i class="fa-solid fa-calendar-check"></i></i></span><span data-i18n="nav_meetings">الميتنج</span></div>
-  <div class="bn-more-item" onclick="showPage(&#39;schedule&#39;);closeBnMore()" id="bnm-schedule"><span><i class="fa-solid fa-clock"></i></i></span><span data-i18n="nav_schedule">تنظيم اليوم</span></div>
-  <div class="bn-more-item" onclick="showPage(&#39;settings&#39;);closeBnMore()" id="bnm-settings"><span><i class="fa-solid fa-gear"></i></i></span><span data-i18n="nav_settings">الإعدادات</span></div>
-  <div class="bn-more-item" onclick="showPage('services');closeBnMore()" id="bnm-services"><span><i class="fa-solid fa-store"></i></i></span><span data-i18n="nav_services">خدماتي والباقات</span></div>
-  <div class="bn-more-item" onclick="showPage('support');closeBnMore()" id="bnm-support"><span><i class="fa-solid fa-comments"></i></i></span><span data-i18n="nav_support">الدعم والرسائل</span></div>
-  <div class="bn-more-item" onclick="toggleDarkLight();closeBnMore()" id="bnm-darkmode"><span id="bnm-dark-icon"><i class="fa-solid fa-moon"></i></i></span><span data-i18n="nav_theme">تبديل المظهر</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;clients&#39;);closeBnMore()" id="bnm-clients"><span><i class="fa-solid fa-address-book"></i></span><span data-i18n="nav_clients">قاعدة العملاء</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;team&#39;);closeBnMore()" id="bnm-team"><span><i class="fa-solid fa-people-group"></i></span><span data-i18n="nav_team">فريق العمل</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;finance&#39;);closeBnMore()" id="bnm-finance"><span><i class="fa-solid fa-coins"></i></span><span data-i18n="nav_finance">المالية</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;invoices&#39;);closeBnMore()" id="bnm-invoices"><span><i class="fa-solid fa-file-invoice-dollar"></i></span><span data-i18n="nav_invoices">الفواتير والعقود</span></div>
+  <div class="bn-more-item" onclick="showPage('freelancer-goals');switchFgTab('courses');closeBnMore()" id="bnm-learning"><span><i class="fa-solid fa-graduation-cap"></i></span><span data-i18n="nav_goals">التعلم والأهداف</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;meetings&#39;);closeBnMore()" id="bnm-meetings"><span><i class="fa-solid fa-calendar-check"></i></span><span data-i18n="nav_meetings">الميتنج</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;schedule&#39;);closeBnMore()" id="bnm-schedule"><span><i class="fa-solid fa-clock"></i></span><span data-i18n="nav_schedule">تنظيم اليوم</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;settings&#39;);closeBnMore()" id="bnm-settings"><span><i class="fa-solid fa-gear"></i></span><span data-i18n="nav_settings">الإعدادات</span></div>
+  <div class="bn-more-item" onclick="showPage('services');closeBnMore()" id="bnm-services"><span><i class="fa-solid fa-store"></i></span><span data-i18n="nav_services">خدماتي والباقات</span></div>
+  <div class="bn-more-item" onclick="showPage('support');closeBnMore()" id="bnm-support"><span><i class="fa-solid fa-comments"></i></span><span data-i18n="nav_support">الدعم والرسائل</span></div>
+  <div class="bn-more-item" onclick="toggleDarkLight();closeBnMore()" id="bnm-darkmode"><span id="bnm-dark-icon"><i class="fa-solid fa-moon"></i></span><span data-i18n="nav_theme">تبديل المظهر</span></div>
 </div>
 <div class="bottom-nav">
   <div class="bottom-nav-inner">
     <button class="bn-item active" id="bn-dashboard" onclick="showPage(&#39;dashboard&#39;)">
-      <span class="bn-icon"><i class="fa-solid fa-house"></i></i></span><span data-i18n="nav_dashboard">الرئيسية</span>
+      <span class="bn-icon"><i class="fa-solid fa-house"></i></span><span data-i18n="nav_dashboard">الرئيسية</span>
     </button>
     <button class="bn-item" id="bn-tasks" onclick="showPage(&#39;tasks&#39;)">
-      <span class="bn-icon"><i class="fa-solid fa-list-check"></i></i></span><span data-i18n="nav_tasks">المهام</span>
+      <span class="bn-icon"><i class="fa-solid fa-list-check"></i></span><span data-i18n="nav_tasks">المهام</span>
     </button>
     <button class="bn-item" id="bn-invoices" onclick="showPage(&#39;invoices&#39;)">
-      <span class="bn-icon"><i class="fa-solid fa-file-invoice"></i></i></span><span data-i18n="nav_invoices">الفواتير</span>
+      <span class="bn-icon"><i class="fa-solid fa-file-invoice"></i></span><span data-i18n="nav_invoices">الفواتير</span>
     </button>
     <button class="bn-item" id="bn-clients" onclick="showPage(&#39;clients&#39;)">
-      <span class="bn-icon"><i class="fa-solid fa-users"></i></i></span><span data-i18n="nav_clients">العملاء</span>
+      <span class="bn-icon"><i class="fa-solid fa-users"></i></span><span data-i18n="nav_clients">العملاء</span>
     </button>
     <button class="bn-item" id="bn-more" onclick="toggleBnMore()">
-      <span class="bn-icon"><i class="fa-solid fa-ellipsis"></i></i></span><span data-i18n="nav_more">المزيد</span>
+      <span class="bn-icon"><i class="fa-solid fa-ellipsis"></i></span><span data-i18n="nav_more">المزيد</span>
     </button>
   </div>
 </div>
@@ -2225,7 +2225,7 @@ setTimeout(window._showApp, 4000);
 <!-- TIME TRACKER PAGE -->
 <div class="page" id="page-timetracker">
   <div class="page-header">
-    <div><div class="page-title"><i class="fa-solid fa-stopwatch"></i></i> <span data-i18n="title_time">تتبع</span> <span data-i18n="title_time2">الوقت</span></div><div class="page-subtitle" data-i18n="sub_time">سجّل وقتك واحسب أرباحك الفعلية</div></div>
+    <div><div class="page-title"><i class="fa-solid fa-stopwatch"></i> <span data-i18n="title_time">تتبع</span> <span data-i18n="title_time2">الوقت</span></div><div class="page-subtitle" data-i18n="sub_time">سجّل وقتك واحسب أرباحك الفعلية</div></div>
     <button class="btn btn-primary" onclick="openManualTimeEntry()" data-i18n="btn_log_time"><i class="fa-solid fa-plus" style="margin-left:4px"></i> تسجيل وقت</button>
   </div>
 
@@ -2338,7 +2338,7 @@ setTimeout(window._showApp, 4000);
 <!-- FREELANCER GOALS PAGE -->
 <div class="page" id="page-freelancer-goals">
   <div class="page-header">
-    <div><div class="page-title"><i class="fa-solid fa-bullseye"></i></i> <span data-i18n="title_goals">الأهداف</span> <span data-i18n="title_goals2">والإنجازات</span></div><div class="page-subtitle" data-i18n="sub_goals">حدد أهدافك وتابع تقدمك في كل المجالات</div></div>
+    <div><div class="page-title"><i class="fa-solid fa-bullseye"></i> <span data-i18n="title_goals">الأهداف</span> <span data-i18n="title_goals2">والإنجازات</span></div><div class="page-subtitle" data-i18n="sub_goals">حدد أهدافك وتابع تقدمك في كل المجالات</div></div>
     <button class="btn btn-primary" id="fg-cta-btn" onclick="openFreelancerGoalModal()" data-i18n="btn_new_goal"><i class="fa-solid fa-plus" style="margin-left:4px"></i> هدف جديد</button>
   </div>
   <div id="fg-banner" style="margin-bottom:16px"></div>
@@ -3338,7 +3338,7 @@ setTimeout(window._showApp, 4000);
   <!-- ══ HEADER ══ -->
   <div class="page-header" style="flex-wrap:wrap;gap:10px">
     <div>
-      <div class="page-title"><i class="fa-solid fa-store"></i></i> <span data-i18n="title_services">المتجر</span> <span data-i18n="title_services2">الإلكتروني</span></div>
+      <div class="page-title"><i class="fa-solid fa-store"></i> <span data-i18n="title_services">المتجر</span> <span data-i18n="title_services2">الإلكتروني</span></div>
       <div class="page-subtitle" data-i18n="sub_services">أدر خدماتك، باقاتك، بورتفوليوك، وموقعك العام</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -3515,7 +3515,7 @@ setTimeout(window._showApp, 4000);
 <div class="page" id="page-support">
   <div class="page-header">
     <div>
-      <div class="page-title"><i class="fa-solid fa-comments"></i></i> <span data-i18n="title_support">الدعم</span> <span data-i18n="title_support2">والرسائل</span></div>
+      <div class="page-title"><i class="fa-solid fa-comments"></i> <span data-i18n="title_support">الدعم</span> <span data-i18n="title_support2">والرسائل</span></div>
       <div class="page-subtitle" data-i18n="sub_support">كل رسائل العملاء وطلبات الاجتماعات في مكان واحد</div>
     </div>
   </div>
@@ -4731,8 +4731,8 @@ async function _activateCode(inputId, msgId, onSuccess){
   const inp=document.getElementById(inputId), msg=document.getElementById(msgId);
   if(!inp||!msg) return;
   const code=inp.value.trim().toUpperCase();
-  if(!code){msg.style.color='var(--accent4)';msg.textContent='<i class="fa-solid fa-triangle-exclamation"></i> أدخل الكود';return;}
-  if(!_supaUserId){msg.style.color='var(--accent4)';msg.textContent='<i class="fa-solid fa-triangle-exclamation"></i> يجب تسجيل الدخول أولاً';return;}
+  if(!code){msg.style.color='var(--accent4)';msg.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> أدخل الكود';return;}
+  if(!_supaUserId){msg.style.color='var(--accent4)';msg.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> يجب تسجيل الدخول أولاً';return;}
   msg.style.color='var(--text2)';msg.textContent='⏳ جاري التحقق من الكود...';
   const btn=inp.parentElement?.querySelector('button');
   if(btn) btn.disabled=true;
@@ -4740,7 +4740,7 @@ async function _activateCode(inputId, msgId, onSuccess){
   const _actTimeout = setTimeout(()=>{
     if(msg.textContent.includes('جاري')) {
       msg.style.color='var(--accent4)';
-      msg.textContent='<i class="fa-solid fa-ban"></i> انتهت المهلة — تحقق من اتصالك بالإنترنت';
+      msg.innerHTML='<i class="fa-solid fa-ban"></i> انتهت المهلة — تحقق من اتصالك بالإنترنت';
       if(btn) btn.disabled=false;
     }
   }, 15000);
@@ -4759,13 +4759,13 @@ async function _activateCode(inputId, msgId, onSuccess){
     if(error){
       console.error('Serial lookup error:', error);
       msg.style.color='var(--accent4)';
-      msg.textContent='<i class="fa-solid fa-ban"></i> خطأ في الاتصال ('+error.code+'): '+error.message;
+      msg.innerHTML='<i class="fa-solid fa-ban"></i> خطأ في الاتصال ('+error.code+'): '+error.message;
       if(btn) btn.disabled=false;
       return;
     }
     if(!data){
       msg.style.color='var(--accent4)';
-      msg.textContent='<i class="fa-solid fa-ban"></i> الكود غير موجود';
+      msg.innerHTML='<i class="fa-solid fa-ban"></i> الكود غير موجود';
       if(btn) btn.disabled=false;
       return;
     }
@@ -4787,7 +4787,7 @@ async function _activateCode(inputId, msgId, onSuccess){
     }
     if(data.user_id !== null){
       msg.style.color='var(--accent4)';
-      msg.textContent='<i class="fa-solid fa-ban"></i> هذا الكود مرتبط بحساب آخر';
+      msg.innerHTML='<i class="fa-solid fa-ban"></i> هذا الكود مرتبط بحساب آخر';
       if(btn) btn.disabled=false;
       return;
     }
@@ -4820,12 +4820,12 @@ async function _activateCode(inputId, msgId, onSuccess){
     if(e2){
       console.error('Serial update error:', e2);
       msg.style.color='var(--accent4)';
-      msg.textContent='<i class="fa-solid fa-ban"></i> خطأ أثناء التفعيل — تأكد من إعدادات قاعدة البيانات';
+      msg.innerHTML='<i class="fa-solid fa-ban"></i> خطأ أثناء التفعيل — تأكد من إعدادات قاعدة البيانات';
       if(btn) btn.disabled=false;
       return;
     }
     msg.style.color='var(--accent3)';
-    msg.textContent='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تفعيل الاشتراك بنجاح!';
+    msg.innerHTML='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تفعيل الاشتراك بنجاح!';
     inp.value='';
     await loadUserSubscription(_supaUserId);
     _updateNavLocks();
@@ -4840,7 +4840,7 @@ async function _activateCode(inputId, msgId, onSuccess){
     clearTimeout(_actTimeout);
     console.error('_activateCode exception:', e);
     msg.style.color='var(--accent4)';
-    msg.textContent='<i class="fa-solid fa-ban"></i> خطأ: '+e.message;
+    msg.innerHTML='<i class="fa-solid fa-ban"></i> خطأ: '+e.message;
   }
   clearTimeout(_actTimeout);
   if(btn) btn.disabled=false;
@@ -5234,7 +5234,7 @@ function openWaModal(tplType, invIdOrNull, taskIdOrNull){
 
   // عرض المستلم
   document.getElementById('wa-recip-name').textContent     = clientName||'—';
-  document.getElementById('wa-recip-phone-disp').textContent = clientPhone ? '<i class="fa-solid fa-phone"></i> '+clientPhone : 'لا يوجد رقم — أدخله يدوياً';
+  document.getElementById('wa-recip-phone-disp').innerHTML = clientPhone ? '<i class="fa-solid fa-phone"></i> '+clientPhone : 'لا يوجد رقم — أدخله يدوياً';
   // تنظيف الرقم (أرقام فقط)
   document.getElementById('wa-phone-input').value = clientPhone.replace(/[^\d]/g,'');
 
@@ -5585,7 +5585,7 @@ function fillIncomeClientDropdown() {
   // add free-text option
   const other = document.createElement('option');
   other.value = '__other__';
-  other.textContent = '<i class="fa-solid fa-pen"></i> مصدر آخر...';
+  other.innerHTML='<i class="fa-solid fa-pen"></i> مصدر آخر...';
   sel.appendChild(other);
 }
 
@@ -5905,7 +5905,7 @@ function openTaskModal(id){
   fillDD('t-client');
   fillTaskTypesDD();
   fillWorkerMembersDD();
-  document.getElementById('task-modal-ttl').textContent=id?'<i class="fa-solid fa-star-of-life"></i> تعديل المهمة':'<i class="fa-solid fa-star-of-life"></i> مهمة / مشروع جديد';
+  document.getElementById('task-modal-ttl').innerHTML=id?'<i class="fa-solid fa-star-of-life"></i> تعديل المهمة':'<i class="fa-solid fa-star-of-life"></i> مهمة / مشروع جديد';
   document.getElementById('task-eid').value=id||'';
   const invCb=document.getElementById('t-issue-inv');
   if(invCb)invCb.checked=false;
@@ -6077,7 +6077,7 @@ function saveTask(){
 /* فتح فاتورة جديدة مبنية على مهمة */
 function openInvoiceFromTask(task){
   fillDD('inv-client');
-  document.getElementById('inv-modal-ttl').textContent='<i class="fa-solid fa-square"></i> فاتورة — '+task.title;
+  document.getElementById('inv-modal-ttl').innerHTML='<i class="fa-solid fa-square"></i> فاتورة — '+task.title;
   document.getElementById('inv-eid').value='';
   document.getElementById('inv-client').value=task.client;
   document.getElementById('inv-num').value='INV-'+(S.invoices.length+1).toString().padStart(3,'0');
@@ -6435,7 +6435,7 @@ function _fillParentClientsDD(){
 }
 
 function openClientModal(id){
-  document.getElementById('client-modal-ttl').textContent=id?'<i class="fa-solid fa-circle-dot"></i> تعديل بيانات العميل':'<i class="fa-solid fa-circle-dot"></i> عميل جديد';
+  document.getElementById('client-modal-ttl').innerHTML=id?'<i class="fa-solid fa-circle-dot"></i> تعديل بيانات العميل':'<i class="fa-solid fa-circle-dot"></i> عميل جديد';
   document.getElementById('client-eid').value=id||'';
   if(id){
     const c=S.clients.find(c=>c.id===id);if(!c)return;
@@ -7181,7 +7181,7 @@ function _markUpdatesSeen(){
   var badge=document.getElementById('stab-features-badge');
   if(badge)badge.style.display='none';
   var lbl=document.getElementById('feat-last-seen-label');
-  if(lbl)lbl.textContent='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> كل التحديثات مقروءة';
+  if(lbl)lbl.innerHTML='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> كل التحديثات مقروءة';
   _renderFeaturesPanel();
 }
 
@@ -7412,7 +7412,7 @@ function onIncomeTaskLink(){
   }
 }
 function openIncomeModal(id, prefillTaskId){
-  document.getElementById('income-ttl').textContent=id?'<i class="fa-solid fa-coins"></i> تعديل دخل':'<i class="fa-solid fa-coins"></i> تسجيل دخل';
+  document.getElementById('income-ttl').innerHTML=id?'<i class="fa-solid fa-coins"></i> تعديل دخل':'<i class="fa-solid fa-coins"></i> تسجيل دخل';
   document.getElementById('income-eid').value=id||'';
   // Populate clients dropdown (replaces datalist)
   fillIncomeClientDropdown();
@@ -7460,7 +7460,7 @@ function openIncomeModal(id, prefillTaskId){
   openM('modal-income');
 }
 function openExpenseModal(id){
-  document.getElementById('expense-ttl').textContent=id?'<i class="fa-solid fa-money-bill-wave"></i> تعديل مصروف':'<i class="fa-solid fa-money-bill-wave"></i> تسجيل مصروف';
+  document.getElementById('expense-ttl').innerHTML=id?'<i class="fa-solid fa-money-bill-wave"></i> تعديل مصروف':'<i class="fa-solid fa-money-bill-wave"></i> تسجيل مصروف';
   document.getElementById('expense-eid').value=id||'';
   fillPayMethodDropdowns();
   if(id){const t=S.transactions.find(t=>t.id===id);if(t){
@@ -7573,7 +7573,7 @@ function renderFinance(){
     let parts = [];
     if(f.month) parts.push(months[+f.month]||'');
     if(f.year)  parts.push(f.year);
-    lbl.textContent = parts.length ? '<i class="fa-solid fa-calendar-days"></i> '+parts.join(' ') : '';
+    lbl.innerHTML = parts.length ? '<i class="fa-solid fa-calendar-days"></i> '+parts.join(' ') : '';
   }
 
   const inc = filtered.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
@@ -7785,7 +7785,7 @@ function _recalcDepositFromItems(){
 
 function openInvoiceModal(id){
   fillDD('inv-client');
-  document.getElementById('inv-modal-ttl').textContent=id?'<i class="fa-solid fa-square"></i> تعديل الفاتورة':'<i class="fa-solid fa-square"></i> إنشاء فاتورة جديدة';
+  document.getElementById('inv-modal-ttl').innerHTML=id?'<i class="fa-solid fa-square"></i> تعديل الفاتورة':'<i class="fa-solid fa-square"></i> إنشاء فاتورة جديدة';
   document.getElementById('inv-eid').value=id||'';
   // إخفاء لوحة المهام أول ما نفتح
   const panel=document.getElementById('inv-tasks-panel');
@@ -8130,7 +8130,7 @@ function exportPDF(id){
 // GOALS
 // ============================================================
 function openGoalModal(id){
-  document.getElementById('goal-modal-ttl').textContent=id?'<i class="fa-solid fa-diamond"></i> تعديل الهدف':'<i class="fa-solid fa-diamond"></i> هدف تعليمي جديد';
+  document.getElementById('goal-modal-ttl').innerHTML=id?'<i class="fa-solid fa-diamond"></i> تعديل الهدف':'<i class="fa-solid fa-diamond"></i> هدف تعليمي جديد';
   document.getElementById('goal-eid').value=id||'';
   if(id){const g=S.goals.find(g=>g.id===id);if(g){document.getElementById('g-title').value=g.title;document.getElementById('g-cat').value=g.cat||'مهارة تقنية';document.getElementById('g-deadline').value=g.deadline||'';document.getElementById('g-progress').value=g.progress||0;document.getElementById('g-pct-display').textContent=(g.progress||0)+'%';}}
   else{document.getElementById('g-title').value='';document.getElementById('g-progress').value=0;document.getElementById('g-pct-display').textContent='0%';}
@@ -8263,7 +8263,7 @@ function openSchedModal(id){
       sel.innerHTML+=`<option value="${t.id}">${t.title}${t.client?' ('+t.client+')':''}</option>`;
     });
   }
-  document.getElementById('sched-modal-ttl').textContent=id?'<i class="fa-solid fa-clock"></i> تعديل الوقت':'<i class="fa-solid fa-clock"></i> إضافة وقت في الجدول';
+  document.getElementById('sched-modal-ttl').innerHTML=id?'<i class="fa-solid fa-clock"></i> تعديل الوقت':'<i class="fa-solid fa-clock"></i> إضافة وقت في الجدول';
   document.getElementById('sched-eid').value=id||'';
   if(id){
     const s=S.schedule.find(s=>s.id===id);
@@ -8640,7 +8640,7 @@ function openSidebar(){
     requestAnimationFrame(()=>ov.classList.add('visible'));
   }
   const ti=document.getElementById('toggle-icon');
-  if(ti) ti.textContent='<i class="fa-solid fa-xmark"></i>';
+  if(ti) ti.innerHTML='<i class="fa-solid fa-xmark"></i>';
   localStorage.setItem('_sidebarOpen','1');
 }
 function closeSidebar(){
@@ -9110,7 +9110,7 @@ function updateSubscriptionBar() {
     if(dotEl) dotEl.style.background = 'var(--accent4)';
   } else {
     bar.className = 'sub-status-bar active';
-    if(planEl) planEl.textContent = (plan?.icon||'<i class="fa-solid fa-box"></i>') + ' ' + (plan?.name||sub.planId);
+    if(planEl) planEl.innerHTML = (plan?.icon||'<i class="fa-solid fa-box"></i>') + ' ' + (plan?.name||sub.planId);
     if(detailEl) {
       detailEl.textContent = sub.billing === 'lifetime'
         ? '♾️ مدى الحياة'
@@ -9390,7 +9390,7 @@ function _addAdminSwitchBtn(){
   btn.id='_admin_sw_btn';
   btn.title='التبديل للأدمن';
   btn.style.cssText='background:rgba(108,99,255,.15);border:1px solid rgba(108,99,255,.3);color:var(--accent);border-radius:8px;padding:4px 7px;font-size:10px;cursor:pointer;font-family:var(--font);font-weight:700;flex-shrink:0;transition:.2s;white-space:nowrap';
-  btn.textContent='<i class="fa-solid fa-bolt"></i> أدمن';
+  btn.innerHTML='<i class="fa-solid fa-bolt"></i> أدمن';
   btn.onclick=(e)=>{e.stopPropagation();openProfileModal();setTimeout(()=>_switchSettingsTab('adminswitch'),100);};
   const logoutBtn=su.querySelector('.logout-btn');
   if(logoutBtn) su.insertBefore(btn,logoutBtn); else su.appendChild(btn);
@@ -9536,7 +9536,7 @@ async function doForgotPassword(){
     redirectTo: window.location.origin + window.location.pathname
   });
 
-  if(btn){ btn.disabled=false; btn.textContent='<i class="fa-solid fa-envelope"></i> إرسال رابط التغيير'; }
+  if(btn){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-envelope"></i> إرسال رابط التغيير'; }
 
   if(error){
     showAuthMsg('forgot-error','<i class="fa-solid fa-triangle-exclamation"></i> ' + error.message);
@@ -9591,14 +9591,14 @@ async function doEmailReset(){
   if(errEl) errEl.classList.remove('show');
   if(okEl)  okEl.classList.remove('show');
 
-  if(pw1.length < 6){ if(errEl){errEl.textContent='<i class="fa-solid fa-triangle-exclamation"></i> كلمة المرور قصيرة جداً';errEl.classList.add('show');} return; }
-  if(pw1 !== pw2){    if(errEl){errEl.textContent='<i class="fa-solid fa-triangle-exclamation"></i> كلمتا المرور غير متطابقتين';errEl.classList.add('show');} return; }
+  if(pw1.length < 6){ if(errEl){errEl.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> كلمة المرور قصيرة جداً';errEl.classList.add('show');} return; }
+  if(pw1 !== pw2){    if(errEl){errEl.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> كلمتا المرور غير متطابقتين';errEl.classList.add('show');} return; }
 
   const { error } = await supa.auth.updateUser({ password: pw1 });
   if(error){
-    if(errEl){errEl.textContent='<i class="fa-solid fa-triangle-exclamation"></i> '+error.message;errEl.classList.add('show');}
+    if(errEl){errEl.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> '+error.message;errEl.classList.add('show');}
   } else {
-    if(okEl){okEl.textContent='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تغيير كلمة المرور بنجاح!';okEl.classList.add('show');}
+    if(okEl){okEl.innerHTML='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تغيير كلمة المرور بنجاح!';okEl.classList.add('show');}
     setTimeout(()=>{
       document.getElementById('email-reset-overlay')?.remove();
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -9996,7 +9996,7 @@ function confirmSwitchAccount(userId){
   const hash = btoa(encodeURIComponent(pw + target.phone + 'studioOS'));
   if(hash!==target.hash){
     const errEl=document.getElementById('switch-err');
-    if(errEl) errEl.textContent='<i class="fa-solid fa-triangle-exclamation"></i> كلمة المرور غير صحيحة';
+    if(errEl) errEl.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> كلمة المرور غير صحيحة';
     return;
   }
   closeM('modal-confirm');
@@ -10046,7 +10046,7 @@ function openBackupModal(){
   const pathDisp  = document.getElementById('backup-path-display');
   if(pathInput){ pathInput.value = bs.path || ''; }
   if(pathDisp){
-    if(bs.path){ pathDisp.textContent = '<i class="fa-solid fa-folder"></i> ' + bs.path; pathDisp.style.display='block'; }
+    if(bs.path){ pathDisp.innerHTML='<i class="fa-solid fa-folder"></i> ' + bs.path; pathDisp.style.display='block'; }
     else { pathDisp.style.display='none'; }
   }
   // Populate checkboxes
@@ -10069,7 +10069,7 @@ function saveBackupPath(){
   saveBackupSettingsData(bs);
   const pathDisp = document.getElementById('backup-path-display');
   if(pathDisp){
-    if(val){ pathDisp.textContent = '<i class="fa-solid fa-folder"></i> ' + val; pathDisp.style.display='block'; }
+    if(val){ pathDisp.innerHTML='<i class="fa-solid fa-folder"></i> ' + val; pathDisp.style.display='block'; }
     else   { pathDisp.style.display='none'; }
   }
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ مسار النسخ الاحتياطي');
@@ -10201,10 +10201,10 @@ function updateNextReminderDisplay(){
   const last = localStorage.getItem(BACKUP_LAST_KEY);
   if(bs.remind3h && last){
     const nextTime = new Date(new Date(last).getTime() + 3*60*60*1000);
-    el.textContent = '<i class="fa-solid fa-alarm-clock"></i> التذكير القادم: ' + nextTime.toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'});
+    el.innerHTML='<i class="fa-solid fa-alarm-clock"></i> التذكير القادم: ' + nextTime.toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'});
     el.style.display='block';
   } else if(bs.remind3h && !last){
-    el.textContent = '<i class="fa-solid fa-alarm-clock"></i> التذكير سيبدأ بعد أول نسخة احتياطية';
+    el.innerHTML='<i class="fa-solid fa-alarm-clock"></i> التذكير سيبدأ بعد أول نسخة احتياطية';
     el.style.display='block';
   } else {
     el.style.display='none';
@@ -10734,7 +10734,7 @@ let teamMembersForm = []; // members being added in form
 
 function openTeamModal(id){
   teamMembersForm = [];
-  document.getElementById('team-modal-ttl').textContent = id ? '<i class="fa-solid fa-users"></i> تعديل الفريق' : '<i class="fa-solid fa-users"></i> فريق جديد';
+  document.getElementById('team-modal-ttl').innerHTML = id ? '<i class="fa-solid fa-users"></i> تعديل الفريق' : '<i class="fa-solid fa-users"></i> فريق جديد';
   document.getElementById('team-eid').value = id||'';
   if(id){
     const team = S.teams.find(t=>t.id===id); if(!team) return;
@@ -10856,43 +10856,17 @@ async function saveTeam(){
   if(typeof supa === 'undefined') return;
   const newMembers = d.members.filter(m=>m.email && !oldMemberEmails.includes((m.email||'').toLowerCase().trim()));
   const ownerName  = (S.settings&&S.settings.name)||'مشرف';
+  const ownerEmail = (S.settings&&S.settings.email)||'';
 
   for(const m of newMembers){
     try {
       const email = (m.email||'').toLowerCase().trim();
       if(!email) continue;
 
-      let targetUserId = m.linkedUserId || null;
-
-      if(!targetUserId){
-        const { data: rows2 } = await supa.from('studio_data').select('user_id, data');
-        if(rows2){
-          for(const row of rows2){
-            try{
-              const ud2 = typeof row.data==='string' ? JSON.parse(row.data) : row.data;
-              const se2 = (ud2?.settings?.email||ud2?._user_email||'').toLowerCase().trim();
-              if(se2 && se2===email){ targetUserId=row.user_id; break; }
-            }catch(e){}
-          }
-        }
-        if(!targetUserId){
-          const { data: pr } = await supa.from('profiles').select('id').eq('email',email).maybeSingle().catch(()=>({data:null}));
-          if(pr) targetUserId=pr.id;
-        }
-      }
-
-      if(!targetUserId){ console.log('Team: pending invite for', email); continue; }
-
-      const { data: tgt } = await supa.from('studio_data').select('data').eq('user_id',targetUserId).single().catch(()=>({data:null}));
-      let ud = null;
-      if(tgt){ try{ ud=typeof tgt.data==='string'?JSON.parse(tgt.data):tgt.data; }catch(e){} }
-      if(!ud) ud={};
-      ud._pending_notifications = ud._pending_notifications||[];
-      const already = ud._pending_notifications.find(n=>(n.type==='team'||n.type==='team_invite')&&n.body&&n.body.includes('"'+name+'"'));
-      if(already) continue;
-      ud._pending_notifications.push({
+      // Build the invite notification object
+      const inviteNotif = {
         id         : Date.now()+'_'+Math.random().toString(36).slice(2,7),
-        title      : '<i class="fa-solid fa-users"></i> دعوة فريق!',
+        title      : 'دعوة فريق!',
         body       : 'دُعيت للانضمام كـ '+(m.role||'عضو')+(m.extraSpecs&&m.extraSpecs.length?' ('+m.extraSpecs.join('، ')+')':'')+ ' في فريق "'+name+'" بواسطة '+ownerName,
         type       : 'team_invite',
         teamName   : name,
@@ -10901,13 +10875,83 @@ async function saveTeam(){
         memberRole : m.role,
         extraSpecs : m.extraSpecs||[],
         ownerName,
+        ownerEmail,
         ownerUserId: typeof _supaUserId!=='undefined' ? _supaUserId : '',
-        status     : 'pending', // pending | accepted | declined
+        status     : 'pending',
         created_at : new Date().toISOString(),
         read       : false
-      });
-      await supa.from('studio_data').update({data:JSON.stringify(ud),updated_at:new Date().toISOString()}).eq('user_id',targetUserId);
-      console.log('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> Team notif sent to', email);
+      };
+
+      let targetUserId = m.linkedUserId || null;
+
+      // Method 1: try auth.users via RPC (most reliable for Google users)
+      if(!targetUserId){
+        try{
+          const { data: authUser } = await supa.rpc('get_user_id_by_email', { p_email: email }).catch(()=>({data:null}));
+          if(authUser) targetUserId = authUser;
+        }catch(e){}
+      }
+
+      // Method 2: search studio_data by settings.email or _user_email
+      if(!targetUserId){
+        try{
+          // Use a targeted query with filter (works if RLS allows)
+          const { data: rows2 } = await supa.from('studio_data').select('user_id, data').limit(500);
+          if(rows2){
+            for(const row of rows2){
+              try{
+                const ud2 = typeof row.data==='string' ? JSON.parse(row.data) : row.data;
+                const se2 = (ud2?.settings?.email||ud2?._user_email||'').toLowerCase().trim();
+                if(se2 && se2===email){ targetUserId=row.user_id; break; }
+              }catch(e){}
+            }
+          }
+        }catch(e){}
+      }
+
+      // Method 3: profiles table
+      if(!targetUserId){
+        const { data: pr } = await supa.from('profiles').select('id').eq('email',email).maybeSingle().catch(()=>({data:null}));
+        if(pr) targetUserId=pr.id;
+      }
+
+      // Save invite to team_invites table (works even if user not registered yet)
+      try{
+        await supa.from('team_invites').upsert({
+          id          : inviteNotif.id,
+          to_email    : email,
+          owner_id    : typeof _supaUserId!=='undefined' ? _supaUserId : '',
+          owner_name  : ownerName,
+          team_id     : String(d.id),
+          team_name   : name,
+          member_name : m.name,
+          member_role : m.role||'عضو',
+          status      : 'pending',
+          payload     : JSON.stringify(inviteNotif),
+          created_at  : inviteNotif.created_at
+        }, {onConflict:'id'}).catch(()=>null);
+      }catch(e){}
+
+      if(!targetUserId){
+        console.log('Team: invite saved for pending user:', email);
+        showMiniNotif('📨 دعوة محفوظة لـ '+m.name+' — ستصله عند تسجيله');
+        continue;
+      }
+
+      // Deliver to existing user's studio_data
+      const { data: tgt } = await supa.from('studio_data').select('data').eq('user_id',targetUserId).single().catch(()=>({data:null}));
+      let ud = null;
+      if(tgt){ try{ ud=typeof tgt.data==='string'?JSON.parse(tgt.data):tgt.data; }catch(e){} }
+      if(!ud) ud={};
+      ud._pending_notifications = ud._pending_notifications||[];
+      const already = ud._pending_notifications.find(n=>(n.type==='team'||n.type==='team_invite')&&n.teamId===d.id);
+      if(!already){
+        ud._pending_notifications.push(inviteNotif);
+        const {error:ue} = await supa.from('studio_data').update({data:JSON.stringify(ud),updated_at:new Date().toISOString()}).eq('user_id',targetUserId);
+        if(ue) console.warn('Team notif save err:', ue.message);
+        else   console.log('✅ Team invite sent to', email);
+      }
+      showMiniNotif('✅ دعوة أُرسلت لـ '+m.name);
     } catch(e){ console.warn('Team notify err:', m.name, e); }
   }
 }
@@ -11123,7 +11167,7 @@ function jumpToMonth(month, year){
 function openMemberProfile(memberName){
   document.getElementById('teams-grid-view').style.display='none';
   document.getElementById('member-profile-view').style.display='block';
-  document.getElementById('member-profile-title').textContent = '<i class="fa-solid fa-user"></i> '+memberName;
+  document.getElementById('member-profile-title').innerHTML='<i class="fa-solid fa-user"></i> '+memberName;
 
   // Tasks assigned to this member
   const allTasks = S.tasks.filter(t=>t.workerMember===memberName);
@@ -12542,7 +12586,7 @@ function _printClientReport(id){
         btn.className='btn btn-ghost btn-sm';
         btn.setAttribute('data-report-btn','1');
         btn.title='تقرير طباعي للعميل';
-        btn.textContent='<i class="fa-solid fa-chart-bar"></i> تقرير';
+        btn.innerHTML='<i class="fa-solid fa-chart-bar"></i> تقرير';
         btn.onclick=()=>openClientReport(id);
         actDiv.insertBefore(btn, actDiv.firstChild);
       }
@@ -12831,7 +12875,7 @@ function removeClientSocial(idx){
 // MEETINGS — CRUD + Render
 // ============================================================
 function openMeetingModal(id){
-  document.getElementById('mtg-modal-title').textContent = id ? '<i class="fa-solid fa-pen"></i> تعديل ميتنج' : '<i class="fa-solid fa-calendar-days"></i> ميتنج جديد';
+  document.getElementById('mtg-modal-title').innerHTML = id ? '<i class="fa-solid fa-pen"></i> تعديل ميتنج' : '<i class="fa-solid fa-calendar-days"></i> ميتنج جديد';
   document.getElementById('mtg-eid').value = id||'';
   // Fill client dropdown
   const sel=document.getElementById('mtg-client'); if(sel){ sel.innerHTML='<option value="">— اختر عميل —</option>'; S.clients.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=c.name;sel.appendChild(o);}); }
@@ -13324,7 +13368,7 @@ var _stepDetailStepIdx  = null;
 var _stepQuill = null;
 
 function openCourseModal(id){
-  document.getElementById('course-modal-title').textContent = id ? '<i class="fa-solid fa-pen"></i> تعديل الكورس' : '<i class="fa-solid fa-graduation-cap"></i> إضافة كورس / مادة تعليمية';
+  document.getElementById('course-modal-title').innerHTML = id ? '<i class="fa-solid fa-pen"></i> تعديل الكورس' : '<i class="fa-solid fa-graduation-cap"></i> إضافة كورس / مادة تعليمية';
   document.getElementById('course-eid').value = id||'';
   _editingCourseSteps = [];
   if(id){
@@ -13639,12 +13683,12 @@ function ttStart(){
   const btn=document.getElementById('tt-btn-main');
   if(btn){btn.textContent='⏸';btn.style.background='var(--accent2)';}
   const disp=document.getElementById('tt-display');if(disp)disp.style.color='var(--accent3)';
-  const st=document.getElementById('tt-status');if(st)st.textContent='<i class="fa-solid fa-stopwatch"></i> يعمل الآن...';
+  const st=document.getElementById('tt-status');if(st)st.innerHTML='<i class="fa-solid fa-stopwatch"></i> يعمل الآن...';
 }
 function ttPause(){
   _tt.running=false;_tt.elapsed+=Date.now()-(_tt.startedAt||Date.now());_tt.startedAt=null;
   clearInterval(_tt.interval);
-  const btn=document.getElementById('tt-btn-main');if(btn){btn.textContent='<i class="fa-solid fa-play"></i>';btn.style.background='var(--accent)';}
+  const btn=document.getElementById('tt-btn-main');if(btn){btn.innerHTML='<i class="fa-solid fa-play"></i>';btn.style.background='var(--accent)';}
   const disp=document.getElementById('tt-display');if(disp)disp.style.color='var(--accent2)';
   const st=document.getElementById('tt-status');if(st)st.textContent='⏸ مؤقت';
 }
@@ -13652,9 +13696,9 @@ function ttReset(){
   if((_tt.running||_tt.elapsed>0)&&!confirm('إعادة تعيين المؤقت؟'))return;
   clearInterval(_tt.interval);_tt={running:false,elapsed:0,startedAt:null,interval:null};
   const disp=document.getElementById('tt-display');if(disp){disp.textContent='00:00:00';disp.style.color='';}
-  const btn=document.getElementById('tt-btn-main');if(btn){btn.textContent='<i class="fa-solid fa-play"></i>';btn.style.background='var(--accent)';}
+  const btn=document.getElementById('tt-btn-main');if(btn){btn.innerHTML='<i class="fa-solid fa-play"></i>';btn.style.background='var(--accent)';}
   const earn=document.getElementById('tt-live-earn');if(earn)earn.textContent='';
-  const st=document.getElementById('tt-status');if(st)st.textContent='اضغط <i class="fa-solid fa-play"></i> لبدء التسجيل';
+  const st=document.getElementById('tt-status');if(st)st.innerHTML='اضغط <i class="fa-solid fa-play"></i> لبدء التسجيل';
 }
 function ttStop(){
   const task=document.getElementById('tt-task-input')?.value?.trim();
@@ -13689,9 +13733,9 @@ function ttStop(){
   clearInterval(_tt.interval);
   _tt={running:false,elapsed:0,startedAt:null,interval:null};
   const disp=document.getElementById('tt-display');if(disp){disp.textContent='00:00:00';disp.style.color='';}
-  const btn=document.getElementById('tt-btn-main');if(btn){btn.textContent='<i class="fa-solid fa-play"></i>';btn.style.background='var(--accent)';}
+  const btn=document.getElementById('tt-btn-main');if(btn){btn.innerHTML='<i class="fa-solid fa-play"></i>';btn.style.background='var(--accent)';}
   const earn=document.getElementById('tt-live-earn');if(earn)earn.textContent='';
-  const st=document.getElementById('tt-status');if(st)st.textContent='اضغط <i class="fa-solid fa-play"></i> لبدء التسجيل';
+  const st=document.getElementById('tt-status');if(st)st.innerHTML='اضغط <i class="fa-solid fa-play"></i> لبدء التسجيل';
   const ti=document.getElementById('tt-task-input');if(ti)ti.value='';
   const ci=document.getElementById('tt-client-input');if(ci)ci.value='';
   renderTimeTracker();
@@ -13702,7 +13746,7 @@ function ttTick(){
   const secs=Math.floor(total/1000);
   const disp=document.getElementById('tt-display');if(disp)disp.textContent=ttFmt(secs);
   const earn=document.getElementById('tt-live-earn');
-  if(earn){const e=(secs/3600)*_ttRate;earn.textContent=e>0?'<i class="fa-solid fa-coins"></i> '+e.toFixed(2)+' '+ttSym():'';}
+  if(earn){const e=(secs/3600)*_ttRate;earn.innerHTML=e>0?'<i class="fa-solid fa-coins"></i> '+e.toFixed(2)+' '+ttSym():'';}
   ttUpdateStats();
 }
 
@@ -13835,7 +13879,7 @@ function ttRenderCompare(){
 // Manual entry
 function openManualTimeEntry(id){
   const isEdit=!!id;
-  document.getElementById('tt-entry-title').textContent=isEdit?'<i class="fa-solid fa-pen"></i> تعديل الإدخال':'+ إدخال وقت يدوي';
+  document.getElementById('tt-entry-title').innerHTML=isEdit?'<i class="fa-solid fa-pen"></i> تعديل الإدخال':'+ إدخال وقت يدوي';
   document.getElementById('tte-id').value=id||'';
   const ttToLocal=d=>{const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());};
   if(isEdit){
@@ -14045,7 +14089,7 @@ function buildContractHTML(c){
 
 function openContractModal(id,prefillClient){
   const isEdit=!!id;
-  document.getElementById('contract-modal-title').textContent=isEdit?'<i class="fa-solid fa-pen"></i> تعديل العقد':'<i class="fa-solid fa-pen-to-square"></i> عقد جديد';
+  document.getElementById('contract-modal-title').innerHTML=isEdit?'<i class="fa-solid fa-pen"></i> تعديل العقد':'<i class="fa-solid fa-pen-to-square"></i> عقد جديد';
   document.getElementById('ct-id').value=id||'';
   const ctDl=document.getElementById('ct-clients-dl');
   if(ctDl)ctDl.innerHTML=(S.clients||[]).map(c=>`<option value="${c.name}">`).join('');
@@ -14758,6 +14802,47 @@ window.openMyMemberTeamProfile = function(ownerId){
     } catch(e){ console.warn('_checkTeamMembership:', e); }
   };
 
+  // On login: check team_invites table for invites sent to this user's email
+  (async function _checkPendingTeamInvites(){
+    try{
+      if(!_supaUserId) return;
+      var myEmail = '';
+      try{ var _as=JSON.parse(localStorage.getItem('studioOS_auth_v1')||'{}'); myEmail=(_as.email||'').toLowerCase().trim(); }catch(e){}
+      if(!myEmail && S.settings && S.settings.email) myEmail = (S.settings.email||'').toLowerCase().trim();
+      if(!myEmail) return;
+      var { data: pendingInvs } = await supa.from('team_invites')
+        .select('*').eq('to_email', myEmail).eq('status','pending').catch(()=>({data:null}));
+      if(!pendingInvs || !pendingInvs.length) return;
+      // Deliver each pending invite as a notification
+      for(var pinv of pendingInvs){
+        var notif;
+        try{ notif = typeof pinv.payload==='string' ? JSON.parse(pinv.payload) : pinv.payload; }catch(e){ notif={}; }
+        notif = notif || {};
+        notif.id        = notif.id || pinv.id;
+        notif.type      = 'team_invite';
+        notif.teamName  = pinv.team_name;
+        notif.teamId    = pinv.team_id;
+        notif.ownerName = pinv.owner_name;
+        notif.memberName= pinv.member_name;
+        notif.memberRole= pinv.member_role;
+        notif.status    = 'pending';
+        notif.read      = false;
+        // Add to notifications if not already there
+        var exists = _notifications.find(function(x){ return x.id==='pn_'+notif.id; });
+        if(!exists){
+          _notifications.unshift({ id:'pn_'+notif.id, msg:'دعوة فريق! ' + notif.body, type:'team_invite', time:notif.created_at, read:false });
+          if(typeof _saveNotifications==='function') _saveNotifications();
+          if(typeof _updateNotifBell==='function') _updateNotifBell();
+        }
+        if(typeof window._showTeamInviteDialog==='function'){
+          setTimeout(function(){ window._showTeamInviteDialog([notif]); }, 2000);
+        }
+        // Mark as delivered in team_invites table
+        await supa.from('team_invites').update({status:'delivered'}).eq('id',pinv.id).catch(()=>null);
+      }
+    }catch(e){ console.warn('_checkPendingTeamInvites:', e); }
+  })();
+
   (function _startPolling(){
     if(!_supaUserId){ setTimeout(_startPolling, 5000); return; }
     async function _poll(){
@@ -14876,12 +14961,19 @@ window.openMyMemberTeamProfile = function(ownerId){
     var remaining = overlay._remainingInvites || [];
     overlay.remove();
     if(accepted){
-      showMiniNotif('<i class="fa-solid fa-champagne-glasses"></i> انضممت لفريق "'+invite.teamName+'" — '+invite.ownerName);
+      showMiniNotif('🎉 انضممت لفريق "'+invite.teamName+'" — '+invite.ownerName);
+      // Update team_invites table
+      if(typeof supa!=='undefined' && invite.id){
+        supa.from('team_invites').update({status:'accepted'}).eq('id', invite.id.replace('pn_','')).catch(()=>null);
+      }
       var em = null;
       try{ var _s=JSON.parse(localStorage.getItem('studioOS_auth_v1')||'{}'); em=_s&&_s.email?_s.email:null; }catch(e){}
       if(em) window._checkTeamMembership(em);
     } else {
-      showMiniNotif('تم رفض دعوة فريق "'+invite.teamName+'"');
+      showMiniNotif('تم رفض دعوة "'+invite.teamName+'"');
+      if(typeof supa!=='undefined' && invite.id){
+        supa.from('team_invites').update({status:'declined'}).eq('id', invite.id.replace('pn_','')).catch(()=>null);
+      }
     }
     if(remaining.length) setTimeout(function(){ window._showTeamInviteDialog(remaining); }, 400);
   };
@@ -14972,7 +15064,7 @@ window.openMyMemberTeamProfile = function(ownerId){
       document.getElementById('_tmm-close').onclick = function(){ overlay.style.display='none'; };
       overlay.onclick = function(e){ if(e.target===overlay) overlay.style.display='none'; };
     }
-    document.getElementById('_tmm-title').textContent = '<i class="fa-solid fa-clipboard-list"></i> فريق — '+membership.ownerName;
+    document.getElementById('_tmm-title').innerHTML='<i class="fa-solid fa-clipboard-list"></i> فريق — '+membership.ownerName;
     document.getElementById('_tmm-body').innerHTML = html;
     overlay.style.display = 'flex';
   };
@@ -15044,11 +15136,11 @@ function initCorpSettings(){
   const badge = document.getElementById('corp-plan-badge');
   const body = document.getElementById('corp-settings-body');
   if(feat.corporate && feat.corp_mode){
-    if(badge){ badge.textContent='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> باقة الشركات مفعلة'; badge.style.background='rgba(79,209,165,.15)'; badge.style.color='var(--accent3)'; }
+    if(badge){ badge.innerHTML='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> باقة الشركات مفعلة'; badge.style.background='rgba(79,209,165,.15)'; badge.style.color='var(--accent3)'; }
     if(body){ body.style.opacity='1'; body.style.pointerEvents='auto'; }
     renderCorpEmployees();
   } else {
-    if(badge){ badge.textContent='<i class="fa-solid fa-ban"></i> غير متاح في باقتك'; }
+    if(badge){ badge.innerHTML='<i class="fa-solid fa-ban"></i> غير متاح في باقتك'; }
     if(body){ body.style.opacity='.4'; body.style.pointerEvents='none'; }
   }
   // Load saved corp settings
@@ -15221,7 +15313,7 @@ function openPkgStandaloneModal(id){
   var ptNm=document.getElementById('pkg-st-thumb-name'); if(ptNm) ptNm.textContent='لا توجد صورة';
   var ptCl=document.getElementById('pkg-st-thumb-clear'); if(ptCl) ptCl.style.display='none';
   var ptInp=document.getElementById('pkg-st-thumb-input'); if(ptInp) ptInp.value='';
-  document.getElementById('pkg-standalone-title').textContent=id?'<i class="fa-solid fa-box"></i> تعديل الباقة':'<i class="fa-solid fa-box"></i> باقة جديدة';
+  document.getElementById('pkg-standalone-title').innerHTML=id?'<i class="fa-solid fa-box"></i> تعديل الباقة':'<i class="fa-solid fa-box"></i> باقة جديدة';
   document.getElementById('pkg-st-id').value=id||'';
   ['pkg-st-name','pkg-st-price','pkg-st-desc','pkg-st-delivery','pkg-st-revisions'].forEach(function(i){ var el=document.getElementById(i); if(el) el.value=''; });
   document.getElementById('pkg-st-items').value='';
@@ -15334,7 +15426,7 @@ function _savePfCats(arr){ localStorage.setItem('_pfCats',JSON.stringify(arr)); 
 var _pfThumbData='';
 function openPortfolioProjectModal(id){
   _pfThumbData='';
-  document.getElementById('portfolio-project-modal-title').textContent=id?'<i class="fa-solid fa-image"></i> تعديل المشروع':'<i class="fa-solid fa-image"></i> مشروع جديد';
+  document.getElementById('portfolio-project-modal-title').innerHTML=id?'<i class="fa-solid fa-image"></i> تعديل المشروع':'<i class="fa-solid fa-image"></i> مشروع جديد';
   document.getElementById('pf-proj-id').value=id||'';
   ['pf-proj-name','pf-proj-desc','pf-proj-url'].forEach(function(i){ var el=document.getElementById(i); if(el) el.value=''; });
   var preview=document.getElementById('pf-proj-thumb-preview'); if(preview){preview.src='';preview.style.display='none';}
@@ -15546,7 +15638,7 @@ function openSvcModal(id){
   var priceEl2=document.getElementById('svc-price'); if(priceEl2) priceEl2.value='';
   var termsEl2=document.getElementById('svc-terms'); if(termsEl2) termsEl2.value='';
   document.getElementById('svc-eid').value = id||'';
-  document.getElementById('svc-modal-title').textContent = id ? '<i class="fa-solid fa-pen"></i> تعديل الخدمة' : '<i class="fa-solid fa-bag-shopping"></i> خدمة جديدة';
+  document.getElementById('svc-modal-title').innerHTML = id ? '<i class="fa-solid fa-pen"></i> تعديل الخدمة' : '<i class="fa-solid fa-bag-shopping"></i> خدمة جديدة';
   document.getElementById('svc-name').value = '';
   document.getElementById('svc-desc').value = '';
   document.getElementById('svc-delivery').value = '';
@@ -15728,7 +15820,7 @@ function _pfThumbUpload(input, rowId){
     var row=document.getElementById(rowId); if(!row) return;
     row.dataset.thumb=e.target.result;
     var lbl=document.getElementById('pfthumb_lbl_'+rowId);
-    if(lbl) lbl.textContent='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> '+file.name.slice(0,18);
+    if(lbl) lbl.innerHTML='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> '+file.name.slice(0,18);
   };
   r.readAsDataURL(file);
 }
@@ -15949,7 +16041,7 @@ function openOrderAccept(orderId){
 
   // Set modal title
   var titleEl=document.getElementById('oa-modal-title');
-  if(titleEl) titleEl.textContent = isPending?'<i class="fa-solid fa-inbox"></i> قبول الطلب':'<i class="fa-solid fa-clipboard-list"></i> تفاصيل الطلب';
+  if(titleEl) titleEl.innerHTML = isPending?'<i class="fa-solid fa-inbox"></i> قبول الطلب':'<i class="fa-solid fa-clipboard-list"></i> تفاصيل الطلب';
 
   // Fill order ID
   var oidEl=document.getElementById('oa-order-id'); if(oidEl) oidEl.value=orderId;
@@ -15981,7 +16073,7 @@ function openOrderAccept(orderId){
   if(isPending){
     if(newTaskSec) newTaskSec.style.display='';
     if(statusSec) statusSec.style.display='none';
-    if(acceptBtn){ acceptBtn.style.display=''; acceptBtn.textContent='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> قبول وإنشاء مهمة'; }
+    if(acceptBtn){ acceptBtn.style.display=''; acceptBtn.innerHTML='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> قبول وإنشاء مهمة'; }
     if(rejectBtn) rejectBtn.style.display='';
     // Prefill task form
     var titleF=document.getElementById('oa-title'); if(titleF) titleF.value=order.service_name+(order.pkg_name?' — '+order.pkg_name:'');
@@ -16945,7 +17037,7 @@ window._submitOrderForm=function(userId,svcName,pkgName,price){
   }).then(function(){
     document.getElementById('_order-overlay')&&document.getElementById('_order-overlay').remove();
     alert('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إرسال طلبك بنجاح! سنتواصل معك قريباً.');
-  }).catch(function(e){if(btn){btn.disabled=false;btn.textContent='<i class="fa-solid fa-paper-plane"></i> إرسال الطلب';}});
+  }).catch(function(e){if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> إرسال الطلب';}});
 };
 
 // ── Package Detail Page ──
@@ -17056,7 +17148,7 @@ window._submitBooking=function(userId){
   }).then(function(){
     document.getElementById('_book-overlay')&&document.getElementById('_book-overlay').remove();
     alert('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إرسال طلب الموعد! سنتواصل معك قريباً.');
-  }).catch(function(){if(btn){btn.disabled=false;btn.textContent='إرسال طلب الموعد <i class="fa-solid fa-calendar-days"></i>';}});
+  }).catch(function(){if(btn){btn.disabled=false;btn.innerHTML='إرسال طلب الموعد <i class="fa-solid fa-calendar-days"></i>';}});
 };
 
 // ── Public Contact Form ──
@@ -17106,7 +17198,7 @@ window._submitPublicContact=function(userId){
   }).then(function(){
     document.getElementById('_contact-overlay')&&document.getElementById('_contact-overlay').remove();
     alert('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إرسال رسالتك! سنتواصل معك قريباً.');
-  }).catch(function(){if(btn){btn.disabled=false;btn.textContent='إرسال الرسالة <i class="fa-solid fa-envelope-open-text"></i>';}});
+  }).catch(function(){if(btn){btn.disabled=false;btn.innerHTML='إرسال الرسالة <i class="fa-solid fa-envelope-open-text"></i>';}});
 };
 
 function _buildNewOrderPortalPage(userId, portalId){
@@ -17837,8 +17929,8 @@ function switchFgTab(tab){
   // Update CTA button
   const cta = document.getElementById('fg-cta-btn');
   if(cta){
-    if(tab==='financial'){ cta.textContent='<i class="fa-solid fa-pen"></i> تعديل الهدف المالي'; cta.onclick=()=>openFreelancerGoalModal('financial'); }
-    else if(tab==='tasks'){ cta.textContent='<i class="fa-solid fa-pen"></i> تعديل هدف الأوردرات'; cta.onclick=()=>openFreelancerGoalModal('tasks'); }
+    if(tab==='financial'){ cta.innerHTML='<i class="fa-solid fa-pen"></i> تعديل الهدف المالي'; cta.onclick=()=>openFreelancerGoalModal('financial'); }
+    else if(tab==='tasks'){ cta.innerHTML='<i class="fa-solid fa-pen"></i> تعديل هدف الأوردرات'; cta.onclick=()=>openFreelancerGoalModal('tasks'); }
     else if(tab==='learning'){ cta.textContent='+ هدف تعليمي'; cta.onclick=()=>openGoalModal(); }
     else if(tab==='custom'){ cta.textContent='+ هدف جديد'; cta.onclick=()=>openCustomGoalModal(); }
     else if(tab==='courses'){ cta.textContent='+ كورس جديد'; cta.onclick=()=>openCourseModal(); }
@@ -18520,8 +18612,8 @@ async function _adminCreateUser(){
   var studio = document.getElementById('_acu-studio')?.value.trim();
   var msg    = document.getElementById('_acu-msg');
 
-  if(!name||!email||!pass){ if(msg){msg.style.display='block';msg.style.background='rgba(247,111,124,.15)';msg.style.color='var(--accent4)';msg.textContent='<i class="fa-solid fa-triangle-exclamation"></i> يرجى ملء جميع الحقول المطلوبة';} return; }
-  if(pass.length < 6){ if(msg){msg.style.display='block';msg.style.background='rgba(247,111,124,.15)';msg.style.color='var(--accent4)';msg.textContent='<i class="fa-solid fa-triangle-exclamation"></i> كلمة المرور يجب أن تكون 6 أحرف على الأقل';} return; }
+  if(!name||!email||!pass){ if(msg){msg.style.display='block';msg.style.background='rgba(247,111,124,.15)';msg.style.color='var(--accent4)';msg.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> يرجى ملء جميع الحقول المطلوبة';} return; }
+  if(pass.length < 6){ if(msg){msg.style.display='block';msg.style.background='rgba(247,111,124,.15)';msg.style.color='var(--accent4)';msg.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> كلمة المرور يجب أن تكون 6 أحرف على الأقل';} return; }
 
   if(msg){msg.style.display='block';msg.style.background='rgba(124,111,247,.15)';msg.style.color='var(--accent)';msg.textContent='⏳ جاري إنشاء الحساب...';}
 
@@ -18543,14 +18635,14 @@ async function _adminCreateUser(){
     }
 
     if(result.error){
-      if(msg){msg.style.background='rgba(247,111,124,.15)';msg.style.color='var(--accent4)';msg.textContent='<i class="fa-solid fa-circle-xmark"></i> '+result.error.message;}
+      if(msg){msg.style.background='rgba(247,111,124,.15)';msg.style.color='var(--accent4)';msg.innerHTML='<i class="fa-solid fa-circle-xmark"></i> '+result.error.message;}
       return;
     }
-    if(msg){msg.style.background='rgba(79,209,165,.15)';msg.style.color='var(--accent3)';msg.textContent='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إنشاء الحساب بنجاح! الإيميل: '+email;}
+    if(msg){msg.style.background='rgba(79,209,165,.15)';msg.style.color='var(--accent3)';msg.innerHTML='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إنشاء الحساب بنجاح! الإيميل: '+email;}
     setTimeout(function(){ closeM('_modal-admin-create-user'); }, 2000);
     if(typeof toast === 'function') toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إنشاء حساب: '+name);
   } catch(e){
-    if(msg){msg.style.background='rgba(247,111,124,.15)';msg.style.color='var(--accent4)';msg.textContent='<i class="fa-solid fa-circle-xmark"></i> '+e.message;}
+    if(msg){msg.style.background='rgba(247,111,124,.15)';msg.style.color='var(--accent4)';msg.innerHTML='<i class="fa-solid fa-circle-xmark"></i> '+e.message;}
   }
 }
 
@@ -19817,7 +19909,7 @@ window.addEventListener('load', function(){
       const archBtn = document.createElement('button');
       archBtn.id = 'ttab-archive';
       archBtn.style.cssText = 'padding:7px 18px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--text3);border-radius:9px;cursor:pointer;transition:.18s';
-      archBtn.textContent = '<i class="fa-solid fa-box"></i> الأرشيف';
+      archBtn.innerHTML='<i class="fa-solid fa-box"></i> الأرشيف';
       archBtn.onclick = ()=>switchTasksTab('archive');
       tabsWrap.appendChild(archBtn);
     }
@@ -20404,7 +20496,7 @@ function _renderTeamTasksBanner(myTasks, myName){
   const dashTeam = document.getElementById('dash-team-tasks');
   if(dashTeam){
     const header = dashTeam.closest('.card')?.querySelector('.section-title');
-    if(header) header.textContent = '<i class="fa-solid fa-users"></i> مهامك كعضو فريق (' + myTasks.length + ')';
+    if(header) header.innerHTML='<i class="fa-solid fa-users"></i> مهامك كعضو فريق (' + myTasks.length + ')';
     dashTeam.innerHTML = myTasks.slice(0,3).map(t=>
       `<div onclick="openTaskDetail(${t.id})" style="display:flex;align-items:center;gap:10px;padding:9px 10px;background:var(--surface2);border-radius:10px;margin-bottom:6px;cursor:pointer;border:1px solid rgba(100,181,246,.15)">
         <div style="width:8px;height:8px;border-radius:50%;background:#64b5f6;flex-shrink:0"></div>
@@ -21085,7 +21177,7 @@ function _showTrackingShareModal(t){
           btn.setAttribute('data-tracking-btn','1');
           btn.className='btn btn-ghost btn-sm';
           btn.style.cssText='color:var(--accent3)';
-          btn.textContent='<i class="fa-solid fa-link"></i> رابط المتابعة';
+          btn.innerHTML='<i class="fa-solid fa-link"></i> رابط المتابعة';
           btn.onclick=()=>openTaskTrackingLink(id);
           btnRow.insertBefore(btn,btnRow.firstChild);
         }
