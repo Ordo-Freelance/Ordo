@@ -16667,6 +16667,13 @@ function _getStores(){ return S.stores||[]; }
 // ── Current active store context ──
 var _currentStoreIdx = null;
 
+// ── Get current store's ID (null = main store) ──
+function _getCurrentStoreId(){
+  if(_currentStoreIdx === null) return null;
+  var stores = _getStores();
+  return stores[_currentStoreIdx] ? stores[_currentStoreIdx].id : null;
+}
+
 function _openStoreInner(idx){
   _currentStoreIdx = idx;
   var stores = _getStores();
@@ -17090,7 +17097,8 @@ function savePkgStandalone(){
   var items=itemsRaw.split('\n').map(function(s){return s.trim();}).filter(Boolean);
   var pfCat=(document.getElementById('pkg-st-portfolio-cat')||{}).value||'';
   var eid=(document.getElementById('pkg-st-id')||{}).value||'';
-  var d={name:name.trim(),price:+price||0,desc:desc.trim(),delivery:delivery.trim(),revisions:+revisions||0,items:items,portfolio_cat:pfCat,thumb:_pkgStThumbData,active:_pkgStActive,updatedAt:new Date().toISOString()};
+  var _storeId = _getCurrentStoreId();
+  var d={name:name.trim(),price:+price||0,desc:desc.trim(),delivery:delivery.trim(),revisions:+revisions||0,items:items,portfolio_cat:pfCat,thumb:_pkgStThumbData,active:_pkgStActive,store_id:_storeId,updatedAt:new Date().toISOString()};
   if(!S.standalone_packages) S.standalone_packages=[];
   if(eid){ var i=S.standalone_packages.findIndex(function(p){return String(p.id)===String(eid);}); if(i>-1){d.id=+eid;d.createdAt=S.standalone_packages[i].createdAt||d.updatedAt;S.standalone_packages[i]=d;} }
   else { d.id=Date.now(); d.createdAt=d.updatedAt; S.standalone_packages.push(d); }
@@ -17103,9 +17111,13 @@ function delPkgStandalone(id){
 }
 function renderStandalonePackages(){
   var grid=document.getElementById('svc-standalone-pkgs-grid'); if(!grid) return;
-  var pkgs=S.standalone_packages||[];
+  var _activeStoreId = _getCurrentStoreId();
+  var pkgs=(S.standalone_packages||[]).filter(function(p){
+    if(_activeStoreId === null) return !p.store_id;
+    return p.store_id === _activeStoreId;
+  });
   if(!pkgs.length){
-    grid.innerHTML='<div class="empty card" style="grid-column:span 3;padding:50px 20px;text-align:center"><div style="font-size:52px;margin-bottom:14px"><i class="fa-solid fa-box"></i></div><div style="font-size:17px;font-weight:800;margin-bottom:8px">لا توجد باقات بعد</div><div style="font-size:13px;color:var(--text3);margin-bottom:20px">أنشئ باقاتك وأعرضها في متجرك</div><button onclick="openPkgStandaloneModal()" class="btn btn-primary">+ إنشاء باقة</button></div>';
+    grid.innerHTML='<div class="empty card" style="grid-column:span 3;padding:50px 20px;text-align:center"><div style="font-size:52px;margin-bottom:14px"><i class="fa-solid fa-box"></i></div><div style="font-size:17px;font-weight:800;margin-bottom:8px">لا توجد باقات في هذا المتجر</div><div style="font-size:13px;color:var(--text3);margin-bottom:20px">أنشئ باقاتك وأعرضها في متجرك</div><button onclick="openPkgStandaloneModal()" class="btn btn-primary">+ إنشاء باقة</button></div>';
     return;
   }
   grid.innerHTML=pkgs.map(function(pkg){
@@ -17599,6 +17611,8 @@ function saveSvc(){
   if(!name||!desc){ toast('<i class="fa-solid fa-triangle-exclamation"></i> اسم الخدمة والوصف مطلوبان'); return; }
   if(!S.services) S.services=[];
   var catEl=document.getElementById('svc-cat');
+  // Get current store id
+  var _storeId = _getCurrentStoreId();
   var d = {
     name: name, desc: desc,
     cat: catEl ? catEl.value : '',
@@ -17611,6 +17625,7 @@ function saveSvc(){
     portfolio: collectPortfolio(),
     portfolio_cat: (document.getElementById('svc-portfolio-cat-link')||{}).value||'',
     active: (document.getElementById('svc-active-flag')||{}).value!=='0',
+    store_id: _storeId,
     createdAt: new Date().toISOString()
   };
   if(eid){
@@ -17675,17 +17690,26 @@ function renderServices(){
       }).join('');
     }
 
-    // Services grid
+    // Services grid — filter by current store
     var grid=document.getElementById('svc-grid'); if(!grid) return;
-    if(!S.services.length){
+    var _activeStoreId = _getCurrentStoreId();
+    var storeServices = (S.services||[]).filter(function(svc){
+      if(_activeStoreId === null) {
+        // Main store: show services with no store_id or store_id === null
+        return !svc.store_id;
+      } else {
+        return svc.store_id === _activeStoreId;
+      }
+    });
+    if(!storeServices.length){
       grid.innerHTML='<div class="empty card" style="grid-column:span 3;padding:50px 20px;text-align:center">'+
         '<div style="font-size:52px;margin-bottom:14px"><i class="fa-solid fa-bag-shopping"></i></div>'+
-        '<div style="font-size:17px;font-weight:800;margin-bottom:8px">لا توجد خدمات بعد</div>'+
+        '<div style="font-size:17px;font-weight:800;margin-bottom:8px">لا توجد خدمات في هذا المتجر</div>'+
         '<div style="font-size:13px;color:var(--text3);margin-bottom:20px">أضف خدماتك الأولى وشارك الرابط مع عملائك</div>'+
         '<button onclick="openSvcModal()" class="btn btn-primary">+ إضافة خدمة</button></div>';
       return;
     }
-    grid.innerHTML=S.services.map(function(svc){
+    grid.innerHTML=storeServices.map(function(svc){
       var minPrice=0;
       if(svc.packages&&svc.packages.length){ var pp=svc.packages.map(function(p){return+p.price||0;}).filter(Boolean); if(pp.length) minPrice=Math.min.apply(null,pp); }
       var ordCount=(S.svc_orders||[]).filter(function(o){return String(o.service_id)===String(svc.id);}).length;
@@ -18294,15 +18318,31 @@ function _buildSvcOrderPage(userId){
     // ── Force scroll unlock immediately ──
     document.documentElement.classList.add('pub-page');
     document.body.classList.add('pub-page');
-    document.documentElement.style.cssText = 'overflow:auto !important;height:auto !important';
-    document.body.style.cssText = 'overflow-x:hidden !important;overflow-y:auto !important;height:auto !important;position:static !important';
+    document.documentElement.style.overflow = 'auto';
+    document.documentElement.style.overflowY = 'scroll';
+    document.documentElement.style.height = 'auto';
+    document.body.style.overflow = 'auto';
+    document.body.style.overflowY = 'auto';
+    document.body.style.height = 'auto';
+    document.body.style.position = 'static';
 
     // ── Data ──
     // Check if specific store is requested
     var _storeId = params.get('store');
     var _storeObj = _storeId ? (ud.stores||[]).find(function(s){return s.id===_storeId;}) : null;
-    var services=(ud.services||[]).filter(function(s){return s.active!==false;});
-    var standalonePkgs=(ud.standalone_packages||[]).filter(function(p){return p.active!==false;});
+    // Filter services by store_id
+    var services=(ud.services||[]).filter(function(s){
+      if(!s.active && s.active !== undefined) return false;
+      if(s.active === false) return false;
+      if(_storeId) return s.store_id === _storeId;
+      return !s.store_id; // main store: services with no store_id
+    });
+    // Filter packages by store_id
+    var standalonePkgs=(ud.standalone_packages||[]).filter(function(p){
+      if(p.active === false) return false;
+      if(_storeId) return p.store_id === _storeId;
+      return !p.store_id;
+    });
     var pfProjects=ud.portfolio_projects||[];
     var settings=ud.settings||{};
     var isOrdersOpen=settings.svc_orders_open!==false;
@@ -18680,7 +18720,8 @@ function _buildSvcOrderPage(userId){
     document.documentElement.classList.add('pub-page');
     document.body.classList.add('pub-page');
 
-    document.body.style.cssText='margin:0;padding:0';
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
     document.body.innerHTML=navHtml;
     var main=document.createElement('div');
     main.className='_pub-main';
@@ -18691,15 +18732,16 @@ function _buildSvcOrderPage(userId){
     window._publicUd=ud; window._publicUserId=userId; window._publicAccent=accent;
     window._publicSettings=settings;
 
-    // ── تأكيد تفعيل السكرول ──
+    // ── تأكيد تفعيل السكرول — يجب يكون بعد innerHTML ──
     document.documentElement.classList.add('pub-page');
     document.body.classList.add('pub-page');
-    // Remove any inline style overrides that might conflict
-    document.documentElement.style.overflow = '';
-    document.documentElement.style.height = '';
-    document.body.style.overflow = '';
-    document.body.style.height = '';
-    document.body.style.position = '';
+    document.documentElement.style.overflow = 'auto';
+    document.documentElement.style.overflowY = 'scroll';
+    document.documentElement.style.height = 'auto';
+    document.body.style.overflow = 'auto';
+    document.body.style.overflowY = 'auto';
+    document.body.style.height = 'auto';
+    document.body.style.position = 'static';
 
     // ── Navbar scroll active ──
     window.addEventListener('scroll', function(){
