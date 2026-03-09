@@ -2181,27 +2181,46 @@ window._appReady = false;
 window._showApp = function(){
   window._appReady = true;
   document.body.style.visibility = 'visible';
-  // لو صفحة متجر عام - لا تضيف overflow:hidden
+  document.body.style.opacity = '1';
   var _pp = new URLSearchParams(window.location.search);
-  var isPublic = _pp.get('svcorder') || _pp.get('u') || (_pp.get('portal') && _pp.get('uid'));
+  // ✅ FIX: تعريف موسّع للصفحات العامة (بدون تسجيل دخول)
+  var isPublic = _pp.get('svcorder') 
+    || _pp.get('u') 
+    || (_pp.get('portal') && _pp.get('uid'))
+    || (_pp.get('clientportal') && _pp.get('cid'))
+    || _pp.get('clientportal');
   if(isPublic) {
-    // Public page: ensure scroll works
     document.documentElement.classList.remove('app-loaded');
     document.body.classList.remove('app-loaded');
     document.documentElement.classList.add('pub-page');
     document.body.classList.add('pub-page');
-    var shell = document.getElementById('app-shell') || document.querySelector('.app-shell');
+    var shell = document.getElementById('app-body') || document.getElementById('app-shell') || document.querySelector('.app-shell');
     if(shell) shell.style.display = 'none';
+    // إخفاء auth screen تماماً في الصفحات العامة
+    var authScr = document.getElementById('auth-screen');
+    if(authScr){ authScr.style.display='none'; authScr.classList.add('hidden'); }
   } else {
-    // Normal app: lock scroll (app uses internal scrolling)
     document.documentElement.classList.add('app-loaded');
     document.body.classList.add('app-loaded');
   }
 };
 // Fallback: show after 4s no matter what
 setTimeout(window._showApp, 4000);
-// لو صفحة متجر - تفعيل أسرع
-if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(window._showApp, 500);
+// ✅ FIX: تفعيل فوري لكل الصفحات العامة
+(function(){
+  var _p = new URLSearchParams(window.location.search);
+  if(_p.get('svcorder') || _p.get('u') || 
+     (_p.get('portal') && _p.get('uid')) || 
+     (_p.get('clientportal') && _p.get('cid')) ||
+     _p.get('clientportal')){
+    // تفعيل فوري بدون انتظار auth
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', function(){ setTimeout(window._showApp, 100); });
+    } else {
+      setTimeout(window._showApp, 100);
+    }
+  }
+})();
 </script>
 
 <!-- ═══ AUTH SCREEN ═══ -->
@@ -6260,18 +6279,21 @@ function doSendWhatsApp(){
 function v(id){const e=document.getElementById(id);return e?e.value:'';}
 function uploadLogo(input){
   const f=input.files[0];if(!f)return;
-  toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع اللوجو...');
-  const r=new FileReader();
-  r.onload=e=>{
-    // اللوجو هنا للفاتورة فقط - مش للسايدبار ولا التاب
-    S.settings.logo=e.target.result;
-    lsSave();cloudSave(S);
-    // تحديث معاينة اللوجو في الإعدادات فقط
+  // ✅ تحقق من صلاحية تغيير اللوجو
+  const _feat = window._planFeatures || {};
+  if(_feat.allow_logo_change === false){
+    toast('<i class="fa-solid fa-lock"></i> باقتك الحالية لا تتيح تغيير اللوجو — يرجى الترقية');
+    input.value=''; return;
+  }
+  if(f.size>2*1024*1024){toast('<i class="fa-solid fa-triangle-exclamation"></i> الصورة أكبر من 2MB');input.value='';return;}
+  window._readFileWithProgress(f, function(dataUrl){
+    S.settings.logo=dataUrl;
+    lsSave();
+    cloudSave(S);
     const lp=document.getElementById('logo-preview');
-    if(lp) lp.innerHTML='<img src="'+e.target.result+'" style="max-height:80px;max-width:200px;object-fit:contain;border-radius:6px">';
-    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ اللوجو — سيظهر في الفاتورة');
-  };
-  r.readAsDataURL(f);
+    if(lp) lp.innerHTML='<img src="'+dataUrl+'" style="max-height:80px;max-width:200px;object-fit:contain;border-radius:6px">';
+    window._hideUploadProgress('تم حفظ اللوجو — سيظهر في الفاتورة');
+  });
 }
 
 // ── مزامنة لوجو الستوديو مع platform_config ── (معطّلة - اللوجو للمتجر والفاتورة فقط)
@@ -9643,6 +9665,100 @@ function showToast(msg,dur=3000){
 }
 
 // ============================================================
+// ██████  UPLOAD PROGRESS MODAL SYSTEM
+// ============================================================
+(function(){
+  // إنشاء الـ Modal مرة واحدة
+  function _ensureUploadModal(){
+    if(document.getElementById('_upload-progress-modal')) return;
+    var m=document.createElement('div');
+    m.id='_upload-progress-modal';
+    m.style.cssText='display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);align-items:center;justify-content:center';
+    m.innerHTML=
+      '<div style="background:var(--surface,#1a1a2e);border:1.5px solid var(--border,rgba(124,111,247,.3));border-radius:20px;padding:28px 32px;min-width:300px;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)">'
+      +'<div id="_upm-icon" style="font-size:32px;margin-bottom:12px">📤</div>'
+      +'<div id="_upm-title" style="font-size:15px;font-weight:800;color:var(--text,#f0f0f5);margin-bottom:6px">جاري الرفع...</div>'
+      +'<div id="_upm-sub" style="font-size:12px;color:var(--text3,#888);margin-bottom:18px">يُرجى الانتظار حتى اكتمال التحميل</div>'
+      +'<div style="background:var(--surface3,#1e1e2c);border-radius:8px;height:10px;overflow:hidden;margin-bottom:10px">'
+      +'<div id="_upm-bar" style="height:100%;width:0%;border-radius:8px;transition:width .3s ease;background:linear-gradient(90deg,var(--accent,#7c6ff7),var(--accent3,#4fd1a5))"></div>'
+      +'</div>'
+      +'<div id="_upm-pct" style="font-size:12px;color:var(--text3,#888);margin-bottom:4px">0%</div>'
+      +'<div id="_upm-size" style="font-size:11px;color:var(--text3,#666)"></div>'
+      +'</div>';
+    document.body.appendChild(m);
+  }
+
+  function _fmtSize(bytes){
+    if(bytes<1024) return bytes+'B';
+    if(bytes<1024*1024) return (bytes/1024).toFixed(1)+'KB';
+    return (bytes/1024/1024).toFixed(2)+'MB';
+  }
+
+  // فتح Modal مع progress bar حقيقي
+  window._showUploadProgress = function(opts){
+    _ensureUploadModal();
+    var m=document.getElementById('_upload-progress-modal');
+    document.getElementById('_upm-icon').textContent=opts.icon||'📤';
+    document.getElementById('_upm-title').textContent=opts.title||'جاري الرفع...';
+    document.getElementById('_upm-sub').textContent=opts.subtitle||'يُرجى الانتظار حتى اكتمال التحميل';
+    document.getElementById('_upm-bar').style.width='0%';
+    document.getElementById('_upm-pct').textContent='0%';
+    document.getElementById('_upm-size').textContent=opts.fileSize?_fmtSize(opts.fileSize):'';
+    m.style.display='flex';
+  };
+
+  window._updateUploadProgress = function(pct){
+    var bar=document.getElementById('_upm-bar');
+    var pctEl=document.getElementById('_upm-pct');
+    if(bar) bar.style.width=Math.min(100,pct)+'%';
+    if(pctEl) pctEl.textContent=Math.round(pct)+'%';
+  };
+
+  window._hideUploadProgress = function(successMsg){
+    var m=document.getElementById('_upload-progress-modal');
+    if(!m) return;
+    // أكمل الـ bar لـ 100% ثم أغلق
+    window._updateUploadProgress(100);
+    if(successMsg){
+      var icon=document.getElementById('_upm-icon');
+      var title=document.getElementById('_upm-title');
+      var sub=document.getElementById('_upm-sub');
+      if(icon) icon.textContent='✅';
+      if(title) title.textContent='تم بنجاح!';
+      if(sub) sub.textContent=successMsg;
+    }
+    setTimeout(function(){ m.style.display='none'; }, 700);
+  };
+
+  // قراءة ملف مع progress حقيقي عبر FileReader
+  window._readFileWithProgress = function(file, onDone){
+    window._showUploadProgress({
+      icon: file.type.startsWith('image/') ? '🖼️' : '📄',
+      title: 'جاري قراءة الملف...',
+      subtitle: file.name,
+      fileSize: file.size
+    });
+    var r=new FileReader();
+    var startTime=Date.now();
+    r.onprogress=function(e){
+      if(e.lengthComputable) window._updateUploadProgress((e.loaded/e.total)*85);
+    };
+    r.onload=function(e){
+      window._updateUploadProgress(92);
+      // simulate save step
+      setTimeout(function(){
+        onDone(e.target.result);
+      }, 80);
+    };
+    r.onerror=function(){
+      window._hideUploadProgress();
+      toast('<i class="fa-solid fa-triangle-exclamation"></i> فشل قراءة الملف');
+    };
+    r.readAsDataURL(file);
+  };
+})();
+
+// ============================================================
 // DASHBOARD
 // ============================================================
 var _WIDGET_DEFS = [
@@ -10301,6 +10417,18 @@ function _showWelcomePopup(uid, userObj) {
 
 
 async function loadUserSubscription(uid) {
+  // ✅ FIX: تحميل فوري من الـ cache لإزالة التهنيج عند الـ refresh
+  const _cacheKey = '_sub_cache_' + uid;
+  try {
+    const cached = JSON.parse(localStorage.getItem(_cacheKey) || 'null');
+    if(cached && cached._cachedAt && (Date.now() - cached._cachedAt) < 5 * 60 * 1000){
+      // cache صالح (أقل من 5 دقايق) — طبّقه فوراً وحدّثه في الخلفية
+      _userSubscription = cached;
+      updateSubscriptionBar();
+      _updateNavLocks();
+    }
+  } catch(ce){}
+
   try {
     // جيب السيريال — يعمل مع أي column name
     let serialData = null;
@@ -10357,7 +10485,6 @@ async function loadUserSubscription(uid) {
           const as = typeof parsed.admin_subscription === 'string'
             ? JSON.parse(parsed.admin_subscription) : parsed.admin_subscription;
           if(as?.status === 'active') {
-            // حاول تجيب الباقة من Supabase أولاً، ثم localStorage
             let plan = null;
             try {
               const { data: planRow } = await supa.from('subscription_plans').select('*').eq('id', as.planId).maybeSingle();
@@ -10373,6 +10500,16 @@ async function loadUserSubscription(uid) {
       }
     } catch(fe) { console.warn('fallback sub check:', fe); }
   }
+
+  // ✅ حفظ في الـ cache للـ refresh القادم
+  try {
+    if(_userSubscription){
+      localStorage.setItem(_cacheKey, JSON.stringify({..._userSubscription, _cachedAt: Date.now()}));
+    } else {
+      localStorage.removeItem(_cacheKey);
+    }
+  } catch(e){}
+
   updateSubscriptionBar();
   _updateNavLocks();
   return _userSubscription;
@@ -12428,13 +12565,14 @@ async function saveTeam(){
 
   const ownerName  = (S.settings&&S.settings.name)||'مشرف';
   const ownerEmail = (S.settings&&S.settings.email)||'';
+  const ownerId    = typeof _supaUserId !== 'undefined' ? _supaUserId : '';
 
   for(const m of newMembers){
     try {
       const email = (m.email||'').toLowerCase().trim();
       if(!email) continue;
 
-      // Find target user_id — Method 1: RPC by email
+      // ── Find target user_id ──
       let targetUserId = m.linkedUserId || null;
       if(!targetUserId){
         try{
@@ -12442,12 +12580,17 @@ async function saveTeam(){
           if(rpcId) targetUserId = rpcId;
         }catch(e){}
       }
-
-      // Method 2: scan auth_users via admin (may not work with anon key — fallback only)
       if(!targetUserId){
         try{
           const { data: pr } = await supa.from('profiles').select('id').eq('email', email).maybeSingle().catch(()=>({data:null}));
           if(pr) targetUserId = pr.id;
+        }catch(e){}
+      }
+      // بحث في studio_data بالإيميل
+      if(!targetUserId){
+        try{
+          const { data: rows } = await supa.from('studio_data').select('user_id,data').ilike('data','%"email":"'+email+'"%').limit(5).catch(()=>({data:null}));
+          if(rows){ for(var row of rows){ try{ var ud2=typeof row.data==='string'?JSON.parse(row.data):row.data; var se2=(ud2?.settings?.email||ud2?._user_email||'').toLowerCase().trim(); if(se2&&se2===email){targetUserId=row.user_id;break;} }catch(e){} } }
         }catch(e){}
       }
 
@@ -12456,42 +12599,57 @@ async function saveTeam(){
         continue;
       }
 
-      // ── Deliver notification via user_notifications table (no RLS problem) ──
-      const notifRow = {
-        user_id    : targetUserId,
-        title      : 'تمت إضافتك لفريق!',
-        body       : 'تمت إضافتك كـ '+(m.role||'عضو')+' في فريق "'+name+'" بواسطة '+ownerName,
-        type       : 'team_added',
-        data       : JSON.stringify({ teamId: d.id, teamName: name, memberRole: m.role, ownerName, ownerEmail }),
-        read       : false,
-        created_at : new Date().toISOString()
-      };
-
-      const { error: notifErr } = await supa.from('user_notifications').insert([notifRow]).catch(e=>({error:e}));
-
-      if(notifErr){
-        // Fallback: write to studio_data if we somehow have access
-        console.warn('user_notifications insert failed:', notifErr.message, '— trying studio_data fallback');
-        try{
-          const { data: tgtRow } = await supa.from('studio_data').select('data').eq('user_id',targetUserId).maybeSingle().catch(()=>({data:null}));
-          if(tgtRow && tgtRow.data){
-            let ud2 = typeof tgtRow.data==='string' ? JSON.parse(tgtRow.data) : tgtRow.data;
+      // ✅ FIX: إضافة مباشرة في studio_data الخاصة بالعضو (بدون دعوة)
+      try {
+        const { data: tgtRow } = await supa.from('studio_data').select('data').eq('user_id', targetUserId).maybeSingle().catch(()=>({data:null}));
+        if(tgtRow && tgtRow.data){
+          let ud2 = typeof tgtRow.data==='string' ? JSON.parse(tgtRow.data) : tgtRow.data;
+          // تأكد إن الـ _member_of_teams موجود
+          ud2._member_of_teams = ud2._member_of_teams || [];
+          // لا تضيف مرتين
+          const alreadyIn = ud2._member_of_teams.find(t => String(t.teamId)===String(d.id) && t.ownerId===ownerId);
+          if(!alreadyIn){
+            ud2._member_of_teams.push({
+              teamId      : d.id,
+              teamName    : name,
+              role        : m.role || 'عضو',
+              ownerName,
+              ownerEmail,
+              ownerId,
+              joinedAt    : new Date().toISOString()
+            });
+            // إضافة إشعار بسيط
             ud2._pending_notifications = ud2._pending_notifications||[];
-            const alreadyEx = ud2._pending_notifications.find(n=>n.type==='team_added'&&String(n.teamId)===String(d.id));
-            if(!alreadyEx){
-              ud2._pending_notifications.push({ id:Date.now()+'_ta', title:'تمت إضافتك لفريق!', body:notifRow.body, type:'team_added', teamId:d.id, teamName:name, created_at:notifRow.created_at, read:false });
-              await supa.from('studio_data').update({data:JSON.stringify(ud2),updated_at:new Date().toISOString()}).eq('user_id',targetUserId).catch(()=>null);
-            }
+            ud2._pending_notifications.push({
+              id        : Date.now()+'_ta',
+              title     : 'تمت إضافتك لفريق!',
+              body      : 'تمت إضافتك كـ '+(m.role||'عضو')+' في فريق "'+name+'" بواسطة '+ownerName,
+              type      : 'team_added',
+              teamId    : d.id,
+              teamName  : name,
+              ownerId,
+              ownerName,
+              created_at: new Date().toISOString(),
+              read      : false
+            });
+            await supa.from('studio_data')
+              .update({ data: JSON.stringify(ud2), updated_at: new Date().toISOString() })
+              .eq('user_id', targetUserId)
+              .catch(()=>null);
+            showMiniNotif('✅ تمت إضافة '+m.name+' للفريق مباشرةً');
+          } else {
+            showMiniNotif('ℹ️ '+m.name+' مضاف بالفعل في هذا الفريق');
           }
-        }catch(e2){}
-        showMiniNotif('⚠️ تم الحفظ لكن قد لا يصل إشعار لـ '+m.name);
-      } else {
-        showMiniNotif('✅ تمت إضافة '+m.name+' وسيصله إشعار');
+        } else {
+          showMiniNotif('⚠️ '+m.name+' — تعذّر الوصول لبيانات الحساب');
+        }
+      } catch(e2){
+        console.warn('Team direct add err:', m.name, e2);
+        showMiniNotif('⚠️ '+m.name+' — خطأ أثناء الإضافة');
       }
     } catch(e){ console.warn('Team notify err:', m.name, e); }
   }
 }
-
 
 function delTeam(id){
   confirmDel('هل تريد حذف هذا الفريق؟',()=>{
@@ -15245,7 +15403,12 @@ let _authProcessingUserId = null;
 supa.auth.onAuthStateChange(async (event, session) => {
   // ── Public service/portal pages: skip all auth handling ──
   var _pup = new URLSearchParams(window.location.search);
-  if(_pup.get('svcorder') || (_pup.get('portal') && _pup.get('uid')) || (_pup.get('clientportal') && _pup.get('cid'))){ if(window._showApp) window._showApp(); return; }
+  var _isAnyPublic = _pup.get('svcorder') 
+    || (_pup.get('portal') && _pup.get('uid')) 
+    || (_pup.get('clientportal') && _pup.get('cid'))
+    || _pup.get('clientportal')
+    || _pup.get('u');
+  if(_isAnyPublic){ if(window._showApp) window._showApp(); return; }
 
   console.log('Auth event:', event, session?.user?.email);
 
@@ -15327,7 +15490,12 @@ supa.auth.onAuthStateChange(async (event, session) => {
 async function initAuthFallback(){
   // ── Public pages: skip all auth/dashboard init entirely ──
   var _pu = new URLSearchParams(window.location.search);
-  if(_pu.get('svcorder') || (_pu.get('portal') && _pu.get('uid')) || (_pu.get('clientportal') && _pu.get('cid'))){ return; }
+  var _isAnyPub = _pu.get('svcorder') 
+    || (_pu.get('portal') && _pu.get('uid')) 
+    || (_pu.get('clientportal') && _pu.get('cid'))
+    || _pu.get('clientportal')
+    || _pu.get('u');
+  if(_isAnyPub){ if(window._showApp) window._showApp(); return; }
 
   loadThemePreferences();
   renderAll();
@@ -16175,17 +16343,16 @@ window._incReceiptData = null;
 
 function invReceiptPreview(inp){
   var file=inp.files[0]; if(!file) return;
-  var r=new FileReader();
-  r.onload=function(e){
-    window._invReceiptData=e.target.result;
+  window._readFileWithProgress(file, function(dataUrl){
+    window._invReceiptData=dataUrl;
     var img=document.getElementById('inv-receipt-img');
     var prev=document.getElementById('inv-receipt-prev');
     var ph=document.getElementById('inv-receipt-ph');
-    if(img) img.src=e.target.result;
+    if(img) img.src=dataUrl;
     if(prev) prev.style.display='block';
     if(ph) ph.style.display='none';
-  };
-  r.readAsDataURL(file);
+    window._hideUploadProgress('تم رفع الإيصال');
+  });
 }
 function invReceiptClear(){
   window._invReceiptData=null;
@@ -16205,17 +16372,16 @@ function invReceiptDrop(e){
 }
 function incReceiptPreview(inp){
   var file=inp.files[0]; if(!file) return;
-  var r=new FileReader();
-  r.onload=function(e){
-    window._incReceiptData=e.target.result;
+  window._readFileWithProgress(file, function(dataUrl){
+    window._incReceiptData=dataUrl;
     var img=document.getElementById('in-receipt-img');
     var prev=document.getElementById('in-receipt-prev');
     var ph=document.getElementById('in-receipt-ph');
-    if(img) img.src=e.target.result;
+    if(img) img.src=dataUrl;
     if(prev) prev.style.display='block';
     if(ph) ph.style.display='none';
-  };
-  r.readAsDataURL(file);
+    window._hideUploadProgress('تم رفع الإيصال');
+  });
 }
 function incReceiptClear(){
   window._incReceiptData=null;
@@ -16503,8 +16669,28 @@ window.openMyMemberTeamProfile = function(ownerId){
     if(!myEmail || typeof supa==='undefined') return;
     myEmail = myEmail.toLowerCase().trim();
     try {
-      // Use user_notifications table — no RLS issues (each user reads own rows)
       if(!_supaUserId) return;
+
+      var memberships = [];
+
+      // ✅ FIX: قراءة _member_of_teams من S مباشرة (الإضافة المباشرة الجديدة)
+      var directTeams = (typeof S !== 'undefined' && S._member_of_teams) || [];
+      directTeams.forEach(function(t){
+        var already = memberships.find(function(x){ return String(x.teamId)===String(t.teamId) && x.ownerId===t.ownerId; });
+        if(!already) memberships.push({
+          teamId    : t.teamId,
+          ownerId   : t.ownerId||'',
+          ownerName : t.ownerName||'مشرف',
+          ownerLogo : '',
+          teamName  : t.teamName||'الفريق',
+          memberName: myEmail,
+          role      : t.role||'عضو',
+          tasks     : [],
+          doneTasks : []
+        });
+      });
+
+      // قراءة user_notifications للإضافات عبر النظام القديم
       var { data: notifRows } = await supa
         .from('user_notifications')
         .select('*')
@@ -16512,7 +16698,6 @@ window.openMyMemberTeamProfile = function(ownerId){
         .eq('type', 'team_added')
         .order('created_at', {ascending:false});
 
-      var memberships = [];
       if(notifRows && notifRows.length){
         notifRows.forEach(function(n){
           try{
@@ -17337,6 +17522,14 @@ function _saveStore(editIdx, btn){
     if(logo) S.stores[editIdx].logo=logo;
     else if(window._storeLogoData==='') S.stores[editIdx].logo='';
   } else {
+    // ✅ تحقق من حد المتاجر قبل الإنشاء
+    const _feat = window._planFeatures || {};
+    const _maxSt = _feat.max_stores !== undefined ? +_feat.max_stores : 1;
+    const _curSt = (S.stores||[]).length;
+    if(_maxSt > 0 && _curSt >= _maxSt){
+      toast('<i class="fa-solid fa-lock"></i> وصلت للحد الأقصى للمتاجر ('+_maxSt+') — يرجى الترقية لإضافة المزيد');
+      return;
+    }
     S.stores.push({id:'store_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),name:name,desc:desc,username:username,logo:logo,createdAt:new Date().toISOString()});
   }
   window._storeLogoData='';
@@ -17468,14 +17661,13 @@ var _svcLogoData='';
 function handleSvcLogo(input){
   var file=input.files[0]; if(!file) return;
   if(file.size>1.5*1024*1024){toast('<i class="fa-solid fa-triangle-exclamation"></i> الصورة أكبر من 1.5 ميجا');input.value='';return;}
-  toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع اللوجو...');
-  var r=new FileReader(); r.onload=function(e){
-    _svcLogoData=e.target.result;
+  window._readFileWithProgress(file, function(dataUrl){
+    _svcLogoData=dataUrl;
     var pv=document.getElementById('svc-logo-preview');
-    if(pv) pv.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
+    if(pv) pv.innerHTML='<img src="'+dataUrl+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
     var cl=document.getElementById('svc-logo-clear-btn'); if(cl) cl.style.display='';
-    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تحديد اللوجو - اضغط "حفظ اللوجو" لتأكيد الحفظ في المتجر');
-  }; r.readAsDataURL(file);
+    window._hideUploadProgress('تم تحديد اللوجو - اضغط "حفظ اللوجو" لتأكيد الحفظ');
+  });
 }
 function clearSvcLogo(){
   _svcLogoData='';
@@ -17817,18 +18009,23 @@ function toggleSvcActive(id,event){
 // ── Banner ──
 function handleSvcBanner(input){
   var file=input.files[0]; if(!file) return;
+  // ✅ تحقق من صلاحية البانر
+  var _feat = window._planFeatures || {};
+  if(_feat.store_banner === false){
+    toast('<i class="fa-solid fa-lock"></i> باقتك الحالية لا تتيح رفع بانر المتجر — يرجى الترقية');
+    input.value=''; return;
+  }
   if(file.size>2*1024*1024){ toast('<i class="fa-solid fa-triangle-exclamation"></i> حجم البانر أكبر من 2 ميجا'); input.value=''; return; }
-  var r=new FileReader();
-  r.onload=function(e){
+  window._readFileWithProgress(file, function(dataUrl){
     var _stIdx=_currentStoreIdx;
     var _curSt=(_stIdx!=null)?(_getStores()[_stIdx]||null):null;
-    if(_curSt){ _curSt.banner=e.target.result; }
-    else { if(!S.settings) S.settings={}; S.settings.svc_banner=e.target.result; }
+    if(_curSt){ _curSt.banner=dataUrl; }
+    else { if(!S.settings) S.settings={}; S.settings.svc_banner=dataUrl; }
     var prev=document.getElementById('svc-banner-preview'); var img=document.getElementById('svc-banner-img'); var clr=document.getElementById('svc-banner-clear-btn');
-    if(prev) prev.style.display=''; if(img) img.src=e.target.result; if(clr) clr.style.display='';
-    lsSave(); cloudSave(S); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع البانر');
-  };
-  r.readAsDataURL(file);
+    if(prev) prev.style.display=''; if(img) img.src=dataUrl; if(clr) clr.style.display='';
+    lsSave(); cloudSave(S);
+    window._hideUploadProgress('تم رفع البانر وحفظه');
+  });
 }
 function clearSvcBanner(){
   var _stIdx=_currentStoreIdx;
@@ -17970,16 +18167,13 @@ function openSvcModal(id){
 function handleSvcImg(input){
   var file=input.files[0]; if(!file) return;
   if(file.size>2*1024*1024){ toast('<i class="fa-solid fa-triangle-exclamation"></i> الصورة أكبر من 2 ميجا'); input.value=''; return; }
-  toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع الصورة...');
-  var r=new FileReader();
-  r.onload=function(e){
-    _svcImgData=e.target.result;
-    var pv=document.getElementById('svc-img-preview'); pv.src=e.target.result; pv.style.display='';
+  window._readFileWithProgress(file, function(dataUrl){
+    _svcImgData=dataUrl;
+    var pv=document.getElementById('svc-img-preview'); pv.src=dataUrl; pv.style.display='';
     document.getElementById('svc-img-name').textContent=input.files[0].name;
     var cl=document.getElementById('svc-img-clear-btn'); if(cl) cl.style.display='';
-    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع الصورة');
-  };
-  r.readAsDataURL(file);
+    window._hideUploadProgress('تم رفع الصورة');
+  });
 }
 
 // ── Packages ──
