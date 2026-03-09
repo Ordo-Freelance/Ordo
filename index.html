@@ -364,6 +364,117 @@ function cloudSave(data){
   _syncTimer = setTimeout(() => _doCloudSave(S), 1200);
 }
 
+// ══════════════════════════════════════════════════════
+// ── AUTO-SAVE كل 3 ثواني للسحابة (فقط لو في تغيير) ──
+// ══════════════════════════════════════════════════════
+var _autoSaveHash = '';
+var _autoSaveTimer = null;
+
+function _getDataHash(data){
+  try{
+    var str = JSON.stringify(data);
+    // hash بسيط وسريع
+    var h = 0;
+    for(var i=0; i<Math.min(str.length,5000); i++){
+      h = ((h<<5)-h) + str.charCodeAt(i);
+      h |= 0;
+    }
+    return h + '_' + str.length;
+  }catch(e){ return Date.now()+''; }
+}
+
+function _startAutoSave(){
+  if(_autoSaveTimer) clearInterval(_autoSaveTimer);
+  _autoSaveTimer = setInterval(function(){
+    if(!_supaUserId || !S) return;
+    // دمج كل إعدادات الواجهة والثيم قبل المقارنة
+    _mergeUiSettingsIntoS();
+    var currentHash = _getDataHash(S);
+    if(currentHash !== _autoSaveHash){
+      _autoSaveHash = currentHash;
+      // مؤشر مرئي خفيف: نقطة خضرا لمدة ثانيتين
+      _showAutoSaveDot();
+      _doCloudSave(S);
+    }
+  }, 3000);
+}
+
+// ── مؤشر الحفظ التلقائي (نقطة خضرا خفيفة) ──
+var _autoSaveDotTimer = null;
+function _showAutoSaveDot(){
+  var dot = document.getElementById('_autosave-dot');
+  if(!dot){
+    dot = document.createElement('div');
+    dot.id = '_autosave-dot';
+    dot.style.cssText = 'position:fixed;bottom:18px;left:18px;z-index:99999;display:flex;align-items:center;gap:7px;background:rgba(15,15,20,.85);backdrop-filter:blur(8px);border:1px solid rgba(79,209,165,.3);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;color:#4fd1a5;pointer-events:none;transition:opacity .4s;direction:rtl;font-family:Cairo,sans-serif';
+    dot.innerHTML = '<span style="width:7px;height:7px;background:#4fd1a5;border-radius:50%;display:inline-block;animation:_asPulse .8s ease infinite"></span> تم الحفظ التلقائي';
+    // أضف الـ animation
+    if(!document.getElementById('_as-style')){
+      var st=document.createElement('style');
+      st.id='_as-style';
+      st.textContent='@keyframes _asPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}';
+      document.head.appendChild(st);
+    }
+    document.body.appendChild(dot);
+  }
+  dot.style.opacity='1';
+  if(_autoSaveDotTimer) clearTimeout(_autoSaveDotTimer);
+  _autoSaveDotTimer = setTimeout(function(){ if(dot) dot.style.opacity='0'; }, 2500);
+}
+
+// دمج إعدادات الثيم (studioDisplayMode, studioAccentColor, platform_config) مع S.settings
+function _mergeUiSettingsIntoS(){
+  try{
+    if(!S || !S.settings) return;
+    // ── إعدادات الواجهة ──
+    S.settings.displayMode  = localStorage.getItem('studioDisplayMode') || S.settings.displayMode || 'light';
+    S.settings.accentColor  = localStorage.getItem('studioAccentColor') || S.settings.accentColor || '#7c6ff7';
+    S.settings.lang         = localStorage.getItem('studioLang')        || S.settings.lang        || 'ar';
+    // ── تصنيفات الخدمات والبورتفوليو ──
+    try{
+      var sc = JSON.parse(localStorage.getItem('_svcCats')||'null');
+      if(Array.isArray(sc)) S.settings._svcCats = sc;
+    }catch(e){}
+    try{
+      var pc2 = JSON.parse(localStorage.getItem('_pfCats')||'null');
+      if(Array.isArray(pc2)) S.settings._pfCats = pc2;
+    }catch(e){}
+    // ── platform_config كامل (اسم التطبيق، لوجو، فافيكون، لون) ──
+    try{
+      var _pc3 = JSON.parse(localStorage.getItem('platform_config')||'{}');
+      // مزامنة اللوجو في الاتجاهين
+      if(_pc3.logo && !S.settings.logo) S.settings.logo = _pc3.logo;
+      if(S.settings.logo && _pc3.logo !== S.settings.logo){
+        _pc3.logo = S.settings.logo;
+        localStorage.setItem('platform_config', JSON.stringify(_pc3));
+      }
+      // حفظ platform_config كاملاً في settings
+      S.settings._platformConfig = _pc3;
+    }catch(e){}
+    // ── ضمان وجود كل المصفوفات الأساسية ──
+    if(!S.services)            S.services=[];
+    if(!S.standalone_packages) S.standalone_packages=[];
+    if(!S.portfolio_projects)  S.portfolio_projects=[];
+    if(!S.svc_orders)          S.svc_orders=[];
+    if(!S.stores)              S.stores=[];
+    if(!S.clients)             S.clients=[];
+    if(!S.tasks)               S.tasks=[];
+    if(!S.transactions)        S.transactions=[];
+    if(!S.invoices)            S.invoices=[];
+    if(!S.goals)               S.goals=[];
+    if(!S.schedule)            S.schedule=[];
+    if(!S.teams)               S.teams=[];
+    if(!S.subscriptions)       S.subscriptions=[];
+    if(!S.projects)            S.projects=[];
+    if(!S.project_tasks)       S.project_tasks=[];
+    if(!S.specializations)     S.specializations=[];
+    if(!S.client_portals)      S.client_portals=[];
+    if(!S.statements)          S.statements=[];
+    if(!S.timeEntries)         S.timeEntries=[];
+    if(!S.contracts)           S.contracts=[];
+  }catch(e){}
+}
+
 // حفظ فوري عند إغلاق الصفحة
 window.addEventListener('beforeunload', function() {
   if(_supaUserId && S) {
@@ -5888,6 +5999,7 @@ function removeTaskTypeFromSettings(i){
   showToast('<i class="fa-solid fa-trash"></i> تم حذف: '+name);
 }
 function saveSettings(){
+  _mergeUiSettingsIntoS();
   S.settings = Object.assign({}, S.settings, {
     name:v('set-name'), phone:v('set-phone'), email:v('set-email'),
     address:v('set-address'), terms:v('set-terms'),
@@ -5898,8 +6010,8 @@ function saveSettings(){
     taskTypes:S.settings?.taskTypes||[], taskStatuses:S.settings?.taskStatuses||[],
     paymentAccounts:S.settings?.paymentAccounts||[],
   });
+  _syncStudioLogoToConfig();
   lsSave(); cloudSave(S); toast('✅ تم حفظ الإعدادات');
-  setTimeout(function(){ location.reload(); }, 1200);
 }
 
 async function forceCloudReload(){
@@ -10084,6 +10196,8 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   updateHeader('dashboard');
   // شغّل مراقب حماية البيانات بعد تحميل كامل
   setTimeout(_startDataWatchdog, 5000);
+  // ── شغّل الحفظ التلقائي كل 3 ثواني ──
+  setTimeout(_startAutoSave, 3000);
   // Force dashboard update with cloud data
   setTimeout(()=>{ updateDash(); _renderDashGrid && _renderDashGrid(); }, 100);
 
@@ -11332,31 +11446,81 @@ function saveBackupSettings(){
 
 /* ── Do backup ── */
 function doBackupNow(){
+  // دمج إعدادات الثيم قبل الحفظ
+  _mergeUiSettingsIntoS();
   // Save latest state first
   try{ localStorage.setItem(userKey(), JSON.stringify(S)); }catch(e){}
   const user    = getSession();
   const bs      = getBackupSettings();
-  const dataStr = localStorage.getItem(userKey()) || '{}';
-  // Also include all registered users (encrypted hashes, safe to backup)
+
+  // جمع كل إعدادات الواجهة من localStorage
+  var uiConfig = {};
+  try{
+    uiConfig.displayMode    = localStorage.getItem('studioDisplayMode') || '';
+    uiConfig.accentColor    = localStorage.getItem('studioAccentColor') || '';
+    uiConfig.lang           = localStorage.getItem('studioLang')        || '';
+    uiConfig.platformConfig = JSON.parse(localStorage.getItem('platform_config')||'{}');
+    uiConfig.svcCats        = JSON.parse(localStorage.getItem('_svcCats')||'[]');
+    uiConfig.pfCats         = JSON.parse(localStorage.getItem('_pfCats')||'[]');
+    // حفظ كل مفاتيح localStorage المتعلقة بالتطبيق
+    uiConfig.allKeys = {};
+    for(var k in localStorage){
+      if(k.startsWith('studio') || k.startsWith('_svc') || k.startsWith('_pf') || k === 'platform_config'){
+        try{ uiConfig.allKeys[k] = localStorage.getItem(k); }catch(e){}
+      }
+    }
+  }catch(e){}
+
+  // ── نسخة شاملة من كل حاجة في S ──
+  const fullData = Object.assign({}, S, {
+    settings          : Object.assign({}, S.settings||{}),
+    tasks             : S.tasks||[],
+    clients           : S.clients||[],
+    transactions      : S.transactions||[],
+    invoices          : S.invoices||[],
+    goals             : S.goals||[],
+    schedule          : S.schedule||[],
+    teams             : S.teams||[],
+    subscriptions     : S.subscriptions||[],
+    projects          : S.projects||[],
+    project_tasks     : S.project_tasks||[],
+    services          : S.services||[],
+    standalone_packages: S.standalone_packages||[],
+    portfolio_projects: S.portfolio_projects||[],
+    svc_orders        : S.svc_orders||[],
+    specializations   : S.specializations||[],
+    client_portals    : S.client_portals||[],
+    statements        : S.statements||[],
+    timeEntries       : S.timeEntries||[],
+    contracts         : S.contracts||[],
+    stores            : S.stores||[],
+    taskStatuses      : S.taskStatuses||S.settings?.taskStatuses||[],
+    paymentAccounts   : S.paymentAccounts||S.settings?.paymentAccounts||[],
+  });
+
   const allUsers = getUsers();
   const backup  = {
-    exportedAt : new Date().toISOString(),
-    version    : 'studioOS_v3',
-    userId     : user ? user.id : 'guest',
-    userName   : user ? user.name : 'guest',
-    data       : JSON.parse(dataStr),
-    backupPath : bs.path || '',
+    exportedAt  : new Date().toISOString(),
+    version     : 'studioOS_v4_full',
+    userId      : user ? user.id : 'guest',
+    userName    : user ? user.name : 'guest',
+    // ── البيانات الكاملة ──
+    data        : fullData,
+    // ── إعدادات الواجهة والثيم والألوان واللوجو ──
+    uiConfig    : uiConfig,
+    backupPath  : bs.path || '',
     // Full auth backup
-    authUsers  : allUsers,
-    currentUser: user ? { id: user.id, name: user.name, phone: user.phone, studio: user.studio } : null
+    authUsers   : allUsers,
+    currentUser : user ? { id: user.id, name: user.name, phone: user.phone, studio: user.studio } : null
   };
+
   const blob     = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
   const url      = URL.createObjectURL(blob);
   const a        = document.createElement('a');
   const dateStr  = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
   const name     = (user?.name||'studio').replace(/\s+/g,'_');
   a.href         = url;
-  a.download     = `Ordo_Backup_${name}_${dateStr}.json`;
+  a.download     = `Ordo_Backup_Full_${name}_${dateStr}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -11368,15 +11532,9 @@ function doBackupNow(){
   updateNextReminderDisplay();
   // Reset 3h timer
   if(getBackupSettings().remind3h) initBackupTimers();
-  // ── Auto-sync to cloud on every backup ──
+  // ── رفع على السحابة فوراً مع الحفظ ──
   cloudSave(S);
-  // Show path reminder if set
-  const path = bs.path;
-  if(path){
-    showMiniNotif(`<i class="fa-solid fa-floppy-disk"></i> تم التنزيل وحفظ على السحابة <i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>`);
-  } else {
-    showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم النسخ الاحتياطي محلياً وعلى السحابة!');
-  }
+  showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم النسخ الاحتياطي الكامل (البيانات + الإعدادات + المتاجر + اللوجو) وحفظ على السحابة!');
 }
 
 /* ── Import backup ── */
@@ -11390,17 +11548,50 @@ function readBackupFile(input){
   reader.onload = function(e){
     try{
       const obj = JSON.parse(e.target.result);
-      if(!obj.data || !obj.version) { alert('<i class="fa-solid fa-triangle-exclamation"></i> الملف غير صالح أو تالف'); return; }
-      const confirmed = confirm(`هل تريد استعادة البيانات من نسخة:\n<i class="fa-solid fa-calendar-days"></i> ${obj.exportedAt ? new Date(obj.exportedAt).toLocaleString('ar-EG') : 'غير معروف'}\n<i class="fa-solid fa-user"></i> ${obj.userName||'غير معروف'}\n\n<i class="fa-solid fa-triangle-exclamation"></i> سيتم استبدال بياناتك الحالية!\n${obj.authUsers?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تشمل النسخة بيانات الحسابات':''}` );
+      if(!obj.data || !obj.version) { alert('الملف غير صالح أو تالف'); return; }
+      const confirmed = confirm(`هل تريد استعادة البيانات من نسخة:\n${obj.exportedAt ? new Date(obj.exportedAt).toLocaleString('ar-EG') : 'غير معروف'}\n${obj.userName||'غير معروف'}\n\nسيتم استبدال بياناتك الحالية!\n${obj.authUsers?'تشمل النسخة بيانات الحسابات':''}` );
       if(!confirmed) return;
-      // Restore app data - use the correct key format studioOS_v3_
+
+      // ── استعادة بيانات التطبيق الرئيسية ──
       const session = getSession();
       const key = session ? 'studioOS_v3_'+session.id : userKey();
       localStorage.setItem(key, JSON.stringify(obj.data));
-      // Restore users if available
+
+      // ── استعادة إعدادات الواجهة والثيم والألوان ──
+      if(obj.uiConfig){
+        try{
+          if(obj.uiConfig.displayMode) localStorage.setItem('studioDisplayMode', obj.uiConfig.displayMode);
+          if(obj.uiConfig.accentColor) localStorage.setItem('studioAccentColor', obj.uiConfig.accentColor);
+          if(obj.uiConfig.lang)        localStorage.setItem('studioLang', obj.uiConfig.lang);
+          if(obj.uiConfig.svcCats)     localStorage.setItem('_svcCats', JSON.stringify(obj.uiConfig.svcCats));
+          if(obj.uiConfig.pfCats)      localStorage.setItem('_pfCats', JSON.stringify(obj.uiConfig.pfCats));
+          // استعادة كل مفاتيح localStorage
+          if(obj.uiConfig.allKeys){
+            for(var _k in obj.uiConfig.allKeys){
+              try{ if(obj.uiConfig.allKeys[_k]) localStorage.setItem(_k, obj.uiConfig.allKeys[_k]); }catch(e){}
+            }
+          }
+          if(obj.uiConfig.platformConfig){
+            // دمج platform_config مع احتفاظ باللوجو
+            var _existPc = JSON.parse(localStorage.getItem('platform_config')||'{}');
+            var _merged = Object.assign({}, _existPc, obj.uiConfig.platformConfig);
+            localStorage.setItem('platform_config', JSON.stringify(_merged));
+          }
+        }catch(e2){ console.warn('uiConfig restore error:', e2); }
+      }
+
+      // ── استعادة اللوجو من data.settings.logo إذا موجود ──
+      if(obj.data && obj.data.settings && obj.data.settings.logo){
+        try{
+          var _pc = JSON.parse(localStorage.getItem('platform_config')||'{}');
+          _pc.logo = obj.data.settings.logo;
+          localStorage.setItem('platform_config', JSON.stringify(_pc));
+        }catch(e3){}
+      }
+
+      // ── استعادة الحسابات ──
       if(obj.authUsers && Array.isArray(obj.authUsers) && obj.authUsers.length>0){
         const existingUsers = getUsers();
-        // Merge: add users from backup that don't exist locally
         let merged = [...existingUsers];
         obj.authUsers.forEach(bu=>{
           if(!merged.find(u=>u.id===bu.id || u.phone===bu.phone)){
@@ -11409,12 +11600,23 @@ function readBackupFile(input){
         });
         saveUsers(merged);
       }
+
       lsLoad();
+      S = obj.data; // تأكيد تحميل البيانات في S
+      migrateSFields && migrateSFields();
+
+      // ── رفع النسخة المستعادة على السحابة فوراً ──
+      if(_supaUserId){
+        cloudSave(S);
+        showMiniNotif('<i class="fa-solid fa-cloud-arrow-up"></i> جاري رفع النسخة الاحتياطية على السحابة...');
+      }
+
       renderAll();
+      if(typeof applyPlatformConfig==='function') applyPlatformConfig();
       closeM('modal-backup');
-      alert('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تمت استعادة البيانات بنجاح!' + (obj.authUsers?' (تم استعادة الحسابات أيضاً)':''));
+      toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تمت استعادة البيانات بنجاح!' + (obj.uiConfig?' (تم استعادة الإعدادات والثيم أيضاً)':'') + (obj.authUsers?' (وتم استعادة الحسابات)':''));
     }catch(err){
-      alert('<i class="fa-solid fa-triangle-exclamation"></i> حدث خطأ في قراءة الملف');
+      alert('حدث خطأ في قراءة الملف. تأكد أنه ملف نسخ احتياطي صحيح.');
     }
   };
   reader.readAsText(file);
@@ -17428,7 +17630,6 @@ function savePkgStandalone(){
   if(eid){ var i=S.standalone_packages.findIndex(function(p){return String(p.id)===String(eid);}); if(i>-1){d.id=+eid;d.createdAt=S.standalone_packages[i].createdAt||d.updatedAt;S.standalone_packages[i]=d;} }
   else { d.id=Date.now(); d.createdAt=d.updatedAt; S.standalone_packages.push(d); }
   lsSave(); cloudSave(S); closeM('modal-pkg-standalone'); renderStandalonePackages(); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الباقة');
-  setTimeout(function(){ location.reload(); }, 1200);
 }
 function delPkgStandalone(id){
   if(!confirm('حذف هذه الباقة؟')) return;
@@ -17975,7 +18176,6 @@ function saveSvc(){
     d.id=Date.now(); S.services.push(d);
   }
   lsSave(); cloudSave(S); closeM('modal-svc'); renderServices(); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الخدمة');
-  setTimeout(function(){ location.reload(); }, 1200);
 }
 function delSvc(id){
   confirmDel('حذف هذه الخدمة؟', function(){
@@ -21897,6 +22097,16 @@ function _loadThemeFromCloud(){
   if(!S?.settings) return;
   if(S.settings.accentColor) setThemeColor(S.settings.accentColor);
   if(S.settings.displayMode) setDisplayMode(S.settings.displayMode);
+  if(S.settings.lang) {
+    try{ localStorage.setItem('studioLang', S.settings.lang); }catch(e){}
+  }
+  // استرداد التصنيفات من السحابة
+  if(S.settings._svcCats && Array.isArray(S.settings._svcCats)){
+    try{ localStorage.setItem('_svcCats', JSON.stringify(S.settings._svcCats)); }catch(e){}
+  }
+  if(S.settings._pfCats && Array.isArray(S.settings._pfCats)){
+    try{ localStorage.setItem('_pfCats', JSON.stringify(S.settings._pfCats)); }catch(e){}
+  }
 }
 
 // ═══════════════════════════════════════════════════
