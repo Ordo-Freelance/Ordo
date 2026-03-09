@@ -2127,7 +2127,8 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   </div>
   <div class="nav-section-label" data-i18n="sec_main">الرئيسية</div>
   <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span class="nav-label" data-ar="لوحة التحكم" data-i18n="nav_dashboard">لوحة التحكم</span></div>
-  <div class="nav-item" onclick="showPage('tasks',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><span class="nav-label" data-ar="المهام والمشاريع" data-i18n="nav_tasks">المهام والمشاريع</span><span class="nav-badge" id="tasks-badge" style="display:none"></span></div>
+  <div class="nav-item" onclick="showPage('tasks',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><span class="nav-label" data-ar="المهام" data-i18n="nav_tasks">المهام</span><span class="nav-badge" id="tasks-badge" style="display:none"></span></div>
+  <div class="nav-item" onclick="showPage('projects',this)" id="nav-projects"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span><span class="nav-label">المشاريع</span><span class="nav-badge" id="projects-badge" style="display:none;background:var(--accent2)"></span></div>
   <div class="nav-item" onclick="showPage('schedule',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="nav-label" data-ar="تنظيم اليوم" data-i18n="nav_schedule">تنظيم اليوم</span></div>
   <div class="nav-item" onclick="showPage(&#39;meetings&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="nav-label" data-ar="الميتنج" data-i18n="nav_meetings">الميتنج</span><span class="nav-badge" id="meetings-badge" style="display:none;background:var(--accent4)"></span></div>
 
@@ -2206,6 +2207,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 <!-- BOTTOM NAV (mobile) -->
 <div class="bn-overlay" id="bn-overlay" onclick="closeBnMore()"></div>
 <div class="bn-more-menu" id="bn-more-menu">
+  <div class="bn-more-item" onclick="showPage('projects');closeBnMore()" id="bnm-projects"><span><i class="fa-solid fa-diagram-project"></i></span><span>المشاريع</span></div>
   <div class="bn-more-item" onclick="showPage(&#39;clients&#39;);closeBnMore()" id="bnm-clients"><span><i class="fa-solid fa-address-book"></i></span><span data-i18n="nav_clients">قاعدة العملاء</span></div>
   <div class="bn-more-item" onclick="showPage(&#39;team&#39;);closeBnMore()" id="bnm-team"><span><i class="fa-solid fa-people-group"></i></span><span data-i18n="nav_team">فريق العمل</span></div>
   <div class="bn-more-item" onclick="showPage(&#39;finance&#39;);closeBnMore()" id="bnm-finance"><span><i class="fa-solid fa-coins"></i></span><span data-i18n="nav_finance">المالية</span></div>
@@ -2484,6 +2486,164 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 </div>
 
 <!-- SCHEDULE -->
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE: PROJECTS                                            -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page" id="page-projects">
+  <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div>
+      <div class="page-title"><i class="fa-solid fa-diagram-project" style="color:var(--accent)"></i> المشاريع</div>
+      <div class="page-sub" id="projects-sub" style="font-size:12px;color:var(--text3)">إدارة مشاريعك وربطها بالعملاء والفريق</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:4px;background:var(--surface2);border-radius:8px;padding:3px">
+        <button id="proj-view-grid" class="btn btn-ghost btn-sm active-view" onclick="setProjView('grid')" style="padding:5px 10px"><i class="fa-solid fa-grip"></i></button>
+        <button id="proj-view-list" class="btn btn-ghost btn-sm" onclick="setProjView('list')" style="padding:5px 10px"><i class="fa-solid fa-list"></i></button>
+      </div>
+      <select class="form-input" id="proj-filter-status" onchange="renderProjects()" style="height:34px;width:140px;font-size:12px">
+        <option value="">كل الحالات</option>
+        <option value="active">نشط</option>
+        <option value="hold">معلق</option>
+        <option value="review">مراجعة</option>
+        <option value="done">مكتمل</option>
+      </select>
+      <button class="btn btn-primary" onclick="openProjectModal()"><i class="fa-solid fa-plus" style="margin-left:5px"></i> مشروع جديد</button>
+    </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px" id="proj-stats-bar">
+    <div class="card" style="flex:1;min-width:120px;padding:12px 16px;text-align:center">
+      <div style="font-size:22px;font-weight:900;color:var(--accent)" id="ps-total-count">0</div>
+      <div style="font-size:11px;color:var(--text3)">إجمالي المشاريع</div>
+    </div>
+    <div class="card" style="flex:1;min-width:120px;padding:12px 16px;text-align:center">
+      <div style="font-size:22px;font-weight:900;color:#4fd1a5" id="ps-active-count">0</div>
+      <div style="font-size:11px;color:var(--text3)">نشطة</div>
+    </div>
+    <div class="card" style="flex:1;min-width:120px;padding:12px 16px;text-align:center">
+      <div style="font-size:22px;font-weight:900;color:#f7c948" id="ps-hold-count">0</div>
+      <div style="font-size:11px;color:var(--text3)">معلقة</div>
+    </div>
+    <div class="card" style="flex:1;min-width:120px;padding:12px 16px;text-align:center">
+      <div style="font-size:22px;font-weight:900;color:#7c6ff7" id="ps-done-count">0</div>
+      <div style="font-size:11px;color:var(--text3)">مكتملة</div>
+    </div>
+  </div>
+
+  <!-- Projects Grid -->
+  <div id="projects-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px"></div>
+</div>
+
+<!-- ══ PROJECT DETAIL PAGE ══ -->
+<div class="page" id="page-project-detail" style="padding:0">
+  <div id="proj-detail-inner"></div>
+</div>
+
+<!-- ══ MODAL: NEW/EDIT PROJECT ══ -->
+<div class="modal-overlay" id="modal-project">
+  <div class="modal" style="width:min(600px,96vw);max-height:92vh;overflow-y:auto">
+    <div class="modal-header">
+      <div class="modal-title" id="proj-modal-title"><i class="fa-solid fa-diagram-project"></i> مشروع جديد</div>
+      <button class="close-btn" onclick="closeM('modal-project')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="proj-eid">
+    <div class="form-group"><label class="form-label">اسم المشروع *</label><input class="form-input" id="proj-name" placeholder="مثال: موقع شركة ABC"></div>
+    <div class="form-group"><label class="form-label">الوصف</label><textarea class="form-textarea" id="proj-desc" rows="3" placeholder="وصف مختصر للمشروع..."></textarea></div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr">
+      <div class="form-group">
+        <label class="form-label">العميل</label>
+        <select class="form-input" id="proj-client"><option value="">— بدون عميل —</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الحالة</label>
+        <select class="form-input" id="proj-status">
+          <option value="active">🟢 نشط</option>
+          <option value="hold">🟡 معلق</option>
+          <option value="review">🔵 مراجعة</option>
+          <option value="done">✅ مكتمل</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr">
+      <div class="form-group"><label class="form-label">تاريخ البدء</label><input class="form-input" type="date" id="proj-start"></div>
+      <div class="form-group"><label class="form-label">الموعد النهائي</label><input class="form-input" type="date" id="proj-deadline"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">أعضاء الفريق</label>
+      <div id="proj-members-select" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--surface2);border-radius:8px;min-height:40px"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label"><i class="fa-solid fa-palette" style="color:var(--accent)"></i> لون المشروع</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="proj-color-picker">
+        <span onclick="pickProjColor('#7c6ff7')" style="width:28px;height:28px;border-radius:50%;background:#7c6ff7;cursor:pointer;border:2px solid transparent" data-c="#7c6ff7"></span>
+        <span onclick="pickProjColor('#4fd1a5')" style="width:28px;height:28px;border-radius:50%;background:#4fd1a5;cursor:pointer;border:2px solid transparent" data-c="#4fd1a5"></span>
+        <span onclick="pickProjColor('#f7c948')" style="width:28px;height:28px;border-radius:50%;background:#f7c948;cursor:pointer;border:2px solid transparent" data-c="#f7c948"></span>
+        <span onclick="pickProjColor('#f76f7c')" style="width:28px;height:28px;border-radius:50%;background:#f76f7c;cursor:pointer;border:2px solid transparent" data-c="#f76f7c"></span>
+        <span onclick="pickProjColor('#64b5f6')" style="width:28px;height:28px;border-radius:50%;background:#64b5f6;cursor:pointer;border:2px solid transparent" data-c="#64b5f6"></span>
+        <span onclick="pickProjColor('#ff9f43')" style="width:28px;height:28px;border-radius:50%;background:#ff9f43;cursor:pointer;border:2px solid transparent" data-c="#ff9f43"></span>
+        <input type="color" id="proj-color-custom" value="#7c6ff7" onchange="pickProjColor(this.value)" style="width:28px;height:28px;border:none;border-radius:50%;cursor:pointer;padding:0;background:none">
+      </div>
+      <input type="hidden" id="proj-color" value="#7c6ff7">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveProject()"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
+      <button class="btn btn-ghost" onclick="closeM('modal-project')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: PROJECT TASK ══ -->
+<div class="modal-overlay" id="modal-proj-task">
+  <div class="modal" style="width:min(600px,96vw);max-height:92vh;overflow-y:auto">
+    <div class="modal-header">
+      <div class="modal-title" id="proj-task-modal-title"><i class="fa-solid fa-list-check"></i> مهمة جديدة</div>
+      <button class="close-btn" onclick="closeM('modal-proj-task')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="ptask-eid">
+    <input type="hidden" id="ptask-proj-id">
+    <div class="form-group"><label class="form-label">عنوان المهمة *</label><input class="form-input" id="ptask-title" placeholder="ماذا يجب إنجازه؟"></div>
+    <div class="form-group"><label class="form-label">الوصف</label><textarea class="form-textarea" id="ptask-desc" rows="2" placeholder="تفاصيل إضافية..."></textarea></div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="form-group">
+        <label class="form-label">المسؤول</label>
+        <select class="form-input" id="ptask-assignee"><option value="">— اختر —</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الأولوية</label>
+        <select class="form-input" id="ptask-priority">
+          <option value="low">🟢 منخفضة</option>
+          <option value="normal" selected>🟡 عادية</option>
+          <option value="high">🔴 عالية</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الحالة</label>
+        <select class="form-input" id="ptask-status">
+          <option value="todo">📋 To Do</option>
+          <option value="progress">⚡ In Progress</option>
+          <option value="review">🔍 Review</option>
+          <option value="done">✅ Done</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">الموعد النهائي</label><input class="form-input" type="date" id="ptask-deadline"></div>
+    <div class="form-group">
+      <label class="form-label">الخطوات / Subtasks</label>
+      <div id="ptask-steps-list" style="margin-bottom:8px;display:flex;flex-direction:column;gap:4px"></div>
+      <div style="display:flex;gap:6px">
+        <input class="form-input" id="ptask-new-step" placeholder="أضف خطوة..." style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addPTaskStep()}">
+        <button class="btn btn-ghost btn-sm" onclick="addPTaskStep()">+ إضافة</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveProjTask()"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
+      <button class="btn btn-ghost" onclick="closeM('modal-proj-task')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
 <div class="page" id="page-schedule">
   <div class="page-header">
     <div><div class="page-title"><span data-i18n="title_schedule">تنظيم</span> <span data-i18n="title_schedule2">اليوم</span></div><div class="page-subtitle" data-i18n="sub_schedule">خطط يومك ساعة بساعة</div></div>
@@ -4905,7 +5065,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 // CORE STATE
 // ============================================================
 const COLORS=['#7c6ff7','#f7c948','#4fd1a5','#f76f7c','#64b5f6','#ff8a65','#ce93d8','#80cbc4'];
-let S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],teams:[],subscriptions:[],settings:{name:'',phone:'',email:'',address:'',terms:'',logo:'',taskTypes:['مهمة عامة','مشروع','استشارة','تقرير','متابعة','أخرى'],svc_site_desc:'',svc_orders_open:true,svc_banner_size:'md'},services:[],standalone_packages:[],portfolio_projects:[],svc_orders:[],specializations:[],client_portals:[]};
+let S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],teams:[],subscriptions:[],projects:[],project_tasks:[],settings:{name:'',phone:'',email:'',address:'',terms:'',logo:'',taskTypes:['مهمة عامة','مشروع','استشارة','تقرير','متابعة','أخرى'],svc_site_desc:'',svc_orders_open:true,svc_banner_size:'md'},services:[],standalone_packages:[],portfolio_projects:[],svc_orders:[],specializations:[],client_portals:[]};
 
 // ══════════════════════════════════════════════════
 //  SECURITY — XSS Prevention utility
@@ -5042,7 +5202,7 @@ function hasPageFeature(pageId){
   const f = _getPlanFeatures();
   // لو features فاضية — افتح كل الصفحات
   if(!f || Object.keys(f).length === 0) return true;
-  const map = { tasks:'tasks', clients:'clients', finance:'finance',
+  const map = { tasks:'tasks', projects:'tasks', clients:'clients', finance:'finance',
     invoices:'invoices', schedule:'schedule', team:'team',
     reports:'reports', meetings:'meetings', learning:'learning',
     timetracker:'timetracker', contracts:'contracts' };
@@ -17745,6 +17905,7 @@ function _checkSvcOrderUrl(){
   }
 })();
 function _buildSvcOrderPage(userId){
+  var params=new URLSearchParams(window.location.search);
   if(typeof supa==='undefined'){ _svcOrderFallback(); return; }
   var controller=new AbortController();
   var timer=setTimeout(function(){ controller.abort(); _svcOrderFallback(); }, 12000);
@@ -18991,6 +19152,12 @@ function sendSupportReply(){
 window.addEventListener('load', function(){
   var p=new URLSearchParams(window.location.search);
   if(p.get('svcorder')||( p.get('portal')&&p.get('uid') )) _checkSvcOrderUrl();
+  // Project portal
+  if(p.get('portal')==='project'&&p.get('uid')&&p.get('pid')){
+    document.documentElement.classList.add('pub-page');
+    document.body.classList.add('pub-page');
+    _buildProjectPortalPage(p.get('uid'),p.get('pid'));
+  }
 });
 
 // Re-trigger admin notifications after cloudLoad (user login)
@@ -20969,6 +21136,752 @@ window.addEventListener('load', function(){
 });
 
 // ═══════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════
+// PROJECT MANAGEMENT SYSTEM
+// ════════════════════════════════════════════════════════════════
+
+// ── CSS ──
+(function(){
+  const s=document.createElement('style');
+  s.textContent=`
+    .proj-card{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:0;overflow:hidden;cursor:pointer;transition:.2s;position:relative}
+    .proj-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+    .proj-card-top{height:6px;width:100%}
+    .proj-card-body{padding:16px}
+    .proj-card-name{font-size:15px;font-weight:800;margin-bottom:4px;color:var(--text)}
+    .proj-card-client{font-size:11px;color:var(--text3);margin-bottom:10px}
+    .proj-progress-bar{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:6px}
+    .proj-progress-fill{height:100%;border-radius:3px;transition:.4s}
+    .proj-progress-label{font-size:10px;color:var(--text3);display:flex;justify-content:space-between}
+    .proj-status-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}
+    .proj-card-footer{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding:8px 16px;margin-top:8px}
+    .proj-kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;min-height:400px;align-items:start}
+    @media(max-width:768px){.proj-kanban{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:480px){.proj-kanban{grid-template-columns:1fr}}
+    .proj-kb-col{background:var(--surface2);border-radius:14px;padding:12px;min-height:300px}
+    .proj-kb-col-header{font-size:12px;font-weight:800;padding:8px 4px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .proj-kb-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:grab;transition:.15s;position:relative}
+    .proj-kb-card:hover{border-color:var(--accent);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+    .proj-kb-card.dragging{opacity:.5;cursor:grabbing}
+    .proj-kb-col.drag-over{background:var(--surface3);border:2px dashed var(--accent)}
+    .proj-tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--text3);transition:.15s;white-space:nowrap}
+    .proj-tab.active{background:var(--accent);color:#fff}
+    .proj-tab:hover:not(.active){background:var(--surface2);color:var(--text)}
+    .priority-high{color:#f76f7c;background:rgba(247,111,124,.1);border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700}
+    .priority-normal{color:#f7c948;background:rgba(247,201,72,.1);border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700}
+    .priority-low{color:#4fd1a5;background:rgba(79,209,165,.1);border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700}
+    .proj-member-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface3);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600}
+    .proj-member-toggle{cursor:pointer;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1.5px solid var(--border);background:var(--surface);transition:.12s}
+    .proj-member-toggle.selected{background:var(--accent);border-color:var(--accent);color:#fff}
+  `;
+  document.head.appendChild(s);
+})();
+
+// ── Helpers ──
+function _getProjects(){ return S.projects||[]; }
+function _getProjById(id){ return _getProjects().find(p=>String(p.id)===String(id)); }
+function _getProjTasks(projId){ return (S.project_tasks||[]).filter(t=>String(t.project_id)===String(projId)); }
+function _getProjProgress(projId){
+  var tasks=_getProjTasks(projId);
+  if(!tasks.length) return 0;
+  var done=tasks.filter(t=>t.status==='done').length;
+  return Math.round(done/tasks.length*100);
+}
+function _getProjStatusInfo(st){
+  return {active:{label:'نشط',color:'#4fd1a5',bg:'rgba(79,209,165,.15)'},
+    hold:{label:'معلق',color:'#f7c948',bg:'rgba(247,201,72,.15)'},
+    review:{label:'مراجعة',color:'#64b5f6',bg:'rgba(100,181,246,.15)'},
+    done:{label:'مكتمل',color:'#7c6ff7',bg:'rgba(124,111,247,.15)'}}[st]||{label:st,color:'#888',bg:'rgba(128,128,128,.1)'};
+}
+function _getPriorityInfo(p){
+  return {high:{label:'عالية',cls:'priority-high'},normal:{label:'عادية',cls:'priority-normal'},low:{label:'منخفضة',cls:'priority-low'}}[p]||{label:p,cls:'priority-normal'};
+}
+
+var _projView='grid';
+function setProjView(v){
+  _projView=v;
+  document.getElementById('proj-view-grid').classList.toggle('active-view',v==='grid');
+  document.getElementById('proj-view-list').classList.toggle('active-view',v==='list');
+  renderProjects();
+}
+
+// ── Render Projects List ──
+function renderProjects(){
+  var container=document.getElementById('projects-container'); if(!container) return;
+  var filter=(document.getElementById('proj-filter-status')||{}).value||'';
+  var projs=_getProjects().filter(p=>!filter||p.status===filter);
+
+  // Stats
+  var all=_getProjects();
+  var setEl=(id,v)=>{var e=document.getElementById(id);if(e)e.textContent=v;};
+  setEl('ps-total-count',all.length);
+  setEl('ps-active-count',all.filter(p=>p.status==='active').length);
+  setEl('ps-hold-count',all.filter(p=>p.status==='hold').length);
+  setEl('ps-done-count',all.filter(p=>p.status==='done').length);
+
+  if(!projs.length){
+    container.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text3)">
+      <div style="font-size:48px;margin-bottom:12px">📁</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px">لا توجد مشاريع بعد</div>
+      <div style="font-size:13px;margin-bottom:16px">ابدأ بإنشاء مشروعك الأول</div>
+      <button class="btn btn-primary" onclick="openProjectModal()"><i class="fa-solid fa-plus"></i> مشروع جديد</button>
+    </div>`;
+    return;
+  }
+
+  if(_projView==='list'){
+    container.style.gridTemplateColumns='1fr';
+    container.innerHTML=projs.map(p=>renderProjListItem(p)).join('');
+  } else {
+    container.style.gridTemplateColumns='repeat(auto-fill,minmax(300px,1fr))';
+    container.innerHTML=projs.map(p=>renderProjCard(p)).join('');
+  }
+}
+
+function renderProjCard(p){
+  var prog=_getProjProgress(p.id);
+  var tasks=_getProjTasks(p.id);
+  var st=_getProjStatusInfo(p.status||'active');
+  var client=(S.clients||[]).find(c=>String(c.id)===String(p.client_id));
+  var clr=p.color||'var(--accent)';
+  var deadline=p.deadline?new Date(p.deadline):null;
+  var isOverdue=deadline&&deadline<new Date()&&p.status!=='done';
+  return `<div class="proj-card" onclick="openProjectDetail('${p.id}')">
+    <div class="proj-card-top" style="background:${clr}"></div>
+    <div class="proj-card-body">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">
+        <div class="proj-card-name">${escapeHtml(p.name)}</div>
+        <span class="proj-status-badge" style="color:${st.color};background:${st.bg}">${st.label}</span>
+      </div>
+      <div class="proj-card-client">${client?'<i class="fa-solid fa-user"></i> '+escapeHtml(client.name):'<i class="fa-solid fa-circle-minus"></i> بدون عميل'}</div>
+      <div class="proj-progress-bar"><div class="proj-progress-fill" style="width:${prog}%;background:${clr}"></div></div>
+      <div class="proj-progress-label"><span>${prog}% مكتمل</span><span>${tasks.filter(t=>t.status==='done').length}/${tasks.length} مهمة</span></div>
+      ${p.deadline?`<div style="font-size:10px;margin-top:6px;color:${isOverdue?'var(--accent4)':'var(--text3)'}"><i class="fa-solid fa-calendar${isOverdue?' fa-shake':''}"></i> ${p.deadline}${isOverdue?' — متأخر!':''}</div>`:''}
+    </div>
+    <div class="proj-card-footer">
+      <div style="display:flex;gap:-6px">${(p.members||[]).slice(0,4).map(m=>`<div style="width:26px;height:26px;border-radius:50%;background:${p.color||'var(--accent)'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;border:2px solid var(--surface);margin-left:-6px">${(m.name||'?').charAt(0).toUpperCase()}</div>`).join('')}</div>
+      <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
+        <button data-pid="${p.id}" onclick="openProjectModal(this.dataset.pid)" class="btn btn-ghost btn-sm" style="padding:4px 8px"><i class="fa-solid fa-pen"></i></button>
+        <button data-pid="${p.id}" onclick="deleteProject(this.dataset.pid)" class="btn btn-danger btn-sm" style="padding:4px 8px"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderProjListItem(p){
+  var prog=_getProjProgress(p.id);
+  var tasks=_getProjTasks(p.id);
+  var st=_getProjStatusInfo(p.status||'active');
+  var client=(S.clients||[]).find(c=>String(c.id)===String(p.client_id));
+  var clr=p.color||'var(--accent)';
+  return `<div class="proj-card" onclick="openProjectDetail('${p.id}')" style="border-radius:12px">
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 16px">
+      <div style="width:4px;height:50px;border-radius:3px;background:${clr};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:14px;font-weight:800">${escapeHtml(p.name)}</span>
+          <span class="proj-status-badge" style="color:${st.color};background:${st.bg}">${st.label}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text3)">${client?escapeHtml(client.name):'بدون عميل'} · ${tasks.length} مهمة</div>
+      </div>
+      <div style="width:120px;flex-shrink:0">
+        <div class="proj-progress-bar"><div class="proj-progress-fill" style="width:${prog}%;background:${clr}"></div></div>
+        <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:2px">${prog}%</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
+        <button data-pid="${p.id}" onclick="openProjectModal(this.dataset.pid)" class="btn btn-ghost btn-sm"><i class="fa-solid fa-pen"></i></button>
+        <button data-pid="${p.id}" onclick="deleteProject(this.dataset.pid)" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Project Modal ──
+var _projColorPicked='#7c6ff7';
+function pickProjColor(c){
+  _projColorPicked=c;
+  document.querySelectorAll('#proj-color-picker span').forEach(s=>{
+    s.style.border=s.dataset.c===c?'3px solid var(--text)':'2px solid transparent';
+  });
+  document.getElementById('proj-color').value=c;
+}
+
+function openProjectModal(id){
+  var proj=id?_getProjById(id):null;
+  document.getElementById('proj-eid').value=id||'';
+  document.getElementById('proj-modal-title').innerHTML=id?'<i class="fa-solid fa-pen"></i> تعديل المشروع':'<i class="fa-solid fa-diagram-project"></i> مشروع جديد';
+  document.getElementById('proj-name').value=proj?proj.name:'';
+  document.getElementById('proj-desc').value=proj?proj.desc||'':'';
+  document.getElementById('proj-status').value=proj?proj.status||'active':'active';
+  document.getElementById('proj-start').value=proj?proj.start||'':'';
+  document.getElementById('proj-deadline').value=proj?proj.deadline||'':'';
+  pickProjColor(proj?proj.color||'#7c6ff7':'#7c6ff7');
+  // Client select
+  var csel=document.getElementById('proj-client');
+  csel.innerHTML='<option value="">— بدون عميل —</option>'+(S.clients||[]).map(c=>`<option value="${c.id}"${proj&&String(proj.client_id)===String(c.id)?' selected':''}>${escapeHtml(c.name)}</option>`).join('');
+  // Team members
+  _renderProjMembersSelect(proj?proj.members||[]:[]);
+  openM('modal-project');
+  setTimeout(()=>document.getElementById('proj-name').focus(),100);
+}
+
+function _renderProjMembersSelect(selected){
+  var container=document.getElementById('proj-members-select'); if(!container) return;
+  var team=(S.teams||[]).filter(m=>m.role!='invite_pending');
+  var me={id:'me',name:S.settings?.name||'أنا'};
+  var allMembers=[me,...team];
+  container.innerHTML=allMembers.map(m=>{
+    var isSel=selected.some(s=>String(s.id)===String(m.id));
+    return `<span class="proj-member-toggle${isSel?' selected':''}" data-mid="${m.id}" data-mname="${escapeHtml(m.name||m.email||'')}" onclick="toggleProjMember(this)">${escapeHtml(m.name||m.email||'?')}</span>`;
+  }).join('');
+}
+
+function toggleProjMember(el){
+  el.classList.toggle('selected');
+}
+
+function saveProject(){
+  var eid=document.getElementById('proj-eid').value;
+  var name=document.getElementById('proj-name').value.trim();
+  if(!name){toast('<i class="fa-solid fa-triangle-exclamation"></i> اسم المشروع مطلوب');return;}
+  if(!S.projects) S.projects=[];
+  // Collect selected members
+  var members=[...document.querySelectorAll('#proj-members-select .selected')].map(el=>({id:el.dataset.mid,name:el.dataset.mname}));
+  var d={
+    name,
+    desc:document.getElementById('proj-desc').value.trim(),
+    client_id:document.getElementById('proj-client').value||'',
+    status:document.getElementById('proj-status').value||'active',
+    start:document.getElementById('proj-start').value||'',
+    deadline:document.getElementById('proj-deadline').value||'',
+    color:document.getElementById('proj-color').value||'#7c6ff7',
+    members,
+    createdAt:new Date().toISOString()
+  };
+  if(eid){
+    var i=S.projects.findIndex(p=>String(p.id)===String(eid));
+    if(i>-1){d.id=+eid;d.createdAt=S.projects[i].createdAt||d.createdAt;S.projects[i]=d;}
+  } else {
+    d.id=Date.now(); S.projects.push(d);
+  }
+  lsSave(); cloudSave(S); closeM('modal-project'); renderProjects();
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ المشروع');
+}
+
+function deleteProject(id){
+  confirmDel('حذف هذا المشروع وكل مهامه؟',function(){
+    S.projects=(S.projects||[]).filter(p=>String(p.id)!==String(id));
+    S.project_tasks=(S.project_tasks||[]).filter(t=>String(t.project_id)!==String(id));
+    lsSave(); cloudSave(S); renderProjects();
+    toast('<i class="fa-solid fa-trash"></i> تم الحذف');
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// PROJECT DETAIL PAGE
+// ════════════════════════════════════════════════════════
+var _currentProjId=null;
+var _currentProjTab='overview';
+
+function openProjectDetail(id){
+  _currentProjId=id;
+  _currentProjTab='overview';
+  var pg=document.getElementById('page-project-detail');
+  if(!pg) return;
+  renderProjectDetail();
+  // Switch page
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  pg.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function renderProjectDetail(){
+  var id=_currentProjId;
+  var proj=_getProjById(id); if(!proj) return;
+  var prog=_getProjProgress(id);
+  var tasks=_getProjTasks(id);
+  var st=_getProjStatusInfo(proj.status||'active');
+  var client=(S.clients||[]).find(c=>String(c.id)===String(proj.client_id));
+  var clr=proj.color||'var(--accent)';
+
+  var tabs={overview:'نظرة عامة',tasks:'المهام',kanban:'كانبان',team:'الفريق',files:'الملفات'};
+  var tabsHtml=Object.keys(tabs).map(k=>`<button class="proj-tab${_currentProjTab===k?' active':''}" onclick="switchProjTab('${k}')">${tabs[k]}</button>`).join('');
+
+  var inner=document.getElementById('proj-detail-inner'); if(!inner) return;
+  inner.innerHTML=`
+    <!-- Header -->
+    <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:16px 20px;position:sticky;top:0;z-index:100">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="showPage('projects')"><i class="fa-solid fa-arrow-right"></i></button>
+        <div style="width:12px;height:12px;border-radius:50%;background:${clr};flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-size:16px;font-weight:900">${escapeHtml(proj.name)}</div>
+          <div style="font-size:11px;color:var(--text3)">${client?escapeHtml(client.name)+' · ':''}<span style="color:${st.color}">${st.label}</span></div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openProjSharePortal('${id}')"><i class="fa-solid fa-share-nodes"></i> مشاركة مع العميل</button>
+        <button class="btn btn-ghost btn-sm" onclick="openProjectModal('${id}')"><i class="fa-solid fa-pen"></i></button>
+      </div>
+      <!-- Progress -->
+      <div style="margin-top:10px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:4px">
+          <span>تقدم المشروع</span>
+          <span>${tasks.filter(t=>t.status==='done').length}/${tasks.length} مهمة · ${prog}%</span>
+        </div>
+        <div style="height:8px;background:var(--surface3);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${prog}%;background:${clr};border-radius:4px;transition:.4s"></div>
+        </div>
+      </div>
+      <!-- Tabs -->
+      <div style="display:flex;gap:4px;margin-top:12px;overflow-x:auto;scrollbar-width:none">${tabsHtml}</div>
+    </div>
+    <!-- Tab Content -->
+    <div id="proj-tab-content" style="padding:16px 20px">${renderProjTabContent(_currentProjTab,proj,tasks,client,clr)}</div>
+  `;
+  // Re-init drag drop for kanban
+  if(_currentProjTab==='kanban') setTimeout(initProjKanbanDnD,100);
+}
+
+function switchProjTab(tab){
+  _currentProjTab=tab;
+  renderProjectDetail();
+  window.scrollTo(0,0);
+}
+
+function renderProjTabContent(tab, proj, tasks, client, clr){
+  if(tab==='overview') return renderProjOverview(proj,tasks,client,clr);
+  if(tab==='tasks')    return renderProjTasksList(proj,tasks,clr);
+  if(tab==='kanban')   return renderProjKanban(proj,tasks,clr);
+  if(tab==='team')     return renderProjTeam(proj,clr);
+  if(tab==='files')    return renderProjFiles(proj,clr);
+  return '';
+}
+
+// ── Overview Tab ──
+function renderProjOverview(proj,tasks,client,clr){
+  var prog=_getProjProgress(proj.id);
+  var st=_getProjStatusInfo(proj.status);
+  var statusOpts=['active','hold','review','done'];
+  return `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card">
+        <div class="section-title"><i class="fa-solid fa-circle-info"></i> تفاصيل المشروع</div>
+        ${proj.desc?`<div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7">${escapeHtml(proj.desc)}</div>`:''}
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+          ${client?`<div style="display:flex;gap:8px"><span style="color:var(--text3);width:80px">العميل</span><strong>${escapeHtml(client.name)}</strong></div>`:''}
+          ${proj.start?`<div style="display:flex;gap:8px"><span style="color:var(--text3);width:80px">تاريخ البدء</span><strong>${proj.start}</strong></div>`:''}
+          ${proj.deadline?`<div style="display:flex;gap:8px"><span style="color:var(--text3);width:80px">الموعد النهائي</span><strong>${proj.deadline}</strong></div>`:''}
+          <div style="display:flex;gap:8px"><span style="color:var(--text3);width:80px">الحالة</span>
+            <select style="background:${clr}22;border:1px solid ${clr}55;border-radius:6px;color:${clr};font-size:11px;font-weight:700;padding:2px 8px;cursor:pointer" onchange="changeProjStatus('${proj.id}',this.value)">
+              ${statusOpts.map(s=>`<option value="${s}"${proj.status===s?' selected':''}>${_getProjStatusInfo(s).label}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title"><i class="fa-solid fa-chart-pie"></i> إحصائيات</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center">
+          ${[['إجمالي',tasks.length,'var(--text)'],['To Do',tasks.filter(t=>t.status==='todo').length,'#888'],['جاري',tasks.filter(t=>t.status==='progress').length,'#f7c948'],['مكتمل',tasks.filter(t=>t.status==='done').length,'#4fd1a5']].map(([l,v,c])=>`
+          <div style="padding:10px;background:var(--surface2);border-radius:10px">
+            <div style="font-size:22px;font-weight:900;color:${c}">${v}</div>
+            <div style="font-size:10px;color:var(--text3)">${l}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <!-- Recent Tasks -->
+    <div class="card" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="section-title" style="margin:0">آخر المهام</div>
+        <button class="btn btn-primary btn-sm" onclick="openProjTaskModal('${proj.id}')"><i class="fa-solid fa-plus"></i> مهمة</button>
+      </div>
+      ${tasks.slice(0,5).map(t=>renderProjTaskRow(t,clr)).join('')||'<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px">لا توجد مهام — أضف مهمة جديدة</div>'}
+    </div>`;
+}
+
+// ── Tasks List Tab ──
+function renderProjTasksList(proj,tasks,clr){
+  var cols=['todo','progress','review','done'];
+  var colLabels={todo:'📋 To Do',progress:'⚡ In Progress',review:'🔍 Review',done:'✅ Done'};
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:800">${tasks.length} مهمة</div>
+      <button class="btn btn-primary btn-sm" onclick="openProjTaskModal('${proj.id}')"><i class="fa-solid fa-plus"></i> مهمة جديدة</button>
+    </div>
+    ${cols.map(col=>{
+      var colTasks=tasks.filter(t=>t.status===col);
+      if(!colTasks.length) return '';
+      return `<div style="margin-bottom:16px">
+        <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:8px;padding:4px 0">${colLabels[col]} <span style="color:var(--text3);font-weight:400">(${colTasks.length})</span></div>
+        ${colTasks.map(t=>renderProjTaskRow(t,clr)).join('')}
+      </div>`;
+    }).join('')}
+    ${!tasks.length?`<div style="text-align:center;padding:60px 20px;color:var(--text3)">
+      <div style="font-size:40px;margin-bottom:12px">📋</div>
+      <div style="font-weight:700;margin-bottom:6px">لا توجد مهام بعد</div>
+      <button class="btn btn-primary" onclick="openProjTaskModal('${proj.id}')"><i class="fa-solid fa-plus"></i> أضف مهمة</button>
+    </div>`:''}`;
+}
+
+function renderProjTaskRow(t,clr){
+  var pri=_getPriorityInfo(t.priority||'normal');
+  var steps=t.steps||[];
+  var doneSteps=steps.filter(s=>s.done).length;
+  return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+    <input type="checkbox" ${t.status==='done'?'checked':''} onchange="toggleProjTaskDone('${t.id}','${t.project_id}',this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:${clr}">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:700;${t.status==='done'?'text-decoration:line-through;color:var(--text3)':''}">${escapeHtml(t.title)}</div>
+      <div style="display:flex;gap:6px;margin-top:3px;flex-wrap:wrap">
+        <span class="${pri.cls}">${pri.label}</span>
+        ${t.deadline?`<span style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-calendar"></i> ${t.deadline}</span>`:''}
+        ${t.assignee_name?`<span style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-user"></i> ${escapeHtml(t.assignee_name)}</span>`:''}
+        ${steps.length?`<span style="font-size:10px;color:var(--text3)">${doneSteps}/${steps.length} خطوة</span>`:''}
+      </div>
+    </div>
+    <div style="display:flex;gap:4px" onclick="event.stopPropagation()">
+      <button data-tid="${t.id}" data-pid="${t.project_id}" onclick="openProjTaskModal(this.dataset.pid,this.dataset.tid)" class="btn btn-ghost btn-sm" style="padding:3px 7px"><i class="fa-solid fa-pen"></i></button>
+      <button data-tid="${t.id}" data-pid="${t.project_id}" onclick="deleteProjTask(this.dataset.tid,this.dataset.pid)" class="btn btn-danger btn-sm" style="padding:3px 7px"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  </div>`;
+}
+
+// ── Kanban Tab ──
+function renderProjKanban(proj,tasks,clr){
+  var cols=[
+    {id:'todo',label:'📋 To Do',color:'#888888'},
+    {id:'progress',label:'⚡ In Progress',color:'#f7c948'},
+    {id:'review',label:'🔍 Review',color:'#64b5f6'},
+    {id:'done',label:'✅ Done',color:'#4fd1a5'}
+  ];
+  return `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button class="btn btn-primary btn-sm" onclick="openProjTaskModal('${proj.id}')"><i class="fa-solid fa-plus"></i> مهمة جديدة</button>
+    </div>
+    <div class="proj-kanban">
+      ${cols.map(col=>{
+        var colTasks=tasks.filter(t=>t.status===col.id);
+        return `<div class="proj-kb-col" data-status="${col.id}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="onProjKbDrop(event,'${proj.id}')">
+          <div class="proj-kb-col-header">
+            <span style="color:${col.color}">${col.label}</span>
+            <span style="background:${col.color}22;color:${col.color};padding:2px 8px;border-radius:10px;font-size:11px">${colTasks.length}</span>
+          </div>
+          ${colTasks.map(t=>renderProjKbCard(t,clr,proj)).join('')}
+          <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;margin-top:4px;font-size:11px" onclick="openProjTaskModal('${proj.id}',null,'${col.id}')"><i class="fa-solid fa-plus"></i> إضافة</button>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function renderProjKbCard(t,clr,proj){
+  var pri=_getPriorityInfo(t.priority||'normal');
+  var steps=t.steps||[];
+  var doneSteps=steps.filter(s=>s.done).length;
+  return `<div class="proj-kb-card" draggable="true" data-task-id="${t.id}" ondragstart="onProjKbDragStart(event,'${t.id}')">
+    <div style="font-size:12px;font-weight:700;margin-bottom:5px;line-height:1.4">${escapeHtml(t.title)}</div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+      <span class="${pri.cls}">${pri.label}</span>
+      ${t.deadline?`<span style="font-size:9px;color:var(--text3);background:var(--surface3);padding:1px 5px;border-radius:4px">${t.deadline}</span>`:''}
+    </div>
+    ${steps.length?`<div style="font-size:10px;color:var(--text3);margin-bottom:5px">${doneSteps}/${steps.length} خطوات</div>`:''}
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      ${t.assignee_name?`<span style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-user"></i> ${escapeHtml(t.assignee_name)}</span>`:'<span></span>'}
+      <button data-tid="${t.id}" data-pid="${proj.id}" onclick="event.stopPropagation();openProjTaskModal(this.dataset.pid,this.dataset.tid)" class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px"><i class="fa-solid fa-pen"></i></button>
+    </div>
+  </div>`;
+}
+
+// Kanban DnD
+var _dragProjTaskId=null;
+function onProjKbDragStart(e,taskId){ _dragProjTaskId=taskId; e.currentTarget.classList.add('dragging'); }
+function onProjKbDrop(e,projId){
+  e.preventDefault();
+  var col=e.currentTarget;
+  col.classList.remove('drag-over');
+  var newStatus=col.dataset.status;
+  if(!_dragProjTaskId||!newStatus) return;
+  if(!S.project_tasks) S.project_tasks=[];
+  var t=S.project_tasks.find(t=>String(t.id)===String(_dragProjTaskId));
+  if(t){ t.status=newStatus; lsSave(); cloudSave(S); renderProjectDetail(); }
+  _dragProjTaskId=null;
+}
+function initProjKanbanDnD(){
+  document.querySelectorAll('.proj-kb-card').forEach(card=>{
+    card.addEventListener('dragend',()=>{ card.classList.remove('dragging'); document.querySelectorAll('.proj-kb-col').forEach(c=>c.classList.remove('drag-over')); });
+  });
+}
+
+// ── Team Tab ──
+function renderProjTeam(proj,clr){
+  var members=proj.members||[];
+  return `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="section-title" style="margin:0">أعضاء الفريق</div>
+      <button class="btn btn-ghost btn-sm" onclick="openProjectModal('${proj.id}')"><i class="fa-solid fa-user-plus"></i> إدارة الفريق</button>
+    </div>
+    ${members.length?members.map(m=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface2);border-radius:10px;margin-bottom:8px">
+      <div style="width:36px;height:36px;border-radius:50%;background:${clr};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0">${(m.name||'?').charAt(0).toUpperCase()}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:700">${escapeHtml(m.name||m.email||'—')}</div></div>
+    </div>`).join(''):`<div style="text-align:center;color:var(--text3);padding:30px;font-size:13px">لا يوجد أعضاء — عدّل المشروع لإضافة أعضاء</div>`}
+  </div>`;
+}
+
+// ── Files Tab ──
+function renderProjFiles(proj,clr){
+  var files=proj.files||[];
+  return `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="section-title" style="margin:0">ملفات المشروع</div>
+      <label class="btn btn-primary btn-sm" style="cursor:pointer"><i class="fa-solid fa-upload"></i> رفع ملف<input type="file" style="display:none" onchange="uploadProjFile('${proj.id}',this)"></label>
+    </div>
+    ${files.length?files.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px;margin-bottom:8px">
+      <i class="fa-solid fa-file" style="color:${clr};font-size:18px"></i>
+      <div style="flex:1"><div style="font-size:12px;font-weight:700">${escapeHtml(f.name)}</div><div style="font-size:10px;color:var(--text3)">${f.size||''} · ${f.date||''}</div></div>
+      <a href="${f.data||'#'}" download="${escapeHtml(f.name)}" class="btn btn-ghost btn-sm"><i class="fa-solid fa-download"></i></a>
+      <button data-pid="${proj.id}" data-fidx="${i}" onclick="deleteProjFile(this.dataset.pid,+this.dataset.fidx)" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>
+    </div>`).join(''):`<div style="text-align:center;padding:40px;color:var(--text3)"><i class="fa-solid fa-folder-open" style="font-size:36px;margin-bottom:10px;display:block"></i>لا توجد ملفات بعد</div>`}
+  </div>`;
+}
+
+function uploadProjFile(projId,input){
+  var file=input.files[0]; if(!file) return;
+  if(file.size>5*1024*1024){toast('<i class="fa-solid fa-triangle-exclamation"></i> الملف أكبر من 5 ميجا');return;}
+  var r=new FileReader();
+  r.onload=function(e){
+    var proj=_getProjById(projId); if(!proj) return;
+    if(!proj.files) proj.files=[];
+    proj.files.push({name:file.name,size:Math.round(file.size/1024)+'KB',date:new Date().toLocaleDateString('ar-EG'),data:e.target.result});
+    lsSave(); cloudSave(S); renderProjectDetail();
+    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع الملف');
+  };
+  r.readAsDataURL(file);
+}
+function deleteProjFile(projId,idx){
+  var proj=_getProjById(projId); if(!proj||!proj.files) return;
+  proj.files.splice(idx,1); lsSave(); cloudSave(S); renderProjectDetail();
+  toast('<i class="fa-solid fa-trash"></i> تم الحذف');
+}
+
+// ── Project Tasks ──
+var _ptaskSteps=[];
+function openProjTaskModal(projId, taskId, defaultStatus){
+  _ptaskSteps=[];
+  var t=taskId?(S.project_tasks||[]).find(t=>String(t.id)===String(taskId)):null;
+  if(t) _ptaskSteps=[...(t.steps||[])];
+  document.getElementById('ptask-eid').value=taskId||'';
+  document.getElementById('ptask-proj-id').value=projId;
+  document.getElementById('ptask-task-modal-title')||0;
+  document.getElementById('proj-task-modal-title').innerHTML=taskId?'<i class="fa-solid fa-pen"></i> تعديل مهمة':'<i class="fa-solid fa-list-check"></i> مهمة جديدة';
+  document.getElementById('ptask-title').value=t?t.title:'';
+  document.getElementById('ptask-desc').value=t?t.desc||'':'';
+  document.getElementById('ptask-priority').value=t?t.priority||'normal':'normal';
+  document.getElementById('ptask-status').value=t?t.status||'todo':(defaultStatus||'todo');
+  document.getElementById('ptask-deadline').value=t?t.deadline||'':'';
+  // Assignee from project members
+  var proj=_getProjById(projId);
+  var members=proj?proj.members||[]:[{id:'me',name:S.settings?.name||'أنا'}];
+  var asel=document.getElementById('ptask-assignee');
+  asel.innerHTML='<option value="">— اختر —</option>'+members.map(m=>`<option value="${m.id}" data-name="${escapeHtml(m.name||'')}"${t&&t.assignee_id===m.id?' selected':''}>${escapeHtml(m.name||'?')}</option>`).join('');
+  renderPtaskSteps();
+  openM('modal-proj-task');
+  setTimeout(()=>document.getElementById('ptask-title').focus(),100);
+}
+
+function renderPtaskSteps(){
+  var el=document.getElementById('ptask-steps-list'); if(!el) return;
+  el.innerHTML=_ptaskSteps.map((s,i)=>`<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--surface2);border-radius:8px">
+    <input type="checkbox" ${s.done?'checked':''} onchange="_ptaskSteps[${i}].done=this.checked" style="cursor:pointer;accent-color:var(--accent)">
+    <span style="flex:1;font-size:12px;${s.done?'text-decoration:line-through;color:var(--text3)':''}">${escapeHtml(s.text)}</span>
+    <button onclick="_ptaskSteps.splice(${i},1);renderPtaskSteps()" class="btn btn-danger btn-sm" style="padding:2px 6px"><i class="fa-solid fa-xmark"></i></button>
+  </div>`).join('');
+}
+function addPTaskStep(){
+  var inp=document.getElementById('ptask-new-step');
+  var v=(inp?.value||'').trim(); if(!v) return;
+  _ptaskSteps.push({text:v,done:false});
+  inp.value=''; renderPtaskSteps();
+}
+
+function saveProjTask(){
+  var eid=document.getElementById('ptask-eid').value;
+  var projId=document.getElementById('ptask-proj-id').value;
+  var title=document.getElementById('ptask-title').value.trim();
+  if(!title){toast('<i class="fa-solid fa-triangle-exclamation"></i> عنوان المهمة مطلوب');return;}
+  if(!S.project_tasks) S.project_tasks=[];
+  var asel=document.getElementById('ptask-assignee');
+  var assignee_id=asel.value||'';
+  var assignee_name=assignee_id?(asel.options[asel.selectedIndex]?.dataset.name||''):'';
+  var d={
+    title,desc:document.getElementById('ptask-desc').value.trim(),
+    project_id:projId,
+    priority:document.getElementById('ptask-priority').value||'normal',
+    status:document.getElementById('ptask-status').value||'todo',
+    deadline:document.getElementById('ptask-deadline').value||'',
+    assignee_id, assignee_name,
+    steps:[..._ptaskSteps],
+    createdAt:new Date().toISOString()
+  };
+  if(eid){
+    var i=S.project_tasks.findIndex(t=>String(t.id)===String(eid));
+    if(i>-1){d.id=+eid;d.createdAt=S.project_tasks[i].createdAt;S.project_tasks[i]=d;}
+  } else {
+    d.id=Date.now(); S.project_tasks.push(d);
+  }
+  lsSave(); cloudSave(S); closeM('modal-proj-task'); renderProjectDetail();
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ المهمة');
+}
+
+function toggleProjTaskDone(taskId,projId,done){
+  if(!S.project_tasks) return;
+  var t=S.project_tasks.find(t=>String(t.id)===String(taskId));
+  if(t){ t.status=done?'done':'todo'; lsSave(); cloudSave(S); renderProjectDetail(); }
+}
+function deleteProjTask(taskId,projId){
+  confirmDel('حذف هذه المهمة؟',function(){
+    S.project_tasks=(S.project_tasks||[]).filter(t=>String(t.id)!==String(taskId));
+    lsSave(); cloudSave(S); renderProjectDetail();
+    toast('<i class="fa-solid fa-trash"></i> تم الحذف');
+  });
+}
+function changeProjStatus(projId,status){
+  var proj=_getProjById(projId); if(!proj) return;
+  proj.status=status; lsSave(); cloudSave(S); renderProjectDetail();
+}
+
+// ── Client Portal (Share) ──
+function openProjSharePortal(projId){
+  var uid=(typeof _supaUserId!=='undefined'&&_supaUserId)?_supaUserId:'';
+  var base=window.location.origin+window.location.pathname;
+  var link=base+'?portal=project&uid='+uid+'&pid='+projId;
+  // Show copy modal
+  var over=document.createElement('div');
+  over.className='modal-overlay'; over.style.display='flex';
+  over.innerHTML=`<div class="modal" style="max-width:460px">
+    <div class="modal-header"><div class="modal-title"><i class="fa-solid fa-share-nodes"></i> مشاركة مع العميل</div>
+    <button class="close-btn" onclick="this.closest('.modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">هذا الرابط يعطي العميل صلاحية عرض المشروع فقط — بدون تعديل أو حذف</div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:var(--mono);font-size:11px;word-break:break-all;margin-bottom:12px">${link}</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('✅ تم نسخ الرابط'))"><i class="fa-solid fa-copy"></i> نسخ الرابط</button>
+      <button class="btn btn-ghost" onclick="window.open('${link}','_blank')"><i class="fa-solid fa-eye"></i> معاينة</button>
+    </div>
+  </div>`;
+  document.body.appendChild(over);
+  over.onclick=e=>{if(e.target===over)over.remove();};
+}
+
+// ── Hook into renderAll ──
+var _origRenderAll_proj=null;
+if(typeof renderAll==='function'){
+  _origRenderAll_proj=renderAll;
+}
+
+// ── Init S.projects ──
+document.addEventListener('DOMContentLoaded',function(){
+  if(!S.projects) S.projects=[];
+  if(!S.project_tasks) S.project_tasks=[];
+});
+
+// ── Hook renderAll to include renderProjects ──
+var _projRenderHooked=false;
+function _hookProjRender(){
+  if(_projRenderHooked) return;
+  var orig=window.renderAll;
+  window.renderAll=function(){
+    if(orig) orig.apply(this,arguments);
+    var projPage=document.getElementById('page-projects');
+    if(projPage&&projPage.classList.contains('active')) renderProjects();
+    var detPage=document.getElementById('page-project-detail');
+    if(detPage&&detPage.classList.contains('active')&&_currentProjId) renderProjectDetail();
+  };
+  _projRenderHooked=true;
+}
+setTimeout(_hookProjRender,500);
+
+
+// ════════════════════════════════════════════════════════════════
+// PROJECT CLIENT PORTAL (Read-only public view)
+// ════════════════════════════════════════════════════════════════
+function _buildProjectPortalPage(userId, projId){
+  if(typeof supa==='undefined'){ document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cairo,sans-serif;direction:rtl;color:#666">تعذّر التحميل</div>'; return; }
+  supa.from('studio_data').select('data').eq('user_id',userId).maybeSingle().then(function(res){
+    if(!res||res.error||!res.data){ document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cairo,sans-serif;direction:rtl;color:#666">رابط غير صالح</div>'; return; }
+    var ud; try{ ud=typeof res.data.data==='string'?JSON.parse(res.data.data):res.data.data; }catch(e){ return; }
+    if(!ud) return;
+    var proj=(ud.projects||[]).find(function(p){return String(p.id)===String(projId);});
+    if(!proj){ document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cairo,sans-serif;direction:rtl;color:#666">المشروع غير موجود</div>'; return; }
+    var tasks=(ud.project_tasks||[]).filter(function(t){return String(t.project_id)===String(projId);});
+    var settings=ud.settings||{};
+    var accent=settings.accentColor||settings.accent||'#7c6ff7';
+    var clr=proj.color||accent;
+    var prog=tasks.length?Math.round(tasks.filter(function(t){return t.status==='done';}).length/tasks.length*100):0;
+    var stMap={active:'🟢 نشط',hold:'🟡 معلق',review:'🔵 مراجعة',done:'✅ مكتمل'};
+    var colLabels={todo:'📋 To Do',progress:'⚡ In Progress',review:'🔍 Review',done:'✅ Done'};
+    var colOrder=['todo','progress','review','done'];
+
+    var tasksHtml=colOrder.map(function(col){
+      var ct=tasks.filter(function(t){return t.status===col;});
+      if(!ct.length) return '';
+      return '<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:800;color:#888;margin-bottom:6px;text-transform:uppercase">'+colLabels[col]+' ('+ct.length+')</div>'+
+        ct.map(function(t){
+          var steps=t.steps||[];
+          var doneS=steps.filter(function(s){return s.done;}).length;
+          return '<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;margin-bottom:8px">'+
+            '<div style="font-size:13px;font-weight:700;margin-bottom:4px'+(t.status==='done'?';text-decoration:line-through;opacity:.5':'')+'">'+(t.title||'')+'</div>'+
+            (t.desc?'<div style="font-size:11px;opacity:.7;margin-bottom:4px">'+t.desc+'</div>':'')+
+            '<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:10px;opacity:.7">'+
+              (t.deadline?'<span>📅 '+t.deadline+'</span>':'')+
+              (t.assignee_name?'<span>👤 '+t.assignee_name+'</span>':'')+
+              (steps.length?'<span>📋 '+doneS+'/'+steps.length+' خطوات</span>':'')+
+            '</div>'+
+          '</div>';
+        }).join('')+'</div>';
+    }).join('');
+
+    var filesHtml=(proj.files||[]).map(function(f){
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,.05);border-radius:10px;margin-bottom:8px">'+
+        '<i class="fa-solid fa-file" style="color:'+clr+'"></i>'+
+        '<span style="flex:1;font-size:12px">'+(f.name||'')+'</span>'+
+        '<a href="'+(f.data||'#')+'" download="'+(f.name||'')+'" style="color:'+clr+';font-size:11px;text-decoration:none"><i class="fa-solid fa-download"></i> تنزيل</a>'+
+      '</div>';
+    }).join('');
+
+    document.body.innerHTML='';
+    var style=document.createElement('style');
+    style.textContent='@import url(\'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap\');*{box-sizing:border-box;margin:0;padding:0}body{font-family:\'Cairo\',sans-serif;background:#0a0a0f;color:#f0f0f5;direction:rtl;min-height:100vh}';
+    document.head.appendChild(style);
+
+    var main=document.createElement('div');
+    main.style.cssText='max-width:800px;margin:0 auto;padding:20px';
+    main.innerHTML='<div style="border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.08);margin-bottom:20px">'+
+      '<div style="height:8px;background:'+clr+'"></div>'+
+      '<div style="padding:20px">'+
+        '<div style="display:flex;align-items:start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">'+
+          '<div><div style="font-size:22px;font-weight:900">'+escapeHtml(proj.name)+'</div>'+
+          (proj.desc?'<div style="font-size:13px;opacity:.7;margin-top:4px">'+escapeHtml(proj.desc)+'</div>':'')+
+          '</div>'+
+          '<span style="background:'+clr+'22;color:'+clr+';padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">'+(stMap[proj.status]||proj.status)+'</span>'+
+        '</div>'+
+        (proj.deadline?'<div style="font-size:12px;opacity:.6;margin-bottom:12px">📅 الموعد النهائي: '+proj.deadline+'</div>':'')+
+        '<div style="font-size:12px;opacity:.6;margin-bottom:6px;display:flex;justify-content:space-between"><span>تقدم المشروع</span><span>'+prog+'%</span></div>'+
+        '<div style="height:10px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden;margin-bottom:4px">'+
+          '<div style="height:100%;width:'+prog+'%;background:'+clr+';border-radius:5px;transition:.4s"></div>'+
+        '</div>'+
+        '<div style="font-size:10px;opacity:.5;text-align:left">'+tasks.filter(function(t){return t.status==='done';}).length+'/'+tasks.length+' مهمة مكتملة</div>'+
+      '</div>'+
+    '</div>'+
+    (tasks.length?'<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px;margin-bottom:20px"><div style="font-size:15px;font-weight:800;margin-bottom:14px"><i class="fa-solid fa-list-check" style="color:'+clr+'"></i> المهام</div>'+tasksHtml+'</div>':'')+
+    ((proj.files||[]).length?'<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px;margin-bottom:20px"><div style="font-size:15px;font-weight:800;margin-bottom:14px"><i class="fa-solid fa-folder" style="color:'+clr+'"></i> الملفات</div>'+filesHtml+'</div>':'')+
+    '<div style="text-align:center;font-size:11px;opacity:.3;padding:20px">عرض فقط · مدعوم من Ordo</div>';
+    document.body.appendChild(main);
+    // scroll unlock
+    document.documentElement.classList.add('pub-page');
+    document.body.classList.add('pub-page');
+  }).catch(function(){ document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cairo,sans-serif;direction:rtl;color:#666">تعذّر التحميل</div>'; });
+}
+
 // STATUS SETTINGS POPOVER (kanban column gear icon)
 // ═══════════════════════════════════════════════════
 (function(){
