@@ -201,6 +201,9 @@ async function buildPage(userId){
     }
     // override pfProjects بالمفلترة
     pfProjects=storePortfolio;
+    // DEBUG
+    console.log('[Store] portfolio_projects raw:', (ud.portfolio_projects||[]).length, 'filtered:', pfProjects.length, 'sample:', JSON.stringify((pfProjects[0]||{})));
+    console.log('[Store] services:', services.length, 'packages:', standalonePkgs.length);
 
     // ── store globally ──
     window._pubUd=ud; window._pubUserId=userId; window._pubAccent=accent;
@@ -295,12 +298,15 @@ async function buildPage(userId){
     '._pc-price{font-size:17px;font-weight:900;color:'+accent+'}'+
     '._pc-btns{display:flex;gap:5px;flex-wrap:wrap}'+
     // PORTFOLIO
-    '._pf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}'+
-    '@media(max-width:480px){._pf-grid{grid-template-columns:1fr 1fr 1fr;gap:7px}}'+
-    '._pf-card{border-radius:12px;overflow:hidden;aspect-ratio:1;background:'+surface3+';border:1px solid '+cardBorder+';position:relative;cursor:pointer;transition:.2s;text-decoration:none;display:block}'+
-    '._pf-card:hover{transform:scale(1.03);border-color:'+accent+'55}'+
+    '._pf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}'+
+    '@media(max-width:480px){._pf-grid{grid-template-columns:1fr 1fr 1fr;gap:8px}}'+
+    '._pf-card{border-radius:14px;overflow:hidden;aspect-ratio:1;background:'+surface3+';border:1px solid '+cardBorder+';position:relative;cursor:pointer;transition:.2s;text-decoration:none;display:block}'+
+    '._pf-card:hover{transform:scale(1.04);border-color:'+accent+'66;box-shadow:0 8px 24px '+accent+'22}'+
     '._pf-card img{width:100%;height:100%;object-fit:cover;display:block}'+
-    '._pf-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px;text-align:center}'+
+    '._pf-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px;text-align:center;color:'+textSub+'}'+
+    '._pf-ph-icon{font-size:30px;color:'+accent+'99}'+
+    '._pf-ph-name{font-size:11px;font-weight:700;color:'+textSub+';line-height:1.4;word-break:break-word}'+
+    '._pf-ph-cat{font-size:10px;color:'+textMuted+';margin-top:2px}'+
     // CONTACT
     '._con{display:flex;flex-direction:column;gap:10px}'+
     '._con-item{display:flex;align-items:center;gap:14px;padding:16px 18px;background:'+surface+';border:1px solid '+cardBorder+';border-radius:14px;text-decoration:none;color:'+textMain+';transition:.15s;cursor:pointer;width:100%;font-family:\'Cairo\',sans-serif;text-align:right}'+
@@ -498,17 +504,19 @@ async function buildPage(userId){
       (pfProjects.length
         ?'<div class="_pf-grid" id="_pf-grid">'+
             pfProjects.slice(0,9).map(function(p){
-              // الـ fields الحقيقية: thumb, url, name, cat, link_type
               var img=p.thumb||p.image||'';
               var link=p.url||p.link||'#';
               var title=p.name||p.title||p.label||'مشروع';
+              var cat=p.cat||'';
               var isB=p.link_type==='behance'||p.type==='behance';
               return '<a class="_pf-card" href="'+xe(link)+'" target="_blank" title="'+xe(title)+'">'+
-                (img?'<img src="'+xe(img)+'" alt="'+xe(title)+'" loading="lazy">':
-                '<div class="_pf-ph">'+
-                  '<div style="font-size:28px">'+(isB?'<i class="fa-brands fa-behance"></i>':'<i class="fa-solid fa-folder"></i>')+'</div>'+
-                  '<div style="font-size:11px;font-weight:700;margin-top:6px;padding:0 8px;text-align:center;word-break:break-word">'+xe(title.slice(0,24))+'</div>'+
-                '</div>')+
+                (img
+                  ?'<img src="'+xe(img)+'" alt="'+xe(title)+'" loading="lazy">'
+                  :'<div class="_pf-ph">'+
+                      '<div class="_pf-ph-icon">'+(isB?'<i class="fa-brands fa-behance"></i>':'<i class="fa-solid fa-folder-open"></i>')+'</div>'+
+                      '<div class="_pf-ph-name">'+xe(title.slice(0,26))+'</div>'+
+                      (cat?'<div class="_pf-ph-cat">'+xe(cat)+'</div>':'')+
+                    '</div>')+
               '</a>';
             }).join('')+
           '</div>'
@@ -638,10 +646,17 @@ window._showAllPf=function(){
     var img=p.thumb||p.image||'';
     var link=p.url||p.link||'#';
     var title=p.name||p.title||'مشروع';
+    var cat=p.cat||'';
     var isB=p.link_type==='behance'||p.type==='behance';
     return '<a class="_pf-card" href="'+xe(link)+'" target="_blank" title="'+xe(title)+'">'+
-      (img?'<img src="'+xe(img)+'" alt="'+xe(title)+'" loading="lazy">':
-      '<div class="_pf-ph"><div style="font-size:28px">'+(isB?'<i class="fa-brands fa-behance"></i>':'<i class="fa-solid fa-folder"></i>')+'</div><div style="font-size:11px;font-weight:700;margin-top:6px;padding:0 8px;text-align:center">'+xe(title.slice(0,22))+'</div></div>')+'</a>';
+      (img
+        ?'<img src="'+xe(img)+'" alt="'+xe(title)+'" loading="lazy">'
+        :'<div class="_pf-ph">'+
+            '<div class="_pf-ph-icon">'+(isB?'<i class="fa-brands fa-behance"></i>':'<i class="fa-solid fa-folder-open"></i>')+'</div>'+
+            '<div class="_pf-ph-name">'+xe(title.slice(0,26))+'</div>'+
+            (cat?'<div class="_pf-ph-cat">'+xe(cat)+'</div>':'')+
+          '</div>')+
+    '</a>';
   }).join('');
   var btn=document.querySelector('[onclick="_showAllPf()"]');if(btn)btn.remove();
 };
