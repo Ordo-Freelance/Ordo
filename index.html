@@ -3392,10 +3392,29 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <div class="card">
         <div class="section-title"><i class="fa-solid fa-building"></i> بيانات العمل</div>
         <div class="form-group"><label class="form-label">اسم العمل / المشروع</label><input class="form-input" id="set-name" placeholder="اسمك أو اسم العمل"></div>
+        <div class="form-group">
+          <label class="form-label"><i class="fa-solid fa-at" style="color:var(--accent)"></i> اسم المستخدم (Username) <span style="color:var(--text3);font-size:10px">للرابط المخصص</span></label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:12px;color:var(--text3);white-space:nowrap">@</span>
+            <input class="form-input" id="set-username" placeholder="mahmoud-studio" style="direction:ltr" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_-]/g,'')">
+            <button class="btn btn-ghost btn-sm" onclick="checkAndSaveUsername()" style="white-space:nowrap;flex-shrink:0"><i class="fa-solid fa-square-check"></i> تحقق</button>
+          </div>
+          <div id="username-status" style="font-size:10px;margin-top:4px;color:var(--text3)">رابط متجرك: <span id="username-link-preview" style="color:var(--accent)">—</span></div>
+        </div>
         <div class="form-group"><label class="form-label">رقم الهاتف</label><input class="form-input" id="set-phone" placeholder="+20 1XX XXX XXXX"></div>
         <div class="form-group"><label class="form-label">البريد الإلكتروني</label><input class="form-input" id="set-email" placeholder="studio@email.com"></div>
         <div class="form-group"><label class="form-label">الموقع / العنوان</label><input class="form-input" id="set-address" placeholder="المدينة، الدولة"></div>
         <div class="form-group"><label class="form-label">شروط الدفع الافتراضية</label><textarea class="form-textarea" id="set-terms" placeholder="مثال: الدفع خلال 7 أيام"></textarea></div>
+        <div class="form-group">
+          <label class="form-label"><i class="fa-solid fa-coins" style="color:var(--accent2)"></i> العملة الافتراضية للنظام</label>
+          <select class="form-input" id="set-currency">
+            <option value="ج.م">🇪🇬 جنيه مصري (ج.م)</option>
+            <option value="ر.س">🇸🇦 ريال سعودي (ر.س)</option>
+            <option value="$">🇺🇸 دولار أمريكي ($)</option>
+            <option value="€">🇪🇺 يورو (€)</option>
+          </select>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">تُستخدم في الفواتير والمالية وشاشات التحصيل</div>
+        </div>
         <div class="form-group">
           <label class="form-label">سياسات الفاتورة الافتراضية</label>
           <div id="policies-list" style="margin-bottom:8px"></div>
@@ -3835,6 +3854,16 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
           <button onclick="saveSiteDesc()" class="btn btn-primary btn-sm" style="margin-top:10px;width:100%;justify-content:center" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
         </div>
 
+        <!-- Multi-Store Manager -->
+        <div class="card" style="padding:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-size:13px;font-weight:800"><i class="fa-solid fa-store" style="color:var(--accent)"></i> متاجر متعددة</div>
+            <button class="btn btn-primary btn-sm" onclick="openNewStoreModal()"><i class="fa-solid fa-plus" style="margin-left:4px"></i> متجر جديد</button>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px">أنشئ متاجر منفصلة لكل نوع خدمة أو عميل — كل متجر برابط خاص</div>
+          <div id="multi-stores-list" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+
       </div>
 
       <!-- LEFT COL -->
@@ -3927,7 +3956,23 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
         <select class="form-input" id="svc-cat"><option value="">— اختر —</option></select>
       </div>
       <div class="form-group"><label class="form-label">وقت التسليم</label><input class="form-input" id="svc-delivery" placeholder="مثال: 3 أيام"></div>
-      <div class="form-group"><label class="form-label">السعر (ج) *</label><input class="form-input" type="number" id="svc-price" placeholder="0" min="0"></div>
+      <div class="form-group">
+        <label class="form-label">السعر *</label>
+        <div style="display:flex;gap:4px">
+          <select class="form-input" id="svc-currency" style="width:90px;flex-shrink:0">
+            <option value="ج.م">ج.م</option>
+            <option value="ر.س">ر.س</option>
+            <option value="$">$</option>
+            <option value="€">€</option>
+          </select>
+          <input class="form-input" type="number" id="svc-price" placeholder="0" min="0" style="flex:1">
+        </div>
+      </div>
+    </div>
+    <!-- Payment Link -->
+    <div class="form-group">
+      <label class="form-label"><i class="fa-solid fa-credit-card" style="color:var(--accent)"></i> لينك الدفع <span style="color:var(--text3);font-size:10px">(اختياري — زر "ادفع الآن" للعميل)</span></label>
+      <input class="form-input" id="svc-payment-link" placeholder="https://payment.link/..." type="url">
     </div>
 
     <!-- Description -->
@@ -4904,6 +4949,10 @@ function tryParseDate(dateStr){
   } catch(e){}
   return '';
 }
+// ── Currency Helper ──
+function _getCurrency(){ return (S&&S.settings&&S.settings.currency)||'ج.م'; }
+function _fmtPrice(val, svcCurrency){ return Number(val||0).toLocaleString() + ' ' + (svcCurrency||_getCurrency()); }
+
 function lsSave(){
   if(!S) return;
   try {
@@ -5429,6 +5478,9 @@ function loadSettings(){
   const s=S.settings||{};
   renderExpenseCats();
   ['name','phone','email','address','terms'].forEach(k=>{const e=document.getElementById('set-'+k);if(e)e.value=s[k]||'';});
+  const curSel=document.getElementById('set-currency'); if(curSel) curSel.value=s.currency||'ج.م';
+  const unEl=document.getElementById('set-username'); if(unEl) unEl.value=s.username||'';
+  _updateUsernamePreview(s.username||'');
   // Reflect current theme state in buttons
   const mode = localStorage.getItem('studioDisplayMode') || 'light';
   const color = localStorage.getItem('studioAccentColor') || '#7c6ff7';
@@ -5497,6 +5549,8 @@ function saveSettings(){
   S.settings = Object.assign({}, S.settings, {
     name:v('set-name'), phone:v('set-phone'), email:v('set-email'),
     address:v('set-address'), terms:v('set-terms'),
+    currency:(document.getElementById('set-currency')||{}).value||'ج.م',
+    username:(document.getElementById('set-username')||{}).value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'')||'',
     logo:S.settings?.logo||'', policies:S.settings?.policies||[],
     socials:S.settings?.socials||[], waTemplates:S.settings?.waTemplates||{},
     taskTypes:S.settings?.taskTypes||[], taskStatuses:S.settings?.taskStatuses||[],
@@ -5635,7 +5689,7 @@ function openWaModal(tplType, invIdOrNull, taskIdOrNull){
     if(inv){
       clientName = inv.client;
       invNum     = inv.num||'';
-      invTotal   = (inv.total||0).toLocaleString()+' ج';
+      invTotal   = (inv.total||0).toLocaleString()+' '+_getCurrency();
       invDue     = inv.due||'';
       projectUrl = inv.projectUrl||'';
       taskName   = inv.items?.[0]?.desc||'';
@@ -6607,13 +6661,13 @@ function completeTask(id){
   // use custom modal
   document.getElementById('complete-task-name').textContent = t.title;
   document.getElementById('complete-client-name').textContent = t.client||'—';
-  document.getElementById('complete-value').textContent = t.value ? t.value.toLocaleString()+' ج' : 'غير محدد';
+  document.getElementById('complete-value').textContent = t.value ? t.value.toLocaleString()+' '+_getCurrency() : 'غير محدد';
 
   const depositInfo = document.getElementById('complete-deposit-info');
   if(depositAlready){
     depositInfo.style.display='block';
-    document.getElementById('complete-deposit-paid').textContent = t.deposit.toLocaleString()+' ج';
-    document.getElementById('complete-remaining').textContent = remaining.toLocaleString()+' ج';
+    document.getElementById('complete-deposit-paid').textContent = t.deposit.toLocaleString()+' '+_getCurrency();
+    document.getElementById('complete-remaining').textContent = remaining.toLocaleString()+' '+_getCurrency();
   } else {
     depositInfo.style.display='none';
   }
@@ -7374,7 +7428,7 @@ function _genStatement(id){
   </div>
   ${tasks.length?`<div class="section-title"><i class="fa-solid fa-clipboard-list"></i> الطلبات والمشاريع</div>
   <table><thead><tr><th>الطلب</th><th>التاريخ</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>
-  ${tasks.map(t=>{const st={new:'جديد',progress:'جاري',review:'مراجعة',done:'مكتمل'};return`<tr><td>${t.title}</td><td>${(t.isoDate||t.createdAt||'').slice(0,10)||'—'}</td><td>${t.value?t.value.toLocaleString()+' ج':'—'}</td><td>${st[t.status]||t.status||'—'}</td></tr>`}).join('')}
+  ${tasks.map(t=>{const st={new:'جديد',progress:'جاري',review:'مراجعة',done:'مكتمل'};return`<tr><td>${t.title}</td><td>${(t.isoDate||t.createdAt||'').slice(0,10)||'—'}</td><td>${t.value?t.value.toLocaleString()+' '+_getCurrency():'—'}</td><td>${st[t.status]||t.status||'—'}</td></tr>`}).join('')}
   </tbody></table>`:''}
   ${invs.length?`<div class="section-title"><i class="fa-solid fa-receipt"></i> الفواتير</div>
   <table><thead><tr><th>رقم</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th></tr></thead><tbody>
@@ -7589,7 +7643,7 @@ function _printStmt(id){
     <div class="card"><div class="v" style="color:#d49e00">${s.pending.toLocaleString()} ج</div><div class="l">⏳ معلق</div></div>
   </div>
   ${s.tasks&&s.tasks.length?`<div class="sec"><i class="fa-solid fa-clipboard-list"></i> الطلبات</div><table><thead><tr><th>الطلب</th><th>التاريخ</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>
-  ${s.tasks.map(t=>`<tr><td>${t.title}</td><td>${t.date||'—'}</td><td>${t.value?t.value.toLocaleString()+' ج':'—'}</td><td>${stFmt[t.status]||'—'}</td></tr>`).join('')}
+  ${s.tasks.map(t=>`<tr><td>${t.title}</td><td>${t.date||'—'}</td><td>${t.value?t.value.toLocaleString()+' '+_getCurrency():'—'}</td><td>${stFmt[t.status]||'—'}</td></tr>`).join('')}
   </tbody></table>`:''}
   ${s.invoices&&s.invoices.length?`<div class="sec"><i class="fa-solid fa-receipt"></i> الفواتير</div><table><thead><tr><th>رقم</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th></tr></thead><tbody>
   ${s.invoices.map(i=>`<tr><td>#${i.num||'—'}</td><td>${i.date||'—'}</td><td>${i.total.toLocaleString()} ج</td><td><span class="badge ${i.status==='paid'?'paid':'pend'}">${i.status==='paid'?'مدفوع':'معلق'}</span></td></tr>`).join('')}
@@ -8090,13 +8144,13 @@ function renderFinance(){
   const depositsPending=pendingTasks.filter(t=>t.pay==='deposit').reduce((s,t)=>s+(t.deposit||0),0);
   
   const set=(id,val)=>{const e=document.getElementById(id);if(e)e.textContent=val;};
-  set('fin-in',inc.toLocaleString()+' ج');
+  set('fin-in',inc.toLocaleString()+' '+_getCurrency());
   set('fin-in-sub', f.month||f.year ? `(${(f.month?'الشهر':'')+(f.year?' '+f.year:'')})` : '');
-  set('fin-out',exp.toLocaleString()+' ج');
-  set('fin-net',net.toLocaleString()+' ج');
+  set('fin-out',exp.toLocaleString()+' '+_getCurrency());
+  set('fin-net',net.toLocaleString()+' '+_getCurrency());
   set('fin-margin',inc?margin+'%':'—');
-  set('fin-pending',pendingRev.toLocaleString()+' ج');
-  set('fin-deposits',depositsPending.toLocaleString()+' ج');
+  set('fin-pending',pendingRev.toLocaleString()+' '+_getCurrency());
+  set('fin-deposits',depositsPending.toLocaleString()+' '+_getCurrency());
   
   // Category cards
   
@@ -9041,7 +9095,7 @@ function updateDash(){
   const inc=S.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const done=S.tasks.filter(t=>t.done).length,pending=S.tasks.filter(t=>!t.done).length;
   const set=(id,val)=>{const e=document.getElementById(id);if(e)e.textContent=val;};
-  set('dash-income',inc.toLocaleString()+' ج');set('dash-projects',pending);
+  set('dash-income',inc.toLocaleString()+' '+_getCurrency());set('dash-projects',pending);
   set('dash-done',done);set('dash-pending-txt',pending+' معلقة');set('dash-clients',S.clients.length);
   const dtl=document.getElementById('dash-tasks-list');
   if(dtl)dtl.innerHTML=S.tasks.slice(0,5).map(t=>`
@@ -11486,9 +11540,9 @@ function calcTaskProfit(){
     }
     const mine = total - memberAmt;
     if(total>0){
-      document.getElementById('ps-total').textContent = total.toLocaleString()+' ج';
-      document.getElementById('ps-member').textContent = memberAmt.toLocaleString()+' ج';
-      document.getElementById('ps-mine').textContent = mine.toLocaleString()+' ج';
+      document.getElementById('ps-total').textContent = total.toLocaleString()+' '+_getCurrency();
+      document.getElementById('ps-member').textContent = memberAmt.toLocaleString()+' '+_getCurrency();
+      document.getElementById('ps-mine').textContent = mine.toLocaleString()+' '+_getCurrency();
       summary.style.display = 'block';
     }
   } else {
@@ -12030,8 +12084,8 @@ function openMemberProfile(memberName){
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   set('mp-tasks-count', activeTasks.length);
   set('mp-done-count',  doneTasks.length);
-  set('mp-total-paid',  totalDeposits.toLocaleString()+' ج');
-  set('mp-pending-pay', pendingPay.toLocaleString()+' ج');
+  set('mp-total-paid', totalDeposits.toLocaleString()+' '+_getCurrency());
+  set('mp-pending-pay', pendingPay.toLocaleString()+' '+_getCurrency());
   // Store data for manual statement generation
   window._mpCurrentMember = memberName;
   window._mpAllTasks = allTasks;
@@ -12134,8 +12188,8 @@ function mpToggleStmt(){
   var pendingPay = window._mpPendingPay || 0;
   var set = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
   set('mp-stat-total-tasks', allTasks.length);
-  set('mp-stat-total-earned', totalOwed.toLocaleString()+' ج');
-  set('mp-stat-balance', pendingPay.toLocaleString()+' ج');
+  set('mp-stat-total-earned', totalOwed.toLocaleString()+' '+_getCurrency());
+  set('mp-stat-balance', pendingPay.toLocaleString()+' '+_getCurrency());
   var stmtTable = document.getElementById('mp-statement-table');
   if(stmtTable){
     if(!allTasks.length){
@@ -14978,7 +15032,7 @@ function renderContractsList(){
       onmouseenter="if('${c.id}'!=='${_activeContractId||''}')this.style.background='rgba(255,255,255,.03)'"
       onmouseleave="if('${c.id}'!=='${_activeContractId||''}')this.style.background=''">
       <div style="font-size:13px;font-weight:700">${c.title}</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-user"></i> ${c.client_name||'—'} ${c.value?'· '+Number(c.value).toLocaleString()+' ج':''}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-user"></i> ${c.client_name||'—'} ${c.value?'· '+Number(c.value).toLocaleString()+' '+_getCurrency():''}</div>
       <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:${st.bg};color:${st.c};margin-top:4px;display:inline-block">${st.l}</span>
     </div>`;
   }).join('');
@@ -14996,7 +15050,7 @@ function showContractDetail(id){
       <div style="padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
         <div>
           <div style="font-size:17px;font-weight:900">${c.title}</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-user"></i> ${c.client_name||'—'} ${c.value?'· '+Number(c.value).toLocaleString()+' ج':''}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-user"></i> ${c.client_name||'—'} ${c.value?'· '+Number(c.value).toLocaleString()+' '+_getCurrency():''}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <span style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;background:rgba(90,90,112,.2);color:${stC[c.status]||'var(--text3)'}">
@@ -15027,7 +15081,7 @@ function buildContractHTML(c){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:20px">
       <div><div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px">مقدم الخدمة</div><div style="font-size:13px;font-weight:700">${me}</div></div>
       <div><div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px">العميل</div><div style="font-size:13px;font-weight:700">${c.client_name||'—'}</div></div>
-      <div><div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px">قيمة العقد</div><div style="font-size:13px;font-weight:700;color:var(--accent3)">${c.value?Number(c.value).toLocaleString()+' ج':'غير محدد'}</div></div>
+      <div><div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px">قيمة العقد</div><div style="font-size:13px;font-weight:700;color:var(--accent3)">${c.value?Number(c.value).toLocaleString()+' '+_getCurrency():'غير محدد'}</div></div>
       <div><div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px">مدة التنفيذ</div><div style="font-size:13px;font-weight:700">${c.start_date||'—'} → ${c.end_date||'—'}</div></div>
     </div>
     <div style="font-size:14px;line-height:1.9;color:var(--text2);margin-bottom:24px;white-space:pre-wrap">${c.content||''}</div>
@@ -16202,11 +16256,127 @@ function renderCorpEmployees(){
 // ═══════════════════════════════════════════════════════════════
 
 // ── Helpers ──
-function getSvcLink(){
+function getSvcLink(storeId){
   var uid = (typeof _supaUserId!=='undefined' && _supaUserId) ? _supaUserId : '';
-  // Uses index.html with ?svcorder=UID — the built-in public store (no store.html needed)
   var base = window.location.origin + window.location.pathname;
-  return base + '?svcorder=' + uid;
+  // Use username if set
+  var un = S&&S.settings&&S.settings.username;
+  var link = un ? (base + '?u=' + encodeURIComponent(un)) : (base + '?svcorder=' + uid);
+  if(storeId) link += '&store=' + encodeURIComponent(storeId);
+  return link;
+}
+
+// ══ USERNAME / CUSTOM LINK FUNCTIONS ══
+function _updateUsernamePreview(un){
+  var base=window.location.origin+window.location.pathname;
+  var linkEl=document.getElementById('username-link-preview');
+  if(!linkEl) return;
+  if(un){
+    linkEl.textContent=base+'?u='+un;
+    linkEl.title='انقر للمعاينة';
+    linkEl.style.cursor='pointer';
+    linkEl.onclick=function(){ window.open(base+'?u='+un,'_blank'); };
+  } else {
+    linkEl.textContent='أدخل اسم مستخدم لتفعيل الرابط المخصص';
+    linkEl.onclick=null;
+  }
+}
+async function checkAndSaveUsername(){
+  var inp=document.getElementById('set-username');
+  var un=(inp&&inp.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,''))||'';
+  var statusEl=document.getElementById('username-status');
+  if(!un){ if(statusEl) statusEl.innerHTML='<span style="color:var(--accent4)">أدخل اسم مستخدم أولاً</span>'; return; }
+  if(un.length<3){ if(statusEl) statusEl.innerHTML='<span style="color:var(--accent4)">الاسم قصير جداً (3 أحرف على الأقل)</span>'; return; }
+  if(!_supaUserId){ toast('<i class="fa-solid fa-triangle-exclamation"></i> يجب تسجيل الدخول أولاً'); return; }
+  if(statusEl) statusEl.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
+  try{
+    // Check if username already taken by another user
+    var res=await supa.from('studio_data').select('user_id').eq('data->>username', un).neq('user_id',_supaUserId).maybeSingle();
+    if(res.data){
+      if(statusEl) statusEl.innerHTML='<span style="color:var(--accent4)">❌ الاسم محجوز، جرب اسماً آخر</span>';
+      return;
+    }
+    // Save
+    S.settings.username=un;
+    if(inp) inp.value=un;
+    lsSave(); cloudSave(S);
+    _updateUsernamePreview(un);
+    if(statusEl) statusEl.innerHTML='✅ تم الحفظ — رابط متجرك: <span id="username-link-preview" style="color:var(--accent);cursor:pointer" onclick="window.open(window.location.origin+window.location.pathname+\'?u='+un+'\')">'+(window.location.origin+window.location.pathname)+'?u='+un+'</span>';
+    toast('✅ تم حفظ الاسم: @'+un);
+  } catch(e){
+    // Fallback: just save locally even if check fails
+    S.settings.username=un;
+    if(inp) inp.value=un;
+    lsSave(); cloudSave(S);
+    _updateUsernamePreview(un);
+    if(statusEl) statusEl.innerHTML='✅ رابط متجرك: <span style="color:var(--accent)">'+(window.location.origin+window.location.pathname)+'?u='+un+'</span>';
+  }
+}
+
+// ══ MULTI-STORE FUNCTIONS ══
+function _getStores(){ return S.stores||[]; }
+function renderMultiStoresList(){
+  var el=document.getElementById('multi-stores-list'); if(!el) return;
+  var stores=_getStores();
+  if(!stores.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px">لا يوجد متاجر إضافية — المتجر الرئيسي فعّال دائماً</div>';
+    return;
+  }
+  el.innerHTML=stores.map(function(st,i){
+    var link=getSvcLink(st.id);
+    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'+
+        '<div style="font-size:13px;font-weight:800">'+escapeHtml(st.name)+'</div>'+
+        '<div style="display:flex;gap:4px">'+
+          '<button data-idx="'+i+'" onclick="copyStoreLink(this.dataset.idx)" class="btn btn-ghost btn-sm" style="font-size:10px"><i class="fa-solid fa-copy"></i></button>'+
+          '<button data-idx="'+i+'" onclick="previewStore(this.dataset.idx)" class="btn btn-ghost btn-sm" style="font-size:10px"><i class="fa-solid fa-eye"></i></button>'+
+          '<button data-idx="'+i+'" onclick="editStore(this.dataset.idx)" class="btn btn-ghost btn-sm" style="font-size:10px"><i class="fa-solid fa-pen"></i></button>'+
+          '<button data-idx="'+i+'" onclick="deleteStore(this.dataset.idx)" class="btn btn-danger btn-sm" style="font-size:10px"><i class="fa-solid fa-trash"></i></button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:10px;color:var(--text3);word-break:break-all">'+escapeHtml(link)+'</div>'+
+      (st.desc?'<div style="font-size:10px;color:var(--text2);margin-top:3px">'+escapeHtml(st.desc)+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+function openNewStoreModal(editIdx){
+  var stores=_getStores();
+  var st=editIdx!=null?stores[editIdx]:null;
+  var over=document.createElement('div');
+  over.className='modal-overlay';over.style.display='flex';
+  over.innerHTML='<div class="modal" style="max-width:420px">'+
+    '<div class="modal-header"><div class="modal-title"><i class="fa-solid fa-store"></i> '+(st?'تعديل المتجر':'متجر جديد')+'</div>'+
+    '<button class="close-btn" onclick="this.closest(\'.modal-overlay\').remove()"><i class="fa-solid fa-xmark"></i></button></div>'+
+    '<div class="form-group"><label class="form-label">اسم المتجر *</label><input class="form-input" id="_store-name" placeholder="مثال: متجر التصاميم" value="'+(st?escapeHtml(st.name):'')+'"></div>'+
+    '<div class="form-group"><label class="form-label">وصف مختصر</label><input class="form-input" id="_store-desc" placeholder="اختياري" value="'+(st?escapeHtml(st.desc||''):'')+'"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:4px">'+
+    '<button class="btn btn-primary" style="flex:1;justify-content:center" onclick="_saveStore('+(editIdx!=null?editIdx:'null')+',this)"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>'+
+    '<button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">إلغاء</button></div></div>';
+  document.body.appendChild(over);
+  over.onclick=function(e){if(e.target===over)over.remove();};
+}
+function _saveStore(editIdx, btn){
+  var modal=btn.closest('.modal-overlay');
+  var name=(modal.querySelector('#_store-name')||{}).value.trim();
+  var desc=(modal.querySelector('#_store-desc')||{}).value.trim();
+  if(!name){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل اسم المتجر');return;}
+  if(!S.stores) S.stores=[];
+  if(editIdx!=null && editIdx>=0){
+    S.stores[editIdx].name=name; S.stores[editIdx].desc=desc;
+  } else {
+    S.stores.push({id:'store_'+Date.now(),name:name,desc:desc,createdAt:new Date().toISOString()});
+  }
+  lsSave(); cloudSave(S); modal.remove(); renderMultiStoresList();
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ المتجر');
+}
+function copyStoreLink(idx){ var link=getSvcLink(_getStores()[idx]?.id); navigator.clipboard.writeText(link).then(function(){toast('<i class="fa-solid fa-copy"></i> تم نسخ الرابط');}).catch(function(){toast(link);}); }
+function previewStore(idx){ window.open(getSvcLink(_getStores()[idx]?.id),'_blank'); }
+function editStore(idx){ openNewStoreModal(idx); }
+function deleteStore(idx){
+  confirmDel('حذف هذا المتجر؟',function(){
+    S.stores.splice(idx,1); lsSave(); cloudSave(S); renderMultiStoresList();
+    toast('<i class="fa-solid fa-trash"></i> تم حذف المتجر');
+  });
 }
 function svcCopyLink(){
   var link = getSvcLink();
@@ -16241,6 +16411,7 @@ function switchSvcTab(tab){
 // WEBSITE TAB
 // ══════════════════════════════════
 function initWebsiteTab(){
+  renderMultiStoresList();
   // update preview link
   try{
     var wl=document.getElementById('svc-website-link-preview');
@@ -16707,7 +16878,16 @@ function openSvcModal(id){
       if(knob) knob.style.right=_svcModalActive?'2px':'calc(100% - 20px)';
       if(lbl) lbl.textContent=_svcModalActive?'● نشطة':'○ موقوفة';
       if(flag) flag.value=_svcModalActive?'1':'0';
+      // load currency
+      var curSel=document.getElementById('svc-currency'); if(curSel) curSel.value=svc.currency||'ج.م';
+      // load payment link
+      var payLinkEl=document.getElementById('svc-payment-link'); if(payLinkEl) payLinkEl.value=svc.payment_link||'';
     }
+  }
+  // reset currency+payment for new service
+  if(!id){
+    var curSelN=document.getElementById('svc-currency'); if(curSelN) curSelN.value='ج.م';
+    var payLinkN=document.getElementById('svc-payment-link'); if(payLinkN) payLinkN.value='';
   }
   openM('modal-svc');
 }
@@ -16903,6 +17083,8 @@ function saveSvc(){
     cat: catEl ? catEl.value : '',
     delivery: (document.getElementById('svc-delivery')||{}).value||'',
     price: +((document.getElementById('svc-price')||{}).value)||0,
+    currency: (document.getElementById('svc-currency')||{}).value||'ج.م',
+    payment_link: ((document.getElementById('svc-payment-link')||{}).value||'').trim(),
     terms: (((document.getElementById('svc-terms')||{}).value)||'').split('\n').map(function(s){return s.trim();}).filter(Boolean),
     image: _svcImgData,
     portfolio: collectPortfolio(),
@@ -16994,7 +17176,7 @@ function renderServices(){
           (svc.cat?'<div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:6px">'+escapeHtml(svc.cat)+'</div>':'<div style="margin-bottom:6px"></div>')+
           '<div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:10px">'+escapeHtml(svc.desc)+'</div>'+
           '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
-            '<div style="font-size:17px;font-weight:900;color:var(--accent)">'+(minPrice?Number(minPrice).toLocaleString()+' ج':'<span style="font-size:12px;color:var(--text3)">سعر عند الطلب</span>')+'</div>'+
+            '<div style="font-size:17px;font-weight:900;color:var(--accent)">'+(minPrice?Number(minPrice).toLocaleString()+' '+(svc.currency||'ج.م'):'<span style="font-size:12px;color:var(--text3)">سعر عند الطلب</span>')+'</div>'+
             '<div style="display:flex;gap:4px">'+
               (svc.packages&&svc.packages.length?'<span style="font-size:10px;background:rgba(124,111,247,.12);color:var(--accent);padding:2px 8px;border-radius:8px">'+svc.packages.length+' باقة</span>':'')+
               (ordCount?'<span style="font-size:10px;background:rgba(79,209,165,.12);color:var(--accent3);padding:2px 8px;border-radius:8px">'+ordCount+' طلب</span>':'')+
@@ -17002,6 +17184,7 @@ function renderServices(){
           '</div>'+
           '<div style="display:flex;gap:6px;border-top:1px solid var(--border);padding-top:12px" onclick="event.stopPropagation()">'+
             '<button data-sid="'+svc.id+'" onclick="openSvcModal(+this.dataset.sid)" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center"><i class="fa-solid fa-pen"></i> تعديل</button>'+
+            (svc.payment_link?'<a href="'+escapeHtml(svc.payment_link)+'" target="_blank" class="btn btn-success btn-sm" style="flex:1;justify-content:center;text-decoration:none" onclick="event.stopPropagation()"><i class="fa-solid fa-credit-card"></i> ادفع الآن</a>':'')+
             '<button data-sid="'+svc.id+'" data-active="'+(isActive?'1':'0')+'" onclick="toggleSvcActive(+this.dataset.sid,event)" class="btn btn-ghost btn-sm" style="color:'+(isActive?'var(--accent3)':'var(--text3)')+'" title="'+(isActive?'موقف الخدمة':'تفعيل الخدمة')+'">'+(isActive?'● نشطة':'○ موقوفة')+'</button>'+
             '<button data-sid="'+svc.id+'" onclick="delSvc(+this.dataset.sid)" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>'+
           '</div>'+
@@ -17493,6 +17676,32 @@ function openClientPortal(portalId){
 function _checkSvcOrderUrl(){
   var params=new URLSearchParams(window.location.search);
   var uid=params.get('svcorder');
+  // Handle username-based URL: ?u=username
+  var _uname=params.get('u');
+  if(!uid && _uname){
+    // Lookup UID from username stored in studio_data JSON
+    // We search studio_data where data->settings->username = _uname
+    if(typeof supa!=='undefined'){
+      document.documentElement.classList.add('pub-page');
+      document.body.classList.add('pub-page');
+      supa.from('studio_data').select('user_id,data').then(function(res){
+        if(res&&res.data){
+          var found=null;
+          for(var i=0;i<res.data.length;i++){
+            try{
+              var d=typeof res.data[i].data==='string'?JSON.parse(res.data[i].data):res.data[i].data;
+              if(d&&d.settings&&d.settings.username&&d.settings.username.toLowerCase()===_uname.toLowerCase()){
+                found=res.data[i].user_id; break;
+              }
+            }catch(e){}
+          }
+          if(found) _buildSvcOrderPage(found);
+          else _svcOrderFallback();
+        } else _svcOrderFallback();
+      }).catch(function(){ _svcOrderFallback(); });
+      return;
+    } else { _svcOrderFallback(); return; }
+  }
   var portalId=params.get('portal');
   if(portalId && params.get('uid')) { _buildClientPortalPage(params.get('uid'), portalId); return; }
   if(!uid) return;
@@ -17505,7 +17714,7 @@ function _checkSvcOrderUrl(){
 // Run ASAP — before DOMContentLoaded if possible
 (function(){
   var p=new URLSearchParams(window.location.search);
-  if(p.get('svcorder')||( p.get('portal')&&p.get('uid') )){
+  if(p.get('svcorder')||( p.get('portal')&&p.get('uid') )||p.get('u')){
     // Mark as public page — auth functions check this flag
     window._isPublicPage = true;
     // Add pub-page class IMMEDIATELY to unlock scroll before any CSS applies
@@ -17528,13 +17737,19 @@ function _buildSvcOrderPage(userId){
     if(!ud){ _svcOrderFallback(); return; }
 
     // ── Data ──
+    // Check if specific store is requested
+    var _storeId = params.get('store');
+    var _storeObj = _storeId ? (ud.stores||[]).find(function(s){return s.id===_storeId;}) : null;
     var services=(ud.services||[]).filter(function(s){return s.active!==false;});
     var standalonePkgs=(ud.standalone_packages||[]).filter(function(p){return p.active!==false;});
     var pfProjects=ud.portfolio_projects||[];
     var settings=ud.settings||{};
     var isOrdersOpen=settings.svc_orders_open!==false;
     var siteDesc=settings.svc_site_desc||settings.bio||settings.desc||'';
-    var accent=settings.accent||settings.accentColor||'#7c6ff7';
+    // Read accent from all possible storage locations
+    var accent=settings.accent||settings.accentColor||settings.theme_color||'#7c6ff7';
+    // Also try from localStorage platform_config as fallback
+    try{ var _pc=JSON.parse(localStorage.getItem('platform_config')||'{}'); if(_pc.accent) accent=_pc.accent; }catch(e){}
     var banner=settings.svc_banner||'';
     var bannerSize=settings.svc_banner_size||'md';
     var bannerCustomPx=settings.svc_banner_custom_px||300;
@@ -17543,7 +17758,8 @@ function _buildSvcOrderPage(userId){
     var studioName=settings.name||'Studio';
     var phone=settings.phone||'';
     var socials=settings.socials||[];
-    var isLight=settings.displayMode==='light';
+    var _dm = settings.displayMode||settings.display_mode||localStorage.getItem('studioDisplayMode')||'dark';
+    var isLight=_dm==='light';
 
     // ── Colors ──
     var bg      =isLight?'#f4f5fb':'#0a0a0f';
@@ -17761,7 +17977,7 @@ function _buildSvcOrderPage(userId){
 
     // ── SERVICES section ──
     var svcsHtml=services.slice(0,6).map(function(svc,idx){
-      var priceDisplay=svc.price&&+svc.price?Number(svc.price).toLocaleString()+' ج':'عند الطلب';
+      var priceDisplay=svc.price&&+svc.price?Number(svc.price).toLocaleString()+' '+(svc.currency||'ج.م'):'عند الطلب';
       return '<div class="_svc-card">'+
         (svc.image?'<img class="_svc-img" src="'+escapeHtml(svc.image)+'" alt="" loading="lazy" onclick="_openSvcPage('+idx+')" style="cursor:pointer">':'<div class="_svc-img-ph" onclick="_openSvcPage('+idx+')" style="cursor:pointer">'+(svc.icon||'<i class="fa-solid fa-bag-shopping"></i>')+'</div>')+
         '<div class="_svc-body">'+
@@ -17772,7 +17988,7 @@ function _buildSvcOrderPage(userId){
             '<div class="_svc-price">'+priceDisplay+'</div>'+
             '<div style="display:flex;gap:5px">'+
               '<button class="_svc-btn" onclick="event.stopPropagation();_openSvcPage('+idx+')" style="background:transparent;border:1.5px solid '+accent+'55;color:'+accent+'">تفاصيل</button>'+
-              '<button class="_svc-btn" onclick="event.stopPropagation();_openOrderFormNew(\''+encodeURIComponent(svc.name)+'\',\'\','+(svc.price||0)+')">اطلب ←</button>'+
+              (svc.payment_link?'<a href="'+escapeHtml(svc.payment_link)+'" target="_blank" class="_svc-btn" style="text-decoration:none;background:#22c55e;color:#fff;display:flex;align-items:center;gap:4px" onclick="event.stopPropagation()">💳 ادفع الآن</a>':'<button class="_svc-btn" onclick="event.stopPropagation();_openOrderFormNew(\''+encodeURIComponent(svc.name)+'\',\'\','+(svc.price||0)+')">اطلب ←</button>')+
             '</div>'+
           '</div>'+
         '</div>'+
@@ -18533,8 +18749,8 @@ function _buildClientPortalPage(userId, portalId){
       [
         {l:'مشاريع نشطة',v:activeProjects,c:accent},
         {l:'مكتملة',v:doneProjects,c:'#4fd1a5'},
-        {l:'إجمالي الفواتير',v:(totalInvoiced?totalInvoiced.toLocaleString()+' ج':'—'),c:'#f7c948'},
-        {l:'المدفوع',v:(totalPaid?totalPaid.toLocaleString()+' ج':'—'),c:'#4fd1a5'}
+        {l:'إجمالي الفواتير',v:(totalInvoiced?totalInvoiced.toLocaleString()+' '+_getCurrency():'—'),c:'#f7c948'},
+        {l:'المدفوع',v:(totalPaid?totalPaid.toLocaleString()+' '+_getCurrency():'—'),c:'#4fd1a5'}
       ].map(function(s){
         return '<div style="background:'+surface2+';border:1px solid '+cardBorder+';border-radius:14px;padding:14px;text-align:center">'+
           '<div style="font-size:20px;font-weight:900;color:'+s.c+'">'+s.v+'</div>'+
@@ -20812,8 +21028,8 @@ function openStatusPopover(statusId, triggerEl){
       <div style="margin-bottom:10px">
         <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">تعديل الحالة</div>
         <div style="display:flex;gap:6px;align-items:center">
-          <input id="_sp-edit-icon"  value="${icon}" placeholder="رمز" style="width:38px;height:30px;padding:0 6px;background:var(--surface3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:14px;text-align:center;outline:none;font-family:var(--font)">
-          <input id="_sp-edit-label" value="${label}" placeholder="اسم الحالة" style="flex:1;height:30px;padding:0 8px;background:var(--surface3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;font-family:var(--font);outline:none">
+          <input id="_sp-edit-icon"  value="${(icon||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}" placeholder="رمز" style="width:38px;height:30px;padding:0 6px;background:var(--surface3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:14px;text-align:center;outline:none;font-family:var(--font)">
+          <input id="_sp-edit-label" value="${(label||'').replace(/"/g,'&quot;')}" placeholder="اسم الحالة" style="flex:1;height:30px;padding:0 8px;background:var(--surface3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;font-family:var(--font);outline:none">
           <input id="_sp-edit-color" type="color" value="${color.startsWith('var')?'#7c6ff7':color}" style="width:30px;height:30px;border:none;border-radius:7px;cursor:pointer;background:none;padding:0">
           <button onclick="_spSaveEdit('${statusId}')" style="height:30px;padding:0 10px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">حفظ</button>
         </div>
@@ -21596,7 +21812,7 @@ function _renderTeamTasksBanner(myTasks, myName){
         <div style="width:8px;height:8px;border-radius:50%;background:#64b5f6;flex-shrink:0"></div>
         <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">${t.title}</div>
         <div style="font-size:11px;color:var(--text3)">${t.client||''} ${t.deadline?'· '+t.deadline:''}</div></div>
-        <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(100,181,246,.15);color:#64b5f6;font-weight:700">${t.workerAmount?t.workerAmount.toLocaleString()+' ج':''}</span>
+        <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(100,181,246,.15);color:#64b5f6;font-weight:700">${t.workerAmount?t.workerAmount.toLocaleString()+' '+_getCurrency():''}</span>
       </div>`).join('')+
       (myTasks.length>3?`<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px">+ ${myTasks.length-3} مهام أخرى</div>`:'')
     ;
