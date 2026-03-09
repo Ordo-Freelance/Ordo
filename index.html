@@ -26,6 +26,7 @@
 </style>
 
 <!-- ═══ SUPABASE SDK ═══ -->
+<meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; img-src * data: blob:; connect-src *;">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // ══════════════════════════════════════════════════
@@ -263,7 +264,8 @@ async function _doCloudSave(data) {
     try { localStorage.setItem('studioOS_backup_'+_supaUserId, JSON.stringify(_safeData)); } catch(e) {}
     try { localStorage.setItem(userKey(), JSON.stringify(_safeData)); } catch(e) {}
 
-    const payload = { user_id: _supaUserId, data: JSON.stringify(_safeData), updated_at: new Date().toISOString() };
+    var _un = (_safeData&&_safeData.settings&&_safeData.settings.username)||null;
+    const payload = { user_id: _supaUserId, data: JSON.stringify(_safeData), updated_at: new Date().toISOString(), ...(_un?{username_index:_un.toLowerCase()}:{}) };
     const { error } = await supa.from('studio_data').upsert(payload, { onConflict: 'user_id' });
     if(error) {
       console.error('cloudSave error:', error.message);
@@ -17684,21 +17686,37 @@ function _checkSvcOrderUrl(){
     if(typeof supa!=='undefined'){
       document.documentElement.classList.add('pub-page');
       document.body.classList.add('pub-page');
-      supa.from('studio_data').select('user_id,data').then(function(res){
-        if(res&&res.data){
-          var found=null;
-          for(var i=0;i<res.data.length;i++){
-            try{
-              var d=typeof res.data[i].data==='string'?JSON.parse(res.data[i].data):res.data[i].data;
-              if(d&&d.settings&&d.settings.username&&d.settings.username.toLowerCase()===_uname.toLowerCase()){
-                found=res.data[i].user_id; break;
-              }
-            }catch(e){}
+      // Use Supabase JSON path filter — efficient, no full scan
+      supa.from('studio_data')
+        .select('user_id')
+        .ilike('data->>username_index', _uname)
+        .maybeSingle()
+        .then(function(res){
+          if(res&&res.data&&res.data.user_id){
+            _buildSvcOrderPage(res.data.user_id);
+          } else {
+            // Fallback: try text search in data column (slower but works)
+            supa.from('studio_data')
+              .select('user_id,data')
+              .like('data::text', '%"username":"'+_uname+'"%')
+              .limit(5)
+              .then(function(res2){
+                if(res2&&res2.data&&res2.data.length){
+                  var found=null;
+                  for(var i=0;i<res2.data.length;i++){
+                    try{
+                      var d=typeof res2.data[i].data==='string'?JSON.parse(res2.data[i].data):res2.data[i].data;
+                      if(d&&d.settings&&d.settings.username&&d.settings.username.toLowerCase()===_uname.toLowerCase()){
+                        found=res2.data[i].user_id; break;
+                      }
+                    }catch(e){}
+                  }
+                  if(found) _buildSvcOrderPage(found);
+                  else _svcOrderFallback();
+                } else _svcOrderFallback();
+              }).catch(function(){ _svcOrderFallback(); });
           }
-          if(found) _buildSvcOrderPage(found);
-          else _svcOrderFallback();
-        } else _svcOrderFallback();
-      }).catch(function(){ _svcOrderFallback(); });
+        }).catch(function(){ _svcOrderFallback(); });
       return;
     } else { _svcOrderFallback(); return; }
   }
