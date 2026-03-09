@@ -3667,15 +3667,8 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <div class="card">
         <div class="section-title"><i class="fa-solid fa-building"></i> بيانات العمل</div>
         <div class="form-group"><label class="form-label">اسم العمل / المشروع</label><input class="form-input" id="set-name" placeholder="اسمك أو اسم العمل"></div>
-        <div class="form-group">
-          <label class="form-label"><i class="fa-solid fa-at" style="color:var(--accent)"></i> اسم المستخدم (Username) <span style="color:var(--text3);font-size:10px">للرابط المخصص</span></label>
-          <div style="display:flex;gap:6px;align-items:center">
-            <span style="font-size:12px;color:var(--text3);white-space:nowrap">@</span>
-            <input class="form-input" id="set-username" placeholder="mahmoud-studio" style="direction:ltr" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_-]/g,'')">
-            <button class="btn btn-ghost btn-sm" onclick="checkAndSaveUsername()" style="white-space:nowrap;flex-shrink:0"><i class="fa-solid fa-square-check"></i> تحقق</button>
-          </div>
-          <div id="username-status" style="font-size:10px;margin-top:4px;color:var(--text3)">رابط متجرك: <span id="username-link-preview" style="color:var(--accent)">—</span></div>
-        </div>
+        <!-- username hidden — تم نقله لصفحة الخدمات -->
+        <input type="hidden" id="set-username">
         <div class="form-group"><label class="form-label">رقم الهاتف</label><input class="form-input" id="set-phone" placeholder="+20 1XX XXX XXXX"></div>
         <div class="form-group"><label class="form-label">البريد الإلكتروني</label><input class="form-input" id="set-email" placeholder="studio@email.com"></div>
         <div class="form-group"><label class="form-label">الموقع / العنوان</label><input class="form-input" id="set-address" placeholder="المدينة، الدولة"></div>
@@ -4102,6 +4095,22 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <!-- RIGHT COL -->
       <div style="display:flex;flex-direction:column;gap:14px">
 
+        <!-- لوجو الموقع -->
+        <div class="card" style="padding:16px" id="svc-logo-card">
+          <div style="font-size:13px;font-weight:800;margin-bottom:12px"><i class="fa-solid fa-circle-user" style="color:var(--accent)"></i> لوجو الموقع</div>
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+            <div id="svc-logo-preview" style="width:60px;height:60px;border-radius:14px;background:var(--surface2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+              <i class="fa-solid fa-image" style="color:var(--text3);font-size:22px"></i>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <input type="file" id="svc-logo-input" accept="image/*" style="display:none" onchange="handleSvcLogo(this)">
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('svc-logo-input').click()"><i class="fa-solid fa-upload" style="margin-left:4px"></i> رفع لوجو</button>
+              <button class="btn btn-ghost btn-sm" id="svc-logo-clear-btn" style="display:none" onclick="clearSvcLogo()"><i class="fa-solid fa-xmark" style="margin-left:4px"></i> إزالة اللوجو</button>
+            </div>
+          </div>
+          <button onclick="saveSvcLogo()" class="btn btn-primary btn-sm" style="width:100%;justify-content:center"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ اللوجو</button>
+        </div>
+
         <!-- Banner -->
         <div class="card" style="padding:16px">
           <div style="font-size:13px;font-weight:800;margin-bottom:10px"><i class="fa-solid fa-image"></i> بانر الموقع</div>
@@ -4112,6 +4121,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
             <input type="file" id="svc-banner-input" accept="image/*" style="display:none" onchange="handleSvcBanner(this)">
             <button class="btn btn-ghost btn-sm" onclick="document.getElementById('svc-banner-input').click()"><i class="fa-solid fa-folder"></i> رفع بانر</button>
             <button class="btn btn-danger btn-sm" id="svc-banner-clear-btn" style="display:none" onclick="clearSvcBanner()"><i class="fa-solid fa-xmark"></i></button>
+            <button class="btn btn-primary btn-sm" onclick="saveSvcBannerNow()" style="flex-shrink:0"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
             <span style="font-size:10px;color:var(--text3)">JPG/PNG · 2MB</span>
           </div>
           <div style="font-size:11px;color:var(--text3);margin-bottom:6px">مقاس البانر:</div>
@@ -4147,6 +4157,16 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
           <div style="font-size:13px;font-weight:800;margin-bottom:10px"><i class="fa-solid fa-pen-to-square"></i> وصف الموقع</div>
           <textarea class="form-input" id="svc-site-desc" rows="4" placeholder="وصف مختصر يظهر في صفحتك العامة..." style="resize:vertical"></textarea>
           <button onclick="saveSiteDesc()" class="btn btn-primary btn-sm" style="margin-top:10px;width:100%;justify-content:center" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
+        </div>
+
+        <!-- يوزرنيم الموقع الرئيسي -->
+        <div class="card" style="padding:16px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:4px"><i class="fa-solid fa-at" style="color:var(--accent)"></i> يوزرنيم الموقع</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px">رابط موقعك: store.html?u=<span id="svc-un-live-preview" style="color:var(--accent);font-weight:700">...</span></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="form-input" id="svc-main-username" placeholder="mahmoud-studio" style="flex:1;direction:ltr" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_-]/g,'');document.getElementById('svc-un-live-preview').textContent=this.value||'...'">
+            <button onclick="saveSvcUsername()" class="btn btn-primary btn-sm" style="flex-shrink:0;white-space:nowrap"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
+          </div>
         </div>
 
         <!-- Multi-Store Manager -->
@@ -16723,12 +16743,18 @@ function renderCorpEmployees(){
 // ── Helpers ──
 function getSvcLink(storeId){
   var uid = (typeof _supaUserId!=='undefined' && _supaUserId) ? _supaUserId : '';
-  // بيشير لـ store.html في نفس المجلد
   var base = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'store.html';
-  // Use username if set
-  var un = S&&S.settings&&S.settings.username;
-  var link = un ? (base + '?u=' + encodeURIComponent(un)) : (base + '?uid=' + uid);
-  if(storeId) link += '&store=' + encodeURIComponent(storeId);
+  // لو المتجر عنده username خاص → استخدمه
+  if(storeId){
+    var storeObj=(_getStores()||[]).find(function(s){return s.id===storeId;});
+    if(storeObj&&storeObj.username){
+      return base+'?u='+encodeURIComponent(storeObj.username);
+    }
+  }
+  // يوزرنيم المستخدم الأساسي
+  var un=S&&S.settings&&S.settings.username;
+  var link=un?(base+'?u='+encodeURIComponent(un)):(base+'?uid='+uid);
+  if(storeId) link+='&store='+encodeURIComponent(storeId);
   return link;
 }
 
@@ -16990,30 +17016,78 @@ function renderMultiStoresList(){
 function openNewStoreModal(editIdx){
   var stores=_getStores();
   var st=editIdx!=null?stores[editIdx]:null;
+  window._storeLogoData=(st&&st.logo)||'';
   var over=document.createElement('div');
   over.className='modal-overlay';over.style.display='flex';
-  over.innerHTML='<div class="modal" style="max-width:420px">'+
+  var logoPrevHtml=(st&&st.logo)
+    ?'<img src="'+escapeHtml(st.logo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">'
+    :'<i class="fa-solid fa-image" style="color:var(--text3);font-size:20px"></i>';
+  over.innerHTML='<div class="modal" style="max-width:460px">'+
     '<div class="modal-header"><div class="modal-title"><i class="fa-solid fa-store"></i> '+(st?'تعديل المتجر':'متجر جديد')+'</div>'+
     '<button class="close-btn" onclick="this.closest(\'.modal-overlay\').remove()"><i class="fa-solid fa-xmark"></i></button></div>'+
-    '<div class="form-group"><label class="form-label">اسم المتجر *</label><input class="form-input" id="_store-name" placeholder="مثال: متجر التصاميم" value="'+(st?escapeHtml(st.name):'')+'"></div>'+
-    '<div class="form-group"><label class="form-label">وصف مختصر</label><input class="form-input" id="_store-desc" placeholder="اختياري" value="'+(st?escapeHtml(st.desc||''):'')+'"></div>'+
-    '<div style="display:flex;gap:8px;margin-top:4px">'+
-    '<button class="btn btn-primary" style="flex:1;justify-content:center" onclick="_saveStore('+(editIdx!=null?editIdx:'null')+',this)"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>'+
+    '<div class="form-group"><label class="form-label">اسم المتجر *</label>'+
+    '<input class="form-input" id="_store-name" placeholder="مثال: متجر التصاميم" value="'+(st?escapeHtml(st.name||''):'')+'"></div>'+
+    '<div class="form-group"><label class="form-label">وصف مختصر</label>'+
+    '<input class="form-input" id="_store-desc" placeholder="اختياري" value="'+(st?escapeHtml(st.desc||''):'')+'"></div>'+
+    '<div class="form-group">'+
+      '<label class="form-label"><i class="fa-solid fa-at" style="color:var(--accent)"></i> يوزرنيم المتجر <span style="font-size:10px;color:var(--text3)">(اختياري — للرابط المخصص)</span></label>'+
+      '<div style="display:flex;align-items:center;border:1.5px solid var(--border);border-radius:10px;overflow:hidden">'+
+        '<span style="padding:0 10px;font-size:12px;color:var(--text3);border-left:1.5px solid var(--border);background:var(--surface2);height:40px;display:flex;align-items:center;flex-shrink:0">@</span>'+
+        '<input class="form-input" id="_store-username" placeholder="my-store" value="'+(st?escapeHtml(st.username||''):'')+'" style="border:none;border-radius:0;background:transparent;direction:ltr" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_-]/g,\'\')">'+
+      '</div>'+
+      '<div style="font-size:10px;color:var(--text3);margin-top:3px">حروف إنجليزية صغيرة وأرقام و - و _ فقط</div>'+
+    '</div>'+
+    '<div class="form-group">'+
+      '<label class="form-label"><i class="fa-solid fa-image" style="color:var(--accent)"></i> لوجو المتجر <span style="font-size:10px;color:var(--text3)">(اختياري)</span></label>'+
+      '<div style="display:flex;align-items:center;gap:12px">'+
+        '<div id="_store-logo-preview" style="width:54px;height:54px;border-radius:13px;background:var(--surface2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">'+logoPrevHtml+'</div>'+
+        '<div style="display:flex;flex-direction:column;gap:6px">'+
+          '<input type="file" id="_store-logo-input" accept="image/*" style="display:none" onchange="window._onStoreLogoChange(this)">'+
+          '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'_store-logo-input\').click()"><i class="fa-solid fa-upload" style="margin-left:4px"></i> رفع لوجو</button>'+
+          (st&&st.logo?'<button class="btn btn-ghost btn-sm" id="_store-logo-clear" onclick="window._clearStoreLogoModal()"><i class="fa-solid fa-xmark" style="margin-left:4px"></i> إزالة</button>':'<button class="btn btn-ghost btn-sm" id="_store-logo-clear" style="display:none" onclick="window._clearStoreLogoModal()"><i class="fa-solid fa-xmark" style="margin-left:4px"></i> إزالة</button>')+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;margin-top:8px">'+
+    '<button class="btn btn-primary" style="flex:1;justify-content:center" onclick="_saveStore('+(editIdx!=null?editIdx:'null')+',this)"><i class="fa-solid fa-floppy-disk" style="margin-left:5px"></i> حفظ المتجر</button>'+
     '<button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">إلغاء</button></div></div>';
   document.body.appendChild(over);
   over.onclick=function(e){if(e.target===over)over.remove();};
 }
+window._onStoreLogoChange=function(input){
+  var file=input.files[0]; if(!file) return;
+  if(file.size>1.5*1024*1024){toast('<i class="fa-solid fa-triangle-exclamation"></i> الصورة أكبر من 1.5 ميجا');input.value='';return;}
+  var r=new FileReader(); r.onload=function(e){
+    window._storeLogoData=e.target.result;
+    var pv=document.getElementById('_store-logo-preview');
+    if(pv) pv.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
+    var cl=document.getElementById('_store-logo-clear'); if(cl) cl.style.display='';
+  }; r.readAsDataURL(file);
+};
+window._clearStoreLogoModal=function(){
+  window._storeLogoData='';
+  var pv=document.getElementById('_store-logo-preview');
+  if(pv) pv.innerHTML='<i class="fa-solid fa-image" style="color:var(--text3);font-size:20px"></i>';
+  var cl=document.getElementById('_store-logo-clear'); if(cl) cl.style.display='none';
+  var inp=document.getElementById('_store-logo-input'); if(inp) inp.value='';
+};
 function _saveStore(editIdx, btn){
   var modal=btn.closest('.modal-overlay');
   var name=(modal.querySelector('#_store-name')||{}).value.trim();
   var desc=(modal.querySelector('#_store-desc')||{}).value.trim();
+  var username=(modal.querySelector('#_store-username')||{}).value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'')||'';
+  var logo=window._storeLogoData||'';
   if(!name){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل اسم المتجر');return;}
   if(!S.stores) S.stores=[];
   if(editIdx!=null && editIdx>=0){
     S.stores[editIdx].name=name; S.stores[editIdx].desc=desc;
+    S.stores[editIdx].username=username;
+    if(logo) S.stores[editIdx].logo=logo;
+    else if(window._storeLogoData==='') S.stores[editIdx].logo='';
   } else {
-    S.stores.push({id:'store_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),name:name,desc:desc,createdAt:new Date().toISOString()});
+    S.stores.push({id:'store_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),name:name,desc:desc,username:username,logo:logo,createdAt:new Date().toISOString()});
   }
+  window._storeLogoData='';
   lsSave(); cloudSave(S); modal.remove(); renderMultiStoresList(); renderStoresHomeList();
   toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ المتجر');
 }
@@ -17061,27 +17135,46 @@ function switchSvcTab(tab){
 // ══════════════════════════════════
 function initWebsiteTab(){
   renderMultiStoresList();
-  // Get current store object (null = main store)
   var _stIdx = _currentStoreIdx;
   var _curSt = (_stIdx != null) ? (_getStores()[_stIdx] || null) : null;
-  // update preview link
+  // رابط الموقع
   try{
     var wl=document.getElementById('svc-website-link-preview');
     var lnk=getSvcLink(_curSt ? _curSt.id : null);
     if(wl){ wl.textContent=lnk; wl.title='انقر للمعاينة'; wl.style.cursor='pointer'; wl.onclick=function(){window.open(lnk,'_blank');}; }
   }catch(e){}
+  // وصف الموقع
   var descEl=document.getElementById('svc-site-desc');
   if(descEl) descEl.value=(_curSt ? (_curSt.desc||'') : (S.settings&&S.settings.svc_site_desc)||'');
-  // orders open toggle — only for main store
+  // استقبال الطلبات
   var isOpen=(S.settings&&S.settings.svc_orders_open!==false);
   _setOrdersOpenUI(isOpen);
-  // socials — main store only
-  var socs=S.settings&&S.settings.socials||[];
+  // سوشيال ميديا
+  var socs=(S.settings&&S.settings.socials)||[];
   ['instagram','behance','tiktok','twitter','whatsapp'].forEach(function(k){
     var el=document.getElementById('social-'+k); if(!el) return;
-    var found=socs.find(function(s){return s.type===k;});
-    el.value=found?found.url:'';
+    var found=socs.find(function(s){return s.type===k||s.platform===k;});
+    el.value=found?(found.url||found.link||''):'';
   });
+  // يوزرنيم الموقع
+  var unInp=document.getElementById('svc-main-username');
+  var un=(S.settings&&S.settings.username)||'';
+  if(unInp) unInp.value=un;
+  var unPv=document.getElementById('svc-un-live-preview'); if(unPv) unPv.textContent=un||'...';
+  // لوجو الموقع
+  _svcLogoData='';
+  var logo=(S.settings&&S.settings.logo)||'';
+  var logoPv=document.getElementById('svc-logo-preview');
+  var logoCl=document.getElementById('svc-logo-clear-btn');
+  if(logoPv){
+    if(logo){
+      logoPv.innerHTML='<img src="'+escapeHtml(logo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
+      if(logoCl) logoCl.style.display='';
+    } else {
+      logoPv.innerHTML='<i class="fa-solid fa-image" style="color:var(--text3);font-size:22px"></i>';
+      if(logoCl) logoCl.style.display='none';
+    }
+  }
   // banner — per store
   var stBanner = _curSt ? (_curSt.banner||'') : (S.settings&&S.settings.svc_banner||'');
   var sz = _curSt ? (_curSt.banner_size||'md') : ((S.settings&&S.settings.svc_banner_size)||'md');
@@ -17116,6 +17209,69 @@ function saveSiteDesc(){
   if(!S.settings) S.settings={};
   S.settings.svc_site_desc=(document.getElementById('svc-site-desc')||{}).value||'';
   lsSave(); cloudSave(S); toast('✅ تم حفظ الوصف');
+}
+
+// ── لوجو الموقع الرئيسي ──
+var _svcLogoData='';
+function handleSvcLogo(input){
+  var file=input.files[0]; if(!file) return;
+  if(file.size>1.5*1024*1024){toast('<i class="fa-solid fa-triangle-exclamation"></i> الصورة أكبر من 1.5 ميجا');input.value='';return;}
+  var r=new FileReader(); r.onload=function(e){
+    _svcLogoData=e.target.result;
+    var pv=document.getElementById('svc-logo-preview');
+    if(pv) pv.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
+    var cl=document.getElementById('svc-logo-clear-btn'); if(cl) cl.style.display='';
+  }; r.readAsDataURL(file);
+}
+function clearSvcLogo(){
+  _svcLogoData='';
+  if(!S.settings) S.settings={};
+  S.settings.logo='';
+  var pv=document.getElementById('svc-logo-preview');
+  if(pv) pv.innerHTML='<i class="fa-solid fa-image" style="color:var(--text3);font-size:22px"></i>';
+  var cl=document.getElementById('svc-logo-clear-btn'); if(cl) cl.style.display='none';
+  var inp=document.getElementById('svc-logo-input'); if(inp) inp.value='';
+  lsSave(); cloudSave(S); toast('تم إزالة اللوجو');
+}
+function saveSvcLogo(){
+  if(!S.settings) S.settings={};
+  var logo=_svcLogoData||S.settings.logo||'';
+  if(!logo){toast('<i class="fa-solid fa-triangle-exclamation"></i> ارفع لوجو أولاً');return;}
+  S.settings.logo=logo; _svcLogoData='';
+  // تحديث sidebar logo
+  try{
+    var cfg=JSON.parse(localStorage.getItem('platform_config')||'{}');
+    cfg.logo=logo; localStorage.setItem('platform_config',JSON.stringify(cfg));
+    if(typeof applyPlatformConfig==='function') applyPlatformConfig();
+    // update sidebar img directly
+    var si=document.getElementById('_sidebar-logo-img'); if(si){si.src=logo;si.style.display='';}
+    var lm=document.querySelector('.logo-mark'); if(lm) lm.classList.add('has-logo');
+  }catch(e){}
+  lsSave(); cloudSave(S);
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ اللوجو');
+}
+
+// ── يوزرنيم الموقع ──
+function saveSvcUsername(){
+  var inp=document.getElementById('svc-main-username'); if(!inp) return;
+  var un=inp.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
+  if(!un){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل يوزرنيم أولاً');return;}
+  if(!S.settings) S.settings={};
+  S.settings.username=un;
+  var setInp=document.getElementById('set-username'); if(setInp) setInp.value=un;
+  var pv=document.getElementById('svc-un-live-preview'); if(pv) pv.textContent=un;
+  lsSave(); cloudSave(S);
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ اليوزرنيم: @'+un);
+  // تحديث الرابط في الـ header
+  try{ var lnk=document.getElementById('svc-inner-store-link'); if(lnk) lnk.textContent=getSvcLink(_getCurrentStoreId()); }catch(e){}
+}
+
+// ── حفظ البانر ──
+function saveSvcBannerNow(){
+  var banner=(_currentStoreIdx!=null&&_getStores()[_currentStoreIdx]&&_getStores()[_currentStoreIdx].banner)||S.settings&&S.settings.svc_banner||'';
+  if(!banner){toast('<i class="fa-solid fa-triangle-exclamation"></i> ارفع بانر أولاً');return;}
+  lsSave(); cloudSave(S);
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ البانر');
 }
 function saveSocials(){
   if(!S.settings) S.settings={};
@@ -17251,17 +17407,24 @@ function renderStandalonePackages(){
   }
   grid.innerHTML=pkgs.map(function(pkg){
     var isActive=pkg.active!==false;
-    return '<div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;position:relative">'+
-      '<div style="position:absolute;top:12px;left:12px"><span style="font-size:10px;padding:2px 10px;border-radius:20px;font-weight:700;background:'+(isActive?'rgba(79,209,165,.12)':'rgba(255,107,107,.1)')+';color:'+(isActive?'var(--accent3)':'var(--accent4)')+'">'+(isActive?'● نشطة':'○ موقوفة')+'</span></div>'+
-      '<div style="padding-top:16px"><div style="font-size:15px;font-weight:900">'+escapeHtml(pkg.name)+'</div>'+
-      (pkg.desc?'<div style="font-size:11px;color:var(--text3);margin-top:4px">'+escapeHtml(pkg.desc)+'</div>':'')+
-      '</div>'+
-      (pkg.items&&pkg.items.length?'<div style="display:flex;flex-direction:column;gap:5px">'+pkg.items.slice(0,4).map(function(it){return '<div style="font-size:11px;display:flex;align-items:center;gap:6px"><span style="color:var(--accent3)"><i class="fa-solid fa-check"></i></span>'+escapeHtml(it)+'</div>';}).join('')+(pkg.items.length>4?'<div style="font-size:11px;color:var(--text3)">+ '+(pkg.items.length-4)+' بنود أخرى</div>':'')+'</div>':'')+
-      '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:10px">'+
-        '<div style="font-size:18px;font-weight:900;color:var(--accent)">'+(pkg.price?Number(pkg.price).toLocaleString()+' ج':'مجاني')+'</div>'+
-        '<div style="display:flex;gap:6px">'+
-          '<button data-pid="'+pkg.id+'" onclick="openPkgStandaloneModal(+this.dataset.pid)" class="btn btn-ghost btn-sm"><i class="fa-solid fa-pen"></i></button>'+
-          '<button data-pid="'+pkg.id+'" onclick="delPkgStandalone(+this.dataset.pid)" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>'+
+    var cur=pkg.currency||_getCurrency();
+    return '<div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:16px;overflow:hidden;display:flex;flex-direction:column">'+
+      (pkg.thumb
+        ?'<div style="width:100%;height:120px;overflow:hidden"><img src="'+escapeHtml(pkg.thumb)+'" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.style.display=\'none\'"></div>'
+        :'<div style="width:100%;height:70px;background:linear-gradient(135deg,var(--surface3),var(--surface2));display:flex;align-items:center;justify-content:center"><i class=\"fa-solid fa-box\" style=\"font-size:26px;color:var(--text3)\"></i></div>')+
+      '<div style="padding:14px;display:flex;flex-direction:column;gap:8px;flex:1">'+
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">'+
+          '<div style="font-size:14px;font-weight:900">'+escapeHtml(pkg.name)+'</div>'+
+          '<span style="font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;white-space:nowrap;flex-shrink:0;background:'+(isActive?'rgba(79,209,165,.12)':'rgba(255,107,107,.1)')+';color:'+(isActive?'var(--accent3)':'var(--accent4)')+'">'+(isActive?'● نشطة':'○ موقوفة')+'</span>'+
+        '</div>'+
+        (pkg.desc?'<div style="font-size:11px;color:var(--text3)">'+escapeHtml(pkg.desc)+'</div>':'')+
+        (pkg.items&&pkg.items.length?'<div style="display:flex;flex-direction:column;gap:4px">'+pkg.items.slice(0,3).map(function(it){return '<div style="font-size:11px;display:flex;align-items:center;gap:5px"><i class="fa-solid fa-check" style="color:var(--accent3);font-size:10px"></i>'+escapeHtml(it)+'</div>';}).join('')+(pkg.items.length>3?'<div style="font-size:10px;color:var(--text3)">+ '+(pkg.items.length-3)+' بنود أخرى</div>':'')+'</div>':'')+
+        '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:8px;margin-top:auto">'+
+          '<div style="font-size:16px;font-weight:900;color:var(--accent)">'+(pkg.price?Number(pkg.price).toLocaleString()+' '+cur:'مجاني')+'</div>'+
+          '<div style="display:flex;gap:6px">'+
+            '<button data-pid="'+pkg.id+'" onclick="openPkgStandaloneModal(+this.dataset.pid)" class="btn btn-ghost btn-sm"><i class="fa-solid fa-pen"></i></button>'+
+            '<button data-pid="'+pkg.id+'" onclick="delPkgStandalone(+this.dataset.pid)" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>'+
+          '</div>'+
         '</div>'+
       '</div>'+
     '</div>';
