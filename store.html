@@ -189,7 +189,8 @@ function hideLs(){const l=document.getElementById('ls');l.style.opacity='0';setT
 
 let _ud,_uid,_storeId,_svcs,_pkgs,_settings;
 const P=new URLSearchParams(location.search);
-const pUid=P.get('uid'),pUname=P.get('u');
+// Support all URL formats: ?uid=, ?u=, ?svcorder= (legacy from index.html)
+const pUid=P.get('uid')||P.get('svcorder'),pUname=P.get('u');
 _storeId=P.get('store')||null;
 
 async function boot(){
