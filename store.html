@@ -372,15 +372,15 @@ async function buildPage(userId){
     var navLinks=
       '<button class="_nl active" onclick="_gs(\'_hero\')">الرئيسية</button>'+
       '<button class="_nl" onclick="_gs(\'_svcs\')">الخدمات</button>'+
-      (standalonePkgs.length?'<button class="_nl" onclick="_gs(\'_pkgs\')">الباقات</button>':'')+
-      (pfProjects.length?'<button class="_nl" onclick="_gs(\'_pf\')">أعمالنا</button>':'')+
+      '<button class="_nl" onclick="_gs(\'_pkgs\')">الباقات</button>'+
+      '<button class="_nl" onclick="_gs(\'_pf\')">أعمالنا</button>'+
       '<button class="_nl" onclick="_gs(\'_contact\')">تواصل معنا</button>';
 
     var mobLinks=
       '<button class="_ml" onclick="_gs(\'_hero\');_cm()"><i class="fa-solid fa-house"></i>الرئيسية</button>'+
       '<button class="_ml" onclick="_gs(\'_svcs\');_cm()"><i class="fa-solid fa-bag-shopping"></i>الخدمات</button>'+
-      (standalonePkgs.length?'<button class="_ml" onclick="_gs(\'_pkgs\');_cm()"><i class="fa-solid fa-box"></i>الباقات</button>':'')+
-      (pfProjects.length?'<button class="_ml" onclick="_gs(\'_pf\');_cm()"><i class="fa-solid fa-image"></i>أعمالنا</button>':'')+
+      '<button class="_ml" onclick="_gs(\'_pkgs\');_cm()"><i class="fa-solid fa-box"></i>الباقات</button>'+
+      '<button class="_ml" onclick="_gs(\'_pf\');_cm()"><i class="fa-solid fa-image"></i>أعمالنا</button>'+
       '<button class="_ml" onclick="_gs(\'_contact\');_cm()"><i class="fa-solid fa-phone"></i>تواصل معنا</button>';
 
     var navHtml=
@@ -471,38 +471,36 @@ async function buildPage(userId){
       '</div>';
     }
 
-    var pkgsHtml='';
-    if(standalonePkgs.length){
-      pkgsHtml='<div id="_pkgs" style="scroll-margin-top:72px" class="_sec">'+
-        '<div class="_sec-head">'+
-          '<div class="_sec-title"><i class="fa-solid fa-box"></i> باقاتنا</div>'+
-          (standalonePkgs.length>4?'<button class="_sec-more" onclick="_showAllPkgs()">عرض الكل ('+standalonePkgs.length+')</button>':'')+
-        '</div>'+
-        '<div class="_pkg-grid" id="_pkg-grid">'+standalonePkgs.slice(0,4).map(buildPkgCard).join('')+'</div>'+
-      '</div>';
-    }
+    var pkgsHtml='<div id="_pkgs" style="scroll-margin-top:72px" class="_sec">'+
+      '<div class="_sec-head">'+
+        '<div class="_sec-title"><i class="fa-solid fa-box"></i> باقاتنا</div>'+
+        (standalonePkgs.length>4?'<button class="_sec-more" onclick="_showAllPkgs()">عرض الكل ('+standalonePkgs.length+')</button>':'')+
+      '</div>'+
+      (standalonePkgs.length
+        ?'<div class="_pkg-grid" id="_pkg-grid">'+standalonePkgs.slice(0,4).map(buildPkgCard).join('')+'</div>'
+        :'<div class="_empty"><div class="_empty-icon">📦</div><div class="_empty-t">لا توجد باقات حالياً</div><div>سيتم إضافة الباقات قريباً</div></div>')+
+    '</div>';
 
     // ══════════════════════════════════
     // ── PORTFOLIO ──
     // ══════════════════════════════════
-    var pfHtml='';
-    if(pfProjects.length){
-      pfHtml='<div id="_pf" style="scroll-margin-top:72px" class="_sec">'+
-        '<div class="_sec-head">'+
-          '<div class="_sec-title"><i class="fa-solid fa-images"></i> أعمالنا</div>'+
-          (pfProjects.length>9?'<button class="_sec-more" onclick="_showAllPf()">المزيد ('+pfProjects.length+')</button>':'')+
-        '</div>'+
-        '<div class="_pf-grid" id="_pf-grid">'+
-          pfProjects.slice(0,9).map(function(p){
-            var img=p.image||p.thumb||''; var link=p.link||p.url||'#';
-            return '<a class="_pf-card" href="'+xe(link)+'" target="_blank">'+
-              (img?'<img src="'+xe(img)+'" alt="" loading="lazy">':
-              '<div class="_pf-ph"><div style="font-size:28px">'+(p.type==='behance'?'<i class="fa-brands fa-behance"></i>':'<i class="fa-solid fa-folder"></i>')+'</div><div style="font-size:10px;font-weight:700">'+xe((p.title||p.label||'مشروع').slice(0,20))+'</div></div>')+
-            '</a>';
-          }).join('')+
-        '</div>'+
-      '</div>';
-    }
+    var pfHtml='<div id="_pf" style="scroll-margin-top:72px" class="_sec">'+
+      '<div class="_sec-head">'+
+        '<div class="_sec-title"><i class="fa-solid fa-images"></i> أعمالنا</div>'+
+        (pfProjects.length>9?'<button class="_sec-more" onclick="_showAllPf()">المزيد ('+pfProjects.length+')</button>':'')+
+      '</div>'+
+      (pfProjects.length
+        ?'<div class="_pf-grid" id="_pf-grid">'+
+            pfProjects.slice(0,9).map(function(p){
+              var img=p.image||p.thumb||''; var link=p.link||p.url||'#';
+              return '<a class="_pf-card" href="'+xe(link)+'" target="_blank">'+
+                (img?'<img src="'+xe(img)+'" alt="" loading="lazy">':
+                '<div class="_pf-ph"><div style="font-size:28px">'+(p.type==='behance'?'<i class="fa-brands fa-behance"></i>':'<i class="fa-solid fa-folder"></i>')+'</div><div style="font-size:10px;font-weight:700">'+xe((p.title||p.label||'مشروع').slice(0,20))+'</div></div>')+
+              '</a>';
+            }).join('')+
+          '</div>'
+        :'<div class="_empty"><div class="_empty-icon">🖼️</div><div class="_empty-t">لا توجد أعمال حالياً</div><div>سيتم إضافة الأعمال قريباً</div></div>')+
+    '</div>';
 
     // ══════════════════════════════════
     // ── CONTACT ──
