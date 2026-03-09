@@ -125,7 +125,7 @@ async function boot(){
   if(!uid&&_pUname) uid=await resolveUname(_pUname);
   if(!uid){
     if(_pUname) showErr('لم يتم العثور على مستخدم بهذا الاسم: "'+_pUname+'"');
-    else showErr('رابط غير صحيح — يرجى التحقق من الرابط');
+    else showErr('رابط غير صحيح - يرجى التحقق من الرابط');
     return;
   }
   await buildPage(uid);
@@ -218,7 +218,40 @@ async function buildPage(userId){
     // ═══════════════════════════════════════
     var allSvcs=ud.services||[];
     var allPkgs=ud.standalone_packages||ud.packages||[];
-    var pfProjects=ud.portfolio_projects||[];
+
+    // ── جمع البورتفوليو من كل المصادر الممكنة ──
+    // المصدر 1: portfolio_projects (الجديد)
+    var pfFromProjects = ud.portfolio_projects||[];
+
+    // المصدر 2: portfolio جوّا كل خدمة (النظام القديم)
+    var pfFromServices = [];
+    allSvcs.forEach(function(svc){
+      if(svc.portfolio && svc.portfolio.length){
+        svc.portfolio.forEach(function(p){
+          pfFromServices.push({
+            id: p.id||(svc.id+'_'+Date.now()),
+            name: p.label||p.title||svc.name||'مشروع',
+            thumb: p.thumb||p.image||'',
+            url: p.url||p.link||'#',
+            link_type: p.type||p.link_type||'',
+            cat: svc.cat||p.cat||''
+          });
+        });
+      }
+    });
+
+    // دمج الاتنين مع إزالة التكرار
+    var pfAll = pfFromProjects.length ? pfFromProjects : pfFromServices;
+    if(pfFromProjects.length && pfFromServices.length){
+      // الاتنين موجودين - دمجهم
+      var existingIds = pfFromProjects.map(function(p){return String(p.id);});
+      pfFromServices.forEach(function(p){
+        if(!existingIds.includes(String(p.id))) pfAll.push(p);
+      });
+    }
+    console.log('[Store] pfFromProjects=',pfFromProjects.length,'pfFromServices=',pfFromServices.length,'pfAll=',pfAll.length);
+
+    var pfProjects = pfAll;
 
     var services, standalonePkgs, storePortfolio;
 
