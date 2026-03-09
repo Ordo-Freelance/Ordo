@@ -2052,33 +2052,13 @@ window._showApp = function(){
   var _pp = new URLSearchParams(window.location.search);
   var isPublic = _pp.get('svcorder') || _pp.get('u') || (_pp.get('portal') && _pp.get('uid'));
   if(isPublic) {
-    // Public page: ensure scroll works — remove app-loaded class that locks scroll
+    // Public page: ensure scroll works
     document.documentElement.classList.remove('app-loaded');
     document.body.classList.remove('app-loaded');
     document.documentElement.classList.add('pub-page');
     document.body.classList.add('pub-page');
-    // Force scroll styles inline (overrides any CSS specificity)
-    document.documentElement.style.overflow = 'auto';
-    document.documentElement.style.overflowY = 'scroll';
-    document.documentElement.style.height = 'auto';
-    document.documentElement.style.maxHeight = 'none';
-    document.body.style.overflow = 'auto';
-    document.body.style.overflowY = 'auto';
-    document.body.style.height = 'auto';
-    document.body.style.maxHeight = 'none';
-    document.body.style.position = 'static';
     var shell = document.getElementById('app-shell') || document.querySelector('.app-shell');
     if(shell) shell.style.display = 'none';
-    // Re-apply after any pending frame to catch late CSS overrides
-    requestAnimationFrame(function(){
-      document.documentElement.style.overflow = 'auto';
-      document.documentElement.style.overflowY = 'scroll';
-      document.documentElement.style.height = 'auto';
-      document.body.style.overflow = 'auto';
-      document.body.style.overflowY = 'auto';
-      document.body.style.height = 'auto';
-      document.body.style.position = 'static';
-    });
   } else {
     // Normal app: lock scroll (app uses internal scrolling)
     document.documentElement.classList.add('app-loaded');
@@ -2087,11 +2067,8 @@ window._showApp = function(){
 };
 // Fallback: show after 4s no matter what
 setTimeout(window._showApp, 4000);
-// لو صفحة متجر - تفعيل أسرع (لكل أنواع الروابط العامة)
-var _ppInit = new URLSearchParams(window.location.search);
-if(_ppInit.get('svcorder') || _ppInit.get('u') || (_ppInit.get('portal') && _ppInit.get('uid'))) {
-  setTimeout(window._showApp, 500);
-}
+// لو صفحة متجر - تفعيل أسرع
+if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(window._showApp, 500);
 </script>
 
 <!-- ═══ AUTH SCREEN ═══ -->
@@ -16746,10 +16723,11 @@ function renderCorpEmployees(){
 // ── Helpers ──
 function getSvcLink(storeId){
   var uid = (typeof _supaUserId!=='undefined' && _supaUserId) ? _supaUserId : '';
-  var base = window.location.origin + window.location.pathname;
+  // ── NEW: point to standalone store.html page ──
+  var base = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'store.html';
   // Use username if set
   var un = S&&S.settings&&S.settings.username;
-  var link = un ? (base + '?u=' + encodeURIComponent(un)) : (base + '?svcorder=' + uid);
+  var link = un ? (base + '?u=' + encodeURIComponent(un)) : (base + '?uid=' + uid);
   if(storeId) link += '&store=' + encodeURIComponent(storeId);
   return link;
 }
@@ -18531,11 +18509,9 @@ function _buildSvcOrderPage(userId){
     }
     // Filter packages by store_id — support legacy 'packages' key too
     var _allPkgs = ud.standalone_packages || ud.packages || [];
-    // ── FIX: ensure packages with store_id show only in their store, not in main store ──
     var standalonePkgs=_allPkgs.filter(function(p){
       if(p.active === false) return false;
       if(_storeId) return p.store_id === _storeId;
-      // Main store: packages with no store_id assigned
       return !p.store_id || p.store_id === null || p.store_id === undefined || p.store_id === '';
     });
     // Fallback: if no packages matched and no specific store requested, show all active packages
@@ -18983,9 +18959,8 @@ window._showAllSvcs=function(){
   var services=(ud.services||[]).filter(function(s){
     if(s.active===false) return false;
     if(_sid) return s.store_id===_sid;
-    return !s.store_id || s.store_id===null || s.store_id===undefined || s.store_id==='';
+    return !s.store_id;
   });
-  if(!services.length && !_sid) services=(ud.services||[]).filter(function(s){return s.active!==false;});
   var grid=document.getElementById('_svc-grid-main'); if(!grid) return;
   grid.innerHTML=services.map(function(svc,idx){
     var priceDisplay=svc.price&&+svc.price?Number(svc.price).toLocaleString()+' '+(svc.currency||'ج.م'):'عند الطلب';
@@ -19011,13 +18986,11 @@ window._showAllPkgs=function(){
   var ud=window._pubUd; if(!ud) return;
   var accent=window._pubAccent;
   var _sid=window._pubStoreId;
-  var _allPkgs2 = ud.standalone_packages || ud.packages || [];
-  var standalonePkgs=_allPkgs2.filter(function(p){
+  var standalonePkgs=(ud.standalone_packages||[]).filter(function(p){
     if(p.active===false) return false;
     if(_sid) return p.store_id===_sid;
-    return !p.store_id || p.store_id===null || p.store_id===undefined || p.store_id==='';
+    return !p.store_id;
   });
-  if(!standalonePkgs.length && !_sid) standalonePkgs=_allPkgs2.filter(function(p){return p.active!==false;});
   var grid=document.querySelector('#_sec-pkgs ._pkg-grid'); if(!grid) return;
   grid.innerHTML=standalonePkgs.map(function(p,idx){
     return '<div class="_pkg-card">'+
@@ -19045,7 +19018,7 @@ window._openSvcPage=function(idx){
   var svc=(ud.services||[]).filter(function(s){
     if(s.active===false) return false;
     if(_sid) return s.store_id===_sid;
-    return !s.store_id || s.store_id===null || s.store_id===undefined || s.store_id==='';
+    return !s.store_id;
   })[idx]; if(!svc) return;
   var ex=document.getElementById('_svc-full-page'); if(ex) ex.remove();
 
@@ -19188,13 +19161,11 @@ window._openPkgPage=function(idx){
   var ud=window._pubUd; var accent=window._pubAccent; var C=window._pubColors;
   if(!ud) return;
   var _sid=window._pubStoreId;
-  var _allPkgs3 = ud.standalone_packages || ud.packages || [];
-  var standalonePkgs=_allPkgs3.filter(function(p){
+  var standalonePkgs=(ud.standalone_packages||[]).filter(function(p){
     if(p.active===false) return false;
     if(_sid) return p.store_id===_sid;
-    return !p.store_id || p.store_id===null || p.store_id===undefined || p.store_id==='';
+    return !p.store_id;
   });
-  if(!standalonePkgs.length && !_sid) standalonePkgs=_allPkgs3.filter(function(p){return p.active!==false;});
   var p=standalonePkgs[idx]; if(!p) return;
   var ex=document.getElementById('_pkg-full-page'); if(ex) ex.remove();
   var page=document.createElement('div');
