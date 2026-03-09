@@ -1,21 +1,5 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<script>
-// ✅ أول كود يشتغل في الصفحة — إظهار body فوري للصفحات العامة
-(function(){
-  var p=new URLSearchParams(location.search);
-  if(p.get('svcorder')||p.get('u')||(p.get('portal')&&p.get('uid'))||(p.get('clientportal')&&p.get('cid'))||p.get('clientportal')){
-    // إضافة style مباشرةً في head قبل أي CSS
-    var s=document.createElement('style');
-    s.id='_pub-instant';
-    s.textContent='html,body{visibility:visible!important;overflow:auto!important;height:auto!important;position:static!important;}#auth-screen,.app-shell,#app-body,.sidebar,.bottom-nav,#_sidebar,#_bottom-nav{display:none!important;}';
-    document.head.appendChild(s);
-    document.documentElement.classList.add('pub-page');
-    window._isAnyPublicPage=true;
-    window._isPublicPage=true;
-  }
-})();
-</script>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1016,11 +1000,8 @@ html.pub-page .app-header,
 html.pub-page .sidebar,
 html.pub-page .bottom-nav,
 html.pub-page #auth-screen,
-html.pub-page #_sidebar,
-html.pub-page #_bottom-nav,
 body.pub-page .app-shell,
-body.pub-page #app-body,
-body.pub-page #auth-screen {
+body.pub-page #app-body {
   display: none !important;
 }
 
@@ -2195,68 +2176,32 @@ function getQRDataURL(text, size) {
 })();
 </script>
 <script>
-// ── PUBLIC PAGE DETECTION (مركزي — يُستخدم في كل مكان) ──
-window._isAnyPublicPage = (function(){
-  var p = new URLSearchParams(window.location.search);
-  return !!(
-    p.get('svcorder') ||
-    p.get('u') ||
-    (p.get('portal') && p.get('uid')) ||
-    (p.get('clientportal') && p.get('cid')) ||
-    p.get('clientportal')
-  );
-})();
-
-// ── إخفاء فوري لـ body في الصفحات العادية فقط ──
-// الصفحات العامة لا تحتاج visibility:hidden أصلاً
-if(window._isAnyPublicPage){
-  document.body.style.visibility = 'visible';
-}
-
+// Prevent flash: show body only after auth check AND subscription load
 window._appReady = false;
 window._showApp = function(){
   window._appReady = true;
   document.body.style.visibility = 'visible';
-  document.body.style.opacity = '1';
-
-  var p = new URLSearchParams(window.location.search);
-  var isPublic = !!(
-    p.get('svcorder') ||
-    p.get('u') ||
-    (p.get('portal') && p.get('uid')) ||
-    (p.get('clientportal') && p.get('cid')) ||
-    p.get('clientportal')
-  );
-
-  if(isPublic){
+  // لو صفحة متجر عام - لا تضيف overflow:hidden
+  var _pp = new URLSearchParams(window.location.search);
+  var isPublic = _pp.get('svcorder') || _pp.get('u') || (_pp.get('portal') && _pp.get('uid'));
+  if(isPublic) {
+    // Public page: ensure scroll works
     document.documentElement.classList.remove('app-loaded');
     document.body.classList.remove('app-loaded');
     document.documentElement.classList.add('pub-page');
     document.body.classList.add('pub-page');
-    // إخفاء كل عناصر التطبيق الداخلي
-    var toHide = ['app-body','app-shell','app-header','sidebar','bottom-nav','auth-screen','_sidebar','_bottom-nav'];
-    toHide.forEach(function(id){
-      var el = document.getElementById(id);
-      if(el) el.style.display = 'none';
-    });
+    var shell = document.getElementById('app-shell') || document.querySelector('.app-shell');
+    if(shell) shell.style.display = 'none';
   } else {
+    // Normal app: lock scroll (app uses internal scrolling)
     document.documentElement.classList.add('app-loaded');
     document.body.classList.add('app-loaded');
   }
 };
-
-// ── تفعيل فوري للصفحات العامة بدون انتظار auth ──
-if(window._isAnyPublicPage){
-  // شغّل _showApp فوراً
-  window._showApp();
-  // وكمان بعد DOM جاهز عشان نضمن
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){ window._showApp(); });
-  }
-} else {
-  // صفحة عادية — fallback بعد 4 ثواني
-  setTimeout(window._showApp, 4000);
-}
+// Fallback: show after 4s no matter what
+setTimeout(window._showApp, 4000);
+// لو صفحة متجر - تفعيل أسرع
+if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(window._showApp, 500);
 </script>
 
 <!-- ═══ AUTH SCREEN ═══ -->
@@ -15298,8 +15243,9 @@ let _authDebounceTimer = null;
 let _authProcessingUserId = null;
 
 supa.auth.onAuthStateChange(async (event, session) => {
-  // ── الصفحات العامة: تجاهل كل auth handling تماماً ──
-  if(window._isAnyPublicPage){ return; }
+  // ── Public service/portal pages: skip all auth handling ──
+  var _pup = new URLSearchParams(window.location.search);
+  if(_pup.get('svcorder') || (_pup.get('portal') && _pup.get('uid')) || (_pup.get('clientportal') && _pup.get('cid'))){ if(window._showApp) window._showApp(); return; }
 
   console.log('Auth event:', event, session?.user?.email);
 
@@ -15379,8 +15325,9 @@ supa.auth.onAuthStateChange(async (event, session) => {
 
 // initAuth — render UI and set fallback timeout
 async function initAuthFallback(){
-  // ── الصفحات العامة: لا تعمل أي init للـ dashboard أو auth ──
-  if(window._isAnyPublicPage){ return; }
+  // ── Public pages: skip all auth/dashboard init entirely ──
+  var _pu = new URLSearchParams(window.location.search);
+  if(_pu.get('svcorder') || (_pu.get('portal') && _pu.get('uid')) || (_pu.get('clientportal') && _pu.get('cid'))){ return; }
 
   loadThemePreferences();
   renderAll();
@@ -17551,17 +17498,42 @@ function saveSvcLogo(){
 }
 
 // ── يوزرنيم الموقع ──
-function saveSvcUsername(){
+async function saveSvcUsername(){
   var inp=document.getElementById('svc-main-username'); if(!inp) return;
   var un=inp.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
-  if(!un){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل يوزرنيم أولاً');return;}
+  if(!un){ toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل يوزرنيم أولاً'); return; }
+  if(un.length < 3){ toast('<i class="fa-solid fa-triangle-exclamation"></i> اليوزرنيم لازم 3 حروف على الأقل'); return; }
+
+  var btn=document.querySelector('button[onclick="saveSvcUsername()"]');
+  if(btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>'; }
+
+  // ── تحقق من التكرار ──
+  if(typeof supa!=='undefined' && _supaUserId){
+    try{
+      var chk=await supa.from('studio_data').select('user_id').ilike('username_index',un).maybeSingle();
+      if(chk.data && chk.data.user_id && chk.data.user_id !== _supaUserId){
+        toast('<i class="fa-solid fa-triangle-exclamation"></i> هذا اليوزرنيم مستخدم — جرّب اسم آخر');
+        if(btn){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-floppy-disk"></i> حفظ'; }
+        return;
+      }
+    }catch(e){}
+
+    // ── تحديث username_index مباشرةً في Supabase ──
+    try{
+      await supa.from('studio_data')
+        .update({ username_index: un, updated_at: new Date().toISOString() })
+        .eq('user_id', _supaUserId);
+    }catch(e){ console.warn('username_index update err:', e); }
+  }
+
   if(!S.settings) S.settings={};
-  S.settings.username=un;
+  S.settings.username = un;
   var setInp=document.getElementById('set-username'); if(setInp) setInp.value=un;
   var pv=document.getElementById('svc-un-live-preview'); if(pv) pv.textContent=un;
   lsSave(); cloudSave(S);
+
+  if(btn){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-floppy-disk"></i> حفظ'; }
   toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ اليوزرنيم: @'+un);
-  // تحديث الرابط في الـ header
   try{ var lnk=document.getElementById('svc-inner-store-link'); if(lnk) lnk.textContent=getSvcLink(_getCurrentStoreId()); }catch(e){}
 }
 
@@ -18855,10 +18827,9 @@ function openClientPortal(portalId){
 
 // ── Public Order Page (client-facing) ──
 function _checkSvcOrderUrl(){
-  // ✅ إظهار فوري
-  document.body.style.visibility = 'visible';
   var params=new URLSearchParams(window.location.search);
   var uid=params.get('svcorder');
+  // Handle username-based URL: ?u=username
   var _uname=params.get('u');
   // Inject scroll-unlock CSS immediately at start — before any DOM changes
   if(uid || _uname || params.get('portal') || params.get('clientportal')){
@@ -18944,34 +18915,24 @@ function _checkSvcOrderUrl(){
 // Run ASAP — before DOMContentLoaded if possible
 (function(){
   var p=new URLSearchParams(window.location.search);
-  var isPublic = !!(
-    p.get('svcorder') ||
-    (p.get('portal') && p.get('uid')) ||
-    p.get('u') ||
-    (p.get('clientportal') && p.get('cid')) ||
-    p.get('clientportal')
-  );
-  if(isPublic){
-    // ✅ إظهار الـ body فوراً بدون انتظار auth
-    document.body.style.visibility = 'visible';
+  if(p.get('svcorder')||( p.get('portal')&&p.get('uid') )||p.get('u')||( p.get('clientportal')&&p.get('cid') )){
+    // Mark as public page — auth functions check this flag
     window._isPublicPage = true;
-    // Inject scroll-unlock style أول حاجة في head
+    // Inject scroll-unlock style as FIRST child of head — overrides everything
     var earlyStyle = document.createElement('style');
     earlyStyle.id = '_pub-early-style';
-    earlyStyle.textContent = 'html,body{overflow:auto!important;overflow-y:scroll!important;height:auto!important;min-height:100vh!important;position:static!important;max-height:none!important;visibility:visible!important;}';
+    earlyStyle.textContent = 'html,body{overflow:auto!important;overflow-y:scroll!important;height:auto!important;min-height:100vh!important;position:static!important;max-height:none!important;}';
     document.head.insertBefore(earlyStyle, document.head.firstChild);
+    // Add pub-page class IMMEDIATELY to unlock scroll before any CSS applies
     document.documentElement.classList.add('pub-page');
     document.addEventListener('DOMContentLoaded',function(){
       document.documentElement.classList.add('pub-page');
       document.body.classList.add('pub-page');
-      document.body.style.visibility = 'visible';
       _checkSvcOrderUrl();
     });
   }
 })();
 function _buildSvcOrderPage(userId){
-  // ✅ إظهار فوري
-  document.body.style.visibility = 'visible';
   var params=new URLSearchParams(window.location.search);
   if(typeof supa==='undefined'){ _svcOrderFallback(); return; }
   var controller=new AbortController();
@@ -19988,10 +19949,6 @@ function _svcOrderFallback(){
 }
 
 function _buildClientPortalPage(userId, portalId){
-  // ✅ إظهار فوري
-  document.body.style.visibility = 'visible';
-  document.documentElement.classList.add('pub-page');
-  document.body.classList.add('pub-page');
   if(typeof supa==='undefined'){ return; }
   supa.from('studio_data').select('data').eq('user_id',userId).maybeSingle().then(function(res){
     if(!res||!res.data) return;
@@ -20326,15 +20283,7 @@ function sendSupportReply(){
 // startup check (fallback if early IIFE didn't fire)
 window.addEventListener('load', function(){
   var p=new URLSearchParams(window.location.search);
-
-  // ✅ تأكيد إظهار body لكل الصفحات العامة
-  if(window._isAnyPublicPage){
-    document.body.style.visibility = 'visible';
-    document.documentElement.classList.add('pub-page');
-    document.body.classList.add('pub-page');
-  }
-
-  if(p.get('svcorder')||( p.get('portal')&&p.get('uid') )||p.get('u')) _checkSvcOrderUrl();
+  if(p.get('svcorder')||( p.get('portal')&&p.get('uid') )) _checkSvcOrderUrl();
   // Project portal
   if(p.get('portal')==='project'&&p.get('uid')&&p.get('pid')){
     document.documentElement.classList.add('pub-page');
@@ -20346,7 +20295,6 @@ window.addEventListener('load', function(){
     window._fullCPBuilt=true;
     document.documentElement.classList.add('pub-page');
     document.body.classList.add('pub-page');
-    document.body.style.visibility = 'visible';
     _buildFullClientPortal(p.get('clientportal'),p.get('cid'));
   }
 });
@@ -23315,11 +23263,6 @@ setTimeout(_hookProjRender,500);
 // FULL CLIENT PORTAL — لوحة العميل الكاملة
 // ════════════════════════════════════════════════════════════════
 function _buildFullClientPortal(userId, clientId){
-  // ✅ إظهار فوري للـ body
-  document.body.style.visibility = 'visible';
-  document.documentElement.classList.add('pub-page');
-  document.body.classList.add('pub-page');
-
   if(typeof supa==='undefined'){
     document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cairo,Tajawal,sans-serif;direction:rtl;color:#666"><div style="text-align:center"><div style="font-size:48px;margin-bottom:12px">⚠️</div><div style="font-size:16px">لا يمكن تحميل لوحة التحكم</div><div style="font-size:13px;margin-top:6px;color:#999">يرجى المحاولة لاحقاً</div></div></div>';
     return;
@@ -23608,10 +23551,6 @@ function _showCPError(msg){
 }
 
 function _buildProjectPortalPage(userId, projId){
-  // ✅ إظهار فوري
-  document.body.style.visibility = 'visible';
-  document.documentElement.classList.add('pub-page');
-  document.body.classList.add('pub-page');
   if(typeof supa==='undefined'){ document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cairo,sans-serif;direction:rtl;color:#666">تعذّر التحميل</div>'; return; }
   supa.from('studio_data').select('data').eq('user_id',userId).maybeSingle().then(function(res){
     if(!res||res.error||!res.data){ document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cairo,sans-serif;direction:rtl;color:#666">رابط غير صالح</div>'; return; }
