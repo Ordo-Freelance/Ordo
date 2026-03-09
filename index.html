@@ -39,8 +39,6 @@ const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
 // but postMessage fails when Headers objects are in the payload (iframe/preview env).
 (function() {
   try {
-    // Override with a no-op stub instead of just setting to undefined
-    // (setting to undefined can fail in strict mode or be ignored)
     const noop = function() {};
     const stub = function BroadcastChannelStub(name) {
       this.name = name;
@@ -60,6 +58,46 @@ const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
   } catch(e) {
     try { window.BroadcastChannel = undefined; } catch(e2) {}
   }
+
+  // ── Intercept window.postMessage to strip non-cloneable objects ──
+  try {
+    const _origPostMsg = window.postMessage.bind(window);
+    window.postMessage = function(msg, targetOrigin, transfer) {
+      try {
+        // Test if message is cloneable first
+        const _test = JSON.parse(JSON.stringify(msg, function(k, v) {
+          if(v && typeof v === 'object' &&
+            (v instanceof Headers || v instanceof Response || v instanceof Request ||
+             v instanceof Blob || v instanceof File)) return undefined;
+          return v;
+        }));
+        return _origPostMsg(_test, targetOrigin || '*', transfer);
+      } catch(e) {
+        // Silently drop non-cloneable messages
+        return;
+      }
+    };
+  } catch(e) {}
+
+  // ── Suppress DataCloneError globally ──
+  window.addEventListener('error', function(e) {
+    if(e && e.message && e.message.includes('DataCloneError')) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  }, true);
+
+  window.addEventListener('unhandledrejection', function(e) {
+    if(e && e.reason && (
+      (e.reason.message && e.reason.message.includes('DataCloneError')) ||
+      (e.reason.message && e.reason.message.includes('Headers object could not be cloned')) ||
+      (e.reason.message && e.reason.message.includes('postMessage'))
+    )) {
+      e.preventDefault();
+      return false;
+    }
+  });
 })();
 
 // ── Safe custom storage ──
@@ -67,8 +105,18 @@ const _safeStorage = {
   getItem: (key) => { try { return window.localStorage.getItem(key); } catch(e) { return null; } },
   setItem: (key, value) => {
     try {
-      // Ensure only plain strings go into localStorage — no Headers/Response objects
-      const safe = typeof value === 'string' ? value : JSON.stringify(JSON.parse(JSON.stringify(value)));
+      let safe;
+      if(typeof value === 'string') {
+        safe = value;
+      } else {
+        // Strip any non-serializable objects (Headers, Response, etc.)
+        safe = JSON.stringify(value, function(k, v) {
+          if(v && typeof v === 'object' &&
+            (v instanceof Headers || v instanceof Response || v instanceof Request ||
+             v instanceof Blob || v instanceof File || v instanceof ArrayBuffer)) return undefined;
+          return v;
+        });
+      }
       window.localStorage.setItem(key, safe);
     } catch(e) {}
   },
@@ -274,7 +322,10 @@ async function _doCloudSave(data) {
       showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محفوظ', '#4fd1a5');
     }
   } catch(e) {
-    console.error('cloudSave exception:', e.message);
+    // Suppress DataCloneError / postMessage errors silently — these are cosmetic only
+    if(!e.message || (!e.message.includes('DataCloneError') && !e.message.includes('postMessage') && !e.message.includes('Headers'))) {
+      console.error('cloudSave exception:', e.message);
+    }
     showSyncIndicator('<i class="fa-solid fa-triangle-exclamation"></i> فشل المزامنة', '#f76f7c');
   } finally {
     _cloudSaving = false;
@@ -3919,83 +3970,93 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 ══════════════════════════════════════════════════════ -->
 <div class="page" id="page-services">
 
-  <!-- ══ HEADER ══ -->
-  <div class="page-header" style="flex-wrap:wrap;gap:10px">
-    <div>
-      <div class="page-title"><i class="fa-solid fa-bag-shopping"></i> <span data-i18n="title_services">خدماتي</span> <span data-i18n="title_services2">والباقات</span></div>
-      <div class="page-subtitle" data-i18n="sub_services">أدر خدماتك، باقاتك، بورتفوليوك، وموقعك العام</div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <button onclick="openSvcModal()" class="btn btn-primary btn-sm">+ خدمة جديدة</button>
-      <button onclick="openPkgStandaloneModal()" class="btn btn-ghost btn-sm" style="background:rgba(79,209,165,.12);color:var(--accent3);border-color:rgba(79,209,165,.25)">+ إنشاء باقة</button>
-      <div style="position:relative;display:inline-flex">
-        <button onclick="openNewStoreModal()" class="btn btn-ghost btn-sm" style="border-radius:10px 0 0 10px;border-left:none;padding-left:12px"><i class="fa-solid fa-store" style="margin-left:4px"></i> متجر جديد</button>
-        <button onclick="toggleStoresDropdown(this)" class="btn btn-ghost btn-sm" style="border-radius:0 10px 10px 0;padding:0 8px;border-right:2px solid var(--border)"><i class="fa-solid fa-chevron-down" style="font-size:10px"></i></button>
-        <div id="stores-quick-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;min-width:240px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:6px"></div>
+  <!-- ══ VIEW 1: STORES LIST (الشاشة الرئيسية) ══ -->
+  <div id="svc-stores-home">
+    <div class="page-header" style="flex-wrap:wrap;gap:10px">
+      <div>
+        <div class="page-title"><i class="fa-solid fa-store"></i> <span>متاجري</span></div>
+        <div class="page-subtitle">اختر متجراً لتعديله أو أنشئ متجراً جديداً</div>
       </div>
+      <button onclick="openNewStoreModal()" class="btn btn-primary"><i class="fa-solid fa-plus" style="margin-left:6px"></i> متجر جديد</button>
+    </div>
+    <div id="svc-stores-home-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:8px"></div>
+    <div id="svc-stores-home-empty" style="display:none;text-align:center;padding:70px 20px">
+      <div style="font-size:64px;margin-bottom:16px">🏪</div>
+      <div style="font-size:18px;font-weight:900;margin-bottom:8px">لا يوجد متاجر بعد</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:24px">أنشئ أول متجر لك وابدأ في عرض خدماتك</div>
+      <button onclick="openNewStoreModal()" class="btn btn-primary" style="font-size:15px;padding:12px 28px"><i class="fa-solid fa-plus" style="margin-left:8px"></i> إنشاء متجر جديد</button>
     </div>
   </div>
 
-  <!-- ══ STORE LINK BANNER ══ -->
-  <div style="background:linear-gradient(135deg,rgba(124,111,247,.1),rgba(79,209,165,.07));border:1.5px solid rgba(124,111,247,.25);border-radius:16px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-    <div style="flex:1;min-width:180px">
-      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px"><i class="fa-solid fa-link"></i> رابط متجرك العام</div>
-      <div id="svc-link-text" style="font-size:11px;color:var(--text3);font-family:var(--mono);word-break:break-all">جاري التحميل...</div>
-    </div>
-    <div style="display:flex;gap:6px;flex-shrink:0">
-      <button onclick="svcCopyLink()" class="btn btn-primary btn-sm"><i class="fa-solid fa-copy" style="margin-left:5px"></i> نسخ</button>
-      <button onclick="svcPreviewPublic()" class="btn btn-ghost btn-sm"><i class="fa-solid fa-eye"></i> معاينة</button>
-      <button onclick="svcShareWhatsApp()" class="btn btn-ghost btn-sm" style="background:#25D366;color:#fff;border:none"><i class="fa-solid fa-mobile"></i> واتساب</button>
-    </div>
-  </div>
+  <!-- ══ VIEW 2: STORE INNER (بعد الضغط على متجر) ══ -->
+  <div id="svc-store-inner" style="display:none">
 
-  <!-- ══ TABS ══ -->
-  <div style="display:flex;gap:0;background:var(--surface2);border-radius:14px;padding:4px;margin-bottom:20px;overflow-x:auto;scrollbar-width:none">
-    <button onclick="switchSvcTab('services')" id="svctab-services" class="btn btn-primary btn-sm" style="border-radius:10px;min-width:90px;justify-content:center;white-space:nowrap;flex-shrink:0"><i class="fa-solid fa-bag-shopping"></i> الخدمات</button>
-    <button onclick="switchSvcTab('packages')" id="svctab-packages" class="btn btn-ghost btn-sm" style="border-radius:10px;min-width:90px;justify-content:center;white-space:nowrap;flex-shrink:0"><i class="fa-solid fa-box"></i> الباقات</button>
-    <button onclick="switchSvcTab('portfolio')" id="svctab-portfolio" class="btn btn-ghost btn-sm" style="border-radius:10px;min-width:90px;justify-content:center;white-space:nowrap;flex-shrink:0"><i class="fa-solid fa-image"></i> البورتفوليو</button>
-    <button onclick="switchSvcTab('website')" id="svctab-website" class="btn btn-ghost btn-sm" style="border-radius:10px;min-width:90px;justify-content:center;white-space:nowrap;flex-shrink:0"><i class="fa-solid fa-globe"></i> الموقع</button>
-    <button onclick="switchSvcTab('orders')" id="svctab-orders" class="btn btn-ghost btn-sm" style="border-radius:10px;min-width:90px;justify-content:center;white-space:nowrap;flex-shrink:0"><i class="fa-solid fa-clipboard-list"></i> الطلبات <span id="svc-orders-tab-badge" style="display:none;background:var(--accent4);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-right:4px">0</span></button>
-    <button onclick="switchSvcTab('stores')" id="svctab-stores" class="btn btn-ghost btn-sm" style="border-radius:10px;min-width:90px;justify-content:center;white-space:nowrap;flex-shrink:0"><i class="fa-solid fa-store"></i> المتاجر <span id="svc-stores-tab-badge" style="display:none;background:var(--accent2);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-right:4px">0</span></button>
-  </div>
-
-  <!-- ══ TAB: SERVICES ══ -->
-  <div id="svc-services-wrap">
-    <!-- Pending Orders Alert -->
-    <div id="svc-orders-alert" style="display:none;background:rgba(247,201,72,.07);border:1.5px solid rgba(247,201,72,.3);border-radius:14px;padding:14px 18px;margin-bottom:16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="font-size:13px;font-weight:800"><i class="fa-solid fa-inbox"></i> طلبات تنتظر موافقتك</div>
-        <span id="svc-orders-badge" style="background:var(--accent4);color:#fff;border-radius:20px;padding:2px 12px;font-size:11px;font-weight:700">0</span>
+    <!-- Header with back button -->
+    <div class="page-header" style="flex-wrap:wrap;gap:10px;align-items:center">
+      <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+        <button onclick="_svcBackToStores()" class="btn btn-ghost btn-sm" style="flex-shrink:0;border-radius:50%;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center" title="رجوع للمتاجر">
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+        <div style="min-width:0">
+          <div class="page-title" id="svc-store-inner-title" style="font-size:20px"><i class="fa-solid fa-store" style="color:var(--accent2)"></i> <span id="svc-inner-store-name">المتجر</span></div>
+          <div class="page-subtitle" id="svc-inner-store-link-wrap">
+            <span id="svc-inner-store-link" style="font-family:var(--mono);color:var(--accent);cursor:pointer;font-size:11px" onclick="_openCurrentStorePub()">جاري التحميل...</span>
+            <button onclick="_copyCurrentStoreLink()" class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;margin-right:6px"><i class="fa-solid fa-copy"></i></button>
+          </div>
+        </div>
       </div>
-      <div id="svc-orders-list" style="display:flex;flex-direction:column;gap:8px"></div>
-    </div>
-    <div id="svc-grid" class="grid grid-3"></div>
-  </div>
-
-  <!-- ══ TAB: PACKAGES (standalone) ══ -->
-  <div id="svc-packages-wrap" style="display:none">
-    <div id="svc-standalone-pkgs-grid" class="grid grid-3"></div>
-  </div>
-
-  <!-- ══ TAB: PORTFOLIO ══ -->
-  <div id="svc-portfolio-wrap" style="display:none">
-    <!-- Portfolio Header -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button onclick="openPortfolioProjectModal()" class="btn btn-primary btn-sm">+ مشروع جديد</button>
-        <button onclick="openPortfolioCatsSettings()" class="btn btn-ghost btn-sm"><i class="fa-solid fa-gear"></i> التصنيفات</button>
+        <button onclick="openSvcModal()" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus" style="margin-left:4px"></i> خدمة جديدة</button>
+        <button onclick="openPkgStandaloneModal()" class="btn btn-ghost btn-sm" style="background:rgba(79,209,165,.12);color:var(--accent3);border-color:rgba(79,209,165,.25)"><i class="fa-solid fa-plus" style="margin-left:4px"></i> باقة جديدة</button>
+        <button onclick="_openCurrentStorePub()" class="btn btn-ghost btn-sm"><i class="fa-solid fa-eye"></i> معاينة</button>
       </div>
-      <div id="portfolio-cat-filters" style="display:flex;gap:6px;flex-wrap:wrap"></div>
     </div>
-    <div id="portfolio-projects-grid" class="grid grid-3"></div>
-  </div>
 
-  <!-- ══ TAB: WEBSITE SETTINGS ══ -->
-  <div id="svc-stores-wrap" style="display:none">
-    <div id="svc-stores-tab-content"></div>
-  </div>
+    <!-- TABS -->
+    <div style="display:flex;gap:0;background:var(--surface2);border-radius:14px;padding:4px;margin-bottom:20px;overflow-x:auto;scrollbar-width:none">
+      <button onclick="switchSvcTab('services')" id="svctab-services" class="btn btn-primary btn-sm" style="border-radius:10px;min-width:90px;justify-content:center;white-space:nowrap;flex-shrink:0"><i class="fa-solid fa-bag-shopping"></i> الخدمات</button>
+      <button onclick="switchSvcTab('packages')" id="svctab-packages" class="btn btn-ghost btn-sm" style="border-radius:10px;min-width:90px;justify-content:center;white-space:nowrap;flex-shrink:0"><i class="fa-solid fa-box"></i> الباقات</button>
+      <button onclick="switchSvcTab('portfolio')" id="svctab-portfolio" class="btn btn-ghost btn-sm" style="border-radius:10px;min-width:90px;justify-content:center;white-space:nowrap;flex-shrink:0"><i class="fa-solid fa-image"></i> البورتفوليو</button>
+      <button onclick="switchSvcTab('website')" id="svctab-website" class="btn btn-ghost btn-sm" style="border-radius:10px;min-width:90px;justify-content:center;white-space:nowrap;flex-shrink:0"><i class="fa-solid fa-gear"></i> إعدادات</button>
+      <button onclick="switchSvcTab('orders')" id="svctab-orders" class="btn btn-ghost btn-sm" style="border-radius:10px;min-width:90px;justify-content:center;white-space:nowrap;flex-shrink:0"><i class="fa-solid fa-clipboard-list"></i> الطلبات <span id="svc-orders-tab-badge" style="display:none;background:var(--accent4);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-right:4px">0</span></button>
+    </div>
 
-  <div id="svc-website-wrap" style="display:none">
+    <!-- ══ TAB: SERVICES ══ -->
+    <div id="svc-services-wrap">
+      <!-- Pending Orders Alert -->
+      <div id="svc-orders-alert" style="display:none;background:rgba(247,201,72,.07);border:1.5px solid rgba(247,201,72,.3);border-radius:14px;padding:14px 18px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:800"><i class="fa-solid fa-inbox"></i> طلبات تنتظر موافقتك</div>
+          <span id="svc-orders-badge" style="background:var(--accent4);color:#fff;border-radius:20px;padding:2px 12px;font-size:11px;font-weight:700">0</span>
+        </div>
+        <div id="svc-orders-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <div id="svc-grid" class="grid grid-3"></div>
+    </div>
+
+    <!-- ══ TAB: PACKAGES (standalone) ══ -->
+    <div id="svc-packages-wrap" style="display:none">
+      <div id="svc-standalone-pkgs-grid" class="grid grid-3"></div>
+    </div>
+
+    <!-- ══ TAB: PORTFOLIO ══ -->
+    <div id="svc-portfolio-wrap" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="openPortfolioProjectModal()" class="btn btn-primary btn-sm">+ مشروع جديد</button>
+          <button onclick="openPortfolioCatsSettings()" class="btn btn-ghost btn-sm"><i class="fa-solid fa-gear"></i> التصنيفات</button>
+        </div>
+        <div id="portfolio-cat-filters" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+      <div id="portfolio-projects-grid" class="grid grid-3"></div>
+    </div>
+
+    <!-- ══ TAB: WEBSITE SETTINGS ══ -->
+    <div id="svc-stores-wrap" style="display:none">
+      <div id="svc-stores-tab-content"></div>
+    </div>
+
+    <div id="svc-website-wrap" style="display:none">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
 
       <!-- RIGHT COL -->
@@ -4110,6 +4171,8 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   <div id="svc-orders-wrap" style="display:none">
     <div id="svc-orders-table"></div>
   </div>
+
+  </div><!-- end svc-store-inner -->
 
 </div><!-- end page-services -->
 
@@ -5292,6 +5355,12 @@ function showPage(id,el){
   renderAll();
   window.scrollTo(0,0);
   applyPlatformConfig();
+  // When navigating to services page, show the stores home list
+  if(id === 'services'){
+    setTimeout(function(){
+      if(typeof renderStoresHomeList==='function') renderStoresHomeList();
+    }, 50);
+  }
   // Refresh team invites immediately when opening team page
   if(id === 'team' && typeof window._teamPollNow === 'function'){
     window._teamPollNow();
@@ -9392,6 +9461,7 @@ function renderAll(){
   renderSalaryReminders();renderFollowupReminders();
   renderTimeTracker();renderContractsList();
   if(typeof renderServices==='function') renderServices();
+  if(typeof renderStoresHomeList==='function') renderStoresHomeList();
   if(typeof renderSupport==='function') renderSupport();
   // Refresh freelancer goals page if active
   if(document.getElementById('page-freelancer-goals')?.classList.contains('active')){
@@ -16561,6 +16631,97 @@ async function checkAndSaveUsername(){
 // ══ MULTI-STORE FUNCTIONS ══
 function _getStores(){ return S.stores||[]; }
 
+// ── Current active store context ──
+var _currentStoreIdx = null;
+
+function _openStoreInner(idx){
+  _currentStoreIdx = idx;
+  var stores = _getStores();
+  var st = (idx != null) ? stores[idx] : null;
+  var storeName = st ? st.name : (S.settings&&S.settings.name||'المتجر الرئيسي');
+  var storeLink = getSvcLink(st ? st.id : null);
+  var nameEl = document.getElementById('svc-inner-store-name');
+  if(nameEl) nameEl.textContent = storeName;
+  var linkEl = document.getElementById('svc-inner-store-link');
+  if(linkEl) linkEl.textContent = storeLink;
+  document.getElementById('svc-stores-home').style.display = 'none';
+  document.getElementById('svc-store-inner').style.display = '';
+  switchSvcTab('services');
+}
+
+function _svcBackToStores(){
+  _currentStoreIdx = null;
+  document.getElementById('svc-store-inner').style.display = 'none';
+  document.getElementById('svc-stores-home').style.display = '';
+  renderStoresHomeList();
+}
+
+function _openCurrentStorePub(){
+  var stores = _getStores();
+  var st = (_currentStoreIdx != null) ? stores[_currentStoreIdx] : null;
+  window.open(getSvcLink(st ? st.id : null), '_blank');
+}
+
+function _copyCurrentStoreLink(){
+  var stores = _getStores();
+  var st = (_currentStoreIdx != null) ? stores[_currentStoreIdx] : null;
+  var link = getSvcLink(st ? st.id : null);
+  navigator.clipboard.writeText(link).then(function(){toast('<i class="fa-solid fa-copy"></i> تم نسخ الرابط');}).catch(function(){toast(link);});
+}
+
+function renderStoresHomeList(){
+  var listEl = document.getElementById('svc-stores-home-list');
+  var emptyEl = document.getElementById('svc-stores-home-empty');
+  if(!listEl) return;
+  var stores = _getStores();
+  // Always show main store + extra stores as cards
+  var mainName = (S.settings&&S.settings.name) || 'المتجر الرئيسي';
+  var mainDesc = (S.settings&&S.settings.svc_site_desc) || '';
+  var mainLink = getSvcLink(null);
+
+  var html = '';
+  // Main store card
+  html += '<div onclick="_openStoreInner(null)" style="background:var(--surface2);border:2px solid var(--accent);border-radius:16px;padding:18px;cursor:pointer;transition:.2s;position:relative" onmouseover="this.style.transform=\'translateY(-3px)\'" onmouseout="this.style.transform=\'none\'">' +
+    '<div style="position:absolute;top:12px;left:12px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px">رئيسي</div>' +
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;padding-top:28px">' +
+      '<div style="width:46px;height:46px;border-radius:12px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;flex-shrink:0"><i class="fa-solid fa-house"></i></div>' +
+      '<div style="min-width:0"><div style="font-size:16px;font-weight:900;margin-bottom:2px">' + escapeHtml(mainName) + '</div>' +
+      (mainDesc ? '<div style="font-size:11px;color:var(--text3)">' + escapeHtml(mainDesc) + '</div>' : '') + '</div>' +
+    '</div>' +
+    '<div style="font-size:10px;color:var(--text3);font-family:var(--mono);background:var(--surface);border-radius:8px;padding:6px 10px;margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(mainLink) + '</div>' +
+    '<div style="display:flex;gap:6px">' +
+      '<button onclick="event.stopPropagation();_openStoreInner(null)" class="btn btn-primary btn-sm" style="flex:1;justify-content:center"><i class="fa-solid fa-pen-to-square" style="margin-left:4px"></i> تعديل</button>' +
+      '<button onclick="event.stopPropagation();window.open(\'' + mainLink + '\',\'_blank\')" class="btn btn-ghost btn-sm"><i class="fa-solid fa-eye"></i></button>' +
+      '<button onclick="event.stopPropagation();svcCopyLink()" class="btn btn-ghost btn-sm"><i class="fa-solid fa-copy"></i></button>' +
+    '</div>' +
+  '</div>';
+
+  // Extra stores
+  stores.forEach(function(st, i){
+    var lnk = getSvcLink(st.id);
+    html += '<div onclick="_openStoreInner(' + i + ')" style="background:var(--surface2);border:2px solid var(--border);border-radius:16px;padding:18px;cursor:pointer;transition:.2s;position:relative" onmouseover="this.style.borderColor=\'var(--accent)\';this.style.transform=\'translateY(-3px)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.transform=\'none\'">' +
+      '<div style="position:absolute;top:12px;left:12px;display:flex;gap:4px">' +
+        '<button onclick="event.stopPropagation();editStore(' + i + ')" class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px"><i class="fa-solid fa-pen"></i></button>' +
+        '<button onclick="event.stopPropagation();deleteStore(' + i + ')" class="btn btn-danger btn-sm" style="padding:2px 8px;font-size:11px"><i class="fa-solid fa-trash"></i></button>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;padding-top:28px">' +
+        '<div style="width:46px;height:46px;border-radius:12px;background:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;flex-shrink:0"><i class="fa-solid fa-store"></i></div>' +
+        '<div style="min-width:0"><div style="font-size:16px;font-weight:900;margin-bottom:2px">' + escapeHtml(st.name) + '</div>' +
+        (st.desc ? '<div style="font-size:11px;color:var(--text3);overflow:hidden;white-space:nowrap;text-overflow:ellipsis">' + escapeHtml(st.desc) + '</div>' : '') + '</div>' +
+      '</div>' +
+      '<div style="font-size:10px;color:var(--text3);font-family:var(--mono);background:var(--surface);border-radius:8px;padding:6px 10px;margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(lnk) + '</div>' +
+      '<div style="display:flex;gap:6px">' +
+        '<button onclick="event.stopPropagation();_openStoreInner(' + i + ')" class="btn btn-primary btn-sm" style="flex:1;justify-content:center"><i class="fa-solid fa-pen-to-square" style="margin-left:4px"></i> تعديل</button>' +
+        '<button onclick="event.stopPropagation();previewStore(' + i + ')" class="btn btn-ghost btn-sm"><i class="fa-solid fa-eye"></i></button>' +
+        '<button onclick="event.stopPropagation();copyStoreLink(' + i + ')" class="btn btn-ghost btn-sm"><i class="fa-solid fa-copy"></i></button>' +
+      '</div>' +
+    '</div>';
+  });
+
+  listEl.innerHTML = html;
+  if(emptyEl) emptyEl.style.display = 'none';
+}
+
 function toggleStoresDropdown(btn){
   var dd=document.getElementById('stores-quick-dropdown');
   if(!dd) return;
@@ -16692,7 +16853,7 @@ function _saveStore(editIdx, btn){
   } else {
     S.stores.push({id:'store_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),name:name,desc:desc,createdAt:new Date().toISOString()});
   }
-  lsSave(); cloudSave(S); modal.remove(); renderMultiStoresList();
+  lsSave(); cloudSave(S); modal.remove(); renderMultiStoresList(); renderStoresHomeList();
   toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ المتجر');
 }
 function copyStoreLink(idx){ var link=getSvcLink(_getStores()[idx]?.id); navigator.clipboard.writeText(link).then(function(){toast('<i class="fa-solid fa-copy"></i> تم نسخ الرابط');}).catch(function(){toast(link);}); }
@@ -16700,7 +16861,7 @@ function previewStore(idx){ window.open(getSvcLink(_getStores()[idx]?.id),'_blan
 function editStore(idx){ openNewStoreModal(idx); }
 function deleteStore(idx){
   confirmDel('حذف هذا المتجر؟',function(){
-    S.stores.splice(idx,1); lsSave(); cloudSave(S); renderMultiStoresList();
+    S.stores.splice(idx,1); lsSave(); cloudSave(S); renderMultiStoresList(); renderStoresHomeList();
     toast('<i class="fa-solid fa-trash"></i> تم حذف المتجر');
   });
 }
@@ -18275,6 +18436,12 @@ function _buildSvcOrderPage(userId){
     if(phone) footerSocialsHtml+='<a href="https://wa.me/'+phone.replace(/\D/g,'')+'" target="_blank" class="_footer-soc" title="واتساب"><i class="fa-solid fa-comments"></i></a>';
     socials.forEach(function(sc){ footerSocialsHtml+='<a href="'+escapeHtml(socialUrl(sc.platform,sc.url||sc.value||''))+'" target="_blank" class="_footer-soc" title="'+(sc.label||sc.platform||'')+'">'+((SICONS[sc.platform])||'<i class="fa-solid fa-link"></i>')+'</a>'; });
 
+    // ── Use store name/desc override if specific store requested ──
+    if(_storeObj){
+      studioName = _storeObj.name || studioName;
+      siteDesc = _storeObj.desc || siteDesc;
+    }
+
     // ── NAVBAR ──
     function scrollToId(id){ var el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
     var navHtml='<nav class="_nav" id="_pub-nav">'+
@@ -18304,12 +18471,6 @@ function _buildSvcOrderPage(userId){
       (phone?'<button class="_mob-link" style="color:'+accent+';font-weight:800" onclick="_openBookingForm();_toggleMobMenu()"><i class="fa-solid fa-calendar-days"></i> حجز موعد</button>':'')+
       '<button class="_mob-link" style="font-weight:800" onclick="_openPublicContactForm();_toggleMobMenu()"><i class="fa-solid fa-envelope-open-text"></i> تواصل معنا</button>'+
     '</div>';
-
-    // ── Use store name/desc override if specific store requested ──
-    if(_storeObj){
-      studioName = _storeObj.name || studioName;
-      siteDesc = _storeObj.desc || siteDesc;
-    }
 
     // ── HERO/BANNER ──
     var heroHtml='<div id="_sec-hero" style="scroll-margin-top:70px">'+
@@ -24507,3 +24668,4 @@ if(document.readyState === 'loading'){
 })();
 </script>
 </body></html>
+  
