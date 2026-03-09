@@ -100,7 +100,7 @@ function applyPlatformConfig() {
   // PLATFORM name = ONLY admin-set (sidebar + auth) — never user studio name
   let cfgName = cfg.name || '';
   if(_isEmail(cfgName)) cfgName = '';
-  const name = cfgName || 'Ordo - Tasks';
+  const name = cfgName || 'Ordo';
 
   let _rawLogo = cfg.logo||''; let _rawFav = cfg.favicon||'';
   if(_rawLogo==='__b64_logo__') _rawLogo=localStorage.getItem('platform_logo_b64')||'';
@@ -139,7 +139,7 @@ function applyPlatformConfig() {
   } else if(authLogoMark){ if(!authLogoMark.querySelector('img')) authLogoMark.innerHTML='<i class="fa-solid fa-bolt"></i>'; }
 
   // Update title
-  document.title = name + ' Freelance System  ';
+  document.title = name;
   // Update logo texts
   document.querySelectorAll('.logo-title, .auth-app-name, [data-platform-name]').forEach(el => { el.textContent = name; });
   // Update meta description
@@ -1976,8 +1976,8 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <div class="auth-logo">
         <div class="auth-logo-mark"><i class="fa-solid fa-bolt"></i></div>
         <div class="auth-logo-text">
-          <div class="auth-app-name" data-platform-name>Ordo - Tasks</div>
-          <div class="auth-app-sub">Freelance System</div>
+          <div class="auth-app-name" data-platform-name>Ordo</div>
+          <div class="auth-app-sub">نظام إدارة الأعمال</div>
         </div>
       </div>
       <div class="auth-tabs">
@@ -2085,7 +2085,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       </div>
     </div>
 
-    <div class="auth-footer">Ordo - Tasks — Freelance System الاحترافي <i class="fa-solid fa-bolt"></i></div>
+    <div class="auth-footer">Ordo — نظام إدارة الأعمال <i class="fa-solid fa-bolt"></i></div>
 
     </div><!-- end auth-card-body -->
   </div>
@@ -2107,8 +2107,8 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <span id="_logo-mark-hex" style="font-size:18px;font-weight:900;color:#fff"><i class="fa-solid fa-bolt"></i></span>
     </div>
     <div class="logo-text">
-      <div class="logo-title" data-platform-name>Ordo - Tasks</div>
-      <div class="logo-sub" id="_sidebar-logo-sub">Freelance System</div>
+      <div class="logo-title" data-platform-name>Ordo</div>
+      <div class="logo-sub" id="_sidebar-logo-sub">نظام إدارة الأعمال</div>
     </div>
   </div>
   <div class="nav-section-label" data-i18n="sec_main">الرئيسية</div>
@@ -2168,7 +2168,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 <header class="app-header">
   <button class="header-toggle" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="فتح القائمة" style="display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:10px;min-width:0;max-width:180px">
     <span id="toggle-icon" style="font-size:18px;flex-shrink:0"><i class="fa-solid fa-bars"></i></span>
-    <span id="_header-studio-name" data-platform-name style="font-size:13px;font-weight:800;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">Ordo - Tasks</span>
+    <span id="_header-studio-name" data-platform-name style="font-size:13px;font-weight:800;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">Ordo</span>
   </button>
   <div class="header-page-title" id="header-page-title" data-i18n="nav_dashboard">لوحة التحكم</div>
   <div class="header-actions">
@@ -5099,7 +5099,7 @@ function _showPageLock(id, el, reason){
         <div style="font-size:20px;font-weight:900;margin-bottom:6px">${names[id]||id}</div>
         <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px">غير متاح في باقتك الحالية</div>
         <div style="font-size:12px;color:var(--text2);margin-bottom:24px;line-height:1.8">هذا القسم يتطلب ترقية باقتك<br>تواصل معنا للترقية</div>
-        <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد ترقية اشتراكي في Studio OS')}" target="_blank"
+        <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد ترقية اشتراكي في Ordo')}" target="_blank"
           style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;font-size:13px">
           <i class="fa-solid fa-rocket"></i> ترقية الباقة عبر واتساب
         </a>
@@ -5126,7 +5126,7 @@ function _showPageLock(id, el, reason){
           </div>
           <div id="_lock_msg" style="font-size:11px;min-height:14px;text-align:center"></div>
         </div>
-        <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد الاشتراك في Studio OS')}" target="_blank"
+        <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد الاشتراك في Ordo')}" target="_blank"
           style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;font-size:13px">
           شراء باقة عبر واتساب
         </a>
@@ -7325,7 +7325,7 @@ function _genStatement(id){
   const totalTasks=tasks.reduce((s,t)=>s+(t.value||0),0);
   const totalInvPaid=invs.filter(i=>i.status==='paid').reduce((s,i)=>s+i.total,0);
   const totalInvPend=invs.filter(i=>i.status==='pending').reduce((s,i)=>s+i.total,0);
-  const studio=S.settings?.name||'Freelance System';
+  const studio=S.settings?.name||'Ordo';
   const arabicMonths=['','يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
   const html=`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف حساب — ${c.name}</title>
@@ -7369,7 +7369,7 @@ function _genStatement(id){
   ${invs.map(i=>`<tr><td>#${i.num||'—'}</td><td>${i.date||'—'}</td><td>${i.total.toLocaleString()} ج</td><td><span class="badge ${i.status==='paid'?'paid':'pend'}">${i.status==='paid'?'مدفوع':'معلق'}</span></td></tr>`).join('')}
   </tbody></table>`:''}
   <div style="margin-top:30px;padding-top:16px;border-top:2px solid #e8eaf0;display:flex;justify-content:space-between;font-size:11px;color:#aaa">
-    <span>${studio}</span><span>كشف حساب صادر تلقائياً من Freelance System</span>
+    <span>${studio}</span><span>كشف حساب صادر تلقائياً من Ordo</span>
   </div>
   </div><${'script'}>window.onload=()=>setTimeout(()=>window.print(),400)</${'script'}>
   <!-- مؤشر حالة البيانات -->
@@ -7550,7 +7550,7 @@ function _delStmt(id){
 
 function _printStmt(id){
   const s=_stmtsData().find(x=>x.id===id); if(!s)return;
-  const studio=S.settings?.name||'Freelance System';
+  const studio=S.settings?.name||'Ordo';
   const stFmt={new:'جديد',progress:'جاري',review:'مراجعة',done:'مكتمل'};
   const html=`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف حساب ${s.num} — ${s.client}</title>
   <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Cairo',Arial,sans-serif;background:#f5f6fa;color:#1a1a2e;padding:30px}
@@ -7589,7 +7589,7 @@ function _printStmt(id){
 
 function _waStmt(id){
   const s=_stmtsData().find(x=>x.id===id); if(!s)return;
-  const studio=S.settings?.name||'Freelance System';
+  const studio=S.settings?.name||'Ordo';
   const c=S.clients.find(x=>x.name===s.client);
   const phone=(c?.phone||'').replace(/[^\d]/g,'');
   const msg=`مرحباً ${s.client} <i class="fa-solid fa-hand-wave"></i>\n\nنرفق لك كشف حساب رقم ${s.num}\nالفترة: ${s.from||'—'} → ${s.to||'—'}\nإجمالي الطلبات: ${s.tasks_count} طلب\nالمحصّل: ${s.paid.toLocaleString()} ج\nالمعلق: ${s.pending.toLocaleString()} ج\n\n${studio}`;
@@ -9382,7 +9382,7 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     id       : supaUser.id,
     supaId   : supaUser.id,
     email    : supaUser.email || '',
-    name     : userMeta?.name  || meta.full_name || meta.name || (typeof S!=='undefined'&&S.settings?.name)||localStorage.getItem('studioName')||'Ordo - Tasks',
+    name     : userMeta?.name  || meta.full_name || meta.name || (typeof S!=='undefined'&&S.settings?.name)||localStorage.getItem('studioName')||'Ordo',
     phone    : userMeta?.phone || meta.phone || '',
     studio   : userMeta?.studio || meta.studio || '',
     avatarUrl: meta.avatarUrl || meta.avatar_url || meta.picture || ''
@@ -9809,7 +9809,7 @@ async function renderPlansListing() {
 
   const cfg = JSON.parse(localStorage.getItem('platform_config') || '{}');
   const wa  = cfg.whatsapp || '201090412218';
-  const appName = cfg.name || 'Studio OS';
+  const appName = cfg.name || 'Ordo';
   const currentPlanId = _userSubscription?.planId || _userSubscription?.plan_id;
 
   let html = '<div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-align:center">اختر الباقة المناسبة — تواصل معنا للحصول على كود التفعيل</div>'
@@ -9936,7 +9936,7 @@ function openSubscriptionInfo() {
         </div>
         <div id="_si_msg" style="font-size:11px;min-height:14px;text-align:center"></div>
       </div>
-      <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد الاشتراك في Studio OS')}"
+      <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد الاشتراك في Ordo')}"
         target="_blank"
         style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;padding:12px 24px;border-radius:10px;font-weight:700;text-decoration:none;font-size:13px">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
@@ -9970,7 +9970,7 @@ function openSubscriptionInfo() {
       ${isExpired || daysLeft !== null && daysLeft <= 7 ? `
         <div style="background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);border-radius:10px;padding:14px;text-align:center">
           <div style="font-size:13px;font-weight:700;margin-bottom:8px">${isExpired?'<i class="fa-solid fa-ban"></i> اشتراكك انتهى':'<i class="fa-solid fa-triangle-exclamation"></i> اشتراكك ينتهي قريباً'}</div>
-          <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد تجديد اشتراكي في Studio OS — باقة '+(plan?.name||''))}"
+          <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد تجديد اشتراكي في Ordo — باقة '+(plan?.name||''))}"
             target="_blank"
             style="display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;padding:10px 20px;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px">
             تجديد عبر واتساب
@@ -9978,7 +9978,7 @@ function openSubscriptionInfo() {
         </div>` : `
         <div style="text-align:center;padding-top:12px;border-top:1px solid var(--border)">
           <div style="font-size:12px;color:var(--text3);margin-bottom:8px">ترغب في ترقية باقتك؟</div>
-          <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد ترقية اشتراكي في Studio OS')}"
+          <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد ترقية اشتراكي في Ordo')}"
             target="_blank"
             style="display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;padding:10px 20px;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px">
             <i class="fa-solid fa-rocket"></i> ترقية الباقة
@@ -10469,7 +10469,7 @@ function renderProfileBody(user, users, tab='profile'){
             </div>
             <div id="_prof_serial_msg" style="font-size:11px;min-height:14px;text-align:center"></div>
           </div>
-          <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد الاشتراك في Studio OS')}" target="_blank"
+          <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد الاشتراك في Ordo')}" target="_blank"
             style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;font-size:13px">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
             شراء باقة عبر واتساب
@@ -13459,7 +13459,7 @@ function _printClientReport(id){
   const totalPaid=invs.filter(i=>i.status==='paid').reduce((s,i)=>s+i.total,0);
   const totalPend=invs.filter(i=>i.status==='pending').reduce((s,i)=>s+i.total,0);
   const score=_calcClientScore(c);
-  const studio=S.settings?.name||'Freelance System';
+  const studio=S.settings?.name||'Ordo';
 
   // Group by month
   const byMonth={};
@@ -14518,7 +14518,7 @@ supa.auth.onAuthStateChange(async (event, session) => {
       id    : session.user.id,
       supaId: session.user.id,
       email : session.user.email || '',
-      name  : meta.full_name || meta.name || (typeof S!=='undefined'&&S.settings?.name)||localStorage.getItem('studioName')||'Ordo - Tasks',
+      name  : meta.full_name || meta.name || (typeof S!=='undefined'&&S.settings?.name)||localStorage.getItem('studioName')||'Ordo',
       phone : meta.phone  || '',
       studio: meta.studio || (meta.full_name ? meta.full_name + ' Studio' : ''),
       avatarUrl: meta.avatarUrl || meta.avatar_url || meta.picture || ''
@@ -17588,7 +17588,7 @@ function _buildSvcOrderPage(userId){
 
       // ── Hero/Banner ──
       '._hero{border-radius:20px;overflow:hidden;margin:24px 0 40px;box-shadow:0 8px 40px rgba(0,0,0,.3);position:relative}'+
-      '._hero img{width:100%;max-height:'+bannerH+';height:auto;object-fit:contain;display:block;background:'+surface2+'}'+
+      '._hero img{width:100%;height:'+bannerH+';object-fit:cover;display:block;background:'+surface2+'}'+
       '._hero-ph{height:'+bannerH+';background:linear-gradient(135deg,'+accent+'33 0%,'+accent+'11 50%,transparent 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}'+
       '._hero-ph-title{font-size:clamp(24px,5vw,48px);font-weight:900;color:'+textMain+';margin-bottom:12px;line-height:1.2}'+
       '._hero-ph-sub{font-size:clamp(12px,2vw,16px);color:'+textSub+';max-width:500px;line-height:1.7}'+
@@ -17882,11 +17882,10 @@ function _buildSvcOrderPage(userId){
     var pubOverride = document.createElement('style');
     pubOverride.id = '_pub-override';
     pubOverride.textContent =
-      'html { height: auto !important; overflow: auto !important; }' +
-      'body { height: auto !important; overflow: auto !important; overflow-y: scroll !important; position: static !important; }' +
-      '.app-shell { display: none !important; height: auto !important; overflow: visible !important; }' +
-      '#auth-screen { display: none !important; }' +
-      '#app-body, .main-content, .sidebar, #bottom-nav, .bottom-nav-bar { display: none !important; }';
+      'html { height: auto !important; overflow: auto !important; overflow-y: scroll !important; }' +
+      'body { height: auto !important; overflow: visible !important; overflow-y: visible !important; overflow-x: hidden !important; position: static !important; min-height: 100vh; }' +
+      '.app-shell, #app-body, .main-content, .sidebar, #bottom-nav, .bottom-nav-bar, .app-header, #auth-screen { display: none !important; }' +
+      '* { -webkit-overflow-scrolling: touch; }';
     document.head.appendChild(pubOverride);
 
     document.body.style.cssText='margin:0;padding:0';
@@ -17901,13 +17900,17 @@ function _buildSvcOrderPage(userId){
     window._publicSettings=settings;
 
     // ── تأكيد تفعيل السكرول ──
-    document.documentElement.style.overflow = 'auto';
-    document.documentElement.style.height = 'auto';
-    document.body.style.overflow = 'auto';
-    document.body.style.overflowY = 'auto';
-    document.body.style.overflowX = 'hidden';
-    document.body.style.height = 'auto';
-    document.body.style.position = 'relative';
+    document.documentElement.style.cssText = 'overflow:auto !important;height:auto !important;';
+    document.body.style.cssText = 'margin:0;padding:0;overflow:visible !important;overflow-x:hidden !important;height:auto !important;position:static !important;';
+    // Force scroll unlock after short delay (to override any late-running app code)
+    setTimeout(function(){
+      document.documentElement.style.overflow = 'auto';
+      document.documentElement.style.height = 'auto';
+      document.body.style.overflow = 'visible';
+      document.body.style.overflowX = 'hidden';
+      document.body.style.height = 'auto';
+      document.body.style.position = 'static';
+    }, 300);
 
     // ── Navbar scroll active ──
     window.addEventListener('scroll', function(){
@@ -21051,7 +21054,7 @@ _buildTrackingPageHTML = function(t){
   const pct=stepsTotal?Math.round(stepsDone/stepsTotal*100):(t.done?100:0);
 
   // Pull live system settings
-  const studio   = S.settings?.name||'Ordo - Tasks';
+  const studio   = S.settings?.name||'Ordo';
   const phone    = S.settings?.phone||'';
   const email    = S.settings?.email||'';
   const logo     = S.settings?.logo||'';  // base64 or URL
@@ -21206,7 +21209,7 @@ _buildTrackingPageHTML = function(t){
   const steps=t.steps||[];
   const stepsTotal=steps.length, stepsDone=steps.filter(s=>s.done).length;
   const pct=stepsTotal?Math.round(stepsDone/stepsTotal*100):(t.done?100:0);
-  const studio   = S.settings?.name||session?.name||'Studio OS';
+  const studio   = S.settings?.name||session?.name||'Ordo';
   const phone    = S.settings?.phone||session?.phone||'';
   const email    = S.settings?.email||'';
   const socials  = S.settings?.socials||[];
@@ -22131,7 +22134,7 @@ function _buildTrackingPageHTML(t){
   const steps=t.steps||[];
   const stepsTotal=steps.length, stepsDone=steps.filter(s=>s.done).length;
   const pct=stepsTotal?Math.round(stepsDone/stepsTotal*100):(t.done?100:0);
-  const studio=S.settings?.name||'Ordo - Tasks';
+  const studio=S.settings?.name||'Ordo';
   const studioPhone=S.settings?.phone||'';
   const status={new:'جديد',progress:'قيد التنفيذ',review:'مراجعة',done:'مكتمل <i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>'}[t.status]||t.status;
   const statusColor={new:'#5a5a80',progress:'#f7c948',review:'#7c6ff7',done:'#4fd1a5'}[t.status]||'#888';
@@ -22196,7 +22199,7 @@ function _buildTrackingPageHTML(t){
 }
 
 function _showTrackingShareModal(t){
-  const studio=S.settings?.name||'Ordo - Tasks';
+  const studio=S.settings?.name||'Ordo';
   const clientName=t.client||'عزيزي العميل';
   const taskTitle=t.title||'المشروع';
   const pageHtml=_buildTrackingPageHTML(t);
