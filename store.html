@@ -78,10 +78,32 @@ function unwrap(raw){
 
 // ── resolve username to uid ──
 async function resolveUname(u){
+  if(!u) return null;
+  var uLower=u.toLowerCase().trim();
+
+  // محاولة 1: username_index column (الأسرع)
   try{
-    var r=await supa.from('studio_data').select('user_id').ilike('username_index',u).maybeSingle();
-    if(r.data&&r.data.user_id) return r.data.user_id;
-  }catch(e){}
+    var r=await supa.from('studio_data').select('user_id').ilike('username_index',uLower).maybeSingle();
+    if(r.data&&r.data.user_id){ console.log('[Store] resolved via username_index'); return r.data.user_id; }
+  }catch(e){ console.warn('[Store] username_index lookup failed:',e.message); }
+
+  // محاولة 2: البحث في الـ data JSON عن username (fallback لو الـ column مش موجود أو فاضي)
+  try{
+    var r2=await supa.from('studio_data').select('user_id,data').like('data::text','%"username":"'+uLower+'"%');
+    if(r2.data&&r2.data.length){
+      // تحقق من مطابقة username فعلية
+      for(var i=0;i<r2.data.length;i++){
+        try{
+          var d=typeof r2.data[i].data==='string'?JSON.parse(r2.data[i].data):r2.data[i].data;
+          if(d&&d.data) try{d=typeof d.data==='string'?JSON.parse(d.data):d.data;}catch(e2){}
+          var un=d&&d.settings&&d.settings.username;
+          if(un&&un.toLowerCase()===uLower){ console.log('[Store] resolved via data JSON search'); return r2.data[i].user_id; }
+        }catch(e3){}
+      }
+    }
+  }catch(e){ console.warn('[Store] JSON search fallback failed:',e.message); }
+
+  console.error('[Store] Could not resolve username:',u);
   return null;
 }
 
@@ -89,7 +111,11 @@ async function resolveUname(u){
 async function boot(){
   var uid=_pUid;
   if(!uid&&_pUname) uid=await resolveUname(_pUname);
-  if(!uid){showErr('رابط غير صحيح');return;}
+  if(!uid){
+    if(_pUname) showErr('لم يتم العثور على مستخدم بهذا الاسم: "'+_pUname+'"');
+    else showErr('رابط غير صحيح — يرجى التحقق من الرابط');
+    return;
+  }
   await buildPage(uid);
 }
 
