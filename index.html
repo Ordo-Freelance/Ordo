@@ -7557,7 +7557,8 @@ function openClientProfile(id){
     (c.phone?`<a href="https://wa.me/${c.phone.replace(/[^\d]/g,'')}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;border:none;border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;text-decoration:none;cursor:pointer"><i class="fa-solid fa-comments"></i> واتساب</a>`:'') +
     `<button class="btn btn-ghost btn-sm" title="إعدادات التذكير" onclick="openClientModal(${c.id});closeM('modal-client-profile')"><i class="fa-solid fa-gear"></i>️</button>`+
     `<button class="btn btn-ghost btn-sm" title="بوابة العميل" onclick="openClientPortal(${c.id})"><i class="fa-solid fa-link"></i> بوابة</button>`+
-    `<button class="btn btn-primary btn-sm" onclick="_profileShowStatement(${c.id})"><i class="fa-solid fa-file-lines"></i> كشف حساب</button>`;
+    `<button class="btn btn-primary btn-sm" onclick="_showClientPortalLink(${c.id})"><i class="fa-solid fa-id-card"></i> رابط البوابة الكاملة</button>`+
+    `<button class="btn btn-ghost btn-sm" onclick="_profileShowStatement(${c.id})"><i class="fa-solid fa-file-lines"></i> كشف حساب</button>`;
 
   // Reset tabs
   document.querySelectorAll('.profile-tab').forEach(t=>t.classList.remove('active'));
@@ -15218,7 +15219,7 @@ let _authProcessingUserId = null;
 supa.auth.onAuthStateChange(async (event, session) => {
   // ── Public service/portal pages: skip all auth handling ──
   var _pup = new URLSearchParams(window.location.search);
-  if(_pup.get('svcorder') || (_pup.get('portal') && _pup.get('uid'))){ if(window._showApp) window._showApp(); return; }
+  if(_pup.get('svcorder') || (_pup.get('portal') && _pup.get('uid')) || (_pup.get('clientportal') && _pup.get('cid'))){ if(window._showApp) window._showApp(); return; }
 
   console.log('Auth event:', event, session?.user?.email);
 
@@ -15300,7 +15301,7 @@ supa.auth.onAuthStateChange(async (event, session) => {
 async function initAuthFallback(){
   // ── Public pages: skip all auth/dashboard init entirely ──
   var _pu = new URLSearchParams(window.location.search);
-  if(_pu.get('svcorder') || (_pu.get('portal') && _pu.get('uid'))){ return; }
+  if(_pu.get('svcorder') || (_pu.get('portal') && _pu.get('uid')) || (_pu.get('clientportal') && _pu.get('cid'))){ return; }
 
   loadThemePreferences();
   renderAll();
@@ -18690,6 +18691,43 @@ function renderClientPortals(){
     '</div>';
   }).join('');
 }
+// ── رابط بوابة العميل الكاملة ──
+function _showClientPortalLink(clientId){
+  var c=(S.clients||[]).find(function(x){return String(x.id)===String(clientId);}); if(!c) return;
+  var uid=(typeof _supaUserId!=='undefined'&&_supaUserId)?_supaUserId:'';
+  var base=window.location.origin+window.location.pathname;
+  var link=base+'?clientportal='+uid+'&cid='+clientId;
+  var over=document.createElement('div');
+  over.className='modal-overlay'; over.style.display='flex';
+  over.innerHTML=`<div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-id-card" style="color:var(--accent3)"></i> بوابة العميل الكاملة</div>
+      <button class="close-btn" onclick="this.closest('.modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div style="background:rgba(79,209,165,.08);border:1px solid rgba(79,209,165,.3);border-radius:12px;padding:16px;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:800;color:var(--accent3);margin-bottom:4px"><i class="fa-solid fa-user"></i> ${escapeHtml(c.name)}</div>
+      ${c.phone?`<div style="font-size:12px;color:var(--text3);margin-bottom:2px"><i class="fa-solid fa-phone"></i> ${c.phone}</div>`:''}
+      ${c.email?`<div style="font-size:12px;color:var(--text3)"><i class="fa-solid fa-envelope"></i> ${c.email}</div>`:''}
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">العميل يشوف في البوابة:</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      ${[['📁 مشاريعه ومهامهم',''],['📦 طلباته',''],['📄 فواتيره',''],['📋 عقوده','']].map(function(x){
+        return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600">'+x[0]+'</div>';
+      }).join('')}
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:monospace;font-size:11px;word-break:break-all;margin-bottom:14px;color:var(--text2)">${link}</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('<i class=\\'fa-solid fa-square-check\\' style=\\'color:var(--accent3)\\'></i> تم نسخ رابط بوابة ${escapeHtml(c.name)}'))">
+        <i class="fa-solid fa-copy"></i> نسخ الرابط
+      </button>
+      <button class="btn btn-ghost" onclick="window.open('${link}','_blank')"><i class="fa-solid fa-eye"></i> معاينة</button>
+    </div>
+    <div style="font-size=11px;color:var(--text3);text-align:center;margin-top:10px"><i class="fa-solid fa-lock" style="margin-left:4px"></i> العميل يرى بياناته فقط — لا صلاحية تعديل</div>
+  </div>`;
+  document.body.appendChild(over);
+  over.onclick=e=>{if(e.target===over)over.remove();};
+}
+
 function openClientPortal(portalId){
   var portal=(S.client_portals||[]).find(function(p){return p.id===portalId;}); if(!portal) return;
   var task=(S.tasks||[]).find(function(t){return String(t.id)===String(portal.task_id);});
@@ -18813,6 +18851,9 @@ function _checkSvcOrderUrl(){
   }
   var portalId=params.get('portal');
   if(portalId && params.get('uid')) { _buildClientPortalPage(params.get('uid'), portalId); return; }
+  // ── Full Client Portal (by client ID) ──
+  var cpUid=params.get('clientportal'); var cpCid=params.get('cid');
+  if(cpUid && cpCid) { _buildFullClientPortal(cpUid, cpCid); return; }
   if(!uid) return;
   // Show body (was hidden) then replace content
   if(window._showApp) window._showApp();
@@ -18823,7 +18864,7 @@ function _checkSvcOrderUrl(){
 // Run ASAP — before DOMContentLoaded if possible
 (function(){
   var p=new URLSearchParams(window.location.search);
-  if(p.get('svcorder')||( p.get('portal')&&p.get('uid') )||p.get('u')){
+  if(p.get('svcorder')||( p.get('portal')&&p.get('uid') )||p.get('u')||( p.get('clientportal')&&p.get('cid') )){
     // Mark as public page — auth functions check this flag
     window._isPublicPage = true;
     // Inject scroll-unlock style as FIRST child of head — overrides everything
@@ -20197,6 +20238,12 @@ window.addEventListener('load', function(){
     document.documentElement.classList.add('pub-page');
     document.body.classList.add('pub-page');
     _buildProjectPortalPage(p.get('uid'),p.get('pid'));
+  }
+  // Full client portal
+  if(p.get('clientportal')&&p.get('cid')){
+    document.documentElement.classList.add('pub-page');
+    document.body.classList.add('pub-page');
+    _buildFullClientPortal(p.get('clientportal'),p.get('cid'));
   }
 });
 
@@ -22842,34 +22889,85 @@ function renderProjTeam(proj,clr){
 // ── Files Tab ──
 function renderProjFiles(proj,clr){
   var files=proj.files||[];
+  var linkIcons={drive:'<i class="fa-brands fa-google-drive" style="color:#4285F4"></i>',dropbox:'<i class="fa-brands fa-dropbox" style="color:#0061FF"></i>',notion:'<i class="fa-solid fa-n" style="color:#000"></i>',figma:'<i class="fa-brands fa-figma" style="color:#F24E1E"></i>',other:'<i class="fa-solid fa-link" style="color:var(--accent)"></i>'};
+  function detectType(url){
+    if(!url) return 'other';
+    if(url.includes('drive.google')) return 'drive';
+    if(url.includes('dropbox')) return 'dropbox';
+    if(url.includes('notion')) return 'notion';
+    if(url.includes('figma')) return 'figma';
+    return 'other';
+  }
   return `<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div class="section-title" style="margin:0">ملفات المشروع</div>
-      <label class="btn btn-primary btn-sm" style="cursor:pointer"><i class="fa-solid fa-upload"></i> رفع ملف<input type="file" style="display:none" onchange="uploadProjFile('${proj.id}',this)"></label>
+      <div class="section-title" style="margin:0"><i class="fa-solid fa-folder-open" style="color:${clr};margin-left:6px"></i> ملفات ولينكات المشروع</div>
+      <button class="btn btn-primary btn-sm" onclick="_openAddProjLink('${proj.id}')"><i class="fa-solid fa-plus"></i> إضافة ملف / لينك</button>
     </div>
-    ${files.length?files.map((f,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:10px;margin-bottom:8px">
-      <i class="fa-solid fa-file" style="color:${clr};font-size:18px"></i>
-      <div style="flex:1"><div style="font-size:12px;font-weight:700">${escapeHtml(f.name)}</div><div style="font-size:10px;color:var(--text3)">${f.size||''} · ${f.date||''}</div></div>
-      <a href="${f.data||'#'}" download="${escapeHtml(f.name)}" class="btn btn-ghost btn-sm"><i class="fa-solid fa-download"></i></a>
-      <button data-pid="${proj.id}" data-fidx="${i}" onclick="deleteProjFile(this.dataset.pid,+this.dataset.fidx)" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>
-    </div>`).join(''):`<div style="text-align:center;padding:40px;color:var(--text3)"><i class="fa-solid fa-folder-open" style="font-size:36px;margin-bottom:10px;display:block"></i>لا توجد ملفات بعد</div>`}
+    ${files.length?files.map((f,i)=>{
+      var t=detectType(f.url||f.data||'');
+      var icon=linkIcons[t]||linkIcons.other;
+      var href=f.url||(f.data&&f.data.startsWith('http')?f.data:'#');
+      return `<div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;margin-bottom:8px">
+        <div style="width:36px;height:36px;border-radius:9px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;margin-bottom:2px">${escapeHtml(f.name||'ملف')}</div>
+          <div style="font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.url||f.desc||f.date||''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          ${href!=='#'?`<a href="${href}" target="_blank" class="btn btn-primary btn-sm" style="padding:4px 10px;font-size:11px"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح</a>`:''}
+          <button data-pid="${proj.id}" data-fidx="${i}" onclick="deleteProjFile(this.dataset.pid,+this.dataset.fidx)" class="btn btn-danger btn-sm" style="padding:4px 8px"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>`;
+    }).join(''):`<div style="text-align:center;padding:40px;color:var(--text3)"><i class="fa-solid fa-folder-open" style="font-size:40px;margin-bottom:10px;display:block;opacity:.4"></i><div style="font-size:14px;font-weight:700;margin-bottom:4px">لا توجد ملفات بعد</div><div style="font-size:12px">أضف روابط Google Drive أو Figma أو أي لينك</div></div>`}
   </div>`;
 }
 
-function uploadProjFile(projId,input){
-  var file=input.files[0]; if(!file) return;
-  if(file.size>5*1024*1024){toast('<i class="fa-solid fa-triangle-exclamation"></i> الملف أكبر من 5 ميجا');return;}
-  var r=new FileReader();
-  r.onload=function(e){
-    var proj=_getProjById(projId); if(!proj) return;
-    if(!proj.files) proj.files=[];
-    proj.files.push({name:file.name,size:Math.round(file.size/1024)+'KB',date:new Date().toLocaleDateString('ar-EG'),data:e.target.result});
-    lsSave(); cloudSave(S); renderProjectDetail();
-    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع الملف');
-  };
-  r.readAsDataURL(file);
+function _openAddProjLink(projId){
+  var over=document.createElement('div');
+  over.className='modal-overlay'; over.style.display='flex';
+  over.innerHTML=`<div class="modal" style="width:min(480px,96vw)">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-link"></i> إضافة ملف أو لينك</div>
+      <button class="close-btn" onclick="this.closest('.modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">اسم الملف / الوصف *</label>
+      <input class="form-input" id="_plink-name" placeholder="مثال: ملف التصميم الرئيسي">
+    </div>
+    <div class="form-group">
+      <label class="form-label"><i class="fa-brands fa-google-drive" style="color:#4285F4;margin-left:5px"></i> رابط الملف (Google Drive / Figma / Notion / ...)</label>
+      <input class="form-input" id="_plink-url" type="url" placeholder="https://drive.google.com/...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">ملاحظة (اختياري)</label>
+      <input class="form-input" id="_plink-desc" placeholder="مثال: النسخة النهائية المعتمدة">
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="_saveProjLink('${projId}',this.closest('.modal-overlay'))">
+        <i class="fa-solid fa-floppy-disk"></i> حفظ
+      </button>
+      <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">إلغاء</button>
+    </div>
+  </div>`;
+  document.body.appendChild(over);
+  over.onclick=e=>{if(e.target===over)over.remove();};
+  setTimeout(()=>document.getElementById('_plink-name')?.focus(),100);
 }
+
+function _saveProjLink(projId, over){
+  var name=(document.getElementById('_plink-name')||{}).value?.trim();
+  var url=(document.getElementById('_plink-url')||{}).value?.trim();
+  var desc=(document.getElementById('_plink-desc')||{}).value?.trim();
+  if(!name){ toast('<i class="fa-solid fa-triangle-exclamation"></i> اكتب اسم الملف'); return; }
+  var proj=_getProjById(projId); if(!proj) return;
+  if(!proj.files) proj.files=[];
+  proj.files.push({name, url:url||'', desc:desc||'', date:new Date().toLocaleDateString('ar-EG')});
+  lsSave(); cloudSave(S);
+  if(over) over.remove();
+  renderProjectDetail();
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إضافة الملف');
+}
+
 function deleteProjFile(projId,idx){
   var proj=_getProjById(projId); if(!proj||!proj.files) return;
   proj.files.splice(idx,1); lsSave(); cloudSave(S); renderProjectDetail();
@@ -23037,19 +23135,40 @@ function changeProjStatus(projId,status){
 function openProjSharePortal(projId){
   var uid=(typeof _supaUserId!=='undefined'&&_supaUserId)?_supaUserId:'';
   var base=window.location.origin+window.location.pathname;
-  var link=base+'?portal=project&uid='+uid+'&pid='+projId;
-  // Show copy modal
+  var projLink=base+'?portal=project&uid='+uid+'&pid='+projId;
+
+  // Try to find client for this project
+  var proj=_getProjById(projId);
+  var client=proj&&proj.client_id?(S.clients||[]).find(c=>String(c.id)===String(proj.client_id)):null;
+  var clientLink=client?base+'?clientportal='+uid+'&cid='+client.id:'';
+
   var over=document.createElement('div');
   over.className='modal-overlay'; over.style.display='flex';
-  over.innerHTML=`<div class="modal" style="max-width:460px">
-    <div class="modal-header"><div class="modal-title"><i class="fa-solid fa-share-nodes"></i> مشاركة مع العميل</div>
-    <button class="close-btn" onclick="this.closest('.modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button></div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">هذا الرابط يعطي العميل صلاحية عرض المشروع فقط — بدون تعديل أو حذف</div>
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:var(--mono);font-size:11px;word-break:break-all;margin-bottom:12px">${link}</div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('✅ تم نسخ الرابط'))"><i class="fa-solid fa-copy"></i> نسخ الرابط</button>
-      <button class="btn btn-ghost" onclick="window.open('${link}','_blank')"><i class="fa-solid fa-eye"></i> معاينة</button>
+  over.innerHTML=`<div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-share-nodes"></i> مشاركة مع العميل</div>
+      <button class="close-btn" onclick="this.closest('.modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button>
     </div>
+    <!-- Project link -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px"><i class="fa-solid fa-diagram-project" style="color:var(--accent);margin-left:5px"></i> رابط المشروع فقط</div>
+      <div style="font-size:10px;color:var(--text3);font-family:monospace;word-break:break-all;margin-bottom:10px">${projLink}</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${projLink}').then(()=>toast('✅ تم نسخ رابط المشروع'))"><i class="fa-solid fa-copy"></i> نسخ</button>
+        <button class="btn btn-ghost btn-sm" onclick="window.open('${projLink}','_blank')"><i class="fa-solid fa-eye"></i> معاينة</button>
+      </div>
+    </div>
+    ${clientLink?`<!-- Client portal link -->
+    <div style="background:rgba(79,209,165,.08);border:1px solid rgba(79,209,165,.3);border-radius:12px;padding:14px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:#4fd1a5;margin-bottom:4px"><i class="fa-solid fa-id-card" style="margin-left:5px"></i> بوابة العميل الكاملة — ${escapeHtml(client.name)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">العميل يشوف: كل مشاريعه، فواتيره، طلباته، عقوده</div>
+      <div style="font-size:10px;color:var(--text3);font-family:monospace;word-break:break-all;margin-bottom:10px">${clientLink}</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-success btn-sm" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${clientLink}').then(()=>toast('✅ تم نسخ رابط البوابة الكاملة'))"><i class="fa-solid fa-copy"></i> نسخ رابط البوابة</button>
+        <button class="btn btn-ghost btn-sm" onclick="window.open('${clientLink}','_blank')"><i class="fa-solid fa-eye"></i> معاينة</button>
+      </div>
+    </div>`:'<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;text-align:center;color:var(--text3);font-size:12px"><i class="fa-solid fa-user-slash" style="margin-left:5px"></i> لم يُحدد عميل لهذا المشروع — عدّل المشروع وحدد العميل لإنشاء بوابة كاملة له</div>'}
+    <div style="font-size:11px;color:var(--text3);text-align:center"><i class="fa-solid fa-lock" style="margin-left:4px"></i> العميل يرى بياناته فقط — لا يمكنه التعديل أو الحذف</div>
   </div>`;
   document.body.appendChild(over);
   over.onclick=e=>{if(e.target===over)over.remove();};
@@ -23087,6 +23206,267 @@ setTimeout(_hookProjRender,500);
 // ════════════════════════════════════════════════════════════════
 // PROJECT CLIENT PORTAL (Read-only public view)
 // ════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════
+// FULL CLIENT PORTAL — لوحة العميل الكاملة
+// ════════════════════════════════════════════════════════════════
+function _buildFullClientPortal(userId, clientId){
+  if(typeof supa==='undefined'){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cairo,Tajawal,sans-serif;direction:rtl;color:#666"><div style="text-align:center"><div style="font-size:48px;margin-bottom:12px">⚠️</div><div style="font-size:16px">لا يمكن تحميل لوحة التحكم</div><div style="font-size:13px;margin-top:6px;color:#999">يرجى المحاولة لاحقاً</div></div></div>';
+    return;
+  }
+  // Loading
+  document.body.style.cssText='margin:0;padding:0;background:#f4f5fb;font-family:Cairo,Tajawal,sans-serif;direction:rtl';
+  document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><div style="font-size:40px;margin-bottom:12px;animation:spin 1s linear infinite">⏳</div><div style="font-size:14px;color:#666">جاري تحميل بيانات العميل...</div></div></div>';
+
+  supa.from('studio_data').select('data').eq('user_id',userId).maybeSingle().then(function(res){
+    if(!res||!res.data){ _showCPError('لا يمكن تحميل البيانات. تأكد من الرابط.'); return; }
+    var ud; try{ ud=typeof res.data.data==='string'?JSON.parse(res.data.data):res.data.data; }catch(e){}
+    if(!ud){ _showCPError('خطأ في قراءة البيانات'); return; }
+
+    var client=(ud.clients||[]).find(function(c){ return String(c.id)===String(clientId); });
+    if(!client){ _showCPError('لم يتم التعرف على العميل. تأكد من الرابط.'); return; }
+
+    var settings=ud.settings||{};
+    var accent=settings.accentColor||settings.accent||'#7c6ff7';
+    var isLight=settings.displayMode!=='dark';
+    var bg=isLight?'#f4f5fb':'#0a0a0f';
+    var surface=isLight?'#ffffff':'#111118';
+    var surface2=isLight?'#f0f1f8':'#16161f';
+    var textMain=isLight?'#1a1a2e':'#f0f0f5';
+    var textSub=isLight?'#555577':'#aaaacc';
+    var textMuted=isLight?'#888899':'#777799';
+    var borderC=isLight?'rgba(0,0,0,.1)':'rgba(255,255,255,.08)';
+    var navBg=isLight?'rgba(255,255,255,.95)':'rgba(10,10,15,.95)';
+    var logo=settings.store_logo||settings.logo||'';
+    var studioName=settings.name||'Studio';
+
+    // Client's data
+    var cName=client.name||'العميل';
+    var cPhone=client.phone||'';
+    var cEmail=client.email||'';
+
+    // Projects
+    var projects=(ud.projects||[]).filter(function(p){
+      return String(p.client_id)===String(clientId)||p.client===cName;
+    });
+    // Project tasks
+    var allProjTasks=ud.project_tasks||[];
+    // Tasks (regular)
+    var tasks=(ud.tasks||[]).filter(function(t){
+      return t.client===cName||(cPhone&&(t.client_phone===cPhone||t.clientPhone===cPhone));
+    });
+    // Invoices
+    var invoices=(ud.invoices||[]).filter(function(inv){
+      return inv.client===cName||(cPhone&&(inv.client_phone===cPhone||inv.clientPhone===cPhone));
+    });
+    // Orders
+    var orders=(ud.svc_orders||[]).filter(function(o){
+      return o.name===cName||(cPhone&&o.phone===cPhone)||(cEmail&&o.email===cEmail);
+    });
+    // Contracts
+    var contracts=(ud.contracts||[]).filter(function(c){
+      return c.client===cName||(cPhone&&c.client_phone===cPhone);
+    });
+    // Statements
+    var statements=(ud.statements||[]).filter(function(s){
+      return s.client===cName||(cPhone&&s.client_phone===cPhone);
+    });
+
+    var stProjMap={active:'🟢 نشط',hold:'🟡 معلق',review:'🔵 مراجعة',done:'✅ مكتمل'};
+    var taskStMap={todo:'🆕 جديد',progress:'⚡ قيد التنفيذ',review:'🔍 مراجعة',revision:'✏️ تعديلات',done:'✅ مكتمل',hold:'⏸ موقوف'};
+
+    // Build HTML
+    document.body.innerHTML='';
+    document.body.style.cssText='margin:0;padding:0;background:'+bg+';font-family:Cairo,Tajawal,sans-serif;direction:rtl;color:'+textMain;
+
+    var st=document.createElement('style');
+    st.textContent=
+      '@import url(\'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap\');'+
+      '*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}'+
+      'body::before{content:\'\';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 70% 50% at 85% 5%,'+accent+'1e 0%,transparent 60%)}'+
+      '._fcp-nav{position:sticky;top:0;z-index:100;background:'+navBg+';backdrop-filter:blur(18px);border-bottom:1px solid '+borderC+';padding:0 20px}'+
+      '._fcp-nav-inner{max-width:800px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:60px}'+
+      '._fcp-wrap{position:relative;z-index:1;max-width:800px;margin:0 auto;padding:24px 20px 80px}'+
+      '._fcp-card{background:'+surface+';border:1px solid '+borderC+';border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 2px 20px rgba(0,0,0,.06)}'+
+      '._fcp-sec{font-size:11px;font-weight:800;color:'+textMuted+';text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;display:flex;align-items:center;gap:6px}'+
+      '._fcp-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:20px;background:'+surface2+';padding:4px;border-radius:12px}'+
+      '._fcp-tab{padding:8px 16px;border-radius:9px;font-size:12px;font-weight:700;background:none;border:none;cursor:pointer;font-family:Cairo,sans-serif;color:'+textSub+';transition:.15s}'+
+      '._fcp-tab.on{background:'+accent+';color:#fff}'+
+      '._fcp-row{display:flex;align-items:flex-start;gap:12px;padding:12px;background:'+surface2+';border:1px solid '+borderC+';border-radius:12px;margin-bottom:8px}'+
+      '._badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}'+
+      '@media(max-width:600px){._fcp-wrap{padding:16px 12px 60px}}'+
+      '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(st);
+
+    // NAV
+    var nav=document.createElement('nav'); nav.className='_fcp-nav';
+    nav.innerHTML='<div class="_fcp-nav-inner">'+
+      '<div style="display:flex;align-items:center;gap:10px">'+
+        (logo?'<img src="'+logo+'" style="width:36px;height:36px;border-radius:10px;object-fit:cover">':
+              '<div style="width:36px;height:36px;border-radius:10px;background:'+accent+';display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff">'+studioName.charAt(0)+'</div>')+
+        '<div><div style="font-size:14px;font-weight:900">'+studioName+'</div><div style="font-size:10px;color:'+textMuted+'">بوابة العميل</div></div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:10px">'+
+        '<div style="width:36px;height:36px;border-radius:50%;background:'+accent+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff">'+cName.charAt(0)+'</div>'+
+        '<div style="font-size:13px;font-weight:700">'+cName+'</div>'+
+      '</div>'+
+    '</div>';
+    document.body.appendChild(nav);
+
+    var wrap=document.createElement('div'); wrap.className='_fcp-wrap';
+
+    // Welcome
+    var totalInv=invoices.reduce(function(s,i){return s+(+i.total||0);},0);
+    var paidInv=invoices.filter(function(i){return i.paid||i.status==='مدفوعة';}).reduce(function(s,i){return s+(+i.total||0);},0);
+    var activeProj=projects.filter(function(p){return p.status!=='done';}).length;
+    wrap.innerHTML='<div class="_fcp-card" style="border-right:4px solid '+accent+';margin-bottom:20px">'+
+      '<div style="font-size:22px;font-weight:900;margin-bottom:6px">مرحباً، '+cName+' <span style="font-size:20px">👋</span></div>'+
+      '<div style="font-size:13px;color:'+textSub+';margin-bottom:14px">بوابتك الشخصية — كل تفاصيل تعاملاتك مع '+studioName+'</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">'+
+        [['مشاريع نشطة',activeProj,accent],['طلبات',orders.length,'#f7c948'],['فواتير',invoices.length,'#64b5f6'],['إجمالي مدفوع',paidInv.toLocaleString()+' ج.م','#4fd1a5']].map(function(x){
+          return '<div style="background:'+x[2]+'18;border:1px solid '+x[2]+'33;border-radius:12px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:900;color:'+x[2]+'">'+x[1]+'</div><div style="font-size:10px;color:'+textMuted+';margin-top:2px">'+x[0]+'</div></div>';
+        }).join('')+
+      '</div>'+
+    '</div>';
+
+    // Tabs
+    var tabsDiv=document.createElement('div'); tabsDiv.className='_fcp-tabs';
+    var tabs=[['projects','📁 المشاريع'],['orders','📦 الطلبات'],['invoices','📄 الفواتير'],['contracts','📋 العقود']];
+    tabs.forEach(function(t,i){
+      var btn=document.createElement('button'); btn.className='_fcp-tab'+(i===0?' on':'');
+      btn.textContent=t[1]; btn.dataset.tab=t[0];
+      btn.onclick=function(){
+        tabsDiv.querySelectorAll('._fcp-tab').forEach(function(b){b.classList.remove('on');});
+        this.classList.add('on');
+        tabContent.innerHTML=renderClientTab(t[0]);
+      };
+      tabsDiv.appendChild(btn);
+    });
+    wrap.appendChild(tabsDiv);
+
+    var tabContent=document.createElement('div');
+    tabContent.innerHTML=renderClientTab('projects');
+    wrap.appendChild(tabContent);
+    document.body.appendChild(wrap);
+
+    function renderClientTab(tab){
+      if(tab==='projects') return renderClientProjects();
+      if(tab==='orders') return renderClientOrders();
+      if(tab==='invoices') return renderClientInvoices();
+      if(tab==='contracts') return renderClientContracts();
+      return '';
+    }
+
+    function _stBadge(label,color,bg){
+      return '<span class="_badge" style="background:'+bg+';color:'+color+'">'+label+'</span>';
+    }
+
+    function renderClientProjects(){
+      if(!projects.length) return '<div class="_fcp-card" style="text-align:center;padding:40px;color:'+textMuted+'"><div style="font-size:40px;margin-bottom:10px">📁</div><div>لا توجد مشاريع بعد</div></div>';
+      return projects.map(function(p){
+        var ptasks=allProjTasks.filter(function(t){return String(t.project_id)===String(p.id);});
+        var done=ptasks.filter(function(t){return t.status==='done';}).length;
+        var prog=ptasks.length?Math.round(done/ptasks.length*100):0;
+        var stColors={active:'#4fd1a5',hold:'#f7c948',review:'#64b5f6',done:'#7c6ff7'};
+        var stC=stColors[p.status||'active']||'#888';
+        return '<div class="_fcp-card" style="cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">'+
+          '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
+            '<div style="display:flex;align-items:center;gap:10px">'+
+              '<div style="width:10px;height:10px;border-radius:50%;background:'+(p.color||accent)+';flex-shrink:0"></div>'+
+              '<div><div style="font-size:14px;font-weight:800">'+p.name+'</div>'+
+              '<div style="font-size:11px;color:'+textSub+'">'+ptasks.length+' مهمة · '+prog+'% مكتمل</div></div>'+
+            '</div>'+
+            _stBadge(stProjMap[p.status||'active']||p.status,stC,stC+'22')+
+          '</div>'+
+          '<div style="margin-top:12px;height:6px;background:'+borderC+';border-radius:3px;overflow:hidden">'+
+            '<div style="height:100%;width:'+prog+'%;background:'+(p.color||accent)+';border-radius:3px"></div>'+
+          '</div>'+
+          (p.deadline?'<div style="font-size:11px;color:'+textMuted+';margin-top:8px">⏰ موعد التسليم: '+p.deadline+'</div>':'')+
+        '</div>'+
+        // Tasks dropdown
+        '<div style="display:none;margin-top:-12px;padding:12px 16px 16px;background:'+surface2+';border:1px solid '+borderC+';border-top:none;border-radius:0 0 18px 18px">'+
+          '<div style="font-size:11px;font-weight:800;color:'+textMuted+';margin-bottom:10px">مهام المشروع</div>'+
+          (ptasks.length?ptasks.map(function(t){
+            var stC2=({todo:'#64b5f6',progress:'#f7c948',review:'#a78bfa',revision:'#f97316',done:'#4fd1a5',hold:'#888'})[t.status]||'#888';
+            return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:'+surface+';border-radius:10px;margin-bottom:6px">'+
+              '<div style="width:8px;height:8px;border-radius:50%;background:'+stC2+';flex-shrink:0"></div>'+
+              '<div style="flex:1;font-size:12px;font-weight:600">'+(t.title||'')+'</div>'+
+              _stBadge(taskStMap[t.status]||t.status,stC2,stC2+'22')+
+            '</div>';
+          }).join(''):'<div style="font-size:12px;color:'+textMuted+';text-align:center;padding:10px">لا توجد مهام</div>')+
+          // Files
+          (p.files&&p.files.length?'<div style="font-size:11px;font-weight:800;color:'+textMuted+';margin:10px 0 8px">الملفات والروابط</div>'+
+            p.files.filter(function(f){return f.url;}).map(function(f){
+              return '<a href="'+f.url+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:'+surface+';border-radius:10px;margin-bottom:6px;text-decoration:none;color:'+textMain+'">'+
+                '<i class="fa-solid fa-link" style="color:'+accent+'"></i>'+
+                '<div style="font-size:12px;font-weight:600">'+f.name+'</div>'+
+                '<i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;color:'+textMuted+';margin-right:auto"></i>'+
+              '</a>';
+            }).join(''):'');
+        '</div>';
+      }).join('');
+    }
+
+    function renderClientOrders(){
+      if(!orders.length) return '<div class="_fcp-card" style="text-align:center;padding:40px;color:'+textMuted+'"><div style="font-size:40px;margin-bottom:10px">📦</div><div>لا توجد طلبات بعد</div></div>';
+      return orders.map(function(o){
+        var stC=({new:'#64b5f6',pending:'#f7c948',done:'#4fd1a5',cancelled:'#f76f7c'})[o.status]||'#888';
+        var stLabel=({new:'جديد',pending:'قيد التنفيذ',done:'مكتمل',cancelled:'ملغي'})[o.status]||o.status||'جديد';
+        return '<div class="_fcp-card">'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'+
+            '<div><div style="font-size:14px;font-weight:800;margin-bottom:4px">'+(o.service_name||o.pkg_name||'طلب خدمة')+'</div>'+
+            '<div style="font-size:11px;color:'+textSub+'">'+new Date(o.created_at||Date.now()).toLocaleDateString('ar-EG')+'</div></div>'+
+            _stBadge(stLabel,stC,stC+'22')+
+          '</div>'+
+          (o.total?'<div style="font-size:16px;font-weight:900;color:'+accent+';margin-top:10px">'+Number(o.total).toLocaleString()+' ج.م</div>':'')+
+          (o.notes?'<div style="font-size:12px;color:'+textSub+';margin-top:8px;padding:8px;background:'+surface2+';border-radius:8px">'+o.notes+'</div>':'')+
+        '</div>';
+      }).join('');
+    }
+
+    function renderClientInvoices(){
+      if(!invoices.length) return '<div class="_fcp-card" style="text-align:center;padding:40px;color:'+textMuted+'"><div style="font-size:40px;margin-bottom:10px">📄</div><div>لا توجد فواتير بعد</div></div>';
+      var totalAll=invoices.reduce(function(s,i){return s+(+i.total||0);},0);
+      var totalPaid=invoices.filter(function(i){return i.paid||i.status==='مدفوعة';}).reduce(function(s,i){return s+(+i.total||0);},0);
+      return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'+
+        '<div class="_fcp-card" style="text-align:center;padding:14px"><div style="font-size:11px;color:'+textMuted+';margin-bottom:4px">إجمالي الفواتير</div><div style="font-size:20px;font-weight:900;color:'+accent+'">'+totalAll.toLocaleString()+' ج.م</div></div>'+
+        '<div class="_fcp-card" style="text-align:center;padding:14px"><div style="font-size:11px;color:'+textMuted+';margin-bottom:4px">إجمالي المدفوع</div><div style="font-size:20px;font-weight:900;color:#4fd1a5">'+totalPaid.toLocaleString()+' ج.م</div></div>'+
+      '</div>'+
+      invoices.map(function(inv){
+        var paid=inv.paid||inv.status==='مدفوعة';
+        return '<div class="_fcp-card">'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'+
+            '<div><div style="font-size:14px;font-weight:800;margin-bottom:2px">'+(inv.number||'فاتورة')+(inv.desc?' — '+inv.desc:'')+'</div>'+
+            '<div style="font-size:11px;color:'+textSub+'">'+(inv.date||'')+'</div></div>'+
+            _stBadge(paid?'✅ مدفوعة':'⏳ غير مدفوعة',paid?'#4fd1a5':'#f7c948',paid?'rgba(79,209,165,.15)':'rgba(247,201,72,.15)')+
+          '</div>'+
+          '<div style="font-size:18px;font-weight:900;color:'+(paid?'#4fd1a5':accent)+';margin-top:10px">'+Number(inv.total||0).toLocaleString()+' '+(inv.currency||'ج.م')+'</div>'+
+        '</div>';
+      }).join('');
+    }
+
+    function renderClientContracts(){
+      if(!contracts.length) return '<div class="_fcp-card" style="text-align:center;padding:40px;color:'+textMuted+'"><div style="font-size:40px;margin-bottom:10px">📋</div><div>لا توجد عقود بعد</div></div>';
+      return contracts.map(function(c){
+        return '<div class="_fcp-card">'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'+
+            '<div><div style="font-size:14px;font-weight:800;margin-bottom:2px">'+(c.title||'عقد')+'</div>'+
+            '<div style="font-size:11px;color:'+textSub+'">'+(c.date||'')+'</div></div>'+
+            _stBadge(c.status||'نشط','#4fd1a5','rgba(79,209,165,.15)')+
+          '</div>'+
+          (c.value?'<div style="font-size:16px;font-weight:900;color:'+accent+';margin-top:10px">'+Number(c.value).toLocaleString()+' ج.م</div>':'')+
+        '</div>';
+      }).join('');
+    }
+  });
+}
+
+function _showCPError(msg){
+  document.body.style.cssText='margin:0;padding:0;background:#f4f5fb;font-family:Cairo,Tajawal,sans-serif;direction:rtl';
+  document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><div style="font-size:60px;margin-bottom:16px">⚠️</div><div style="font-size:18px;font-weight:700;color:#333;margin-bottom:8px">لا يمكن تحميل لوحة التحكم</div><div style="font-size:14px;color:#777">'+msg+'</div></div></div>';
+}
+
 function _buildProjectPortalPage(userId, projId){
   if(typeof supa==='undefined'){ document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cairo,sans-serif;direction:rtl;color:#666">تعذّر التحميل</div>'; return; }
   supa.from('studio_data').select('data').eq('user_id',userId).maybeSingle().then(function(res){
