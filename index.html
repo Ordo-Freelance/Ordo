@@ -3388,11 +3388,24 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
           <label class="form-label">سياسات الفاتورة الافتراضية</label>
           <div id="policies-list" style="margin-bottom:8px"></div>
           <div style="display:flex;gap:8px;margin-bottom:4px">
-            <select class="form-select" id="policy-icon-sel" style="width:56px;flex-shrink:0">
-              <option value="<i class="fa-solid fa-credit-card"></i>"><i class="fa-solid fa-credit-card"></i></option><option value="<i class="fa-solid fa-pen"></i>"><i class="fa-solid fa-pen"></i></option><option value="<i class="fa-solid fa-box"></i>"><i class="fa-solid fa-box"></i></option>
-              <option value="<i class="fa-solid fa-alarm-clock"></i>"><i class="fa-solid fa-alarm-clock"></i></option><option value="<i class="fa-solid fa-lock"></i>"><i class="fa-solid fa-lock"></i></option><option value="<i class="fa-solid fa-clipboard-list"></i>"><i class="fa-solid fa-clipboard-list"></i></option>
-              <option value="<i class="fa-solid fa-triangle-exclamation"></i>"><i class="fa-solid fa-triangle-exclamation"></i></option><option value="<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i></option>
-            </select>
+            <div style="position:relative;flex-shrink:0" id="policy-icon-sel-wrap">
+              <input type="hidden" id="policy-icon-sel" value="<i class=&quot;fa-solid fa-clipboard-list&quot;></i>">
+              <button type="button" id="policy-icon-sel-btn" onclick="togglePolicyIconDD('policy-icon-sel-dd','policy-icon-sel','policy-icon-sel-btn')" style="width:56px;height:38px;border:1px solid var(--border);border-radius:var(--r1);background:var(--surface2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-clipboard-list"></i></button>
+              <div id="policy-icon-sel-dd" style="display:none;position:absolute;top:42px;right:0;z-index:99;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;display:none;flex-wrap:wrap;gap:4px;width:180px;box-shadow:0 4px 20px rgba(0,0,0,.18)">
+                <button type="button" onclick="pickPolicyIcon('policy-icon-sel','policy-icon-sel-btn','policy-icon-sel-dd','<i class=&quot;fa-solid fa-credit-card&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-credit-card"></i></button>
+                <button type="button" onclick="pickPolicyIcon('policy-icon-sel','policy-icon-sel-btn','policy-icon-sel-dd','<i class=&quot;fa-solid fa-pen&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-pen"></i></button>
+                <button type="button" onclick="pickPolicyIcon('policy-icon-sel','policy-icon-sel-btn','policy-icon-sel-dd','<i class=&quot;fa-solid fa-box&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-box"></i></button>
+                <button type="button" onclick="pickPolicyIcon('policy-icon-sel','policy-icon-sel-btn','policy-icon-sel-dd','<i class=&quot;fa-solid fa-alarm-clock&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-alarm-clock"></i></button>
+                <button type="button" onclick="pickPolicyIcon('policy-icon-sel','policy-icon-sel-btn','policy-icon-sel-dd','<i class=&quot;fa-solid fa-lock&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-lock"></i></button>
+                <button type="button" onclick="pickPolicyIcon('policy-icon-sel','policy-icon-sel-btn','policy-icon-sel-dd','<i class=&quot;fa-solid fa-clipboard-list&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-clipboard-list"></i></button>
+                <button type="button" onclick="pickPolicyIcon('policy-icon-sel','policy-icon-sel-btn','policy-icon-sel-dd','<i class=&quot;fa-solid fa-triangle-exclamation&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-triangle-exclamation"></i></button>
+                <button type="button" onclick="pickPolicyIcon('policy-icon-sel','policy-icon-sel-btn','policy-icon-sel-dd','<i class=&quot;fa-solid fa-square-check&quot; style=&quot;color:var(--accent3)&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i></button>
+                <button type="button" onclick="pickPolicyIcon('policy-icon-sel','policy-icon-sel-btn','policy-icon-sel-dd','<i class=&quot;fa-solid fa-file-invoice&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-file-invoice"></i></button>
+                <button type="button" onclick="pickPolicyIcon('policy-icon-sel','policy-icon-sel-btn','policy-icon-sel-dd','<i class=&quot;fa-solid fa-handshake&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-handshake"></i></button>
+                <button type="button" onclick="pickPolicyIcon('policy-icon-sel','policy-icon-sel-btn','policy-icon-sel-dd','<i class=&quot;fa-solid fa-circle-check&quot; style=&quot;color:var(--accent3)&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-circle-check" style="color:var(--accent3)"></i></button>
+                <button type="button" onclick="pickPolicyIcon('policy-icon-sel','policy-icon-sel-btn','policy-icon-sel-dd','<i class=&quot;fa-solid fa-calendar-check&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-calendar-check"></i></button>
+              </div>
+            </div>
             <input class="form-input" id="policy-text-input" placeholder="مثال: الدفع خلال 7 أيام">
             <button class="btn btn-ghost btn-sm" onclick="addPolicy()" style="flex-shrink:0">+ إضافة</button>
           </div>
@@ -4187,40 +4200,8 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
         </div>
       </div>
     </div>
-    <!-- <i class="fa-solid fa-repeat"></i> مهام متكررة -->
-    <div style="background:rgba(79,209,165,.06);border:1px solid rgba(79,209,165,.22);border-radius:10px;padding:10px 14px;margin-bottom:10px">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input type="checkbox" id="t-recurring" style="width:15px;height:15px;accent-color:var(--accent3)" onchange="toggleRecurring()">
-        <span style="font-size:12px;font-weight:700;color:var(--accent3)"><i class="fa-solid fa-repeat"></i> مهمة متكررة (Retainer / Recurring)</span>
-      </label>
-      <div id="t-recurring-opts" style="display:none;margin-top:10px;display:none">
-        <div class="form-row" style="margin-bottom:4px">
-          <div class="form-group">
-            <label class="form-label">التكرار كل</label>
-            <select class="form-select" id="t-recurring-interval">
-              <option value="weekly">أسبوعياً</option>
-              <option value="biweekly">كل أسبوعين</option>
-              <option value="monthly" selected>شهرياً</option>
-              <option value="quarterly">كل 3 أشهر</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">عدد مرات التكرار</label>
-            <input class="form-input" type="number" id="t-recurring-count" value="6" min="2" max="60" placeholder="6">
-          </div>
-        </div>
-        <div style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-lightbulb"></i> سيتم إنشاء نسخ تلقائية من المهمة — كل نسخة بتاريخ تسليم مختلف</div>
-      </div>
-    </div>
-    <!-- <i class="fa-solid fa-flag-checkered"></i> Milestones -->
-    <div style="background:rgba(100,181,246,.06);border:1px solid rgba(100,181,246,.22);border-radius:10px;padding:10px 14px;margin-bottom:10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:12px;font-weight:700;color:#64b5f6"><i class="fa-solid fa-flag-checkered"></i> مراحل التسليم (Milestones)</span>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="addMilestone()">+ مرحلة</button>
-      </div>
-      <div id="t-milestones-list" style="min-height:0"></div>
-      <div style="font-size:10px;color:var(--text3);margin-top:4px">اختياري — قسّم المشروع الكبير لمراحل بمواعيد منفصلة</div>
-    </div>
+
+
     <div class="form-row">
       <div class="form-group"><label class="form-label">الأولوية</label><select class="form-select" id="t-priority"><option value="high"><i class="fa-solid fa-circle"></i> عالية — عاجل</option><option value="med" selected=""><i class="fa-solid fa-circle"></i> متوسطة</option><option value="low"><i class="fa-solid fa-circle"></i> منخفضة</option></select></div>
       <div class="form-group"><label class="form-label">الحالة</label><select class="form-select" id="t-status"><option value="new">جديد</option><option value="progress">قيد التنفيذ</option><option value="review">مراجعة</option><option value="paused">⏸ موقوف مؤقتاً</option><option value="done">مكتمل</option></select></div>
@@ -4732,11 +4713,24 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <label class="form-label">سياسات الفاتورة <span style="font-size:11px;color:var(--text3)">(تُحمَّل تلقائياً من الإعدادات — يمكن تعديلها)</span></label>
       <div id="inv-policies-list" style="margin-bottom:8px"></div>
       <div style="display:flex;gap:8px">
-        <select class="form-select" id="inv-policy-icon" style="width:56px;flex-shrink:0">
-          <option value="<i class="fa-solid fa-credit-card"></i>"><i class="fa-solid fa-credit-card"></i></option><option value="<i class="fa-solid fa-pen"></i>"><i class="fa-solid fa-pen"></i></option><option value="<i class="fa-solid fa-box"></i>"><i class="fa-solid fa-box"></i></option>
-          <option value="<i class="fa-solid fa-alarm-clock"></i>"><i class="fa-solid fa-alarm-clock"></i></option><option value="<i class="fa-solid fa-lock"></i>"><i class="fa-solid fa-lock"></i></option><option value="<i class="fa-solid fa-clipboard-list"></i>"><i class="fa-solid fa-clipboard-list"></i></option>
-          <option value="<i class="fa-solid fa-triangle-exclamation"></i>"><i class="fa-solid fa-triangle-exclamation"></i></option><option value="<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i></option>
-        </select>
+        <div style="position:relative;flex-shrink:0" id="inv-policy-icon-wrap">
+          <input type="hidden" id="inv-policy-icon" value="<i class=&quot;fa-solid fa-clipboard-list&quot;></i>">
+          <button type="button" id="inv-policy-icon-btn" onclick="togglePolicyIconDD('inv-policy-icon-dd','inv-policy-icon','inv-policy-icon-btn')" style="width:56px;height:38px;border:1px solid var(--border);border-radius:var(--r1);background:var(--surface2);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-clipboard-list"></i></button>
+          <div id="inv-policy-icon-dd" style="display:none;position:absolute;top:42px;right:0;z-index:99;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;flex-wrap:wrap;gap:4px;width:180px;box-shadow:0 4px 20px rgba(0,0,0,.18)">
+            <button type="button" onclick="pickPolicyIcon('inv-policy-icon','inv-policy-icon-btn','inv-policy-icon-dd','<i class=&quot;fa-solid fa-credit-card&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-credit-card"></i></button>
+            <button type="button" onclick="pickPolicyIcon('inv-policy-icon','inv-policy-icon-btn','inv-policy-icon-dd','<i class=&quot;fa-solid fa-pen&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-pen"></i></button>
+            <button type="button" onclick="pickPolicyIcon('inv-policy-icon','inv-policy-icon-btn','inv-policy-icon-dd','<i class=&quot;fa-solid fa-box&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-box"></i></button>
+            <button type="button" onclick="pickPolicyIcon('inv-policy-icon','inv-policy-icon-btn','inv-policy-icon-dd','<i class=&quot;fa-solid fa-alarm-clock&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-alarm-clock"></i></button>
+            <button type="button" onclick="pickPolicyIcon('inv-policy-icon','inv-policy-icon-btn','inv-policy-icon-dd','<i class=&quot;fa-solid fa-lock&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-lock"></i></button>
+            <button type="button" onclick="pickPolicyIcon('inv-policy-icon','inv-policy-icon-btn','inv-policy-icon-dd','<i class=&quot;fa-solid fa-clipboard-list&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-clipboard-list"></i></button>
+            <button type="button" onclick="pickPolicyIcon('inv-policy-icon','inv-policy-icon-btn','inv-policy-icon-dd','<i class=&quot;fa-solid fa-triangle-exclamation&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-triangle-exclamation"></i></button>
+            <button type="button" onclick="pickPolicyIcon('inv-policy-icon','inv-policy-icon-btn','inv-policy-icon-dd','<i class=&quot;fa-solid fa-square-check&quot; style=&quot;color:var(--accent3)&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i></button>
+            <button type="button" onclick="pickPolicyIcon('inv-policy-icon','inv-policy-icon-btn','inv-policy-icon-dd','<i class=&quot;fa-solid fa-file-invoice&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-file-invoice"></i></button>
+            <button type="button" onclick="pickPolicyIcon('inv-policy-icon','inv-policy-icon-btn','inv-policy-icon-dd','<i class=&quot;fa-solid fa-handshake&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-handshake"></i></button>
+            <button type="button" onclick="pickPolicyIcon('inv-policy-icon','inv-policy-icon-btn','inv-policy-icon-dd','<i class=&quot;fa-solid fa-circle-check&quot; style=&quot;color:var(--accent3)&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-circle-check" style="color:var(--accent3)"></i></button>
+            <button type="button" onclick="pickPolicyIcon('inv-policy-icon','inv-policy-icon-btn','inv-policy-icon-dd','<i class=&quot;fa-solid fa-calendar-check&quot;></i>')" style="width:36px;height:36px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:16px"><i class="fa-solid fa-calendar-check"></i></button>
+          </div>
+        </div>
         <input class="form-input" id="inv-policy-text" placeholder="إضافة سياسة للفاتورة">
         <button class="btn btn-ghost btn-sm" onclick="addInvPolicy()" style="flex-shrink:0">+ إضافة</button>
       </div>
@@ -5046,6 +5040,10 @@ function showPage(id,el){
   // Refresh team invites immediately when opening team page
   if(id === 'team' && typeof window._teamPollNow === 'function'){
     window._teamPollNow();
+  }
+  // Also check team_invites table on team page open
+  if(id === 'team' && typeof window._checkPendingTeamInvitesNow === 'function'){
+    window._checkPendingTeamInvitesNow();
   }
   // Always reset ALL stab-panels on every navigation
   const settingsPage = document.getElementById('page-settings');
@@ -11012,6 +11010,30 @@ function renderPoliciesList(containerId, arr, removeFunc){
     </div>`).join('');
 }
 
+// ── Policy Icon Picker ──
+function togglePolicyIconDD(ddId, inputId, btnId){
+  const dd = document.getElementById(ddId);
+  if(!dd) return;
+  const isOpen = dd.style.display === 'flex';
+  // close all open DDs first
+  document.querySelectorAll('[id$="-icon-dd"]').forEach(el=>{ el.style.display='none'; });
+  if(!isOpen){ dd.style.display='flex'; }
+}
+function pickPolicyIcon(inputId, btnId, ddId, val){
+  const input = document.getElementById(inputId);
+  const btn   = document.getElementById(btnId);
+  const dd    = document.getElementById(ddId);
+  if(input) input.value = val;
+  if(btn)   btn.innerHTML = val;
+  if(dd)    dd.style.display = 'none';
+}
+// close on outside click
+document.addEventListener('click', function(e){
+  if(!e.target.closest('[id$="-icon-dd"]') && !e.target.closest('[id$="-icon-btn"]')){
+    document.querySelectorAll('[id$="-icon-dd"]').forEach(el=>{ el.style.display='none'; });
+  }
+});
+
 function addPolicy(){
   const icon = document.getElementById('policy-icon-sel')?.value || '<i class="fa-solid fa-clipboard-list"></i>';
   const text = (document.getElementById('policy-text-input')?.value||'').trim();
@@ -11653,6 +11675,16 @@ async function saveTeam(){
 
   if(typeof supa === 'undefined') return;
   const newMembers = d.members.filter(m=>m.email && !oldMemberEmails.includes((m.email||'').toLowerCase().trim()));
+  if(!newMembers.length) return;
+
+  // ── سؤال المستخدم قبل إرسال الدعوات ──
+  const emailsList = newMembers.map(m=>m.name+' ('+m.email+')').join('، ');
+  const shouldSend = confirm('هل تريد إرسال دعوة فريق للأعضاء التاليين؟\n\n'+emailsList);
+  if(!shouldSend){
+    showMiniNotif('تم حفظ الفريق بدون إرسال دعوات');
+    return;
+  }
+
   const ownerName  = (S.settings&&S.settings.name)||'مشرف';
   const ownerEmail = (S.settings&&S.settings.email)||'';
 
@@ -15730,7 +15762,7 @@ window.openMyMemberTeamProfile = function(ownerId){
   };
 
   // On login: check team_invites table for invites sent to this user's email
-  (async function _checkPendingTeamInvites(){
+  async function _checkPendingTeamInvitesImpl(){
     try{
       if(!_supaUserId) return;
       var myEmail = '';
@@ -15780,7 +15812,13 @@ window.openMyMemberTeamProfile = function(ownerId){
         try{ await supa.from('team_invites').update({status:'delivered'}).eq('id',pinv.id); }catch(e){}
       }
     }catch(e){ console.warn('_checkPendingTeamInvites:', e); }
-  })();
+  }
+  // Expose globally so it can be called on demand
+  window._checkPendingTeamInvitesNow = _checkPendingTeamInvitesImpl;
+  // Run immediately on login
+  _checkPendingTeamInvitesImpl();
+  // Also poll every 30 seconds for new invites
+  setInterval(_checkPendingTeamInvitesImpl, 30000);
 
   (function _startPolling(){
     if(!_supaUserId){ setTimeout(_startPolling, 5000); return; }
