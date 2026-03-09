@@ -5807,6 +5807,16 @@ function removeExpenseCat(i) {
 function loadSettings(){
   applyPlatformConfig(); // re-apply on each settings load
   const s=S.settings||{};
+  // Sync studio logo to sidebar/platform config
+  if(s.logo){
+    try{
+      var _pc=JSON.parse(localStorage.getItem('platform_config')||'{}');
+      if(!_pc.logo || _pc.logo !== s.logo){
+        _pc.logo=s.logo; localStorage.setItem('platform_config',JSON.stringify(_pc));
+        applyPlatformConfig();
+      }
+    }catch(e){}
+  }
   renderExpenseCats();
   ['name','phone','email','address','terms'].forEach(k=>{const e=document.getElementById('set-'+k);if(e)e.value=s[k]||'';});
   const curSel=document.getElementById('set-currency'); if(curSel) curSel.value=s.currency||'ج.م';
@@ -5888,6 +5898,7 @@ function saveSettings(){
     paymentAccounts:S.settings?.paymentAccounts||[],
   });
   lsSave(); cloudSave(S); toast('✅ تم حفظ الإعدادات');
+  setTimeout(function(){ location.reload(); }, 1200);
 }
 
 async function forceCloudReload(){
@@ -6112,7 +6123,7 @@ function doSendWhatsApp(){
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم فتح واتساب');
 }
 function v(id){const e=document.getElementById(id);return e?e.value:'';}
-function uploadLogo(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{S.settings.logo=e.target.result;lsSave();loadSettings();};r.readAsDataURL(f);}
+function uploadLogo(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{S.settings.logo=e.target.result;lsSave();cloudSave(S);loadSettings();toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ اللوجو');};r.readAsDataURL(f);}
 function removeLogo(){S.settings.logo='';lsSave();loadSettings();}
 function clearAll(){if(confirm('سيتم مسح جميع البيانات! هل أنت متأكد؟')){const s=S.settings;S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],settings:s};lsSave();renderAll();}}
 
@@ -11705,14 +11716,14 @@ function addSocial(){
   if(existing>-1) S.settings.socials[existing].url = url;
   else S.settings.socials.push({ platform, url });
   document.getElementById('social-url-input').value = '';
-  lsSave();
+  lsSave(); cloudSave(S);
   renderSocialsList();
 }
 
 function removeSocial(i){
   if(!S.settings.socials) return;
   S.settings.socials.splice(i,1);
-  lsSave();
+  lsSave(); cloudSave(S);
   renderSocialsList();
 }
 
@@ -17216,11 +17227,13 @@ var _svcLogoData='';
 function handleSvcLogo(input){
   var file=input.files[0]; if(!file) return;
   if(file.size>1.5*1024*1024){toast('<i class="fa-solid fa-triangle-exclamation"></i> الصورة أكبر من 1.5 ميجا');input.value='';return;}
+  toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع اللوجو...');
   var r=new FileReader(); r.onload=function(e){
     _svcLogoData=e.target.result;
     var pv=document.getElementById('svc-logo-preview');
     if(pv) pv.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
     var cl=document.getElementById('svc-logo-clear-btn'); if(cl) cl.style.display='';
+    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع اللوجو - اضغط "حفظ اللوجو" لتأكيد الحفظ');
   }; r.readAsDataURL(file);
 }
 function clearSvcLogo(){
@@ -17388,6 +17401,7 @@ function savePkgStandalone(){
   if(eid){ var i=S.standalone_packages.findIndex(function(p){return String(p.id)===String(eid);}); if(i>-1){d.id=+eid;d.createdAt=S.standalone_packages[i].createdAt||d.updatedAt;S.standalone_packages[i]=d;} }
   else { d.id=Date.now(); d.createdAt=d.updatedAt; S.standalone_packages.push(d); }
   lsSave(); cloudSave(S); closeM('modal-pkg-standalone'); renderStandalonePackages(); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الباقة');
+  setTimeout(function(){ location.reload(); }, 1200);
 }
 function delPkgStandalone(id){
   if(!confirm('حذف هذه الباقة؟')) return;
@@ -17724,12 +17738,14 @@ function openSvcModal(id){
 function handleSvcImg(input){
   var file=input.files[0]; if(!file) return;
   if(file.size>2*1024*1024){ toast('<i class="fa-solid fa-triangle-exclamation"></i> الصورة أكبر من 2 ميجا'); input.value=''; return; }
+  toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع الصورة...');
   var r=new FileReader();
   r.onload=function(e){
     _svcImgData=e.target.result;
     var pv=document.getElementById('svc-img-preview'); pv.src=e.target.result; pv.style.display='';
     document.getElementById('svc-img-name').textContent=input.files[0].name;
     var cl=document.getElementById('svc-img-clear-btn'); if(cl) cl.style.display='';
+    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع الصورة');
   };
   r.readAsDataURL(file);
 }
@@ -17932,6 +17948,7 @@ function saveSvc(){
     d.id=Date.now(); S.services.push(d);
   }
   lsSave(); cloudSave(S); closeM('modal-svc'); renderServices(); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الخدمة');
+  setTimeout(function(){ location.reload(); }, 1200);
 }
 function delSvc(id){
   confirmDel('حذف هذه الخدمة؟', function(){
@@ -17981,12 +17998,12 @@ function renderServices(){
     if(tabBadge){ tabBadge.textContent=pending.length; tabBadge.style.display=pending.length?'':'none'; }
     var ordList=document.getElementById('svc-orders-list');
     if(ordList && pending.length){
-      ordList.innerHTML=pending.slice(0,3).map(function(o){
-        return '<div class="order-row pending">'+
-          '<div style="flex:1"><div style="font-size:13px;font-weight:800">'+escapeHtml(o.client_name)+'</div>'+
-          '<div style="font-size:11px;color:var(--text3)">'+escapeHtml(o.service_name)+'</div></div>'+
-          '<button class="btn btn-primary btn-sm" onclick="openOrderAccept(\''+o.id+'\')">عرض</button></div>';
-      }).join('');
+      var firstOrd=pending[0];
+      ordList.innerHTML='<div class="order-row pending">'+
+        '<div style="flex:1"><div style="font-size:13px;font-weight:800">'+escapeHtml(firstOrd.client_name)+'</div>'+
+        '<div style="font-size:11px;color:var(--text3)">'+escapeHtml(firstOrd.service_name)+'</div></div>'+
+        '<button class="btn btn-primary btn-sm" onclick="openOrderAccept(\''+firstOrd.id+'\')">عرض</button></div>'+
+        (pending.length>1?'<div style="text-align:center;margin-top:6px"><button class="btn btn-ghost btn-sm" onclick="switchSvcTab(\'orders\')" style="font-size:11px;color:var(--accent)"><i class="fa-solid fa-list"></i> المزيد (+'+(pending.length-1)+' طلب)</button></div>':'');
     }
 
     // Services grid — filter by current store
@@ -18028,7 +18045,6 @@ function renderServices(){
           '</div>'+
           '<div style="display:flex;gap:6px;border-top:1px solid var(--border);padding-top:12px" onclick="event.stopPropagation()">'+
             '<button data-sid="'+svc.id+'" onclick="openSvcModal(+this.dataset.sid)" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center"><i class="fa-solid fa-pen"></i> تعديل</button>'+
-            (svc.payment_link?'<a href="'+escapeHtml(svc.payment_link)+'" target="_blank" class="btn btn-success btn-sm" style="flex:1;justify-content:center;text-decoration:none" onclick="event.stopPropagation()"><i class="fa-solid fa-credit-card"></i> ادفع الآن</a>':'')+
             '<button data-sid="'+svc.id+'" data-active="'+(isActive?'1':'0')+'" onclick="toggleSvcActive(+this.dataset.sid,event)" class="btn btn-ghost btn-sm" style="color:'+(isActive?'var(--accent3)':'var(--text3)')+'" title="'+(isActive?'موقف الخدمة':'تفعيل الخدمة')+'">'+(isActive?'● نشطة':'○ موقوفة')+'</button>'+
             '<button data-sid="'+svc.id+'" onclick="delSvc(+this.dataset.sid)" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>'+
           '</div>'+
