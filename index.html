@@ -5353,7 +5353,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 
     <!-- ── رصيد افتتاحي ── -->
     <div style="background:rgba(79,209,165,.06);border:1px solid rgba(79,209,165,.2);border-radius:12px;padding:12px 14px;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:800;color:var(--accent3);margin-bottom:8px"><i class="fa-solid fa-wallet"></i> رصيد افتتاحي</div>
+      <div style="font-size:12px;font-weight:800;color:var(--accent3);margin-bottom:8px"><i class="fa-solid fa-wallet"></i> رصيد مستحق / مدفوع مسبقاً</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:10px">لو العميل ده كان عنده مستحقات أو ديون ليك قبل ما تبدأ تستخدم النظام — اضيفها هنا علشان الحسابات تبقى صح من البداية</div>
       <div class="form-row">
         <div class="form-group">
@@ -6101,6 +6101,121 @@ function toggleModalExpand(overlayId) {
 
 function _makeExpandBtn(overlayId){
   return '<button class="expand-btn" title="توسيع" onclick="toggleModalExpand(\''+overlayId+'\')"><i class="fa-solid fa-expand"></i></button>';
+}
+
+
+// ── تحصيل / تسوية رصيد عميل ──
+function _collectFromClient(clientId, amount){
+  var c = (S.clients||[]).find(function(x){ return String(x.id)===String(clientId); });
+  if(!c) return;
+  var cur = _getCurrency();
+  var over = document.createElement('div');
+  over.className = 'modal-overlay';
+  over.style.display = 'flex';
+  over.innerHTML = `<div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--accent3)"></i> تحصيل من ${escapeHtml(c.name)}</div>
+      <button class="close-btn" onclick="this.closest('.modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="background:rgba(255,107,107,.1);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px">
+        المبلغ المستحق الكلي: <strong style="color:var(--accent4)">${amount.toLocaleString()} ${cur}</strong>
+      </div>
+      <div class="form-group">
+        <label class="form-label">المبلغ المحصّل <span style="color:var(--accent4)">*</span></label>
+        <input class="form-input" type="number" id="_collect_amount" value="${amount}" min="1" placeholder="أدخل المبلغ">
+      </div>
+      <div class="form-group">
+        <label class="form-label">طريقة الدفع</label>
+        <select class="form-select" id="_collect_method">
+          <option value="كاش">كاش</option>
+          <option value="تحويل بنكي">تحويل بنكي</option>
+          <option value="فودافون كاش">فودافون كاش</option>
+          <option value="انستا باي">انستا باي</option>
+          <option value="أخرى">أخرى</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ملاحظة</label>
+        <input class="form-input" id="_collect_note" placeholder="مثال: تسوية رصيد مشروع قديم">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="_confirmCollect(${clientId},${amount})">
+        <i class="fa-solid fa-check"></i> تسجيل التحصيل
+      </button>
+      <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">إلغاء</button>
+    </div>
+  </div>`;
+  document.body.appendChild(over);
+  over.onclick = e => { if(e.target===over) over.remove(); };
+  setTimeout(function(){ var el=document.getElementById('_collect_amount'); if(el){el.select();} }, 100);
+}
+
+function _confirmCollect(clientId, totalOwed){
+  var c = (S.clients||[]).find(function(x){ return String(x.id)===String(clientId); });
+  if(!c) return;
+  var amountEl = document.getElementById('_collect_amount');
+  var methodEl = document.getElementById('_collect_method');
+  var noteEl   = document.getElementById('_collect_note');
+  var amount = +(amountEl?.value||0);
+  if(!amount || amount <= 0){ toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل مبلغاً صحيحاً'); return; }
+  var method = methodEl?.value || 'كاش';
+  var note   = noteEl?.value || ('تحصيل من ' + c.name);
+  var cur    = _getCurrency();
+
+  // سجّل المعاملة في transactions
+  if(!S.transactions) S.transactions = [];
+  var tx = {
+    id: 'tx_' + Date.now(),
+    type: 'income',
+    amount: amount,
+    source: c.name,
+    client: c.name,
+    desc: note || ('تحصيل من ' + c.name),
+    payMethod: method,
+    isoDate: new Date().toISOString().slice(0,10),
+    date: new Date().toISOString().slice(0,10),
+    createdAt: new Date().toISOString()
+  };
+  S.transactions.push(tx);
+
+  // لو المبلغ المحصّل = الرصيد الكلي → صفّي الرصيد الافتتاحي
+  var openBal = c.openingBalance || 0;
+  var openType = c.openingBalanceType || 'receivable';
+  var invUnpaid = (S.invoices||[]).filter(function(i){ return (i.client===c.name||String(i.clientId)===String(c.id)) && !(i.paid||i.status==='مدفوعة'||i.status==='paid'); }).reduce(function(s,i){ return s+(+i.total||0); }, 0);
+
+  if(amount >= totalOwed){
+    // تصفية كاملة: امسح الرصيد الافتتاحي وعلّم الفواتير كمدفوعة
+    c.openingBalance = 0;
+    c.openingBalanceType = 'receivable';
+    // علّم الفواتير الغير مدفوعة كمدفوعة
+    (S.invoices||[]).forEach(function(i){
+      if((i.client===c.name||String(i.clientId)===String(c.id)) && !(i.paid||i.status==='مدفوعة'||i.status==='paid')){
+        i.paid = true; i.status = 'مدفوعة';
+      }
+    });
+    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم التحصيل وتصفية الرصيد بالكامل ✅');
+  } else if(amount >= openBal && openType==='receivable'){
+    // تغطية الرصيد الافتتاحي بس
+    c.openingBalance = 0;
+    toast('<i class="fa-solid fa-coins" style="color:var(--accent3)"></i> تم تسجيل التحصيل — لا يزال هناك فواتير معلقة');
+  } else {
+    // تخفيض جزئي من الرصيد الافتتاحي
+    if(openType==='receivable' && openBal > 0){
+      c.openingBalance = Math.max(0, openBal - amount);
+    }
+    toast('<i class="fa-solid fa-coins" style="color:var(--accent2)"></i> تم تسجيل ' + amount.toLocaleString() + ' ' + cur);
+  }
+
+  lsSave(); cloudSave(S);
+  // إغلاق الـ modal وتحديث البروفايل
+  document.querySelectorAll('.modal-overlay').forEach(function(o){
+    if(o.querySelector('#_collect_amount')) o.remove();
+  });
+  // إعادة رسم البروفايل
+  if(typeof openClientProfile === 'function') openClientProfile(clientId);
+  renderAll();
 }
 
 function showPage(id,el){
@@ -8232,7 +8347,47 @@ function _renderProfileTab(tab, id){
         </div>
       </div>` : '';
 
+    
+    // ── حساب الرصيد المستحق للـ overview ──
+    const _ovOpenBal = c.openingBalance || 0;
+    const _ovOpenType = c.openingBalanceType || 'receivable';
+    const _ovOpenNote = c.openingBalanceNote || '';
+    const _ovTotalInv = cInvs.reduce((s,i)=>s+(+i.total||0),0);
+    const _ovTotalPaid = cInvs.filter(i=>i.paid||i.status==='مدفوعة'||i.status==='paid').reduce((s,i)=>s+(+i.total||0),0);
+    const _ovUnpaid = Math.max(0, _ovTotalInv - _ovTotalPaid);
+    const _ovOwed = _ovUnpaid + (_ovOpenType==='receivable'?_ovOpenBal:0) - (_ovOpenType==='prepaid'?_ovOpenBal:0);
+    const _ovCur = _getCurrency();
+
     body.innerHTML=`
+      <!-- بانر الرصيد المستحق -->
+      ${_ovOwed > 0 ? `
+      <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(255,107,107,.12),rgba(255,107,107,.06));border:1.5px solid rgba(255,107,107,.4);border-radius:14px;padding:14px 16px;margin-bottom:14px;cursor:pointer" onclick="switchProfileTab('accounts',document.querySelector('[data-tab=accounts]'))">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:40px;height:40px;border-radius:11px;background:rgba(255,107,107,.18);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💰</div>
+          <div>
+            <div style="font-size:12px;font-weight:800;color:rgba(255,107,107,.9)">مبالغ مستحقة على العميل</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">${_ovUnpaid>0&&_ovOpenBal>0&&_ovOpenType==='receivable'?'فواتير + مبالغ قديمة':_ovUnpaid>0?'فواتير غير مسددة':'مبالغ مستحقة من قبل'}${_ovOpenNote?' · '+_ovOpenNote:''}</div>
+          </div>
+        </div>
+        <div style="text-align:left">
+          <div style="font-size:22px;font-weight:900;color:rgba(255,107,107,.95);line-height:1">${_ovOwed.toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--text3);text-align:center">${_ovCur}</div>
+        </div>
+        <button class="btn btn-primary btn-sm" style="margin-top:8px;width:100%;justify-content:center" onclick="switchProfileTab('accounts',document.querySelector('[data-tab=accounts]'));setTimeout(()=>_collectFromClient(${c.id},${_ovOwed}),200)">
+          <i class="fa-solid fa-hand-holding-dollar"></i> تحصيل وتسوية
+        </button>
+      </div>` : _ovOpenBal>0&&_ovOpenType==='prepaid' ? `
+      <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(79,209,165,.08);border:1.5px solid rgba(79,209,165,.3);border-radius:14px;padding:14px 16px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:40px;height:40px;border-radius:11px;background:rgba(79,209,165,.15);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">✅</div>
+          <div>
+            <div style="font-size:12px;font-weight:800;color:var(--accent3)">رصيد لديه مسبقاً</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">${_ovOpenNote||'دفع مقدماً'}</div>
+          </div>
+        </div>
+        <div style="font-size:22px;font-weight:900;color:var(--accent3)">${_ovOpenBal.toLocaleString()} ${_ovCur}</div>
+      </div>` : ''}
+
       <!-- Stats row -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
         <div class="card" style="padding:12px;text-align:center">
@@ -8496,12 +8651,19 @@ function _renderProfileTab(tab, id){
           </div>
           ${openBal>0?`<div class="card" style="padding:12px;text-align:center;border-right:2px solid ${openType==='receivable'?'var(--accent4)':'var(--accent3)'}">
             <div style="font-size:18px;font-weight:900;color:${openType==='receivable'?'var(--accent4)':'var(--accent3)'}">${openBal.toLocaleString()} ${cur}</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:3px">${openType==='receivable'?'💰 رصيد افتتاحي (مستحق)':'✅ رصيد افتتاحي (مدفوع)'}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:3px">${openType==='receivable'?'💰 مبالغ مستحقة عليه':'✅ رصيد لديه مسبقاً'}</div>
           </div>`:''}
         </div>
-        ${netBalance>0?`<div style="padding:12px 14px;background:rgba(255,107,107,.1);border-radius:10px;border-right:3px solid var(--accent4);margin-bottom:12px;font-size:13px">
-          <strong>📌 صافي المستحق على العميل: ${netBalance.toLocaleString()} ${cur}</strong>
-          ${openNote?`<div style="font-size:11px;color:var(--text3);margin-top:3px">${escapeHtml(openNote)}</div>`:''}
+        ${netBalance>0?`<div style="padding:12px 14px;background:rgba(255,107,107,.1);border-radius:12px;border-right:3px solid var(--accent4);margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div>
+              <div style="font-size:13px;font-weight:800">📌 صافي المستحق على العميل: ${netBalance.toLocaleString()} ${cur}</div>
+              ${openNote?`<div style="font-size:11px;color:var(--text3);margin-top:3px">${escapeHtml(openNote)}</div>`:''}
+            </div>
+            <button class="btn btn-primary btn-sm" style="flex-shrink:0;white-space:nowrap" onclick="_collectFromClient(${c.id},${netBalance})">
+              <i class="fa-solid fa-hand-holding-dollar"></i> تحصيل
+            </button>
+          </div>
         </div>`:''}
       </div>
 
@@ -8510,7 +8672,7 @@ function _renderProfileTab(tab, id){
         <div class="section-title" style="margin-bottom:10px"><i class="fa-solid fa-list-timeline"></i> سجل المعاملات الكاملة</div>
         ${openBal>0?`<div style="padding:10px 14px;background:${openType==='receivable'?'rgba(255,107,107,.08)':'rgba(79,209,165,.08)'};border-radius:10px;border:1px solid var(--border);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div style="font-size:12px;font-weight:800">${openType==='receivable'?'💰 رصيد افتتاحي — مستحق من قبل':'✅ رصيد افتتاحي — مدفوع مسبقاً'}</div>
+            <div style="font-size:12px;font-weight:800">${openType==='receivable'?'💰 مبالغ مستحقة من قبل بدء التعامل':'✅ رصيد دفعه مسبقاً قبل بدء التعامل'}</div>
             ${openNote?`<div style="font-size:11px;color:var(--text3)">${escapeHtml(openNote)}</div>`:''}
           </div>
           <div style="font-size:14px;font-weight:900;color:${openType==='receivable'?'var(--accent4)':'var(--accent3)'}">
@@ -14166,7 +14328,7 @@ function renderFinLoansSummary(){
   }
   if(clientsReceivable>0){
     html += '<div class="card" style="border-right:3px solid var(--accent2)">'
-      +'<div style="font-size:11px;color:var(--text3);margin-bottom:5px"><i class="fa-solid fa-users"></i> مستحقات من عملاء (رصيد افتتاحي)</div>'
+      +'<div style="font-size:11px;color:var(--text3);margin-bottom:5px"><i class="fa-solid fa-users"></i> مبالغ مستحقة من عملاء</div>'
       +'<div style="font-size:18px;font-weight:900;color:var(--accent2)">'+clientsReceivable.toLocaleString()+' '+cur+'</div>'
       +'</div>';
   }
