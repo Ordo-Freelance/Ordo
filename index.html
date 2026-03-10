@@ -269,7 +269,7 @@ async function _doCloudSave(data, force) {
   if(!force && _dataScore === 0 && !data.settings?.name) {
     return false;
   }
-  console.log('💾 _doCloudSave firing | score:', _dataScore, '| clients:', data.clients?.length, '| tasks:', data.tasks?.length, '| uid:', _supaUserId?.substring(0,8));
+
   // لو في save جاري وده مش force — queue وخلاص
   if(_cloudSaving && !force) { _cloudSavePending = true; return false; }
   // لو force — استنى الـ save الحالي يخلص أولاً (max 10 ثواني)
@@ -332,7 +332,7 @@ async function _doCloudSave(data, force) {
       return false;
     } else {
       showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محفوظ', '#4fd1a5');
-      console.log('✅ SAVED to Supabase | clients:', data?.clients?.length, '| tasks:', data?.tasks?.length);
+
       return true;
     }
   } catch(e) {
@@ -10359,8 +10359,8 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   if(S && S._trial_start && !localStorage.getItem(_trialKey)){
     localStorage.setItem(_trialKey, S._trial_start);
   } else if(!localStorage.getItem(_trialKey) && !_userSubscription){
-    // مستخدم قديم بدون تجربة مسجّلة — فعّلها من الآن
-    await _activateTrial(supaUser.id);
+    // مستخدم قديم بدون تجربة مسجّلة — فعّلها في الخلفية بدون انتظار
+    _activateTrial(supaUser.id);
   }
 
   // ── حمّل الثيم من السحابة ──
@@ -10369,15 +10369,21 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   // ── حمّل اسم المنصة من قاعدة البيانات ──
   setTimeout(_loadPlatformNameFromCloud, 1000);
 
-  // ── الآن render بعد ما الاشتراك اتحمل ──
+  // ── render بعد ما الاشتراك اتحمل ──
   renderAll();
   updateHeader('dashboard');
+  // تأكيد تاني بعد 800ms — يضمن إن الـ subscription بانت صح
+  setTimeout(()=>{
+    renderAll();
+    updateDash();
+    _renderDashGrid && _renderDashGrid();
+    updateSubscriptionBar && updateSubscriptionBar();
+    _updateNavLocks && _updateNavLocks();
+  }, 800);
   // شغّل مراقب حماية البيانات بعد تحميل كامل
   setTimeout(_startDataWatchdog, 5000);
-  // ── شغّل الحفظ التلقائي كل 3 ثواني ──
+  // ── شغّل الحفظ التلقائي كل 5 ثواني ──
   setTimeout(_startAutoSave, 3000);
-  // Force dashboard update with cloud data
-  setTimeout(()=>{ updateDash(); _renderDashGrid && _renderDashGrid(); }, 100);
 
   // ── فحص عضوية الفريق: هل هذا المستخدم مضاف كعضو في فريق شخص آخر؟ ──
   // Store email in S for team membership search by others
