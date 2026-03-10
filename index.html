@@ -360,7 +360,10 @@ async function _doCloudSave(data, force) {
 function lsSave() {
   if(!S) return;
   S._savedAt = new Date().toISOString();
-  _queueCloudSave();
+  // حفظ فوري بدون debounce لضمان عدم فقدان البيانات عند الـ refresh
+  clearTimeout(_syncTimer);
+  _syncTimer = null;
+  _doCloudSave(S);
   updateDash();
   try { _updateDataStatusBar(); } catch(e) {}
 }
@@ -502,9 +505,12 @@ function _mergeUiSettingsIntoS(){
 
 // حفظ فوري عند إغلاق الصفحة
 window.addEventListener('beforeunload', function() {
-  if(!_supaUserId || !S) return;
+  if(!_supaUserId || !S || !window._appReady) return;
   // إرسال للسحابة بـ keepalive — بيكمّل حتى بعد إغلاق الصفحة
   try {
+    // تحقق إن البيانات مش فاضية قبل الحفظ
+    var _buScore = (S.tasks?.length||0) + (S.clients?.length||0) + (S.invoices?.length||0);
+    if(_buScore === 0 && !S.settings?.name) return;
     const _ts = new Date().toISOString();
     const _safe = JSON.parse(JSON.stringify(S));
     _safe._savedAt = _ts;
@@ -5579,7 +5585,9 @@ function _fmtPrice(val, svcCurrency){ return Number(val||0).toLocaleString() + '
 function lsSave(){
   if(!S) return;
   S._savedAt = new Date().toISOString();
-  _queueCloudSave();
+  clearTimeout(_syncTimer);
+  _syncTimer = null;
+  _doCloudSave(S);
   updateDash();
   try { _updateDataStatusBar(); } catch(e) {}
 }
@@ -10372,14 +10380,13 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   // ── render بعد ما الاشتراك اتحمل ──
   renderAll();
   updateHeader('dashboard');
-  // تأكيد تاني بعد 800ms — يضمن إن الـ subscription بانت صح
+  // تحديث الـ subscription bar و nav locks بعد التحميل
   setTimeout(()=>{
-    renderAll();
-    updateDash();
-    _renderDashGrid && _renderDashGrid();
     updateSubscriptionBar && updateSubscriptionBar();
     _updateNavLocks && _updateNavLocks();
-  }, 800);
+    updateDash();
+    _renderDashGrid && _renderDashGrid();
+  }, 500);
   // شغّل مراقب حماية البيانات بعد تحميل كامل
   setTimeout(_startDataWatchdog, 5000);
   // ── شغّل الحفظ التلقائي كل 5 ثواني ──
