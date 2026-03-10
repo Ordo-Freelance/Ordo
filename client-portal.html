@@ -286,6 +286,7 @@ function renderPage(){
       <button class="tab on" onclick="switchTab('tasks')" id="tab-tasks"><i class="fa-solid fa-clipboard-list"></i>طلباتي (${_clientTasks.length})</button>
       <button class="tab" onclick="switchTab('projects')" id="tab-projects"><i class="fa-solid fa-folder-open"></i>المشاريع (${_clientProjects.length})</button>
       <button class="tab" onclick="switchTab('invoices')" id="tab-invoices"><i class="fa-solid fa-file-invoice"></i>الفواتير (${_clientInvoices.length})</button>
+      <button class="tab" onclick="switchTab('accounts')" id="tab-accounts"><i class="fa-solid fa-coins"></i>حسابي</button>
     </div>
 
     <!-- TASKS PANEL (الطلبات العادية) -->
@@ -294,6 +295,8 @@ function renderPage(){
     <div class="tab-panel" id="tp-projects">${renderProjects()}</div>
     <!-- INVOICES PANEL -->
     <div class="tab-panel" id="tp-invoices">${renderInvoices()}</div>
+    <!-- ACCOUNTS PANEL -->
+    <div class="tab-panel" id="tp-accounts">${renderAccounts()}</div>
   </div>
 
   <footer class="ftr"><div class="ftr-in">
@@ -380,6 +383,126 @@ function renderProjects(){
       </div>`:''}
     </div>`;
   }).join('');
+}
+
+function renderAccounts(){
+  const clientObj=(_ud.clients||[]).find(c=>String(c.id)===String(_clientId));
+  const openingBal=clientObj?.openingBalance||0;
+  const openingType=clientObj?.openingBalanceType||'receivable';
+  const openingNote=clientObj?.openingBalanceNote||'';
+  const cur='ج.م';
+
+  // معاملات العميل من سجل المعاملات
+  const clientName = _clientName;
+  const allTrans = (_ud.transactions||[]).filter(t=>t.source===clientName||t.client===clientName);
+  const totalIncome = allTrans.filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
+  const totalInvAll = _clientInvoices.reduce((s,i)=>s+(+i.total||0),0);
+  const totalPaid = _clientInvoices.filter(i=>i.paid||i.status==='مدفوعة'||i.status==='paid').reduce((s,i)=>s+(+i.total||0),0);
+  const unpaid = Math.max(0, totalInvAll - totalPaid);
+  const openBalReceivable = openingType==='receivable' ? openingBal : 0;
+  const openBalPrepaid = openingType==='prepaid' ? openingBal : 0;
+  const netBalance = openBalReceivable + unpaid - openBalPrepaid;
+
+  // سجل شهري
+  const monthlyMap={};
+  allTrans.forEach(t=>{
+    const mk=(t.isoDate||t.date||'').slice(0,7);
+    if(!mk) return;
+    if(!monthlyMap[mk]) monthlyMap[mk]={income:0,expense:0,count:0};
+    if(t.type==='income') monthlyMap[mk].income+=+t.amount||0;
+    else monthlyMap[mk].expense+=+t.amount||0;
+    monthlyMap[mk].count++;
+  });
+  const monthKeys=Object.keys(monthlyMap).sort((a,b)=>b.localeCompare(a));
+  const arabicMonths=['','يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const fmtMK=mk=>{ const [y,m]=mk.split('-'); return (arabicMonths[+m]||m)+' '+y; };
+
+  // سنوي
+  const yearMap={};
+  allTrans.forEach(t=>{
+    const yr=(t.isoDate||t.date||'').slice(0,4);
+    if(!yr) return;
+    if(!yearMap[yr]) yearMap[yr]={income:0};
+    if(t.type==='income') yearMap[yr].income+=+t.amount||0;
+  });
+
+  return`
+  <div style="margin-bottom:14px">
+    <!-- ملخص الحساب -->
+    <div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-scale-balanced" style="color:var(--ac)"></i> ملخص حسابي</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px">
+        <div style="text-align:center;padding:10px;background:var(--s2);border-radius:10px">
+          <div style="font-size:17px;font-weight:900;color:var(--g)">${totalIncome.toLocaleString()} ${cur}</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:3px"><i class="fa-solid fa-coins"></i> إجمالي المدفوع</div>
+        </div>
+        <div style="text-align:center;padding:10px;background:var(--s2);border-radius:10px">
+          <div style="font-size:17px;font-weight:900;color:var(--y)">${totalInvAll.toLocaleString()} ${cur}</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:3px"><i class="fa-solid fa-file-invoice"></i> إجمالي الفواتير</div>
+        </div>
+        <div style="text-align:center;padding:10px;background:var(--s2);border-radius:10px;border:1px solid ${unpaid>0?'rgba(255,107,107,.4)':'rgba(79,209,165,.4)'}">
+          <div style="font-size:17px;font-weight:900;color:${unpaid>0?'var(--r)':'var(--g)'}">${unpaid.toLocaleString()} ${cur}</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:3px">⏳ غير مسدّد</div>
+        </div>
+      </div>
+      ${netBalance>0?`<div style="padding:10px 12px;background:rgba(255,107,107,.1);border-radius:10px;border-right:3px solid var(--r);font-size:12px">
+        <strong>📌 الرصيد المستحق: ${netBalance.toLocaleString()} ${cur}</strong>
+        ${openNote?`<div style="font-size:11px;color:var(--t3);margin-top:2px">${xe(openNote)}</div>`:''}
+      </div>`:''}
+      ${openBal>0&&openingType==='prepaid'?`<div style="padding:10px 12px;background:rgba(79,209,165,.1);border-radius:10px;border-right:3px solid var(--g);font-size:12px;margin-top:8px">
+        <strong>✅ رصيد مدفوع مسبقاً: ${openBal.toLocaleString()} ${cur}</strong>
+        ${openNote?`<div style="font-size:11px;color:var(--t3);margin-top:2px">${xe(openNote)}</div>`:''}
+      </div>`:''}
+    </div>
+
+    <!-- سجل المعاملات -->
+    <div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-list-timeline" style="color:var(--ac)"></i> سجل المعاملات</div>
+      ${openBal>0?`<div style="padding:10px 12px;background:${openingType==='receivable'?'rgba(255,107,107,.08)':'rgba(79,209,165,.08)'};border-radius:10px;border:1px solid var(--bd);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:12px;font-weight:800;color:var(--t1)">${openingType==='receivable'?'💰 رصيد افتتاحي — مستحق':'✅ رصيد افتتاحي — مدفوع مسبقاً'}</div>
+          ${openNote?`<div style="font-size:11px;color:var(--t3)">${xe(openNote)}</div>`:''}
+        </div>
+        <div style="font-size:14px;font-weight:900;color:${openingType==='receivable'?'var(--r)':'var(--g)'}">
+          ${openingType==='receivable'?'+':'-'}${openBal.toLocaleString()} ${cur}
+        </div>
+      </div>`:''}
+      ${allTrans.length?[...allTrans].sort((a,b)=>(b.isoDate||b.date||'').localeCompare(a.isoDate||a.date||'')).map(t=>`
+        <div style="padding:10px 12px;background:var(--s2);border-radius:10px;border:1px solid var(--bd);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--t1)">${xe(t.desc||'معاملة')}</div>
+            <div style="font-size:10px;color:var(--t3)">${t.isoDate||t.date||'—'}</div>
+          </div>
+          <div style="font-size:14px;font-weight:900;color:${t.type==='income'?'var(--g)':'var(--r)'}">
+            ${t.type==='income'?'+':'-'}${(+t.amount||0).toLocaleString()} ${cur}
+          </div>
+        </div>`).join('')
+      :'<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px"><i class="fa-solid fa-inbox"></i> لا معاملات مسجلة</div>'}
+    </div>
+
+    <!-- السجل الشهري -->
+    ${monthKeys.length?`<div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-calendar-days" style="color:var(--ac)"></i> السجل الشهري</div>
+      ${monthKeys.map(mk=>`
+        <div style="padding:10px 12px;background:var(--s2);border-radius:10px;border:1px solid var(--bd);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:12px;font-weight:700;color:var(--t1)">${fmtMK(mk)}</div>
+          <div style="display:flex;gap:10px;font-size:12px">
+            ${monthlyMap[mk].income?`<span style="color:var(--g);font-weight:700">+${monthlyMap[mk].income.toLocaleString()}</span>`:''}
+            <span style="color:var(--t3)">${monthlyMap[mk].count} معاملة</span>
+          </div>
+        </div>`).join('')}
+    </div>`:''}
+
+    <!-- السجل السنوي -->
+    ${Object.keys(yearMap).length>1?`<div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-chart-bar" style="color:var(--ac)"></i> السجل السنوي</div>
+      ${Object.keys(yearMap).sort((a,b)=>b-a).map(yr=>`
+        <div style="padding:10px 12px;background:var(--s2);border-radius:10px;border:1px solid var(--bd);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:12px;font-weight:700;color:var(--t1)">سنة ${yr}</div>
+          <div style="font-size:14px;font-weight:900;color:var(--g)">${yearMap[yr].income.toLocaleString()} ${cur}</div>
+        </div>`).join('')}
+    </div>`:''}
+  </div>`;
 }
 
 function renderInvoices(){
