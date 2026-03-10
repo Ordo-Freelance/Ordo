@@ -5250,15 +5250,16 @@ async function doSendMessage() {
   try {
     const isBroadcast = _currentMsgType === 'broadcast' || !_currentMsgUserId;
     const _navPage = document.getElementById('msg-nav-page')?.value || null;
+    // نحفظ صفحة الوجهة جوه الـ body كـ metadata مخفي
+    const _bodyWithPage = _navPage ? body + '\n__page__:' + _navPage : body;
     const notif = {
       user_id   : isBroadcast ? null : _currentMsgUserId,
       title     : title || null,
-      body,
+      body      : _bodyWithPage,
       type      : isBroadcast ? 'broadcast' : _currentMsgType,
       read      : false,
       created_at: new Date().toISOString(),
-      sent_by   : 'admin',
-      ..._navPage ? { page: _navPage } : {}
+      sent_by   : 'admin'
     };
 
     const { error } = await supa.from('user_notifications').insert([notif]);
