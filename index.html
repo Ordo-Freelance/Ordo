@@ -162,9 +162,34 @@ function uploadToStorage(file, folder, onSuccess, onError) {
     });
 }
 
-// ══════════════════════════════════════════════════
-//  SUPABASE CLOUD SYNC
-// ══════════════════════════════════════════════════
+// ── Client slug helper ──
+// يحوّل اسم العميل لـ slug قصير: "أحمد حسن" → "ahmed-hassan" أو "ahmed" فقط
+function _makeClientSlug(name){
+  if(!name) return 'client';
+  // حروف عربية → نحتفظ بيها كما هي، باقي الحروف → lowercase
+  var s = name.trim().toLowerCase()
+    .replace(/\s+/g, '-')          // مسافات → -
+    .replace(/[^\u0600-\u06FFa-z0-9-]/g, '') // شيل كل حاجة تانية
+    .replace(/-+/g, '-')           // - متكررة → -
+    .replace(/^-|-$/g, '')         // شيل - من الأطراف
+    .slice(0, 30);
+  return s || 'client';
+}
+
+// ── Build short portal link ──
+function _buildPortalLink(clientName, portalId){
+  var _un = S && S.settings && S.settings.username ? S.settings.username : null;
+  var _base = window.location.origin + window.location.pathname;
+  var _slug = _makeClientSlug(clientName);
+  if(_un){
+    // ?u=username&p=client-slug  — قصير ونظيف
+    return _base + '?u=' + encodeURIComponent(_un) + '&p=' + encodeURIComponent(_slug);
+  }
+  // Fallback لو مفيش username
+  return _base + '?portal=' + portalId + '&uid=' + (_supaUserId||'');
+}
+
+
 let _syncTimer = null;
 
 // ── Platform Name Sync ──
@@ -7175,19 +7200,8 @@ function openTaskDetail(id){
         // زرار لينك متابعة التاسك — بس لو في عميل مرتبط بيه
         var cl = (S.clients||[]).find(function(c){ return c.name===t.client; });
         if(!cl) return '';
-        var _un = S.settings&&S.settings.username ? S.settings.username : null;
-        var _base = window.location.origin + window.location.pathname;
-        var _slug = (cl.name||'client').toLowerCase().replace(/\s+/g,'-').replace(/[^\u0600-\u06FFa-z0-9-]/g,'').slice(0,25);
-        // ابحث عن البورتال المرتبط بالعميل ده
         var _portal = (S.client_portals||[]).find(function(p){ return String(p.task_id)===String(t.id); });
-        var taskLink;
-        if(_un && _portal){
-          taskLink = _base+'?u='+encodeURIComponent(_un)+'&c='+encodeURIComponent(_slug)+'&pid='+_portal.id;
-        } else if(_un){
-          taskLink = _base+'?u='+encodeURIComponent(_un)+'&c='+encodeURIComponent(_slug)+'&tid='+t.id;
-        } else {
-          taskLink = _base+'?clientportal='+(_supaUserId||'')+'&cid='+cl.id+'&taskid='+t.id;
-        }
+        var taskLink = _buildPortalLink(cl.name, _portal?_portal.id:'');
         return '<button class="btn btn-ghost btn-sm" style="background:rgba(124,111,247,.12);color:var(--accent);border:1px solid var(--accent)44" onclick="navigator.clipboard.writeText(\''+taskLink+'\').then(function(){toast(\'<i class=\\\"fa-solid fa-square-check\\\" style=\\\"color:var(--accent3)\\\"></i> تم نسخ لينك متابعة التاسك\')})"><i class="fa-solid fa-link"></i> لينك للعميل</button>';
       })()}
       <button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:var(--font)" onclick="openWaModal('task',null,${t.id})">
@@ -19216,19 +19230,16 @@ function openClientPortal(portalId){
           '<div style="margin-top:6px">'+task.steps.map(function(s){return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px">'+(s.done?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>':'⏳')+' '+escapeHtml(s.text)+'</div>';}).join('')+'</div>':'')+
       '</div>'
     : '<div style="background:rgba(247,201,72,.1);border-radius:12px;padding:14px;font-size:12px;color:var(--text3)">لا توجد مهمة مرتبطة بعد</div>')+
-    '<div style="margin-top:12px;padding:12px;background:var(--surface2);border-radius:12px">'+
-      '<div style="font-size:12px;font-weight:700;margin-bottom:8px"><i class="fa-solid fa-link"></i> رابط بوابة العميل</div>'+
-      '<div id="portal-link-'+portal.id+'" style="font-size:10px;color:var(--text3);font-family:var(--mono);word-break:break-all;margin-bottom:8px">'+
-      (function(){
-        var _un=S.settings&&S.settings.username?S.settings.username:null;
-        var _base=window.location.origin+window.location.pathname;
-        var _slug=(portal.client_name||'client').toLowerCase().replace(/\s+/g,'-').replace(/[^\u0600-\u06FFa-z0-9-]/g,'').slice(0,25);
-        if(_un) return _base+'?u='+encodeURIComponent(_un)+'&c='+encodeURIComponent(_slug)+'&pid='+portal.id;
-        return _base+'?portal='+portal.id+'&uid='+(typeof _supaUserId!=='undefined'?_supaUserId:'');
-      })()+'</div>'+
-      (!(S.settings&&S.settings.username)?'<div style="font-size:10px;color:var(--accent4);margin-bottom:6px"><i class="fa-solid fa-triangle-exclamation"></i> أضف username في الإعدادات للحصول على رابط أقصر باسمك</div>':'')+
-      '<button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById(\'portal-link-'+portal.id+'\').textContent).then(()=>toast(\'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم نسخ الرابط\'))"><i class="fa-solid fa-clipboard-list"></i> نسخ رابط البوابة</button>'+
-    '</div>';
+    (function(){
+      var _link = _buildPortalLink(portal.client_name, portal.id);
+      var _hasUn = !!(S.settings&&S.settings.username);
+      return '<div style="margin-top:12px;padding:12px;background:var(--surface2);border-radius:12px">'+
+        '<div style="font-size:12px;font-weight:700;margin-bottom:8px"><i class="fa-solid fa-link"></i> رابط بوابة العميل</div>'+
+        (!_hasUn?'<div style="font-size:10px;color:var(--accent4);margin-bottom:8px;padding:6px 10px;background:rgba(247,107,92,.1);border-radius:8px"><i class="fa-solid fa-triangle-exclamation"></i> أضف <b>username</b> في الإعدادات للحصول على رابط قصير باسمك</div>':'')+
+        '<div id="portal-link-'+portal.id+'" style="font-size:11px;color:var(--accent3);font-family:var(--mono);word-break:break-all;margin-bottom:10px;padding:8px 10px;background:var(--surface3);border-radius:8px;user-select:all;cursor:text">'+_link+'</div>'+
+        '<button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById(\'portal-link-'+portal.id+'\').textContent.trim()).then(function(){toast(\'<i class=\"fa-solid fa-square-check\" style=\"color:var(--accent3)\"></i> تم نسخ الرابط\')})"><i class="fa-solid fa-copy" style="margin-left:4px"></i> نسخ الرابط</button>'+
+      '</div>';
+    })();
   openM('modal-portal');
 }
 
@@ -19259,6 +19270,46 @@ function _checkSvcOrderUrl(){
     if(!document.getElementById('_pub-early-style')) document.head.insertBefore(_earlyStyle, document.head.firstChild);
   }
   if(!uid && _uname){
+    // ── لو في ?p=client-slug → بوابة العميل ──
+    var _cslug = params.get('p');
+    if(_cslug){
+      if(window._showApp) window._showApp();
+      document.documentElement.classList.add('pub-page');
+      document.body.classList.add('pub-page');
+      document.documentElement.style.overflow = 'auto';
+      document.documentElement.style.height = 'auto';
+      while(document.body.firstChild) document.body.removeChild(document.body.firstChild);
+      document.body.style.cssText = 'margin:0;padding:0;overflow:auto;font-family:Cairo,Tajawal,sans-serif;direction:rtl';
+      var ld2 = document.createElement('div');
+      ld2.style.cssText = 'position:fixed;inset:0;background:#0a0a0f;display:flex;align-items:center;justify-content:center;font-family:Cairo,Tajawal,sans-serif;direction:rtl';
+      ld2.innerHTML = '<div style="text-align:center"><div style="font-size:36px;margin-bottom:12px">⏳</div><div style="font-size:14px;color:#aaa">جاري تحميل بوابة العميل...</div></div>';
+      document.body.appendChild(ld2);
+      if(typeof supa !== 'undefined'){
+        // جيب الـ userId من الـ username
+        supa.from('studio_data').select('user_id').ilike('data->>username_index', _uname).maybeSingle()
+          .then(function(res){
+            var userId = res&&res.data&&res.data.user_id ? res.data.user_id : null;
+            if(!userId){ _showCPError('لم يتم التعرف على الحساب'); return; }
+            // جيب البيانات وابحث عن العميل بالـ slug
+            supa.from('studio_data').select('data').eq('user_id', userId).maybeSingle()
+              .then(function(res2){
+                if(!res2||!res2.data){ _showCPError('لا توجد بيانات'); return; }
+                var ud; try{ ud=typeof res2.data.data==='string'?JSON.parse(res2.data.data):res2.data.data; }catch(e){}
+                if(!ud){ _showCPError('خطأ في البيانات'); return; }
+                // ابحث عن العميل اللي slug اسمه يطابق
+                var client = (ud.clients||[]).find(function(c){
+                  var cs = (c.name||'').toLowerCase().replace(/\s+/g,'-').replace(/[^\u0600-\u06FFa-z0-9-]/g,'').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,30);
+                  return cs === _cslug;
+                });
+                if(!client){ _showCPError('لم يتم التعرف على العميل: ' + _cslug); return; }
+                window._fullCPBuilt = true;
+                _buildFullClientPortal(userId, String(client.id));
+              }).catch(function(){ _showCPError('خطأ في تحميل البيانات'); });
+          }).catch(function(){ _showCPError('خطأ في الاتصال'); });
+      } else { _showCPError('النظام غير متاح'); }
+      return;
+    }
+
     // Show loading immediately and unlock scroll
     if(window._showApp) window._showApp();
     document.documentElement.classList.add('pub-page');
