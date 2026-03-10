@@ -590,6 +590,42 @@ function _updateDataStatusBar() {
   if(el('dsb-cloud')) el('dsb-cloud').textContent = _cloudSaving ? '☁️ جاري...' : '✅ محفوظ';
 }
 
+// ═══════════════════════════════════════
+// UPLOAD PROGRESS MODAL
+// ═══════════════════════════════════════
+function showUploadProgress(label) {
+  var existing = document.getElementById('_upload-progress-modal');
+  if(existing) existing.remove();
+  var ov = document.createElement('div');
+  ov.id = '_upload-progress-modal';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+  ov.innerHTML =
+    '<div style="background:var(--surface,#0e0f1a);border:1px solid var(--border,#252640);border-radius:20px;padding:32px 36px;min-width:300px;max-width:380px;text-align:center;box-shadow:0 24px 72px rgba(0,0,0,.6)">' +
+      '<div style="font-size:36px;margin-bottom:14px">⏳</div>' +
+      '<div style="font-size:15px;font-weight:800;color:var(--text,#e2e4f0);margin-bottom:6px" id="_upload-prog-label">' + (label||'جاري الحفظ...') + '</div>' +
+      '<div style="font-size:12px;color:var(--text3,#50516a);margin-bottom:18px">الرجاء الانتظار حتى يتم الحفظ في قاعدة البيانات</div>' +
+      '<div style="height:6px;background:var(--surface2,#141522);border-radius:8px;overflow:hidden;position:relative">' +
+        '<div id="_upload-prog-bar" style="height:100%;width:15%;background:linear-gradient(90deg,var(--accent,#6c63ff),#a89cff);border-radius:8px;animation:_progAnim 1.6s ease-in-out infinite"></div>' +
+      '</div>' +
+    '</div>';
+  if(!document.getElementById('_progAnimStyle')) {
+    var s = document.createElement('style');
+    s.id = '_progAnimStyle';
+    s.textContent = '@keyframes _progAnim{0%{width:15%;margin-left:0}50%{width:40%;margin-left:30%}100%{width:15%;margin-left:85%}}';
+    document.head.appendChild(s);
+  }
+  document.body.appendChild(ov);
+}
+function hideUploadProgress(successLabel) {
+  var ov = document.getElementById('_upload-progress-modal');
+  if(!ov) return;
+  var bar = document.getElementById('_upload-prog-bar');
+  var lbl = document.getElementById('_upload-prog-label');
+  if(bar) { bar.style.animation='none'; bar.style.width='100%'; bar.style.background='linear-gradient(90deg,var(--accent3,#4fd1a5),#38b99a)'; }
+  if(lbl) { lbl.innerHTML = (successLabel || '✅ تم الحفظ بنجاح!'); }
+  setTimeout(function(){ var o=document.getElementById('_upload-progress-modal'); if(o) o.remove(); }, 1200);
+}
+
 function showSyncIndicator(msg, color){
   let el = document.getElementById('sync-indicator');
   if(!el){
@@ -6260,13 +6296,18 @@ function doSendWhatsApp(){
 function v(id){const e=document.getElementById(id);return e?e.value:'';}
 function uploadLogo(input){
   const f=input.files[0];if(!f)return;
-  window._readFileWithProgress(f,'جاري رفع اللوجو...', function(result){
-    S.settings.logo=result;
+  toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع اللوجو...');
+  const r=new FileReader();
+  r.onload=e=>{
+    // اللوجو هنا للفاتورة فقط - مش للسايدبار ولا التاب
+    S.settings.logo=e.target.result;
     lsSave();cloudSave(S);
+    // تحديث معاينة اللوجو في الإعدادات فقط
     const lp=document.getElementById('logo-preview');
-    if(lp) lp.innerHTML='<img src="'+result+'" style="max-height:80px;max-width:200px;object-fit:contain;border-radius:6px">';
-    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ اللوجو');
-  });
+    if(lp) lp.innerHTML='<img src="'+e.target.result+'" style="max-height:80px;max-width:200px;object-fit:contain;border-radius:6px">';
+    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ اللوجو — سيظهر في الفاتورة');
+  };
+  r.readAsDataURL(f);
 }
 
 // ── مزامنة لوجو الستوديو مع platform_config ── (معطّلة - اللوجو للمتجر والفاتورة فقط)
@@ -9636,104 +9677,6 @@ function showToast(msg,dur=3000){
   t.style.transform='translateX(-50%) translateY(0)';t.style.opacity='1';
   clearTimeout(t._to);t._to=setTimeout(()=>{t.style.transform='translateX(-50%) translateY(60px)';t.style.opacity='0';},dur);
 }
-
-// ══════════════════════════════════════════════════════════════
-// UPLOAD PROGRESS BAR — شريط تقدم الرفع
-// يظهر في أسفل الشاشة لكل عمليات رفع الصور
-// ══════════════════════════════════════════════════════════════
-(function(){
-  // إنشاء عنصر الـ progress bar
-  function _ensureBar(){
-    var b=document.getElementById('_uprog');
-    if(b) return b;
-    b=document.createElement('div');
-    b.id='_uprog';
-    b.style.cssText=[
-      'position:fixed','bottom:0','left:0','right:0','z-index:99998',
-      'background:var(--surface,#12131a)','border-top:1.5px solid rgba(124,111,247,.25)',
-      'padding:10px 18px 12px','display:none',
-      'flex-direction:column','gap:6px',
-      'font-family:Cairo,Tajawal,sans-serif','direction:rtl',
-      'box-shadow:0 -4px 24px rgba(0,0,0,.35)',
-      'transition:transform .25s ease,opacity .25s ease',
-    ].join(';');
-    b.innerHTML=
-      '<div style="display:flex;align-items:center;justify-content:space-between">'+
-        '<div id="_uprog-label" style="font-size:12px;font-weight:600;color:var(--text,#e8eaf0);display:flex;align-items:center;gap:7px">'+
-          '<i class="fa-solid fa-arrow-up-from-bracket" style="color:var(--accent,#7c6ff7)"></i>'+
-          '<span id="_uprog-text">جاري الرفع...</span>'+
-        '</div>'+
-        '<span id="_uprog-pct" style="font-size:11px;font-weight:700;color:var(--accent,#7c6ff7);min-width:32px;text-align:left">0%</span>'+
-      '</div>'+
-      '<div style="height:5px;background:rgba(124,111,247,.15);border-radius:99px;overflow:hidden">'+
-        '<div id="_uprog-fill" style="height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,#7c6ff7,#4fd1a5);transition:width .18s ease"></div>'+
-      '</div>';
-    document.body.appendChild(b);
-    return b;
-  }
-
-  // إظهار الـ progress bar
-  window._showUploadProgress = function(label){
-    var b=_ensureBar();
-    var txt=document.getElementById('_uprog-text');
-    var fill=document.getElementById('_uprog-fill');
-    var pct=document.getElementById('_uprog-pct');
-    if(txt) txt.textContent = label||'جاري الرفع...';
-    if(fill){ fill.style.width='0%'; fill.style.background='linear-gradient(90deg,#7c6ff7,#4fd1a5)'; }
-    if(pct) pct.textContent='0%';
-    b.style.display='flex';
-    b.style.opacity='1';
-    b.style.transform='translateY(0)';
-  };
-
-  // تحديث النسبة
-  window._updateUploadProgress = function(percent){
-    var fill=document.getElementById('_uprog-fill');
-    var pct=document.getElementById('_uprog-pct');
-    var p=Math.min(100,Math.max(0,Math.round(percent)));
-    if(fill) fill.style.width=p+'%';
-    if(pct) pct.textContent=p+'%';
-  };
-
-  // إخفاء بعد الانتهاء
-  window._hideUploadProgress = function(successLabel){
-    window._updateUploadProgress(100);
-    var txt=document.getElementById('_uprog-text');
-    var fill=document.getElementById('_uprog-fill');
-    if(txt) txt.textContent = successLabel||'تم الرفع ✓';
-    if(fill) fill.style.background='linear-gradient(90deg,#4fd1a5,#38b99a)';
-    setTimeout(function(){
-      var b=document.getElementById('_uprog');
-      if(b){ b.style.opacity='0'; b.style.transform='translateY(8px)'; }
-      setTimeout(function(){
-        var b2=document.getElementById('_uprog');
-        if(b2){ b2.style.display='none'; b2.style.opacity='1'; b2.style.transform='translateY(0)'; }
-      },280);
-    },700);
-  };
-
-  // FileReader مع progress حقيقي
-  window._readFileWithProgress = function(file, label, onDone){
-    window._showUploadProgress(label||'جاري قراءة الملف...');
-    var r=new FileReader();
-    r.onprogress=function(e){
-      if(e.lengthComputable) window._updateUploadProgress((e.loaded/e.total)*90);
-    };
-    r.onload=function(e){
-      window._updateUploadProgress(100);
-      setTimeout(function(){
-        window._hideUploadProgress('تم ✓');
-        onDone(e.target.result);
-      },200);
-    };
-    r.onerror=function(){
-      var b=document.getElementById('_uprog');
-      if(b) b.style.display='none';
-      toast('<i class="fa-solid fa-triangle-exclamation"></i> فشل قراءة الملف');
-    };
-    r.readAsDataURL(file);
-  };
-})();
 
 // ============================================================
 // DASHBOARD
@@ -14105,24 +14048,42 @@ function _checkSilentClients(){
 // ────────────────────────────────
 // <i class="fa-solid fa-trophy"></i> WEEKLY CHALLENGE (تحدي الأسبوع)
 // ────────────────────────────────
+function _getWeekKey(){
+  const d=new Date();
+  const start=new Date(d); start.setDate(d.getDate()-d.getDay());
+  return start.toISOString().slice(0,10);
+}
+
 function _getWeeklyChallenge(){
-  const saved=JSON.parse(localStorage.getItem('_weekChallenge')||'{}');
   const weekKey=_getWeekKey();
+
+  // ① تحدي الأدمن — له الأولوية إذا كان لنفس الأسبوع
+  const adminCh = S._adminChallenge;
+  if(adminCh && adminCh.weekKey === weekKey){
+    // استرجع حالة التقدم المحفوظة محلياً لهذا التحدي
+    const localKey = '_wkch_' + adminCh.id;
+    const saved = JSON.parse(localStorage.getItem(localKey)||'{}');
+    return {
+      ...adminCh,
+      done:     saved.done     || false,
+      progress: saved.progress || 0,
+      isAdmin:  true,
+      _localKey: localKey
+    };
+  }
+
+  // ② تحدي تلقائي محلي (fallback)
+  const saved=JSON.parse(localStorage.getItem('_weekChallenge')||'{}');
   if(saved.week===weekKey) return saved;
 
   const now=new Date();
-  const activeCount=S.tasks.filter(t=>!t.done).length;
-  const monthIncome=S.transactions.filter(t=>{
-    const d=new Date(); return t.type==='income'&&(t.isoDate||'').startsWith(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
-  }).reduce((s,t)=>s+t.amount,0);
   const avg=_calcExpectedIncome().avg3||1000;
-
   const challenges=[
-    {title:'سلّم 3 مهام في موعدها هذا الأسبوع',type:'on_time',target:3},
-    {title:`وصّل دخلك لـ ${Math.round(avg*0.3).toLocaleString()} ج هذا الأسبوع`,type:'income',target:Math.round(avg*0.3)},
-    {title:'أنهِ 5 مهام نشطة هذا الأسبوع',type:'complete',target:5},
-    {title:'لا تقبل أوردر جديد دون تسليم مهمة قديمة أولاً',type:'discipline',target:1},
-    {title:'تواصل مع 2 من عملائك القدامى هذا الأسبوع',type:'contact',target:2},
+    {title:'سلّم 3 مهام في موعدها هذا الأسبوع',type:'on_time',target:3,unit:'مهمة',reward:'أنجزت التزاماتك في الموعد! 🏆⏰'},
+    {title:`وصّل دخلك لـ ${Math.round(avg*0.3).toLocaleString()} ج هذا الأسبوع`,type:'income',target:Math.round(avg*0.3),unit:'ج.م',reward:'رائع! حققت هدفك المالي هذا الأسبوع 💰🎉'},
+    {title:'أنهِ 5 مهام نشطة هذا الأسبوع',type:'complete',target:5,unit:'مهمة',reward:'عمل رائع! أنجزت 5 مهام هذا الأسبوع 🎯✅'},
+    {title:'لا تقبل أوردر جديد دون تسليم مهمة قديمة أولاً',type:'discipline',target:1,unit:'يوم',reward:'انضباط تام! أنت تتحكم في وقتك 💪'},
+    {title:'تواصل مع 2 من عملائك القدامى هذا الأسبوع',type:'contact',target:2,unit:'عميل',reward:'علاقات قوية = عمل مستدام 🤝✨'},
   ];
   const ch=challenges[now.getDay()%challenges.length];
   const challenge={...ch, week:weekKey, done:false, progress:0, badge:'<i class="fa-solid fa-medal"></i>'};
@@ -14130,14 +14091,72 @@ function _getWeeklyChallenge(){
   return challenge;
 }
 
-function _getWeekKey(){
-  const d=new Date();
-  const start=new Date(d); start.setDate(d.getDate()-d.getDay());
-  return start.toISOString().slice(0,10);
+// ── احتفال إتمام التحدي ──
+function _fireChallengeConfetti(){
+  if(typeof document === 'undefined') return;
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;pointer-events:none';
+  document.body.appendChild(canvas);
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const pieces = [];
+  const colors = ['#7c6ff7','#4fd1a5','#f7c948','#f76f7c','#fff','#a89cff'];
+  for(let i=0;i<140;i++){
+    pieces.push({
+      x: Math.random()*canvas.width, y: -20,
+      w: 8+Math.random()*8, h: 14+Math.random()*8,
+      r: Math.random()*360, dr: (Math.random()-0.5)*8,
+      vy: 2+Math.random()*4, vx: (Math.random()-0.5)*3,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      alpha: 1
+    });
+  }
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      p.y+=p.vy; p.x+=p.vx; p.r+=p.dr;
+      if(frame>80) p.alpha=Math.max(0,p.alpha-0.015);
+      ctx.save(); ctx.globalAlpha=p.alpha; ctx.translate(p.x,p.y); ctx.rotate(p.r*Math.PI/180);
+      ctx.fillStyle=p.color; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+    });
+    frame++;
+    if(frame<130) requestAnimationFrame(draw);
+    else canvas.remove();
+  }
+  draw();
+}
+
+function _showChallengeDoneModal(ch){
+  // إزالة أي modal قديم
+  document.getElementById('_ch-done-modal')?.remove();
+  const reward = ch.reward || 'أحسنت! أتممت تحدي الأسبوع! 🏆';
+  const m = document.createElement('div');
+  m.id = '_ch-done-modal';
+  m.style.cssText='position:fixed;inset:0;z-index:99998;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(4px)';
+  m.innerHTML=`
+    <div style="background:var(--surface);border-radius:24px;padding:36px 28px;max-width:360px;width:90%;text-align:center;border:2px solid rgba(247,201,72,.4);box-shadow:0 20px 60px rgba(0,0,0,.5);animation:_chPop .45s cubic-bezier(.34,1.56,.64,1)">
+      <style>@keyframes _chPop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}</style>
+      <div style="font-size:64px;margin-bottom:8px">${ch.emoji||'🏆'}</div>
+      <div style="font-size:22px;font-weight:900;margin-bottom:8px;color:var(--accent2)">تحدي مكتمل!</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px">${ch.title}</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:20px;line-height:1.6">${reward}</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:var(--accent3);font-weight:700;margin-bottom:20px">
+        <i class="fa-solid fa-circle-check"></i> ${ch.progress} / ${ch.target} ${ch.unit||''}
+      </div>
+      <button onclick="document.getElementById('_ch-done-modal').remove()" style="background:var(--accent);color:#fff;border:none;border-radius:14px;padding:13px 32px;font-family:Cairo,Tajawal,sans-serif;font-size:15px;font-weight:800;cursor:pointer;width:100%">
+        رائع! متابعة 🎯
+      </button>
+    </div>`;
+  document.body.appendChild(m);
+  m.onclick = e => { if(e.target===m) m.remove(); };
+  // confetti
+  setTimeout(_fireChallengeConfetti, 150);
 }
 
 function _updateWeeklyChallengeProgress(){
-  const ch=_getWeeklyChallenge();if(ch.done)return;
+  const ch=_getWeeklyChallenge(); if(ch.done) return;
   const weekKey=_getWeekKey();
   const weekStart=new Date(weekKey);
   let progress=0;
@@ -14147,16 +14166,27 @@ function _updateWeeklyChallengeProgress(){
     progress=S.transactions.filter(t=>t.type==='income'&&new Date(t.isoDate||t.date||0)>=weekStart).reduce((s,t)=>s+t.amount,0);
   } else if(ch.type==='on_time'){
     progress=S.tasks.filter(t=>t.done&&t.doneAt&&t.deadline&&t.doneAt.slice(0,10)<=t.deadline&&new Date(t.doneAt)>=weekStart).length;
+  } else if(ch.type==='invoice'){
+    progress=(S.invoices||[]).filter(inv=>new Date(inv.isoDate||inv.date||0)>=weekStart).length;
+  } else if(ch.type==='client'){
+    progress=(S.clients||[]).filter(cl=>new Date(cl.createdAt||0)>=weekStart).length;
   }
   const done=progress>=ch.target;
-  if(done&&!ch.done){
-    ch.done=true;
-    setTimeout(()=>{
-      if(typeof showMiniNotif==='function') showMiniNotif('<i class="fa-solid fa-trophy"></i> أحسنت! أتممت تحدي الأسبوع! '+ch.badge);
-    },500);
+  const wasDone = ch.done;
+
+  if(ch.isAdmin){
+    // حفظ التقدم محلياً لتحدي الأدمن
+    const saved = { done, progress };
+    localStorage.setItem(ch._localKey, JSON.stringify(saved));
+  } else {
+    ch.progress=progress; ch.done=done;
+    localStorage.setItem('_weekChallenge',JSON.stringify(ch));
   }
-  ch.progress=progress;
-  localStorage.setItem('_weekChallenge',JSON.stringify(ch));
+
+  if(done && !wasDone){
+    // احتفال + modal
+    setTimeout(()=>{ _showChallengeDoneModal(ch); },400);
+  }
 }
 
 function renderWeeklyChallengeWidget(){
@@ -14164,19 +14194,20 @@ function renderWeeklyChallengeWidget(){
   _updateWeeklyChallengeProgress();
   const ch=_getWeeklyChallenge();
   const pct=Math.min(100,Math.round((ch.progress/ch.target)*100));
+  const isAdmin = ch.isAdmin ? `<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:rgba(247,201,72,.15);color:var(--accent2);font-weight:700;margin-right:4px"><i class="fa-solid fa-star"></i> من الأدمن</span>` : '';
   el.innerHTML=`
     <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">
-      <div style="font-size:22px">${ch.done?'<i class="fa-solid fa-trophy"></i>':'<i class="fa-solid fa-bullseye"></i>'}</div>
+      <div style="font-size:22px">${ch.done?'<i class="fa-solid fa-trophy" style="color:var(--accent2)"></i>':'<i class="fa-solid fa-bullseye"></i>'}</div>
       <div style="flex:1">
         <div style="font-size:12px;font-weight:700;line-height:1.5">${ch.title}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:2px">تحدي هذا الأسبوع · ${ch.done?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل!':'جارٍ'}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${isAdmin}تحدي هذا الأسبوع · ${ch.done?'<span style="color:var(--accent3)"><i class="fa-solid fa-square-check"></i> مكتمل! 🎉</span>':'جارٍ'}</div>
       </div>
     </div>
     <div style="height:7px;background:var(--surface2);border-radius:8px;overflow:hidden;margin-bottom:5px">
-      <div style="height:100%;width:${pct}%;background:${ch.done?'var(--accent3)':'var(--accent)'};border-radius:8px;transition:width .5s"></div>
+      <div style="height:100%;width:${pct}%;background:${ch.done?'linear-gradient(90deg,var(--accent3),#38b99a)':'linear-gradient(90deg,var(--accent),#a89cff)'};border-radius:8px;transition:width .6s cubic-bezier(.34,1.56,.64,1)"></div>
     </div>
     <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3)">
-      <span>${ch.progress} / ${ch.target}</span>
+      <span>${ch.progress} / ${ch.target} ${ch.unit||''}</span>
       <span>${pct}%</span>
     </div>`;
 }
@@ -16268,15 +16299,17 @@ window._incReceiptData = null;
 
 function invReceiptPreview(inp){
   var file=inp.files[0]; if(!file) return;
-  window._readFileWithProgress(file,'جاري رفع إيصال الفاتورة...', function(result){
-    window._invReceiptData=result;
+  var r=new FileReader();
+  r.onload=function(e){
+    window._invReceiptData=e.target.result;
     var img=document.getElementById('inv-receipt-img');
     var prev=document.getElementById('inv-receipt-prev');
     var ph=document.getElementById('inv-receipt-ph');
-    if(img) img.src=result;
+    if(img) img.src=e.target.result;
     if(prev) prev.style.display='block';
     if(ph) ph.style.display='none';
-  });
+  };
+  r.readAsDataURL(file);
 }
 function invReceiptClear(){
   window._invReceiptData=null;
@@ -16296,15 +16329,17 @@ function invReceiptDrop(e){
 }
 function incReceiptPreview(inp){
   var file=inp.files[0]; if(!file) return;
-  window._readFileWithProgress(file,'جاري رفع الإيصال...', function(result){
-    window._incReceiptData=result;
+  var r=new FileReader();
+  r.onload=function(e){
+    window._incReceiptData=e.target.result;
     var img=document.getElementById('in-receipt-img');
     var prev=document.getElementById('in-receipt-prev');
     var ph=document.getElementById('in-receipt-ph');
-    if(img) img.src=result;
+    if(img) img.src=e.target.result;
     if(prev) prev.style.display='block';
     if(ph) ph.style.display='none';
-  });
+  };
+  r.readAsDataURL(file);
 }
 function incReceiptClear(){
   window._incReceiptData=null;
@@ -17557,13 +17592,14 @@ var _svcLogoData='';
 function handleSvcLogo(input){
   var file=input.files[0]; if(!file) return;
   if(file.size>1.5*1024*1024){toast('<i class="fa-solid fa-triangle-exclamation"></i> الصورة أكبر من 1.5 ميجا');input.value='';return;}
-  window._readFileWithProgress(file,'جاري رفع لوجو المتجر...', function(result){
-    _svcLogoData=result;
+  toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع اللوجو...');
+  var r=new FileReader(); r.onload=function(e){
+    _svcLogoData=e.target.result;
     var pv=document.getElementById('svc-logo-preview');
-    if(pv) pv.innerHTML='<img src="'+result+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
+    if(pv) pv.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
     var cl=document.getElementById('svc-logo-clear-btn'); if(cl) cl.style.display='';
-    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تحديد اللوجو — اضغط "حفظ اللوجو" لتأكيد الحفظ');
-  });
+    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تحديد اللوجو - اضغط "حفظ اللوجو" لتأكيد الحفظ في المتجر');
+  }; r.readAsDataURL(file);
 }
 function clearSvcLogo(){
   _svcLogoData='';
@@ -17721,7 +17757,13 @@ function savePkgStandalone(){
   if(!S.standalone_packages) S.standalone_packages=[];
   if(eid){ var i=S.standalone_packages.findIndex(function(p){return String(p.id)===String(eid);}); if(i>-1){d.id=+eid;d.createdAt=S.standalone_packages[i].createdAt||d.updatedAt;S.standalone_packages[i]=d;} }
   else { d.id=Date.now(); d.createdAt=d.updatedAt; S.standalone_packages.push(d); }
-  lsSave(); cloudSave(S); closeM('modal-pkg-standalone'); renderStandalonePackages(); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الباقة');
+  lsSave(); 
+  showUploadProgress('📦 جاري رفع الباقة...');
+  setTimeout(async function(){
+    try { await _doCloudSave(S); hideUploadProgress('✅ تم رفع الباقة بنجاح!'); }
+    catch(e) { hideUploadProgress('⚠️ تم الحفظ محلياً'); }
+  }, 100);
+  closeM('modal-pkg-standalone'); renderStandalonePackages(); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الباقة');
 }
 function delPkgStandalone(id){
   if(!confirm('حذف هذه الباقة؟')) return;
@@ -17833,7 +17875,13 @@ function savePortfolioProject(){
   if(!S.portfolio_projects) S.portfolio_projects=[];
   if(eid){ var i=S.portfolio_projects.findIndex(function(p){return String(p.id)===String(eid);}); if(i>-1){d.id=+eid;d.createdAt=S.portfolio_projects[i].createdAt||d.createdAt;S.portfolio_projects[i]=d;} }
   else { d.id=Date.now(); S.portfolio_projects.push(d); }
-  lsSave(); cloudSave(S); closeM('modal-portfolio-project'); renderPortfolioProjects(); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ المشروع');
+  lsSave(); 
+  showUploadProgress('🖼 جاري رفع المشروع...');
+  setTimeout(async function(){
+    try { await _doCloudSave(S); hideUploadProgress('✅ تم رفع المشروع بنجاح!'); }
+    catch(e) { hideUploadProgress('⚠️ تم الحفظ محلياً'); }
+  }, 100);
+  closeM('modal-portfolio-project'); renderPortfolioProjects(); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ المشروع');
 }
 function delPortfolioProject(id){
   if(!confirm('حذف هذا المشروع؟')) return;
@@ -17906,15 +17954,17 @@ function toggleSvcActive(id,event){
 function handleSvcBanner(input){
   var file=input.files[0]; if(!file) return;
   if(file.size>2*1024*1024){ toast('<i class="fa-solid fa-triangle-exclamation"></i> حجم البانر أكبر من 2 ميجا'); input.value=''; return; }
-  window._readFileWithProgress(file,'جاري رفع البانر...', function(result){
+  var r=new FileReader();
+  r.onload=function(e){
     var _stIdx=_currentStoreIdx;
     var _curSt=(_stIdx!=null)?(_getStores()[_stIdx]||null):null;
-    if(_curSt){ _curSt.banner=result; }
-    else { if(!S.settings) S.settings={}; S.settings.svc_banner=result; }
+    if(_curSt){ _curSt.banner=e.target.result; }
+    else { if(!S.settings) S.settings={}; S.settings.svc_banner=e.target.result; }
     var prev=document.getElementById('svc-banner-preview'); var img=document.getElementById('svc-banner-img'); var clr=document.getElementById('svc-banner-clear-btn');
-    if(prev) prev.style.display=''; if(img) img.src=result; if(clr) clr.style.display='';
+    if(prev) prev.style.display=''; if(img) img.src=e.target.result; if(clr) clr.style.display='';
     lsSave(); cloudSave(S); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع البانر');
-  });
+  };
+  r.readAsDataURL(file);
 }
 function clearSvcBanner(){
   var _stIdx=_currentStoreIdx;
@@ -18056,13 +18106,16 @@ function openSvcModal(id){
 function handleSvcImg(input){
   var file=input.files[0]; if(!file) return;
   if(file.size>2*1024*1024){ toast('<i class="fa-solid fa-triangle-exclamation"></i> الصورة أكبر من 2 ميجا'); input.value=''; return; }
-  window._readFileWithProgress(file,'جاري رفع صورة الخدمة...', function(result){
-    _svcImgData=result;
-    var pv=document.getElementById('svc-img-preview'); pv.src=result; pv.style.display='';
-    document.getElementById('svc-img-name').textContent=file.name;
+  toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع الصورة...');
+  var r=new FileReader();
+  r.onload=function(e){
+    _svcImgData=e.target.result;
+    var pv=document.getElementById('svc-img-preview'); pv.src=e.target.result; pv.style.display='';
+    document.getElementById('svc-img-name').textContent=input.files[0].name;
     var cl=document.getElementById('svc-img-clear-btn'); if(cl) cl.style.display='';
     toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع الصورة');
-  });
+  };
+  r.readAsDataURL(file);
 }
 
 // ── Packages ──
@@ -18262,7 +18315,17 @@ function saveSvc(){
   } else {
     d.id=Date.now(); S.services.push(d);
   }
-  lsSave(); cloudSave(S); closeM('modal-svc'); renderServices(); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الخدمة');
+  lsSave(); 
+  showUploadProgress('🛍 جاري رفع الخدمة...');
+  var _origCloudSave = window._cloudSaveForProgress;
+  // نستخدم setTimeout لإعطاء المودال فرصة للظهور
+  setTimeout(async function(){
+    try {
+      await _doCloudSave(S);
+      hideUploadProgress('✅ تم رفع الخدمة بنجاح!');
+    } catch(e) { hideUploadProgress('⚠️ تم الحفظ محلياً'); }
+  }, 100);
+  closeM('modal-svc'); renderServices(); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الخدمة');
 }
 function delSvc(id){
   confirmDel('حذف هذه الخدمة؟', function(){
@@ -21457,7 +21520,8 @@ async function _loadServerNotifications(){
             id: 'srv_'+n.id, supaId: n.id,
             msg: (n.title ? '**'+n.title+'**\n' : '')+n.body,
             type: n.type==='broadcast'?'message':n.type||'message',
-            time: n.created_at, read: false
+            time: n.created_at, read: false,
+            page: n.action_page || n.page || ''
           });
           if(!n.read) newCount2++;
         }
@@ -22103,12 +22167,27 @@ function _toggleNotifPanel(triggerEl){
         else if(isOrderNotif) badge = '<span style="font-size:9px;padding:2px 7px;border-radius:8px;background:rgba(247,201,72,.15);color:var(--accent2);font-weight:700">طلب جديد</span>';
         // Click action
         var clickAttr = '';
+        var navAction = '';
         if(isOrderNotif && n.orderId){
-          clickAttr = 'onclick="document.getElementById(\'_notif-panel\')&&document.getElementById(\'_notif-panel\').remove();openOrderDetail(\''+n.orderId+'\')" style="cursor:pointer"';
+          navAction = "openOrderDetail('"+n.orderId+"')";
         } else if(isAdminMsg && n.supaId){
-          // Admin message — show detail modal
           var safeMsg = (n.msg||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-          clickAttr = 'onclick="document.getElementById(\'_notif-panel\')&&document.getElementById(\'_notif-panel\').remove();_showAdminMsgDetail(\''+safeMsg+'\',\''+ago+'\')" style="cursor:pointer"';
+          navAction = "_showAdminMsgDetail('"+safeMsg+"','"+ago+"')";
+        } else if(n.type === 'challenge' || (n.msg && (n.msg.includes('تحدي') || n.msg.includes('challenge')))){
+          navAction = "_notifNavTo('dashboard')";
+        } else if(n.type === 'invoice' || (n.msg && n.msg.includes('فاتور'))){
+          navAction = "_notifNavTo('invoices')";
+        } else if(n.type === 'task' || (n.msg && n.msg.includes('مهمة'))){
+          navAction = "_notifNavTo('tasks')";
+        } else if(n.type === 'client' || (n.msg && n.msg.includes('عميل'))){
+          navAction = "_notifNavTo('clients')";
+        } else if(n.type === 'finance' || (n.msg && (n.msg.includes('دخل') || n.msg.includes('مالي')))){
+          navAction = "_notifNavTo('finance')";
+        } else if(n.type === 'goal' || (n.msg && n.msg.includes('هدف'))){
+          navAction = "_notifNavTo('goals')";
+        } else if(n.page){ navAction = "_notifNavTo('"+n.page+"')"; }
+        if(navAction){
+          clickAttr = 'onclick="document.getElementById(\'_notif-panel\')&&document.getElementById(\'_notif-panel\').remove();'+navAction+'" style="cursor:pointer"';
         }
         return '<div '+clickAttr+' style="padding:12px 15px;border-bottom:1px solid rgba(42,42,58,.4);display:flex;gap:11px;align-items:flex-start'+(isAdminMsg?';background:rgba(108,99,255,.04)':'')+(isOrderNotif?';background:rgba(247,201,72,.03)':'')+'">'+
           '<div style="width:34px;height:34px;border-radius:50%;background:'+color+'18;border:1.5px solid '+color+'44;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">'+icon+'</div>'+
@@ -22119,7 +22198,7 @@ function _toggleNotifPanel(triggerEl){
               '<div style="font-size:10px;color:var(--text3)">'+ago+'</div>'+
             '</div>'+
           '</div>'+
-          (clickAttr?'<div style="font-size:11px;color:var(--text3);flex-shrink:0;margin-top:2px">←</div>':'')+
+          (clickAttr?'<div style="font-size:11px;color:var(--accent);flex-shrink:0;margin-top:2px;font-weight:700">←</div>':'')+
         '</div>';
       }).join('');
 
@@ -22146,6 +22225,19 @@ function _toggleNotifPanel(triggerEl){
 }
 
 // Show admin message detail
+// Navigate to a page from notification click
+function _notifNavTo(page){
+  // Remove notif panel if still open
+  var p = document.getElementById('_notif-panel'); if(p) p.remove();
+  // Use existing nav functions
+  if(typeof showPage === 'function') { showPage(page); return; }
+  if(typeof switchTab === 'function') { switchTab(page); return; }
+  // Fallback: click the nav item
+  var navEl = document.querySelector('[onclick*="showPage(\''+page+'\'"]') ||
+              document.querySelector('[data-page="'+page+'"]');
+  if(navEl) navEl.click();
+}
+
 function _showAdminMsgDetail(msg, ago){
   var existing = document.getElementById('_admin-msg-detail');
   if(existing) existing.remove();
