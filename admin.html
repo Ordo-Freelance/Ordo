@@ -5637,16 +5637,27 @@ async function _syncUpdatesToCloud() {
   } catch(e) { console.warn('updates sync failed:', e); }
 }
 
-async function renderUpdatesPage() {
-  // Load from cloud first
-  try {
-    const { data } = await supa.from('platform_settings').select('config').eq('id', 1).maybeSingle();
-    if(data?.config) {
-      const cfg = typeof data.config === 'string' ? JSON.parse(data.config) : data.config;
-      if(cfg.admin_updates?.length) { _updates = cfg.admin_updates; localStorage.setItem('admin_updates', JSON.stringify(_updates)); }
-    }
-  } catch(e) {}
-
+function renderUpdatesPage() {
+  // Render immediately from localStorage (no async blocking)
+  const list = document.getElementById('updates-list');
+  if(!list) return;
+  _renderUpdatesList();
+  // Then sync from cloud in background
+  (async () => {
+    try {
+      const { data } = await supa.from('platform_settings').select('config').eq('id', 1).maybeSingle();
+      if(data?.config) {
+        const cfg = typeof data.config === 'string' ? JSON.parse(data.config) : data.config;
+        if(cfg.admin_updates?.length) {
+          _updates = cfg.admin_updates;
+          localStorage.setItem('admin_updates', JSON.stringify(_updates));
+          _renderUpdatesList();
+        }
+      }
+    } catch(e) { console.warn('updates cloud sync:', e.message); }
+  })();
+}
+function _renderUpdatesList() {
   const list = document.getElementById('updates-list');
   if(!list) return;
   if(!_updates.length) {
@@ -5834,20 +5845,25 @@ function _saveChallenges() {
   } catch(e) {}
 }
 
-async function renderChallengePage() {
-  // Load from cloud
-  try {
-    const { data } = await supa.from('platform_settings').select('config').eq('id', 1).maybeSingle();
-    if(data?.config) {
-      const cfg = typeof data.config === 'string' ? JSON.parse(data.config) : data.config;
-      if(Array.isArray(cfg.admin_challenges)) {
-        _challenges = cfg.admin_challenges;
-        localStorage.setItem('_admin_challenges', JSON.stringify(_challenges));
-      }
-    }
-  } catch(e) {}
+function renderChallengePage() {
+  // Render immediately from localStorage (no async blocking)
   _renderChallengeActive();
   _renderChallengesList();
+  // Sync from cloud in background
+  (async () => {
+    try {
+      const { data } = await supa.from('platform_settings').select('config').eq('id', 1).maybeSingle();
+      if(data?.config) {
+        const cfg = typeof data.config === 'string' ? JSON.parse(data.config) : data.config;
+        if(Array.isArray(cfg.admin_challenges)) {
+          _challenges = cfg.admin_challenges;
+          localStorage.setItem('_admin_challenges', JSON.stringify(_challenges));
+          _renderChallengeActive();
+          _renderChallengesList();
+        }
+      }
+    } catch(e) { console.warn('challenges cloud sync:', e.message); }
+  })();
 }
 
 function _renderChallengeActive() {
