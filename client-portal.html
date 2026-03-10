@@ -405,6 +405,8 @@ function _startAutoSave(){
   if(_autoSaveTimer) clearInterval(_autoSaveTimer);
   _autoSaveTimer = setInterval(function(){
     if(!_supaUserId || !S) return;
+    // ── حماية: لا تحفظ لو S فاضية أو لم يكتمل تحميل البيانات من السحابة ──
+    if(!window._cloudLoadDone) return;
     _mergeUiSettingsIntoS();
     var currentHash = _getDataHash(S);
     if(currentHash !== _autoSaveHash){
@@ -10235,11 +10237,10 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   showSyncIndicator('<i class="fa-solid fa-cloud"></i>️ جاري تحميل بياناتك...', 'var(--accent)');
   const cloudData = await cloudLoad();
   if(cloudData){
-    // تحقق من صحة البيانات - لو السحابة بترجع object فارغ تقريباً، قارن بالـ local backup
     // السحابة هي مصدر الحقيقة — نستخدمها دايماً
     S = cloudData;
-    
-migrateSFields();
+    window._cloudLoadDone = true; // ✅ البيانات اتحملت — آمن الحفظ التلقائي
+    migrateSFields();
     if(S._admin_updated && S._admin_name) {
       S.settings = S.settings || {};
       S.settings.name   = S._admin_name;
@@ -10267,11 +10268,13 @@ migrateSFields();
     if(_retryData && (typeof _retryData === 'object') && Object.keys(_retryData).length > 2) {
       // نجح الـ retry
       S = _retryData;
+      window._cloudLoadDone = true; // ✅ آمن الحفظ التلقائي
       migrateSFields();
       _syncStudioLogoToConfig();
       showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تحميل البيانات', '#4fd1a5');
     } else {
       // السحابة فارغة أو مش متاحة — مستخدم جديد
+      window._cloudLoadDone = true; // ✅ حتى المستخدم الجديد — البيانات جاهزة
       lsLoad();
     }
   }
@@ -25471,12 +25474,23 @@ function _showTrackingShareModal(t){
   const studio=S.settings?.name||'Ordo';
   const clientName=t.client||'عزيزي العميل';
   const taskTitle=t.title||'المشروع';
-  const pageHtml=_buildTrackingPageHTML(t);
-  const blob=new Blob([pageHtml],{type:'text/html;charset=utf-8'});
-  const blobUrl=URL.createObjectURL(blob);
-  const clientPhone=(S.clients||[]).find(c=>(c.name||'').toLowerCase()===(t.client||'').toLowerCase())?.phone||'';
-  const waText=`مرحباً ${clientName} <i class="fa-solid fa-hand-wave"></i>\n\nنفيدك بأن مشروعك "${taskTitle}" لدى ${studio} قيد التنفيذ.\n\nيمكنك متابعة تقدم مشروعك ومراحل التنفيذ في أي وقت من خلال الرابط أدناه:\n\n<i class="fa-solid fa-link"></i> ${blobUrl}\n\nللاستفسار لا تتردد في التواصل معنا <i class="fa-solid fa-hands"></i>\n${studio}`;
-  const waUrl=clientPhone?`https://wa.me/${clientPhone.replace(/\D/g,'')}?text=${encodeURIComponent(waText)}`:`https://wa.me/?text=${encodeURIComponent(waText)}`;
+
+  // ── رابط دائم حقيقي يفتح client-portal.html ──
+  const cl=(S.clients||[]).find(c=>(c.name||'').toLowerCase()===(t.client||'').toLowerCase());
+  const clientPhone=cl?.phone||'';
+  const clientId=cl?.id||'';
+  // بناء base path لـ client-portal.html في نفس المجلد
+  const _basePath=window.location.pathname.replace(/\/[^\/]*$/, '/');
+  const portalBase=window.location.origin+_basePath+'client-portal.html';
+  const trackUrl=portalBase
+    +'?uid='+encodeURIComponent(_supaUserId||'')
+    +(clientId?'&cid='+encodeURIComponent(clientId):'')
+    +(cl?.name?'&name='+encodeURIComponent(cl.name):'')
+    +(clientPhone?'&phone='+encodeURIComponent(clientPhone):'')
+    +'&taskid='+encodeURIComponent(t.id);
+
+  const waText='مرحباً '+clientName+' 👋\n\nنفيدك بأن مشروعك "'+taskTitle+'" لدى '+studio+' قيد التنفيذ.\n\nيمكنك متابعة التقدم ومراحل التنفيذ في أي وقت من الرابط:\n\n'+trackUrl+'\n\nللاستفسار لا تتردد في التواصل معنا 🙏\n'+studio;
+  const waUrl=clientPhone?'https://wa.me/'+clientPhone.replace(/\D/g,'')+'?text='+encodeURIComponent(waText):'https://wa.me/?text='+encodeURIComponent(waText);
 
   let modal=document.getElementById('_modal-tracking');
   if(!modal){
@@ -25487,6 +25501,7 @@ function _showTrackingShareModal(t){
     document.body.appendChild(modal);
     modal.addEventListener('click',e=>{if(e.target===modal)closeM('_modal-tracking');});
   }
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   document.getElementById('_modal-tracking-inner').innerHTML=`
     <div class="modal-header">
       <div class="modal-title"><i class="fa-solid fa-link"></i> مشاركة رابط المتابعة</div>
@@ -25494,24 +25509,24 @@ function _showTrackingShareModal(t){
     </div>
     <div style="padding:20px">
       <div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid var(--border)">
-        <div style="font-size:14px;font-weight:700">${taskTitle}</div>
-        ${t.client?`<div style="font-size:12px;color:var(--accent);margin-top:2px"><i class="fa-solid fa-user"></i> ${t.client}</div>`:''}
+        <div style="font-size:14px;font-weight:800">${esc(taskTitle)}</div>
+        ${t.client?`<div style="font-size:12px;color:var(--accent);margin-top:4px"><i class="fa-solid fa-user"></i> ${esc(t.client)}</div>`:''}
       </div>
       <div class="form-group">
         <label class="form-label"><i class="fa-solid fa-link"></i> رابط صفحة المتابعة</label>
         <div style="display:flex;gap:8px">
-          <input id="_trk-url" class="form-input" value="${blobUrl}" readonly style="flex:1;font-size:11px;direction:ltr">
-          <button onclick="navigator.clipboard.writeText(document.getElementById('_trk-url').value);toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم نسخ الرابط')" class="btn btn-ghost btn-sm"><i class="fa-solid fa-copy" style="margin-left:5px"></i> نسخ</button>
+          <input id="_trk-url" class="form-input" value="${esc(trackUrl)}" readonly style="flex:1;font-size:11px;direction:ltr">
+          <button onclick="navigator.clipboard.writeText(document.getElementById('_trk-url').value);toast('<i class=\'fa-solid fa-square-check\' style=\'color:var(--accent3)\'></i> تم نسخ الرابط')" class="btn btn-ghost btn-sm"><i class="fa-solid fa-copy" style="margin-left:5px"></i> نسخ</button>
         </div>
-        <div style="font-size:10px;color:var(--text3);margin-top:4px"><i class="fa-solid fa-triangle-exclamation"></i> الرابط مؤقت ويعمل في نفس الجهاز — لرابط دائم يحتاج نشر على سيرفر</div>
+        <div style="font-size:11px;color:var(--accent3);margin-top:5px;font-weight:700"><i class="fa-solid fa-square-check"></i> رابط دائم — يعمل على أي جهاز في أي وقت</div>
       </div>
       <div class="form-group">
         <label class="form-label"><i class="fa-solid fa-pen-to-square"></i> رسالة واتساب الجاهزة</label>
-        <textarea class="form-input" id="_trk-wa" style="height:130px;font-size:12px;line-height:1.7;resize:none">${waText}</textarea>
+        <textarea class="form-input" id="_trk-wa" style="height:120px;font-size:12px;line-height:1.7;resize:none">${esc(waText)}</textarea>
       </div>
       <div style="display:flex;gap:10px">
-        <button onclick="window.open('${blobUrl}','_blank')" class="btn btn-ghost" style="flex:1"><i class="fa-solid fa-eye"></i> معاينة</button>
-        <a href="${waUrl}" target="_blank" style="flex:2;background:#25D366;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:700;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font);font-size:13px;cursor:pointer">
+        <button onclick="window.open('${esc(trackUrl)}','_blank')" class="btn btn-ghost" style="flex:1"><i class="fa-solid fa-eye"></i> معاينة</button>
+        <a href="${esc(waUrl)}" target="_blank" style="flex:2;background:#25D366;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:700;text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font);font-size:13px">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
           إرسال واتساب
         </a>
