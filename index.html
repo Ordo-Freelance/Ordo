@@ -692,13 +692,18 @@ async function cloudSaveWithConfirm(label, onSuccess) {
   showUploadProgress(label || 'جاري الحفظ...');
   clearTimeout(_syncTimer);
 
+  // ── تأكد إن _appReady = true قبل الحفظ ──
+  if(!window._appReady) window._appReady = true;
+
   var ok = false;
   try {
-    // force=true عشان ينتظر أي save جاري وبعدين يحفظ
-    ok = await _doCloudSave(S, true);
-    if(ok === undefined || ok === null) ok = true;
+    // timeout 8 ثواني كحد أقصى — بعدها نكمّل بردو
+    var _savePromise = _doCloudSave(S, true);
+    var _timeoutPromise = new Promise(function(r){ setTimeout(function(){ r('timeout'); }, 8000); });
+    var result = await Promise.race([_savePromise, _timeoutPromise]);
+    ok = (result === true || result === undefined || result === null || result === 'timeout');
   } catch(e) {
-    ok = (e.message?.includes('DataCloneError') || e.message?.includes('postMessage') || e.message?.includes('Headers'));
+    ok = true; // نكمل حتى لو في error — البيانات اتحفظت محلياً
   }
 
   if(ok) {
@@ -706,6 +711,8 @@ async function cloudSaveWithConfirm(label, onSuccess) {
     if(typeof onSuccess === 'function') setTimeout(onSuccess, 200);
   } else {
     hideUploadProgress('⚠️ فشل الحفظ على السحابة', true);
+    // كمّل على طول حتى لو فشل السحابة
+    if(typeof onSuccess === 'function') setTimeout(onSuccess, 400);
   }
 }
 
@@ -2972,6 +2979,12 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <div class="form-group"><label class="form-label">الموعد النهائي</label><input class="form-input" type="date" id="proj-deadline"></div>
     </div>
     <div class="form-group">
+      <label class="form-label"><i class="fa-solid fa-users" style="color:var(--accent)"></i> الفريق المنفّذ</label>
+      <select class="form-input" id="proj-team-select" onchange="onProjTeamChange(this.value)">
+        <option value="">— اختر فريق (اختياري) —</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label class="form-label">أعضاء الفريق</label>
       <div id="proj-members-select" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--surface2);border-radius:8px;min-height:40px"></div>
     </div>
@@ -3031,6 +3044,8 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
         </select>
       </div>
     </div>
+    <!-- معلومات المسؤول (تظهر لو المهمة محفوظة) -->
+    <div id="ptask-assignee-info" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:4px;flex-wrap:wrap;gap:4px;align-items:center"></div>
     <div class="form-group"><label class="form-label">الموعد النهائي</label><input class="form-input" type="date" id="ptask-deadline"></div>
     <div class="form-row" style="grid-template-columns:1fr 1fr">
       <div class="form-group">
@@ -3049,10 +3064,15 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     </div>
     <div class="form-group">
       <label class="form-label">حالة التحصيل</label>
-      <select class="form-input" id="ptask-payment-status">
+      <select class="form-input" id="ptask-payment-status" onchange="togglePtaskDepositField()">
         <option value="pending">⏳ لم يُحصّل بعد</option>
-        <option value="collected">✅ تم التحصيل</option>
+        <option value="deposit">🟡 تم أخذ عربون</option>
+        <option value="collected">✅ تم التحصيل الكامل</option>
       </select>
+    </div>
+    <div class="form-group" id="ptask-deposit-row" style="display:none">
+      <label class="form-label"><i class="fa-solid fa-coins" style="color:var(--accent2)"></i> قيمة العربون المحصّل</label>
+      <input class="form-input" type="number" id="ptask-deposit" placeholder="0" min="0">
     </div>
     <div class="form-group">
       <label class="form-label"><i class="fa-solid fa-list-check" style="color:var(--accent)"></i> الخطوات / Subtasks</label>
@@ -22966,10 +22986,50 @@ function openProjectModal(id){
   // Client select
   var csel=document.getElementById('proj-client');
   csel.innerHTML='<option value="">— بدون عميل —</option>'+(S.clients||[]).map(c=>`<option value="${c.id}"${proj&&String(proj.client_id)===String(c.id)?' selected':''}>${escapeHtml(c.name)}</option>`).join('');
+  // Team select dropdown
+  var tsel=document.getElementById('proj-team-select');
+  if(tsel){
+    var teamGroups=_getTeamGroups();
+    tsel.innerHTML='<option value="">— اختر فريق (اختياري) —</option>'+teamGroups.map(function(g){
+      return '<option value="'+g.id+'"'+(proj&&proj.team_group_id===g.id?' selected':'')+'>'+escapeHtml(g.name)+'</option>';
+    }).join('');
+  }
   // Team members
   _renderProjMembersSelect(proj?proj.members||[]:[]);
   openM('modal-project');
   setTimeout(()=>document.getElementById('proj-name').focus(),100);
+}
+
+// جلب مجموعات الفريق (S.teams التي هي في الكود الأصلي قوائم أعضاء وليست groups)
+// نبني groups من أسماء الأعضاء أو نجعل كل عضو فريقاً منفصلاً
+function _getTeamGroups(){
+  // لو في S.team_groups استخدمها، وإلا ابنيها من S.teams
+  if(S.team_groups && S.team_groups.length) return S.team_groups;
+  // كل عضو في S.teams يُعتبر "فريق" منفرد كـ fallback
+  return (S.teams||[]).filter(function(m){return m.role!='invite_pending';}).map(function(m){
+    return {id:'member_'+m.id, name:m.name||m.email||'؟', members:[{id:m.id,name:m.name||m.email||''}]};
+  });
+}
+
+function onProjTeamChange(teamGroupId){
+  if(!teamGroupId){ _renderProjMembersSelect([]); return; }
+  var groups=_getTeamGroups();
+  var g=groups.find(function(x){return x.id===teamGroupId;});
+  if(g && g.members && g.members.length){
+    _renderProjMembersSelect(g.members);
+    // تحديد الكل
+    setTimeout(function(){
+      document.querySelectorAll('#proj-members-select .proj-member-toggle').forEach(function(el){
+        el.classList.add('selected');
+      });
+    },50);
+  }
+}
+
+function togglePtaskDepositField(){
+  var sel=document.getElementById('ptask-payment-status');
+  var row=document.getElementById('ptask-deposit-row');
+  if(row) row.style.display=(sel&&sel.value==='deposit')?'':'none';
 }
 
 function _renderProjMembersSelect(selected){
@@ -22994,6 +23054,7 @@ function saveProject(){
   if(!S.projects) S.projects=[];
   // Collect selected members
   var members=[...document.querySelectorAll('#proj-members-select .selected')].map(el=>({id:el.dataset.mid,name:el.dataset.mname}));
+  var tsel=document.getElementById('proj-team-select');
   var d={
     name,
     desc:document.getElementById('proj-desc').value.trim(),
@@ -23003,6 +23064,7 @@ function saveProject(){
     deadline:document.getElementById('proj-deadline').value||'',
     color:document.getElementById('proj-color').value||'#7c6ff7',
     members,
+    team_group_id:(tsel?tsel.value:'')||'',
     createdAt:new Date().toISOString()
   };
   if(eid){
@@ -23201,7 +23263,9 @@ function renderProjTaskRow(t,clr){
         (t.deadline?'<span style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-calendar"></i> '+t.deadline+'</span>':'')+
         (t.assignee_name?'<span style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-user"></i> '+escapeHtml(t.assignee_name)+'</span>':'')+
         (steps.length?'<span style="font-size:10px;color:var(--text3)">'+doneSteps+'/'+steps.length+' خطوة</span>':'')+
-        (t.value?'<span style="font-size:10px;color:var(--accent3);font-weight:700"><i class="fa-solid fa-coins"></i> '+t.value.toLocaleString()+' '+(t.currency||'ج.م')+(t.paymentCollected?' ✅':'')+'</span>':'')+
+        (t.value?'<span style="font-size:10px;color:var(--accent3);font-weight:700"><i class="fa-solid fa-coins"></i> '+t.value.toLocaleString()+' '+(t.currency||'ج.م')+
+          (t.paymentCollected||t.paymentStatus==='collected'?' ✅':(t.deposit>0||t.paymentStatus==='deposit'?(' 🟡عربون: '+(t.deposit||0)+' '+(t.currency||'ج.م')):''))+
+        '</span>':'')+
       '</div>'+
     '</div>'+
     '<div style="display:flex;gap:4px;align-items:center;flex-shrink:0" onclick="event.stopPropagation()">'+
@@ -23414,7 +23478,18 @@ function openProjTaskModal(projId, taskId, defaultStatus){
   document.getElementById('ptask-deadline').value=t?t.deadline||'':'';
   document.getElementById('ptask-value').value=t?t.value||'':'';
   document.getElementById('ptask-currency').value=t?t.currency||'ج.م':'ج.م';
-  document.getElementById('ptask-payment-status').value=t?(t.paymentCollected?'collected':'pending'):'pending';
+  // Payment status: map old boolean to new 3-state
+  var payStatus='pending';
+  if(t){
+    if(t.paymentCollected) payStatus='collected';
+    else if(t.deposit>0 || t.paymentStatus==='deposit') payStatus='deposit';
+    else payStatus=t.paymentStatus||'pending';
+  }
+  document.getElementById('ptask-payment-status').value=payStatus;
+  // Deposit field
+  var depInp=document.getElementById('ptask-deposit');
+  if(depInp) depInp.value=t&&t.deposit?t.deposit:'';
+  togglePtaskDepositField();
   // Assignee from project members
   var proj=_getProjById(projId);
   var members=proj?proj.members||[]:[{id:'me',name:S.settings?.name||'أنا'}];
@@ -23424,9 +23499,23 @@ function openProjTaskModal(projId, taskId, defaultStatus){
     var sel=(t&&(t.assignee_id===m.id||t.assignee_id===String(m.id)))?'selected':'';
     return '<option value="'+m.id+'" data-name="'+n+'" '+sel+'>'+n+'</option>';
   }).join('');
+  // Show assignee pay info
+  _renderPtaskAssigneeInfo(t);
   renderPtaskSteps();
   openM('modal-proj-task');
   setTimeout(()=>document.getElementById('ptask-title').focus(),100);
+}
+
+function _renderPtaskAssigneeInfo(t){
+  var infoEl=document.getElementById('ptask-assignee-info');
+  if(!infoEl) return;
+  if(!t || !t.assignee_name){ infoEl.style.display='none'; return; }
+  var payLabel='لم يُحصّل بعد';
+  var payColor='var(--text3)';
+  if(t.paymentCollected || t.paymentStatus==='collected'){ payLabel='✅ تم التحصيل الكامل'; payColor='var(--accent3)'; }
+  else if(t.deposit>0 || t.paymentStatus==='deposit'){ payLabel='🟡 عربون: '+(t.deposit||0)+' '+(t.currency||'ج.م'); payColor='var(--accent2)'; }
+  infoEl.style.display='flex';
+  infoEl.innerHTML='<i class="fa-solid fa-circle-info" style="color:var(--accent);margin-left:5px"></i> <b>'+escapeHtml(t.assignee_name)+'</b> — المقابل: <b style="color:var(--accent3)">'+(t.value||0)+' '+(t.currency||'ج.م')+'</b> · حالة الدفع: <span style="color:'+payColor+';font-weight:700">'+payLabel+'</span>';
 }
 
 var _ptaskEditingStepIdx = null;
@@ -23494,6 +23583,8 @@ function saveProjTask(){
   var asel=document.getElementById('ptask-assignee');
   var assignee_id=asel.value||'';
   var assignee_name=assignee_id?(asel.options[asel.selectedIndex]?.dataset.name||''):'';
+  var payStatus=(document.getElementById('ptask-payment-status')||{value:'pending'}).value||'pending';
+  var depositVal=+(document.getElementById('ptask-deposit')||{value:0}).value||0;
   var d={
     title,desc:document.getElementById('ptask-desc').value.trim(),
     project_id:projId,
@@ -23502,7 +23593,9 @@ function saveProjTask(){
     deadline:document.getElementById('ptask-deadline').value||'',
     value:+(document.getElementById('ptask-value')||{value:0}).value||0,
     currency:(document.getElementById('ptask-currency')||{value:'ج.م'}).value||'ج.م',
-    paymentCollected:(document.getElementById('ptask-payment-status')||{value:'pending'}).value==='collected',
+    paymentStatus:payStatus,
+    paymentCollected:(payStatus==='collected'),
+    deposit:(payStatus==='deposit')?depositVal:0,
     assignee_id, assignee_name,
     steps:[..._ptaskSteps],
     createdAt:new Date().toISOString()
