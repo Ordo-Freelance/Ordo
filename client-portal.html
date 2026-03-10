@@ -517,8 +517,8 @@ function renderAccounts(){
         <strong>📌 الرصيد المستحق: ${netBalance.toLocaleString()} ${cur}</strong>
         ${openingNote?`<div style="font-size:11px;color:var(--t3);margin-top:2px">${xe(openingNote)}</div>`:''}
       </div>`:''}
-      ${openBal>0&&openingType==='prepaid'?`<div style="padding:10px 12px;background:rgba(79,209,165,.1);border-radius:10px;border-right:3px solid var(--g);font-size:12px;margin-top:8px">
-        <strong>✅ رصيد مدفوع مسبقاً: ${openBal.toLocaleString()} ${cur}</strong>
+      ${openingBal>0&&openingType==='prepaid'?`<div style="padding:10px 12px;background:rgba(79,209,165,.1);border-radius:10px;border-right:3px solid var(--g);font-size:12px;margin-top:8px">
+        <strong>✅ رصيد مدفوع مسبقاً: ${openingBal.toLocaleString()} ${cur}</strong>
         ${openingNote?`<div style="font-size:11px;color:var(--t3);margin-top:2px">${xe(openingNote)}</div>`:''}
       </div>`:''}
     </div>
@@ -526,13 +526,13 @@ function renderAccounts(){
     <!-- سجل المعاملات -->
     <div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
       <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-list-timeline" style="color:var(--ac)"></i> سجل المعاملات</div>
-      ${openBal>0?`<div style="padding:10px 12px;background:${openingType==='receivable'?'rgba(255,107,107,.08)':'rgba(79,209,165,.08)'};border-radius:10px;border:1px solid var(--bd);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+      ${openingBal>0?`<div style="padding:10px 12px;background:${openingType==='receivable'?'rgba(255,107,107,.08)':'rgba(79,209,165,.08)'};border-radius:10px;border:1px solid var(--bd);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
         <div>
           <div style="font-size:12px;font-weight:800;color:var(--t1)">${openingType==='receivable'?'💰 رصيد افتتاحي — مستحق':'✅ رصيد افتتاحي — مدفوع مسبقاً'}</div>
           ${openingNote?`<div style="font-size:11px;color:var(--t3)">${xe(openingNote)}</div>`:''}
         </div>
         <div style="font-size:14px;font-weight:900;color:${openingType==='receivable'?'var(--r)':'var(--g)'}">
-          ${openingType==='receivable'?'+':'-'}${openBal.toLocaleString()} ${cur}
+          ${openingType==='receivable'?'+':'-'}${openingBal.toLocaleString()} ${cur}
         </div>
       </div>`:''}
       ${allTrans.length?[...allTrans].sort((a,b)=>(b.isoDate||b.date||'').localeCompare(a.isoDate||a.date||'')).map(t=>`
