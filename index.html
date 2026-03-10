@@ -1336,6 +1336,24 @@ body.pub-page #app-body {
 .page-title span { color: var(--accent); }
 .page-subtitle   { font-size: 13px; color: var(--text2); margin-top: 4px; }
 
+/* ── Navigation Bar (Back + Home) ── */
+#_page-nav-bar {
+  display:flex; align-items:center; gap:8px;
+  padding:6px 12px; margin-bottom:14px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:12px; width:fit-content; flex-wrap:wrap;
+}
+#_page-nav-bar button {
+  display:flex; align-items:center; gap:6px;
+  background:none; border:1px solid var(--border); border-radius:8px;
+  padding:5px 12px; font-size:12px; font-weight:700; color:var(--text2);
+  cursor:pointer; font-family:var(--font); transition:.15s;
+}
+#_page-nav-bar button:hover { background:var(--surface3); color:var(--text); border-color:var(--accent); }
+.nav-back-btn { display:none; }
+.nav-home-btn { color:var(--accent) !important; border-color:rgba(124,111,247,.35) !important; background:rgba(124,111,247,.07) !important; }
+
+
 /* ═══════════════════════════════════════════════════
    GRID SYSTEM
 ═══════════════════════════════════════════════════ */
@@ -2550,6 +2568,12 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 </div>
 
 
+
+<!-- NAV BAR (Back + Home) -->
+<div id="_page-nav-bar">
+  <button class="nav-back-btn" onclick="_goBackPage()"><i class="fa-solid fa-arrow-right"></i> رجوع</button>
+  <button class="nav-home-btn" onclick="showPage('dashboard')"><i class="fa-solid fa-house"></i> الرئيسية</button>
+</div>
 
 <!-- DASHBOARD -->
 <div class="page active" id="page-dashboard">
@@ -5618,6 +5642,44 @@ function checkLimit(limitKey, currentCount){
   return true;
 }
 
+// ── Page Navigation History ──
+var _pageHistory = [];
+function _goBackPage(){
+  if(_pageHistory.length===0){ showPage("dashboard"); return; }
+  var prev=_pageHistory.pop();
+  _hideLock();
+  document.querySelectorAll(".page").forEach(function(p){p.classList.remove("active");});
+  document.querySelectorAll(".nav-item").forEach(function(n){n.classList.remove("active");});
+  var tgt=document.getElementById("page-"+prev);
+  if(tgt) tgt.classList.add("active");
+  document.querySelectorAll(".nav-item").forEach(function(n){
+    if(n.getAttribute("onclick")&&n.getAttribute("onclick").includes("'"+prev+"'")) n.classList.add("active");
+  });
+  document.querySelectorAll(".bn-item").forEach(function(b){b.classList.remove("active");});
+  var bnEl=document.getElementById("bn-"+prev); if(bnEl) bnEl.classList.add("active");
+  document.querySelectorAll(".bn-more-item").forEach(function(b){b.classList.remove("active");});
+  var bnmEl=document.getElementById("bnm-"+prev); if(bnmEl) bnmEl.classList.add("active");
+  updateHeader(prev);
+  if(window.innerWidth<=1024) closeSidebar();
+  renderAll();
+  window.scrollTo(0,0);
+  _updateNavBtns();
+}
+function _updateNavBtns(){
+  var navBar=document.getElementById('_page-nav-bar');
+  var backBtns=document.querySelectorAll('.nav-back-btn');
+  var homeBtns=document.querySelectorAll('.nav-home-btn');
+  var curActive=document.querySelector('.page.active');
+  var curId=curActive?curActive.id.replace('page-',''):'';
+  var onDash=(curId==='dashboard');
+  backBtns.forEach(function(b){ b.style.display=_pageHistory.length>0?'':'none'; });
+  homeBtns.forEach(function(b){ b.style.display=onDash?'none':''; });
+  if(navBar){
+    var showBar=_pageHistory.length>0||!onDash;
+    navBar.style.display=showBar?'flex':'none';
+  }
+}
+
 function showPage(id,el){
   if(_supaUserId && hasActiveSub() && !FREE_PAGES.includes(id) && !hasPageFeature(id)){
     _showPageLock(id,el,'feature'); return;
@@ -5625,6 +5687,14 @@ function showPage(id,el){
   if(_supaUserId && !hasActiveSub() && !FREE_PAGES.includes(id)){
     _showPageLock(id,el); return;
   }
+  // Track page history for back button
+  var _curActive = document.querySelector('.page.active');
+  var _curId = _curActive ? _curActive.id.replace('page-','') : null;
+  if(_curId && _curId !== id) {
+    _pageHistory.push(_curId);
+    if(_pageHistory.length > 20) _pageHistory.shift();
+  }
+  _updateNavBtns();
   _hideLock();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -9821,6 +9891,7 @@ function renderAll(){
   renderTimeTracker();renderContractsList();
   if(typeof renderServices==='function') renderServices();
   if(typeof renderStoresHomeList==='function') renderStoresHomeList();
+  try{ _updateNavBtns(); }catch(e){}
   if(typeof renderSupport==='function') renderSupport();
   // Refresh freelancer goals page if active
   if(document.getElementById('page-freelancer-goals')?.classList.contains('active')){
@@ -17190,21 +17261,28 @@ async function checkAndSaveUsername(){
   if(!_supaUserId){ toast('<i class="fa-solid fa-triangle-exclamation"></i> يجب تسجيل الدخول أولاً'); return; }
   if(statusEl) statusEl.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
   try{
-    // Check if username already taken by another user
-    var res=await supa.from('studio_data').select('user_id').eq('data->>username', un).neq('user_id',_supaUserId).maybeSingle();
+    // Check via username_index column (more reliable)
+    var res=await supa.from('studio_data').select('user_id').eq('username_index', un).neq('user_id',_supaUserId).maybeSingle();
     if(res.data){
       if(statusEl) statusEl.innerHTML='<span style="color:var(--accent4)">❌ الاسم محجوز، جرب اسماً آخر</span>';
       return;
     }
-    // Save
+    // Save to S.settings.username
+    if(!S.settings) S.settings={};
     S.settings.username=un;
     if(inp) inp.value=un;
-    lsSave(); cloudSave(S);
+    // Force immediate cloud save with username_index
+    S._savedAt=new Date().toISOString();
+    try{
+      const payload={user_id:_supaUserId,data:JSON.stringify(S),updated_at:S._savedAt,username_index:un};
+      await supa.from('studio_data').upsert(payload,{onConflict:'user_id'});
+    }catch(e2){}
+    lsSave();
     _updateUsernamePreview(un);
     if(statusEl) statusEl.innerHTML='✅ تم الحفظ — رابط متجرك: <span id="username-link-preview" style="color:var(--accent);cursor:pointer" onclick="window.open(window.location.origin+window.location.pathname+\'?u='+un+'\')">'+(window.location.origin+window.location.pathname)+'?u='+un+'</span>';
     toast('✅ تم حفظ الاسم: @'+un);
   } catch(e){
-    // Fallback: just save locally even if check fails
+    if(!S.settings) S.settings={};
     S.settings.username=un;
     if(inp) inp.value=un;
     lsSave(); cloudSave(S);
@@ -17212,9 +17290,9 @@ async function checkAndSaveUsername(){
     if(statusEl) statusEl.innerHTML='✅ رابط متجرك: <span style="color:var(--accent)">'+(window.location.origin+window.location.pathname)+'?u='+un+'</span>';
   }
 }
-
 // ══ MULTI-STORE FUNCTIONS ══
 function _getStores(){ return S.stores||[]; }
+
 
 // ── Current active store context ──
 var _currentStoreIdx = null;
@@ -17654,15 +17732,29 @@ function saveSvcLogo(){
 }
 
 // ── يوزرنيم الموقع ──
-function saveSvcUsername(){
+async function saveSvcUsername(){
   var inp=document.getElementById('svc-main-username'); if(!inp) return;
   var un=inp.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
   if(!un){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل يوزرنيم أولاً');return;}
+  if(un.length<3){toast('<i class="fa-solid fa-triangle-exclamation"></i> الاسم قصير جداً (3 أحرف على الأقل)');return;}
+  if(!_supaUserId){toast('<i class="fa-solid fa-triangle-exclamation"></i> يجب تسجيل الدخول أولاً');return;}
+  // Check uniqueness
+  toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...');
+  try{
+    var res=await supa.from('studio_data').select('user_id').eq('username_index',un).neq('user_id',_supaUserId).maybeSingle();
+    if(res.data){toast('<i class="fa-solid fa-circle-xmark" style="color:var(--accent4)"></i> الاسم @'+un+' محجوز، جرب اسماً آخر');return;}
+  }catch(e){}
   if(!S.settings) S.settings={};
   S.settings.username=un;
   var setInp=document.getElementById('set-username'); if(setInp) setInp.value=un;
   var pv=document.getElementById('svc-un-live-preview'); if(pv) pv.textContent=un;
-  lsSave(); cloudSaveNow(S);
+  // Force save with username_index
+  S._savedAt=new Date().toISOString();
+  try{
+    const payload={user_id:_supaUserId,data:JSON.stringify(S),updated_at:S._savedAt,username_index:un};
+    await supa.from('studio_data').upsert(payload,{onConflict:'user_id'});
+  }catch(e2){ lsSave(); cloudSaveNow(S); }
+  lsSave();
   toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ اليوزرنيم: @'+un);
   // تحديث الرابط في الـ header
   try{ var lnk=document.getElementById('svc-inner-store-link'); if(lnk) lnk.textContent=getSvcLink(_getCurrentStoreId()); }catch(e){}
@@ -17831,6 +17923,7 @@ function renderStandalonePackages(){
           '<div style="font-size:16px;font-weight:900;color:var(--accent)">'+(pkg.price?Number(pkg.price).toLocaleString()+' '+cur:'مجاني')+'</div>'+
           '<div style="display:flex;gap:6px">'+
             '<button data-pid="'+pkg.id+'" onclick="openPkgStandaloneModal(+this.dataset.pid)" class="btn btn-ghost btn-sm"><i class="fa-solid fa-pen"></i></button>'+
+            '<button data-pid="'+pkg.id+'" onclick="duplicatePkg(+this.dataset.pid)" class="btn btn-ghost btn-sm" title="تكرار الباقة" style="color:var(--accent)"><i class="fa-solid fa-copy"></i></button>'+
             '<button data-pid="'+pkg.id+'" onclick="delPkgStandalone(+this.dataset.pid)" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>'+
           '</div>'+
         '</div>'+
@@ -17945,6 +18038,7 @@ function renderPortfolioProjects(){
         '<div style="display:flex;gap:6px;margin-top:auto;padding-top:8px;border-top:1px solid var(--border)">'+
           (proj.url?'<a href="'+escapeHtml(proj.url)+'" target="_blank" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center">↗ عرض</a>':'')+
           '<button data-pid="'+proj.id+'" onclick="openPortfolioProjectModal(+this.dataset.pid)" class="btn btn-ghost btn-sm"><i class="fa-solid fa-pen"></i></button>'+
+          '<button data-pid="'+proj.id+'" onclick="duplicatePortfolioProject(+this.dataset.pid)" class="btn btn-ghost btn-sm" title="تكرار المشروع" style="color:var(--accent)"><i class="fa-solid fa-copy"></i></button>'+
           '<button data-pid="'+proj.id+'" onclick="delPortfolioProject(+this.dataset.pid)" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>'+
         '</div>'+
       '</div></div>';
@@ -18343,7 +18437,12 @@ function saveSvc(){
   };
   if(eid){
     var i=S.services.findIndex(function(x){return String(x.id)===String(eid);});
-    if(i>-1){ d.id=+eid; d.createdAt=S.services[i].createdAt||d.createdAt; S.services[i]=d; }
+    if(i>-1){
+      d.id=+eid; d.createdAt=S.services[i].createdAt||d.createdAt;
+      // Preserve existing packages if any
+      if(S.services[i].packages && S.services[i].packages.length) d.packages = S.services[i].packages;
+      S.services[i]=d;
+    }
   } else {
     d.id=Date.now(); S.services.push(d);
   }
@@ -18364,6 +18463,39 @@ function delSvc(id){
     S.services=(S.services||[]).filter(function(x){return String(x.id)!==String(id);});
     lsSave(); cloudSave(S); renderServices(); toast('<i class="fa-solid fa-trash"></i> تم الحذف');
   });
+}
+function duplicateSvc(id){
+  var svc=(S.services||[]).find(function(x){return String(x.id)===String(id);});
+  if(!svc){ toast('<i class="fa-solid fa-triangle-exclamation"></i> لم يتم العثور على الخدمة'); return; }
+  var copy=JSON.parse(JSON.stringify(svc));
+  copy.id=Date.now();
+  copy.name=copy.name+' (نسخة)';
+  copy.createdAt=new Date().toISOString();
+  if(!S.services) S.services=[];
+  S.services.push(copy);
+  lsSave(); cloudSave(S); renderServices(); toast('<i class="fa-solid fa-copy"></i> تم تكرار الخدمة');
+}
+function duplicatePkg(id){
+  var pkg=(S.standalone_packages||[]).find(function(x){return String(x.id)===String(id);});
+  if(!pkg){ toast('<i class="fa-solid fa-triangle-exclamation"></i> لم يتم العثور على الباقة'); return; }
+  var copy=JSON.parse(JSON.stringify(pkg));
+  copy.id=Date.now();
+  copy.name=copy.name+' (نسخة)';
+  copy.createdAt=new Date().toISOString();
+  if(!S.standalone_packages) S.standalone_packages=[];
+  S.standalone_packages.push(copy);
+  lsSave(); cloudSave(S); renderStandalonePackages(); toast('<i class="fa-solid fa-copy"></i> تم تكرار الباقة');
+}
+function duplicatePortfolioProject(id){
+  var proj=(S.portfolio_projects||[]).find(function(x){return String(x.id)===String(id);});
+  if(!proj){ toast('<i class="fa-solid fa-triangle-exclamation"></i> لم يتم العثور على المشروع'); return; }
+  var copy=JSON.parse(JSON.stringify(proj));
+  copy.id='pf_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  copy.name=copy.name+' (نسخة)';
+  copy.createdAt=new Date().toISOString();
+  if(!S.portfolio_projects) S.portfolio_projects=[];
+  S.portfolio_projects.push(copy);
+  lsSave(); cloudSave(S); renderPortfolioProjects(); toast('<i class="fa-solid fa-copy"></i> تم تكرار المشروع');
 }
 
 // ── Render Services ──
@@ -18454,6 +18586,7 @@ function renderServices(){
           '</div>'+
           '<div style="display:flex;gap:6px;border-top:1px solid var(--border);padding-top:12px" onclick="event.stopPropagation()">'+
             '<button data-sid="'+svc.id+'" onclick="openSvcModal(+this.dataset.sid)" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center"><i class="fa-solid fa-pen"></i> تعديل</button>'+
+            '<button data-sid="'+svc.id+'" onclick="duplicateSvc(+this.dataset.sid)" class="btn btn-ghost btn-sm" title="تكرار الخدمة" style="color:var(--accent)"><i class="fa-solid fa-copy"></i></button>'+
             '<button data-sid="'+svc.id+'" data-active="'+(isActive?'1':'0')+'" onclick="toggleSvcActive(+this.dataset.sid,event)" class="btn btn-ghost btn-sm" style="color:'+(isActive?'var(--accent3)':'var(--text3)')+'" title="'+(isActive?'موقف الخدمة':'تفعيل الخدمة')+'">'+(isActive?'● نشطة':'○ موقوفة')+'</button>'+
             '<button data-sid="'+svc.id+'" onclick="delSvc(+this.dataset.sid)" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>'+
           '</div>'+
