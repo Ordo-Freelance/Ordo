@@ -260,15 +260,10 @@ let _cloudSavePending = false;
 
 async function _doCloudSave(data, force) {
   if(!_supaUserId || !data) return false;
-  // ── حماية: لا تحفظ أثناء التحميل الأولي (إلا لو force) ──
-  if(!force && !window._appReady) {
-    return false;
-  }
-  // ── حماية: لا تحفظ بيانات فاضية تماماً ──
+  if(!force && !window._appReady) { return false; }
   var _dataScore = (data.tasks?.length||0)*3 + (data.clients?.length||0)*2 + (data.invoices?.length||0)*2 + (data.transactions?.length||0);
-  if(!force && _dataScore === 0 && !data.settings?.name) {
-    return false;
-  }
+  if(!force && _dataScore === 0 && !data.settings?.name) { return false; }
+  console.log('%c💾 SAVE', 'color:blue;font-weight:bold', '| clients:', data.clients?.length, '| tasks:', data.tasks?.length, '| appReady:', window._appReady, '| uid:', _supaUserId?.slice(0,8));
 
   // لو في save جاري وده مش force — queue وخلاص
   if(_cloudSaving && !force) { _cloudSavePending = true; return false; }
@@ -327,12 +322,12 @@ async function _doCloudSave(data, force) {
         showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محفوظ', '#4fd1a5');
         return true;
       }
-      console.error('cloudSave error:', _upsertError.message);
+      console.error('%c❌ SAVE FAILED', 'color:red;font-weight:bold', _upsertError.message);
       showSyncIndicator('<i class="fa-solid fa-triangle-exclamation"></i> فشل الحفظ', '#f7c948');
       return false;
     } else {
       showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محفوظ', '#4fd1a5');
-
+      console.log('%c✅ SAVED OK', 'color:green;font-weight:bold', '| clients:', data?.clients?.length, '| tasks:', data?.tasks?.length);
       return true;
     }
   } catch(e) {
@@ -548,7 +543,7 @@ async function cloudLoad(retryCount = 0){
     try {
       const parsed = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
       if(!parsed || typeof parsed !== 'object') return null;
-      console.log('cloudLoad: ✅ loaded keys:', Object.keys(parsed).join(','));
+      console.log('%c📥 LOADED', 'color:purple;font-weight:bold', '| clients:', parsed.clients?.length, '| tasks:', parsed.tasks?.length, '| savedAt:', parsed._savedAt);
       return parsed;
     } catch(parseErr){
       console.error('cloudLoad parse error:', parseErr);
