@@ -34,6 +34,7 @@
 // ══════════════════════════════════════════════════
 const SUPA_URL  = 'https://mpfmcjgigpvdxbhgzufo.supabase.co';
 const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wZm1jamdpZ3B2ZHhiaGd6dWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2Mjc3MzMsImV4cCI6MjA4ODIwMzczM30.fICNxH_7DEBHripIoyMcUugTnd4JEBx-ypegpPvb6PM';
+window._supaAnonKey = SUPA_ANON;
 // ── Block BroadcastChannel to prevent DataCloneError with Headers object ──
 // Supabase uses BroadcastChannel internally to sync sessions across tabs,
 // but postMessage fails when Headers objects are in the payload (iframe/preview env).
@@ -257,51 +258,14 @@ let _cloudSavePending = false;
 
 async function _doCloudSave(data) {
   if(!_supaUserId || !data) return;
-  if(_cloudSaving) { 
-    _cloudSavePending = true; 
-    // حفظ محلي فوري على الأقل
-    try { localStorage.setItem(userKey(), JSON.stringify(data)); } catch(e) {}
-    try { localStorage.setItem('studioOS_backup_'+_supaUserId, JSON.stringify(data)); } catch(e) {}
-    return; 
+  // لو في save جاري، نسجل pending ونرجع — هيتنفذ بعده
+  if(_cloudSaving) {
+    _cloudSavePending = true;
+    return;
   }
   _cloudSaving = true;
+  showSyncIndicator('<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...', 'var(--accent)');
   try {
-    // ─── حماية من رفع بيانات فارغة ───
-    const _dataScore = (data.tasks?.length||0) + (data.clients?.length||0) +
-                       (data.invoices?.length||0) + (data.transactions?.length||0) +
-                       (data.services?.length||0) + (data.standalone_packages?.length||0) +
-                       (data.portfolio_projects?.length||0);
-    // جلب آخر نسخة من السحابة للمقارنة (كل 5 دقائق بس)
-    const _lastCloudCheck = window._lastCloudScoreCheck || 0;
-    if(Date.now() - _lastCloudCheck > 300000) { // كل 5 دقائق
-      try {
-        const {data: _cv} = await supa.from('studio_data').select('data').eq('user_id',_supaUserId).maybeSingle();
-        if(_cv?.data) {
-          const _cd = typeof _cv.data==='string' ? JSON.parse(_cv.data) : _cv.data;
-          const _cloudScore = (_cd?.tasks?.length||0) + (_cd?.clients?.length||0) +
-                              (_cd?.invoices?.length||0) + (_cd?.transactions?.length||0) +
-                              (_cd?.services?.length||0) + (_cd?.standalone_packages?.length||0) +
-                              (_cd?.portfolio_projects?.length||0);
-          window._lastCloudScore = _cloudScore;
-          window._lastCloudScoreCheck = Date.now();
-          // إذا البيانات المحلية أقل بكثير من السحابة - خطر!
-          // استثناء: لو المستخدم عنده settings/logo/banner محلي أحدث، نحفظ بدون ما نرجع
-          const _localHasSettings = !!(data?.settings?.logo || data?.settings?.store_logo || 
-                                       data?.settings?.svc_banner || data?.settings?.username ||
-                                       data?.settings?.name);
-          if(_dataScore < _cloudScore - 5 && _cloudScore > 3 && !_localHasSettings) {
-            console.error('⛔ ABORT cloudSave: local data smaller than cloud! local:', _dataScore, 'cloud:', _cloudScore);
-            // استرد من السحابة بدل ما نكتب عليها
-            S = _cd;
-            migrateSFields && migrateSFields();
-            try { localStorage.setItem(userKey(), JSON.stringify(S)); } catch(e) {}
-            showSyncIndicator('<i class="fa-solid fa-rotate"></i> تم استرداد البيانات من السحابة', '#7c6ff7');
-            _cloudSaving = false;
-            return;
-          }
-        }
-      } catch(e) { /* ignore check errors */ }
-    }
     const _replacer = (key, val) => {
       if(val === null || val === undefined) return val;
       const t = typeof val;
@@ -321,42 +285,44 @@ async function _doCloudSave(data) {
     try { _safeData = JSON.parse(JSON.stringify(data, _replacer)); }
     catch(e) { try { _safeData = JSON.parse(JSON.stringify(data)); } catch(e2) { _safeData = {}; } }
 
-    // احفظ نسخة احتياطية محلية دايماً قبل الإرسال
-    try { localStorage.setItem('studioOS_backup_'+_supaUserId, JSON.stringify(_safeData)); } catch(e) {}
-    try { localStorage.setItem(userKey(), JSON.stringify(_safeData)); } catch(e) {}
-
-    // أضف timestamp للمقارنة عند التحميل
+    // أضف timestamp
     _safeData._savedAt = new Date().toISOString();
+
+    // حفظ محلي كـ backup
+    try { localStorage.setItem(userKey(), JSON.stringify(_safeData)); } catch(e) {}
+    try { localStorage.setItem('studioOS_backup_'+_supaUserId, JSON.stringify(_safeData)); } catch(e) {}
+    try { localStorage.setItem('studioOS_v3_'+_supaUserId, JSON.stringify(_safeData)); } catch(e) {}
+
     var _un = (_safeData&&_safeData.settings&&_safeData.settings.username)||null;
-    const payload = { user_id: _supaUserId, data: JSON.stringify(_safeData), updated_at: new Date().toISOString(), ...(_un?{username_index:_un.toLowerCase()}:{}) };
+    const payload = {
+      user_id: _supaUserId,
+      data: JSON.stringify(_safeData),
+      updated_at: _safeData._savedAt,
+      ...(_un ? {username_index: _un.toLowerCase()} : {})
+    };
+
     let _upsertError;
     try {
       const { error } = await supa.from('studio_data').upsert(payload, { onConflict: 'user_id' });
       _upsertError = error;
     } catch(fetchErr) {
-      // Silently ignore DataCloneError / postMessage / Headers errors from fetch internals
-      if(fetchErr && fetchErr.message && (
-        fetchErr.message.includes('DataCloneError') ||
-        fetchErr.message.includes('postMessage') ||
-        fetchErr.message.includes('Headers')
-      )) {
-        _upsertError = null; // treat as success — data was likely saved
+      if(fetchErr?.message?.includes('DataCloneError') ||
+         fetchErr?.message?.includes('postMessage') ||
+         fetchErr?.message?.includes('Headers')) {
+        _upsertError = null;
       } else {
         throw fetchErr;
       }
     }
+
     if(_upsertError) {
-      // Only log real errors, not DataClone noise
-      if(!_upsertError.message || !_upsertError.message.includes('DataCloneError')) {
-        console.error('cloudSave error:', _upsertError.message);
-      }
-      showSyncIndicator('<i class="fa-solid fa-triangle-exclamation"></i> فشل الحفظ - محفوظ محلياً', '#f7c948');
+      console.error('cloudSave error:', _upsertError.message);
+      showSyncIndicator('<i class="fa-solid fa-triangle-exclamation"></i> فشل الحفظ - تأكد من الاتصال', '#f7c948');
     } else {
-      showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محفوظ', '#4fd1a5');
+      showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محفوظ على السحابة', '#4fd1a5');
     }
   } catch(e) {
-    // Suppress DataCloneError / postMessage errors silently — these are cosmetic only
-    if(!e.message || (!e.message.includes('DataCloneError') && !e.message.includes('postMessage') && !e.message.includes('Headers'))) {
+    if(!e.message?.includes('DataCloneError') && !e.message?.includes('postMessage') && !e.message?.includes('Headers')) {
       console.error('cloudSave exception:', e.message);
     }
     showSyncIndicator('<i class="fa-solid fa-triangle-exclamation"></i> فشل المزامنة', '#f76f7c');
@@ -364,34 +330,23 @@ async function _doCloudSave(data) {
     _cloudSaving = false;
     if(_cloudSavePending) {
       _cloudSavePending = false;
-      setTimeout(() => _doCloudSave(S), 300);
+      // حفظ مرة تانية بعد 200ms عشان نضمن آخر نسخة اترفعت
+      setTimeout(() => _doCloudSave(S), 200);
     }
   }
 }
 
+// cloudSave = دايماً فوري، بدون debounce
 function cloudSave(data){
   if(!_supaUserId) return;
-  // حفظ محلي فوري دائماً بالبيانات الحالية
-  try { localStorage.setItem(userKey(), JSON.stringify(data)); } catch(e) {}
-  if(_supaUserId) {
-    try { localStorage.setItem('studioOS_backup_'+_supaUserId, JSON.stringify(data)); } catch(e) {}
-  }
-  clearTimeout(_syncTimer);
-  // نستخدم S مباشرة وقت التنفيذ مش data وقت الاستدعاء
-  _syncTimer = setTimeout(() => _doCloudSave(S), 1200);
+  _doCloudSave(data || S);
 }
 
-// حفظ فوري للسحابة بدون debounce — للإعدادات والصور والتغييرات المهمة
+// cloudSaveNow = نفس cloudSave (للـ backward compatibility)
 function cloudSaveNow(data){
-  if(!_supaUserId) return;
-  const d = data || S;
-  // حفظ محلي فوري
-  try { localStorage.setItem(userKey(), JSON.stringify(d)); } catch(e) {}
-  try { localStorage.setItem('studioOS_backup_'+_supaUserId, JSON.stringify(d)); } catch(e) {}
-  // إلغاء أي debounce معلّق وحفظ فوري
-  clearTimeout(_syncTimer);
-  _doCloudSave(d);
+  cloudSave(data);
 }
+
 
 // ══════════════════════════════════════════════════════
 // ── AUTO-SAVE كل 3 ثواني للسحابة (فقط لو في تغيير) ──
@@ -414,18 +369,17 @@ function _getDataHash(data){
 
 function _startAutoSave(){
   if(_autoSaveTimer) clearInterval(_autoSaveTimer);
+  // auto-save كل 10 ثواني كـ safety net — حتى لو المستخدم ما عملش أي action
   _autoSaveTimer = setInterval(function(){
     if(!_supaUserId || !S) return;
-    // دمج كل إعدادات الواجهة والثيم قبل المقارنة
     _mergeUiSettingsIntoS();
     var currentHash = _getDataHash(S);
     if(currentHash !== _autoSaveHash){
       _autoSaveHash = currentHash;
-      // مؤشر مرئي خفيف: نقطة خضرا لمدة ثانيتين
       _showAutoSaveDot();
       _doCloudSave(S);
     }
-  }, 3000);
+  }, 10000);
 }
 
 // ── مؤشر الحفظ التلقائي (نقطة خضرا خفيفة) ──
@@ -502,36 +456,36 @@ function _mergeUiSettingsIntoS(){
 
 // حفظ فوري عند إغلاق الصفحة
 window.addEventListener('beforeunload', function() {
-  if(_supaUserId && S) {
-    try {
-      const _json = JSON.stringify(S);
-      localStorage.setItem(userKey(), _json);
-      localStorage.setItem('studioOS_backup_'+_supaUserId, _json);
-      localStorage.setItem('studioOS_v3_'+_supaUserId, _json);
-    } catch(e) {}
-    // إلغاء الـ timer وحفظ فوري
-    clearTimeout(_syncTimer);
-    // sendBeacon مع الـ headers الصح
-    try {
-      const _payload = JSON.stringify({
-        user_id: _supaUserId,
-        data: JSON.stringify(S),
-        updated_at: new Date().toISOString()
-      });
-      // استخدام fetch sync-like عبر keepalive
-      fetch('https://mpfmcjgigpvdxbhgzufo.supabase.co/rest/v1/studio_data?on_conflict=user_id', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wZm1jamdpZ3B2ZHhiaGd6dWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2Mjc3MzMsImV4cCI6MjA4ODIwMzczM30.fICNxH_7DEBHripIoyMcUugTnd4JEBx-ypegpPvb6PM',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wZm1jamdpZ3B2ZHhiaGd6dWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2Mjc3MzMsImV4cCI6MjA4ODIwMzczM30.fICNxH_7DEBHripIoyMcUugTnd4JEBx-ypegpPvb6PM',
-          'Prefer': 'resolution=merge-duplicates'
-        },
-        body: _payload,
-        keepalive: true
-      }).catch(()=>{});
-    } catch(e) {}
-  }
+  if(!_supaUserId || !S) return;
+  try {
+    // حفظ محلي سريع كـ fallback
+    const _json = JSON.stringify(S);
+    localStorage.setItem(userKey(), _json);
+    localStorage.setItem('studioOS_backup_'+_supaUserId, _json);
+    localStorage.setItem('studioOS_v3_'+_supaUserId, _json);
+  } catch(e) {}
+  // إرسال للسحابة عبر fetch keepalive (يكمّل حتى بعد إغلاق الصفحة)
+  try {
+    const _ts = new Date().toISOString();
+    const _safeS = JSON.parse(JSON.stringify(S));
+    _safeS._savedAt = _ts;
+    const _payload = JSON.stringify({
+      user_id: _supaUserId,
+      data: JSON.stringify(_safeS),
+      updated_at: _ts
+    });
+    fetch('https://mpfmcjgigpvdxbhgzufo.supabase.co/rest/v1/studio_data?on_conflict=user_id', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': window._supaAnonKey || '',
+        'Authorization': 'Bearer ' + (window._supaAnonKey || ''),
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: _payload,
+      keepalive: true
+    }).catch(()=>{});
+  } catch(e) {}
 });
 
 async function cloudLoad(retryCount = 0){
@@ -5504,24 +5458,9 @@ function _fmtPrice(val, svcCurrency){ return Number(val||0).toLocaleString() + '
 
 function lsSave(){
   if(!S) return;
-  try {
-    // أضف timestamp للمقارنة
-    S._savedAt = new Date().toISOString();
-    // حفظ محلي فوري
-    const _key = userKey();
-    const _json = JSON.stringify(S);
-    localStorage.setItem(_key, _json);
-    // نسخة احتياطية إضافية بـ user ID المباشر
-    if(_supaUserId) {
-      localStorage.setItem('studioOS_v3_'+_supaUserId, _json);
-      localStorage.setItem('studioOS_backup_'+_supaUserId, _json);
-    }
-  } catch(e) {
-    console.error('lsSave localStorage error:', e.message);
-  }
+  // حفظ فوري على السحابة — ده هو المصدر الأساسي للبيانات
   cloudSave(S);
   updateDash();
-  // تحديث مؤشر حالة البيانات
   try { _updateDataStatusBar(); } catch(e) {}
 }
 // lsLoad يتنادى من loginWithSupaSession فقط - مش هنا
@@ -10143,29 +10082,10 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     let _localBackup = null;
     try { if(_localBackupRaw) _localBackup = JSON.parse(_localBackupRaw); } catch(e) {}
 
-    const _cloudHasData = (cloudData.tasks?.length || 0) + (cloudData.clients?.length || 0) +
-                          (cloudData.invoices?.length || 0) + (cloudData.transactions?.length || 0) +
-                          (cloudData.services?.length || 0) + (cloudData.standalone_packages?.length || 0);
-    const _localHasData = (_localBackup?.tasks?.length || 0) + (_localBackup?.clients?.length || 0) +
-                          (_localBackup?.invoices?.length || 0) + (_localBackup?.transactions?.length || 0) +
-                          (_localBackup?.services?.length || 0) + (_localBackup?.standalone_packages?.length || 0);
-
-    // مقارنة الـ timestamps — الأحدث يكسب دايماً
-    const _cloudTs = cloudData?._savedAt ? new Date(cloudData._savedAt).getTime() : 0;
-    const _localTs = _localBackup?._savedAt ? new Date(_localBackup._savedAt).getTime() : 0;
-    const _localIsNewer = _localTs > _cloudTs + 5000; // 5 ثواني tolerance
+    // السحابة هي المصدر الأساسي للبيانات — دايماً استخدمها
+    S = cloudData;
     
-    // لو الـ local backup أحدث أو أكبر بشكل واضح - استخدمه
-    if((_localIsNewer && _localHasData >= _cloudHasData - 3) && _localBackup) {
-      console.warn('⚠️ Local backup is newer — using local');
-      S = _localBackup;
-    } else if(_localHasData > _cloudHasData + 10 && _localBackup) {
-      console.warn('⚠️ Cloud data seems incomplete vs local backup — using local');
-      S = _localBackup;
-    } else {
-      S = cloudData;
-    }
-    migrateSFields();
+migrateSFields();
     if(S._admin_updated && S._admin_name) {
       S.settings = S.settings || {};
       S.settings.name   = S._admin_name;
@@ -21620,10 +21540,8 @@ document.addEventListener('visibilitychange', function(){
   if(!document.hidden) {
     _loadServerNotifications();
   } else {
-    // المستخدم غادر التاب — احفظ فوراً لو في timer معلّق
-    if(_supaUserId && S && _syncTimer) {
-      clearTimeout(_syncTimer);
-      _syncTimer = null;
+    // المستخدم غادر التاب — احفظ فوراً
+    if(_supaUserId && S) {
       _doCloudSave(S);
     }
   }
