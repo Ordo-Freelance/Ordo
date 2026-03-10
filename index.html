@@ -257,6 +257,12 @@ let _cloudSavePending = false;
 
 async function _doCloudSave(data, force) {
   if(!_supaUserId || !data) return false;
+  // ── حماية حاسمة: لا تحفظ بيانات فاضية فوق بيانات حقيقية ──
+  var _dataScore = (data.tasks?.length||0)*3 + (data.clients?.length||0)*2 + (data.invoices?.length||0)*2 + (data.transactions?.length||0);
+  if(!force && _dataScore === 0 && !data.settings?.name) {
+    console.warn('_doCloudSave: blocked — data appears empty, score=0');
+    return false;
+  }
   // لو في save جاري وده مش force — queue وخلاص
   if(_cloudSaving && !force) { _cloudSavePending = true; return false; }
   // لو force — استنى الـ save الحالي يخلص أولاً (max 10 ثواني)
@@ -345,8 +351,12 @@ async function _doCloudSave(data, force) {
 
 function lsSave() {
   if(!S) return;
+  // ── حماية: لا تحفظ قبل اكتمال تحميل البيانات من السحابة ──
+  if(!window._cloudLoadDone) {
+    console.warn('lsSave: blocked — cloud not loaded yet');
+    return;
+  }
   S._savedAt = new Date().toISOString();
-  // cloud في الخلفية فقط — بدون localStorage
   _queueCloudSave();
   updateDash();
   try { _updateDataStatusBar(); } catch(e) {}
@@ -5572,6 +5582,7 @@ function _fmtPrice(val, svcCurrency){ return Number(val||0).toLocaleString() + '
 
 function lsSave(){
   if(!S) return;
+  if(!window._cloudLoadDone) { console.warn('lsSave(2): blocked'); return; }
   S._savedAt = new Date().toISOString();
   _queueCloudSave();
   updateDash();
@@ -7111,9 +7122,9 @@ function openTaskDetail(id){
         // زرار لينك متابعة التاسك — بس لو في عميل مرتبط بيه
         var cl = (S.clients||[]).find(function(c){ return c.name===t.client; });
         if(!cl) return '';
-        var base = window.location.origin + window.location.pathname;
+        var _cpBase = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'client-portal.html';
         var uid  = _supaUserId;
-        var taskLink = base + '?clientportal=' + uid + '&cid=' + cl.id + '&taskid=' + t.id;
+        var taskLink = _cpBase + '?uid=' + uid + '&cid=' + cl.id + '&taskid=' + t.id;
         return '<button class="btn btn-ghost btn-sm" style="background:rgba(124,111,247,.12);color:var(--accent);border:1px solid var(--accent)44" onclick="navigator.clipboard.writeText(\''+taskLink+'\').then(function(){toast(\'<i class=\\\"fa-solid fa-square-check\\\" style=\\\"color:var(--accent3)\\\"></i> تم نسخ لينك متابعة التاسك\')})"><i class="fa-solid fa-link"></i> لينك للعميل</button>';
       })()}
       <button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:var(--font)" onclick="openWaModal('task',null,${t.id})">
@@ -19036,8 +19047,8 @@ function renderClientPortals(){
 function _showClientPortalLink(clientId){
   var c=(S.clients||[]).find(function(x){return String(x.id)===String(clientId);}); if(!c) return;
   var uid=(typeof _supaUserId!=='undefined'&&_supaUserId)?_supaUserId:'';
-  var base=window.location.origin+window.location.pathname;
-  var link=base+'?clientportal='+uid+'&cid='+clientId;
+  var base=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/, '/')+'client-portal.html';
+  var link=base+'?uid='+uid+'&cid='+clientId;
   var over=document.createElement('div');
   over.className='modal-overlay'; over.style.display='flex';
   over.innerHTML=`<div class="modal" style="max-width:500px">
@@ -23519,12 +23530,13 @@ function changeProjStatus(projId,status){
 function openProjSharePortal(projId){
   var uid=(typeof _supaUserId!=='undefined'&&_supaUserId)?_supaUserId:'';
   var base=window.location.origin+window.location.pathname;
+  var _cpBase2=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/, '/')+'client-portal.html';
   var projLink=base+'?portal=project&uid='+uid+'&pid='+projId;
 
   // Try to find client for this project
   var proj=_getProjById(projId);
   var client=proj&&proj.client_id?(S.clients||[]).find(c=>String(c.id)===String(proj.client_id)):null;
-  var clientLink=client?base+'?clientportal='+uid+'&cid='+client.id:'';
+  var clientLink=client?_cpBase2+'?uid='+uid+'&cid='+client.id:'';
 
   var over=document.createElement('div');
   over.className='modal-overlay'; over.style.display='flex';
