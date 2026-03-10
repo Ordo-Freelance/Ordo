@@ -253,14 +253,22 @@ let _currentMode = 'user';
 
 // ─── حماية من الحفظ المتزامن ───
 let _cloudSaving = false;
+// ── _appReady: يُفعَّل فقط بعد اكتمال تحميل البيانات من السحابة ──
+// يحمي من أي save يحصل أثناء التحميل الأولي
+window._appReady = false;
 let _cloudSavePending = false;
 
 async function _doCloudSave(data, force) {
   if(!_supaUserId || !data) return false;
-  // ── حماية حاسمة: لا تحفظ بيانات فاضية فوق بيانات حقيقية ──
+  // ── حماية: لا تحفظ أثناء التحميل الأولي (إلا لو force) ──
+  if(!force && !window._appReady) {
+    // save skipped — app not ready
+    return false;
+  }
+  // ── حماية: لا تحفظ بيانات فاضية تماماً ──
   var _dataScore = (data.tasks?.length||0)*3 + (data.clients?.length||0)*2 + (data.invoices?.length||0)*2 + (data.transactions?.length||0);
   if(!force && _dataScore === 0 && !data.settings?.name) {
-    console.warn('_doCloudSave: blocked — data appears empty, score=0');
+    // save skipped — empty data
     return false;
   }
   // لو في save جاري وده مش force — queue وخلاص
@@ -325,6 +333,7 @@ async function _doCloudSave(data, force) {
       return false;
     } else {
       showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محفوظ', '#4fd1a5');
+
       return true;
     }
   } catch(e) {
@@ -351,11 +360,6 @@ async function _doCloudSave(data, force) {
 
 function lsSave() {
   if(!S) return;
-  // ── حماية: لا تحفظ قبل اكتمال تحميل البيانات من السحابة ──
-  if(!window._cloudLoadDone) {
-    console.warn('lsSave: blocked — cloud not loaded yet');
-    return;
-  }
   S._savedAt = new Date().toISOString();
   _queueCloudSave();
   updateDash();
@@ -369,7 +373,7 @@ function _queueCloudSave() {
   if(_cloudSaving) { _cloudSavePending = true; return; }
   // debounce 1 ثانية عشان نجمّع التغييرات المتسارعة
   clearTimeout(_syncTimer);
-  _syncTimer = setTimeout(() => { _cloudQueue = false; _doCloudSave(S); }, 1000);
+  _syncTimer = setTimeout(() => { _cloudQueue = false; _doCloudSave(S); }, 300);
   _cloudQueue = true;
 }
 
@@ -415,8 +419,6 @@ function _startAutoSave(){
   if(_autoSaveTimer) clearInterval(_autoSaveTimer);
   _autoSaveTimer = setInterval(function(){
     if(!_supaUserId || !S) return;
-    // ── حماية: لا تحفظ لو S فاضية أو لم يكتمل تحميل البيانات من السحابة ──
-    if(!window._cloudLoadDone) return;
     _mergeUiSettingsIntoS();
     var currentHash = _getDataHash(S);
     if(currentHash !== _autoSaveHash){
@@ -5557,13 +5559,8 @@ let invItems=[];
 
 function userKey(){const sess=getSession();return 'studioOS_v3_'+(sess?sess.id:'guest');}
 function lsLoad(){
-  try{
-    const d=localStorage.getItem(userKey());
-    if(d) S=JSON.parse(d);
-    migrateSFields();
-    // migrate transactions to have proper ISO date
-    S.transactions.forEach(t=>{ if(!t.isoDate && t.date) t.isoDate = tryParseDate(t.date); });
-  }catch(e){}
+  // بيانات المستخدم تُحمَّل من السحابة فقط — لا قراءة من localStorage
+  migrateSFields();
 }
 function tryParseDate(dateStr){
   if(!dateStr) return '';
@@ -5582,7 +5579,6 @@ function _fmtPrice(val, svcCurrency){ return Number(val||0).toLocaleString() + '
 
 function lsSave(){
   if(!S) return;
-  if(!window._cloudLoadDone) { console.warn('lsSave(2): blocked'); return; }
   S._savedAt = new Date().toISOString();
   _queueCloudSave();
   updateDash();
@@ -6481,11 +6477,11 @@ async function recoverDataFromBackup() {
         return null;
     }},
     { label: 'نسخة احتياطية محلية', fn: () => {
-        const raw = localStorage.getItem('studioOS_backup_'+uid);
+        const raw = null; // backup from localStorage disabled
         return raw ? JSON.parse(raw) : null;
     }},
     { label: 'نسخة localStorage الرئيسية', fn: () => {
-        const raw = localStorage.getItem('studioOS_v3_'+uid);
+        const raw2 = null; // v3 localStorage read disabled
         return raw ? JSON.parse(raw) : null;
     }},
   ];
@@ -10244,13 +10240,14 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   // ── تسجيل حدث الدخول في studio_data ──
   _trackLoginEvent(supaUser.id);
 
-  // ── حمّل من السحابة أولاً ──
+  // ── حمّل من السحابة مباشرة ──
   showSyncIndicator('<i class="fa-solid fa-cloud"></i>️ جاري تحميل بياناتك...', 'var(--accent)');
   const cloudData = await cloudLoad();
   if(cloudData){
     // السحابة هي مصدر الحقيقة — نستخدمها دايماً
     S = cloudData;
-    window._cloudLoadDone = true; // ✅ البيانات اتحملت — آمن الحفظ التلقائي
+    window._appReady = true;
+    window._cloudLoadDone = true;
     migrateSFields();
     if(S._admin_updated && S._admin_name) {
       S.settings = S.settings || {};
@@ -10279,14 +10276,17 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     if(_retryData && (typeof _retryData === 'object') && Object.keys(_retryData).length > 2) {
       // نجح الـ retry
       S = _retryData;
-      window._cloudLoadDone = true; // ✅ آمن الحفظ التلقائي
+      window._appReady = true;
+      window._cloudLoadDone = true;
       migrateSFields();
       _syncStudioLogoToConfig();
       showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تحميل البيانات', '#4fd1a5');
     } else {
-      // السحابة فارغة أو مش متاحة — مستخدم جديد
-      window._cloudLoadDone = true; // ✅ حتى المستخدم الجديد — البيانات جاهزة
-      lsLoad();
+      // السحابة فارغة أو مش متاحة — مستخدم جديد أو مشكلة شبكة
+      migrateSFields(); // تأكد إن S فيها المصفوفات الأساسية
+      window._appReady = true; // ✅ آمن للحفظ (S موجودة وجاهزة)
+      window._cloudLoadDone = true;
+      console.log('Cloud load failed or empty — treating as new user');
     }
   }
 
@@ -10325,7 +10325,7 @@ async function loginWithSupaSession(supaUser, session, userMeta){
         }
         // لو الـ row موجودة - ما نكتبش عليها (ممكن تحتوي بيانات)
       } else {
-        // مستخدم قديم - استخدم cloudSave العادية (debounced + safe)
+        // مستخدم قديم - استخدم cloudSave العادية — بس بعد تأكيد إن _cloudLoadDone شغّال
         cloudSave(S);
       }
     } catch(e) { console.warn('Initial save error:', e.message); }
@@ -10340,20 +10340,20 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   const isViewer = meta.role === 'viewer';
   _isAdminUser = isAdmin || isViewer;
 
-  // ── تحقق من حالة الحظر ──
-  const isBanned = await _checkAccountBanned(supaUser.id);
+  // ── تحقق من الحظر والاشتراك بشكل متوازي (أسرع) ──
+  const [isBanned] = await Promise.all([
+    _checkAccountBanned(supaUser.id),
+    loadUserSubscription(supaUser.id)
+  ]);
   if(isBanned) {
     await supa.auth.signOut();
     const screen = document.getElementById('auth-screen');
     if(screen) { screen.classList.remove('hidden'); screen.style.display=''; }
     setTimeout(() => {
-      alert('<i class="fa-solid fa-ban"></i> هذا الحساب موقوف. تواصل مع الإدارة للمساعدة.');
+      alert('هذا الحساب موقوف. تواصل مع الإدارة للمساعدة.');
     }, 300);
     return;
   }
-
-  // ── حمّل الاشتراك قبل أي render ──
-  await loadUserSubscription(supaUser.id);
 
   // ── استرجع أو فعّل التجربة المجانية ──
   const _trialKey = '_trial_start_' + supaUser.id;
@@ -10384,7 +10384,9 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   // Store email in S for team membership search by others
   if(supaUser.email && typeof S !== 'undefined'){
     S._user_email = supaUser.email.toLowerCase().trim();
-    cloudSave(S);
+    // تأكد إن S فيها بيانات حقيقية قبل الحفظ
+    var _emailSaveScore = (S.tasks?.length||0) + (S.clients?.length||0) + (S.invoices?.length||0) + (S.settings?.name ? 1 : 0);
+    if(_emailSaveScore > 0 || S._user_email) cloudSave(S);
   }
   _checkTeamMembership(supaUser.email || userObj.email);
 
