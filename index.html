@@ -3013,7 +3013,10 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   <div class="modal" style="width:min(600px,96vw);max-height:92vh;overflow-y:auto">
     <div class="modal-header">
       <div class="modal-title" id="proj-modal-title"><i class="fa-solid fa-diagram-project"></i> مشروع جديد</div>
-      <button class="close-btn" onclick="closeM('modal-project')"><i class="fa-solid fa-xmark"></i></button>
+      <div style="display:flex;gap:6px">
+        <button class="expand-btn" title="توسيع" onclick="toggleModalExpand('modal-project')"><i class="fa-solid fa-expand"></i></button>
+        <button class="close-btn" onclick="closeM('modal-project')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
     </div>
     <input type="hidden" id="proj-eid">
     <div class="form-group"><label class="form-label">اسم المشروع *</label><input class="form-input" id="proj-name" placeholder="مثال: موقع شركة ABC"></div>
@@ -5077,6 +5080,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     <div class="modal-header" style="flex-wrap:wrap;gap:8px">
       <div class="modal-title" id="profile-title">ملف العميل</div>
       <div style="display:flex;gap:6px;align-items:center;margin-right:auto" id="profile-header-actions"></div>
+      <button class="expand-btn" title="توسيع" onclick="toggleModalExpand('modal-client-profile')"><i class="fa-solid fa-expand"></i></button>
       <button class="close-btn" onclick="closeM('modal-client-profile')"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <!-- Tab Bar -->
@@ -5097,7 +5101,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 <!-- TASK -->
 <div class="modal-overlay" id="modal-task">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title" id="task-modal-ttl"><i class="fa-solid fa-star-of-life"></i> مهمة / مشروع جديد</div><button class="close-btn" onclick="closeM(&#39;modal-task&#39;)"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-header"><div class="modal-title" id="task-modal-ttl"><i class="fa-solid fa-star-of-life"></i> مهمة / مشروع جديد</div><div style="display:flex;gap:6px"><button class="expand-btn" title="توسيع" onclick="toggleModalExpand('modal-task')"><i class="fa-solid fa-expand"></i></button><button class="close-btn" onclick="closeM(&#39;modal-task&#39;)"><i class="fa-solid fa-xmark"></i></button></div></div>
     <input type="hidden" id="task-eid">
     <div class="form-row">
       <div class="form-group"><label class="form-label">اسم المهمة *</label><input class="form-input" id="t-title" placeholder="مثال: تصميم لوجو شركة X"></div>
@@ -5734,6 +5738,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <div class="modal-title" style="font-size:14px;color:var(--text3)">تفاصيل المهمة</div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-ghost btn-sm" id="td-edit-btn" onclick=""><i class="fa-solid fa-pen"></i> تعديل</button>
+        <button class="expand-btn" title="توسيع" onclick="toggleModalExpand('modal-task-detail')"><i class="fa-solid fa-expand"></i></button>
         <button class="close-btn" onclick="closeM('modal-task-detail')"><i class="fa-solid fa-xmark"></i></button>
       </div>
     </div>
@@ -6002,7 +6007,8 @@ function _updateNavBtns(){
 
 
 // ══════════════════════════════════════════════════════
-// URL ROUTING — History API
+// URL ROUTING — Hash-based (#dashboard, #tasks, ...)
+// أفضل لـ static HTML files - مش محتاج server config
 // ══════════════════════════════════════════════════════
 var _PAGE_SLUGS = {
   'dashboard':'dashboard','tasks':'tasks','projects':'projects',
@@ -6019,40 +6025,19 @@ function _getPageFromSlug(slug){ return _SLUG_TO_PAGE[slug] || slug; }
 
 function _pushPageUrl(pageId){
   var slug = _getPageSlug(pageId);
-  // Build base path: strip existing page slug from URL
-  var pathname = window.location.pathname;
-  // Remove trailing slash
-  pathname = pathname.replace(/\/$/, '');
-  // If current path ends with a known slug or .html, strip it to get base
-  var parts = pathname.split('/');
-  var lastPart = parts[parts.length - 1];
-  var isSlug = _SLUG_TO_PAGE[lastPart] || Object.values(_PAGE_SLUGS).indexOf(lastPart) >= 0;
-  var isHtml = lastPart.endsWith('.html');
-  if(isSlug) {
-    // Replace the current slug
-    parts[parts.length - 1] = slug;
-  } else if(isHtml) {
-    // Keep the .html file in path, append slug
-    parts.push(slug);
-  } else if(lastPart === '') {
-    parts.push(slug);
+  var curHash = window.location.hash.replace('#','');
+  if(curHash === slug) {
+    // نفس الصفحة — replace بس
+    window.history.replaceState({page: pageId}, '', '#' + slug);
   } else {
-    parts.push(slug);
-  }
-  var newPath = parts.join('/');
-  var curSlug = window.location.pathname.split('/').pop();
-  if(curSlug === slug) {
-    window.history.replaceState({page: pageId}, '', newPath);
-  } else {
-    window.history.pushState({page: pageId}, '', newPath);
+    window.history.pushState({page: pageId}, '', '#' + slug);
   }
 }
 
 function _getPageFromUrl(){
-  var parts = window.location.pathname.split('/');
-  var last = parts[parts.length - 1];
-  if(!last || last === '' || last.endsWith('.html')) return null;
-  return _getPageFromSlug(last);
+  var hash = window.location.hash.replace('#','').trim();
+  if(!hash) return null;
+  return _getPageFromSlug(hash);
 }
 
 // Handle browser back/forward buttons
@@ -6085,7 +6070,7 @@ function _showPageNoHistory(id){
   applyPlatformConfig && applyPlatformConfig();
 }
 
-// Restore page from URL on startup (called after login)
+// Restore page from URL hash on startup (called after login)
 function _restorePageFromUrl(){
   var pageId = _getPageFromUrl();
   if(pageId && document.getElementById('page-' + pageId)){
@@ -6094,19 +6079,29 @@ function _restorePageFromUrl(){
   return null;
 }
 
-// On first load — set initial history state for the current URL
-// (so that popstate fires correctly even on first back/forward)
-(function(){
-  var currentSlug = window.location.pathname.split('/').pop();
-  // Only set state if path looks like a page slug (not .html or empty)
-  if(currentSlug && !currentSlug.endsWith('.html') && currentSlug !== '') {
-    var pageId = _SLUG_TO_PAGE[currentSlug] || currentSlug;
-    if(document.getElementById && !window.__routeInitialized){
-      window.__routeInitialized = true;
-      window.history.replaceState({page: pageId}, '', window.location.href);
-    }
+
+// ── Modal Full-Screen Toggle ──
+function toggleModalExpand(overlayId) {
+  var overlay = document.getElementById(overlayId);
+  if(!overlay) return;
+  var isExpanded = overlay.classList.contains('expanded');
+  overlay.classList.toggle('expanded');
+  // Update icon
+  var btn = overlay.querySelector('.expand-btn');
+  if(btn){
+    btn.innerHTML = isExpanded
+      ? '<i class="fa-solid fa-expand"></i>'
+      : '<i class="fa-solid fa-compress"></i>';
+    btn.title = isExpanded ? 'توسيع' : 'تصغير';
   }
-})();
+  // Scroll fix
+  var body = overlay.querySelector('#profile-body, #td-body');
+  if(body) body.scrollTop = 0;
+}
+
+function _makeExpandBtn(overlayId){
+  return '<button class="expand-btn" title="توسيع" onclick="toggleModalExpand(\''+overlayId+'\')"><i class="fa-solid fa-expand"></i></button>';
+}
 
 function showPage(id,el){
   if(_supaUserId && hasActiveSub() && !FREE_PAGES.includes(id) && !hasPageFeature(id)){
@@ -6415,7 +6410,7 @@ function closeBnMore(){
   document.getElementById('bn-overlay').classList.remove('open');
 }
 function openM(id){document.getElementById(id).classList.add('open');}
-function closeM(id){document.getElementById(id).classList.remove('open');}
+function closeM(id){var _m=document.getElementById(id);if(!_m)return;_m.classList.remove('open');_m.classList.remove('expanded');var _eb=_m.querySelector('.expand-btn');if(_eb){_eb.innerHTML='<i class="fa-solid fa-expand"></i>';_eb.title='توسيع';}}
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 function confirmDel(msg,cb){
   const msgEl = document.getElementById('confirm-msg');
@@ -26823,7 +26818,49 @@ function _showTrackingShareModal(t){
     <button class="btn btn-ghost btn-sm" onclick="dismissBackupToast()">تذكيرني لاحقاً</button>
   </div>
 </div>
-<style>@keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(20px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }</style>
+<style>@keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(20px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+/* ── Modal Full-Screen Expand ── */
+.modal-overlay.expanded {
+  padding: 0 !important;
+  align-items: stretch !important;
+}
+.modal-overlay.expanded > .modal {
+  max-width: 100vw !important;
+  width: 100vw !important;
+  max-height: 100vh !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  display: flex;
+  flex-direction: column;
+}
+.modal-overlay.expanded > .modal > #profile-body,
+.modal-overlay.expanded > .modal > #td-body {
+  max-height: none !important;
+  flex: 1;
+  overflow-y: auto;
+}
+.expand-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text3);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .15s;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.expand-btn:hover {
+  background: var(--surface2);
+  color: var(--text1);
+  border-color: var(--accent);
+}
+</style>
 
 <!-- ═══ PROFILE MODAL ═══ -->
 <!-- ═══ SUBSCRIPTION INFO MODAL ═══ -->
