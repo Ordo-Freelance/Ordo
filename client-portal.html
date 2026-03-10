@@ -153,7 +153,7 @@ async function boot(){
       // 2) جيب البيانات وابحث عن العميل بالـ slug
       let row2 = await db.from('studio_data').select('data').eq('user_id',resolvedUid).maybeSingle();
       if(!row2?.data){showErr('لا يمكن تحميل البيانات');return;}
-      let ud2; try{const raw=row2.data.data;ud2=typeof raw==='string'?JSON.parse(raw):raw;if(ud2?.data&&typeof ud2.services==='undefined'){ud2=typeof ud2.data==='string'?JSON.parse(ud2.data):ud2.data;}}catch(e){showErr('خطأ في البيانات');return;}
+      let ud2; try{const raw=row2.data.data;ud2=typeof raw==='string'?JSON.parse(raw):raw;if(ud2?.data&&typeof ud2.services==='undefined'){ud2=typeof ud2.data==='string'?JSON.parse(ud2.data):ud2.data;}}catch(e){showErr('تعذّر تحميل البيانات، حاول مجدداً.');return;}
       if(!ud2){showErr('بيانات فارغة');return;}
       // ابحث عن العميل بالـ slug
       var matchedClient=(ud2.clients||[]).find(function(c){
@@ -166,17 +166,25 @@ async function boot(){
       Object.defineProperty(window,'_resolvedCid',{value:String(matchedClient.id),writable:false});
       await _bootWithData(resolvedUid, String(matchedClient.id), ud2);
       return;
-    }catch(e){showErr('خطأ في تحميل البيانات: '+e.message);return;}
+    }catch(e){showErr('حدث خطأ، حاول تحديث الصفحة.');return;}
   }
   if(!pUid){showErr('رابط غير صحيح — يجب أن يحتوي على uid');return;}
   try{
     const{data:row,error}=await db.from('studio_data').select('data').eq('user_id',pUid).maybeSingle();
-    if(error||!row){showErr('لا يمكن تحميل البيانات');return;}
+    if(error){showErr('تعذّر تحميل البيانات، حاول مجدداً.');return;}
+    if(!row){showErr('الرابط غير صحيح أو منتهي الصلاحية.');return;}
     let ud;
-    try{const raw=row.data;ud=typeof raw==='string'?JSON.parse(raw):raw;if(ud?.data&&typeof ud.services==='undefined'){ud=typeof ud.data==='string'?JSON.parse(ud.data):ud.data;}}catch(e){showErr('خطأ في قراءة البيانات');return;}
-    if(!ud){showErr('بيانات فارغة');return;}
+    try{
+      const raw=row.data;
+      ud=typeof raw==='string'?JSON.parse(raw):raw;
+      // unwrap nested data if needed
+      if(ud && ud.data && typeof ud.tasks==='undefined'){
+        ud=typeof ud.data==='string'?JSON.parse(ud.data):ud.data;
+      }
+    }catch(e){showErr('تعذّر تحميل البيانات، حاول مجدداً.');return;}
+    if(!ud){showErr('تعذّر تحميل البيانات، حاول مجدداً.');return;}
     await _bootWithData(pUid, pCid, ud);
-  }catch(e){console.error(e);showErr('حدث خطأ غير متوقع');}
+  }catch(e){console.error('boot error:',e);showErr('حدث خطأ، حاول تحديث الصفحة.');}
 }
 
 async function _bootWithData(userId, clientId, ud){
@@ -252,7 +260,7 @@ async function _bootWithData(userId, clientId, ud){
         openTask(pTaskId,true);
       },500);
     }
-  }catch(e){console.error(e);showErr('حدث خطأ غير متوقع');}
+  }catch(e){console.error('_bootWithData error:',e);showErr('حدث خطأ، حاول تحديث الصفحة.');}
 }
 
 function renderPage(){
