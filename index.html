@@ -1336,22 +1336,20 @@ body.pub-page #app-body {
 .page-title span { color: var(--accent); }
 .page-subtitle   { font-size: 13px; color: var(--text2); margin-top: 4px; }
 
-/* ── Navigation Bar (Back + Home) ── */
+/* ── Back Arrow ── */
 #_page-nav-bar {
-  display:flex; align-items:center; gap:8px;
-  padding:6px 12px; margin-bottom:14px;
-  background:var(--surface2); border:1px solid var(--border);
-  border-radius:12px; width:fit-content; flex-wrap:wrap;
+  display:none; align-items:center;
+  margin-bottom:10px;
 }
-#_page-nav-bar button {
-  display:flex; align-items:center; gap:6px;
-  background:none; border:1px solid var(--border); border-radius:8px;
-  padding:5px 12px; font-size:12px; font-weight:700; color:var(--text2);
-  cursor:pointer; font-family:var(--font); transition:.15s;
+.nav-back-btn {
+  display:none; align-items:center; gap:5px;
+  background:none; border:none; cursor:pointer;
+  color:var(--text3); font-size:13px; font-family:var(--font);
+  padding:4px 0; transition:color .15s;
 }
-#_page-nav-bar button:hover { background:var(--surface3); color:var(--text); border-color:var(--accent); }
-.nav-back-btn { display:none; }
-.nav-home-btn { color:var(--accent) !important; border-color:rgba(124,111,247,.35) !important; background:rgba(124,111,247,.07) !important; }
+.nav-back-btn:hover { color:var(--accent); }
+.nav-back-btn i { font-size:14px; }
+.nav-home-btn { display:none !important; }
 
 
 /* ═══════════════════════════════════════════════════
@@ -2572,7 +2570,6 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 <!-- NAV BAR (Back + Home) -->
 <div id="_page-nav-bar">
   <button class="nav-back-btn" onclick="_goBackPage()"><i class="fa-solid fa-arrow-right"></i> رجوع</button>
-  <button class="nav-home-btn" onclick="showPage('dashboard')"><i class="fa-solid fa-house"></i> الرئيسية</button>
 </div>
 
 <!-- DASHBOARD -->
@@ -5667,17 +5664,10 @@ function _goBackPage(){
 }
 function _updateNavBtns(){
   var navBar=document.getElementById('_page-nav-bar');
-  var backBtns=document.querySelectorAll('.nav-back-btn');
-  var homeBtns=document.querySelectorAll('.nav-home-btn');
-  var curActive=document.querySelector('.page.active');
-  var curId=curActive?curActive.id.replace('page-',''):'';
-  var onDash=(curId==='dashboard');
-  backBtns.forEach(function(b){ b.style.display=_pageHistory.length>0?'':'none'; });
-  homeBtns.forEach(function(b){ b.style.display=onDash?'none':''; });
-  if(navBar){
-    var showBar=_pageHistory.length>0||!onDash;
-    navBar.style.display=showBar?'flex':'none';
-  }
+  var backBtn=document.querySelector('.nav-back-btn');
+  var show=_pageHistory.length>0;
+  if(navBar) navBar.style.display=show?'flex':'none';
+  if(backBtn) backBtn.style.display=show?'flex':'none';
 }
 
 function showPage(id,el){
