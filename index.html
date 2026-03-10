@@ -179,14 +179,16 @@ function _makeClientSlug(name){
 // ── Build short portal link ──
 function _buildPortalLink(clientName, portalId){
   var _un = S && S.settings && S.settings.username ? S.settings.username : null;
-  var _base = window.location.origin + window.location.pathname;
+  var _portalBase = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'client-portal.html';
   var _slug = _makeClientSlug(clientName);
   if(_un){
-    // ?u=username&p=client-slug  — قصير ونظيف
-    return _base + '?u=' + encodeURIComponent(_un) + '&p=' + encodeURIComponent(_slug);
+    // client-portal.html?u=username&p=client-slug  — قصير ونظيف
+    return _portalBase + '?u=' + encodeURIComponent(_un) + '&p=' + encodeURIComponent(_slug);
   }
-  // Fallback لو مفيش username
-  return _base + '?portal=' + portalId + '&uid=' + (_supaUserId||'');
+  // Fallback لو مفيش username — uid + cid
+  var clientObj = (S.clients||[]).find(function(c){ return _makeClientSlug(c.name)===_slug; });
+  var cid = clientObj ? clientObj.id : (portalId||'');
+  return _portalBase + '?uid=' + (_supaUserId||'') + '&cid=' + cid;
 }
 
 
@@ -3542,6 +3544,8 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   <div style="display:flex;gap:6px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px;flex-wrap:wrap">
     <button class="filter-chip active" id="fin-tab-transactions" onclick="switchFinTab('transactions')"><i class="fa-solid fa-list"></i> المعاملات</button>
     <button class="filter-chip" id="fin-tab-wallets" onclick="switchFinTab('wallets')"><i class="fa-solid fa-wallet"></i> المحافظ والأرصدة</button>
+    <button class="filter-chip" id="fin-tab-budgets" onclick="switchFinTab('budgets')"><i class="fa-solid fa-bullseye-arrow"></i> الميزانيات</button>
+    <button class="filter-chip" id="fin-tab-loans" onclick="switchFinTab('loans')"><i class="fa-solid fa-handshake"></i> القروض</button>
   </div>
 
   <!-- محتوى تاب المعاملات -->
@@ -3697,6 +3701,166 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     </div>
   </div><!-- end fin-panel-wallets -->
 
+  <!-- ── تاب الميزانيات ── -->
+  <div id="fin-panel-budgets" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:15px;font-weight:800"><i class="fa-solid fa-bullseye-arrow" style="color:var(--accent)"></i> الميزانيات</div>
+        <div style="font-size:12px;color:var(--text3)">خصص ميزانية لكل هدف وتابع مصاريفك نحوه</div>
+      </div>
+      <button class="btn btn-primary" onclick="openBudgetModal()"><i class="fa-solid fa-plus" style="margin-left:4px"></i> ميزانية جديدة</button>
+    </div>
+    <div id="budgets-grid" class="grid grid-3"></div>
+  </div>
+
+  <!-- ── تاب القروض ── -->
+  <div id="fin-panel-loans" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:15px;font-weight:800"><i class="fa-solid fa-handshake" style="color:var(--accent2)"></i> القروض والديون</div>
+        <div style="font-size:12px;color:var(--text3)">تابع الفلوس اللي عليك والفلوس اللي ليك عند الناس</div>
+      </div>
+      <button class="btn btn-primary" onclick="openLoanModal()"><i class="fa-solid fa-plus" style="margin-left:4px"></i> قرض / دين جديد</button>
+    </div>
+    <!-- ملخص سريع -->
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card" style="border-right:4px solid var(--accent3)">
+        <div class="stat-label"><i class="fa-solid fa-arrow-down" style="color:var(--accent3)"></i> فلوس ليا (أنا الدائن)</div>
+        <div class="stat-value green" id="loans-lent-total">0 ج.م</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">مسلّفت للغير ولسه معدتش</div>
+      </div>
+      <div class="card" style="border-right:4px solid var(--accent4)">
+        <div class="stat-label"><i class="fa-solid fa-arrow-up" style="color:var(--accent4)"></i> فلوس عليا (أنا المدين)</div>
+        <div class="stat-value red" id="loans-borrowed-total">0 ج.م</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">مستلفت من الغير ولسه مردتش</div>
+      </div>
+    </div>
+    <div id="loans-list"></div>
+  </div>
+
+</div>
+
+<!-- LOAN MODAL -->
+<div class="modal-overlay" id="modal-loan">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="loan-modal-ttl"><i class="fa-solid fa-handshake"></i> قرض / دين جديد</div>
+      <button class="close-btn" onclick="closeM('modal-loan')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="loan-eid">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">نوع القرض *</label>
+        <select class="form-select" id="loan-direction" onchange="updateLoanDirection()">
+          <option value="lent">💰 سلّفت للغير (فلوس ليا)</option>
+          <option value="borrowed">↩ استلفت من حد (فلوس عليا)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">المبلغ (ج.م) *</label>
+        <input class="form-input" type="number" id="loan-amount" placeholder="0" min="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="loan-person-label">اسم الشخص اللي سلّفته *</label>
+      <input class="form-input" id="loan-person" placeholder="اسم الشخص أو الجهة">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">تاريخ القرض</label>
+        <input class="form-input" type="date" id="loan-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">تاريخ السداد المتوقع</label>
+        <input class="form-input" type="date" id="loan-due">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">ملاحظات</label>
+      <textarea class="form-textarea" id="loan-notes" placeholder="تفاصيل القرض..." style="min-height:60px"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">الحالة</label>
+      <select class="form-select" id="loan-status">
+        <option value="pending">⏳ لسه مترددتش</option>
+        <option value="partial">🟡 مترددت جزء</option>
+        <option value="settled">✅ اترد بالكامل</option>
+      </select>
+    </div>
+    <div class="form-group" id="loan-settled-amount-wrap" style="display:none">
+      <label class="form-label">المبلغ اللي اترد</label>
+      <input class="form-input" type="number" id="loan-settled-amount" placeholder="0">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeM('modal-loan')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveLoan()"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- BUDGET MODAL -->
+<div class="modal-overlay" id="modal-budget">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="budget-modal-ttl"><i class="fa-solid fa-bullseye-arrow"></i> ميزانية جديدة</div>
+      <button class="close-btn" onclick="closeM('modal-budget')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <input type="hidden" id="budget-eid">
+    <div class="form-group">
+      <label class="form-label">اسم الميزانية *</label>
+      <input class="form-input" id="budget-name" placeholder="مثال: شراء لابتوب، تطوير السيت آب...">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">المبلغ المستهدف (ج.م) *</label>
+        <input class="form-input" type="number" id="budget-target" placeholder="0" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">المبلغ المدّخر حتى الآن</label>
+        <input class="form-input" type="number" id="budget-saved" placeholder="0" min="0">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">الفئة</label>
+        <select class="form-select" id="budget-cat">
+          <option value="equipment">💻 معدات وأجهزة</option>
+          <option value="software">🔧 برامج واشتراكات</option>
+          <option value="setup">🏠 تطوير السيت آب</option>
+          <option value="marketing">📢 تسويق</option>
+          <option value="education">📚 تعليم وكورسات</option>
+          <option value="emergency">🛡 طوارئ</option>
+          <option value="other">📦 أخرى</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الأولوية</label>
+        <select class="form-select" id="budget-priority">
+          <option value="high">🔴 عالية</option>
+          <option value="medium">🟡 متوسطة</option>
+          <option value="low">🟢 منخفضة</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">تاريخ البدء</label>
+        <input class="form-input" type="date" id="budget-start">
+      </div>
+      <div class="form-group">
+        <label class="form-label">تاريخ الهدف</label>
+        <input class="form-input" type="date" id="budget-deadline">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">ملاحظات</label>
+      <textarea class="form-textarea" id="budget-notes" placeholder="لماذا تحتاج هذه الميزانية..." style="min-height:55px"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeM('modal-budget')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveBudget()"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
+    </div>
+  </div>
 </div>
 
 <!-- INVOICES -->
@@ -5165,7 +5329,29 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     </div>
 
     <div class="form-group"><label class="form-label">ملاحظات</label><textarea class="form-textarea" id="c-notes" placeholder="تفاصيل، اهتمامات، تاريخ التعامل..."></textarea></div>
-    <!-- <i class="fa-solid fa-dna"></i> DNA العميل -->
+
+    <!-- ── رصيد افتتاحي ── -->
+    <div style="background:rgba(79,209,165,.06);border:1px solid rgba(79,209,165,.2);border-radius:12px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:800;color:var(--accent3);margin-bottom:8px"><i class="fa-solid fa-wallet"></i> رصيد افتتاحي</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">لو العميل ده كان عنده مستحقات أو ديون ليك قبل ما تبدأ تستخدم النظام — اضيفها هنا علشان الحسابات تبقى صح من البداية</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">المبلغ (ج.م)</label>
+          <input class="form-input" type="number" id="c-opening-balance" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">نوع الرصيد</label>
+          <select class="form-select" id="c-opening-balance-type">
+            <option value="receivable">💰 مستحق ليا (العميل مدين)</option>
+            <option value="payable">↩ مدفوع مسبقاً (عليا للعميل)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">ملاحظة الرصيد الافتتاحي</label>
+        <input class="form-input" id="c-opening-balance-note" placeholder="مثال: باقي من مشروع السوشيال ميديا سبتمبر">
+      </div>
+    </div>
     <div style="background:rgba(247,201,72,.05);border:1px solid rgba(247,201,72,.2);border-radius:12px;padding:12px 14px;margin-bottom:10px">
       <div style="font-size:12px;font-weight:800;color:var(--accent2);margin-bottom:10px"><i class="fa-solid fa-dna"></i> DNA العميل — شخصيته وطريقة تعامله</div>
       <div class="form-row">
@@ -5615,7 +5801,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 // CORE STATE
 // ============================================================
 const COLORS=['#7c6ff7','#f7c948','#4fd1a5','#f76f7c','#64b5f6','#ff8a65','#ce93d8','#80cbc4'];
-let S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],teams:[],subscriptions:[],projects:[],project_tasks:[],settings:{name:'',phone:'',email:'',address:'',terms:'',logo:'',taskTypes:['مهمة عامة','مشروع','استشارة','تقرير','متابعة','أخرى'],svc_site_desc:'',svc_orders_open:true,svc_banner_size:'md'},services:[],standalone_packages:[],portfolio_projects:[],svc_orders:[],specializations:[],client_portals:[]};
+let S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],teams:[],subscriptions:[],projects:[],project_tasks:[],settings:{name:'',phone:'',email:'',address:'',terms:'',logo:'',taskTypes:['مهمة عامة','مشروع','استشارة','تقرير','متابعة','أخرى'],svc_site_desc:'',svc_orders_open:true,svc_banner_size:'md'},services:[],standalone_packages:[],portfolio_projects:[],svc_orders:[],specializations:[],client_portals:[],loans:[],budgets:[]};
 
 // ══════════════════════════════════════════════════
 //  SECURITY — XSS Prevention utility
@@ -7779,8 +7965,12 @@ function openClientModal(id){
     if(document.getElementById('c-dna-style')) document.getElementById('c-dna-style').value=c.dnaStyle||'';
     if(document.getElementById('c-dna-payment')) document.getElementById('c-dna-payment').value=c.dnaPayment||'';
     if(document.getElementById('c-dna-notes')) document.getElementById('c-dna-notes').value=c.dnaNotes||'';
+    // رصيد افتتاحي
+    if(document.getElementById('c-opening-balance')) document.getElementById('c-opening-balance').value=c.openingBalance||'';
+    if(document.getElementById('c-opening-balance-type')) document.getElementById('c-opening-balance-type').value=c.openingBalanceType||'receivable';
+    if(document.getElementById('c-opening-balance-note')) document.getElementById('c-opening-balance-note').value=c.openingBalanceNote||'';
   } else {
-    ['c-name','c-phone','c-email','c-field','c-notes','c-salary','c-dna-notes'].forEach(f=>{const e=document.getElementById(f);if(e)e.value='';});
+    ['c-name','c-phone','c-email','c-field','c-notes','c-salary','c-dna-notes','c-opening-balance','c-opening-balance-note'].forEach(f=>{const e=document.getElementById(f);if(e)e.value='';});
     if(document.getElementById('c-dna-style')) document.getElementById('c-dna-style').value='';
     if(document.getElementById('c-dna-payment')) document.getElementById('c-dna-payment').value='';
     document.getElementById('c-type').value='شركة';
@@ -7819,6 +8009,9 @@ function saveClient(){
     dnaStyle: document.getElementById('c-dna-style')?.value||'',
     dnaPayment: document.getElementById('c-dna-payment')?.value||'',
     dnaNotes: document.getElementById('c-dna-notes')?.value||'',
+    openingBalance: +(document.getElementById('c-opening-balance')?.value||0)||0,
+    openingBalanceType: document.getElementById('c-opening-balance-type')?.value||'receivable',
+    openingBalanceNote: document.getElementById('c-opening-balance-note')?.value||'',
     socials: [...(document.querySelectorAll('#c-socials-list .social-tag')||[])].map(el=>({
       platform:el.dataset.platform, icon:el.dataset.icon, url:el.dataset.url
     })),
@@ -10998,7 +11191,7 @@ function migrateSFields(){
   try{
     if(!S.settings) S.settings={};
     if(!S.settings.taskTypes) S.settings.taskTypes=['تصميم سوشيال ميديا','برانيدنج','لوجو','فيديو موشن','كونتنت','ويب ديزاين'];
-    ['schedule','teams','subscriptions','customStatuses','paymentAccounts','hiddenPayMethods','hiddenStatuses','meetings','courses','timeEntries','contracts','statements','specializations','client_portals'].forEach(k=>{ if(!S[k]) S[k]=[]; });
+    ['schedule','teams','subscriptions','customStatuses','paymentAccounts','hiddenPayMethods','hiddenStatuses','meetings','courses','timeEntries','contracts','statements','specializations','client_portals','loans','budgets'].forEach(k=>{ if(!S[k]) S[k]=[]; });
     if(!S.archivedTasks) S.archivedTasks=[];
     if(!S.tasks) S.tasks=[];
     if(!S.clients) S.clients=[];
@@ -13567,7 +13760,7 @@ function buildDynamicStatusDropdowns(){
 // WALLETS TAB SYSTEM
 // ============================================================
 function switchFinTab(tab) {
-  var tabs = ['transactions','wallets'];
+  var tabs = ['transactions','wallets','budgets','loans'];
   tabs.forEach(function(t) {
     var btn = document.getElementById('fin-tab-'+t);
     var panel = document.getElementById('fin-panel-'+t);
@@ -13575,9 +13768,227 @@ function switchFinTab(tab) {
     if(panel) panel.style.display = t===tab ? 'block' : 'none';
   });
   if(tab==='wallets') renderWalletsTab();
+  if(tab==='budgets') renderBudgets();
+  if(tab==='loans') renderLoans();
 }
 
 function renderWalletsTab() {
+// ══════════════════════════════════════════════════
+// BUDGETS
+// ══════════════════════════════════════════════════
+var _budgetCatLabel = {equipment:'💻 معدات وأجهزة',software:'🔧 برامج واشتراكات',setup:'🏠 تطوير السيت آب',marketing:'📢 تسويق',education:'📚 تعليم وكورسات',emergency:'🛡 طوارئ',other:'📦 أخرى'};
+var _budgetPriLabel = {high:'🔴 عالية',medium:'🟡 متوسطة',low:'🟢 منخفضة'};
+
+function openBudgetModal(id){
+  document.getElementById('budget-modal-ttl').innerHTML = id ? '<i class="fa-solid fa-bullseye-arrow"></i> تعديل الميزانية' : '<i class="fa-solid fa-bullseye-arrow"></i> ميزانية جديدة';
+  document.getElementById('budget-eid').value = id||'';
+  if(id){
+    var b=(S.budgets||[]).find(function(x){return String(x.id)===String(id);}); if(!b) return;
+    document.getElementById('budget-name').value=b.name||'';
+    document.getElementById('budget-target').value=b.target||'';
+    document.getElementById('budget-saved').value=b.saved||'';
+    document.getElementById('budget-cat').value=b.cat||'other';
+    document.getElementById('budget-priority').value=b.priority||'medium';
+    document.getElementById('budget-start').value=b.start||'';
+    document.getElementById('budget-deadline').value=b.deadline||'';
+    document.getElementById('budget-notes').value=b.notes||'';
+  } else {
+    ['budget-name','budget-target','budget-saved','budget-notes','budget-deadline'].forEach(function(f){var e=document.getElementById(f);if(e)e.value='';});
+    document.getElementById('budget-start').value=new Date().toISOString().slice(0,10);
+    document.getElementById('budget-cat').value='other';
+    document.getElementById('budget-priority').value='medium';
+  }
+  openM('modal-budget');
+}
+function saveBudget(){
+  var name=(document.getElementById('budget-name').value||'').trim();
+  if(!name){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل اسم الميزانية');return;}
+  var target=+(document.getElementById('budget-target').value||0);
+  if(!target){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل المبلغ المستهدف');return;}
+  var eid=document.getElementById('budget-eid').value;
+  var d={
+    name:name, target:target,
+    saved:+(document.getElementById('budget-saved').value||0),
+    cat:document.getElementById('budget-cat').value||'other',
+    priority:document.getElementById('budget-priority').value||'medium',
+    start:document.getElementById('budget-start').value||'',
+    deadline:document.getElementById('budget-deadline').value||'',
+    notes:document.getElementById('budget-notes').value||'',
+    updatedAt:new Date().toISOString()
+  };
+  if(!S.budgets) S.budgets=[];
+  if(eid){var i=S.budgets.findIndex(function(x){return String(x.id)===String(eid);});if(i>-1){d.id=S.budgets[i].id;d.createdAt=S.budgets[i].createdAt||d.updatedAt;S.budgets[i]=d;}}
+  else{d.id='bgt_'+Date.now();d.createdAt=d.updatedAt;S.budgets.push(d);}
+  lsSave();cloudSave(S);closeM('modal-budget');renderBudgets();
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الميزانية');
+}
+function addToBudget(id){
+  var b=(S.budgets||[]).find(function(x){return String(x.id)===String(id);}); if(!b) return;
+  var amt=+prompt('أضف مبلغ للميزانية "'+b.name+'" (الحالي: '+b.saved.toLocaleString()+' ج.م):');
+  if(!amt||isNaN(amt)) return;
+  b.saved=Math.min(b.target, (b.saved||0)+amt);
+  lsSave();cloudSave(S);renderBudgets();
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إضافة '+amt.toLocaleString()+' ج.م للميزانية');
+}
+function delBudget(id){
+  if(!confirm('حذف هذه الميزانية؟')) return;
+  S.budgets=(S.budgets||[]).filter(function(x){return String(x.id)!==String(id);});
+  lsSave();cloudSave(S);renderBudgets();toast('تم الحذف');
+}
+function renderBudgets(){
+  var el=document.getElementById('budgets-grid'); if(!el) return;
+  if(!S.budgets) S.budgets=[];
+  if(!S.budgets.length){
+    el.innerHTML='<div class="card" style="grid-column:span 3;text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:12px">🎯</div><div style="font-size:16px;font-weight:800;margin-bottom:8px">لا توجد ميزانيات بعد</div><div style="font-size:13px;color:var(--text3);margin-bottom:16px">ابدأ بتحديد ميزانية لأي هدف — جهاز، كورس، تسويق...</div><button class="btn btn-primary" onclick="openBudgetModal()"><i class="fa-solid fa-plus" style="margin-left:4px"></i> ميزانية جديدة</button></div>';
+    return;
+  }
+  var priColor={high:'var(--accent4)',medium:'var(--accent2)',low:'var(--accent3)'};
+  el.innerHTML=S.budgets.map(function(b){
+    var pct=b.target>0?Math.min(100,Math.round((b.saved||0)/b.target*100)):0;
+    var done=pct>=100;
+    var rem=Math.max(0,b.target-(b.saved||0));
+    var barColor=done?'var(--accent3)':pct>=75?'var(--accent2)':'var(--accent)';
+    return '<div class="card" style="position:relative;'+(done?'border:1.5px solid var(--accent3)':'')+'">'
+      +'<div style="position:absolute;top:12px;left:12px;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;background:'+priColor[b.priority||'medium']+'22;color:'+priColor[b.priority||'medium']+'">'+(_budgetPriLabel[b.priority||'medium']||'')+'</div>'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;padding-left:60px">'
+        +'<div><div style="font-size:14px;font-weight:800">'+escapeHtml(b.name)+'</div>'
+        +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+(_budgetCatLabel[b.cat||'other']||'')+(b.deadline?' · ⏰ '+b.deadline:'')+'</div></div>'
+        +'<div style="display:flex;gap:4px">'
+          +'<button onclick="openBudgetModal(\''+b.id+'\')" class="btn btn-ghost btn-sm" style="padding:4px 8px"><i class="fa-solid fa-pen"></i></button>'
+          +'<button onclick="delBudget(\''+b.id+'\')" class="btn btn-ghost btn-sm" style="padding:4px 8px;color:var(--accent4)"><i class="fa-solid fa-trash"></i></button>'
+        +'</div>'
+      +'</div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">'
+        +'<span style="color:var(--text3)">المدّخر</span>'
+        +'<span style="font-weight:800;color:'+barColor+'">'+(b.saved||0).toLocaleString()+' / '+b.target.toLocaleString()+' ج.م</span>'
+      +'</div>'
+      +'<div style="height:10px;background:var(--surface3);border-radius:5px;margin-bottom:10px;overflow:hidden">'
+        +'<div style="height:100%;width:'+pct+'%;background:'+barColor+';border-radius:5px;transition:.4s"></div>'
+      +'</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+        +'<span style="font-size:12px;color:var(--text3)">'+(done?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتملة!':'متبقي: <strong>'+rem.toLocaleString()+' ج.م</strong>')+'</span>'
+        +(!done?'<button class="btn btn-ghost btn-sm" style="font-size:11px" onclick="addToBudget(\''+b.id+'\')"><i class="fa-solid fa-plus" style="margin-left:3px"></i> أضف مبلغ</button>':'')
+      +'</div>'
+      +(b.notes?'<div style="font-size:11px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'+escapeHtml(b.notes)+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════
+// LOANS
+// ══════════════════════════════════════════════════
+function updateLoanDirection(){
+  var dir=document.getElementById('loan-direction')?.value||'lent';
+  var lbl=document.getElementById('loan-person-label');
+  if(lbl) lbl.textContent = dir==='lent' ? 'اسم الشخص اللي سلّفته *' : 'اسم الشخص اللي استلفت منه *';
+}
+function openLoanModal(id){
+  document.getElementById('loan-modal-ttl').innerHTML = id ? '<i class="fa-solid fa-handshake"></i> تعديل القرض' : '<i class="fa-solid fa-handshake"></i> قرض / دين جديد';
+  document.getElementById('loan-eid').value=id||'';
+  if(id){
+    var l=(S.loans||[]).find(function(x){return String(x.id)===String(id);}); if(!l) return;
+    document.getElementById('loan-direction').value=l.direction||'lent';
+    document.getElementById('loan-amount').value=l.amount||'';
+    document.getElementById('loan-person').value=l.person||'';
+    document.getElementById('loan-date').value=l.date||'';
+    document.getElementById('loan-due').value=l.due||'';
+    document.getElementById('loan-notes').value=l.notes||'';
+    document.getElementById('loan-status').value=l.status||'pending';
+    document.getElementById('loan-settled-amount').value=l.settledAmount||'';
+  } else {
+    ['loan-amount','loan-person','loan-due','loan-notes','loan-settled-amount'].forEach(function(f){var e=document.getElementById(f);if(e)e.value='';});
+    document.getElementById('loan-direction').value='lent';
+    document.getElementById('loan-date').value=new Date().toISOString().slice(0,10);
+    document.getElementById('loan-status').value='pending';
+  }
+  updateLoanDirection();
+  _toggleLoanSettledWrap();
+  openM('modal-loan');
+}
+function _toggleLoanSettledWrap(){
+  var st=document.getElementById('loan-status')?.value;
+  var w=document.getElementById('loan-settled-amount-wrap');
+  if(w) w.style.display=st==='partial'?'block':'none';
+}
+document.addEventListener('change',function(e){if(e.target&&e.target.id==='loan-status') _toggleLoanSettledWrap();});
+function saveLoan(){
+  var person=(document.getElementById('loan-person').value||'').trim();
+  if(!person){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل اسم الشخص');return;}
+  var amount=+(document.getElementById('loan-amount').value||0);
+  if(!amount){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل المبلغ');return;}
+  var eid=document.getElementById('loan-eid').value;
+  var status=document.getElementById('loan-status').value||'pending';
+  var d={
+    direction:document.getElementById('loan-direction').value||'lent',
+    amount:amount, person:person,
+    date:document.getElementById('loan-date').value||'',
+    due:document.getElementById('loan-due').value||'',
+    notes:document.getElementById('loan-notes').value||'',
+    status:status,
+    settledAmount:status==='partial'?+(document.getElementById('loan-settled-amount').value||0):0,
+    updatedAt:new Date().toISOString()
+  };
+  if(!S.loans) S.loans=[];
+  if(eid){var i=S.loans.findIndex(function(x){return String(x.id)===String(eid);});if(i>-1){d.id=S.loans[i].id;d.createdAt=S.loans[i].createdAt||d.updatedAt;S.loans[i]=d;}}
+  else{d.id='ln_'+Date.now();d.createdAt=d.updatedAt;S.loans.push(d);}
+  lsSave();cloudSave(S);closeM('modal-loan');renderLoans();
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ القرض');
+}
+function delLoan(id){
+  if(!confirm('حذف هذا القرض؟')) return;
+  S.loans=(S.loans||[]).filter(function(x){return String(x.id)!==String(id);});
+  lsSave();cloudSave(S);renderLoans();toast('تم الحذف');
+}
+function markLoanSettled(id){
+  var l=(S.loans||[]).find(function(x){return String(x.id)===String(id);}); if(!l) return;
+  l.status='settled'; l.settledAmount=l.amount; l.settledAt=new Date().toISOString();
+  lsSave();cloudSave(S);renderLoans();
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تسجيل السداد الكامل');
+}
+function renderLoans(){
+  var el=document.getElementById('loans-list'); if(!el) return;
+  if(!S.loans) S.loans=[];
+  var lentTotal=(S.loans).filter(function(l){return l.direction==='lent'&&l.status!=='settled';}).reduce(function(s,l){return s+(l.amount-(l.settledAmount||0));},0);
+  var borrowedTotal=(S.loans).filter(function(l){return l.direction==='borrowed'&&l.status!=='settled';}).reduce(function(s,l){return s+(l.amount-(l.settledAmount||0));},0);
+  var lentEl=document.getElementById('loans-lent-total');
+  var borEl=document.getElementById('loans-borrowed-total');
+  if(lentEl) lentEl.textContent=lentTotal.toLocaleString()+' ج.م';
+  if(borEl) borEl.textContent=borrowedTotal.toLocaleString()+' ج.م';
+  if(!S.loans.length){
+    el.innerHTML='<div class="card" style="text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:12px">🤝</div><div style="font-size:16px;font-weight:800;margin-bottom:8px">لا توجد قروض مسجّلة</div><div style="font-size:13px;color:var(--text3);margin-bottom:16px">سجّل فلوسك المسلّفة أو اللي عليك تردها</div><button class="btn btn-primary" onclick="openLoanModal()"><i class="fa-solid fa-plus" style="margin-left:4px"></i> قرض / دين جديد</button></div>';
+    return;
+  }
+  var stLabel={pending:'⏳ لسه',partial:'🟡 جزء',settled:'✅ اترد'};
+  var stColor={pending:'var(--accent4)',partial:'var(--accent2)',settled:'var(--accent3)'};
+  el.innerHTML='<div style="display:flex;flex-direction:column;gap:10px">'+S.loans.map(function(l){
+    var isLent=l.direction==='lent';
+    var rem=l.amount-(l.settledAmount||0);
+    var isDone=l.status==='settled';
+    var overdue=l.due&&!isDone&&new Date(l.due)<new Date();
+    return '<div class="card" style="border-right:4px solid '+(isLent?'var(--accent3)':'var(--accent4)')+(isDone?';opacity:.7':'')+';">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
+        +'<div>'
+          +'<div style="font-size:13px;font-weight:800">'+(isLent?'💰 سلّفت لـ ':'↩ استلفت من ')+escapeHtml(l.person)+'</div>'
+          +'<div style="font-size:12px;color:var(--text3);margin-top:3px">'
+            +l.amount.toLocaleString()+' ج.م'
+            +(l.date?' · '+l.date:'')
+            +(l.due?'<span style="color:'+(overdue?'var(--accent4)':'var(--text3)')+'"> · سداد: '+l.due+(overdue?' ⚠️':'')+'</span>':'')
+          +'</div>'
+          +(l.notes?'<div style="font-size:11px;color:var(--text3);margin-top:3px">'+escapeHtml(l.notes)+'</div>':'')
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+          +'<span style="font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700;background:'+stColor[l.status||'pending']+'22;color:'+stColor[l.status||'pending']+'">'+stLabel[l.status||'pending']+'</span>'
+          +(!isDone?'<span style="font-size:13px;font-weight:800;color:'+(isLent?'var(--accent3)':'var(--accent4)')+'">متبقي: '+rem.toLocaleString()+' ج.م</span>':'')
+          +'<button onclick="openLoanModal(\''+l.id+'\')" class="btn btn-ghost btn-sm" style="padding:4px 8px"><i class="fa-solid fa-pen"></i></button>'
+          +(!isDone?'<button onclick="markLoanSettled(\''+l.id+'\')" class="btn btn-ghost btn-sm" style="padding:4px 8px;color:var(--accent3)" title="تسجيل سداد كامل"><i class="fa-solid fa-square-check"></i></button>':'')
+          +'<button onclick="delLoan(\''+l.id+'\')" class="btn btn-ghost btn-sm" style="padding:4px 8px;color:var(--accent4)"><i class="fa-solid fa-trash"></i></button>'
+        +'</div>'
+      +'</div>'
+      +'</div>';
+  }).join('')+'</div>';
+}
+
+
   var methods = getAllPayMethods();
   var transactions = S.transactions || [];
   var grid = document.getElementById('fin-wallets-grid');
