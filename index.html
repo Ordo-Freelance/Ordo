@@ -1364,9 +1364,9 @@ body.pub-page #app-body {
 ═══════════════════════════════════════════════════ */
 .app-shell {
   display: block;
-  height: 100vh;
+  min-height: 100vh;
   width: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
   position: relative;
 }
 
@@ -1555,7 +1555,7 @@ body.pub-page #app-body {
 .app-body {
   display: block;
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   overflow-x: hidden;
   overflow-y: auto;
   box-sizing: border-box;
@@ -1567,10 +1567,12 @@ body.pub-page #app-body {
   .app-body {
     margin-right: 240px;
     width: calc(100% - 240px);
+    max-width: calc(100vw - 240px);
   }
   body.sidebar-collapsed .app-body {
     margin-right: 0 !important;
     width: 100% !important;
+    max-width: 100vw !important;
   }
 }
 .main {
