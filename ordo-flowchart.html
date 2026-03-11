@@ -3,376 +3,234 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ordo — مخطط النظام التفاعلي</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<title>Ordo — مخطط النظام</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
-/* ══════════════════════════════════
-   RESET + VARIABLES
-══════════════════════════════════ */
-*{box-sizing:border-box;margin:0;padding:0;}
+*{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#07090f;
-  --surface:#0d1018;
-  --surface2:#141820;
-  --surface3:#1c2130;
-  --border:rgba(255,255,255,.07);
-  --border2:rgba(255,255,255,.12);
-  --t1:#eef0f8;
-  --t2:#8a93b0;
-  --t3:#444d68;
-  --accent:#6c63ff;
-  --green:#4fd1a5;
-  --yellow:#f7c948;
-  --red:#f76f7c;
-  --blue:#38bdf8;
-  --purple:#a78bfa;
-  --orange:#fb923c;
-  --pink:#f472b6;
-  --teal:#34d399;
+  --bg:#07090f;--surface:#0d1018;--surface2:#141820;--surface3:#1c2130;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
+  --t1:#eef0f8;--t2:#8a93b0;--t3:#444d68;
+  --accent:#6c63ff;--green:#4fd1a5;--yellow:#f7c948;--red:#f76f7c;
+  --blue:#38bdf8;--orange:#fb923c;--pink:#f472b6;--teal:#34d399;--lav:#a78bfa;
   --font:'Cairo',sans-serif;
 }
+html,body{background:var(--bg);color:var(--t1);font-family:var(--font);min-height:100vh;overflow:hidden;}
 
-html,body{
-  background:var(--bg);
-  color:var(--t1);
-  font-family:var(--font);
-  min-height:100vh;
-}
-
-/* ══════════════════════════════════
-   TOOLBAR
-══════════════════════════════════ */
+/* ── TOOLBAR ── */
 #toolbar{
-  position:fixed;top:0;left:0;right:0;z-index:1000;
-  height:56px;
-  background:rgba(7,9,15,.95);
-  backdrop-filter:blur(16px);
+  position:fixed;top:0;left:0;right:0;z-index:1000;height:52px;
+  background:rgba(7,9,15,.96);backdrop-filter:blur(16px);
   border-bottom:1px solid var(--border);
-  display:flex;align-items:center;
-  padding:0 20px;
-  gap:8px;
+  display:flex;align-items:center;padding:0 16px;gap:6px;
 }
-.tb-brand{
-  font-size:16px;font-weight:900;
-  color:var(--t1);margin-left:16px;
-  display:flex;align-items:center;gap:6px;
-  flex-shrink:0;
-}
+.tb-brand{font-size:15px;font-weight:900;color:var(--t1);margin-left:12px;flex-shrink:0;}
 .tb-brand span{color:var(--accent);}
-.tb-sep{width:1px;height:28px;background:var(--border);margin:0 6px;}
-
+.tb-sep{width:1px;height:26px;background:var(--border);margin:0 4px;flex-shrink:0;}
 .tb-btn{
-  height:34px;padding:0 14px;
-  border-radius:8px;border:1px solid var(--border);
-  background:var(--surface2);color:var(--t2);
-  font-family:var(--font);font-size:12px;font-weight:700;
-  cursor:pointer;
-  display:flex;align-items:center;gap:6px;
-  transition:all .15s;white-space:nowrap;flex-shrink:0;
+  height:32px;padding:0 12px;border-radius:7px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--t2);font-family:var(--font);font-size:11px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .14s;white-space:nowrap;flex-shrink:0;
 }
 .tb-btn:hover{background:var(--surface3);color:var(--t1);border-color:var(--border2);}
+.tb-btn.active{background:rgba(108,99,255,.18);color:var(--accent);border-color:rgba(108,99,255,.4);}
 .tb-btn.primary{background:var(--accent);color:#fff;border-color:transparent;}
 .tb-btn.primary:hover{opacity:.88;}
-.tb-btn.danger{background:rgba(247,111,124,.12);color:var(--red);border-color:rgba(247,111,124,.25);}
-.tb-btn.danger:hover{background:rgba(247,111,124,.2);}
-.tb-btn.green{background:rgba(79,209,165,.12);color:var(--green);border-color:rgba(79,209,165,.25);}
-.tb-btn.green:hover{background:rgba(79,209,165,.2);}
-.tb-btn.yellow{background:rgba(247,201,72,.1);color:var(--yellow);border-color:rgba(247,201,72,.25);}
-.tb-btn.yellow:hover{background:rgba(247,201,72,.18);}
-
+.tb-btn.green-btn{background:rgba(79,209,165,.1);color:var(--green);border-color:rgba(79,209,165,.3);}
+.tb-btn.yellow-btn{background:rgba(247,201,72,.1);color:var(--yellow);border-color:rgba(247,201,72,.3);}
+.tb-btn:disabled{opacity:.35;cursor:not-allowed;}
 .tb-spacer{flex:1;}
 .tb-hint{font-size:10px;color:var(--t3);flex-shrink:0;}
 
-/* ── Add Node dropdown ── */
-.tb-dropdown{position:relative;}
-.tb-dropdown-menu{
-  position:absolute;top:calc(100% + 6px);right:0;
-  background:var(--surface2);
-  border:1px solid var(--border2);
-  border-radius:12px;padding:8px;
-  min-width:200px;
-  display:none;z-index:2000;
-  box-shadow:0 16px 48px rgba(0,0,0,.6);
-}
-.tb-dropdown.open .tb-dropdown-menu{display:block;}
-.dd-item{
-  display:flex;align-items:center;gap:10px;
-  padding:9px 12px;border-radius:8px;
-  cursor:pointer;font-size:12px;color:var(--t2);
-  transition:.12s;
-}
-.dd-item:hover{background:var(--surface3);color:var(--t1);}
-.dd-item .dd-color{
-  width:8px;height:8px;border-radius:50%;flex-shrink:0;
-}
-.dd-section{
-  font-size:10px;font-weight:700;letter-spacing:1px;
-  color:var(--t3);padding:6px 12px 2px;
-  text-transform:uppercase;
+/* undo/redo badge */
+.undo-count{
+  font-size:9px;background:rgba(108,99,255,.25);color:var(--accent);
+  border-radius:8px;padding:1px 5px;margin-right:2px;
 }
 
-/* ══════════════════════════════════
-   CANVAS AREA
-══════════════════════════════════ */
+/* dropdown */
+.tb-dd{position:relative;}
+.tb-dd-menu{
+  position:absolute;top:calc(100% + 5px);right:0;
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:12px;padding:6px;min-width:210px;
+  display:none;z-index:2000;box-shadow:0 16px 48px rgba(0,0,0,.7);
+}
+.tb-dd.open .tb-dd-menu{display:block;}
+.dd-sec{font-size:9px;font-weight:800;letter-spacing:1px;color:var(--t3);padding:5px 10px 2px;text-transform:uppercase;}
+.dd-it{
+  display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;
+  cursor:pointer;font-size:11px;color:var(--t2);transition:.1s;
+}
+.dd-it:hover{background:var(--surface3);color:var(--t1);}
+.dd-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+/* ── CANVAS ── */
 #canvas-wrap{
-  margin-top:56px;
-  min-height:calc(100vh - 56px);
-  padding:40px;
-  position:relative;
-  overflow:auto;
+  position:fixed;top:52px;left:0;right:0;bottom:0;
+  overflow:hidden;cursor:default;
+}
+#canvas-wrap.panning{cursor:grab;}
+#canvas-wrap.panning-active{cursor:grabbing;}
+
+/* infinite grid bg */
+#canvas-wrap::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size:28px 28px;
 }
 
 #flowchart{
-  position:relative;
-  min-width:1100px;
-  min-height:800px;
-}
-
-/* ── SVG connections ── */
-#connections-svg{
   position:absolute;top:0;left:0;
-  width:100%;height:100%;
-  pointer-events:none;
-  overflow:visible;
-  z-index:0;
+  width:3000px;height:2600px;
+  transform-origin:0 0;
 }
-.conn-path{
-  fill:none;
-  stroke:rgba(255,255,255,.12);
-  stroke-width:1.5;
-  stroke-dasharray:6 4;
-}
-.conn-path.solid{stroke-dasharray:none;stroke:rgba(255,255,255,.18);}
-.conn-path.accent{stroke:rgba(108,99,255,.35);stroke-dasharray:none;}
 
-/* ══════════════════════════════════
-   NODES
-══════════════════════════════════ */
+/* ── SVG ── */
+#conn-svg{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;overflow:visible;z-index:1;
+}
+.c-path{fill:none;stroke-width:2;marker-end:url(#arrow);}
+.c-path.style-dash{stroke:rgba(255,255,255,.16);stroke-dasharray:6 5;}
+.c-path.style-solid{stroke:rgba(255,255,255,.22);}
+.c-path.style-accent{stroke:rgba(108,99,255,.55);}
+.c-path.style-data{stroke:rgba(79,209,165,.4);stroke-dasharray:none;}
+.c-path.preview{stroke:rgba(108,99,255,.5);stroke-dasharray:8 4;stroke-width:1.5;}
+.c-label{
+  font-family:var(--font);font-size:9px;font-weight:700;
+  fill:rgba(255,255,255,.25);text-anchor:middle;pointer-events:none;
+}
+
+/* ── NODES ── */
 .fc-node{
-  position:absolute;
-  border-radius:14px;
-  border:1.5px solid var(--border);
-  background:var(--surface2);
-  padding:16px 18px;
-  min-width:130px;
-  max-width:200px;
-  cursor:grab;
-  user-select:none;
-  transition:box-shadow .2s, border-color .2s;
-  z-index:10;
+  position:absolute;border-radius:13px;border:1.5px solid var(--border);
+  background:var(--surface2);padding:14px 16px;
+  min-width:140px;max-width:185px;
+  cursor:grab;user-select:none;
+  transition:box-shadow .18s,border-color .18s;z-index:10;
 }
-.fc-node:hover{
-  border-color:var(--border2);
-  box-shadow:0 8px 32px rgba(0,0,0,.5);
-  z-index:20;
-}
-.fc-node.selected{
-  border-color:rgba(108,99,255,.6)!important;
-  box-shadow:0 0 0 3px rgba(108,99,255,.2), 0 8px 32px rgba(0,0,0,.5)!important;
-  z-index:30;
-}
-.fc-node.dragging{cursor:grabbing;z-index:100;}
+.fc-node:hover{border-color:var(--border2);box-shadow:0 6px 28px rgba(0,0,0,.55);z-index:20;}
+.fc-node.selected{border-color:rgba(108,99,255,.7)!important;box-shadow:0 0 0 3px rgba(108,99,255,.18),0 6px 28px rgba(0,0,0,.55)!important;z-index:30;}
+.fc-node.dragging{cursor:grabbing;z-index:100;box-shadow:0 16px 48px rgba(0,0,0,.7);}
 
-/* Node types */
-.fc-node.type-start{
-  background:rgba(108,99,255,.12);
-  border-color:rgba(108,99,255,.4);
-}
-.fc-node.type-decision{
-  border-radius:8px;
-  background:rgba(247,201,72,.07);
-  border-color:rgba(247,201,72,.3);
-  transform:rotate(0deg);
-}
-.fc-node.type-db{
-  border-radius:10px;
-  background:rgba(148,163,184,.06);
-  border-color:rgba(148,163,184,.2);
-}
-.fc-node.type-external{
-  border-style:dashed;
-  background:transparent;
-}
+/* types */
+.fc-node.type-start{background:rgba(108,99,255,.1);border-color:rgba(108,99,255,.45);}
+.fc-node.type-decision{border-radius:8px;background:rgba(247,201,72,.07);border-color:rgba(247,201,72,.35);}
+.fc-node.type-db{border-radius:8px;background:rgba(148,163,184,.05);border-color:rgba(148,163,184,.22);border-style:solid;}
+.fc-node.type-external{border-style:dashed;background:rgba(255,255,255,.02);}
 
-/* Color variants */
-.fc-node.col-purple{border-color:rgba(108,99,255,.4);background:rgba(108,99,255,.08);}
-.fc-node.col-green{border-color:rgba(79,209,165,.4);background:rgba(79,209,165,.08);}
-.fc-node.col-yellow{border-color:rgba(247,201,72,.4);background:rgba(247,201,72,.08);}
-.fc-node.col-red{border-color:rgba(247,111,124,.4);background:rgba(247,111,124,.08);}
-.fc-node.col-blue{border-color:rgba(56,189,248,.4);background:rgba(56,189,248,.08);}
-.fc-node.col-pink{border-color:rgba(244,114,182,.4);background:rgba(244,114,182,.08);}
-.fc-node.col-teal{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08);}
-.fc-node.col-orange{border-color:rgba(251,146,60,.4);background:rgba(251,146,60,.08);}
-.fc-node.col-purple2{border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.08);}
-.fc-node.col-gray{border-color:rgba(148,163,184,.3);background:rgba(148,163,184,.05);}
+/* colors */
+.fc-node.col-purple{border-color:rgba(108,99,255,.45)!important;background:rgba(108,99,255,.09)!important;}
+.fc-node.col-green{border-color:rgba(79,209,165,.45)!important;background:rgba(79,209,165,.09)!important;}
+.fc-node.col-yellow{border-color:rgba(247,201,72,.45)!important;background:rgba(247,201,72,.09)!important;}
+.fc-node.col-red{border-color:rgba(247,111,124,.45)!important;background:rgba(247,111,124,.09)!important;}
+.fc-node.col-blue{border-color:rgba(56,189,248,.45)!important;background:rgba(56,189,248,.09)!important;}
+.fc-node.col-pink{border-color:rgba(244,114,182,.45)!important;background:rgba(244,114,182,.09)!important;}
+.fc-node.col-teal{border-color:rgba(52,211,153,.45)!important;background:rgba(52,211,153,.09)!important;}
+.fc-node.col-orange{border-color:rgba(251,146,60,.45)!important;background:rgba(251,146,60,.09)!important;}
+.fc-node.col-lav{border-color:rgba(167,139,250,.45)!important;background:rgba(167,139,250,.09)!important;}
+.fc-node.col-gray{border-color:rgba(148,163,184,.3)!important;background:rgba(148,163,184,.05)!important;}
 
-/* Node content */
-.node-emoji{font-size:22px;margin-bottom:6px;line-height:1;display:block;}
-.node-title{
-  font-size:12px;font-weight:800;
-  line-height:1.35;
-  color:var(--t1);
-  min-height:18px;
-  outline:none;
-}
-.node-title:focus{
-  background:rgba(255,255,255,.06);
-  border-radius:4px;padding:2px 4px;
-  margin:-2px -4px;
-}
-.node-sub{
-  font-size:10px;color:var(--t2);
-  margin-top:4px;line-height:1.4;
-  min-height:14px;
-  outline:none;
-}
-.node-sub:focus{
-  background:rgba(255,255,255,.04);
-  border-radius:3px;padding:1px 3px;
-  margin:-1px -3px;
-}
-.node-tags{
-  display:flex;flex-wrap:wrap;gap:3px;margin-top:8px;
-}
-.node-tag{
-  font-size:9px;font-weight:700;
-  padding:2px 6px;border-radius:10px;
-  background:rgba(255,255,255,.06);
-  color:var(--t3);border:1px solid var(--border);
-}
+/* content */
+.node-icon{font-size:20px;margin-bottom:5px;line-height:1;display:block;cursor:pointer;}
+.node-title{font-size:11.5px;font-weight:800;line-height:1.35;color:var(--t1);outline:none;min-height:16px;}
+.node-title:focus{background:rgba(255,255,255,.07);border-radius:3px;padding:1px 3px;margin:-1px -3px;}
+.node-sub{font-size:10px;color:var(--t2);margin-top:3px;line-height:1.4;outline:none;min-height:13px;}
+.node-sub:focus{background:rgba(255,255,255,.04);border-radius:3px;padding:1px 3px;margin:-1px -3px;}
+.node-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:7px;}
+.node-tag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:9px;background:rgba(255,255,255,.05);color:var(--t3);border:1px solid var(--border);}
 
-/* ── Node controls (show on hover/select) ── */
-.node-controls{
-  position:absolute;top:-12px;left:50%;transform:translateX(-50%);
-  display:none;
-  gap:4px;z-index:50;
-  background:var(--surface3);
-  border:1px solid var(--border2);
-  border-radius:20px;padding:3px 6px;
-  white-space:nowrap;
+/* controls bar */
+.node-ctrl{
+  position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+  display:none;gap:3px;z-index:50;
+  background:var(--surface3);border:1px solid var(--border2);
+  border-radius:16px;padding:2px 5px;
 }
-.fc-node:hover .node-controls,
-.fc-node.selected .node-controls{display:flex;}
-.nc-btn{
-  width:22px;height:22px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;font-size:11px;
-  border:none;background:transparent;color:var(--t2);
-  transition:.12s;
+.fc-node:hover .node-ctrl,.fc-node.selected .node-ctrl{display:flex;}
+.nc{
+  width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:10px;border:none;background:transparent;color:var(--t2);transition:.1s;
 }
-.nc-btn:hover{background:rgba(255,255,255,.1);color:var(--t1);}
-.nc-btn.del:hover{background:rgba(247,111,124,.15);color:var(--red);}
+.nc:hover{background:rgba(255,255,255,.1);color:var(--t1);}
+.nc.del:hover{background:rgba(247,111,124,.15);color:var(--red);}
 
-/* ── Connection handle (on right edge) ── */
-.conn-handle{
-  position:absolute;right:-10px;top:50%;
-  transform:translateY(-50%);
-  width:16px;height:16px;border-radius:50%;
-  background:var(--accent);border:2px solid var(--bg);
-  cursor:crosshair;opacity:0;
-  transition:opacity .15s;
-  z-index:40;
+/* conn port */
+.conn-port{
+  position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
+  width:14px;height:14px;border-radius:50%;
+  background:var(--accent);border:2px solid #07090f;
+  cursor:crosshair;opacity:0;transition:opacity .14s;z-index:35;
 }
-.fc-node:hover .conn-handle,
-.fc-node.selected .conn-handle{opacity:1;}
+.fc-node:hover .conn-port,.fc-node.selected .conn-port{opacity:1;}
 
-/* ══════════════════════════════════
-   SECTION LABELS
-══════════════════════════════════ */
-.fc-label{
-  position:absolute;
-  font-size:9px;font-weight:800;letter-spacing:1.5px;
-  color:var(--t3);text-transform:uppercase;
-  z-index:5;
-  cursor:default;
-  border-right:2px solid rgba(255,255,255,.06);
-  padding-right:8px;
-  pointer-events:none;
-}
-
-/* ══════════════════════════════════
-   CONTEXT MENU
-══════════════════════════════════ */
-#ctx-menu{
+/* ── PANELS ── */
+#ctx-menu,#color-panel,#emoji-panel{
   position:fixed;z-index:5000;
-  background:var(--surface2);
-  border:1px solid var(--border2);
-  border-radius:12px;padding:6px;
-  min-width:180px;display:none;
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:11px;display:none;
   box-shadow:0 16px 48px rgba(0,0,0,.7);
 }
-.ctx-item{
-  display:flex;align-items:center;gap:8px;
-  padding:8px 12px;border-radius:7px;
-  cursor:pointer;font-size:12px;color:var(--t2);
-  transition:.1s;
-}
-.ctx-item:hover{background:var(--surface3);color:var(--t1);}
-.ctx-item.ctx-danger{color:var(--red);}
-.ctx-item.ctx-danger:hover{background:rgba(247,111,124,.1);}
-.ctx-sep{height:1px;background:var(--border);margin:4px 0;}
+#ctx-menu{padding:5px;min-width:175px;}
+.ci{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:11px;color:var(--t2);transition:.1s;}
+.ci:hover{background:var(--surface3);color:var(--t1);}
+.ci.danger{color:var(--red);}
+.ci.danger:hover{background:rgba(247,111,124,.09);}
+.csep{height:1px;background:var(--border);margin:3px 0;}
 
-/* ══════════════════════════════════
-   COLOR PICKER PANEL
-══════════════════════════════════ */
-#color-panel{
-  position:fixed;z-index:5000;
-  background:var(--surface2);
-  border:1px solid var(--border2);
-  border-radius:12px;padding:12px;
+#color-panel{padding:12px;width:180px;}
+#color-panel h4{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.swatches{display:flex;flex-wrap:wrap;gap:6px;}
+.sw{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.12s;}
+.sw:hover{transform:scale(1.2);border-color:rgba(255,255,255,.35);}
+.sw.active{border-color:#fff;}
+
+#emoji-panel{padding:12px;width:228px;}
+#emoji-panel h4{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.eg{display:flex;flex-wrap:wrap;gap:3px;}
+.ep{width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:16px;border-radius:5px;cursor:pointer;transition:.1s;}
+.ep:hover{background:var(--surface3);}
+
+/* ── ZOOM / STATUS bar ── */
+#statusbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:800;
+  height:32px;background:rgba(7,9,15,.9);border-top:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:8px;
+}
+.sb-item{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:4px;}
+.sb-item b{color:var(--t2);}
+.sb-sep{width:1px;height:16px;background:var(--border);}
+#zoom-disp{font-size:11px;font-weight:700;color:var(--t2);}
+.zbtn{width:24px;height:24px;border-radius:5px;background:var(--surface2);border:1px solid var(--border);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:.1s;}
+.zbtn:hover{background:var(--surface3);color:var(--t1);}
+#mode-badge{
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;
+  background:rgba(108,99,255,.15);color:var(--accent);border:1px solid rgba(108,99,255,.3);
   display:none;
-  box-shadow:0 16px 48px rgba(0,0,0,.7);
 }
-#color-panel h4{font-size:10px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;}
-.color-swatches{display:flex;flex-wrap:wrap;gap:6px;}
-.color-swatch{
-  width:24px;height:24px;border-radius:50%;
-  cursor:pointer;border:2px solid transparent;
-  transition:.12s;
-}
-.color-swatch:hover{transform:scale(1.2);border-color:rgba(255,255,255,.3);}
-.color-swatch.active{border-color:#fff;}
 
-/* ══════════════════════════════════
-   EMOJI PICKER
-══════════════════════════════════ */
-#emoji-picker{
-  position:fixed;z-index:5000;
-  background:var(--surface2);
-  border:1px solid var(--border2);
-  border-radius:12px;padding:12px;
-  display:none;
-  box-shadow:0 16px 48px rgba(0,0,0,.7);
-  max-width:240px;
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:44px;right:20px;z-index:9000;
+  background:var(--surface3);border:1px solid var(--border2);
+  border-radius:9px;padding:9px 14px;font-size:11px;font-weight:700;color:var(--t1);
+  opacity:0;transform:translateY(6px);transition:.22s;pointer-events:none;
+  box-shadow:0 8px 24px rgba(0,0,0,.55);max-width:260px;
 }
-#emoji-picker h4{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
-.emoji-grid{display:flex;flex-wrap:wrap;gap:4px;}
-.ep-emoji{
-  width:30px;height:30px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;border-radius:6px;cursor:pointer;
-  transition:.1s;
-}
-.ep-emoji:hover{background:var(--surface3);}
+#toast.show{opacity:1;transform:translateY(0);}
 
-/* ══════════════════════════════════
-   PRINT STYLES
-══════════════════════════════════ */
+/* ── PRINT ── */
+#print-hdr{display:none;}
 @media print{
   body{background:#fff!important;color:#111!important;}
-  #toolbar,#ctx-menu,#color-panel,#emoji-picker,
-  .node-controls,.conn-handle,#print-overlay{display:none!important;}
-  #canvas-wrap{margin-top:0!important;padding:20px!important;background:#fff!important;}
-  #flowchart{min-width:unset!important;}
-
-  .fc-node{
-    background:#fff!important;
-    border:1.5px solid #ddd!important;
-    box-shadow:none!important;
-    -webkit-print-color-adjust:exact;
-    print-color-adjust:exact;
-  }
-  .fc-node.col-purple{background:#f0effe!important;border-color:#c4bfff!important;}
+  #toolbar,#statusbar,#ctx-menu,#color-panel,#emoji-panel,.node-ctrl,.conn-port,#toast{display:none!important;}
+  #canvas-wrap{position:static!important;overflow:visible!important;}
+  #flowchart{position:static!important;width:auto!important;height:auto!important;transform:none!important;}
+  #conn-svg{position:absolute!important;}
+  .fc-node{box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .fc-node.col-purple{background:#f0effe!important;border-color:#bfbcff!important;}
   .fc-node.col-green{background:#ecfdf5!important;border-color:#6ee7b7!important;}
   .fc-node.col-yellow{background:#fffbeb!important;border-color:#fcd34d!important;}
   .fc-node.col-red{background:#fff1f2!important;border-color:#fca5a5!important;}
@@ -380,877 +238,720 @@ html,body{
   .fc-node.col-pink{background:#fdf2f8!important;border-color:#f9a8d4!important;}
   .fc-node.col-teal{background:#ecfdf5!important;border-color:#6ee7b7!important;}
   .fc-node.col-orange{background:#fff7ed!important;border-color:#fdba74!important;}
-  .fc-node.col-purple2{background:#faf5ff!important;border-color:#c4b5fd!important;}
-  .fc-node.type-start{background:#eef!important;border-color:#a5a0ff!important;}
+  .fc-node.col-lav{background:#faf5ff!important;border-color:#c4b5fd!important;}
+  .fc-node.type-start{background:#edeeff!important;border-color:#a5a0ff!important;}
   .fc-node.type-decision{background:#fffbeb!important;border-color:#fcd34d!important;}
-
-  .node-title,.node-sub,.node-tag{color:#333!important;}
-  .node-tag{background:#eee!important;border-color:#ddd!important;color:#555!important;}
-  .fc-label{color:#999!important;}
-  .conn-path{stroke:#ccc!important;}
-  .conn-path.accent{stroke:#a5a0ff!important;}
-
-  /* Print header */
-  #print-header{
-    display:flex!important;
-    align-items:center;justify-content:space-between;
-    padding:0 0 16px;
-    border-bottom:2px solid #eee;
-    margin-bottom:24px;
-  }
-  #print-header .ph-title{font-size:18px;font-weight:900;color:#111;}
-  #print-header .ph-title span{color:#6c63ff;}
-  #print-header .ph-date{font-size:10px;color:#999;}
+  .node-title,.node-sub{color:#222!important;}
+  .node-tag{background:#eee!important;color:#555!important;border-color:#ddd!important;}
+  .c-path.style-dash{stroke:#bbb!important;}
+  .c-path.style-solid{stroke:#999!important;}
+  .c-path.style-accent{stroke:#a5a0ff!important;}
+  .c-path.style-data{stroke:#6ee7b7!important;}
+  #print-hdr{display:flex!important;justify-content:space-between;align-items:center;padding:0 0 14px;border-bottom:2px solid #eee;margin-bottom:20px;font-size:14px;font-weight:900;color:#111;}
+  #print-hdr span{color:#6c63ff;}
 }
-
-/* Print header (hidden on screen) */
-#print-header{display:none;}
-
-/* ══════════════════════════════════
-   TOAST
-══════════════════════════════════ */
-#toast{
-  position:fixed;bottom:24px;right:24px;z-index:9000;
-  background:var(--surface3);border:1px solid var(--border2);
-  border-radius:10px;padding:10px 16px;
-  font-size:12px;font-weight:700;color:var(--t1);
-  opacity:0;transform:translateY(8px);
-  transition:.25s;pointer-events:none;
-  box-shadow:0 8px 24px rgba(0,0,0,.5);
-}
-#toast.show{opacity:1;transform:translateY(0);}
-
-/* ══════════════════════════════════
-   ZOOM CONTROLS
-══════════════════════════════════ */
-#zoom-ctrl{
-  position:fixed;bottom:24px;left:24px;z-index:900;
-  display:flex;gap:4px;
-}
-.zoom-btn{
-  width:32px;height:32px;border-radius:8px;
-  background:var(--surface2);border:1px solid var(--border);
-  color:var(--t2);font-size:16px;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;transition:.12s;
-}
-.zoom-btn:hover{background:var(--surface3);color:var(--t1);}
-#zoom-label{
-  height:32px;padding:0 10px;
-  background:var(--surface2);border:1px solid var(--border);
-  border-radius:8px;color:var(--t3);font-size:10px;
-  display:flex;align-items:center;font-family:var(--font);font-weight:700;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:3px;}
 </style>
 </head>
 <body>
 
-<!-- ═══════════ TOOLBAR ═══════════ -->
+<!-- TOOLBAR -->
 <div id="toolbar">
   <div class="tb-brand"><span>Ordo</span> Flow</div>
   <div class="tb-sep"></div>
 
-  <!-- Add node dropdown -->
-  <div class="tb-dropdown" id="add-dropdown">
-    <button class="tb-btn primary" onclick="toggleDropdown()">
-      ＋ إضافة عنصر ▾
-    </button>
-    <div class="tb-dropdown-menu" id="add-menu">
-      <div class="dd-section">نوع العنصر</div>
-      <div class="dd-item" onclick="addNode('start')">
-        <div class="dd-color" style="background:#6c63ff"></div>
-        <span>🚀 نقطة بداية / نهاية</span>
-      </div>
-      <div class="dd-item" onclick="addNode('page')">
-        <div class="dd-color" style="background:#4fd1a5"></div>
-        <span>📄 صفحة / وحدة</span>
-      </div>
-      <div class="dd-item" onclick="addNode('decision')">
-        <div class="dd-color" style="background:#f7c948"></div>
-        <span>❓ قرار / شرط</span>
-      </div>
-      <div class="dd-item" onclick="addNode('action')">
-        <div class="dd-color" style="background:#38bdf8"></div>
-        <span>⚡ إجراء / عملية</span>
-      </div>
-      <div class="dd-item" onclick="addNode('db')">
-        <div class="dd-color" style="background:#94a3b8"></div>
-        <span>🗄️ قاعدة بيانات</span>
-      </div>
-      <div class="dd-item" onclick="addNode('external')">
-        <div class="dd-color" style="background:#f472b6"></div>
-        <span>🌐 صفحة خارجية</span>
-      </div>
-      <div class="dd-section" style="margin-top:6px">إضافة سريعة — Ordo</div>
-      <div class="dd-item" onclick="addOrdoNode('tasks')"><div class="dd-color" style="background:#4fd1a5"></div><span>✅ المهام</span></div>
-      <div class="dd-item" onclick="addOrdoNode('clients')"><div class="dd-color" style="background:#f7c948"></div><span>👥 عميل جديد</span></div>
-      <div class="dd-item" onclick="addOrdoNode('finance')"><div class="dd-color" style="background:#f76f7c"></div><span>💰 المالية</span></div>
-      <div class="dd-item" onclick="addOrdoNode('invoice')"><div class="dd-color" style="background:#38bdf8"></div><span>🧾 فاتورة</span></div>
-      <div class="dd-item" onclick="addOrdoNode('review')"><div class="dd-color" style="background:#f472b6"></div><span>⭐ تقييم</span></div>
+  <div class="tb-dd" id="add-dd">
+    <button class="tb-btn primary" onclick="toggleDD()">＋ إضافة ▾</button>
+    <div class="tb-dd-menu">
+      <div class="dd-sec">نوع العنصر</div>
+      <div class="dd-it" onclick="addNode('start','purple')"><div class="dd-dot" style="background:#6c63ff"></div>🚀 بداية / نهاية</div>
+      <div class="dd-it" onclick="addNode('page','green')"><div class="dd-dot" style="background:#4fd1a5"></div>📄 صفحة / وحدة</div>
+      <div class="dd-it" onclick="addNode('decision','yellow')"><div class="dd-dot" style="background:#f7c948"></div>❓ قرار / شرط</div>
+      <div class="dd-it" onclick="addNode('action','blue')"><div class="dd-dot" style="background:#38bdf8"></div>⚡ إجراء / عملية</div>
+      <div class="dd-it" onclick="addNode('db','gray')"><div class="dd-dot" style="background:#94a3b8"></div>🗄️ قاعدة بيانات</div>
+      <div class="dd-it" onclick="addNode('external','pink')"><div class="dd-dot" style="background:#f472b6"></div>🌐 صفحة خارجية</div>
+      <div class="dd-sec">إضافة سريعة</div>
+      <div class="dd-it" onclick="addQuick('tasks')"><div class="dd-dot" style="background:#4fd1a5"></div>✅ المهام</div>
+      <div class="dd-it" onclick="addQuick('clients')"><div class="dd-dot" style="background:#f7c948"></div>👥 العملاء</div>
+      <div class="dd-it" onclick="addQuick('finance')"><div class="dd-dot" style="background:#f76f7c"></div>💰 المالية</div>
+      <div class="dd-it" onclick="addQuick('invoice')"><div class="dd-dot" style="background:#38bdf8"></div>🧾 فاتورة</div>
+      <div class="dd-it" onclick="addQuick('review')"><div class="dd-dot" style="background:#f472b6"></div>⭐ تقييم</div>
     </div>
   </div>
 
   <div class="tb-sep"></div>
-
-  <button class="tb-btn green" onclick="doPrint()">🖨️ طباعة</button>
-  <button class="tb-btn yellow" onclick="doExportPDF()">📄 تصدير PDF</button>
-  <button class="tb-btn" onclick="doSave()">💾 حفظ</button>
-  <button class="tb-btn" onclick="doLoad()">📂 استيراد</button>
-
+  <button class="tb-btn" id="undo-btn" onclick="undo()" disabled title="Ctrl+Z">↩ تراجع</button>
+  <button class="tb-btn" id="redo-btn" onclick="redo()" disabled title="Ctrl+Y">↪ إعادة</button>
   <div class="tb-sep"></div>
-  <button class="tb-btn" onclick="toggleConnectMode()" id="connect-btn">🔗 وضع الربط</button>
-  <button class="tb-btn danger" onclick="deleteSelected()" id="del-btn" style="display:none">🗑️ حذف</button>
-
+  <button class="tb-btn" id="connect-btn" onclick="toggleConnect()">🔗 ربط</button>
+  <button class="tb-btn" id="del-btn" onclick="deleteSelected()" style="display:none;color:var(--red)">🗑️ حذف</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn green-btn" onclick="doPrint()">🖨️ طباعة</button>
+  <button class="tb-btn yellow-btn" onclick="doSave()">💾 حفظ JSON</button>
+  <button class="tb-btn" onclick="doLoad()">📂 استيراد</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="resetView()" title="إعادة ضبط العرض">⌂ عرض</button>
   <div class="tb-spacer"></div>
-  <div class="tb-hint">دبل-كليك لتعديل النص • سحب لتحريك • كليك يمين للخيارات</div>
+  <div class="tb-hint">Space+سحب لتحريك البورد • Ctrl+Z/Y للتراجع</div>
 </div>
 
-<!-- ═══════════ CANVAS ═══════════ -->
+<!-- CANVAS -->
 <div id="canvas-wrap">
   <div id="flowchart">
-
-    <!-- Print header (only visible in print) -->
-    <div id="print-header">
-      <div class="ph-title"><span>Ordo</span> — مخطط النظام</div>
-      <div class="ph-date" id="print-date"></div>
-    </div>
-
-    <!-- SVG connections -->
-    <svg id="connections-svg"></svg>
-
-    <!-- Section labels -->
-    <div class="fc-label" style="top:52px;right:16px">🚪 Entry</div>
-    <div class="fc-label" style="top:200px;right:16px">🔐 Auth</div>
-    <div class="fc-label" style="top:400px;right:16px">🏠 Dashboard</div>
-    <div class="fc-label" style="top:600px;right:16px">📦 Modules</div>
-    <div class="fc-label" style="top:1000px;right:16px">💾 Data</div>
-    <div class="fc-label" style="top:1200px;right:16px">🌍 External</div>
-
-    <!-- NODES will be injected by JS -->
+    <svg id="conn-svg">
+      <defs>
+        <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L9,3 z" fill="rgba(255,255,255,.3)"/>
+        </marker>
+        <marker id="arrow-acc" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L9,3 z" fill="rgba(108,99,255,.7)"/>
+        </marker>
+        <marker id="arrow-data" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L9,3 z" fill="rgba(79,209,165,.6)"/>
+        </marker>
+      </defs>
+    </svg>
+    <div id="print-hdr"><div><span>Ordo</span> — مخطط النظام</div><div id="print-date" style="font-size:10px;color:#999;font-weight:400"></div></div>
   </div>
 </div>
 
-<!-- ═══════════ CONTEXT MENU ═══════════ -->
+<!-- CONTEXT MENU -->
 <div id="ctx-menu">
-  <div class="ctx-item" onclick="ctxEdit()">✏️ تعديل النص</div>
-  <div class="ctx-item" onclick="ctxDuplicate()">📋 نسخ العنصر</div>
-  <div class="ctx-item" onclick="ctxColor()">🎨 تغيير اللون</div>
-  <div class="ctx-item" onclick="ctxEmoji()">😀 تغيير الأيقونة</div>
-  <div class="ctx-sep"></div>
-  <div class="ctx-item" onclick="ctxConnect()">🔗 ربط بعنصر آخر</div>
-  <div class="ctx-sep"></div>
-  <div class="ctx-item ctx-danger" onclick="ctxDelete()">🗑️ حذف</div>
+  <div class="ci" onclick="ctxEdit()">✏️ تعديل النص</div>
+  <div class="ci" onclick="ctxDup()">📋 نسخ</div>
+  <div class="ci" onclick="ctxColor()">🎨 اللون</div>
+  <div class="ci" onclick="ctxEmoji()">😀 الأيقونة</div>
+  <div class="csep"></div>
+  <div class="ci" onclick="ctxLink()">🔗 ربط</div>
+  <div class="csep"></div>
+  <div class="ci danger" onclick="ctxDel()">🗑️ حذف</div>
 </div>
 
-<!-- ═══════════ COLOR PANEL ═══════════ -->
+<!-- COLOR PANEL -->
 <div id="color-panel">
-  <h4>اختر اللون</h4>
-  <div class="color-swatches">
-    <div class="color-swatch" style="background:#6c63ff" data-col="purple" title="بنفسجي"></div>
-    <div class="color-swatch" style="background:#4fd1a5" data-col="green" title="أخضر"></div>
-    <div class="color-swatch" style="background:#f7c948" data-col="yellow" title="ذهبي"></div>
-    <div class="color-swatch" style="background:#f76f7c" data-col="red" title="أحمر"></div>
-    <div class="color-swatch" style="background:#38bdf8" data-col="blue" title="أزرق"></div>
-    <div class="color-swatch" style="background:#f472b6" data-col="pink" title="وردي"></div>
-    <div class="color-swatch" style="background:#34d399" data-col="teal" title="فيروزي"></div>
-    <div class="color-swatch" style="background:#fb923c" data-col="orange" title="برتقالي"></div>
-    <div class="color-swatch" style="background:#a78bfa" data-col="purple2" title="لافندر"></div>
-    <div class="color-swatch" style="background:#94a3b8" data-col="gray" title="رمادي"></div>
-  </div>
+  <h4>اللون</h4>
+  <div class="swatches" id="swatches"></div>
 </div>
 
-<!-- ═══════════ EMOJI PICKER ═══════════ -->
-<div id="emoji-picker">
-  <h4>اختر الأيقونة</h4>
-  <div class="emoji-grid" id="emoji-grid"></div>
+<!-- EMOJI PANEL -->
+<div id="emoji-panel">
+  <h4>الأيقونة</h4>
+  <div class="eg" id="emoji-grid"></div>
 </div>
 
-<!-- ═══════════ ZOOM CONTROLS ═══════════ -->
-<div id="zoom-ctrl">
-  <div class="zoom-btn" onclick="changeZoom(-10)">−</div>
-  <div id="zoom-label">100%</div>
-  <div class="zoom-btn" onclick="changeZoom(10)">+</div>
-  <div class="zoom-btn" onclick="resetZoom()" title="إعادة ضبط">⌂</div>
+<!-- STATUS BAR -->
+<div id="statusbar">
+  <div class="sb-item">عناصر: <b id="sb-nodes">0</b></div>
+  <div class="sb-sep"></div>
+  <div class="sb-item">روابط: <b id="sb-conns">0</b></div>
+  <div class="sb-sep"></div>
+  <div class="zbtn" onclick="doZoom(-15)">−</div>
+  <div id="zoom-disp">100%</div>
+  <div class="zbtn" onclick="doZoom(15)">+</div>
+  <div class="zbtn" onclick="resetZoom()" title="100%">⌂</div>
+  <div class="sb-sep"></div>
+  <div id="mode-badge">وضع الربط</div>
+  <div class="sb-sep"></div>
+  <div class="sb-item" style="color:var(--t3)">Space+سحب = تحريك البورد</div>
 </div>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
 <script>
-// ════════════════════════════════════════════════
-//  STATE
-// ════════════════════════════════════════════════
-let nodes = [];
-let connections = [];
-let selectedNode = null;
-let dragging = null;
-let dragOffset = {x:0,y:0};
-let connectMode = false;
-let connectFrom = null;
-let nodeIdCounter = 100;
-let zoomLevel = 100;
-const EMOJIS = ['🚀','✅','👥','💰','🧾','📝','📋','🗄️','🔐','🏠','⭐','🔗','⚡','❓','🌐','🤝','📅','⏱️','🎯','🔒','🗂️','📊','💾','📤','📥','🔔','🔴','🟢','🟡','💬','📱','🖥️','🔑','🎨','🔧','📦','🏪','👨‍💻','📈','📉','💡','⚠️','✔️','❌','🔄','↗️','↘️','↕️','🔃'];
+// ════════════════════════════════════════
+//  INITIAL DATA
+// ════════════════════════════════════════
+const W = 160; // node width assumption for centering connections
 
-// ════════════════════════════════════════════════
-//  INITIAL NODES (Ordo System)
-// ════════════════════════════════════════════════
-const initData = {
-  nodes:[
-    // ENTRY
-    {id:1,x:490,y:40,emoji:'🌐',title:'الفريلانسر يفتح التطبيق',sub:'index.html',type:'start',color:'purple',tags:[]},
-
-    // AUTH
-    {id:2,x:260,y:170,emoji:'📧',title:'تسجيل دخول',sub:'Email / Password',type:'page',color:'purple',tags:[]},
-    {id:3,x:480,y:170,emoji:'🔴',title:'Google OAuth',sub:'تسجيل بـ Google',type:'page',color:'purple',tags:[]},
-    {id:4,x:700,y:170,emoji:'📁',title:'استيراد نسخة',sub:'Backup Import',type:'page',color:'purple',tags:[]},
-    {id:5,x:480,y:310,emoji:'⚡',title:'هل الاشتراك نشط؟',sub:'hasActiveSub() + plan features',type:'decision',color:'yellow',tags:[]},
-
-    // DASHBOARD
-    {id:6,x:440,y:430,emoji:'📊',title:'لوحة التحكم',sub:'Dashboard — KPIs + تنبيهات',type:'page',color:'purple',tags:['الدخل','المهام','معدل الإنجاز']},
-
-    // CORE MODULES ROW 1
-    {id:7,x:80,y:590,emoji:'✅',title:'المهام',sub:'Tasks',type:'page',color:'green',tags:['Kanban','قائمة']},
-    {id:8,x:220,y:590,emoji:'🗂️',title:'المشاريع',sub:'Projects',type:'page',color:'orange',tags:['مهام المشروع']},
-    {id:9,x:360,y:590,emoji:'👥',title:'العملاء',sub:'Clients',type:'page',color:'yellow',tags:['DNA','سجل الدفع']},
-    {id:10,x:500,y:590,emoji:'🧾',title:'الفواتير',sub:'Invoices',type:'page',color:'blue',tags:['PDF','رابط']},
-    {id:11,x:640,y:590,emoji:'💰',title:'المالية',sub:'Finance',type:'page',color:'red',tags:['دخل/مصروف','محافظ','قروض']},
-    {id:12,x:780,y:590,emoji:'📋',title:'عروض الأسعار',sub:'Proposals',type:'page',color:'pink',tags:['قبول/رفض']},
-    {id:13,x:920,y:590,emoji:'📝',title:'العقود',sub:'Contracts',type:'page',color:'purple2',tags:['توقيع رقمي']},
-
-    // CORE MODULES ROW 2
-    {id:14,x:80,y:760,emoji:'📅',title:'تنظيم اليوم',sub:'Schedule',type:'page',color:'yellow',tags:['تقويم']},
-    {id:15,x:220,y:760,emoji:'🤝',title:'المواعيد',sub:'Meetings',type:'page',color:'teal',tags:['رابط حجز']},
-    {id:16,x:360,y:760,emoji:'⏱️',title:'تتبع الوقت',sub:'Time Tracker',type:'page',color:'orange',tags:['سعر/ساعة']},
-    {id:17,x:500,y:760,emoji:'⭐',title:'التقييمات',sub:'Reviews',type:'page',color:'pink',tags:['5 نجوم']},
-    {id:18,x:640,y:760,emoji:'👨‍💻',title:'الفريق',sub:'Team',type:'page',color:'blue',tags:['دعوات','واتساب']},
-    {id:19,x:780,y:760,emoji:'🎯',title:'الأهداف',sub:'Freelancer Goals',type:'page',color:'green',tags:['كورسات']},
-    {id:20,x:920,y:760,emoji:'🔒',title:'الخزنة',sub:'Vault',type:'page',color:'gray',tags:['PIN','سرية']},
-
-    // DATA LAYER
-    {id:21,x:260,y:950,emoji:'💾',title:'lsSave()',sub:'localStorage — حفظ فوري',type:'db',color:'gray',tags:[]},
-    {id:22,x:480,y:950,emoji:'☁️',title:'Supabase',sub:'studio_data — user_id + JSONB',type:'db',color:'green',tags:['upsert','realtime']},
-    {id:23,x:700,y:950,emoji:'🔄',title:'cloudSave()',sub:'مزامنة مؤجلة + retry',type:'db',color:'gray',tags:[]},
-
-    // EXTERNAL PAGES
-    {id:24,x:80,y:1120,emoji:'⭐',title:'review.html',sub:'فورم التقييم — ?uid=',type:'external',color:'pink',tags:[]},
-    {id:25,x:240,y:1120,emoji:'📋',title:'proposal.html',sub:'عرض الأسعار — قبول/رفض',type:'external',color:'pink',tags:[]},
-    {id:26,x:400,y:1120,emoji:'🧾',title:'فاتورة',sub:'رابط للعميل',type:'external',color:'blue',tags:[]},
-    {id:27,x:560,y:1120,emoji:'📝',title:'عقد',sub:'توقيع إلكتروني',type:'external',color:'purple2',tags:[]},
-    {id:28,x:720,y:1120,emoji:'🗓️',title:'حجز موعد',sub:'صفحة حجز للعملاء',type:'external',color:'teal',tags:[]},
-    {id:29,x:880,y:1120,emoji:'👁️',title:'متابعة مهمة',sub:'Task Tracking Link',type:'external',color:'green',tags:[]},
-  ],
-  connections:[
-    {from:1,to:2},{from:1,to:3},{from:1,to:4},
-    {from:2,to:5},{from:3,to:5},{from:4,to:5},
-    {from:5,to:6},
-    {from:6,to:7},{from:6,to:8},{from:6,to:9},{from:6,to:10},
-    {from:6,to:11},{from:6,to:12},{from:6,to:13},
-    {from:6,to:14},{from:6,to:15},{from:6,to:16},{from:6,to:17},
-    {from:6,to:18},{from:6,to:19},{from:6,to:20},
-    {from:7,to:21},{from:11,to:21},{from:10,to:21},
-    {from:21,to:22},{from:22,to:23},{from:23,to:21},
-    {from:17,to:24},{from:12,to:25},{from:10,to:26},
-    {from:13,to:27},{from:15,to:28},{from:7,to:29},
-  ]
+const INIT = {
+ nodes:[
+  {id:1,  x:520, y:60,  e:'🌐', t:'الفريلانسر يفتح التطبيق', s:'index.html',              type:'start',    col:'purple', tags:[]},
+  {id:2,  x:240, y:220, e:'📧', t:'تسجيل دخول',              s:'Email / Password',          type:'page',     col:'purple', tags:[]},
+  {id:3,  x:490, y:220, e:'🔴', t:'Google OAuth',             s:'تسجيل بـ Google',           type:'page',     col:'purple', tags:[]},
+  {id:4,  x:740, y:220, e:'📁', t:'استيراد نسخة',             s:'Backup Import',             type:'page',     col:'purple', tags:[]},
+  {id:5,  x:490, y:380, e:'❓', t:'هل الاشتراك نشط؟',         s:'hasActiveSub()',             type:'decision', col:'yellow', tags:[]},
+  {id:6,  x:460, y:530, e:'📊', t:'لوحة التحكم',              s:'Dashboard — KPIs + تنبيهات',type:'page',     col:'purple', tags:['الدخل','المهام','الإنجاز']},
+  // row 1
+  {id:7,  x:60,  y:710, e:'✅', t:'المهام',    s:'Tasks',         type:'page', col:'green',  tags:['Kanban']},
+  {id:8,  x:205, y:710, e:'🗂️', t:'المشاريع', s:'Projects',      type:'page', col:'orange', tags:[]},
+  {id:9,  x:350, y:710, e:'👥', t:'العملاء',  s:'Clients',       type:'page', col:'yellow', tags:['DNA']},
+  {id:10, x:495, y:710, e:'🧾', t:'الفواتير', s:'Invoices',      type:'page', col:'blue',   tags:['PDF']},
+  {id:11, x:640, y:710, e:'💰', t:'المالية',  s:'Finance',       type:'page', col:'red',    tags:['قروض','محافظ']},
+  {id:12, x:785, y:710, e:'📋', t:'العروض',   s:'Proposals',     type:'page', col:'pink',   tags:['قبول/رفض']},
+  {id:13, x:930, y:710, e:'📝', t:'العقود',   s:'Contracts',     type:'page', col:'lav',    tags:['توقيع']},
+  // row 2
+  {id:14, x:60,  y:880, e:'📅', t:'تنظيم اليوم', s:'Schedule',   type:'page', col:'yellow', tags:[]},
+  {id:15, x:205, y:880, e:'🤝', t:'المواعيد',    s:'Meetings',   type:'page', col:'teal',   tags:['حجز']},
+  {id:16, x:350, y:880, e:'⏱️', t:'تتبع الوقت', s:'Time Tracker',type:'page', col:'orange', tags:[]},
+  {id:17, x:495, y:880, e:'⭐', t:'التقييمات',   s:'Reviews',    type:'page', col:'pink',   tags:['5★']},
+  {id:18, x:640, y:880, e:'👨‍💻',t:'الفريق',     s:'Team',       type:'page', col:'blue',   tags:['دعوات']},
+  {id:19, x:785, y:880, e:'🎯', t:'الأهداف',    s:'Goals',      type:'page', col:'green',  tags:[]},
+  {id:20, x:930, y:880, e:'🔒', t:'الخزنة',     s:'Vault',      type:'page', col:'gray',   tags:['PIN']},
+  // data
+  {id:21, x:260, y:1080,e:'💾', t:'lsSave()',    s:'localStorage',type:'db',   col:'gray',   tags:[]},
+  {id:22, x:490, y:1080,e:'☁️', t:'Supabase',   s:'studio_data JSONB',type:'db',col:'green', tags:['upsert']},
+  {id:23, x:720, y:1080,e:'🔄', t:'cloudSave()', s:'مؤجل + retry',type:'db',  col:'gray',   tags:[]},
+  // external
+  {id:24, x:60,  y:1260,e:'⭐', t:'review.html', s:'?uid= التقييم', type:'external',col:'pink',  tags:[]},
+  {id:25, x:230, y:1260,e:'📋', t:'proposal.html',s:'قبول / رفض',   type:'external',col:'pink',  tags:[]},
+  {id:26, x:400, y:1260,e:'🧾', t:'فاتورة',       s:'رابط PDF',      type:'external',col:'blue',  tags:[]},
+  {id:27, x:570, y:1260,e:'📝', t:'عقد',           s:'توقيع رقمي',    type:'external',col:'lav',   tags:[]},
+  {id:28, x:740, y:1260,e:'🗓️', t:'حجز موعد',     s:'للعملاء',       type:'external',col:'teal',  tags:[]},
+  {id:29, x:910, y:1260,e:'👁️', t:'متابعة مهمة',  s:'Tracking Link', type:'external',col:'green', tags:[]},
+ ],
+ connections:[
+  {f:1,t:2,lbl:''},{f:1,t:3,lbl:''},{f:1,t:4,lbl:''},
+  {f:2,t:5,lbl:''},{f:3,t:5,lbl:''},{f:4,t:5,lbl:''},
+  {f:5,t:6,lbl:'نعم'},
+  {f:6,t:7},{f:6,t:8},{f:6,t:9},{f:6,t:10},{f:6,t:11},{f:6,t:12},{f:6,t:13},
+  {f:6,t:14},{f:6,t:15},{f:6,t:16},{f:6,t:17},{f:6,t:18},{f:6,t:19},{f:6,t:20},
+  {f:7,t:21},{f:10,t:21},{f:11,t:21},
+  {f:21,t:22,lbl:'sync'},{f:22,t:23},{f:23,t:21},
+  {f:17,t:24},{f:12,t:25},{f:10,t:26},{f:13,t:27},{f:15,t:28},{f:7,t:29},
+ ]
 };
 
-// ════════════════════════════════════════════════
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let nodes=[], conns=[], idCtr=200;
+let selected=null, ctxId=null, colorId=null, emojiId=null;
+let dragging=null, dragOff={x:0,y:0};
+let panning=false, panStart={x:0,y:0}, panOrigin={x:0,y:0};
+let spaceDown=false;
+let connectMode=false, connectFrom=null, previewEl=null;
+let zoomLv=100, panX=40, panY=40;
+
+// UNDO/REDO
+const HIST_MAX=60;
+let undoStack=[], redoStack=[];
+
+function snapshot(){
+  const s=JSON.stringify({nodes,conns});
+  if(undoStack.length && undoStack[undoStack.length-1]===s) return;
+  undoStack.push(s);
+  if(undoStack.length>HIST_MAX) undoStack.shift();
+  redoStack=[];
+  updateUndoRedoBtns();
+}
+function undo(){
+  if(!undoStack.length) return;
+  redoStack.push(JSON.stringify({nodes,conns}));
+  const s=JSON.parse(undoStack.pop());
+  nodes=s.nodes; conns=s.conns;
+  idCtr=Math.max(idCtr,...nodes.map(n=>n.id))+1;
+  renderAll(); save(); updateUndoRedoBtns();
+  showToast('↩ تراجع');
+}
+function redo(){
+  if(!redoStack.length) return;
+  undoStack.push(JSON.stringify({nodes,conns}));
+  const s=JSON.parse(redoStack.pop());
+  nodes=s.nodes; conns=s.conns;
+  idCtr=Math.max(idCtr,...nodes.map(n=>n.id))+1;
+  renderAll(); save(); updateUndoRedoBtns();
+  showToast('↪ إعادة');
+}
+function updateUndoRedoBtns(){
+  document.getElementById('undo-btn').disabled=!undoStack.length;
+  document.getElementById('redo-btn').disabled=!redoStack.length;
+}
+
+// ════════════════════════════════════════
 //  INIT
-// ════════════════════════════════════════════════
-window.addEventListener('DOMContentLoaded', ()=>{
-  loadFromStorage();
-  document.getElementById('print-date').textContent = new Date().toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
-  populateEmojis();
-  bindGlobalEvents();
+// ════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  loadData();
+  buildSwatches();
+  buildEmojis();
+  bindEvents();
   renderAll();
+  applyTransform();
+  updateUndoRedoBtns();
+  document.getElementById('print-date').textContent=new Date().toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
 });
 
-function loadFromStorage(){
-  const saved = localStorage.getItem('ordo_flowchart_v2');
-  if(saved){
-    try{
-      const d = JSON.parse(saved);
-      nodes = d.nodes || initData.nodes;
-      connections = d.connections || initData.connections;
-      nodeIdCounter = Math.max(...nodes.map(n=>n.id)) + 1;
-      return;
-    }catch(e){}
-  }
-  nodes = JSON.parse(JSON.stringify(initData.nodes));
-  connections = JSON.parse(JSON.stringify(initData.connections));
-  nodeIdCounter = 200;
+function loadData(){
+  try{
+    const s=localStorage.getItem('ordo_fc_v3');
+    if(s){ const d=JSON.parse(s); nodes=d.nodes; conns=d.conns; idCtr=Math.max(200,...nodes.map(n=>n.id))+1; return; }
+  }catch(e){}
+  nodes=JSON.parse(JSON.stringify(INIT.nodes));
+  conns=JSON.parse(JSON.stringify(INIT.connections||INIT.conns||[]));
+  // map old format
+  conns=conns.map(c=>({f:c.f||c.from,t:c.t||c.to,lbl:c.lbl||c.label||''}));
+  idCtr=200;
 }
+function save(){ localStorage.setItem('ordo_fc_v3',JSON.stringify({nodes,conns})); }
 
-function saveToStorage(){
-  localStorage.setItem('ordo_flowchart_v2', JSON.stringify({nodes, connections}));
-}
-
-// ════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  RENDER
-// ════════════════════════════════════════════════
+// ════════════════════════════════════════
+const NODE_W=160, NODE_H=100; // estimate for port placement
+
 function renderAll(){
-  renderConnections();
+  renderConns();
   renderNodes();
-  updateFlowchartSize();
+  updateStatus();
 }
 
+// ── Node rendering ──
 function renderNodes(){
-  const fc = document.getElementById('flowchart');
-  // Remove old nodes
-  fc.querySelectorAll('.fc-node').forEach(n=>n.remove());
-  // Render fresh
-  nodes.forEach(n=>{
-    const el = createNodeEl(n);
-    fc.appendChild(el);
-  });
+  const fc=document.getElementById('flowchart');
+  fc.querySelectorAll('.fc-node').forEach(e=>e.remove());
+  nodes.forEach(n=>fc.appendChild(makeNodeEl(n)));
 }
 
-function createNodeEl(n){
-  const el = document.createElement('div');
-  el.className = `fc-node type-${n.type||'page'} col-${n.color||'gray'}`;
-  el.dataset.id = n.id;
-  el.style.left = n.x + 'px';
-  el.style.top  = n.y + 'px';
+function makeNodeEl(n){
+  const el=document.createElement('div');
+  el.className=`fc-node type-${n.type||'page'} col-${n.col||'gray'}`;
+  el.dataset.id=n.id;
+  el.style.cssText=`left:${n.x}px;top:${n.y}px;`;
 
-  // Controls
-  const ctrl = document.createElement('div');
-  ctrl.className = 'node-controls';
-  ctrl.innerHTML = `
-    <button class="nc-btn" onclick="openEmojiPicker(${n.id}, this)" title="أيقونة">😀</button>
-    <button class="nc-btn" onclick="openColorPanel(${n.id}, this)" title="لون">🎨</button>
-    <button class="nc-btn" onclick="duplicateNode(${n.id})" title="نسخ">📋</button>
-    <button class="nc-btn del" onclick="deleteNode(${n.id})" title="حذف">✕</button>
+  // controls
+  el.innerHTML=`
+    <div class="node-ctrl">
+      <div class="nc" onclick="openEmoji(${n.id},this)" title="أيقونة">😀</div>
+      <div class="nc" onclick="openColor(${n.id},this)" title="لون">🎨</div>
+      <div class="nc" onclick="dupNode(${n.id})" title="نسخ">📋</div>
+      <div class="nc del" onclick="delNode(${n.id})" title="حذف">✕</div>
+    </div>
+    <div class="conn-port" title="اسحب للربط"></div>
+    <span class="node-icon" title="دبل-كليك لتغيير">${n.e||'📄'}</span>
+    <div class="node-title" contenteditable spellcheck="false" data-f="t">${escH(n.t||'عنصر')}</div>
+    <div class="node-sub"   contenteditable spellcheck="false" data-f="s">${escH(n.s||'')}</div>
+    ${n.tags&&n.tags.length?`<div class="node-tags">${n.tags.map(g=>`<span class="node-tag">${escH(g)}</span>`).join('')}</div>`:''}
   `;
-  el.appendChild(ctrl);
 
-  // Conn handle
-  const ch = document.createElement('div');
-  ch.className = 'conn-handle';
-  ch.title = 'اسحب لربط';
-  ch.addEventListener('mousedown', e=>{ e.stopPropagation(); startConnecting(n.id, e); });
-  el.appendChild(ch);
+  // drag
+  el.addEventListener('mousedown',e=>onNodeMousedown(n.id,e));
+  el.addEventListener('click',e=>onNodeClick(n.id,e));
+  el.addEventListener('contextmenu',e=>showCtx(n.id,e));
 
-  // Content
-  const content = document.createElement('div');
-  content.innerHTML = `
-    <span class="node-emoji" ondblclick="pickEmoji(${n.id}, this)" style="cursor:pointer">${n.emoji||'📄'}</span>
-    <div class="node-title" contenteditable="true" spellcheck="false" data-field="title">${escH(n.title||'عنصر جديد')}</div>
-    <div class="node-sub" contenteditable="true" spellcheck="false" data-field="sub">${escH(n.sub||'')}</div>
-    ${n.tags && n.tags.length ? `<div class="node-tags">${n.tags.map(t=>`<span class="node-tag">${escH(t)}</span>`).join('')}</div>` : ''}
-  `;
-  el.appendChild(content);
+  // conn port drag
+  el.querySelector('.conn-port').addEventListener('mousedown',e=>{e.stopPropagation();startConnect(n.id,e);});
 
-  // Events
-  el.addEventListener('mousedown', e=>startDrag(n.id, e));
-  el.addEventListener('click', e=>selectNode(n.id, e));
-  el.addEventListener('contextmenu', e=>showCtxMenu(n.id, e));
+  // icon dblclick
+  el.querySelector('.node-icon').addEventListener('dblclick',e=>{e.stopPropagation();openEmoji(n.id,null);});
 
-  // Editable blur save
-  content.querySelectorAll('[contenteditable]').forEach(editable=>{
-    editable.addEventListener('mousedown', e=>e.stopPropagation());
-    editable.addEventListener('blur', ()=>{
-      const field = editable.dataset.field;
-      const node = nodes.find(x=>x.id===n.id);
-      if(node) node[field] = editable.textContent.trim();
-      saveToStorage();
+  // editable
+  el.querySelectorAll('[contenteditable]').forEach(ed=>{
+    ed.addEventListener('mousedown',e=>e.stopPropagation());
+    ed.addEventListener('blur',()=>{
+      const nd=nodes.find(x=>x.id===n.id);
+      if(nd){ snapshot(); nd[ed.dataset.f]=ed.textContent.trim(); save(); }
     });
-    editable.addEventListener('keydown', e=>{
-      if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); editable.blur(); }
-    });
+    ed.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ed.blur();} });
   });
 
   return el;
 }
 
-function renderConnections(){
-  const svg = document.getElementById('connections-svg');
-  svg.innerHTML = '';
+// ── Connection rendering ──
+function renderConns(){
+  const svg=document.getElementById('conn-svg');
+  // keep defs, remove paths/texts
+  svg.querySelectorAll('path.c-path,text.c-label,line.c-path').forEach(e=>e.remove());
 
-  // Arrow marker
-  svg.innerHTML = `
-    <defs>
-      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-        <path d="M0,0 L0,6 L8,3 z" fill="rgba(255,255,255,.25)"/>
-      </marker>
-      <marker id="arr-acc" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-        <path d="M0,0 L0,6 L8,3 z" fill="rgba(108,99,255,.5)"/>
-      </marker>
-    </defs>
-  `;
+  conns.forEach((c,i)=>{
+    const fn=nodes.find(n=>n.id===c.f);
+    const tn=nodes.find(n=>n.id===c.t);
+    if(!fn||!tn) return;
 
-  connections.forEach(conn=>{
-    const from = nodes.find(n=>n.id===conn.from);
-    const to   = nodes.find(n=>n.id===conn.to);
-    if(!from||!to) return;
+    // Port positions: bottom-center of source, top-center of target
+    const el_f=document.querySelector(`.fc-node[data-id="${fn.id}"]`);
+    const el_t=document.querySelector(`.fc-node[data-id="${tn.id}"]`);
+    const fw=el_f?el_f.offsetWidth:NODE_W;
+    const fh=el_f?el_f.offsetHeight:NODE_H;
+    const tw=el_t?el_t.offsetWidth:NODE_W;
+    const th=el_t?el_t.offsetHeight:NODE_H;
 
-    const fx = from.x + 65, fy = from.y + 40;
-    const tx = to.x + 65,   ty = to.y + 40;
+    // source: bottom center
+    const sx=fn.x+fw/2, sy=fn.y+fh;
+    // target: top center
+    const tx2=tn.x+tw/2, ty2=tn.y;
 
-    const dx = tx - fx, dy = ty - fy;
-    const cx1 = fx + dx*0.3, cy1 = fy + dy*0.05;
-    const cx2 = tx - dx*0.3, cy2 = ty - dy*0.05;
+    // Orthogonal routing: go down, then across, then down
+    const midY=sy+(ty2-sy)/2;
+    let d;
+    if(Math.abs(ty2-sy)<20){
+      // same level - go around
+      const offX=Math.abs(tx2-sx)/2+40;
+      d=`M${sx},${sy} L${sx},${sy+30} L${sx+(tx2>sx?offX:-offX)},${sy+30} L${tx2+(tx2>sx?-offX:offX)},${ty2-30} L${tx2},${ty2-30} L${tx2},${ty2}`;
+    } else {
+      d=`M${sx},${sy} L${sx},${midY} L${tx2},${midY} L${tx2},${ty2}`;
+    }
 
-    const isAccent = (conn.from <= 6 || conn.to <= 6);
-    const isSolid  = (conn.from >= 21 && conn.to >= 21);
+    const isAccent=(c.f<=5||c.t<=5);
+    const isData=(c.f>=21&&c.f<=23)||(c.t>=21&&c.t<=23);
+    const style=isAccent?'style-accent':isData?'style-data':(fn.y===tn.y)?'style-solid':'style-dash';
+    const marker=isAccent?'url(#arrow-acc)':isData?'url(#arrow-data)':'url(#arrow)';
 
-    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.setAttribute('d',`M${fx},${fy} C${cx1},${cy1} ${cx2},${cy2} ${tx},${ty}`);
-    path.setAttribute('class',`conn-path${isAccent?' accent':''}${isSolid?' solid':''}`);
-    path.setAttribute('marker-end', isAccent ? 'url(#arr-acc)' : 'url(#arr)');
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d);
+    path.setAttribute('class',`c-path ${style}`);
+    path.setAttribute('marker-end',marker);
     svg.appendChild(path);
+
+    // label
+    if(c.lbl){
+      const midPx=(sx+tx2)/2, midPy=midY;
+      const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x',midPx);txt.setAttribute('y',midPy-4);
+      txt.setAttribute('class','c-label');txt.textContent=c.lbl;
+      svg.appendChild(txt);
+    }
   });
+
+  // preview line
+  if(previewEl) svg.appendChild(previewEl);
 }
 
-function updateFlowchartSize(){
-  if(!nodes.length) return;
-  const maxX = Math.max(...nodes.map(n=>n.x)) + 250;
-  const maxY = Math.max(...nodes.map(n=>n.y)) + 200;
-  const fc = document.getElementById('flowchart');
-  fc.style.width  = Math.max(1100, maxX) + 'px';
-  fc.style.height = Math.max(800,  maxY) + 'px';
-}
-
-// ════════════════════════════════════════════════
-//  DRAG
-// ════════════════════════════════════════════════
-function startDrag(id, e){
-  if(e.target.classList.contains('nc-btn') ||
-     e.target.getAttribute('contenteditable') ||
-     e.target.closest('[contenteditable]') ||
-     e.target.classList.contains('conn-handle')) return;
-
+// ════════════════════════════════════════
+//  DRAG NODES
+// ════════════════════════════════════════
+function onNodeMousedown(id,e){
+  if(e.target.closest('[contenteditable]')||e.target.closest('.nc')||e.target.closest('.conn-port')) return;
   e.preventDefault();
-  const node = nodes.find(n=>n.id===id);
-  if(!node) return;
-  selectNode(id, e);
-  dragging = id;
-
-  const fc = document.getElementById('flowchart');
-  const rect = fc.getBoundingClientRect();
-  dragOffset.x = (e.clientX - rect.left)/zoomLevel*100 - node.x;
-  dragOffset.y = (e.clientY - rect.top)/zoomLevel*100  - node.y;
-
-  const el = document.querySelector(`[data-id="${id}"]`);
-  if(el) el.classList.add('dragging');
+  onNodeClick(id,e);
+  dragging=id;
+  const n=nodes.find(x=>x.id===id);
+  const fc=document.getElementById('flowchart');
+  const r=fc.getBoundingClientRect();
+  dragOff.x=(e.clientX-r.left)/(zoomLv/100)-n.x;
+  dragOff.y=(e.clientY-r.top)/(zoomLv/100)-n.y;
+  document.querySelector(`.fc-node[data-id="${id}"]`)?.classList.add('dragging');
 }
 
-function bindGlobalEvents(){
-  document.addEventListener('mousemove', e=>{
+// ════════════════════════════════════════
+//  PAN (Space + drag)
+// ════════════════════════════════════════
+function bindEvents(){
+  const wrap=document.getElementById('canvas-wrap');
+
+  document.addEventListener('keydown',e=>{
+    if(e.code==='Space'&&!document.querySelector('[contenteditable]:focus')){
+      e.preventDefault();
+      if(!spaceDown){ spaceDown=true; wrap.classList.add('panning'); }
+    }
+    if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){ e.preventDefault(); undo(); }
+    if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){ e.preventDefault(); redo(); }
+    if((e.key==='Delete'||e.key==='Backspace')&&selected&&!document.querySelector('[contenteditable]:focus')){ delNode(selected); }
+    if(e.code==='Escape'){ deselectAll(); cancelConnect(); }
+  });
+  document.addEventListener('keyup',e=>{
+    if(e.code==='Space'){ spaceDown=false; wrap.classList.remove('panning','panning-active'); }
+  });
+
+  wrap.addEventListener('mousedown',e=>{
+    if(spaceDown){
+      e.preventDefault();
+      panning=true;
+      panStart={x:e.clientX,y:e.clientY};
+      panOrigin={x:panX,y:panY};
+      wrap.classList.add('panning-active');
+      return;
+    }
+    if(!e.target.closest('.fc-node')&&!e.target.closest('#ctx-menu')){
+      deselectAll();
+      if(connectFrom!==null) cancelConnect();
+    }
+  });
+
+  document.addEventListener('mousemove',e=>{
+    if(panning){
+      panX=panOrigin.x+(e.clientX-panStart.x);
+      panY=panOrigin.y+(e.clientY-panStart.y);
+      applyTransform();
+      return;
+    }
     if(dragging){
-      const fc = document.getElementById('flowchart');
-      const rect = fc.getBoundingClientRect();
-      const node = nodes.find(n=>n.id===dragging);
-      if(node){
-        node.x = Math.max(0, (e.clientX - rect.left)/zoomLevel*100 - dragOffset.x);
-        node.y = Math.max(0, (e.clientY - rect.top)/zoomLevel*100  - dragOffset.y);
-        const el = document.querySelector(`[data-id="${dragging}"]`);
-        if(el){ el.style.left=node.x+'px'; el.style.top=node.y+'px'; }
-        renderConnections();
+      const n=nodes.find(x=>x.id===dragging);
+      if(n){
+        const fc=document.getElementById('flowchart');
+        const r=fc.getBoundingClientRect();
+        n.x=Math.max(0,(e.clientX-r.left)/(zoomLv/100)-dragOff.x);
+        n.y=Math.max(0,(e.clientY-r.top)/(zoomLv/100)-dragOff.y);
+        const el=document.querySelector(`.fc-node[data-id="${dragging}"]`);
+        if(el){el.style.left=n.x+'px';el.style.top=n.y+'px';}
+        renderConns();
       }
     }
-    // Connecting line preview
-    if(connectFrom!==null){
-      renderConnectingPreview(e);
-    }
+    if(connectFrom!==null) updatePreview(e);
   });
 
-  document.addEventListener('mouseup', e=>{
+  document.addEventListener('mouseup',e=>{
+    if(panning){ panning=false; wrap.classList.remove('panning-active'); }
     if(dragging){
-      const el = document.querySelector(`[data-id="${dragging}"]`);
-      if(el) el.classList.remove('dragging');
-      dragging = null;
-      saveToStorage();
-      updateFlowchartSize();
+      document.querySelector(`.fc-node[data-id="${dragging}"]`)?.classList.remove('dragging');
+      snapshot(); save(); dragging=null;
     }
   });
 
-  document.addEventListener('click', e=>{
-    if(!e.target.closest('.tb-dropdown')) closeDropdown();
-    if(!e.target.closest('#ctx-menu') && !e.target.closest('.fc-node')) hideCtxMenu();
-    if(!e.target.closest('#color-panel') && !e.target.closest('.nc-btn')) hideColorPanel();
-    if(!e.target.closest('#emoji-picker') && !e.target.closest('.node-emoji') && !e.target.closest('.nc-btn')) hideEmojiPicker();
-    if(!e.target.closest('.fc-node') && !e.target.closest('#toolbar')){
-      deselectAll();
-      // If connecting mode and clicked empty space, cancel
-      if(connectFrom!==null){ cancelConnect(); }
-    }
-  });
+  // scroll zoom
+  wrap.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const delta=e.deltaY>0?-8:8;
+    zoomLv=Math.min(180,Math.max(30,zoomLv+delta));
+    applyTransform();
+  },{passive:false});
 
-  document.addEventListener('keydown', e=>{
-    if(e.key==='Escape'){ deselectAll(); cancelConnect(); }
-    if((e.key==='Delete'||e.key==='Backspace') && selectedNode && !document.querySelector('[contenteditable]:focus')){
-      deleteNode(selectedNode);
-    }
+  // close panels on outside click
+  document.addEventListener('click',e=>{
+    if(!e.target.closest('.tb-dd')) closeDD();
+    if(!e.target.closest('#ctx-menu')&&!e.target.closest('.fc-node')) hideCtx();
+    if(!e.target.closest('#color-panel')&&!e.target.closest('.nc')) hideColor();
+    if(!e.target.closest('#emoji-panel')&&!e.target.closest('.node-icon')&&!e.target.closest('.nc')) hideEmoji();
   });
 }
 
-// ════════════════════════════════════════════════
-//  SELECT / DESELECT
-// ════════════════════════════════════════════════
-function selectNode(id, e){
-  if(e) e.stopPropagation();
+// ════════════════════════════════════════
+//  TRANSFORM
+// ════════════════════════════════════════
+function applyTransform(){
+  document.getElementById('flowchart').style.transform=`translate(${panX}px,${panY}px) scale(${zoomLv/100})`;
+  document.getElementById('zoom-disp').textContent=zoomLv+'%';
+}
+function doZoom(d){ zoomLv=Math.min(180,Math.max(30,zoomLv+d)); applyTransform(); }
+function resetZoom(){ zoomLv=100; applyTransform(); }
+function resetView(){ panX=40;panY=40;zoomLv=100;applyTransform(); }
+
+// ════════════════════════════════════════
+//  SELECT
+// ════════════════════════════════════════
+function onNodeClick(id,e){
+  e.stopPropagation();
+  if(connectMode&&connectFrom!==null&&connectFrom!==id){ finishConnect(id); return; }
+  if(connectMode){ connectFrom=id; return; }
   deselectAll();
-  selectedNode = id;
-  const el = document.querySelector(`[data-id="${id}"]`);
-  if(el) el.classList.add('selected');
-  document.getElementById('del-btn').style.display = 'flex';
-
-  // Connect mode: create connection
-  if(connectMode && connectFrom!==null && connectFrom!==id){
-    finishConnect(id);
-    return;
-  }
-  if(connectMode) connectFrom = id;
+  selected=id;
+  document.querySelector(`.fc-node[data-id="${id}"]`)?.classList.add('selected');
+  document.getElementById('del-btn').style.display='flex';
 }
-
 function deselectAll(){
-  selectedNode = null;
-  document.querySelectorAll('.fc-node.selected').forEach(el=>el.classList.remove('selected'));
-  document.getElementById('del-btn').style.display = 'none';
+  selected=null;
+  document.querySelectorAll('.fc-node.selected').forEach(e=>e.classList.remove('selected'));
+  document.getElementById('del-btn').style.display='none';
 }
+function deleteSelected(){ if(selected) delNode(selected); }
 
-// ════════════════════════════════════════════════
-//  ADD NODES
-// ════════════════════════════════════════════════
-const nodeDefaults = {
-  start:{emoji:'🚀',title:'نقطة بداية',sub:'Start',color:'purple'},
-  page:{emoji:'📄',title:'صفحة جديدة',sub:'Page',color:'green'},
-  decision:{emoji:'❓',title:'قرار',sub:'Condition?',color:'yellow'},
-  action:{emoji:'⚡',title:'إجراء',sub:'Action',color:'blue'},
-  db:{emoji:'🗄️',title:'قاعدة بيانات',sub:'Database',color:'gray'},
-  external:{emoji:'🌐',title:'صفحة خارجية',sub:'External',color:'pink'},
-};
-const ordoNodes = {
-  tasks:{emoji:'✅',title:'المهام',sub:'Tasks — Kanban + قائمة',color:'green',tags:['مهمة جديدة','حالة','موعد تسليم']},
-  clients:{emoji:'👥',title:'عميل جديد',sub:'Clients — DNA + سجل دفع',color:'yellow',tags:['عميل','قناة']},
-  finance:{emoji:'💰',title:'المالية',sub:'Finance — دخل / مصروف',color:'red',tags:['دخل','مصروف']},
-  invoice:{emoji:'🧾',title:'فاتورة',sub:'Invoice — PDF + رابط',color:'blue',tags:['PDF','رابط']},
-  review:{emoji:'⭐',title:'تقييم العميل',sub:'review.html — ?uid=',color:'pink',tags:['5 نجوم']},
+// ════════════════════════════════════════
+//  ADD / DELETE / DUPLICATE
+// ════════════════════════════════════════
+const QUICK={
+  tasks: {e:'✅',t:'المهام',s:'Tasks',col:'green',tags:['Kanban']},
+  clients:{e:'👥',t:'العملاء',s:'Clients',col:'yellow',tags:['DNA']},
+  finance:{e:'💰',t:'المالية',s:'Finance',col:'red',tags:[]},
+  invoice:{e:'🧾',t:'فاتورة',s:'Invoices — PDF',col:'blue',tags:[]},
+  review: {e:'⭐',t:'تقييم',s:'review.html',col:'pink',tags:[]},
 };
 
-function addNode(type){
-  closeDropdown();
-  const def = nodeDefaults[type] || nodeDefaults.page;
-  const wrap = document.getElementById('canvas-wrap');
-  const cx = wrap.scrollLeft + wrap.clientWidth/2 - 65;
-  const cy = wrap.scrollTop  + wrap.clientHeight/2 - 40;
-  const n = {id:nodeIdCounter++, x:cx, y:cy, type, ...def, tags:[]};
-  nodes.push(n);
-  renderAll();
-  saveToStorage();
-  showToast('✅ تم إضافة عنصر جديد — دبل-كليك لتعديل النص');
-  setTimeout(()=>{ const el=document.querySelector(`[data-id="${n.id}"]`); if(el) el.querySelector('.node-title')?.focus(); },100);
+function addNode(type,col){
+  closeDD();
+  const cx=((-panX)/(zoomLv/100))+document.getElementById('canvas-wrap').clientWidth/(2*(zoomLv/100))-80;
+  const cy=((-panY)/(zoomLv/100))+document.getElementById('canvas-wrap').clientHeight/(2*(zoomLv/100))-50;
+  const emojis={start:'🚀',page:'📄',decision:'❓',action:'⚡',db:'🗄️',external:'🌐'};
+  const titles={start:'بداية',page:'صفحة جديدة',decision:'قرار',action:'إجراء',db:'قاعدة بيانات',external:'صفحة خارجية'};
+  const n={id:idCtr++,x:Math.max(10,cx),y:Math.max(10,cy),e:emojis[type]||'📄',t:titles[type]||'عنصر',s:'',type,col,tags:[]};
+  snapshot(); nodes.push(n); renderAll(); save();
+  showToast('✅ تم الإضافة — دبل-كليك لتعديل النص');
+  setTimeout(()=>document.querySelector(`.fc-node[data-id="${n.id}"] .node-title`)?.focus(),80);
 }
-
-function addOrdoNode(key){
-  closeDropdown();
-  const def = ordoNodes[key];
-  const wrap = document.getElementById('canvas-wrap');
-  const cx = wrap.scrollLeft + wrap.clientWidth/2 - 65;
-  const cy = wrap.scrollTop  + wrap.clientHeight/2 - 40;
-  const n = {id:nodeIdCounter++, x:cx, y:cy, type:'page', ...def};
-  nodes.push(n);
-  renderAll();
-  saveToStorage();
-  showToast('✅ تم إضافة ' + def.title);
+function addQuick(k){
+  closeDD();
+  const q=QUICK[k];
+  const cx=((-panX)/(zoomLv/100))+document.getElementById('canvas-wrap').clientWidth/(2*(zoomLv/100))-80;
+  const cy=((-panY)/(zoomLv/100))+document.getElementById('canvas-wrap').clientHeight/(2*(zoomLv/100))-50;
+  const n={id:idCtr++,x:Math.max(10,cx),y:Math.max(10,cy),...q,type:'page'};
+  snapshot(); nodes.push(n); renderAll(); save();
+  showToast('✅ تمت إضافة '+q.t);
 }
-
-// ════════════════════════════════════════════════
-//  DELETE / DUPLICATE
-// ════════════════════════════════════════════════
-function deleteNode(id){
-  if(!id) return;
-  nodes = nodes.filter(n=>n.id!==id);
-  connections = connections.filter(c=>c.from!==id && c.to!==id);
-  deselectAll();
-  renderAll();
-  saveToStorage();
+function delNode(id){
+  snapshot();
+  nodes=nodes.filter(n=>n.id!==id);
+  conns=conns.filter(c=>c.f!==id&&c.t!==id);
+  deselectAll(); renderAll(); save();
   showToast('🗑️ تم الحذف');
 }
-
-function deleteSelected(){
-  if(selectedNode) deleteNode(selectedNode);
-}
-
-function duplicateNode(id){
-  const n = nodes.find(x=>x.id===id);
-  if(!n) return;
-  const copy = JSON.parse(JSON.stringify(n));
-  copy.id = nodeIdCounter++;
-  copy.x += 24; copy.y += 24;
-  nodes.push(copy);
-  renderAll();
-  saveToStorage();
+function dupNode(id){
+  const n=nodes.find(x=>x.id===id); if(!n) return;
+  const copy=JSON.parse(JSON.stringify(n));
+  copy.id=idCtr++; copy.x+=20; copy.y+=20;
+  snapshot(); nodes.push(copy); renderAll(); save();
   showToast('📋 تم النسخ');
 }
 
-// ════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  CONNECT MODE
-// ════════════════════════════════════════════════
-let previewLine = null;
-
-function toggleConnectMode(){
-  connectMode = !connectMode;
-  connectFrom = null;
-  const btn = document.getElementById('connect-btn');
-  btn.style.background = connectMode ? 'rgba(79,209,165,.15)' : '';
-  btn.style.borderColor = connectMode ? 'rgba(79,209,165,.4)' : '';
-  btn.style.color = connectMode ? 'var(--green)' : '';
-  if(!connectMode){ removePreviewLine(); }
-  showToast(connectMode ? '🔗 انقر على عنصرين لربطهما' : '🔗 تم إيقاف وضع الربط');
+// ════════════════════════════════════════
+function toggleConnect(){
+  connectMode=!connectMode; connectFrom=null; cancelPreview();
+  const btn=document.getElementById('connect-btn');
+  btn.classList.toggle('active',connectMode);
+  document.getElementById('mode-badge').style.display=connectMode?'block':'none';
+  showToast(connectMode?'🔗 انقر على مصدر ثم هدف الربط':'🔗 تم إيقاف وضع الربط');
 }
-
-function startConnecting(id, e){
-  if(!connectMode) return;
-  connectFrom = id;
+function startConnect(id,e){
+  if(!connectMode){ connectMode=true; document.getElementById('connect-btn').classList.add('active'); document.getElementById('mode-badge').style.display='block'; }
+  connectFrom=id;
 }
-
 function finishConnect(toId){
-  if(connectFrom===null || connectFrom===toId) return;
-  const exists = connections.find(c=>c.from===connectFrom && c.to===toId);
-  if(!exists){
-    connections.push({from:connectFrom, to:toId});
-    renderConnections();
-    saveToStorage();
-    showToast('🔗 تم الربط بنجاح');
+  if(connectFrom===null||connectFrom===toId) return;
+  if(!conns.find(c=>c.f===connectFrom&&c.t===toId)){
+    snapshot(); conns.push({f:connectFrom,t:toId,lbl:''}); renderAll(); save();
+    showToast('🔗 تم الربط');
   }
-  connectFrom = null;
-  removePreviewLine();
+  connectFrom=null; cancelPreview();
+}
+function cancelConnect(){ connectFrom=null; cancelPreview(); }
+function cancelPreview(){ previewEl=null; renderConns(); }
+
+function updatePreview(e){
+  const fn=nodes.find(n=>n.id===connectFrom); if(!fn) return;
+  const fc=document.getElementById('flowchart');
+  const r=fc.getBoundingClientRect();
+  const mx=(e.clientX-r.left)/(zoomLv/100);
+  const my=(e.clientY-r.top)/(zoomLv/100);
+  const el=document.querySelector(`.fc-node[data-id="${fn.id}"]`);
+  const fw=el?el.offsetWidth:NODE_W;
+  const fh=el?el.offsetHeight:NODE_H;
+  const sx=fn.x+fw/2, sy=fn.y+fh;
+  const line=document.createElementNS('http://www.w3.org/2000/svg','path');
+  const midY=(sy+my)/2;
+  line.setAttribute('d',`M${sx},${sy} L${sx},${midY} L${mx},${midY} L${mx},${my}`);
+  line.setAttribute('class','c-path preview');
+  previewEl=line;
+  renderConns();
 }
 
-function cancelConnect(){ connectFrom = null; removePreviewLine(); }
-
-function renderConnectingPreview(e){
-  removePreviewLine();
-  const fromNode = nodes.find(n=>n.id===connectFrom);
-  if(!fromNode) return;
-  const fc = document.getElementById('flowchart');
-  const rect = fc.getBoundingClientRect();
-  const mx = (e.clientX - rect.left)/zoomLevel*100;
-  const my = (e.clientY - rect.top)/zoomLevel*100;
-  const svg = document.getElementById('connections-svg');
-  const path = document.createElementNS('http://www.w3.org/2000/svg','line');
-  path.setAttribute('x1', fromNode.x+65); path.setAttribute('y1', fromNode.y+40);
-  path.setAttribute('x2', mx); path.setAttribute('y2', my);
-  path.setAttribute('stroke','rgba(108,99,255,.5)');
-  path.setAttribute('stroke-width','2');
-  path.setAttribute('stroke-dasharray','6 3');
-  path.id = 'preview-line';
-  svg.appendChild(path);
-  previewLine = path;
-}
-function removePreviewLine(){ if(previewLine){ previewLine.remove(); previewLine=null; } }
-
-// ════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  CONTEXT MENU
-// ════════════════════════════════════════════════
-let ctxNodeId = null;
-
-function showCtxMenu(id, e){
-  e.preventDefault();
-  ctxNodeId = id;
-  selectNode(id, e);
-  const menu = document.getElementById('ctx-menu');
-  menu.style.display = 'block';
-  menu.style.left = e.clientX + 'px';
-  menu.style.top  = e.clientY + 'px';
-  // keep in viewport
-  const mr = menu.getBoundingClientRect();
-  if(mr.right > window.innerWidth)  menu.style.left = (e.clientX - mr.width) + 'px';
-  if(mr.bottom > window.innerHeight) menu.style.top = (e.clientY - mr.height) + 'px';
+// ════════════════════════════════════════
+function showCtx(id,e){
+  e.preventDefault(); ctxId=id;
+  onNodeClick(id,e);
+  const m=document.getElementById('ctx-menu');
+  m.style.display='block'; m.style.left=e.clientX+'px'; m.style.top=e.clientY+'px';
+  requestAnimationFrame(()=>{
+    const r=m.getBoundingClientRect();
+    if(r.right>window.innerWidth) m.style.left=(e.clientX-r.width)+'px';
+    if(r.bottom>window.innerHeight) m.style.top=(e.clientY-r.height)+'px';
+  });
 }
-function hideCtxMenu(){ document.getElementById('ctx-menu').style.display='none'; }
+function hideCtx(){ document.getElementById('ctx-menu').style.display='none'; }
+function ctxEdit(){ hideCtx(); document.querySelector(`.fc-node[data-id="${ctxId}"] .node-title`)?.focus(); }
+function ctxDup(){ hideCtx(); dupNode(ctxId); }
+function ctxDel(){ hideCtx(); delNode(ctxId); }
+function ctxLink(){ hideCtx(); if(!connectMode)toggleConnect(); connectFrom=ctxId; showToast('انقر على العنصر الهدف للربط'); }
+function ctxColor(){ hideCtx(); openColor(ctxId,null); }
+function ctxEmoji(){ hideCtx(); openEmoji(ctxId,null); }
 
-function ctxEdit(){
-  hideCtxMenu();
-  const el = document.querySelector(`[data-id="${ctxNodeId}"] .node-title`);
-  if(el){ el.focus(); const r=document.createRange();r.selectNodeContents(el);const s=window.getSelection();s.removeAllRanges();s.addRange(r); }
-}
-function ctxDuplicate(){ hideCtxMenu(); duplicateNode(ctxNodeId); }
-function ctxDelete(){ hideCtxMenu(); deleteNode(ctxNodeId); }
-function ctxConnect(){
-  hideCtxMenu();
-  if(!connectMode) toggleConnectMode();
-  connectFrom = ctxNodeId;
-  showToast('🔗 الآن انقر على العنصر الذي تريد الربط به');
-}
-function ctxColor(){ hideCtxMenu(); openColorPanel(ctxNodeId, null); }
-function ctxEmoji(){ hideCtxMenu(); openEmojiPicker(ctxNodeId, null); }
-
-// ════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  COLOR PANEL
-// ════════════════════════════════════════════════
-let colorNodeId = null;
-
-function openColorPanel(id, triggerEl){
-  colorNodeId = id;
-  const panel = document.getElementById('color-panel');
-  panel.style.display = 'block';
-  if(triggerEl){
-    const r = triggerEl.getBoundingClientRect();
-    panel.style.left = r.left + 'px';
-    panel.style.top  = (r.bottom + 6) + 'px';
-  } else {
-    panel.style.left = '50%';
-    panel.style.top  = '50%';
-    panel.style.transform = 'translate(-50%,-50%)';
-  }
-  // Mark active
-  const node = nodes.find(n=>n.id===id);
-  panel.querySelectorAll('.color-swatch').forEach(s=>{
-    s.classList.toggle('active', node && s.dataset.col===node.color);
-  });
-  panel.querySelectorAll('.color-swatch').forEach(s=>{
-    s.onclick = ()=>{
-      const n = nodes.find(x=>x.id===colorNodeId);
-      if(n){ n.color = s.dataset.col; }
-      renderAll();
-      saveToStorage();
-      hideColorPanel();
-      showToast('🎨 تم تغيير اللون');
-    };
-  });
+// ════════════════════════════════════════
+const COLORS=[
+  {c:'purple',bg:'#6c63ff'},{c:'green',bg:'#4fd1a5'},{c:'yellow',bg:'#f7c948'},
+  {c:'red',bg:'#f76f7c'},{c:'blue',bg:'#38bdf8'},{c:'pink',bg:'#f472b6'},
+  {c:'teal',bg:'#34d399'},{c:'orange',bg:'#fb923c'},{c:'lav',bg:'#a78bfa'},{c:'gray',bg:'#94a3b8'}
+];
+function buildSwatches(){
+  document.getElementById('swatches').innerHTML=COLORS.map(c=>`<div class="sw" style="background:${c.bg}" data-c="${c.c}" onclick="applyColor('${c.c}')"></div>`).join('');
 }
-function hideColorPanel(){ const p=document.getElementById('color-panel');p.style.display='none';p.style.transform=''; }
-
-// ════════════════════════════════════════════════
-//  EMOJI PICKER
-// ════════════════════════════════════════════════
-let emojiNodeId = null;
-
-function populateEmojis(){
-  const grid = document.getElementById('emoji-grid');
-  grid.innerHTML = EMOJIS.map(e=>`<div class="ep-emoji" data-e="${e}">${e}</div>`).join('');
-  grid.addEventListener('click', e=>{
-    const ep = e.target.closest('.ep-emoji');
-    if(!ep) return;
-    const node = nodes.find(n=>n.id===emojiNodeId);
-    if(node){ node.emoji = ep.dataset.e; renderAll(); saveToStorage(); }
-    hideEmojiPicker();
-    showToast('😀 تم تغيير الأيقونة');
-  });
+function openColor(id,trigEl){
+  colorId=id;
+  const p=document.getElementById('color-panel');
+  p.style.display='block';
+  if(trigEl){const r=trigEl.getBoundingClientRect();p.style.left=r.left+'px';p.style.top=(r.bottom+4)+'px';}
+  else{p.style.left='50%';p.style.top='50%';p.style.transform='translate(-50%,-50%)';}
+  const n=nodes.find(x=>x.id===id);
+  p.querySelectorAll('.sw').forEach(s=>s.classList.toggle('active',n&&s.dataset.c===n.col));
 }
-
-function openEmojiPicker(id, triggerEl){
-  emojiNodeId = id;
-  const picker = document.getElementById('emoji-picker');
-  picker.style.display = 'block';
-  if(triggerEl){
-    const r = triggerEl.getBoundingClientRect();
-    picker.style.left = r.left + 'px';
-    picker.style.top  = (r.bottom + 6) + 'px';
-  } else {
-    picker.style.left = '50%';
-    picker.style.top  = '50%';
-    picker.style.transform = 'translate(-50%,-50%)';
-  }
+function applyColor(col){
+  const n=nodes.find(x=>x.id===colorId); if(!n) return;
+  snapshot(); n.col=col; renderAll(); save(); hideColor(); showToast('🎨 تم التغيير');
 }
-function pickEmoji(id){ openEmojiPicker(id, null); }
-function hideEmojiPicker(){ const p=document.getElementById('emoji-picker');p.style.display='none';p.style.transform=''; }
+function hideColor(){ const p=document.getElementById('color-panel');p.style.display='none';p.style.transform=''; }
 
-// ════════════════════════════════════════════════
+// ════════════════════════════════════════
+//  EMOJI PANEL
+// ════════════════════════════════════════
+const EMOJIS=['🚀','✅','👥','💰','🧾','📝','📋','🗄️','🔐','🏠','⭐','🔗','⚡','❓','🌐','🤝','📅','⏱️','🎯','🔒','🗂️','📊','💾','📤','📥','🔔','🔴','🟢','🟡','💬','📱','🖥️','🔑','🎨','🔧','📦','🏪','👨‍💻','📈','📉','💡','⚠️','✔️','❌','🔄','↗️','↘️','🔃','🏷️','📌','🗺️','🔍'];
+function buildEmojis(){
+  document.getElementById('emoji-grid').innerHTML=EMOJIS.map(e=>`<div class="ep" data-e="${e}" onclick="applyEmoji('${e}')">${e}</div>`).join('');
+}
+function openEmoji(id,trigEl){
+  emojiId=id;
+  const p=document.getElementById('emoji-panel');
+  p.style.display='block';
+  if(trigEl){const r=trigEl.getBoundingClientRect();p.style.left=r.left+'px';p.style.top=(r.bottom+4)+'px';}
+  else{p.style.left='50%';p.style.top='50%';p.style.transform='translate(-50%,-50%)';}
+}
+function applyEmoji(em){
+  const n=nodes.find(x=>x.id===emojiId); if(!n) return;
+  snapshot(); n.e=em; renderAll(); save(); hideEmoji(); showToast('😀 تم التغيير');
+}
+function hideEmoji(){ const p=document.getElementById('emoji-panel');p.style.display='none';p.style.transform=''; }
+
+// ════════════════════════════════════════
 //  DROPDOWN
-// ════════════════════════════════════════════════
-function toggleDropdown(){
-  document.getElementById('add-dropdown').classList.toggle('open');
-}
-function closeDropdown(){
-  document.getElementById('add-dropdown').classList.remove('open');
+// ════════════════════════════════════════
+function toggleDD(){ document.getElementById('add-dd').classList.toggle('open'); }
+function closeDD(){ document.getElementById('add-dd').classList.remove('open'); }
+
+// ════════════════════════════════════════
+//  STATUS
+// ════════════════════════════════════════
+function updateStatus(){
+  document.getElementById('sb-nodes').textContent=nodes.length;
+  document.getElementById('sb-conns').textContent=conns.length;
 }
 
-// ════════════════════════════════════════════════
-//  ZOOM
-// ════════════════════════════════════════════════
-function changeZoom(delta){
-  zoomLevel = Math.min(150, Math.max(40, zoomLevel + delta));
-  applyZoom();
-}
-function resetZoom(){ zoomLevel=100; applyZoom(); }
-function applyZoom(){
-  document.getElementById('flowchart').style.transform = `scale(${zoomLevel/100})`;
-  document.getElementById('flowchart').style.transformOrigin = 'top right';
-  document.getElementById('zoom-label').textContent = zoomLevel + '%';
-}
-
-// ════════════════════════════════════════════════
-//  PRINT / EXPORT
-// ════════════════════════════════════════════════
+// ════════════════════════════════════════
+//  PRINT / SAVE / LOAD
+// ════════════════════════════════════════
 function doPrint(){
-  deselectAll();
-  hideCtxMenu(); hideColorPanel(); hideEmojiPicker();
-  document.getElementById('print-date').textContent = new Date().toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
-  // Reset zoom for print
-  document.getElementById('flowchart').style.transform = '';
-  showToast('🖨️ جاري فتح نافذة الطباعة...');
-  setTimeout(()=>{
-    window.print();
-    applyZoom();
-  }, 300);
+  deselectAll(); hideCtx(); hideColor(); hideEmoji();
+  document.getElementById('print-date').textContent=new Date().toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
+  const fc=document.getElementById('flowchart');
+  const prevTrans=fc.style.transform;
+  fc.style.transform='none';
+  showToast('🖨️ جاري فتح الطباعة...');
+  setTimeout(()=>{ window.print(); fc.style.transform=prevTrans; },200);
 }
-
-function doExportPDF(){
-  showToast('💡 استخدم زر الطباعة واختر "حفظ كـ PDF" من إعدادات الطابعة');
-  setTimeout(doPrint, 800);
-}
-
-// ════════════════════════════════════════════════
-//  SAVE / LOAD (JSON)
-// ════════════════════════════════════════════════
 function doSave(){
-  const data = JSON.stringify({nodes, connections}, null, 2);
-  const blob = new Blob([data], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'ordo-flowchart.json';
-  a.click();
-  showToast('💾 تم تصدير المخطط كـ JSON');
+  const blob=new Blob([JSON.stringify({nodes,conns},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ordo-flowchart.json';a.click();
+  showToast('💾 تم التصدير');
 }
-
 function doLoad(){
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  input.onchange = e=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ev=>{
+  const inp=document.createElement('input');inp.type='file';inp.accept='.json';
+  inp.onchange=e=>{
+    const f=e.target.files[0];if(!f) return;
+    const r=new FileReader();
+    r.onload=ev=>{
       try{
-        const d = JSON.parse(ev.target.result);
-        nodes = d.nodes || [];
-        connections = d.connections || [];
-        nodeIdCounter = Math.max(200, ...nodes.map(n=>n.id)) + 1;
-        renderAll();
-        saveToStorage();
-        showToast('📂 تم استيراد المخطط بنجاح');
-      }catch(err){ showToast('❌ خطأ في قراءة الملف'); }
-    };
-    reader.readAsText(file);
-  };
-  input.click();
+        const d=JSON.parse(ev.target.result);
+        nodes=d.nodes||[];
+        conns=(d.conns||d.connections||[]).map(c=>({f:c.f||c.from,t:c.t||c.to,lbl:c.lbl||''}));
+        idCtr=Math.max(200,...nodes.map(n=>n.id))+1;
+        snapshot(); renderAll(); save(); showToast('📂 تم الاستيراد');
+      }catch(err){showToast('❌ خطأ في الملف');}
+    };r.readAsText(f);
+  };inp.click();
 }
 
-// ════════════════════════════════════════════════
+// ════════════════════════════════════════
 //  TOAST
-// ════════════════════════════════════════════════
-let toastTimer;
-function showToast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+// ════════════════════════════════════════
+let _tt;
+function showToast(m){
+  const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
+  clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2400);
 }
 
-// ════════════════════════════════════════════════
-//  HELPERS
-// ════════════════════════════════════════════════
-function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 </script>
 </body>
 </html>
