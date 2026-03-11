@@ -5265,6 +5265,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <button class="profile-tab" data-tab="contracts" onclick="switchProfileTab('contracts',this)"><i class="fa-solid fa-pen-to-square"></i> العقود</button>
       <button class="profile-tab" data-tab="statements" onclick="switchProfileTab('statements',this)"><i class="fa-solid fa-file-lines"></i> كشوفات الحساب</button>
       <button class="profile-tab" data-tab="accounts" onclick="switchProfileTab('accounts',this)"><i class="fa-solid fa-coins"></i> الحسابات المالية</button>
+      <button class="profile-tab" data-tab="reviews" onclick="switchProfileTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button>
     </div>
     <div id="profile-body" style="max-height:75vh;overflow-y:auto;padding:18px 20px"></div>
   </div>
@@ -8452,7 +8453,7 @@ function openClientProfile(id){
   if(hdr) hdr.innerHTML=
     (c.phone?`<a href="https://wa.me/${c.phone.replace(/[^\d]/g,'')}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;border:none;border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;text-decoration:none;cursor:pointer"><i class="fa-solid fa-comments"></i> واتساب</a>`:'') +
     `<button class="btn btn-ghost btn-sm" title="إعدادات التذكير" onclick="openClientModal(${c.id});closeM('modal-client-profile')"><i class="fa-solid fa-gear"></i>️</button>`+
-    
+    `<button class="btn btn-ghost btn-sm" title="بوابة العميل" onclick="openClientPortal(${c.id})"><i class="fa-solid fa-link"></i> بوابة</button>`+
     `<button class="btn btn-primary btn-sm" onclick="_showClientPortalLink(${c.id})"><i class="fa-solid fa-id-card"></i> رابط البوابة الكاملة</button>`+
     `<button class="btn btn-ghost btn-sm" onclick="_profileShowStatement(${c.id})"><i class="fa-solid fa-file-lines"></i> كشف حساب</button>`;
 
@@ -8873,6 +8874,35 @@ function _renderProfileTab(tab, id){
           </div>`).join('')}
       </div>`:''}
     `;
+  }
+
+  else if(tab==='reviews'){
+    const clientRevs = (S.reviews||[]).filter(r=>String(r.client_id)===String(c.id)||r.client_name===c.name);
+    const avg = clientRevs.length ? (clientRevs.reduce((s,r)=>s+(+r.stars||0),0)/clientRevs.length).toFixed(1) : null;
+    body.innerHTML=`
+      <div style="margin-bottom:16px">
+        <div class="section-title" style="margin-bottom:12px"><i class="fa-solid fa-star" style="color:var(--accent2)"></i> تقييمات ${escapeHtml(c.name)}</div>
+        ${clientRevs.length?`
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;text-align:center">
+          <div style="font-size:42px;font-weight:900;color:#f7c948;line-height:1">${avg}</div>
+          <div style="font-size:20px;margin:6px 0">${'⭐'.repeat(Math.round(+avg))}</div>
+          <div style="font-size:12px;color:var(--text3)">${clientRevs.length} تقييم من العميل</div>
+        </div>
+        ${clientRevs.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map(r=>`
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:800;color:var(--text)">${escapeHtml(r.task_title||'طلب')}</div>
+            <div style="font-size:18px;letter-spacing:2px">${'⭐'.repeat(+r.stars||0)}</div>
+          </div>
+          ${r.comment?`<div style="font-size:13px;color:var(--text2);line-height:1.7;padding:10px 12px;background:var(--surface);border-radius:10px;border-right:3px solid #f7c948;font-style:italic">"${escapeHtml(r.comment)}"</div>`:''}
+          <div style="font-size:10px;color:var(--text3);margin-top:8px"><i class="fa-solid fa-calendar"></i> ${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):''}</div>
+        </div>`).join('')}
+        `:`<div style="text-align:center;padding:40px 20px;color:var(--text3)">
+          <div style="font-size:40px;opacity:.3;margin-bottom:10px">⭐</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text2);margin-bottom:5px">لا توجد تقييمات بعد</div>
+          <div style="font-size:12px">سيظهر التقييم هنا بعد اكتمال طلب وتقييم العميل له</div>
+        </div>`}
+      </div>`;
   }
 
   else if(tab==='statements'){
@@ -9494,6 +9524,7 @@ function renderClients(){
       <div style="display:flex;gap:16px;margin-top:12px">
         <div><div style="font-size:16px;font-weight:700;color:${c.color}">${cTasks(c.name)}</div><div style="font-size:11px;color:var(--text3)">مشاريع</div></div>
         <div><div style="font-size:16px;font-weight:700;color:var(--accent2)">${(()=>{const now=new Date();const ms=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');return S.tasks.filter(t=>t.client===c.name&&((t.isoDate||'').startsWith(ms)||(t.doneAt||'').startsWith(ms))).length;})()}</div><div style="font-size:11px;color:var(--text3)">هذا الشهر</div></div>
+        ${(()=>{const revs=(S.reviews||[]).filter(r=>String(r.client_id)===String(c.id)||r.client_name===c.name);if(!revs.length)return'';const avg=(revs.reduce((s,r)=>s+(+r.stars||0),0)/revs.length).toFixed(1);return`<div><div style="font-size:16px;font-weight:700;color:#f7c948">⭐ ${avg}</div><div style="font-size:11px;color:var(--text3)">${revs.length} تقييم</div></div>`;})()}
       </div>
     </div>`).join('');
 }
