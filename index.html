@@ -8449,7 +8449,7 @@ function openClientProfile(id){
   if(hdr) hdr.innerHTML=
     (c.phone?`<a href="https://wa.me/${c.phone.replace(/[^\d]/g,'')}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;border:none;border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;text-decoration:none;cursor:pointer"><i class="fa-solid fa-comments"></i> واتساب</a>`:'') +
     `<button class="btn btn-ghost btn-sm" title="إعدادات التذكير" onclick="openClientModal(${c.id});closeM('modal-client-profile')"><i class="fa-solid fa-gear"></i>️</button>`+
-    `<button class="btn btn-ghost btn-sm" title="بوابة العميل" onclick="openClientPortal(${c.id})"><i class="fa-solid fa-link"></i> بوابة</button>`+
+    
     `<button class="btn btn-primary btn-sm" onclick="_showClientPortalLink(${c.id})"><i class="fa-solid fa-id-card"></i> رابط البوابة الكاملة</button>`+
     `<button class="btn btn-ghost btn-sm" onclick="_profileShowStatement(${c.id})"><i class="fa-solid fa-file-lines"></i> كشف حساب</button>`;
 
