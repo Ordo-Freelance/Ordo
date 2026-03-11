@@ -214,6 +214,13 @@ function _buildPortalLink(clientName, portalId){
     return _portalBase + '?u=' + encodeURIComponent(_un) + '&p=' + encodeURIComponent(_slug);
   }
   var clientObj = (S.clients||[]).find(function(c){ return _makeClientSlug(c.name)===_slug; });
+  // لو portalId بيشاور على client_portal record، جيب الـ client_id منه
+  if(!clientObj && portalId){
+    var portalRec = (S.client_portals||[]).find(function(p){ return p.id===portalId; });
+    if(portalRec && portalRec.client_id){
+      clientObj = (S.clients||[]).find(function(c){ return String(c.id)===String(portalRec.client_id); });
+    }
+  }
   var cid = clientObj ? clientObj.id : (portalId||'');
   return _portalBase + '?uid=' + (_supaUserId||'') + '&cid=' + cid;
 }
@@ -1351,8 +1358,7 @@ body.pub-page #app-body {
    LAYOUT SHELL  (sidebar + main side-by-side)
 ═══════════════════════════════════════════════════ */
 .app-shell {
-  display: flex;
-  flex-direction: column;
+  display: block;
   height: 100vh;
   width: 100%;
   overflow: hidden;
@@ -1542,30 +1548,27 @@ body.pub-page #app-body {
    MAIN CONTENT AREA
 ═══════════════════════════════════════════════════ */
 .app-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+  display: block;
   width: 100%;
+  height: 100vh;
   overflow-x: hidden;
   overflow-y: auto;
-  height: 100vh;
-  transition: padding-right 0.3s ease;
+  box-sizing: border-box;
+  transition: margin-right 0.3s ease;
 }
 
 /* على الديسكتوب: نحرك المحتوى بجانب الـ sidebar الثابت */
 @media (min-width: 1025px) {
   .app-body {
-    padding-right: 240px;
-    margin-right: 0;
+    margin-right: 240px;
+    width: calc(100% - 240px);
   }
   body.sidebar-collapsed .app-body {
-    padding-right: 0 !important;
     margin-right: 0 !important;
+    width: 100% !important;
   }
 }
 .main {
-  flex: 1;
   padding: var(--space-xl);
   width: 100%;
   min-width: 0;
@@ -2006,6 +2009,7 @@ body.sidebar-collapsed .sidebar {
 body.sidebar-collapsed .app-body {
   margin-right: 0 !important;
   padding-right: 0 !important;
+  width: 100% !important;
 }
 body.sidebar-collapsed .sidebar-overlay {
   display: none !important;
@@ -20898,7 +20902,10 @@ function openClientPortal(portalId){
         '<div style="font-size:12px;font-weight:700;margin-bottom:8px"><i class="fa-solid fa-link"></i> رابط بوابة العميل</div>'+
         (!_hasUn?'<div style="font-size:10px;color:var(--accent4);margin-bottom:8px;padding:6px 10px;background:rgba(247,107,92,.1);border-radius:8px"><i class="fa-solid fa-triangle-exclamation"></i> أضف <b>username</b> في الإعدادات للحصول على رابط قصير باسمك</div>':'')+
         '<div id="portal-link-'+portal.id+'" style="font-size:11px;color:var(--accent3);font-family:var(--mono);word-break:break-all;margin-bottom:10px;padding:8px 10px;background:var(--surface3);border-radius:8px;user-select:all;cursor:text">'+_link+'</div>'+
-        '<button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById(\'portal-link-'+portal.id+'\').textContent.trim()).then(function(){toast(\'<i class=\"fa-solid fa-square-check\" style=\"color:var(--accent3)\"></i> تم نسخ الرابط\')})"><i class="fa-solid fa-copy" style="margin-left:4px"></i> نسخ الرابط</button>'+
+        '<div style="display:flex;gap:8px">'+
+        '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText(document.getElementById(\'portal-link-'+portal.id+'\').textContent.trim()).then(function(){toast(\'<i class=\"fa-solid fa-square-check\" style=\"color:var(--accent3)\"></i> تم نسخ الرابط\')})"><i class="fa-solid fa-copy" style="margin-left:4px"></i> نسخ الرابط</button>'+
+        '<button class="btn btn-primary btn-sm" onclick="window.open(document.getElementById(\'portal-link-'+portal.id+'\').textContent.trim(),\'_blank\')"><i class="fa-solid fa-eye"></i> معاينة</button>'+
+        '</div>'+
       '</div>';
     })();
   openM('modal-portal');
@@ -28545,9 +28552,10 @@ var _styleEl = document.createElement('style');
 _styleEl.id = '_i18n-style';
 _styleEl.textContent = [
   // Direction-aware flex
-  'body.lang-ltr .app-shell{flex-direction:row!important}',
-  'body.lang-ltr .sidebar{right:auto!important;left:0!important;border-left:none!important;border-right:1px solid var(--border)!important}',
-  '@media(min-width:1025px){body.lang-ltr .app-body{padding-right:0!important;margin-right:0!important;padding-left:240px!important;margin-left:0!important}}',
+  'body.lang-ltr .sidebar{right:auto!important;left:0!important;border-left:1px solid var(--border)!important;border-right:none!important;transform:translateX(-100%)}',
+  '@media(min-width:1025px){body.lang-ltr .sidebar{transform:translateX(0)!important}}',
+  '@media(min-width:1025px){body.lang-ltr .app-body{margin-right:0!important;width:100%!important;padding-right:0!important;margin-left:240px!important;width:calc(100% - 240px)!important}}',
+  '@media(min-width:1025px){body.lang-ltr.sidebar-collapsed .app-body{margin-left:0!important;width:100%!important}}',
   'body.lang-ltr .app-header{direction:ltr!important}',
   'body.lang-ltr .header-actions{flex-direction:row!important}',
   // Nav items
