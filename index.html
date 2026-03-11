@@ -414,12 +414,15 @@ async function _doCloudSave(data, force) {
   }
 }
 
-// ── lsSave: debounced 600ms — the ONE function everyone calls ──
+// ── lsSave: حفظ فوري بعد اكتمال التحميل فقط ──
 function lsSave() {
   if (!S) return;
+  if (!_supaUserId) return; // مش مسجل دخول
   S._savedAt = new Date().toISOString();
+  // ── لا حفظ قبل ما cloudLoad يخلص — منع الكتابة فوق البيانات ──
+  if (!window._appReady) return;
   clearTimeout(_syncTimer);
-  _syncTimer = setTimeout(() => _doCloudSave(S), SAVE_DEBOUNCE_MS);
+  _syncTimer = setTimeout(() => _doCloudSave(S, true), SAVE_DEBOUNCE_MS);
   updateDash();
   try { _updateDataStatusBar(); } catch(e) {}
 }
@@ -11175,6 +11178,10 @@ function loginUser(user){
 // loginWithSupaSession – Supabase login (cloud sync)
 async function loginWithSupaSession(supaUser, session, userMeta){
   _supaUserId = supaUser.id;
+  // ── منع أي حفظ حتى يكتمل تحميل البيانات من السحابة ──
+  window._appReady = false;
+  window._cloudLoadDone = false;
+
   const meta = supaUser.user_metadata || {};
   const userObj = {
     id       : supaUser.id,
@@ -11200,7 +11207,25 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     if(_cacheRaw) _cachedData = JSON.parse(_cacheRaw);
   } catch(e) {}
 
-  const cloudData = await cloudLoad();
+  let cloudData = await cloudLoad();
+
+  // ── لو السحابة رجعت فاضية وعندنا cache — استخدم الـ cache فوراً ──
+  const _cloudScore = (cloudData?.tasks?.length||0) + (cloudData?.clients?.length||0) + (cloudData?.invoices?.length||0);
+  const _cacheScore = (_cachedData?.tasks?.length||0) + (_cachedData?.clients?.length||0) + (_cachedData?.invoices?.length||0);
+
+  if(_cloudScore === 0 && _cacheScore > 0) {
+    // السحابة فاضية والـ cache فيها بيانات — ممكن network delay، انتظر وحاول مرة تانية
+    console.log('⚠️ Cloud empty but cache has data (' + _cacheScore + '), retrying cloud in 1.5s...');
+    await new Promise(r => setTimeout(r, 1500));
+    const _retryCloud = await cloudLoad();
+    const _retryScore = (_retryCloud?.tasks?.length||0) + (_retryCloud?.clients?.length||0) + (_retryCloud?.invoices?.length||0);
+    if(_retryScore > 0) {
+      cloudData = _retryCloud;
+      console.log('✅ Cloud retry succeeded, score:', _retryScore);
+    } else {
+      console.log('⚡ Cloud still empty after retry — using cache and re-syncing to cloud');
+    }
+  }
 
   // ── اختار أحدث بيانات بين السحابة والـ cache ──
   let _bestData = cloudData;
