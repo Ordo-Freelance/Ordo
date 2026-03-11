@@ -3198,8 +3198,27 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       </div>
     </div>
     <input type="hidden" id="proj-eid">
+    <!-- نوع المشروع -->
+    <div class="form-group">
+      <label class="form-label"><i class="fa-solid fa-layer-group" style="color:var(--accent)"></i> نوع المشروع</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="proj-type-toggle">
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:2px solid var(--border);border-radius:12px;cursor:pointer;background:var(--surface2);transition:.2s" id="proj-type-tasks-label">
+          <input type="radio" name="proj-type" id="proj-type-tasks" value="tasks" style="margin-top:2px;accent-color:var(--accent)" checked onchange="onProjTypeChange()">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--text)">💼 تاسكات / عميل</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">كل مهمة بمقابل مالي من العميل — يتسجل في الدخل</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:2px solid var(--border);border-radius:12px;cursor:pointer;background:var(--surface2);transition:.2s" id="proj-type-team-label">
+          <input type="radio" name="proj-type" id="proj-type-team" value="team" style="margin-top:2px;accent-color:var(--accent2)" onchange="onProjTypeChange()">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--text)">👥 فريق / صرف</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">كل مهمة بصرف لعضو الفريق — يتسجل في المصروفات</div>
+          </div>
+        </label>
+      </div>
+    </div>
     <div class="form-group"><label class="form-label">اسم المشروع *</label><input class="form-input" id="proj-name" placeholder="مثال: موقع شركة ABC"></div>
-    <div class="form-group"><label class="form-label">الوصف</label><textarea class="form-textarea" id="proj-desc" rows="3" placeholder="وصف مختصر للمشروع..."></textarea></div>
     <div class="form-row" style="grid-template-columns:1fr 1fr">
       <div class="form-group">
         <label class="form-label">العميل</label>
@@ -3322,6 +3341,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     <!-- معلومات المسؤول (تظهر لو المهمة محفوظة) -->
     <div id="ptask-assignee-info" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:4px;flex-wrap:wrap;gap:4px;align-items:center"></div>
     <div class="form-group"><label class="form-label">الموعد النهائي</label><input class="form-input" type="date" id="ptask-deadline"></div>
+    <div class="form-group"><label class="form-label"><i class="fa-solid fa-calendar-check" style="color:var(--accent2)"></i> تاريخ الاستلام / البداية</label><input class="form-input" type="date" id="ptask-orderdate"></div>
     <div class="form-row" style="grid-template-columns:1fr 1fr">
       <div class="form-group">
         <label class="form-label"><i class="fa-solid fa-coins" style="color:var(--accent3)"></i> تكلفة المهمة</label>
@@ -6650,13 +6670,22 @@ function _confirmCollect(clientId, totalOwed){
 // ══════════════════════════════════════════════════════
 // ── REVIEWS PAGE ──
 // ══════════════════════════════════════════════════════
+function deleteReview(reviewId) {
+  confirmDel('حذف هذا التقييم نهائياً؟', function() {
+    S.reviews = (S.reviews||[]).filter(r => String(r.id) !== String(reviewId));
+    lsSave(); cloudSave(S);
+    renderReviewsPage();
+    toast('<i class="fa-solid fa-trash"></i> تم حذف التقييم');
+  });
+}
+
 function renderReviewsPage() {
   const cont = document.getElementById('reviews-page-content');
   if (!cont) return;
-  const reviews = (S.reviews || []).sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
-  const total = reviews.length;
-  const avg = total ? (reviews.reduce((s,r) => s + (+r.stars||0), 0) / total).toFixed(1) : 0;
-  const dist = [5,4,3,2,1].map(n => ({ n, count: reviews.filter(r => +r.stars === n).length }));
+  const allReviews = (S.reviews || []).sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
+  const total = allReviews.length;
+  const avg = total ? (allReviews.reduce((s,r) => s + (+r.stars||0), 0) / total).toFixed(1) : 0;
+  const dist = [5,4,3,2,1].map(n => ({ n, count: allReviews.filter(r => +r.stars === n).length }));
   const acc = S.settings?.accent || S.settings?.accentColor || '#7c6ff7';
 
   // تحديث الـ badge
@@ -6673,17 +6702,44 @@ function renderReviewsPage() {
     return;
   }
 
-  // فلتر النجوم
-  const _rf = window._reviewsFilter || 'all';
+  // ── فلتر النجوم والتاريخ ──
+  const _rf  = window._reviewsFilter || 'all';
+  const _rym = window._reviewsYearMonth || 'all'; // 'YYYY-MM' أو 'all'
 
-  const filtered = _rf === 'all' ? reviews : reviews.filter(r => +r.stars === +_rf);
+  // جمع كل الأشهر المتاحة
+  const monthsSet = new Set();
+  allReviews.forEach(r => {
+    if (r.created_at) monthsSet.add(r.created_at.slice(0,7));
+  });
+  const months = [...monthsSet].sort((a,b) => b.localeCompare(a));
+
+  // فلترة
+  let filtered = allReviews;
+  if (_rf !== 'all') filtered = filtered.filter(r => +r.stars === +_rf);
+  if (_rym !== 'all') filtered = filtered.filter(r => (r.created_at||'').startsWith(_rym));
+
+  // تجميع شهرياً للعرض
+  const grouped = {};
+  filtered.forEach(r => {
+    const ym = (r.created_at||'').slice(0,7) || 'غير محدد';
+    if (!grouped[ym]) grouped[ym] = [];
+    grouped[ym].push(r);
+  });
+  const sortedMonths = Object.keys(grouped).sort((a,b) => b.localeCompare(a));
+
+  const monthLabel = ym => {
+    if (!ym || ym === 'غير محدد') return 'تاريخ غير محدد';
+    const [y,m] = ym.split('-');
+    const names = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    return (names[+m-1]||m) + ' ' + y;
+  };
 
   cont.innerHTML = `
   <!-- Summary Cards -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px">
     <div class="card" style="padding:20px;text-align:center;border-right:3px solid #f7c948">
-      <div style="font-size:48px;font-weight:900;color:#f7c948;line-height:1">${avg}</div>
-      <div style="font-size:22px;margin:6px 0">${'⭐'.repeat(Math.round(+avg))}</div>
+      <div style="font-size:44px;font-weight:900;color:#f7c948;line-height:1">${avg}</div>
+      <div style="font-size:20px;margin:6px 0">${'⭐'.repeat(Math.round(+avg))}</div>
       <div style="font-size:12px;color:var(--text3)">${total} تقييم إجمالي</div>
     </div>
     <div class="card" style="padding:20px">
@@ -6700,12 +6756,12 @@ function renderReviewsPage() {
     </div>
     <div class="card" style="padding:20px">
       <div style="font-size:12px;font-weight:800;color:var(--text3);margin-bottom:12px">أفضل العملاء</div>
-      ${[...new Map(reviews.map(r=>[r.client_name,r])).values()].slice(0,4).map(r=>`
+      ${[...new Map(allReviews.map(r=>[r.client_name,r])).values()].slice(0,4).map(r=>`
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <div style="width:28px;height:28px;border-radius:50%;background:${acc}22;color:${acc};font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(r.client_name||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.client_name||'عميل')}</div>
-          <div style="font-size:10px;color:var(--text3)">${reviews.filter(x=>x.client_name===r.client_name).length} تقييم · ⭐ ${(reviews.filter(x=>x.client_name===r.client_name).reduce((s,x)=>s+(+x.stars||0),0)/reviews.filter(x=>x.client_name===r.client_name).length).toFixed(1)}</div>
+          <div style="font-size:10px;color:var(--text3)">${allReviews.filter(x=>x.client_name===r.client_name).length} تقييم · ⭐ ${(allReviews.filter(x=>x.client_name===r.client_name).reduce((s,x)=>s+(+x.stars||0),0)/allReviews.filter(x=>x.client_name===r.client_name).length).toFixed(1)}</div>
         </div>
       </div>`).join('')}
     </div>
@@ -6713,35 +6769,60 @@ function renderReviewsPage() {
 
   <!-- Filter Bar -->
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
-    <span style="font-size:12px;color:var(--text3);font-weight:700">فلتر:</span>
-    ${[{v:'all',l:'الكل ('+total+')'},{v:'5',l:'⭐⭐⭐⭐⭐'},{v:'4',l:'⭐⭐⭐⭐'},{v:'3',l:'⭐⭐⭐'},{v:'2',l:'⭐⭐'},{v:'1',l:'⭐'}].map(f=>`
+    <span style="font-size:12px;color:var(--text3);font-weight:700;margin-left:4px">التقييم:</span>
+    ${[{v:'all',l:'الكل'},{v:'5',l:'⭐×5'},{v:'4',l:'⭐×4'},{v:'3',l:'⭐×3'},{v:'2',l:'⭐×2'},{v:'1',l:'⭐×1'}].map(f=>`
     <button onclick="window._reviewsFilter='${f.v}';renderReviewsPage()" class="btn btn-sm" style="background:${_rf===f.v?'var(--accent)':'var(--surface2)'};color:${_rf===f.v?'#fff':'var(--text2)'};border:1px solid ${_rf===f.v?'var(--accent)':'var(--border)'}">${f.l}</button>`).join('')}
-    ${_rf!=='all'?`<button onclick="window._reviewsFilter='all';renderReviewsPage()" class="btn btn-ghost btn-sm"><i class="fa-solid fa-xmark"></i> إلغاء الفلتر</button>`:''}
+    <span style="font-size:12px;color:var(--text3);font-weight:700;margin-right:8px;margin-left:4px">الشهر:</span>
+    <button onclick="window._reviewsYearMonth='all';renderReviewsPage()" class="btn btn-sm" style="background:${_rym==='all'?'var(--accent)':'var(--surface2)'};color:${_rym==='all'?'#fff':'var(--text2)'};border:1px solid ${_rym==='all'?'var(--accent)':'var(--border)'}">الكل</button>
+    ${months.map(ym=>`
+    <button onclick="window._reviewsYearMonth='${ym}';renderReviewsPage()" class="btn btn-sm" style="background:${_rym===ym?'var(--accent2)':'var(--surface2)'};color:${_rym===ym?'#fff':'var(--text2)'};border:1px solid ${_rym===ym?'var(--accent2)':'var(--border)'}">
+      ${monthLabel(ym)}
+    </button>`).join('')}
+    ${(_rf!=='all'||_rym!=='all')?`<button onclick="window._reviewsFilter='all';window._reviewsYearMonth='all';renderReviewsPage()" class="btn btn-ghost btn-sm"><i class="fa-solid fa-xmark"></i> مسح الفلاتر</button>`:''}
   </div>
 
-  <!-- Reviews List -->
-  <div style="display:flex;flex-direction:column;gap:12px">
-    ${filtered.length ? filtered.map(r => {
-      const clientObj = (S.clients||[]).find(c=>String(c.id)===String(r.client_id)||c.name===r.client_name);
-      const taskObj = (S.tasks||[]).find(t=>String(t.id)===String(r.task_id));
-      return `<div class="card" style="padding:18px;border-right:3px solid ${+r.stars>=4?'#f7c948':+r.stars===3?'var(--accent2)':'var(--accent4)'}">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="width:38px;height:38px;border-radius:50%;background:${acc}22;color:${acc};font-size:14px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(r.client_name||'?')[0]}</div>
-            <div>
-              <div style="font-size:14px;font-weight:800">${escapeHtml(r.client_name||'عميل')}</div>
-              <div style="font-size:11px;color:var(--text3)"><i class="fa-solid fa-calendar"></i> ${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):''}</div>
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-            <div style="font-size:22px;letter-spacing:2px">${'⭐'.repeat(+r.stars||0)}</div>
-            <span style="font-size:11px;font-weight:800;padding:2px 10px;border-radius:10px;background:${+r.stars>=4?'rgba(247,201,72,.15)':+r.stars===3?'rgba(168,156,255,.15)':'rgba(255,107,107,.12)'};color:${+r.stars>=4?'#f7c948':+r.stars===3?'var(--accent2)':'var(--accent4)'}">${['','سيء 😞','مقبول 😐','جيد 🙂','رائع 😊','ممتاز 🤩'][+r.stars]||''}</span>
-          </div>
+  <!-- Reviews grouped by month -->
+  <div style="display:flex;flex-direction:column;gap:20px">
+    ${filtered.length === 0 ? `<div style="text-align:center;padding:40px;color:var(--text3)"><i class="fa-solid fa-star" style="font-size:32px;opacity:.3;display:block;margin-bottom:10px"></i>لا توجد تقييمات بهذه الفلاتر</div>` :
+      sortedMonths.map(ym => `
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:900;color:var(--accent)">${monthLabel(ym)}</div>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <div style="font-size:11px;font-weight:700;background:var(--accent)22;color:var(--accent);padding:2px 10px;border-radius:20px">${grouped[ym].length} تقييم</div>
         </div>
-        ${r.comment?`<div style="font-size:13px;color:var(--text2);line-height:1.8;padding:12px 14px;background:var(--surface2);border-radius:10px;margin-bottom:10px;font-style:italic;border-right:3px solid #f7c948">"${escapeHtml(r.comment)}"</div>`:''}
-        ${taskObj||r.task_title?`<div style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px"><i class="fa-solid fa-clipboard-list" style="color:var(--accent)"></i> الطلب: <span style="font-weight:700;color:var(--text2)">${escapeHtml(r.task_title||taskObj?.title||'طلب')}</span></div>`:''}
-      </div>`;
-    }).join('') : `<div style="text-align:center;padding:40px;color:var(--text3)"><i class="fa-solid fa-star" style="font-size:32px;opacity:.3;display:block;margin-bottom:10px"></i>لا توجد تقييمات بهذا التصنيف</div>`}
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${grouped[ym].map(r => {
+            const taskObj = (S.tasks||[]).find(t=>String(t.id)===String(r.task_id));
+            const starColor = +r.stars>=4?'#f7c948':+r.stars===3?'var(--accent2)':'var(--accent4)';
+            const starBg = +r.stars>=4?'rgba(247,201,72,.1)':+r.stars===3?'rgba(168,156,255,.1)':'rgba(247,111,124,.1)';
+            const starLabel = ['','سيء 😞','مقبول 😐','جيد 🙂','رائع 😊','ممتاز 🤩'][+r.stars]||'';
+            return `<div class="card" style="padding:16px;border-right:3px solid ${starColor};position:relative">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:${r.comment?'10':'0'}px;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="width:36px;height:36px;border-radius:50%;background:${acc}22;color:${acc};font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(r.client_name||'?')[0]}</div>
+                  <div>
+                    <div style="font-size:13px;font-weight:800">${escapeHtml(r.client_name||'عميل')}</div>
+                    <div style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-calendar"></i> ${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG',{day:'numeric',month:'long',year:'numeric'}):''}</div>
+                    ${taskObj||r.task_title?`<div style="font-size:10px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-clipboard-list" style="color:var(--accent)"></i> ${escapeHtml(r.task_title||taskObj?.title||'')}</div>`:''}
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="text-align:center">
+                    <div style="font-size:18px;letter-spacing:1px">${'⭐'.repeat(+r.stars||0)}</div>
+                    <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:8px;background:${starBg};color:${starColor}">${starLabel}</span>
+                  </div>
+                  <button data-rid="${r.id}" onclick="deleteReview(this.dataset.rid)" class="btn btn-danger btn-sm" style="padding:5px 8px;flex-shrink:0" title="حذف التقييم">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+              ${r.comment?`<div style="font-size:13px;color:var(--text2);line-height:1.8;padding:10px 14px;background:var(--surface2);border-radius:10px;font-style:italic;border-right:3px solid #f7c948">"${escapeHtml(r.comment)}"</div>`:''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`).join('')
+    }
   </div>`;
 }
 
@@ -24850,6 +24931,10 @@ function renderProjCard(p){
   var clr=p.color||'var(--accent)';
   var deadline=p.deadline?new Date(p.deadline):null;
   var isOverdue=deadline&&deadline<new Date()&&p.status!=='done';
+  var typeLabel=p.projectType==='team'?'👥 فريق':'💼 تاسكات';
+  var typeClr=p.projectType==='team'?'var(--accent2)':'var(--accent)';
+  var totalVal=tasks.reduce(function(s,t){return s+(t.value||0);},0);
+  var collectedVal=tasks.filter(function(t){return t.paymentCollected||t.paymentStatus==='collected';}).reduce(function(s,t){return s+(t.value||0);},0);
   return `<div class="proj-card" onclick="openProjectDetail('${p.id}')">
     <div class="proj-card-top" style="background:${clr}"></div>
     <div class="proj-card-body">
@@ -24857,9 +24942,10 @@ function renderProjCard(p){
         <div class="proj-card-name">${escapeHtml(p.name)}</div>
         <span class="proj-status-badge" style="color:${st.color};background:${st.bg}">${st.label}</span>
       </div>
+      <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px;background:${typeClr}18;color:${typeClr};border:1px solid ${typeClr}33;margin-bottom:6px;display:inline-block">${typeLabel}</span>
       <div class="proj-card-client">${client?'<i class="fa-solid fa-user"></i> '+escapeHtml(client.name):'<i class="fa-solid fa-circle-minus"></i> بدون عميل'}</div>
-      ${p.budget>0?`<div style="font-size:10px;color:var(--text3);margin-top:3px"><i class="fa-solid fa-coins" style="color:#f7c948;margin-left:4px"></i><span style="color:#f7c948;font-weight:700">${p.budget.toLocaleString()} ${p.budgetCurrency||'ج.م'}</span> ميزانية</div>`:''}
-      <div class="proj-progress-bar"><div class="proj-progress-fill" style="width:${prog}%;background:${clr}"></div></div>
+      ${totalVal>0?`<div style="font-size:10px;color:var(--text3);margin-top:4px;display:flex;gap:10px"><span><i class="fa-solid fa-coins" style="color:#f7c948"></i> <span style="color:#f7c948;font-weight:700">${totalVal.toLocaleString()}</span></span><span style="color:#4fd1a5">✅ ${collectedVal.toLocaleString()} محصّل</span></div>`:''}
+      <div class="proj-progress-bar" style="margin-top:8px"><div class="proj-progress-fill" style="width:${prog}%;background:${clr}"></div></div>
       <div class="proj-progress-label"><span>${prog}% مكتمل</span><span>${tasks.filter(t=>t.status==='done').length}/${tasks.length} مهمة</span></div>
       ${p.deadline?`<div style="font-size:10px;margin-top:6px;color:${isOverdue?'var(--accent4)':'var(--text3)'}"><i class="fa-solid fa-calendar${isOverdue?' fa-shake':''}"></i> ${p.deadline}${isOverdue?' — متأخر!':''}</div>`:''}
     </div>
@@ -24921,6 +25007,13 @@ function openProjectModal(id){
   document.getElementById('proj-start').value=proj?proj.start||'':'';
   document.getElementById('proj-deadline').value=proj?proj.deadline||'':'';
   pickProjColor(proj?proj.color||'#7c6ff7':'#7c6ff7');
+  // Project type
+  var pt=proj?proj.projectType||'tasks':'tasks';
+  var ptTasks=document.getElementById('proj-type-tasks');
+  var ptTeam=document.getElementById('proj-type-team');
+  if(ptTasks) ptTasks.checked=(pt!=='team');
+  if(ptTeam) ptTeam.checked=(pt==='team');
+  onProjTypeChange();
   var budInp=document.getElementById('proj-budget');
   var budCur=document.getElementById('proj-budget-currency');
   var budType=document.getElementById('proj-pricing-type');
@@ -24942,6 +25035,14 @@ function openProjectModal(id){
   _renderProjMembersSelect(proj?proj.members||[]:[]);
   openM('modal-project');
   setTimeout(()=>document.getElementById('proj-name').focus(),100);
+}
+
+function onProjTypeChange(){
+  var isTeam = document.getElementById('proj-type-team')&&document.getElementById('proj-type-team').checked;
+  var tlbl=document.getElementById('proj-type-tasks-label');
+  var ttml=document.getElementById('proj-type-team-label');
+  if(tlbl) tlbl.style.borderColor=(!isTeam)?'var(--accent)':'var(--border)';
+  if(ttml) ttml.style.borderColor=(isTeam)?'var(--accent2)':'var(--border)';
 }
 
 // جلب مجموعات الفريق (S.teams التي هي في الكود الأصلي قوائم أعضاء وليست groups)
@@ -25049,6 +25150,7 @@ function saveProject(){
     start:document.getElementById('proj-start').value||'',
     deadline:document.getElementById('proj-deadline').value||'',
     color:document.getElementById('proj-color').value||'#7c6ff7',
+    projectType:(document.getElementById('proj-type-team')&&document.getElementById('proj-type-team').checked)?'team':'tasks',
     members,
     team_group_id:(tsel?tsel.value:'')||'',
     budget:+(document.getElementById('proj-budget')?.value||0)||0,
@@ -25215,27 +25317,186 @@ function renderProjOverview(proj,tasks,client,clr){
 
 // ── Tasks List Tab ──
 function renderProjTasksList(proj,tasks,clr){
-  var cols=['todo','progress','review','revision','done','hold'];
-  var colLabels={todo:'🆕 جديد',progress:'⚡ قيد التنفيذ',review:'🔍 مراجعة',revision:'✏️ تعديلات',done:'✅ مكتمل',hold:'⏸ موقوف مؤقتاً'};
-  var colColors={todo:'#64b5f6',progress:'#f7c948',review:'#a78bfa',revision:'#f97316',done:'#4fd1a5',hold:'#888'};
-  return `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div style="font-size:14px;font-weight:800">${tasks.length} مهمة</div>
-      <button class="btn btn-primary btn-sm" onclick="openProjTaskModal('${proj.id}')"><i class="fa-solid fa-plus"></i> مهمة جديدة</button>
-    </div>
-    ${cols.map(col=>{
-      var colTasks=tasks.filter(t=>t.status===col);
-      if(!colTasks.length) return '';
-      return `<div style="margin-bottom:16px">
-        <div style="font-size:12px;font-weight:800;margin-bottom:8px;padding:6px 10px;background:${colColors[col]}18;border-radius:8px;color:${colColors[col]};border-right:3px solid ${colColors[col]}">${colLabels[col]} <span style="opacity:.6;font-weight:400">(${colTasks.length})</span></div>
-        ${colTasks.map(t=>renderProjTaskRow(t,clr)).join('')}
-      </div>`;
-    }).join('')}
-    ${!tasks.length?`<div style="text-align:center;padding:60px 20px;color:var(--text3)">
-      <div style="font-size:40px;margin-bottom:12px">📋</div>
-      <div style="font-weight:700;margin-bottom:6px">لا توجد مهام بعد</div>
-      <button class="btn btn-primary" onclick="openProjTaskModal('${proj.id}')"><i class="fa-solid fa-plus"></i> أضف مهمة</button>
-    </div>`:''}`;
+  // جمع الحالات المخصصة + الأساسية
+  var customStatuses = S.customStatuses || [];
+  var baseStatuses = [
+    {id:'todo',     label:'جديد',         color:'#64b5f6'},
+    {id:'progress', label:'شغال',         color:'#f7c948'},
+    {id:'hold',     label:'موقوف',         color:'#888888'},
+    {id:'done',     label:'مكتمل',         color:'#4fd1a5'}
+  ];
+  var allStatuses = [...baseStatuses, ...customStatuses.filter(cs=>cs.id&&cs.label)];
+
+  // فلتر نشط
+  var activeFilter = window['_ptl_filter_'+proj.id] || 'all';
+
+  var filtered = activeFilter === 'all' ? tasks : tasks.filter(t=>t.status===activeFilter);
+
+  var statusBadge = function(st){
+    var info = allStatuses.find(s=>s.id===st);
+    if(!info) info={label:st||'—',color:'#888'};
+    return '<span style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;background:'+info.color+'22;color:'+info.color+';border:1px solid '+info.color+'44;white-space:nowrap">'+escapeHtml(info.label)+'</span>';
+  };
+
+  var payBadge = function(t){
+    if(t.paymentCollected||t.paymentStatus==='collected') return '<span style="font-size:10px;font-weight:800;color:#4fd1a5;background:rgba(79,209,165,.12);padding:3px 8px;border-radius:10px">✅ محصّل</span>';
+    if(t.paymentStatus==='deposit'||t.deposit>0) return '<span style="font-size:10px;font-weight:800;color:#a78bfa;background:rgba(167,139,250,.12);padding:3px 8px;border-radius:10px">🟣 عربون</span>';
+    return '<span style="font-size:10px;font-weight:800;color:#f97316;background:rgba(249,115,22,.12);padding:3px 8px;border-radius:10px">⏳ معلق</span>';
+  };
+
+  var totalVal = tasks.reduce(function(s,t){return s+(t.value||0);},0);
+  var collectedVal = tasks.filter(function(t){return t.paymentCollected||t.paymentStatus==='collected';}).reduce(function(s,t){return s+(t.value||0);},0);
+  var cur = proj.budgetCurrency||'ج.م';
+
+  return '<div>'+
+    // ── Header + Status Filters ──
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">'+
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
+        '<button onclick="window[\'_ptl_filter_'+proj.id+'\']=(\'all\');renderProjectDetail()" class="btn btn-sm" style="background:'+( activeFilter==='all'?clr:'var(--surface2)')+';color:'+(activeFilter==='all'?'#fff':'var(--text2)')+';border:none">الكل ('+tasks.length+')</button>'+
+        allStatuses.map(function(s){
+          var cnt=tasks.filter(t=>t.status===s.id).length;
+          if(!cnt) return '';
+          return '<button onclick="window[\'_ptl_filter_'+proj.id+'\']=(\''+s.id+'\');renderProjectDetail()" class="btn btn-sm" style="background:'+(activeFilter===s.id?s.color:'var(--surface2)')+';color:'+(activeFilter===s.id?'#fff':s.color)+';border:1px solid '+s.color+'44">'+escapeHtml(s.label)+' <span style="opacity:.7">('+cnt+')</span></button>';
+        }).join('')+
+      '</div>'+
+      '<button class="btn btn-primary btn-sm" onclick="openProjTaskModal(\''+proj.id+'\')"><i class="fa-solid fa-plus"></i> مهمة جديدة</button>'+
+    '</div>'+
+
+    // ── Finance Summary ──
+    (totalVal>0?'<div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">'+
+      '<div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:10px;padding:8px 14px;border:1px solid var(--border)">'+
+        '<span style="font-size:11px;color:var(--text3)">إجمالي</span>'+
+        '<span style="font-size:14px;font-weight:900;color:#f7c948">'+totalVal.toLocaleString()+' '+cur+'</span>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:10px;padding:8px 14px;border:1px solid var(--border)">'+
+        '<span style="font-size:11px;color:var(--text3)">محصّل</span>'+
+        '<span style="font-size:14px;font-weight:900;color:#4fd1a5">'+collectedVal.toLocaleString()+' '+cur+'</span>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:10px;padding:8px 14px;border:1px solid var(--border)">'+
+        '<span style="font-size:11px;color:var(--text3)">متبقي</span>'+
+        '<span style="font-size:14px;font-weight:900;color:#f97316">'+(totalVal-collectedVal).toLocaleString()+' '+cur+'</span>'+
+      '</div>'+
+    '</div>':'') +
+
+    // ── Table ──
+    (!filtered.length?
+      '<div style="text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:40px;margin-bottom:12px">📋</div><div style="font-weight:700;margin-bottom:6px">لا توجد مهام</div><button class="btn btn-primary" onclick="openProjTaskModal(\''+proj.id+'\')"><i class="fa-solid fa-plus"></i> أضف مهمة</button></div>'
+    :
+    '<div style="overflow-x:auto;border-radius:14px;border:1px solid var(--border)">'+
+    '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+    '<thead><tr style="background:var(--surface2)">'+
+      '<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">اسم المهمة</th>'+
+      '<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة</th>'+
+      '<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">تاريخ الاستلام</th>'+
+      '<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">تاريخ التسليم</th>'+
+      '<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المبلغ</th>'+
+      '<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الدفع</th>'+
+      '<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المسؤول</th>'+
+      '<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border);width:80px"></th>'+
+    '</tr></thead>'+
+    '<tbody>'+
+    filtered.map(function(t,idx){
+      var rowBg = idx%2===0?'var(--surface)':'var(--surface2)';
+      var isDone = t.status==='done';
+      return '<tr style="background:'+rowBg+';transition:background .15s;cursor:pointer" onclick="openProjTaskDetail('+t.id+','+proj.id+')">'+
+        '<td style="padding:11px 14px;font-weight:700;border-bottom:1px solid var(--border);'+(isDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+
+          escapeHtml(t.title)+
+          (t.desc?'<div style="font-size:10px;color:var(--text3);font-weight:400;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">'+escapeHtml(t.desc)+'</div>':'') +
+        '</td>'+
+        '<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border)">'+
+          '<select style="font-size:10px;font-weight:700;background:transparent;border:none;cursor:pointer;color:var(--text);text-align:center" '+
+            'onclick="event.stopPropagation()" '+
+            'onchange="event.stopPropagation();_changePtaskStatus('+t.id+','+proj.id+',this.value);this.blur()">'+
+            allStatuses.map(function(s){return '<option value="'+s.id+'"'+(t.status===s.id?' selected':'')+'>'+escapeHtml(s.label)+'</option>';}).join('')+
+          '</select>'+
+          statusBadge(t.status)+
+        '</td>'+
+        '<td style="padding:11px 8px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border)">'+(t.orderDate||'—')+'</td>'+
+        '<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border);color:'+(t.deadline&&new Date(t.deadline)<new Date()&&!isDone?'#f76f7c':'var(--text3)')+'">'+(t.deadline||'—')+'</td>'+
+        '<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border)">'+
+          (t.value>0?'<span style="font-weight:900;color:#f7c948">'+t.value.toLocaleString()+' '+(t.currency||cur)+'</span>':'<span style="color:var(--text3)">—</span>')+
+        '</td>'+
+        '<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border)">'+
+          payBadge(t)+
+          (t.value>0&&!t.paymentCollected&&!isDone?'':'') +
+          (t.value>0&&isDone&&!t.paymentCollected?'<div style="margin-top:4px"><button data-tid="'+t.id+'" data-pid="'+proj.id+'" onclick="event.stopPropagation();_askPtaskPayment(this.dataset.tid,this.dataset.pid)" class="btn btn-success btn-sm" style="font-size:9px;padding:2px 8px">💰 تحصيل</button></div>':'')+
+        '</td>'+
+        '<td style="padding:11px 8px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border);font-size:11px">'+(t.assignee_name?escapeHtml(t.assignee_name):'—')+'</td>'+
+        '<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'+
+          '<button data-tid="'+t.id+'" data-pid="'+proj.id+'" onclick="openProjTaskModal(this.dataset.pid,this.dataset.tid)" class="btn btn-ghost btn-sm" style="padding:3px 6px;font-size:11px"><i class="fa-solid fa-pen"></i></button>'+
+          '<button data-tid="'+t.id+'" data-pid="'+proj.id+'" onclick="deleteProjTask(this.dataset.tid,this.dataset.pid)" class="btn btn-danger btn-sm" style="padding:3px 6px;font-size:11px;margin-right:2px"><i class="fa-solid fa-trash"></i></button>'+
+        '</td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody>'+
+    // Footer total
+    (totalVal>0?'<tfoot><tr style="background:var(--surface2);border-top:2px solid var(--border)">'+
+      '<td colspan="4" style="padding:10px 14px;font-weight:800;font-size:12px">الإجمالي</td>'+
+      '<td style="padding:10px 8px;text-align:center;font-weight:900;color:#f7c948;font-size:13px">'+totalVal.toLocaleString()+' '+cur+'</td>'+
+      '<td style="padding:10px 8px;text-align:center;font-weight:900;color:#4fd1a5;font-size:12px">'+collectedVal.toLocaleString()+' '+cur+' محصّل</td>'+
+      '<td colspan="2"></td>'+
+    '</tr></tfoot>':'')+
+    '</table></div>') +
+  '</div>';
+}
+
+// ── تغيير حالة مهمة المشروع من الجدول مباشرة ──
+function _changePtaskStatus(taskId, projId, newStatus){
+  var t=(S.project_tasks||[]).find(function(x){return String(x.id)===String(taskId);});
+  if(!t) return;
+  var prevDone = t.status==='done';
+  t.status=newStatus;
+  // سؤال التحصيل لما يتحول لمكتمل
+  if(newStatus==='done' && !prevDone && t.value>0 && !t.paymentCollected){
+    _askPtaskPayment(taskId, projId);
+  }
+  lsSave(); cloudSave(S); renderProjectDetail();
+}
+
+// ── سؤال هل حصلت على الفلوس؟ ──
+function _askPtaskPayment(taskId, projId){
+  var t=(S.project_tasks||[]).find(function(x){return String(x.id)===String(taskId);});
+  if(!t||t.paymentCollected) return;
+  var proj=_getProjById(projId);
+  var cur = t.currency||(proj?proj.budgetCurrency||'ج.م':'ج.م');
+
+  // إنشاء overlay سؤال
+  var ov=document.createElement('div');
+  ov.className='modal-overlay'; ov.style.cssText='display:flex;align-items:center;justify-content:center;z-index:10000';
+  var projType = proj && proj.projectType === 'team' ? 'expense' : 'income';
+  var qText = projType==='expense' ? 'هل دفعت للعضو المسؤول؟' : 'هل حصلت على المبلغ من العميل؟';
+  ov.innerHTML='<div class="modal" style="width:min(380px,92vw);border-radius:18px;padding:24px;text-align:center">'+
+    '<div style="font-size:36px;margin-bottom:10px">💰</div>'+
+    '<div style="font-size:16px;font-weight:900;margin-bottom:6px">'+qText+'</div>'+
+    '<div style="font-size:13px;color:var(--text3);margin-bottom:20px">المهمة: <strong>'+escapeHtml(t.title)+'</strong> · المبلغ: <strong style="color:#f7c948">'+t.value.toLocaleString()+' '+cur+'</strong></div>'+
+    '<div style="display:flex;gap:10px;justify-content:center">'+
+      '<button data-tid="'+taskId+'" data-pid="'+projId+'" onclick="_confirmPtaskPayment(this.dataset.tid,this.dataset.pid,true);this.closest(\'.modal-overlay\').remove()" class="btn btn-success" style="flex:1">✅ نعم، تم</button>'+
+      '<button onclick="this.closest(\'.modal-overlay\').remove()" class="btn btn-ghost" style="flex:1">لا، لاحقاً</button>'+
+    '</div>'+
+  '</div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+}
+
+function _confirmPtaskPayment(taskId, projId, confirmed){
+  var t=(S.project_tasks||[]).find(function(x){return String(x.id)===String(taskId);});
+  if(!t||!confirmed) return;
+  var proj=_getProjById(projId);
+  var cur = t.currency||(proj?proj.budgetCurrency||'ج.م':'ج.م');
+  t.paymentCollected=true; t.paymentStatus='collected';
+  // تسجيل في المالية
+  if(!S.transactions) S.transactions=[];
+  var alreadyLinked=S.transactions.some(tr=>String(tr.linkedProjTaskId)===String(t.id)&&tr.type==='income');
+  if(!alreadyLinked && t.value>0){
+    S.transactions.push({id:Date.now()+Math.random(),type:'income',amount:t.value,currency:cur,
+      desc:'مهمة: '+(t.title||'')+(proj?' — مشروع: '+proj.name:''),
+      date:new Date().toISOString().slice(0,10),isoDate:new Date().toISOString().slice(0,10),
+      linkedProjTaskId:t.id,project_id:proj?String(proj.id):'',project_name:proj?proj.name:'',
+      source:'project_task',createdAt:new Date().toISOString()});
+  }
+  lsSave(); cloudSave(S); renderProjectDetail();
+  toast('✅ تم تسجيل التحصيل في المالية');
+  if(typeof renderFinance==='function') setTimeout(renderFinance,200);
 }
 
 // ══════════════════════════════════════
@@ -25683,6 +25944,7 @@ function openProjTaskModal(projId, taskId, defaultStatus){
   document.getElementById('ptask-priority').value=t?t.priority||'normal':'normal';
   document.getElementById('ptask-status').value=t?t.status||'todo':(defaultStatus||'todo');
   document.getElementById('ptask-deadline').value=t?t.deadline||'':'';
+  var odEl=document.getElementById('ptask-orderdate'); if(odEl) odEl.value=t?t.orderDate||'':'';
   document.getElementById('ptask-value').value=t?t.value||'':'';
   document.getElementById('ptask-currency').value=t?t.currency||'ج.م':'ج.م';
   // Payment status: map old boolean to new 3-state
@@ -25832,11 +26094,14 @@ function saveProjTask(){
   var assignee_name=assignee_id?(asel.options[asel.selectedIndex]?.dataset.name||''):'';
   var payStatus=(document.getElementById('ptask-payment-status')||{value:'pending'}).value||'pending';
   var depositVal=+(document.getElementById('ptask-deposit')||{value:0}).value||0;
+  var prevStatus=''; var prevPay=false;
+  if(eid){var old=S.project_tasks.find(t=>String(t.id)===String(eid));if(old){prevStatus=old.status||'';prevPay=old.paymentCollected||false;}}
   var d={
     title,desc:document.getElementById('ptask-desc').value.trim(),
     project_id:projId,
     priority:document.getElementById('ptask-priority').value||'normal',
     status:document.getElementById('ptask-status').value||'todo',
+    orderDate:(document.getElementById('ptask-orderdate')||{}).value||'',
     deadline:document.getElementById('ptask-deadline').value||'',
     value:+(document.getElementById('ptask-value')||{value:0}).value||0,
     currency:(document.getElementById('ptask-currency')||{value:'ج.م'}).value||'ج.م',
@@ -25847,11 +26112,27 @@ function saveProjTask(){
     steps:[..._ptaskSteps],
     createdAt:new Date().toISOString()
   };
+  var isNewlyDone=(d.status==='done')&&(prevStatus!=='done');
+  var isNewlyCollected=(payStatus==='collected')&&!prevPay;
   if(eid){
     var i=S.project_tasks.findIndex(t=>String(t.id)===String(eid));
     if(i>-1){d.id=+eid;d.createdAt=S.project_tasks[i].createdAt;S.project_tasks[i]=d;}
   } else {
     d.id=Date.now(); S.project_tasks.push(d);
+  }
+  // ── تسجيل مالي تلقائي عند التحصيل ──
+  if(d.value>0 && isNewlyCollected){
+    var proj=_getProjById(projId);
+    if(!S.transactions) S.transactions=[];
+    var alreadyLinked=S.transactions.some(tr=>String(tr.linkedProjTaskId)===String(d.id)&&tr.type==='income');
+    if(!alreadyLinked){
+      S.transactions.push({id:Date.now()+Math.random(),type:'income',amount:d.value,currency:d.currency||'ج.م',
+        desc:'مهمة: '+(d.title||'')+(proj?' — مشروع: '+proj.name:''),
+        date:new Date().toISOString().slice(0,10),isoDate:new Date().toISOString().slice(0,10),
+        linkedProjTaskId:d.id,project_id:proj?String(proj.id):'',project_name:proj?proj.name:'',
+        source:'project_task',createdAt:new Date().toISOString()});
+      if(typeof renderFinance==='function') setTimeout(renderFinance,200);
+    }
   }
   lsSave(); cloudSave(S); closeM('modal-proj-task'); renderProjectDetail();
   toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ المهمة');
