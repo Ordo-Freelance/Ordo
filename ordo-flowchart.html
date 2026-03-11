@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ordo — مخطط النظام</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080b12;
+  --surface:#0f1219;
+  --surface2:#161b26;
+  --border:rgba(255,255,255,.07);
+  --t1:#e8eaf2;
+  --t2:#8b94b0;
+  --t3:#4a5270;
+
+  --auth:#6c63ff;
+  --tasks:#4fd1a5;
+  --clients:#f7c948;
+  --finance:#f76f7c;
+  --invoices:#38bdf8;
+  --contracts:#a78bfa;
+  --projects:#fb923c;
+  --reviews:#f472b6;
+  --meetings:#34d399;
+  --schedule:#fbbf24;
+  --team:#60a5fa;
+  --proposals:#e879f9;
+  --vault:#94a3b8;
+  --goals:#86efac;
+  --time:#fdba74;
+}
+
+html,body{
+  background:var(--bg);
+  color:var(--t1);
+  font-family:'Cairo',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── Header ── */
+.site-header{
+  padding:32px 40px 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+  background:rgba(8,11,18,.92);
+  backdrop-filter:blur(12px);
+}
+.logo{font-size:22px;font-weight:900;color:var(--t1);letter-spacing:-0.5px}
+.logo span{color:var(--auth)}
+.subtitle{font-size:12px;color:var(--t3);margin-top:2px}
+.legend-wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2)}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── Main canvas ── */
+.canvas{
+  padding:40px;
+  overflow-x:auto;
+}
+.flow-container{
+  min-width:1200px;
+  position:relative;
+}
+
+/* ── Section labels ── */
+.flow-section-label{
+  font-size:10px;font-weight:700;letter-spacing:1.2px;
+  color:var(--t3);text-transform:uppercase;
+  margin-bottom:12px;padding-right:4px;
+}
+
+/* ── Rows ── */
+.flow-row{
+  display:flex;align-items:center;gap:0;
+  margin-bottom:0;
+  position:relative;
+}
+.flow-col{
+  display:flex;flex-direction:column;align-items:center;
+  gap:0;
+}
+
+/* ── Nodes ── */
+.node{
+  position:relative;
+  border-radius:14px;
+  padding:14px 18px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;
+  cursor:default;
+  transition:transform .2s, box-shadow .2s;
+  border:1.5px solid transparent;
+  min-width:120px;
+}
+.node:hover{transform:translateY(-2px);}
+.node .node-icon{font-size:22px;margin-bottom:5px;line-height:1}
+.node .node-title{font-size:12px;font-weight:800;line-height:1.3}
+.node .node-sub{font-size:10px;margin-top:3px;opacity:.7;line-height:1.4}
+
+/* Node types */
+.node-start{
+  background:linear-gradient(135deg,rgba(108,99,255,.25),rgba(108,99,255,.1));
+  border-color:rgba(108,99,255,.5);
+  box-shadow:0 0 24px rgba(108,99,255,.2);
+}
+.node-start .node-title{color:#a5a0ff}
+
+.node-page{
+  background:var(--surface2);
+  border-color:var(--border);
+}
+.node-page:hover{box-shadow:0 8px 32px rgba(0,0,0,.4);}
+
+.node-action{
+  border-radius:10px;
+  background:var(--surface);
+  border-color:var(--border);
+  padding:9px 14px;
+  min-width:100px;
+  font-size:11px;
+}
+.node-decision{
+  border-radius:8px;
+  background:rgba(247,199,72,.08);
+  border-color:rgba(247,199,72,.3);
+  padding:10px 16px;
+  font-size:11px;font-weight:700;
+  color:var(--schedule);
+}
+.node-db{
+  border-radius:10px;
+  background:rgba(148,163,184,.06);
+  border-color:rgba(148,163,184,.2);
+  padding:10px 16px;font-size:11px;
+  color:var(--vault);
+}
+.node-external{
+  border-radius:10px;
+  border-style:dashed;
+  padding:10px 14px;font-size:11px;
+  opacity:.8;
+}
+
+/* Color variants for pages */
+.c-auth{border-color:rgba(108,99,255,.4)!important;background:rgba(108,99,255,.08)!important;}
+.c-auth .node-icon,.c-auth .node-title{color:var(--auth)}
+.c-tasks{border-color:rgba(79,209,165,.4)!important;background:rgba(79,209,165,.08)!important;}
+.c-tasks .node-icon,.c-tasks .node-title{color:var(--tasks)}
+.c-clients{border-color:rgba(247,201,72,.4)!important;background:rgba(247,201,72,.08)!important;}
+.c-clients .node-icon,.c-clients .node-title{color:var(--clients)}
+.c-finance{border-color:rgba(247,111,124,.4)!important;background:rgba(247,111,124,.08)!important;}
+.c-finance .node-icon,.c-finance .node-title{color:var(--finance)}
+.c-invoices{border-color:rgba(56,189,248,.4)!important;background:rgba(56,189,248,.08)!important;}
+.c-invoices .node-icon,.c-invoices .node-title{color:var(--invoices)}
+.c-contracts{border-color:rgba(167,139,250,.4)!important;background:rgba(167,139,250,.08)!important;}
+.c-contracts .node-icon,.c-contracts .node-title{color:var(--contracts)}
+.c-projects{border-color:rgba(251,146,60,.4)!important;background:rgba(251,146,60,.08)!important;}
+.c-projects .node-icon,.c-projects .node-title{color:var(--projects)}
+.c-reviews{border-color:rgba(244,114,182,.4)!important;background:rgba(244,114,182,.08)!important;}
+.c-reviews .node-icon,.c-reviews .node-title{color:var(--reviews)}
+.c-meetings{border-color:rgba(52,211,153,.4)!important;background:rgba(52,211,153,.08)!important;}
+.c-meetings .node-icon,.c-meetings .node-title{color:var(--meetings)}
+.c-schedule{border-color:rgba(251,191,36,.4)!important;background:rgba(251,191,36,.08)!important;}
+.c-schedule .node-icon,.c-schedule .node-title{color:var(--schedule)}
+.c-team{border-color:rgba(96,165,250,.4)!important;background:rgba(96,165,250,.08)!important;}
+.c-team .node-icon,.c-team .node-title{color:var(--team)}
+.c-proposals{border-color:rgba(232,121,249,.4)!important;background:rgba(232,121,249,.08)!important;}
+.c-proposals .node-icon,.c-proposals .node-title{color:var(--proposals)}
+.c-vault{border-color:rgba(148,163,184,.4)!important;background:rgba(148,163,184,.08)!important;}
+.c-vault .node-icon,.c-vault .node-title{color:var(--vault)}
+.c-goals{border-color:rgba(134,239,172,.4)!important;background:rgba(134,239,172,.08)!important;}
+.c-goals .node-icon,.c-goals .node-title{color:var(--goals)}
+.c-time{border-color:rgba(253,186,116,.4)!important;background:rgba(253,186,116,.08)!important;}
+.c-time .node-icon,.c-time .node-title{color:var(--time)}
+
+/* ── SVG arrows ── */
+svg.arrows{
+  position:absolute;top:0;left:0;
+  width:100%;height:100%;
+  pointer-events:none;
+  overflow:visible;
+}
+
+/* ── Grid layout ── */
+.flow-grid{
+  display:grid;
+  grid-template-columns: 160px 1fr;
+  gap:0;
+  position:relative;
+}
+
+/* Main flow area */
+.main-flow{
+  display:flex;
+  flex-direction:column;
+  gap:48px;
+  position:relative;
+}
+
+/* ── Tier rows ── */
+.tier{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.tier-title{
+  font-size:10px;font-weight:800;letter-spacing:1.5px;
+  color:var(--t3);text-transform:uppercase;
+  border-right:2px solid var(--surface2);
+  padding-right:10px;margin-bottom:4px;
+}
+.tier-nodes{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  align-items:flex-start;
+}
+
+/* ── Sub-items badge ── */
+.sub-items{
+  display:flex;flex-wrap:wrap;gap:4px;
+  margin-top:8px;justify-content:center;
+}
+.sub-badge{
+  font-size:9px;font-weight:700;
+  padding:2px 7px;border-radius:20px;
+  background:rgba(255,255,255,.06);
+  color:var(--t2);
+  border:1px solid var(--border);
+}
+
+/* ── Connector lines (CSS-based) ── */
+.connector-v{
+  width:2px;
+  background:linear-gradient(to bottom, rgba(255,255,255,.1), rgba(255,255,255,.04));
+  align-self:center;
+}
+.connector-h{
+  height:2px;
+  background:linear-gradient(to right, rgba(255,255,255,.1), rgba(255,255,255,.04));
+  flex:1;
+}
+.arrow-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:rgba(255,255,255,.2);
+  align-self:center;
+  flex-shrink:0;
+}
+
+/* ── Data flow diagram ── */
+.df-wrap{
+  margin-top:60px;
+  padding-top:40px;
+  border-top:1px solid var(--border);
+}
+.df-title{
+  font-size:15px;font-weight:900;
+  color:var(--t2);margin-bottom:28px;
+  display:flex;align-items:center;gap:8px;
+}
+.df-grid{
+  display:grid;
+  grid-template-columns: repeat(3,1fr);
+  gap:20px;
+}
+.df-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:20px;
+  position:relative;
+  overflow:hidden;
+  transition:.2s;
+}
+.df-card:hover{border-color:rgba(255,255,255,.15);transform:translateY(-1px);}
+.df-card::before{
+  content:'';position:absolute;top:0;right:0;
+  width:100%;height:3px;
+}
+.df-card.df-user::before{background:var(--auth);}
+.df-card.df-storage::before{background:var(--vault);}
+.df-card.df-external::before{background:var(--clients);}
+.df-card-title{font-size:13px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.df-steps{display:flex;flex-direction:column;gap:8px;}
+.df-step{
+  display:flex;align-items:flex-start;gap:8px;
+  font-size:11px;color:var(--t2);line-height:1.5;
+}
+.df-step-num{
+  width:18px;height:18px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:900;flex-shrink:0;
+  margin-top:1px;
+}
+
+/* ── User journey ── */
+.journey-wrap{
+  margin-top:48px;
+  padding-top:40px;
+  border-top:1px solid var(--border);
+}
+.journey-flow{
+  display:flex;
+  align-items:stretch;
+  gap:0;
+  overflow-x:auto;
+  padding-bottom:8px;
+}
+.journey-step{
+  display:flex;flex-direction:column;align-items:center;
+  min-width:160px;flex:1;
+  position:relative;
+}
+.journey-step:not(:last-child)::after{
+  content:'';
+  position:absolute;
+  top:28px;left:50%;
+  width:100%;height:2px;
+  background:linear-gradient(to right,rgba(255,255,255,.15),rgba(255,255,255,.04));
+}
+.journey-bubble{
+  width:56px;height:56px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  margin-bottom:10px;
+  position:relative;z-index:1;
+  border:2px solid transparent;
+  background:var(--surface2);
+}
+.journey-label{font-size:11px;font-weight:700;text-align:center;color:var(--t1);margin-bottom:4px;}
+.journey-desc{font-size:10px;text-align:center;color:var(--t3);line-height:1.5;max-width:130px;}
+
+/* tooltip on hover */
+.node[data-tip]:hover::after{
+  content:attr(data-tip);
+  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  background:#1e2538;border:1px solid var(--border);
+  border-radius:8px;padding:6px 10px;
+  font-size:10px;color:var(--t2);white-space:nowrap;
+  pointer-events:none;z-index:999;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:3px;}
+
+@media(max-width:768px){
+  .canvas{padding:20px 16px;}
+  .flow-container{min-width:900px;}
+  .df-grid{grid-template-columns:1fr;}
+  .site-header{padding:20px 16px;}
+  .legend-wrap{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="site-header">
+  <div>
+    <div class="logo"><span>Ordo</span> — مخطط النظام</div>
+    <div class="subtitle">System Architecture Flowchart</div>
+  </div>
+  <div class="legend-wrap">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--auth)"></div>المصادقة</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--tasks)"></div>المهام</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--clients)"></div>العملاء</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--finance)"></div>المالية</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--invoices)"></div>الفواتير</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--contracts)"></div>العقود</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--projects)"></div>المشاريع</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--proposals)"></div>العروض</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--reviews)"></div>التقييمات</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--team)"></div>الفريق</div>
+  </div>
+</div>
+
+<div class="canvas">
+<div class="flow-container">
+
+<!-- ═══════════════════════════════════════════
+     TIER 1: ENTRY POINT
+════════════════════════════════════════════ -->
+<div class="tier" style="margin-bottom:40px">
+  <div class="tier-title">🚪 نقطة الدخول</div>
+  <div class="tier-nodes" style="justify-content:center">
+
+    <div class="node node-start" style="min-width:180px;" data-tip="index.html — الملف الرئيسي">
+      <div class="node-icon">🌐</div>
+      <div class="node-title">الفريلانسر يفتح التطبيق</div>
+      <div class="node-sub">index.html</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Arrow down -->
+<div style="display:flex;justify-content:center;margin-bottom:0">
+  <svg width="2" height="40"><line x1="1" y1="0" x2="1" y2="36" stroke="rgba(255,255,255,.15)" stroke-width="2" stroke-dasharray="4 3"/><polygon points="1,40 -3,32 5,32" fill="rgba(255,255,255,.2)"/></svg>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TIER 2: AUTH
+════════════════════════════════════════════ -->
+<div class="tier" style="margin-bottom:40px">
+  <div class="tier-title">🔐 المصادقة — Supabase Auth</div>
+  <div class="tier-nodes" style="justify-content:center;gap:20px">
+
+    <div class="node node-page c-auth" style="min-width:140px">
+      <div class="node-icon">📧</div>
+      <div class="node-title">تسجيل دخول</div>
+      <div class="node-sub">Email / Password</div>
+    </div>
+
+    <div style="display:flex;align-items:center;color:var(--t3);font-size:11px;gap:8px">
+      أو
+    </div>
+
+    <div class="node node-page c-auth" style="min-width:140px">
+      <div class="node-icon">🔴</div>
+      <div class="node-title">Google OAuth</div>
+      <div class="node-sub">تسجيل بحساب Google</div>
+    </div>
+
+    <div style="display:flex;align-items:center;color:var(--t3);font-size:11px;gap:8px">
+      أو
+    </div>
+
+    <div class="node node-page c-auth" style="min-width:140px">
+      <div class="node-icon">📁</div>
+      <div class="node-title">استيراد نسخة احتياطية</div>
+      <div class="node-sub">Backup Import</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Arrow + Decision -->
+<div style="display:flex;justify-content:center;margin-bottom:0">
+  <svg width="2" height="40"><line x1="1" y1="0" x2="1" y2="36" stroke="rgba(255,255,255,.15)" stroke-width="2" stroke-dasharray="4 3"/><polygon points="1,40 -3,32 5,32" fill="rgba(255,255,255,.2)"/></svg>
+</div>
+
+<div style="display:flex;justify-content:center;margin-bottom:40px">
+  <div class="node node-decision">
+    ⚡ هل الاشتراك نشط؟<br>
+    <span style="font-size:10px;font-weight:400;color:var(--t3)">hasActiveSub() + plan features</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TIER 3: DASHBOARD
+════════════════════════════════════════════ -->
+<div style="display:flex;justify-content:center;margin-bottom:0">
+  <svg width="2" height="32"><line x1="1" y1="0" x2="1" y2="28" stroke="rgba(255,255,255,.15)" stroke-width="2"/><polygon points="1,32 -3,24 5,24" fill="rgba(255,255,255,.2)"/></svg>
+</div>
+<div class="tier" style="margin-bottom:40px">
+  <div class="tier-title">🏠 لوحة التحكم الرئيسية</div>
+  <div class="tier-nodes" style="justify-content:center">
+    <div class="node node-page" style="min-width:220px;background:rgba(108,99,255,.06);border-color:rgba(108,99,255,.25)">
+      <div class="node-icon">📊</div>
+      <div class="node-title" style="color:var(--auth)">Dashboard</div>
+      <div class="node-sub">ملخص شامل — KPIs — تحديات — تنبيهات</div>
+      <div class="sub-items">
+        <span class="sub-badge">الدخل الشهري</span>
+        <span class="sub-badge">المهام النشطة</span>
+        <span class="sub-badge">معدل الإنجاز</span>
+        <span class="sub-badge">تنبيهات التسليم</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TIER 4: MAIN MODULES (2 rows)
+════════════════════════════════════════════ -->
+<div class="tier" style="margin-bottom:16px">
+  <div class="tier-title">📦 الوحدات الأساسية — Core Modules</div>
+  <div class="tier-nodes">
+
+    <!-- TASKS -->
+    <div class="node node-page c-tasks" data-tip="إضافة / تعديل / حذف المهام">
+      <div class="node-icon">✅</div>
+      <div class="node-title">المهام</div>
+      <div class="node-sub">Tasks</div>
+      <div class="sub-items">
+        <span class="sub-badge">Kanban</span>
+        <span class="sub-badge">قائمة</span>
+        <span class="sub-badge">أنواع مخصصة</span>
+      </div>
+    </div>
+
+    <!-- PROJECTS -->
+    <div class="node node-page c-projects" data-tip="مشاريع متعددة مع مهام فرعية">
+      <div class="node-icon">🗂️</div>
+      <div class="node-title">المشاريع</div>
+      <div class="node-sub">Projects</div>
+      <div class="sub-items">
+        <span class="sub-badge">Grid / List</span>
+        <span class="sub-badge">مهام المشروع</span>
+      </div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div class="node node-page c-clients" data-tip="قاعدة بيانات العملاء + DNA">
+      <div class="node-icon">👥</div>
+      <div class="node-title">العملاء</div>
+      <div class="node-sub">Clients</div>
+      <div class="sub-items">
+        <span class="sub-badge">DNA العميل</span>
+        <span class="sub-badge">رصيد افتتاحي</span>
+        <span class="sub-badge">سجل الدفع</span>
+      </div>
+    </div>
+
+    <!-- INVOICES -->
+    <div class="node node-page c-invoices" data-tip="إنشاء وإرسال الفواتير">
+      <div class="node-icon">🧾</div>
+      <div class="node-title">الفواتير</div>
+      <div class="node-sub">Invoices</div>
+      <div class="sub-items">
+        <span class="sub-badge">PDF</span>
+        <span class="sub-badge">رابط للعميل</span>
+        <span class="sub-badge">حالة الدفع</span>
+      </div>
+    </div>
+
+    <!-- FINANCE -->
+    <div class="node node-page c-finance" data-tip="المعاملات المالية الشاملة">
+      <div class="node-icon">💰</div>
+      <div class="node-title">المالية</div>
+      <div class="node-sub">Finance</div>
+      <div class="sub-items">
+        <span class="sub-badge">دخل/مصروف</span>
+        <span class="sub-badge">محافظ</span>
+        <span class="sub-badge">ميزانيات</span>
+        <span class="sub-badge">قروض</span>
+        <span class="sub-badge">إحصائيات</span>
+      </div>
+    </div>
+
+    <!-- PROPOSALS -->
+    <div class="node node-page c-proposals" data-tip="إرسال عروض أسعار للعملاء">
+      <div class="node-icon">📋</div>
+      <div class="node-title">عروض الأسعار</div>
+      <div class="node-sub">Proposals</div>
+      <div class="sub-items">
+        <span class="sub-badge">رابط خاص</span>
+        <span class="sub-badge">قبول/رفض</span>
+        <span class="sub-badge">PDF</span>
+      </div>
+    </div>
+
+    <!-- CONTRACTS -->
+    <div class="node node-page c-contracts" data-tip="عقود رقمية مع توقيع">
+      <div class="node-icon">📝</div>
+      <div class="node-title">العقود</div>
+      <div class="node-sub">Contracts</div>
+      <div class="sub-items">
+        <span class="sub-badge">توقيع إلكتروني</span>
+        <span class="sub-badge">رابط للعميل</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Second row of modules -->
+<div class="tier" style="margin-bottom:40px">
+  <div class="tier-nodes">
+
+    <!-- SCHEDULE -->
+    <div class="node node-page c-schedule" data-tip="تنظيم اليوم والمواعيد">
+      <div class="node-icon">📅</div>
+      <div class="node-title">تنظيم اليوم</div>
+      <div class="node-sub">Schedule</div>
+      <div class="sub-items">
+        <span class="sub-badge">تقويم</span>
+        <span class="sub-badge">تذكيرات</span>
+      </div>
+    </div>
+
+    <!-- MEETINGS -->
+    <div class="node node-page c-meetings" data-tip="حجز مواعيد مع العملاء">
+      <div class="node-icon">🤝</div>
+      <div class="node-title">المواعيد</div>
+      <div class="node-sub">Meetings</div>
+      <div class="sub-items">
+        <span class="sub-badge">رابط حجز</span>
+        <span class="sub-badge">Google Calendar</span>
+      </div>
+    </div>
+
+    <!-- TIME TRACKER -->
+    <div class="node node-page c-time" data-tip="تتبع ساعات العمل">
+      <div class="node-icon">⏱️</div>
+      <div class="node-title">تتبع الوقت</div>
+      <div class="node-sub">Time Tracker</div>
+      <div class="sub-items">
+        <span class="sub-badge">سعر الساعة</span>
+        <span class="sub-badge">CSV تصدير</span>
+      </div>
+    </div>
+
+    <!-- REVIEWS -->
+    <div class="node node-page c-reviews" data-tip="تقييمات العملاء عبر رابط">
+      <div class="node-icon">⭐</div>
+      <div class="node-title">التقييمات</div>
+      <div class="node-sub">Reviews</div>
+      <div class="sub-items">
+        <span class="sub-badge">review.html</span>
+        <span class="sub-badge">5 نجوم</span>
+      </div>
+    </div>
+
+    <!-- TEAM -->
+    <div class="node node-page c-team" data-tip="إدارة فريق العمل">
+      <div class="node-icon">👨‍💻</div>
+      <div class="node-title">الفريق</div>
+      <div class="node-sub">Team</div>
+      <div class="sub-items">
+        <span class="sub-badge">دعوات</span>
+        <span class="sub-badge">رسائل</span>
+        <span class="sub-badge">واتساب</span>
+      </div>
+    </div>
+
+    <!-- GOALS -->
+    <div class="node node-page c-goals" data-tip="الأهداف والكورسات">
+      <div class="node-icon">🎯</div>
+      <div class="node-title">الأهداف</div>
+      <div class="node-sub">Freelancer Goals</div>
+      <div class="sub-items">
+        <span class="sub-badge">كورسات</span>
+        <span class="sub-badge">تحديات</span>
+      </div>
+    </div>
+
+    <!-- VAULT -->
+    <div class="node node-page c-vault" data-tip="خزنة مشفرة للبيانات الحساسة">
+      <div class="node-icon">🔒</div>
+      <div class="node-title">الخزنة</div>
+      <div class="node-sub">Vault</div>
+      <div class="sub-items">
+        <span class="sub-badge">PIN حماية</span>
+        <span class="sub-badge">حسابات سرية</span>
+      </div>
+    </div>
+
+    <!-- SERVICES -->
+    <div class="node node-page" style="border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.03)" data-tip="عرض الخدمات للعملاء">
+      <div class="node-icon">🏪</div>
+      <div class="node-title" style="color:var(--t2)">الخدمات</div>
+      <div class="node-sub">Services Store</div>
+      <div class="sub-items">
+        <span class="sub-badge">متجر</span>
+        <span class="sub-badge">طلب مباشر</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TIER 5: DATA FLOW
+════════════════════════════════════════════ -->
+<div class="tier" style="margin-bottom:40px">
+  <div class="tier-title">💾 تدفق البيانات — Data Layer</div>
+  <div class="tier-nodes" style="justify-content:center;gap:16px;align-items:stretch">
+
+    <div class="node node-db" style="min-width:160px">
+      <div class="node-icon">🗄️</div>
+      <div class="node-title" style="color:var(--vault)">lsSave()</div>
+      <div class="node-sub">حفظ فوري محلي<br>localStorage</div>
+    </div>
+
+    <div style="display:flex;align-items:center;color:var(--t3);font-size:18px">⇄</div>
+
+    <div class="node" style="min-width:200px;background:rgba(79,209,165,.06);border-color:rgba(79,209,165,.25)">
+      <div class="node-icon">☁️</div>
+      <div class="node-title" style="color:var(--tasks)">Supabase</div>
+      <div class="node-sub">studio_data table<br>user_id + data (JSONB)</div>
+    </div>
+
+    <div style="display:flex;align-items:center;color:var(--t3);font-size:18px">⇄</div>
+
+    <div class="node node-db" style="min-width:160px">
+      <div class="node-icon">🔄</div>
+      <div class="node-title" style="color:var(--vault)">cloudSave()</div>
+      <div class="node-sub">مزامنة سحابية<br>debounced + retry</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TIER 6: EXTERNAL PAGES
+════════════════════════════════════════════ -->
+<div class="tier" style="margin-bottom:40px">
+  <div class="tier-title">🔗 الصفحات الخارجية — External Pages (للعملاء)</div>
+  <div class="tier-nodes" style="justify-content:center;gap:16px">
+
+    <div class="node node-external" style="border-color:rgba(244,114,182,.35);background:rgba(244,114,182,.05)">
+      <div class="node-icon">⭐</div>
+      <div class="node-title" style="color:var(--reviews)">review.html</div>
+      <div class="node-sub">فورم التقييم<br>?uid= أو ?u=</div>
+    </div>
+
+    <div class="node node-external" style="border-color:rgba(232,121,249,.35);background:rgba(232,121,249,.05)">
+      <div class="node-icon">📋</div>
+      <div class="node-title" style="color:var(--proposals)">proposal.html</div>
+      <div class="node-sub">عرض الأسعار<br>قبول / رفض</div>
+    </div>
+
+    <div class="node node-external" style="border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.05)">
+      <div class="node-icon">🧾</div>
+      <div class="node-title" style="color:var(--invoices)">فاتورة</div>
+      <div class="node-sub">رابط فاتورة<br>للعميل</div>
+    </div>
+
+    <div class="node node-external" style="border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.05)">
+      <div class="node-icon">📝</div>
+      <div class="node-title" style="color:var(--contracts)">عقد</div>
+      <div class="node-sub">رابط عقد<br>توقيع إلكتروني</div>
+    </div>
+
+    <div class="node node-external" style="border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.05)">
+      <div class="node-icon">🗓️</div>
+      <div class="node-title" style="color:var(--meetings)">حجز موعد</div>
+      <div class="node-sub">صفحة حجز<br>للعملاء</div>
+    </div>
+
+    <div class="node node-external" style="border-color:rgba(79,209,165,.35);background:rgba(79,209,165,.05)">
+      <div class="node-icon">👁️</div>
+      <div class="node-title" style="color:var(--tasks)">متابعة مهمة</div>
+      <div class="node-sub">Task Tracking<br>رابط متابعة</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     DATA FLOW CARDS
+════════════════════════════════════════════ -->
+<div class="df-wrap">
+  <div class="df-title">
+    <span style="font-size:18px">🔁</span>
+    تدفق البيانات التفصيلي
+  </div>
+  <div class="df-grid">
+
+    <!-- User Actions Flow -->
+    <div class="df-card df-user">
+      <div class="df-card-title" style="color:var(--auth)">
+        <span>👤</span> تدفق المستخدم
+      </div>
+      <div class="df-steps">
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(108,99,255,.2);color:var(--auth)">1</div>
+          <div>الفريلانسر يفتح التطبيق — يتحقق من الجلسة</div>
+        </div>
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(108,99,255,.2);color:var(--auth)">2</div>
+          <div>تحميل البيانات من Supabase → localStorage (S)</div>
+        </div>
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(108,99,255,.2);color:var(--auth)">3</div>
+          <div>يتنقل بين الصفحات عبر showPage()</div>
+        </div>
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(108,99,255,.2);color:var(--auth)">4</div>
+          <div>كل تغيير → lsSave() فوري + cloudSave() مؤجل</div>
+        </div>
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(108,99,255,.2);color:var(--auth)">5</div>
+          <div>Offline support: يحفظ محلياً ويزامن لما الشبكة ترجع</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Storage Flow -->
+    <div class="df-card df-storage">
+      <div class="df-card-title" style="color:var(--vault)">
+        <span>🗄️</span> طبقة التخزين
+      </div>
+      <div class="df-steps">
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(148,163,184,.1);color:var(--vault)">S</div>
+          <div>Object عالمي يحمل كل البيانات (tasks, clients, finance…)</div>
+        </div>
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(148,163,184,.1);color:var(--vault)">LS</div>
+          <div>localStorage: نسخة محلية فورية</div>
+        </div>
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(148,163,184,.1);color:var(--vault)">DB</div>
+          <div>Supabase: جدول studio_data — user_id + data JSONB</div>
+        </div>
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(148,163,184,.1);color:var(--vault)">🔒</div>
+          <div>الخزنة: PIN محلي مشفر</div>
+        </div>
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(148,163,184,.1);color:var(--vault)">📦</div>
+          <div>نسخة احتياطية: تصدير JSON كامل</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- External Flow -->
+    <div class="df-card df-external">
+      <div class="df-card-title" style="color:var(--clients)">
+        <span>🌍</span> تدفق العميل الخارجي
+      </div>
+      <div class="df-steps">
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(247,201,72,.1);color:var(--clients)">1</div>
+          <div>الفريلانسر ينشئ رابط (عرض / فاتورة / عقد / تقييم)</div>
+        </div>
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(247,201,72,.1);color:var(--clients)">2</div>
+          <div>الرابط يحمل token أو uid أو username</div>
+        </div>
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(247,201,72,.1);color:var(--clients)">3</div>
+          <div>الصفحة الخارجية تجيب بيانات الفريلانسر من Supabase</div>
+        </div>
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(247,201,72,.1);color:var(--clients)">4</div>
+          <div>العميل يتفاعل (يقيّم / يوافق / يوقع)</div>
+        </div>
+        <div class="df-step">
+          <div class="df-step-num" style="background:rgba(247,201,72,.1);color:var(--clients)">5</div>
+          <div>النتيجة تتحدث في studio_data — الفريلانسر يشوفها فوراً</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     USER JOURNEY
+════════════════════════════════════════════ -->
+<div class="journey-wrap">
+  <div class="df-title">
+    <span style="font-size:18px">🚀</span>
+    رحلة الفريلانسر النموذجية
+  </div>
+  <div class="journey-flow">
+
+    <div class="journey-step">
+      <div class="journey-bubble" style="border-color:rgba(108,99,255,.5);background:rgba(108,99,255,.12)">🔑</div>
+      <div class="journey-label">تسجيل / دخول</div>
+      <div class="journey-desc">Email أو Google OAuth</div>
+    </div>
+
+    <div class="journey-step">
+      <div class="journey-bubble" style="border-color:rgba(247,201,72,.5);background:rgba(247,201,72,.1)">👤</div>
+      <div class="journey-label">إضافة عميل</div>
+      <div class="journey-desc">بيانات + قناة التواصل</div>
+    </div>
+
+    <div class="journey-step">
+      <div class="journey-bubble" style="border-color:rgba(232,121,249,.5);background:rgba(232,121,249,.1)">📋</div>
+      <div class="journey-label">عرض أسعار</div>
+      <div class="journey-desc">إرسال رابط للعميل</div>
+    </div>
+
+    <div class="journey-step">
+      <div class="journey-bubble" style="border-color:rgba(79,209,165,.5);background:rgba(79,209,165,.1)">✅</div>
+      <div class="journey-label">إنشاء مهام</div>
+      <div class="journey-desc">Kanban + مواعيد تسليم</div>
+    </div>
+
+    <div class="journey-step">
+      <div class="journey-bubble" style="border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.1)">📝</div>
+      <div class="journey-label">عقد رقمي</div>
+      <div class="journey-desc">توقيع إلكتروني</div>
+    </div>
+
+    <div class="journey-step">
+      <div class="journey-bubble" style="border-color:rgba(253,186,116,.5);background:rgba(253,186,116,.1)">⏱️</div>
+      <div class="journey-label">تتبع الوقت</div>
+      <div class="journey-desc">ساعات العمل الفعلية</div>
+    </div>
+
+    <div class="journey-step">
+      <div class="journey-bubble" style="border-color:rgba(56,189,248,.5);background:rgba(56,189,248,.1)">🧾</div>
+      <div class="journey-label">فاتورة</div>
+      <div class="journey-desc">PDF + رابط للعميل</div>
+    </div>
+
+    <div class="journey-step">
+      <div class="journey-bubble" style="border-color:rgba(247,111,124,.5);background:rgba(247,111,124,.1)">💰</div>
+      <div class="journey-label">تسجيل الدخل</div>
+      <div class="journey-desc">Finance + محافظ</div>
+    </div>
+
+    <div class="journey-step">
+      <div class="journey-bubble" style="border-color:rgba(244,114,182,.5);background:rgba(244,114,182,.1)">⭐</div>
+      <div class="journey-label">تقييم العميل</div>
+      <div class="journey-desc">رابط review.html</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Footer -->
+<div style="margin-top:48px;padding-top:24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+  <div style="font-size:11px;color:var(--t3)">
+    <span style="color:var(--auth);font-weight:700">Ordo</span> — نظام إدارة الفريلانسر الشامل
+  </div>
+  <div style="display:flex;gap:16px;font-size:10px;color:var(--t3)">
+    <span>📄 index.html — الملف الرئيسي</span>
+    <span>⭐ review.html — تقييمات العملاء</span>
+    <span>📋 proposal.html — عروض الأسعار</span>
+    <span>☁️ Supabase — قاعدة البيانات</span>
+  </div>
+</div>
+
+</div><!-- end flow-container -->
+</div><!-- end canvas -->
+
+<script>
+// Animate nodes on load
+window.addEventListener('load', () => {
+  const nodes = document.querySelectorAll('.node, .df-card, .journey-step');
+  nodes.forEach((n, i) => {
+    n.style.opacity = '0';
+    n.style.transform = (n.classList.contains('journey-step') ? 'translateY(16px)' : 'translateY(12px)');
+    n.style.transition = `opacity .4s ease ${i * 0.03}s, transform .4s ease ${i * 0.03}s`;
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        n.style.opacity = '1';
+        n.style.transform = 'translateY(0)';
+      }, 80 + i * 30);
+    });
+  });
+});
+</script>
+
+</body>
+</html>
