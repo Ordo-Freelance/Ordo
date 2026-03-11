@@ -454,7 +454,7 @@ async function _deleteEntity(table, idField, itemId) {
 // ── Smart save: يحفظ التغييرات الجديدة في الجداول المناسبة ──
 let _lastSavedTasks = 0, _lastSavedClients = 0, _lastSavedInvoices = 0, _lastSavedTrans = 0;
 function _smartEntitySave() {
-  if (!_supaUserId || !S || !window._appReady) return;
+  if (!_supaUserId || !S || !window._cloudLoadDone || !window._appReady) return;
   // نشوف إيه اللي اتغير وبس نحفظه
   const now = Date.now();
   if ((S.tasks||[]).length !== _lastSavedTasks) {
@@ -477,6 +477,8 @@ function _smartEntitySave() {
 
 async function _doCloudSave(data, force) {
   if (!_supaUserId || !data) return false;
+  // منع الحفظ قبل ما البيانات تتحمل من السحابة — حماية من مسح البيانات
+  if (!window._cloudLoadDone && !force) return false;
   if (!force && !window._appReady) return false;
 
   // Skip if already saving — mark pending, retry after
@@ -556,6 +558,7 @@ function lsSave() {
   if (!_supaUserId) return; // مش مسجل دخول
   S._savedAt = new Date().toISOString();
   // ── لا حفظ قبل ما cloudLoad يخلص — منع الكتابة فوق البيانات ──
+  if (!window._cloudLoadDone) return;
   if (!window._appReady) return;
   clearTimeout(_syncTimer);
   _syncTimer = setTimeout(() => _doCloudSave(S, true), SAVE_DEBOUNCE_MS);
@@ -573,6 +576,7 @@ function cloudSave(data) {
 // ── cloudSaveNow: immediate save for critical ops ─────────────
 async function cloudSaveNow(data) {
   if (!_supaUserId) return;
+  if (!window._cloudLoadDone) return; // لا حفظ قبل تحميل البيانات
   if (data && data !== S) Object.assign(S, data);
   clearTimeout(_syncTimer);
   await _doCloudSave(S, true);
@@ -605,6 +609,7 @@ function _startAutoSave(){
   if(_autoSaveTimer) clearInterval(_autoSaveTimer);
   _autoSaveTimer = setInterval(function(){
     if(!_supaUserId || !S) return;
+    if(!window._cloudLoadDone || !window._appReady) return; // لا حفظ قبل التحميل
     if(_cloudSaving) return; // skip if save already in progress
     if(_syncTimer) return;   // skip if debounced save pending
     _mergeUiSettingsIntoS();
@@ -692,7 +697,7 @@ function _mergeUiSettingsIntoS(){
 
 // حفظ فوري عند إغلاق الصفحة
 window.addEventListener('beforeunload', function() {
-  if(!_supaUserId || !S || !window._appReady) return;
+  if(!_supaUserId || !S || !window._appReady || !window._cloudLoadDone) return;
   // ── حفظ cache محلي فوري قبل الإغلاق/الريفريش ──
   try {
     S._savedAt = new Date().toISOString();
@@ -2551,8 +2556,14 @@ function getQRDataURL(text, size) {
 <script>
 // Prevent flash: show body only after auth check AND subscription load
 window._appReady = false;
+window._cloudLoadDone = false;
 window._showApp = function(){
-  window._appReady = true;
+  // لو في login flow نشط — مش نفعّل الحفظ قبل ما البيانات تتحمل
+  if(!window._cloudLoadDone) {
+    window._appReady = false; // لا نسمح بالحفظ قبل التحميل
+  } else {
+    window._appReady = true;
+  }
   document.body.style.visibility = 'visible';
   // لو صفحة متجر عام - لا تضيف overflow:hidden
   var _pp = new URLSearchParams(window.location.search);
@@ -11701,8 +11712,8 @@ async function loginWithSupaSession(supaUser, session, userMeta){
 
   if(_bestData){
     S = _bestData;
-    window._appReady = true;
     window._cloudLoadDone = true;
+    window._appReady = true;
     migrateSFields();
     // ── Migration للجداول الجديدة (في الخلفية، مش بيعلق) ──
     setTimeout(() => _migrateToNewTables(_supaUserId, S), 2000);
