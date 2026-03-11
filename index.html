@@ -502,7 +502,7 @@ async function _doCloudSave(data, force) {
     // ── حفظ الإعدادات دايماً ──
     if (_safe.settings) {
       setTimeout(() => {
-        (async()=>{ try{ await supa.from('user_settings').upsert({ user_id: _supaUserId, data: _safe.settings, updated_at: _safe._savedAt }, { onConflict: 'user_id' }); }catch(e){} })();
+        (async()=>{try{await supa.from('user_settings').upsert({user_id:_supaUserId,data:_safe.settings,updated_at:_safe._savedAt},{onConflict:'user_id'});}catch(e){}})();
       }, 0);
     }
 
@@ -5801,7 +5801,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">نوع الدفعة</label>
-        <select class="form-select" id="in-payment-type" onchange="_toggleIncomeLoanFields()">
+        <select class="form-select" id="in-payment-type" onchange="document.getElementById('in-loan-fields').style.display=this.value==='loan_received'?'block':'none'">
           <option value="full"><i class="fa-solid fa-coins"></i> دفعة كاملة</option>
           <option value="deposit">🔰 عربون</option>
           <option value="partial"><i class="fa-solid fa-credit-card"></i> دفعة جزئية</option>
@@ -5818,23 +5818,13 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
         </select>
       </div>
     </div>
-    <!-- حقول القرض المستلم — تظهر فقط لو اختار "قرض مستلم" -->
     <div id="in-loan-fields" style="display:none;background:var(--surface2);border:1px solid var(--accent2);border-radius:var(--radius);padding:12px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:800;color:var(--accent2);margin-bottom:10px"><i class="fa-solid fa-handshake"></i> بيانات المُقرض — هيتسجل تلقائياً في القروض</div>
+      <div style="font-size:12px;font-weight:800;color:var(--accent2);margin-bottom:10px"><i class="fa-solid fa-handshake"></i> بيانات المُقرض</div>
       <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">اسم المُقرض *</label>
-          <input class="form-input" id="in-loan-person" placeholder="اسم الشخص أو الجهة">
-        </div>
-        <div class="form-group">
-          <label class="form-label">رقم التليفون (اختياري)</label>
-          <input class="form-input" id="in-loan-phone" placeholder="01xxxxxxxxx" type="tel">
-        </div>
+        <div class="form-group"><label class="form-label">اسم المُقرض *</label><input class="form-input" id="in-loan-person" placeholder="اسم الشخص أو الجهة"></div>
+        <div class="form-group"><label class="form-label">رقم التليفون</label><input class="form-input" id="in-loan-phone" placeholder="01xxxxxxxxx" type="tel"></div>
       </div>
-      <div class="form-group">
-        <label class="form-label">تاريخ السداد المتوقع (اختياري)</label>
-        <input class="form-input" type="date" id="in-loan-due">
-      </div>
+      <div class="form-group"><label class="form-label">تاريخ السداد (اختياري)</label><input class="form-input" type="date" id="in-loan-due"></div>
     </div>
     <div class="form-group"><label class="form-label">وصف</label><input class="form-input" id="in-desc" placeholder="مثال: دفعة أولى مشروع لوجو"></div>
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px">
@@ -5913,7 +5903,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">الفئة</label>
-        <select class="form-select" id="ex-cat" onchange="_toggleExpenseLoanFields()">
+        <select class="form-select" id="ex-cat" onchange="document.getElementById('ex-loan-fields').style.display=this.value==='سلفة للغير'?'block':'none'">
           <option value="برامج واشتراكات"><i class="fa-solid fa-laptop"></i> برامج واشتراكات</option>
           <option value="معدات وأجهزة"><i class="fa-solid fa-desktop"></i> معدات وأجهزة</option>
           <option value="تسويق"><i class="fa-solid fa-bullhorn"></i> تسويق</option>
@@ -5935,23 +5925,13 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
         </select>
       </div>
     </div>
-    <!-- حقول السلفة — تظهر فقط لو اختار "سلفة للغير" -->
     <div id="ex-loan-fields" style="display:none;background:var(--surface2);border:1px solid var(--accent3);border-radius:var(--radius);padding:12px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:800;color:var(--accent3);margin-bottom:10px"><i class="fa-solid fa-handshake"></i> بيانات المستلف — هيتسجل تلقائياً في القروض</div>
+      <div style="font-size:12px;font-weight:800;color:var(--accent3);margin-bottom:10px"><i class="fa-solid fa-handshake"></i> بيانات المستلف</div>
       <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">اسم المستلف *</label>
-          <input class="form-input" id="ex-loan-person" placeholder="اسم الشخص">
-        </div>
-        <div class="form-group">
-          <label class="form-label">رقم التليفون (اختياري)</label>
-          <input class="form-input" id="ex-loan-phone" placeholder="01xxxxxxxxx" type="tel">
-        </div>
+        <div class="form-group"><label class="form-label">اسم المستلف *</label><input class="form-input" id="ex-loan-person" placeholder="اسم الشخص"></div>
+        <div class="form-group"><label class="form-label">رقم التليفون</label><input class="form-input" id="ex-loan-phone" placeholder="01xxxxxxxxx" type="tel"></div>
       </div>
-      <div class="form-group">
-        <label class="form-label">تاريخ الرد المتوقع (اختياري)</label>
-        <input class="form-input" type="date" id="ex-loan-due">
-      </div>
+      <div class="form-group"><label class="form-label">تاريخ الرد (اختياري)</label><input class="form-input" type="date" id="ex-loan-due"></div>
     </div>
     <div class="form-group"><label class="form-label">وصف</label><input class="form-input" id="ex-desc" placeholder="مثال: اشتراك Adobe CC"></div>
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px">
@@ -6660,15 +6640,11 @@ function renderReviewsPage() {
 function _copyReviewLink() {
   const uid = _supaUserId;
   const un = S.settings?.username;
-  // بناء المسار الصح بناءً على الـ URL الحالي (يشتغل مع GitHub Pages وغيره)
-  var _parts = window.location.pathname.split('/').filter(function(p){return p!=='';});
-  if(_parts.length && _parts[_parts.length-1].endsWith('.html')) _parts.pop();
-  var _basePath = _parts.length ? '/' + _parts.join('/') + '/' : '/';
-  var _portalBase = window.location.origin + _basePath + 'client-portal.html';
-  const base = un
-    ? `${_portalBase}?u=${encodeURIComponent(un)}`
-    : `${_portalBase}?uid=${uid}`;
-  const link = base + `&tab=reviews`;
+  var _rparts = window.location.pathname.split('/').filter(function(p){return p!=='';});
+  if(_rparts.length && _rparts[_rparts.length-1].endsWith('.html')) _rparts.pop();
+  var _rbase = _rparts.length ? '/' + _rparts.join('/') + '/' : '/';
+  var _rportal = window.location.origin + _rbase + 'client-portal.html';
+  const link = un ? `${_rportal}?u=${encodeURIComponent(un)}&tab=reviews` : `${_rportal}?uid=${uid}&tab=reviews`;
   navigator.clipboard?.writeText(link).then(() => toast('✅ تم نسخ رابط التقييمات'));
 }
 
@@ -9895,7 +9871,6 @@ function openIncomeModal(id, prefillTaskId){
     const ptEl=document.getElementById('in-payment-type'); if(ptEl) ptEl.value='full';
     const pmEl=document.getElementById('in-pay-method');  if(pmEl) pmEl.value='cash';
   }
-  _toggleIncomeLoanFields();
   openM('modal-income');
 }
 function openExpenseModal(id){
@@ -9914,7 +9889,6 @@ function openExpenseModal(id){
     document.getElementById('ex-date').value=new Date().toISOString().split('T')[0];
     const pmEl=document.getElementById('ex-pay-method'); if(pmEl) pmEl.value='cash';
   }
-  _toggleExpenseLoanFields();
   openM('modal-expense');
 }
 function saveTrans(type){
@@ -9948,38 +9922,32 @@ function saveTrans(type){
   if(eid){const i=S.transactions.findIndex(t=>t.id==eid);if(i>-1){d.id=+eid;if(!incRcpt&&S.transactions[i].receiptImage)d.receiptImage=S.transactions[i].receiptImage;S.transactions[i]=d;}}
   else{d.id=Date.now();S.transactions.push(d);}
   if(isInc) window._incReceiptData=null;
-
-  // ══ تسجيل تلقائي في القروض ══
+  // تسجيل تلقائي في القروض
   if(isInc && paymentType==='loan_received'){
-    // قرض مستلم → "استلفت من حد" = borrowed
     const lPerson=(document.getElementById('in-loan-person')?.value||'').trim();
     if(lPerson){
       if(!S.loans) S.loans=[];
-      const lDue=document.getElementById('in-loan-due')?.value||'';
-      const lPhone=document.getElementById('in-loan-phone')?.value||'';
-      const lNotes=lPhone?('تليفون: '+lPhone):'';
-      S.loans.push({id:'ln_'+Date.now(),direction:'borrowed',amount,person:lPerson,phone:lPhone,
-        date:isoDate,due:lDue,notes:lNotes,status:'pending',settledAmount:0,
-        createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),linkedTransId:d.id});
-      toast('🤝 تم تسجيل القرض تلقائياً في صفحة القروض');
+      S.loans.push({id:'ln_'+Date.now(),direction:'borrowed',amount,
+        person:lPerson,phone:document.getElementById('in-loan-phone')?.value||'',
+        date:isoDate,due:document.getElementById('in-loan-due')?.value||'',
+        notes:'',status:'pending',settledAmount:0,
+        createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+      toast('🤝 تم تسجيل القرض في صفحة القروض');
     }
   }
   if(!isInc && expCat==='سلفة للغير'){
-    // سلفة للغير → "سلّفت للغير" = lent
     const lPerson=(document.getElementById('ex-loan-person')?.value||'').trim();
     if(lPerson){
       if(!S.loans) S.loans=[];
-      const lDue=document.getElementById('ex-loan-due')?.value||'';
-      const lPhone=document.getElementById('ex-loan-phone')?.value||'';
-      const lNotes=lPhone?('تليفون: '+lPhone):'';
-      S.loans.push({id:'ln_'+Date.now(),direction:'lent',amount,person:lPerson,phone:lPhone,
-        date:isoDate,due:lDue,notes:lNotes,status:'pending',settledAmount:0,
-        createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),linkedTransId:d.id});
-      toast('🤝 تم تسجيل السلفة تلقائياً في صفحة القروض');
+      S.loans.push({id:'ln_'+Date.now(),direction:'lent',amount,
+        person:lPerson,phone:document.getElementById('ex-loan-phone')?.value||'',
+        date:isoDate,due:document.getElementById('ex-loan-due')?.value||'',
+        notes:'',status:'pending',settledAmount:0,
+        createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+      toast('🤝 تم تسجيل السلفة في صفحة القروض');
     }
   }
-
-  lsSave();cloudSave(S);closeM(isInc?'modal-income':'modal-expense');renderAll();
+  lsSave();closeM(isInc?'modal-income':'modal-expense');renderAll();
   // Auto-print receipt for income transactions
   if(isInc){
     const savedId = eid ? +eid : S.transactions[S.transactions.length-1]?.id;
@@ -13974,16 +13942,16 @@ async function saveTeam(){
       let targetUserId = m.linkedUserId || null;
       if(!targetUserId){
         try{
-          const rpcRes = await supa.rpc('get_user_id_by_email', { p_email: email });
-          if(rpcRes?.data) targetUserId = rpcRes.data;
+          const { data: rpcId } = await supa.rpc('get_user_id_by_email', { p_email: email }).catch(()=>({data:null}));
+          if(rpcId) targetUserId = rpcId;
         }catch(e){}
       }
 
       // Method 2: scan auth_users via admin (may not work with anon key — fallback only)
       if(!targetUserId){
         try{
-          const prRes = await supa.from('profiles').select('id').eq('email', email).maybeSingle();
-          if(prRes?.data) targetUserId = prRes.data.id;
+          const { data: pr } = await supa.from('profiles').select('id').eq('email', email).maybeSingle().catch(()=>({data:null}));
+          if(pr) targetUserId = pr.id;
         }catch(e){}
       }
 
@@ -14003,22 +13971,20 @@ async function saveTeam(){
         created_at : new Date().toISOString()
       };
 
-      let notifErr = null;
-      try{ const r = await supa.from('user_notifications').insert([notifRow]); notifErr = r.error; }catch(e){ notifErr = e; }
+      const { error: notifErr } = await supa.from('user_notifications').insert([notifRow]).catch(e=>({error:e}));
 
       if(notifErr){
         // Fallback: write to studio_data if we somehow have access
         console.warn('user_notifications insert failed:', notifErr.message, '— trying studio_data fallback');
         try{
-          const tgtRes = await supa.from('studio_data').select('data').eq('user_id',targetUserId).maybeSingle();
-          const tgtRow = tgtRes?.data;
+          const { data: tgtRow } = await supa.from('studio_data').select('data').eq('user_id',targetUserId).maybeSingle().catch(()=>({data:null}));
           if(tgtRow && tgtRow.data){
             let ud2 = typeof tgtRow.data==='string' ? JSON.parse(tgtRow.data) : tgtRow.data;
             ud2._pending_notifications = ud2._pending_notifications||[];
             const alreadyEx = ud2._pending_notifications.find(n=>n.type==='team_added'&&String(n.teamId)===String(d.id));
             if(!alreadyEx){
               ud2._pending_notifications.push({ id:Date.now()+'_ta', title:'تمت إضافتك لفريق!', body:notifRow.body, type:'team_added', teamId:d.id, teamName:name, created_at:notifRow.created_at, read:false });
-              try{ await supa.from('studio_data').update({data:JSON.stringify(ud2),updated_at:new Date().toISOString()}).eq('user_id',targetUserId); }catch(e2){}
+              await supa.from('studio_data').update({data:JSON.stringify(ud2),updated_at:new Date().toISOString()}).eq('user_id',targetUserId).catch(()=>null);
             }
           }
         }catch(e2){}
@@ -14507,9 +14473,9 @@ async function _sendMemberMessage(memberName){
       if(rows){for(var row of rows){try{var ud2=typeof row.data==='string'?JSON.parse(row.data):row.data;var se2=(ud2?.settings?.email||ud2?._user_email||'').toLowerCase().trim();if(se2&&se2===memberEmail){targetUserId=row.user_id;break;}}catch(e){}}}
     }catch(e){}
     if(targetUserId){
-      var tgtRow=null; try{ var r14=await supa.from('studio_data').select('data').eq('user_id',targetUserId).single(); tgtRow=r14?.data||null; }catch(e){}
+      var {data:tgt}=await supa.from('studio_data').select('data').eq('user_id',targetUserId).single().catch(()=>({data:null}));
       var ud=null;
-      if(tgtRow){try{ud=typeof tgtRow.data==='string'?JSON.parse(tgtRow.data):tgtRow.data;}catch(e){}}
+      if(tgt){try{ud=typeof tgt.data==='string'?JSON.parse(tgt.data):tgt.data;}catch(e){}}
       if(!ud)ud={};
       ud._pending_notifications=ud._pending_notifications||[];
       ud._messages=ud._messages||[];
@@ -15058,22 +15024,6 @@ function updateLoanDirection(){
   var dir=document.getElementById('loan-direction')?.value||'lent';
   var lbl=document.getElementById('loan-person-label');
   if(lbl) lbl.textContent = dir==='lent' ? 'اسم الشخص اللي سلّفته *' : 'اسم الشخص اللي استلفت منه *';
-}
-function _toggleIncomeLoanFields(){
-  var pt=document.getElementById('in-payment-type')?.value;
-  var f=document.getElementById('in-loan-fields');
-  if(f) f.style.display = pt==='loan_received' ? 'block' : 'none';
-  if(pt!=='loan_received'){
-    ['in-loan-person','in-loan-phone','in-loan-due'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
-  }
-}
-function _toggleExpenseLoanFields(){
-  var cat=document.getElementById('ex-cat')?.value;
-  var f=document.getElementById('ex-loan-fields');
-  if(f) f.style.display = cat==='سلفة للغير' ? 'block' : 'none';
-  if(cat!=='سلفة للغير'){
-    ['ex-loan-person','ex-loan-phone','ex-loan-due'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
-  }
 }
 function openLoanModal(id){
   document.getElementById('loan-modal-ttl').innerHTML = id ? '<i class="fa-solid fa-handshake"></i> تعديل القرض' : '<i class="fa-solid fa-handshake"></i> قرض / دين جديد';
@@ -17805,7 +17755,7 @@ function ctShare(id){
   try{ localStorage.setItem('ct_sign_'+c.token, JSON.stringify(c)); }catch(e){}
   // Also save to Supabase if available
   if(typeof supa !== 'undefined' && _supaUserId){
-    (async()=>{ try{ await supa.from('shared_contracts').upsert([{token:c.token, data:JSON.stringify(c), user_id:_supaUserId, updated_at:new Date().toISOString()}]); }catch(e){} })();
+    (async()=>{try{await supa.from('shared_contracts').upsert([{token:c.token,data:JSON.stringify(c),user_id:_supaUserId,updated_at:new Date().toISOString()}]);}catch(e){}})();
   }
   const arr=ctContracts();const i=arr.findIndex(x=>x.id===id);
   if(i>-1){arr[i].token=c.token;if(arr[i].status==='draft'){arr[i].status='sent';}ctSave(arr);renderContractsList();}
@@ -18230,7 +18180,7 @@ window._inboxAcceptInvite = function(idx){
     }
     // Update team_invites table
     if(typeof supa !== 'undefined' && inv.id) {
-      (async()=>{ try{ await supa.from('team_invites').update({status:'accepted'}).eq('id', String(inv.id).replace('pn_','')); }catch(e){} })();
+      (async()=>{try{await supa.from('team_invites').update({status:'accepted'}).eq('id',String(inv.id).replace('pn_',''));}catch(e){}})();
     }
   }
   // Re-check membership
@@ -18689,7 +18639,7 @@ window.openMyMemberTeamProfile = function(ownerId){
       showMiniNotif('🎉 انضممت لفريق "'+invite.teamName+'" — '+invite.ownerName);
       // Update team_invites table
       if(typeof supa!=='undefined' && invite.id){
-        (async()=>{ try{ await supa.from('team_invites').update({status:'accepted'}).eq('id', invite.id.replace('pn_','')); }catch(e){} })();
+        (async()=>{try{await supa.from('team_invites').update({status:'accepted'}).eq('id',invite.id.replace('pn_',''));}catch(e){}})();
       }
       var em = null;
       try{ var _s=JSON.parse(localStorage.getItem('studioOS_auth_v1')||'{}'); em=_s&&_s.email?_s.email:null; }catch(e){}
@@ -18697,7 +18647,7 @@ window.openMyMemberTeamProfile = function(ownerId){
     } else {
       showMiniNotif('تم رفض دعوة "'+invite.teamName+'"');
       if(typeof supa!=='undefined' && invite.id){
-        (async()=>{ try{ await supa.from('team_invites').update({status:'declined'}).eq('id', invite.id.replace('pn_','')); }catch(e){} })();
+        (async()=>{try{await supa.from('team_invites').update({status:'declined'}).eq('id',invite.id.replace('pn_',''));}catch(e){}})();
       }
       // حفظ الرفض محلياً لتجنب إعادة العرض
       var decKey = '_declined_team_invites_'+(_supaUserId||'');
@@ -23525,29 +23475,24 @@ window.addEventListener('load', function(){
   setInterval(_loadServerNotifications, 30000);
 });
 
-// ══ polling التقييمات من السحابة كل 45 ثانية ══
 async function _pollReviews(){
-  if(!_supaUserId || !db) return;
+  if(!_supaUserId||!db)return;
   try{
-    const {data:row} = await db.from('studio_data').select('data').eq('user_id',_supaUserId).maybeSingle();
-    if(!row?.data) return;
-    let fresh = row.data;
-    if(typeof fresh==='string') fresh=JSON.parse(fresh);
-    if(fresh?.data && typeof fresh.tasks==='undefined') fresh = typeof fresh.data==='string'?JSON.parse(fresh.data):fresh.data;
-    const newRevs = fresh?.reviews||[];
-    const oldCount = (S.reviews||[]).length;
-    if(newRevs.length > oldCount){
-      S.reviews = newRevs;
-      lsSave();
-      const _rb = document.getElementById('reviews-badge');
-      if(_rb){ _rb.textContent=newRevs.length; _rb.style.display=newRevs.length?'inline-flex':'none'; }
-      if(document.getElementById('page-reviews')?.classList.contains('active')) renderReviewsPage();
+    const {data:row}=await db.from('studio_data').select('data').eq('user_id',_supaUserId).maybeSingle();
+    if(!row?.data)return;
+    let fresh=row.data; if(typeof fresh==='string')fresh=JSON.parse(fresh);
+    if(fresh?.data&&typeof fresh.tasks==='undefined')fresh=typeof fresh.data==='string'?JSON.parse(fresh.data):fresh.data;
+    const newRevs=fresh?.reviews||[];
+    if(newRevs.length>(S.reviews||[]).length){
+      S.reviews=newRevs; lsSave();
+      const _rb=document.getElementById('reviews-badge');
+      if(_rb){_rb.textContent=newRevs.length;_rb.style.display=newRevs.length?'inline-flex':'none';}
+      if(document.getElementById('page-reviews')?.classList.contains('active'))renderReviewsPage();
       toast('⭐ وصل تقييم جديد!');
     }
   }catch(e){}
 }
-setInterval(_pollReviews, 45000);
-setTimeout(_pollReviews, 5000);
+setInterval(_pollReviews,45000); setTimeout(_pollReviews,5000);
 document.addEventListener('visibilitychange', function(){
   if(!document.hidden) {
     _loadServerNotifications();
