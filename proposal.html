@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>عرض السعر</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f6fa;
+  --surface:#ffffff;
+  --surface2:#f9fafc;
+  --border:#e8ecf4;
+  --t1:#1a1d2e;
+  --t2:#4a5068;
+  --t3:#8892a4;
+  --green:#2ecc71;
+  --green2:#27ae60;
+  --red:#e74c3c;
+  --red2:#c0392b;
+  --gold:#f7c948;
+  --accent:#7c6ff7;
+  --font:'Cairo',sans-serif;
+}
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--t1);
+  min-height:100vh;
+  padding:0 0 60px;
+}
+
+/* ── Header band ── */
+.top-band{
+  background:linear-gradient(135deg,#1a1d2e 0%,#2d2f4a 100%);
+  color:#fff;
+  padding:20px 24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.top-band-logo{font-size:13px;color:rgba(255,255,255,.5);}
+.proposal-badge{
+  background:rgba(247,201,72,.15);
+  border:1px solid rgba(247,201,72,.35);
+  color:var(--gold);
+  border-radius:20px;
+  padding:4px 14px;
+  font-size:12px;font-weight:700;
+  letter-spacing:.3px;
+}
+
+/* ── Main container ── */
+.container{max-width:760px;margin:0 auto;padding:24px 16px;}
+
+/* ── Card ── */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:24px;
+  margin-bottom:16px;
+  box-shadow:0 2px 12px rgba(0,0,0,.04);
+}
+
+/* ── Freelancer header ── */
+.fl-header{
+  display:flex;align-items:center;gap:16px;margin-bottom:0;
+}
+.fl-avatar{
+  width:64px;height:64px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),#4fd1a5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;color:#fff;flex-shrink:0;
+  border:3px solid var(--border);overflow:hidden;
+}
+.fl-avatar img{width:100%;height:100%;object-fit:cover;}
+.fl-name{font-size:20px;font-weight:900;margin-bottom:2px;}
+.fl-title{font-size:13px;color:var(--t2);}
+
+/* ── Proposal header ── */
+.prop-title-big{
+  font-size:26px;font-weight:900;
+  color:var(--t1);
+  margin-bottom:6px;
+  line-height:1.3;
+}
+.prop-meta{
+  display:flex;gap:16px;flex-wrap:wrap;
+  font-size:12px;color:var(--t3);
+  margin-top:10px;
+}
+.prop-meta span{display:flex;align-items:center;gap:4px;}
+.status-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 16px;border-radius:20px;
+  font-size:13px;font-weight:700;
+  margin-top:12px;
+}
+
+/* ── Intro message ── */
+.intro-box{
+  background:linear-gradient(135deg,rgba(124,111,247,.06),rgba(79,209,165,.06));
+  border:1px solid rgba(124,111,247,.2);
+  border-radius:12px;
+  padding:16px 18px;
+  font-size:14px;color:var(--t2);
+  line-height:1.8;
+  position:relative;
+}
+.intro-box::before{
+  content:'"';
+  position:absolute;top:-8px;right:16px;
+  font-size:40px;color:var(--accent);opacity:.3;
+  font-family:Georgia,serif;
+  line-height:1;
+}
+
+/* ── Items table ── */
+.items-table{width:100%;border-collapse:collapse;}
+.items-table th{
+  background:var(--surface2);
+  padding:10px 12px;
+  text-align:right;
+  font-size:12px;font-weight:700;color:var(--t3);
+  border-bottom:2px solid var(--border);
+}
+.items-table th:last-child,.items-table td:last-child{text-align:left;}
+.items-table td{
+  padding:11px 12px;
+  font-size:13px;color:var(--t1);
+  border-bottom:1px solid var(--border);
+}
+.items-table tr:last-child td{border-bottom:none;}
+.items-table tr:hover td{background:var(--surface2);}
+.item-desc{font-weight:600;}
+.item-subtotal{font-weight:700;color:var(--accent);}
+
+/* ── Totals ── */
+.totals-wrap{margin-top:16px;}
+.total-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:6px 0;font-size:13px;color:var(--t2);
+  border-bottom:1px solid var(--border);
+}
+.total-row:last-child{
+  border-bottom:none;
+  padding-top:12px;margin-top:4px;
+}
+.total-row.grand{font-size:18px;font-weight:900;color:var(--t1);}
+.total-row.grand .val{color:var(--green2);font-size:22px;}
+.total-row .lbl{font-weight:600;}
+.disc-val{color:#e74c3c;}
+.tax-val{color:var(--accent);}
+
+/* ── Payment terms ── */
+.payment-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(124,111,247,.1);
+  border:1px solid rgba(124,111,247,.2);
+  color:var(--accent);
+  border-radius:20px;padding:5px 14px;
+  font-size:12px;font-weight:700;
+}
+
+/* ── Notes ── */
+.notes-box{
+  font-size:13px;color:var(--t2);
+  line-height:1.8;
+  white-space:pre-line;
+}
+
+/* ── CTA section ── */
+.cta-card{
+  background:linear-gradient(135deg,#1a1d2e,#2d2f4a);
+  border:none;color:#fff;
+  text-align:center;
+  padding:32px 24px;
+}
+.cta-title{font-size:20px;font-weight:900;margin-bottom:6px;}
+.cta-sub{font-size:13px;color:rgba(255,255,255,.6);margin-bottom:24px;line-height:1.7;}
+.cta-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+.btn-accept{
+  background:linear-gradient(135deg,var(--green),var(--green2));
+  color:#fff;border:none;border-radius:12px;
+  padding:14px 32px;font-family:var(--font);font-size:15px;font-weight:900;
+  cursor:pointer;transition:transform .15s,box-shadow .15s;
+  display:flex;align-items:center;gap:8px;
+  box-shadow:0 4px 20px rgba(46,204,113,.3);
+}
+.btn-accept:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(46,204,113,.4);}
+.btn-accept:active{transform:scale(.97);}
+
+.btn-reject{
+  background:rgba(255,255,255,.08);
+  color:rgba(255,255,255,.7);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:12px;
+  padding:14px 28px;font-family:var(--font);font-size:14px;font-weight:700;
+  cursor:pointer;transition:.15s;
+  display:flex;align-items:center;gap:8px;
+}
+.btn-reject:hover{background:rgba(231,76,60,.2);color:#ff8a8a;border-color:rgba(231,76,60,.3);}
+
+/* ── Already-responded view ── */
+.responded-card{text-align:center;padding:40px 24px;}
+.responded-icon{font-size:64px;margin-bottom:16px;}
+.responded-title{font-size:22px;font-weight:900;margin-bottom:8px;}
+.responded-sub{font-size:14px;color:var(--t2);line-height:1.7;}
+.client-note-display{
+  margin-top:16px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:14px 16px;
+  font-size:13px;color:var(--t2);font-style:italic;text-align:right;
+}
+
+/* ── Note input sheet ── */
+.sheet-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.6);
+  display:flex;align-items:flex-end;justify-content:center;
+  z-index:999;animation:fadeIn .2s ease;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.sheet{
+  background:var(--surface);
+  border-radius:20px 20px 0 0;
+  padding:24px;
+  width:100%;max-width:600px;
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-title{font-size:16px;font-weight:900;margin-bottom:14px;}
+.sheet-textarea{
+  width:100%;border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;font-family:var(--font);font-size:14px;
+  color:var(--t1);resize:none;min-height:90px;outline:none;
+  background:var(--surface2);
+}
+.sheet-textarea:focus{border-color:var(--accent);}
+.sheet-btns{display:flex;gap:10px;margin-top:14px;justify-content:flex-end;}
+.btn-sm-outline{
+  background:none;border:1px solid var(--border);border-radius:8px;
+  padding:9px 18px;font-family:var(--font);font-size:13px;font-weight:700;
+  cursor:pointer;color:var(--t2);transition:.15s;
+}
+.btn-sm-outline:hover{background:var(--surface2);}
+.btn-sm-primary{
+  background:var(--accent);color:#fff;border:none;border-radius:8px;
+  padding:9px 20px;font-family:var(--font);font-size:13px;font-weight:900;
+  cursor:pointer;transition:.15s;
+}
+.btn-sm-primary:hover{opacity:.88;}
+
+/* ── Loader ── */
+#loader{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:9999;
+}
+.spin{
+  width:40px;height:40px;
+  border:3px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-text{margin-top:12px;font-size:13px;color:var(--t3);}
+
+#err-screen{
+  display:none;min-height:100vh;
+  align-items:center;justify-content:center;
+  flex-direction:column;text-align:center;padding:40px;
+}
+.err-icon{font-size:64px;margin-bottom:16px;}
+.err-title{font-size:20px;font-weight:900;margin-bottom:8px;}
+.err-sub{font-size:13px;color:var(--t2);}
+
+/* ── Expiry warning ── */
+.expiry-warn{
+  background:rgba(247,201,72,.1);
+  border:1px solid rgba(247,201,72,.3);
+  border-radius:10px;padding:10px 14px;
+  font-size:12px;color:#b8860b;
+  display:flex;align-items:center;gap:8px;
+  margin-top:12px;
+}
+
+/* ── Print ── */
+@media print{
+  .top-band,.cta-card,#loader{display:none!important;}
+  .card{box-shadow:none;border:1px solid #ddd;}
+}
+@media(max-width:600px){
+  .prop-title-big{font-size:20px;}
+  .items-table th,.items-table td{padding:8px 8px;font-size:12px;}
+  .total-row.grand .val{font-size:18px;}
+}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="spin"></div>
+  <div class="load-text">جاري تحميل العرض...</div>
+</div>
+
+<div id="err-screen" style="display:none">
+  <div class="err-icon">📋</div>
+  <div class="err-title" id="err-title">رابط غير صحيح</div>
+  <div class="err-sub" id="err-sub">لم يتم العثور على هذا العرض أو انتهت صلاحيته</div>
+</div>
+
+<div id="main-content" style="display:none">
+  <!-- Top band -->
+  <div class="top-band">
+    <div class="top-band-logo">
+      <i class="fa-solid fa-file-contract" style="color:var(--gold);margin-left:6px"></i>
+      عرض سعر احترافي
+    </div>
+    <div class="proposal-badge" id="prop-status-badge">⏳ في الانتظار</div>
+  </div>
+
+  <div class="container">
+
+    <!-- Freelancer info -->
+    <div class="card">
+      <div class="fl-header">
+        <div class="fl-avatar" id="fl-avatar">🎨</div>
+        <div>
+          <div class="fl-name" id="fl-name">فريلانسر</div>
+          <div class="fl-title" id="fl-title">خدمات إبداعية</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Proposal header -->
+    <div class="card">
+      <div class="prop-title-big" id="prop-title-display">—</div>
+      <div class="prop-meta">
+        <span><i class="fa-solid fa-calendar-days" style="color:var(--accent)"></i> تاريخ العرض: <strong id="prop-date-display">—</strong></span>
+        <span id="prop-expiry-wrap" style="display:none"><i class="fa-solid fa-hourglass-end" style="color:var(--t3)"></i> صالح حتى: <strong id="prop-expiry-display">—</strong></span>
+        <span id="prop-client-wrap" style="display:none"><i class="fa-solid fa-user" style="color:var(--accent)"></i> مقدم لـ: <strong id="prop-client-display">—</strong></span>
+      </div>
+      <div id="expiry-warn" class="expiry-warn" style="display:none">
+        <i class="fa-solid fa-triangle-exclamation"></i> تنبيه: انتهت صلاحية هذا العرض
+      </div>
+
+      <!-- Intro message -->
+      <div id="intro-wrap" style="margin-top:16px;display:none">
+        <div class="intro-box" id="prop-intro-display"></div>
+      </div>
+    </div>
+
+    <!-- Items -->
+    <div class="card">
+      <div style="font-size:14px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+        <i class="fa-solid fa-list-check" style="color:var(--accent)"></i> تفاصيل العرض
+      </div>
+      <div style="overflow-x:auto">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>البند / الخدمة</th>
+              <th style="text-align:center">الكمية</th>
+              <th style="text-align:center">سعر الوحدة</th>
+              <th>الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody id="items-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Totals -->
+      <div class="totals-wrap" id="totals-wrap"></div>
+    </div>
+
+    <!-- Payment terms + notes -->
+    <div class="card" id="details-card" style="display:none">
+      <div style="display:flex;flex-wrap:wrap;gap:20px">
+        <div id="payment-terms-wrap" style="display:none">
+          <div style="font-size:11px;font-weight:700;color:var(--t3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">شروط الدفع</div>
+          <span class="payment-pill"><i class="fa-solid fa-money-bill-wave"></i> <span id="payment-terms-display">—</span></span>
+        </div>
+        <div id="notes-section-wrap" style="flex:1;min-width:200px;display:none">
+          <div style="font-size:11px;font-weight:700;color:var(--t3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">ملاحظات وشروط</div>
+          <div class="notes-box" id="prop-notes-display"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Already responded -->
+    <div class="card responded-card" id="responded-section" style="display:none">
+      <div class="responded-icon" id="responded-icon">✅</div>
+      <div class="responded-title" id="responded-title">تم قبول العرض</div>
+      <div class="responded-sub" id="responded-sub">شكراً! تم إرسال ردك للفريلانسر.</div>
+      <div id="client-note-display-wrap" style="display:none">
+        <div class="client-note-display" id="client-note-display-text"></div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="card cta-card" id="cta-section">
+      <div class="cta-title">ما رأيك في هذا العرض؟ 🤝</div>
+      <div class="cta-sub">ردك يصل مباشرة للفريلانسر. يمكنك أيضاً إضافة ملاحظة قبل الرد.</div>
+      <div class="cta-buttons">
+        <button class="btn-accept" onclick="respondProposal('accepted')">
+          <i class="fa-solid fa-check-circle"></i> قبول العرض ✅
+        </button>
+        <button class="btn-reject" onclick="respondProposal('rejected')">
+          <i class="fa-solid fa-times-circle"></i> رفض العرض
+        </button>
+      </div>
+    </div>
+
+    <div style="text-align:center;font-size:11px;color:var(--t3);margin-top:8px;padding-bottom:20px">
+      مدعوم بواسطة <strong style="color:var(--accent)">Ordo</strong> — منصة الفريلانسر العربي
+    </div>
+  </div>
+</div>
+
+<!-- Note sheet overlay -->
+<div id="note-sheet" style="display:none">
+  <div class="sheet-overlay" onclick="if(event.target===this)_closeNoteSheet()">
+    <div class="sheet">
+      <div class="sheet-title" id="note-sheet-title">💬 أضف ملاحظة (اختياري)</div>
+      <textarea class="sheet-textarea" id="note-input" placeholder="مثال: نريد تعديل على البند الثالث..." maxlength="500"></textarea>
+      <div style="font-size:11px;color:var(--t3);margin-top:4px;text-align:left" id="note-char">0/500</div>
+      <div class="sheet-btns">
+        <button class="btn-sm-outline" onclick="_closeNoteSheet()">إلغاء</button>
+        <button class="btn-sm-primary" id="note-confirm-btn" onclick="_confirmRespond()">
+          <i class="fa-solid fa-paper-plane"></i> إرسال الرد
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL  = 'https://mpfmcjgigpvdxbhgzufo.supabase.co';
+const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wZm1jamdpZ3B2ZHhiaGd6dWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2Mjc3MzMsImV4cCI6MjA4ODIwMzczM30.fICNxH_7DEBHripIoyMcUugTnd4JEBx-ypegpPvb6PM';
+const db = supabase.createClient(SUPA_URL, SUPA_ANON);
+
+const P     = new URLSearchParams(location.search);
+const token = P.get('token');
+
+var _proposal   = null;
+var _resolvedUid= null;
+var _pendingAct = null;  // 'accepted' | 'rejected'
+
+const payTermsMap = {
+  'full':         'دفعة كاملة عند البدء',
+  '50-50':        '50% مقدم + 50% عند التسليم',
+  '30-70':        '30% مقدم + 70% عند التسليم',
+  'installments': 'أقساط شهرية',
+  'custom':       'شروط مخصصة'
+};
+
+function xe(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function el(id){ return document.getElementById(id); }
+function setText(id,t){ var e=el(id); if(e) e.textContent=t; }
+function show(id){ var e=el(id); if(e) e.style.display=''; }
+function hide(id){ var e=el(id); if(e) e.style.display='none'; }
+
+function showErr(title, sub){
+  hide('loader'); hide('main-content');
+  setText('err-title', title);
+  setText('err-sub', sub||'');
+  el('err-screen').style.display = 'flex';
+}
+
+// ── Boot ──
+async function boot(){
+  if (!token) { showErr('رابط غير صحيح', 'لا يوجد رقم عرض في الرابط'); return; }
+
+  try {
+    // Search all studio_data for a proposal with this token
+    // We query by data->>proposals containing the token
+    var { data: rows, error } = await db
+      .from('studio_data')
+      .select('user_id, data')
+      .like('data::text', '%' + token + '%')
+      .limit(5);
+
+    if (error || !rows || !rows.length) {
+      showErr('لم يتم العثور على العرض', 'تأكد من صحة الرابط أو تواصل مع الفريلانسر');
+      return;
+    }
+
+    var found = null, foundUid = null;
+    for (var i = 0; i < rows.length; i++) {
+      var raw = rows[i].data;
+      if (typeof raw === 'string') raw = JSON.parse(raw);
+      if (raw && raw.data && !raw.tasks) raw = typeof raw.data==='string'?JSON.parse(raw.data):raw.data;
+      var props = raw && raw.proposals ? raw.proposals : [];
+      var p = props.find(function(x){ return x.token === token; });
+      if (p) { found = p; foundUid = rows[i].user_id; _fullData = raw; break; }
+    }
+
+    if (!found) { showErr('لم يتم العثور على العرض', 'الرابط قد يكون منتهياً أو غير صحيح'); return; }
+
+    _proposal    = found;
+    _resolvedUid = foundUid;
+
+    // Get freelancer info
+    var s = (_fullData && _fullData.settings) ? _fullData.settings : {};
+    renderPage(s);
+
+  } catch(e) {
+    console.error(e);
+    showErr('خطأ في التحميل', 'حاول تحديث الصفحة مجدداً');
+  }
+}
+
+var _fullData = null;
+
+function renderPage(settings) {
+  var p = _proposal;
+  var cur = p.currency || 'ج.م';
+
+  // Freelancer info
+  if (settings.logo) {
+    el('fl-avatar').innerHTML = '<img src="' + xe(settings.logo) + '" onerror="this.parentNode.textContent=\'🎨\'">';
+  }
+  setText('fl-name',  settings.name || settings.username || 'فريلانسر');
+  setText('fl-title', settings.bio  || settings.title    || 'خدمات احترافية');
+
+  // Status badge
+  var statusChip = el('prop-status-badge');
+  var statusMap  = { pending:'⏳ في الانتظار', accepted:'✅ مقبول', rejected:'❌ مرفوض', draft:'📝 مسودة', expired:'🕐 منتهي' };
+  var sk = p.status || 'pending';
+  if (sk === 'pending' && p.expiry && new Date(p.expiry) < new Date()) sk = 'expired';
+  if (statusChip) statusChip.textContent = statusMap[sk] || sk;
+
+  // Proposal header
+  setText('prop-title-display', p.title || 'عرض سعر');
+  setText('prop-date-display',  p.date  || '—');
+  if (p.expiry) {
+    setText('prop-expiry-display', p.expiry);
+    show('prop-expiry-wrap');
+    if (new Date(p.expiry) < new Date() && sk !== 'accepted' && sk !== 'rejected') {
+      show('expiry-warn');
+    }
+  }
+  if (p.clientName) {
+    setText('prop-client-display', p.clientName);
+    show('prop-client-wrap');
+  }
+
+  // Intro
+  if (p.intro && p.intro.trim()) {
+    el('prop-intro-display').textContent = p.intro;
+    show('intro-wrap');
+  }
+
+  // Items table
+  var tbody = el('items-tbody');
+  if (tbody && p.items && p.items.length) {
+    tbody.innerHTML = p.items.map(function(item, idx){
+      return '<tr>'
+        + '<td style="color:var(--t3);font-size:12px">' + (idx+1) + '</td>'
+        + '<td><span class="item-desc">' + xe(item.desc||'بند') + '</span></td>'
+        + '<td style="text-align:center">' + (item.qty||1) + '</td>'
+        + '<td style="text-align:center">' + (item.price||0).toLocaleString() + ' ' + xe(cur) + '</td>'
+        + '<td class="item-subtotal">' + (item.total||0).toLocaleString() + ' ' + xe(cur) + '</td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  // Totals
+  var totWrap = el('totals-wrap');
+  if (totWrap) {
+    var subtotal    = (p.subtotal||0).toLocaleString();
+    var discAmt     = (p.discountAmt||0);
+    var taxAmt      = (p.taxAmt||0);
+    var total       = (p.total||0).toLocaleString();
+    var hasDisc     = discAmt > 0;
+    var hasTax      = taxAmt  > 0;
+    var html = '<div style="max-width:320px;margin-right:auto">';
+    html += '<div class="total-row"><span class="lbl">المجموع الجزئي</span><span>' + subtotal + ' ' + xe(cur) + '</span></div>';
+    if (hasDisc) html += '<div class="total-row"><span class="lbl">خصم ' + (p.discount||0) + '%</span><span class="disc-val">-' + discAmt.toLocaleString() + ' ' + xe(cur) + '</span></div>';
+    if (hasTax)  html += '<div class="total-row"><span class="lbl">ضريبة ' + (p.tax||0) + '%</span><span class="tax-val">+' + taxAmt.toLocaleString() + ' ' + xe(cur) + '</span></div>';
+    html += '<div class="total-row grand"><span class="lbl">💰 الإجمالي</span><span class="val">' + total + ' ' + xe(cur) + '</span></div>';
+    html += '</div>';
+    totWrap.innerHTML = html;
+  }
+
+  // Details card
+  var showDetails = false;
+  if (p.paymentTerms && p.paymentTerms !== 'full') {
+    setText('payment-terms-display', payTermsMap[p.paymentTerms] || p.paymentTerms);
+    show('payment-terms-wrap');
+    showDetails = true;
+  }
+  if (p.notes && p.notes.trim()) {
+    el('prop-notes-display').textContent = p.notes;
+    show('notes-section-wrap');
+    showDetails = true;
+  }
+  if (showDetails) show('details-card');
+
+  // Responded / CTA
+  if (p.status === 'accepted' || p.status === 'rejected') {
+    hide('cta-section');
+    show('responded-section');
+    if (p.status === 'accepted') {
+      setText('responded-icon', '✅');
+      setText('responded-title', 'تم قبول هذا العرض');
+      setText('responded-sub', 'شكراً! تم إرسال موافقتك للفريلانسر وسيتواصل معك قريباً 🎉');
+    } else {
+      setText('responded-icon', '❌');
+      setText('responded-title', 'تم رفض هذا العرض');
+      setText('responded-sub', 'تم إرسال ردك للفريلانسر.');
+    }
+    if (p.clientNote) {
+      el('client-note-display-text').textContent = '"' + p.clientNote + '"';
+      show('client-note-display-wrap');
+    }
+  } else if (sk === 'expired') {
+    hide('cta-section');
+  }
+
+  hide('loader');
+  show('main-content');
+}
+
+// ── Respond flow ──
+function respondProposal(action) {
+  _pendingAct = action;
+  var titleEl = el('note-sheet-title');
+  if (titleEl) titleEl.textContent = action === 'accepted'
+    ? '✅ قبول العرض — أضف ملاحظة (اختياري)'
+    : '❌ رفض العرض — أضف سبب الرفض (اختياري)';
+  var noteBtn = el('note-confirm-btn');
+  if (noteBtn) noteBtn.style.background = action === 'accepted' ? 'var(--green2)' : 'var(--red2)';
+  el('note-input').value = '';
+  el('note-char').textContent = '0/500';
+  el('note-sheet').style.display = '';
+}
+
+el('note-input').addEventListener('input', function(){
+  el('note-char').textContent = this.value.length + '/500';
+});
+
+function _closeNoteSheet(){ el('note-sheet').style.display = 'none'; _pendingAct = null; }
+
+async function _confirmRespond() {
+  if (!_pendingAct || !_resolvedUid) return;
+  var note = (el('note-input').value||'').trim();
+  var btn  = el('note-confirm-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الإرسال...'; }
+
+  try {
+    // Fetch latest data
+    var { data: row } = await db.from('studio_data').select('data').eq('user_id', _resolvedUid).maybeSingle();
+    var fresh = row && row.data ? row.data : null;
+    if (typeof fresh === 'string') fresh = JSON.parse(fresh);
+    if (fresh && fresh.data && !fresh.tasks) fresh = typeof fresh.data==='string'?JSON.parse(fresh.data):fresh.data;
+    if (!fresh) throw new Error('no data');
+
+    // Update proposal
+    if (!fresh.proposals) fresh.proposals = [];
+    var idx = fresh.proposals.findIndex(function(x){ return x.token === token; });
+    if (idx === -1) throw new Error('proposal not found');
+
+    fresh.proposals[idx].status      = _pendingAct;
+    fresh.proposals[idx].clientNote  = note;
+    fresh.proposals[idx].respondedAt = new Date().toISOString();
+    fresh._savedAt = new Date().toISOString();
+
+    var { error } = await db.from('studio_data').upsert(
+      { user_id: _resolvedUid, data: fresh, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    );
+    if (error) throw error;
+
+    // Update local proposal
+    _proposal.status      = _pendingAct;
+    _proposal.clientNote  = note;
+    _proposal.respondedAt = fresh.proposals[idx].respondedAt;
+
+    el('note-sheet').style.display = 'none';
+
+    // Update UI
+    hide('cta-section');
+    show('responded-section');
+    if (_pendingAct === 'accepted') {
+      setText('responded-icon',  '🎉');
+      setText('responded-title', 'تم قبول العرض بنجاح!');
+      setText('responded-sub',   'ممتاز! سيتواصل معك الفريلانسر قريباً لبدء العمل.');
+      var badge = el('prop-status-badge');
+      if (badge) { badge.textContent = '✅ مقبول'; badge.style.background = 'rgba(46,204,113,.2)'; badge.style.color = 'var(--green)'; }
+    } else {
+      setText('responded-icon',  '📝');
+      setText('responded-title', 'تم إرسال ردك');
+      setText('responded-sub',   'شكراً على وضوحك. تم إرسال ردك للفريلانسر.');
+      var badge = el('prop-status-badge');
+      if (badge) { badge.textContent = '❌ مرفوض'; }
+    }
+    if (note) {
+      el('client-note-display-text').textContent = '"' + note + '"';
+      show('client-note-display-wrap');
+    }
+
+  } catch(e) {
+    console.error(e);
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> إرسال الرد'; }
+    alert('حدث خطأ، حاول مجدداً');
+  }
+}
+
+boot();
+</script>
+</body>
+</html>
