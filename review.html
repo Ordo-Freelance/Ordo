@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تقييم الخدمة</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0d14;
+  --surface:#13161f;
+  --surface2:#1a1e2b;
+  --border:rgba(255,255,255,.08);
+  --t1:#f0f2f8;
+  --t2:#9aa3bc;
+  --t3:#5a6380;
+  --ac:#4fd1a5;
+  --ac2:#7c6ff7;
+  --gold:#f7c948;
+  --danger:#f76f7c;
+  --font:'Cairo',sans-serif;
+}
+body{
+  background:var(--bg);
+  color:var(--t1);
+  font-family:var(--font);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  padding:24px 16px 60px;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(79,209,165,.12) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 80%, rgba(124,111,247,.08) 0%, transparent 60%);
+}
+
+/* ── Loader ── */
+#loader{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  z-index:999;transition:opacity .4s;
+}
+#loader.hide{opacity:0;pointer-events:none;}
+.spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--ac);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Card ── */
+.card{
+  width:100%;max-width:480px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:28px 24px;
+  margin-bottom:16px;
+  animation:fadeUp .5s ease both;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Header ── */
+.header-card{
+  text-align:center;
+  padding:32px 24px 24px;
+  border-bottom:none;
+  position:relative;
+  overflow:hidden;
+}
+.header-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 100% 80% at 50% 100%, rgba(79,209,165,.07) 0%, transparent 70%);
+  pointer-events:none;
+}
+.freelancer-avatar{
+  width:72px;height:72px;border-radius:50%;
+  border:3px solid var(--ac);
+  object-fit:cover;
+  margin:0 auto 12px;
+  display:block;
+  background:var(--surface2);
+}
+.avatar-placeholder{
+  width:72px;height:72px;border-radius:50%;
+  border:3px solid var(--ac);
+  background:linear-gradient(135deg,var(--ac2),var(--ac));
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;
+  margin:0 auto 12px;
+}
+.freelancer-name{font-size:20px;font-weight:900;color:var(--t1);margin-bottom:4px;}
+.freelancer-title{font-size:13px;color:var(--t2);}
+.badge-verified{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(79,209,165,.12);color:var(--ac);
+  border:1px solid rgba(79,209,165,.25);
+  border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;
+  margin-top:8px;
+}
+
+/* ── Section title ── */
+.sec-title{
+  font-size:12px;font-weight:700;color:var(--t3);
+  letter-spacing:.8px;text-transform:uppercase;
+  margin-bottom:14px;
+}
+
+/* ── Name input ── */
+.inp-wrap{margin-bottom:14px;}
+.inp-label{font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px;display:block;}
+.inp{
+  width:100%;background:var(--surface2);
+  border:1px solid var(--border);border-radius:10px;
+  padding:11px 14px;color:var(--t1);
+  font-family:var(--font);font-size:14px;
+  outline:none;transition:border .2s;
+}
+.inp:focus{border-color:var(--ac2);}
+.inp::placeholder{color:var(--t3);}
+
+/* ── Stars ── */
+.stars-wrap{
+  display:flex;justify-content:center;gap:10px;
+  margin:8px 0 16px;
+}
+.star{
+  font-size:38px;cursor:pointer;
+  filter:grayscale(1) opacity(.3);
+  transition:transform .15s,filter .15s;
+  user-select:none;
+}
+.star:hover,.star.active{filter:none;transform:scale(1.15);}
+.star-label{
+  text-align:center;font-size:13px;color:var(--t2);
+  height:18px;margin-bottom:12px;transition:color .2s;
+}
+
+/* ── Comment ── */
+.textarea{
+  width:100%;background:var(--surface2);
+  border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;color:var(--t1);
+  font-family:var(--font);font-size:13px;
+  outline:none;transition:border .2s;
+  resize:none;min-height:90px;
+  line-height:1.6;
+}
+.textarea:focus{border-color:var(--ac2);}
+.textarea::placeholder{color:var(--t3);}
+
+/* ── Submit btn ── */
+.btn-submit{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,var(--ac),#3ab88f);
+  color:#0a0d14;border:none;border-radius:12px;
+  font-family:var(--font);font-size:15px;font-weight:900;
+  cursor:pointer;transition:opacity .2s,transform .1s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-top:4px;
+}
+.btn-submit:disabled{opacity:.45;cursor:not-allowed;}
+.btn-submit:not(:disabled):hover{opacity:.9;}
+.btn-submit:not(:disabled):active{transform:scale(.98);}
+
+/* ── Error / Success ── */
+#err-box{
+  background:rgba(247,111,124,.1);border:1px solid rgba(247,111,124,.3);
+  border-radius:12px;padding:14px 16px;
+  color:var(--danger);font-size:13px;font-weight:600;
+  text-align:center;margin-bottom:16px;
+  display:none;animation:fadeUp .3s ease both;
+}
+#success-card{
+  width:100%;max-width:480px;
+  background:var(--surface);border:1px solid rgba(79,209,165,.3);
+  border-radius:20px;padding:40px 24px;
+  text-align:center;display:none;
+  animation:fadeUp .5s ease both;
+}
+
+/* ── Footer ── */
+.footer{
+  margin-top:24px;text-align:center;
+  font-size:11px;color:var(--t3);
+}
+.footer a{color:var(--ac);text-decoration:none;}
+
+/* ── Char counter ── */
+.char-count{font-size:11px;color:var(--t3);text-align:left;margin-top:4px;}
+</style>
+</head>
+<body>
+
+<div id="loader"><div class="spin"></div></div>
+
+<!-- Error Box -->
+<div id="err-box"></div>
+
+<!-- Header Card -->
+<div class="card header-card" id="header-card" style="display:none">
+  <div id="avatar-wrap"><div class="avatar-placeholder">⭐</div></div>
+  <div class="freelancer-name" id="fl-name">فريلانسر</div>
+  <div class="freelancer-title" id="fl-title">خدمات إبداعية</div>
+  <div class="badge-verified"><span>✓</span> تقييم موثّق</div>
+</div>
+
+<!-- Review Form Card -->
+<div class="card" id="form-card" style="display:none;animation-delay:.1s">
+  <div class="sec-title">✍️ اترك تقييمك</div>
+
+  <!-- Name -->
+  <div class="inp-wrap">
+    <label class="inp-label" for="rev-name">اسمك *</label>
+    <input class="inp" id="rev-name" placeholder="مثال: محمد أحمد" maxlength="60" autocomplete="name">
+  </div>
+
+  <!-- Stars -->
+  <div class="inp-label" style="margin-bottom:8px">تقييمك من 5 نجوم *</div>
+  <div class="stars-wrap" id="stars-wrap">
+    <span class="star" data-v="5">⭐</span>
+    <span class="star" data-v="4">⭐</span>
+    <span class="star" data-v="3">⭐</span>
+    <span class="star" data-v="2">⭐</span>
+    <span class="star" data-v="1">⭐</span>
+  </div>
+  <div class="star-label" id="star-label">اختر عدد النجوم</div>
+
+  <!-- Comment -->
+  <div class="inp-wrap">
+    <label class="inp-label" for="rev-comment">تعليقك (اختياري)</label>
+    <textarea class="textarea" id="rev-comment" placeholder="شاركنا تجربتك مع الخدمة..." maxlength="500" oninput="document.getElementById('char-cnt').textContent=this.value.length+'/500'"></textarea>
+    <div class="char-count" id="char-cnt">0/500</div>
+  </div>
+
+  <button class="btn-submit" id="submit-btn" onclick="submitReview()" disabled>
+    <span>⭐</span> إرسال التقييم
+  </button>
+</div>
+
+<!-- Success Card -->
+<div id="success-card">
+  <div style="font-size:60px;margin-bottom:16px">🎉</div>
+  <div style="font-size:22px;font-weight:900;color:var(--ac);margin-bottom:8px">شكراً على تقييمك!</div>
+  <div style="font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:16px">رأيك يساعد على التحسين المستمر ✨</div>
+  <div id="success-stars" style="font-size:32px;margin-bottom:8px"></div>
+  <div id="success-comment" style="font-size:13px;color:var(--t2);font-style:italic;margin-top:8px"></div>
+</div>
+
+<div class="footer" id="page-footer" style="display:none">
+  مدعوم بواسطة <a href="#" target="_blank">Ordo</a>
+</div>
+
+<script>
+const SUPA_URL='https://mpfmcjgigpvdxbhgzufo.supabase.co';
+const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wZm1jamdpZ3B2ZHhiaGd6dWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2Mjc3MzMsImV4cCI6MjA4ODIwMzczM30.fICNxH_7DEBHripIoyMcUugTnd4JEBx-ypegpPvb6PM';
+const db=supabase.createClient(SUPA_URL,SUPA_ANON);
+
+const P=new URLSearchParams(location.search);
+const pUid=P.get('uid');
+const pUsername=P.get('u');
+let _resolvedUid=null;
+let _ud=null;
+let _selectedStars=0;
+
+const starLabels=['','ضعيف جداً 😞','ضعيف 😕','مقبول 😐','جيد 😊','ممتاز! 🤩'];
+
+// ── Stars Logic ──
+document.querySelectorAll('.star').forEach(s=>{
+  s.addEventListener('click',()=>{
+    _selectedStars=+s.dataset.v;
+    document.querySelectorAll('.star').forEach((st,idx)=>{
+      // Stars are in reverse order (5,4,3,2,1)
+      const v=+st.dataset.v;
+      st.classList.toggle('active',v<=_selectedStars);
+    });
+    document.getElementById('star-label').textContent=starLabels[_selectedStars]||'';
+    checkForm();
+  });
+  s.addEventListener('mouseenter',()=>{
+    const hv=+s.dataset.v;
+    document.querySelectorAll('.star').forEach(st=>{
+      st.style.filter=+st.dataset.v<=hv?'none':'grayscale(1) opacity(.3)';
+    });
+  });
+  s.addEventListener('mouseleave',()=>{
+    document.querySelectorAll('.star').forEach(st=>{
+      st.style.filter='';
+      st.classList.toggle('active',+st.dataset.v<=_selectedStars);
+    });
+  });
+});
+
+document.getElementById('rev-name').addEventListener('input',checkForm);
+
+function checkForm(){
+  const name=(document.getElementById('rev-name').value||'').trim();
+  const btn=document.getElementById('submit-btn');
+  btn.disabled=!name||!_selectedStars;
+}
+
+function showErr(msg){
+  const el=document.getElementById('err-box');
+  el.textContent=msg;el.style.display='block';
+  document.getElementById('loader').classList.add('hide');
+}
+
+// ── Boot ──
+async function boot(){
+  try{
+    let uid=pUid;
+
+    // Resolve username → uid
+    if(!uid && pUsername){
+      let res=await db.from('studio_data').select('user_id,data').like('data::text','%"username":"'+pUsername+'"%').limit(10);
+      if(res.data){
+        for(const row of res.data){
+          try{
+            let d=row.data;
+            if(typeof d==='string') d=JSON.parse(d);
+            if(d?.data&&!d?.tasks) d=typeof d.data==='string'?JSON.parse(d.data):d.data;
+            if(d?.settings?.username?.toLowerCase()===pUsername.toLowerCase()){
+              uid=row.user_id; break;
+            }
+          }catch(e){}
+        }
+      }
+      if(!uid){showErr('لم يتم التعرف على الحساب: '+pUsername);return;}
+    }
+
+    if(!uid){showErr('رابط التقييم غير صحيح — يرجى طلب رابط جديد من الفريلانسر');return;}
+    _resolvedUid=uid;
+
+    // Fetch data
+    const{data:row,error}=await db.from('studio_data').select('data').eq('user_id',uid).maybeSingle();
+    if(error||!row){showErr('حدث خطأ في التحميل، حاول مجدداً');return;}
+
+    let ud=row.data;
+    if(typeof ud==='string') ud=JSON.parse(ud);
+    if(ud?.data&&!ud?.tasks) ud=typeof ud.data==='string'?JSON.parse(ud.data):ud.data;
+    _ud=ud;
+
+    // Show freelancer info
+    const s=ud?.settings||{};
+    if(s.logo){
+      document.getElementById('avatar-wrap').innerHTML=`<img class="freelancer-avatar" src="${s.logo}" onerror="this.style.display='none'">`;
+    }
+    document.getElementById('fl-name').textContent=s.name||s.username||'فريلانسر';
+    document.getElementById('fl-title').textContent=s.bio||s.title||'خدمات إبداعية متميزة';
+
+    // Show UI
+    document.getElementById('header-card').style.display='';
+    document.getElementById('form-card').style.display='';
+    document.getElementById('page-footer').style.display='';
+    document.getElementById('loader').classList.add('hide');
+
+  }catch(e){
+    console.error(e);
+    showErr('حدث خطأ غير متوقع، حاول مجدداً');
+  }
+}
+
+// ── Submit ──
+async function submitReview(){
+  const name=(document.getElementById('rev-name').value||'').trim();
+  const comment=(document.getElementById('rev-comment').value||'').trim();
+  if(!name||!_selectedStars){return;}
+
+  const btn=document.getElementById('submit-btn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spin" style="width:18px;height:18px;border-width:2px"></span> جاري الإرسال...';
+
+  try{
+    // Fetch latest data
+    const{data:row}=await db.from('studio_data').select('data').eq('user_id',_resolvedUid).maybeSingle();
+    let fresh=row?.data;
+    if(typeof fresh==='string') fresh=JSON.parse(fresh);
+    if(fresh?.data&&!fresh?.tasks) fresh=typeof fresh.data==='string'?JSON.parse(fresh.data):fresh.data;
+
+    if(!fresh.reviews) fresh.reviews=[];
+
+    // Check duplicate by name
+    const isDup=fresh.reviews.find(r=>(r.client_name||'').trim().toLowerCase()===name.toLowerCase()&&!r.task_id);
+    if(isDup){
+      document.getElementById('form-card').style.display='none';
+      showSuccessCard(_selectedStars, comment, true);
+      return;
+    }
+
+    const review={
+      id:'rev_'+Date.now(),
+      task_id:null,
+      task_title:'تقييم عام',
+      client_id:null,
+      client_name:name,
+      stars:_selectedStars,
+      comment:comment,
+      created_at:new Date().toISOString(),
+      source:'review_form'
+    };
+
+    fresh.reviews.push(review);
+    fresh._savedAt=new Date().toISOString();
+
+    const{error}=await db.from('studio_data').upsert(
+      {user_id:_resolvedUid,data:fresh,updated_at:new Date().toISOString()},
+      {onConflict:'user_id'}
+    );
+    if(error) throw error;
+
+    document.getElementById('header-card').style.display='none';
+    document.getElementById('form-card').style.display='none';
+    showSuccessCard(_selectedStars, comment, false);
+
+  }catch(e){
+    console.error(e);
+    btn.disabled=false;
+    btn.innerHTML='<span>⭐</span> إرسال التقييم';
+    const eb=document.getElementById('err-box');
+    eb.textContent='حدث خطأ أثناء الإرسال، حاول مجدداً';
+    eb.style.display='block';
+  }
+}
+
+function showSuccessCard(stars, comment, isDup){
+  const sc=document.getElementById('success-card');
+  if(isDup){
+    sc.querySelector('div:nth-child(2)').style.color='var(--gold)';
+    sc.querySelector('div:nth-child(2)').textContent='قيّمت من قبل ⭐';
+    sc.querySelector('div:nth-child(3)').textContent='لقد أرسلت تقييماً سابقاً، شكراً لك!';
+  }
+  document.getElementById('success-stars').textContent='⭐'.repeat(stars);
+  document.getElementById('success-comment').textContent=comment?`"${comment}"`:'';
+  sc.style.display='block';
+}
+
+boot();
+</script>
+</body>
+</html>
