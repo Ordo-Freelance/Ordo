@@ -6317,7 +6317,7 @@ try { migrateSFields(); } catch(e) {}
 // ============================================================
 const BN_MAIN=['dashboard','tasks','invoices','clients'];
 // ── الصفحات المجانية بدون اشتراك ──
-const FREE_PAGES = ['dashboard', 'settings'];
+const FREE_PAGES = ['dashboard', 'settings', 'services', 'reviews', 'support', 'meetings', 'vault'];
 
 // ══ TRIAL SYSTEM ══
 function _getTrialInfo() {
@@ -7126,7 +7126,6 @@ function switchSettingsTab(tab) {
   settingsPage.querySelectorAll('.stab-panel').forEach(p => {
     p.classList.remove('active');
     p.style.display = 'none';
-    p.removeAttribute('style'); // then re-apply via CSS
   });
   // Activate selected tab
   const btn = document.getElementById('stab-' + tab);
