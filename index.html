@@ -5801,10 +5801,11 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">نوع الدفعة</label>
-        <select class="form-select" id="in-payment-type">
+        <select class="form-select" id="in-payment-type" onchange="_toggleIncomeLoanFields()">
           <option value="full"><i class="fa-solid fa-coins"></i> دفعة كاملة</option>
           <option value="deposit">🔰 عربون</option>
           <option value="partial"><i class="fa-solid fa-credit-card"></i> دفعة جزئية</option>
+          <option value="loan_received">🤝 قرض مستلم (استلفت فلوس)</option>
         </select>
       </div>
       <div class="form-group">
@@ -5815,6 +5816,24 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
           <option value="vodafone"><i class="fa-solid fa-mobile-screen"></i> فودافون كاش</option>
           <option value="etisalat"><i class="fa-solid fa-phone"></i> اتصالات كاش</option>
         </select>
+      </div>
+    </div>
+    <!-- حقول القرض المستلم — تظهر فقط لو اختار "قرض مستلم" -->
+    <div id="in-loan-fields" style="display:none;background:var(--surface2);border:1px solid var(--accent2);border-radius:var(--radius);padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:800;color:var(--accent2);margin-bottom:10px"><i class="fa-solid fa-handshake"></i> بيانات المُقرض — هيتسجل تلقائياً في القروض</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">اسم المُقرض *</label>
+          <input class="form-input" id="in-loan-person" placeholder="اسم الشخص أو الجهة">
+        </div>
+        <div class="form-group">
+          <label class="form-label">رقم التليفون (اختياري)</label>
+          <input class="form-input" id="in-loan-phone" placeholder="01xxxxxxxxx" type="tel">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">تاريخ السداد المتوقع (اختياري)</label>
+        <input class="form-input" type="date" id="in-loan-due">
       </div>
     </div>
     <div class="form-group"><label class="form-label">وصف</label><input class="form-input" id="in-desc" placeholder="مثال: دفعة أولى مشروع لوجو"></div>
@@ -5894,7 +5913,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">الفئة</label>
-        <select class="form-select" id="ex-cat">
+        <select class="form-select" id="ex-cat" onchange="_toggleExpenseLoanFields()">
           <option value="برامج واشتراكات"><i class="fa-solid fa-laptop"></i> برامج واشتراكات</option>
           <option value="معدات وأجهزة"><i class="fa-solid fa-desktop"></i> معدات وأجهزة</option>
           <option value="تسويق"><i class="fa-solid fa-bullhorn"></i> تسويق</option>
@@ -5902,6 +5921,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
           <option value="صيانة أجهزة"><i class="fa-solid fa-wrench"></i> صيانة أجهزة</option>
           <option value="إنترنت"><i class="fa-solid fa-globe"></i> إنترنت</option>
           <option value="سحب شخصي"><i class="fa-solid fa-dollar-sign"></i> سحب شخصي</option>
+          <option value="سلفة للغير">🤝 سلفة للغير (فلوس ليا عندهم)</option>
           <option value="أخرى"><i class="fa-solid fa-thumbtack"></i> أخرى</option>
         </select>
       </div>
@@ -5913,6 +5933,24 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
           <option value="vodafone"><i class="fa-solid fa-mobile-screen"></i> فودافون كاش</option>
           <option value="etisalat"><i class="fa-solid fa-phone"></i> اتصالات كاش</option>
         </select>
+      </div>
+    </div>
+    <!-- حقول السلفة — تظهر فقط لو اختار "سلفة للغير" -->
+    <div id="ex-loan-fields" style="display:none;background:var(--surface2);border:1px solid var(--accent3);border-radius:var(--radius);padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:800;color:var(--accent3);margin-bottom:10px"><i class="fa-solid fa-handshake"></i> بيانات المستلف — هيتسجل تلقائياً في القروض</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">اسم المستلف *</label>
+          <input class="form-input" id="ex-loan-person" placeholder="اسم الشخص">
+        </div>
+        <div class="form-group">
+          <label class="form-label">رقم التليفون (اختياري)</label>
+          <input class="form-input" id="ex-loan-phone" placeholder="01xxxxxxxxx" type="tel">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">تاريخ الرد المتوقع (اختياري)</label>
+        <input class="form-input" type="date" id="ex-loan-due">
       </div>
     </div>
     <div class="form-group"><label class="form-label">وصف</label><input class="form-input" id="ex-desc" placeholder="مثال: اشتراك Adobe CC"></div>
@@ -6622,9 +6660,14 @@ function renderReviewsPage() {
 function _copyReviewLink() {
   const uid = _supaUserId;
   const un = S.settings?.username;
+  // بناء المسار الصح بناءً على الـ URL الحالي (يشتغل مع GitHub Pages وغيره)
+  var _parts = window.location.pathname.split('/').filter(function(p){return p!=='';});
+  if(_parts.length && _parts[_parts.length-1].endsWith('.html')) _parts.pop();
+  var _basePath = _parts.length ? '/' + _parts.join('/') + '/' : '/';
+  var _portalBase = window.location.origin + _basePath + 'client-portal.html';
   const base = un
-    ? `${location.origin}/client-portal.html?u=${encodeURIComponent(un)}`
-    : `${location.origin}/client-portal.html?uid=${uid}`;
+    ? `${_portalBase}?u=${encodeURIComponent(un)}`
+    : `${_portalBase}?uid=${uid}`;
   const link = base + `&tab=reviews`;
   navigator.clipboard?.writeText(link).then(() => toast('✅ تم نسخ رابط التقييمات'));
 }
@@ -9852,6 +9895,7 @@ function openIncomeModal(id, prefillTaskId){
     const ptEl=document.getElementById('in-payment-type'); if(ptEl) ptEl.value='full';
     const pmEl=document.getElementById('in-pay-method');  if(pmEl) pmEl.value='cash';
   }
+  _toggleIncomeLoanFields();
   openM('modal-income');
 }
 function openExpenseModal(id){
@@ -9870,6 +9914,7 @@ function openExpenseModal(id){
     document.getElementById('ex-date').value=new Date().toISOString().split('T')[0];
     const pmEl=document.getElementById('ex-pay-method'); if(pmEl) pmEl.value='cash';
   }
+  _toggleExpenseLoanFields();
   openM('modal-expense');
 }
 function saveTrans(type){
@@ -9903,7 +9948,38 @@ function saveTrans(type){
   if(eid){const i=S.transactions.findIndex(t=>t.id==eid);if(i>-1){d.id=+eid;if(!incRcpt&&S.transactions[i].receiptImage)d.receiptImage=S.transactions[i].receiptImage;S.transactions[i]=d;}}
   else{d.id=Date.now();S.transactions.push(d);}
   if(isInc) window._incReceiptData=null;
-  lsSave();closeM(isInc?'modal-income':'modal-expense');renderAll();
+
+  // ══ تسجيل تلقائي في القروض ══
+  if(isInc && paymentType==='loan_received'){
+    // قرض مستلم → "استلفت من حد" = borrowed
+    const lPerson=(document.getElementById('in-loan-person')?.value||'').trim();
+    if(lPerson){
+      if(!S.loans) S.loans=[];
+      const lDue=document.getElementById('in-loan-due')?.value||'';
+      const lPhone=document.getElementById('in-loan-phone')?.value||'';
+      const lNotes=lPhone?('تليفون: '+lPhone):'';
+      S.loans.push({id:'ln_'+Date.now(),direction:'borrowed',amount,person:lPerson,phone:lPhone,
+        date:isoDate,due:lDue,notes:lNotes,status:'pending',settledAmount:0,
+        createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),linkedTransId:d.id});
+      toast('🤝 تم تسجيل القرض تلقائياً في صفحة القروض');
+    }
+  }
+  if(!isInc && expCat==='سلفة للغير'){
+    // سلفة للغير → "سلّفت للغير" = lent
+    const lPerson=(document.getElementById('ex-loan-person')?.value||'').trim();
+    if(lPerson){
+      if(!S.loans) S.loans=[];
+      const lDue=document.getElementById('ex-loan-due')?.value||'';
+      const lPhone=document.getElementById('ex-loan-phone')?.value||'';
+      const lNotes=lPhone?('تليفون: '+lPhone):'';
+      S.loans.push({id:'ln_'+Date.now(),direction:'lent',amount,person:lPerson,phone:lPhone,
+        date:isoDate,due:lDue,notes:lNotes,status:'pending',settledAmount:0,
+        createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),linkedTransId:d.id});
+      toast('🤝 تم تسجيل السلفة تلقائياً في صفحة القروض');
+    }
+  }
+
+  lsSave();cloudSave(S);closeM(isInc?'modal-income':'modal-expense');renderAll();
   // Auto-print receipt for income transactions
   if(isInc){
     const savedId = eid ? +eid : S.transactions[S.transactions.length-1]?.id;
@@ -14982,6 +15058,22 @@ function updateLoanDirection(){
   var dir=document.getElementById('loan-direction')?.value||'lent';
   var lbl=document.getElementById('loan-person-label');
   if(lbl) lbl.textContent = dir==='lent' ? 'اسم الشخص اللي سلّفته *' : 'اسم الشخص اللي استلفت منه *';
+}
+function _toggleIncomeLoanFields(){
+  var pt=document.getElementById('in-payment-type')?.value;
+  var f=document.getElementById('in-loan-fields');
+  if(f) f.style.display = pt==='loan_received' ? 'block' : 'none';
+  if(pt!=='loan_received'){
+    ['in-loan-person','in-loan-phone','in-loan-due'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  }
+}
+function _toggleExpenseLoanFields(){
+  var cat=document.getElementById('ex-cat')?.value;
+  var f=document.getElementById('ex-loan-fields');
+  if(f) f.style.display = cat==='سلفة للغير' ? 'block' : 'none';
+  if(cat!=='سلفة للغير'){
+    ['ex-loan-person','ex-loan-phone','ex-loan-due'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  }
 }
 function openLoanModal(id){
   document.getElementById('loan-modal-ttl').innerHTML = id ? '<i class="fa-solid fa-handshake"></i> تعديل القرض' : '<i class="fa-solid fa-handshake"></i> قرض / دين جديد';
