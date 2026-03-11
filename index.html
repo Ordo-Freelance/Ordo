@@ -447,7 +447,7 @@ async function _deleteEntity(table, idField, itemId) {
 // ── Smart save: يحفظ التغييرات الجديدة في الجداول المناسبة ──
 let _lastSavedTasks = 0, _lastSavedClients = 0, _lastSavedInvoices = 0, _lastSavedTrans = 0;
 function _smartEntitySave() {
-  if (!_supaUserId || !S || !window._cloudLoadDone || !window._appReady) return;
+  if (!_supaUserId || !S || !window._appReady) return;
   // نشوف إيه اللي اتغير وبس نحفظه
   const now = Date.now();
   if ((S.tasks||[]).length !== _lastSavedTasks) {
@@ -470,8 +470,6 @@ function _smartEntitySave() {
 
 async function _doCloudSave(data, force) {
   if (!_supaUserId || !data) return false;
-  // منع الحفظ قبل ما البيانات تتحمل من السحابة — حماية من مسح البيانات
-  if (!window._cloudLoadDone && !force) return false;
   if (!force && !window._appReady) return false;
 
   // Skip if already saving — mark pending, retry after
@@ -505,8 +503,7 @@ async function _doCloudSave(data, force) {
       await new Promise(r => setTimeout(r, 800 * (_attempt + 1)));
     }
 
-    if (!window._cloudLoadDone) return;
-  // ── الحفظ الموازي في الجداول الجديدة (non-blocking) ──
+    // ── الحفظ الموازي في الجداول الجديدة (non-blocking) ──
     setTimeout(() => _smartEntitySave(), 0);
 
     // ── حفظ الإعدادات دايماً ──
@@ -688,7 +685,7 @@ function _mergeUiSettingsIntoS(){
 
 // حفظ فوري عند إغلاق الصفحة
 window.addEventListener('beforeunload', function() {
-  if(!_supaUserId || !S || !window._appReady || !window._cloudLoadDone) return;
+  if(!_supaUserId || !S || !window._appReady) return;
   // ── حفظ cache محلي فوري قبل الإغلاق/الريفريش ──
   try {
     S._savedAt = new Date().toISOString();
@@ -2549,14 +2546,8 @@ function getQRDataURL(text, size) {
 <script>
 // Prevent flash: show body only after auth check AND subscription load
 window._appReady = false;
-window._cloudLoadDone = false;
 window._showApp = function(){
-  // لو في login flow نشط — مش نفعّل الحفظ قبل ما البيانات تتحمل
-  if(!window._cloudLoadDone) {
-    window._appReady = false; // لا نسمح بالحفظ قبل التحميل
-  } else {
-    window._appReady = true;
-  }
+  window._appReady = true;
   document.body.style.visibility = 'visible';
   // لو صفحة متجر عام - لا تضيف overflow:hidden
   var _pp = new URLSearchParams(window.location.search);
@@ -3193,6 +3184,30 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <label class="form-label">أعضاء الفريق</label>
       <div id="proj-members-select" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--surface2);border-radius:8px;min-height:40px"></div>
     </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="form-group">
+        <label class="form-label"><i class="fa-solid fa-coins" style="color:#f7c948"></i> ميزانية المشروع</label>
+        <input class="form-input" type="number" id="proj-budget" placeholder="0" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">العملة</label>
+        <select class="form-input" id="proj-budget-currency">
+          <option value="ج.م">ج.م</option>
+          <option value="USD">USD</option>
+          <option value="SAR">SAR</option>
+          <option value="AED">AED</option>
+          <option value="EUR">EUR</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">نوع التسعير</label>
+        <select class="form-input" id="proj-pricing-type">
+          <option value="fixed">سعر ثابت</option>
+          <option value="hourly">بالساعة</option>
+          <option value="milestone">مراحل</option>
+        </select>
+      </div>
+    </div>
     <div class="form-group">
       <label class="form-label"><i class="fa-solid fa-palette" style="color:var(--accent)"></i> لون المشروع</label>
       <div style="display:flex;gap:8px;flex-wrap:wrap" id="proj-color-picker">
@@ -3755,9 +3770,6 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <option value="تسويق"><i class="fa-solid fa-bullhorn"></i> تسويق</option>
       <option value="تعليم وكورسات"><i class="fa-solid fa-books"></i> تعليم</option>
       <option value="سحب شخصي"><i class="fa-solid fa-dollar-sign"></i> شخصي</option>
-    </select>
-    <select id="fin-filter-project" onchange="applyFinanceFilter()" style="min-width:130px">
-      <option value="">كل المشاريع</option>
     </select>
     <button class="filter-reset" onclick="resetFinanceFilter()"><i class="fa-solid fa-xmark"></i> إعادة تعيين</button>
     <span id="fin-filter-label" style="font-size:12px;color:var(--accent);font-weight:700"></span>
@@ -5863,15 +5875,9 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">ربط بمهمة (اختياري)</label>
+        <label class="form-label">ربط بمشروع (اختياري)</label>
         <select class="form-select" id="in-linked-task" onchange="onIncomeTaskLink()">
           <option value="">— اختر عميل أولاً —</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label"><i class="fa-solid fa-diagram-project" style="color:var(--accent)"></i> ربط بمشروع (اختياري)</label>
-        <select class="form-select" id="in-linked-project" onchange="onIncomeProjectLink()">
-          <option value="">— لا يوجد مشروع —</option>
         </select>
       </div>
     </div>
@@ -5879,10 +5885,10 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <div class="form-group">
         <label class="form-label">نوع الدفعة</label>
         <select class="form-select" id="in-payment-type" onchange="document.getElementById('in-loan-fields').style.display=this.value==='loan_received'?'block':'none'">
-          <option value="full">دفعة كاملة</option>
+          <option value="full"><i class="fa-solid fa-coins"></i> دفعة كاملة</option>
           <option value="deposit">🔰 عربون</option>
-          <option value="partial">دفعة جزئية</option>
-          <option value="loan_received">🤝 قرض مستلم</option>
+          <option value="partial"><i class="fa-solid fa-credit-card"></i> دفعة جزئية</option>
+          <option value="loan_received">🤝 قرض مستلم (استلفت فلوس)</option>
         </select>
       </div>
       <div class="form-group">
@@ -6322,8 +6328,6 @@ function hasActiveSub(){
   if(!_supaUserId) return true;
   if(_isAdminUser) return true;  // المشرف له اشتراك مدى الحياة تلقائياً
   if(_isTrialActive()) return true;  // التجربة المجانية تعادل اشتراكاً نشطاً
-  // لو الاشتراك لسه بيتحمل — افتح كل الصفحات
-  if(!window._subLoadDone) return true;
   if(!_userSubscription) return false;
   if(_userSubscription.billing==='lifetime') return true;
   if(!_userSubscription.expiresAt) return true;
@@ -7812,54 +7816,22 @@ function onTaskClientChange(clientName) {
 // ============================================================
 function onIncomeClientChange(clientName) {
   const taskSel = document.getElementById('in-linked-task');
-  // Fill tasks dropdown
-  if(taskSel) {
-    taskSel.innerHTML = '<option value="">— لا ربط —</option>';
-    if(clientName) {
-      const clientTasks = S.tasks.filter(t => t.client === clientName);
-      const statusLabel = {new:'جديد', progress:'جاري', review:'مراجعة', done:'مكتمل'};
-      clientTasks.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.id;
-        opt.textContent = t.title + (t.status ? ' (' + (statusLabel[t.status]||t.status) + ')' : '');
-        taskSel.appendChild(opt);
-      });
-    }
+  if(!taskSel) return;
+  taskSel.innerHTML = '<option value="">— لا ربط —</option>';
+  if(!clientName) return;
+  // Filter tasks belonging to this client
+  const clientTasks = S.tasks.filter(t => t.client === clientName);
+  if(!clientTasks.length) {
+    taskSel.innerHTML = '<option value="">— لا توجد مشاريع لهذا العميل —</option>';
+    return;
   }
-  // Fill projects dropdown
-  const projSel = document.getElementById('in-linked-project');
-  if(projSel) {
-    projSel.innerHTML = '<option value="">— لا يوجد مشروع —</option>';
-    if(clientName) {
-      const client = (S.clients||[]).find(c => c.name === clientName);
-      const clientProjects = (S.projects||[]).filter(p =>
-        (client && String(p.client_id) === String(client.id)) ||
-        p.client === clientName
-      );
-      if(clientProjects.length) {
-        clientProjects.forEach(p => {
-          const opt = document.createElement('option');
-          opt.value = p.id;
-          opt.textContent = p.name + (p.status ? ' · ' + ({active:'نشط',hold:'معلق',review:'مراجعة',done:'مكتمل'}[p.status]||p.status) : '');
-          projSel.appendChild(opt);
-        });
-      } else {
-        (S.projects||[]).forEach(p => {
-          const opt = document.createElement('option');
-          opt.value = p.id;
-          opt.textContent = p.name;
-          projSel.appendChild(opt);
-        });
-      }
-    } else {
-      (S.projects||[]).forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.id;
-        opt.textContent = p.name;
-        projSel.appendChild(opt);
-      });
-    }
-  }
+  const statusLabel = {new:'جديد', progress:'جاري', review:'مراجعة', done:'مكتمل'};
+  clientTasks.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.title + (t.status ? ' (' + (statusLabel[t.status]||t.status) + ')' : '');
+    taskSel.appendChild(opt);
+  });
 }
 
 // Populate income client dropdown with all clients
@@ -9936,28 +9908,6 @@ function onIncomeTaskLink(){
     if(t && amtEl && !amtEl.value) amtEl.value = t.value||'';
   }
 }
-function onIncomeProjectLink(){
-  const projSel = document.getElementById('in-linked-project');
-  if(!projSel || !projSel.value) return;
-  const proj = (S.projects||[]).find(p => String(p.id) === String(projSel.value));
-  if(!proj) return;
-  const descEl = document.getElementById('in-desc');
-  if(descEl && !descEl.value) descEl.value = 'دفعة مشروع: ' + proj.name;
-}
-
-function _fillOpenIncomeProject(projId) {
-  const projSel = document.getElementById('in-linked-project');
-  if(!projSel) return;
-  projSel.innerHTML = '<option value="">— لا يوجد مشروع —</option>';
-  (S.projects||[]).forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.id;
-    opt.textContent = p.name;
-    projSel.appendChild(opt);
-  });
-  if(projId) projSel.value = String(projId);
-}
-
 function openIncomeModal(id, prefillTaskId){
   document.getElementById('income-ttl').innerHTML=id?'<i class="fa-solid fa-coins"></i> تعديل دخل':'<i class="fa-solid fa-coins"></i> تسجيل دخل';
   document.getElementById('income-eid').value=id||'';
@@ -9975,7 +9925,6 @@ function openIncomeModal(id, prefillTaskId){
     }
     document.getElementById('in-desc').value=t.desc||'';
     document.getElementById('in-date').value=t.isoDate||'';
-    setTimeout(()=>{ _fillOpenIncomeProject(t.project_id||''); }, 60);
     // After setting client, filter projects
     if(t.source) onIncomeClientChange(t.source);
     const taskSel = document.getElementById('in-linked-task');
@@ -10049,9 +9998,8 @@ function saveTrans(type){
   const d={type,amount,source:finalSource,desc:v(isInc?'in-desc':'ex-desc'),
     date:new Date(isoDate+'T00:00:00').toLocaleDateString('ar-EG'), isoDate,
     payMethod,
-    ...(linkedTaskId  ? {linkedTaskId}  : {}),
-    ...(linkedProjId  ? {project_id: String(linkedProjId), project_name: linkedProjObj?.name||''} : {}),
-    ...(paymentType   ? {paymentType}   : {}),
+    ...(linkedTaskId ? {linkedTaskId} : {}),
+    ...(paymentType  ? {paymentType}  : {}),
     ...(expCat       ? {expCat}       : {}),
     ...(expImpact    ? {expImpact}    : {}),
     ...(incRcpt      ? {receiptImage:incRcpt} : {}),
@@ -10093,7 +10041,7 @@ function saveTrans(type){
 }
 function delTrans(id){confirmDel('هل تريد حذف هذه المعاملة؟',()=>{S.transactions=S.transactions.filter(t=>t.id!==id);lsSave();renderAll();});}
 // Finance filter state
-let finFilterState = {month:'', year:'', type:'', method:'', cat:'', project:''};
+let finFilterState = {month:'', year:'', type:'', method:'', cat:''};
 
 function populateFinYears(){
   const sel = document.getElementById('fin-filter-year'); if(!sel) return;
@@ -10111,14 +10059,13 @@ function applyFinanceFilter(){
   finFilterState.year   = document.getElementById('fin-filter-year')?.value||'';
   finFilterState.type   = document.getElementById('fin-filter-type')?.value||'';
   finFilterState.method = document.getElementById('fin-filter-method')?.value||'';
-  finFilterState.cat     = document.getElementById('fin-filter-cat')?.value||'';
-  finFilterState.project = document.getElementById('fin-filter-project')?.value||'';
+  finFilterState.cat    = document.getElementById('fin-filter-cat')?.value||'';
   renderFinance();
 }
 
 function resetFinanceFilter(){
-  finFilterState = {month:'',year:'',type:'',method:'',cat:'',project:''};
-  ['fin-filter-month','fin-filter-year','fin-filter-type','fin-filter-method','fin-filter-cat','fin-filter-project'].forEach(id=>{
+  finFilterState = {month:'',year:'',type:'',method:'',cat:''};
+  ['fin-filter-month','fin-filter-year','fin-filter-type','fin-filter-method','fin-filter-cat'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
   renderFinance();
@@ -10132,8 +10079,7 @@ function filterTransactions(transactions){
     if(f.year   && d.slice(0,4) !== f.year) return false;
     if(f.type   && t.type !== f.type) return false;
     if(f.method && (t.payMethod||'cash') !== f.method) return false;
-    if(f.cat     && (t.expCat||t.source||'') !== f.cat) return false;
-    if(f.project && String(t.project_id||'') !== String(f.project)) return false;
+    if(f.cat    && (t.expCat||t.source||'') !== f.cat) return false;
     return true;
   });
 }
@@ -10210,10 +10156,8 @@ function renderFinance(){
   renderUnpaidReminders();
   
   const tbody=document.getElementById('fin-tbody');if(!tbody)return;
-  const rows = [...filtered].sort((a,b)=>(b.isoDate||'').localeCompare(a.isoDate||'')).map(t=>{
-    const projBadge = t.project_id ? (()=>{const pj=(S.projects||[]).find(p=>String(p.id)===String(t.project_id));return pj?` <span style="font-size:10px;background:rgba(79,209,165,.12);color:#4fd1a5;padding:1px 7px;border-radius:8px;cursor:pointer" onclick="showPage('projects');setTimeout(()=>openProjectDetail('${pj.id}'),200)"><i class="fa-solid fa-diagram-project"></i> ${pj.name.slice(0,18)}</span>`:'';})() : '';
-    return `<tr>
-    <td>${t.desc||'—'}${projBadge}${t.linkedTaskId?(()=>{const lt=S.tasks.find(x=>x.id===t.linkedTaskId);return lt?` <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:1px 6px;border-radius:8px;cursor:pointer" onclick="openTaskDetail(${t.linkedTaskId})"><i class="fa-solid fa-link"></i> ${lt.title.slice(0,20)}</span>`:''})():''}</td><td class="hide-mobile">${t.source||'—'}${t.paymentType&&t.paymentType!=='full'?` <span style="font-size:10px;color:var(--accent2)">(${t.paymentType==='deposit'?'عربون':'جزئي'})</span>`:''}</td>
+  const rows = [...filtered].sort((a,b)=>(b.isoDate||'').localeCompare(a.isoDate||'')).map(t=>`<tr>
+    <td>${t.desc||'—'}${t.linkedTaskId?(()=>{const lt=S.tasks.find(x=>x.id===t.linkedTaskId);return lt?` <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:1px 6px;border-radius:8px;cursor:pointer" onclick="openTaskDetail(${t.linkedTaskId})"><i class="fa-solid fa-link"></i> ${lt.title.slice(0,20)}</span>`:''})():''}</td><td class="hide-mobile">${t.source||'—'}${t.paymentType&&t.paymentType!=='full'?` <span style="font-size:10px;color:var(--accent2)">(${t.paymentType==='deposit'?'عربون':'جزئي'})</span>`:''}</td>
     <td><span class="badge ${t.type==='income'?'badge-green':'badge-red'}">${t.type==='income'?'<i class="fa-solid fa-coins"></i> دخل':'<i class="fa-solid fa-money-bill-wave"></i> مصروف'}</span></td>
     <td style="font-weight:700;color:${t.type==='income'?'var(--accent3)':'var(--accent4)'}">${t.amount.toLocaleString()} ج</td>
     <td class="hide-mobile" style="font-family:var(--mono);font-size:11px">${t.isoDate||t.date||'—'}</td>
@@ -10222,7 +10166,7 @@ function renderFinance(){
       ${t.type==='income'?`<button class="btn btn-ghost btn-sm" onclick="exportReceipt(${t.id})" title="إيصال PDF" style="color:var(--accent3)"><i class="fa-solid fa-receipt"></i></button>`:''}
       <button class="btn btn-danger btn-sm" onclick="delTrans(${t.id})"><i class="fa-solid fa-trash"></i></button>
     </div></td>
-  </tr>`;}).join('');
+  </tr>`).join('');
   tbody.innerHTML = rows || '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">لا معاملات تطابق الفلتر</td></tr>';
 }
 
@@ -11728,13 +11672,15 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     if(cacheScore > cloudScore || (cacheScore === cloudScore && cacheTime > cloudTime)) {
       console.log('⚡ Cache is newer than cloud | cache:', cacheScore, 'cloud:', cloudScore, '— using cache and re-saving');
       _bestData = _cachedData;
-      // أعد الحفظ للسحابة فوراً لمزامنتها — لكن فقط لو السحابة فعلاً فاضية
+      // أعد الحفظ للسحابة فوراً لمزامنتها — لكن فقط لو السحابة فعلاً فاضية (مش مجرد connection error)
       if (_cloudScore === 0) {
         setTimeout(async () => {
+          // تحقق مجدداً إن السحابة فاضية فعلاً قبل الكتابة
           try {
             const _verify = await supa.from('studio_data').select('updated_at').eq('user_id', supaUser.id).maybeSingle();
             const _cloudUpdated = _verify?.data?.updated_at ? new Date(_verify.data.updated_at).getTime() : 0;
             const _cacheUpdated = _cachedData._savedAt ? new Date(_cachedData._savedAt).getTime() : 0;
+            // لا تكتب فوق بيانات السحابة لو هي أحدث
             if (_cloudUpdated <= _cacheUpdated) {
               const _rp = { user_id: supaUser.id, data: JSON.stringify(_cachedData), updated_at: _cachedData._savedAt || new Date().toISOString() };
               await supa.from('studio_data').upsert(_rp, { onConflict: 'user_id' });
@@ -11794,7 +11740,6 @@ async function loginWithSupaSession(supaUser, session, userMeta){
       // السحابة فارغة أو مش متاحة — مستخدم جديد أو مشكلة شبكة
       migrateSFields(); // تأكد إن S فيها المصفوفات الأساسية
       window._appReady = true; // ✅ آمن للحفظ (S موجودة وجاهزة)
-      window._subLoadDone = true;
       window._cloudLoadDone = true;
       console.log('Cloud load failed or empty — treating as new user');
     }
@@ -18182,7 +18127,7 @@ function buildPortalHTML(d){
     // CONTRACTS
     (hasCt?'<div class="tab-panel" id="tab-ct"><div class="con"><div class="card"><div class="ct"><i class="fa-solid fa-pen-to-square"></i> العقود</div><table><thead><tr><th>العقد</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>'+ctRows+'</tbody></table></div></div></div>':'')+
     '<div class="ftr">'+d.studio+' · آخر تحديث: '+d.generated+'</div>'+
-    '<script>'+
+    '<scr'+'ipt>'+
     'function sw(n){'+
     'document.querySelectorAll(".tab").forEach(function(t,i){var ns=["ov","tk","fn","ct"];t.classList.toggle("active",ns[i]===n);});'+
     'document.querySelectorAll(".tab-panel").forEach(function(p){p.classList.toggle("active",p.id==="tab-"+n);});'+
@@ -24778,6 +24723,7 @@ function renderProjCard(p){
         <span class="proj-status-badge" style="color:${st.color};background:${st.bg}">${st.label}</span>
       </div>
       <div class="proj-card-client">${client?'<i class="fa-solid fa-user"></i> '+escapeHtml(client.name):'<i class="fa-solid fa-circle-minus"></i> بدون عميل'}</div>
+      ${p.budget>0?`<div style="font-size:10px;color:var(--text3);margin-top:3px"><i class="fa-solid fa-coins" style="color:#f7c948;margin-left:4px"></i><span style="color:#f7c948;font-weight:700">${p.budget.toLocaleString()} ${p.budgetCurrency||'ج.م'}</span> ميزانية</div>`:''}
       <div class="proj-progress-bar"><div class="proj-progress-fill" style="width:${prog}%;background:${clr}"></div></div>
       <div class="proj-progress-label"><span>${prog}% مكتمل</span><span>${tasks.filter(t=>t.status==='done').length}/${tasks.length} مهمة</span></div>
       ${p.deadline?`<div style="font-size:10px;margin-top:6px;color:${isOverdue?'var(--accent4)':'var(--text3)'}"><i class="fa-solid fa-calendar${isOverdue?' fa-shake':''}"></i> ${p.deadline}${isOverdue?' — متأخر!':''}</div>`:''}
@@ -24840,6 +24786,12 @@ function openProjectModal(id){
   document.getElementById('proj-start').value=proj?proj.start||'':'';
   document.getElementById('proj-deadline').value=proj?proj.deadline||'':'';
   pickProjColor(proj?proj.color||'#7c6ff7':'#7c6ff7');
+  var budInp=document.getElementById('proj-budget');
+  var budCur=document.getElementById('proj-budget-currency');
+  var budType=document.getElementById('proj-pricing-type');
+  if(budInp) budInp.value=proj?proj.budget||'':'';
+  if(budCur) budCur.value=proj?proj.budgetCurrency||'ج.م':'ج.م';
+  if(budType) budType.value=proj?proj.pricingType||'fixed':'fixed';
   // Client select
   var csel=document.getElementById('proj-client');
   csel.innerHTML='<option value="">— بدون عميل —</option>'+(S.clients||[]).map(c=>`<option value="${c.id}"${proj&&String(proj.client_id)===String(c.id)?' selected':''}>${escapeHtml(c.name)}</option>`).join('');
@@ -24964,6 +24916,9 @@ function saveProject(){
     color:document.getElementById('proj-color').value||'#7c6ff7',
     members,
     team_group_id:(tsel?tsel.value:'')||'',
+    budget:+(document.getElementById('proj-budget')?.value||0)||0,
+    budgetCurrency:document.getElementById('proj-budget-currency')?.value||'ج.م',
+    pricingType:document.getElementById('proj-pricing-type')?.value||'fixed',
     createdAt:new Date().toISOString()
   };
   if(eid){
@@ -25060,6 +25015,7 @@ function renderProjTabContent(tab, proj, tasks, client, clr){
   if(tab==='overview') return renderProjOverview(proj,tasks,client,clr);
   if(tab==='tasks')    return renderProjTasksList(proj,tasks,clr);
   if(tab==='kanban')   return renderProjKanban(proj,tasks,clr);
+  if(tab==='finance')  return renderProjFinanceTab(proj,tasks,clr);
   if(tab==='team')     return renderProjTeam(proj,clr);
   if(tab==='files')    return renderProjFiles(proj,clr);
   return '';
@@ -25147,40 +25103,14 @@ function renderProjTasksList(proj,tasks,clr){
     </div>`:''}`;
 }
 
-function renderProjTaskRow(t,clr){
-  var pri=_getPriorityInfo(t.priority||'normal');
-  var st=_getTaskStatusInfo(t.status||'todo');
-  var steps=t.steps||[];
-  var doneSteps=steps.filter(function(s){return s.done;}).length;
-  return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openProjTaskDetail(\''+t.id+'\',\''+t.project_id+'\')">'+
-    '<input type="checkbox" '+(t.status==='done'?'checked':'')+' onclick="event.stopPropagation()" onchange="event.stopPropagation();toggleProjTaskDone('+JSON.stringify(String(t.id))+','+JSON.stringify(String(t.project_id))+',this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:'+clr+';flex-shrink:0">'+
-    '<div style="flex:1;min-width:0">'+
-      '<div style="font-size:13px;font-weight:700;'+(t.status==='done'?'text-decoration:line-through;color:var(--text3)':'')+'">'+escapeHtml(t.title)+'</div>'+
-      '<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center">'+
-        '<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;background:'+st.bg+';color:'+st.color+'">'+st.label+'</span>'+
-        '<span class="'+pri.cls+'">'+pri.label+'</span>'+
-        (t.deadline?'<span style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-calendar"></i> '+t.deadline+'</span>':'')+
-        (t.assignee_name?'<span style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-user"></i> '+escapeHtml(t.assignee_name)+'</span>':'')+
-        (steps.length?'<span style="font-size:10px;color:var(--text3)">'+doneSteps+'/'+steps.length+' خطوة</span>':'')+
-        (t.value?'<span style="font-size:10px;color:var(--accent3);font-weight:700"><i class="fa-solid fa-coins"></i> '+t.value.toLocaleString()+' '+(t.currency||'ج.م')+
-          (t.paymentCollected||t.paymentStatus==='collected'?' ✅':(t.deposit>0||t.paymentStatus==='deposit'?(' 🟡عربون: '+(t.deposit||0)+' '+(t.currency||'ج.م')):''))+
-        '</span>':'')+
-      '</div>'+
-    '</div>'+
-    '<div style="display:flex;gap:4px;align-items:center;flex-shrink:0" onclick="event.stopPropagation()">'+
-      (t.value>0&&t.status==='done'&&!t.paymentCollected?'<button data-tid="'+t.id+'" onclick="markTaskPaymentCollected(this.dataset.tid)" class="btn btn-success btn-sm" style="padding:2px 7px;font-size:10px">تحصيل</button>':'')+
-      '<button data-tid="'+t.id+'" data-pid="'+t.project_id+'" onclick="openProjTaskModal(this.dataset.pid,this.dataset.tid)" class="btn btn-ghost btn-sm" style="padding:3px 7px"><i class="fa-solid fa-pen"></i></button>'+
-      '<button data-tid="'+t.id+'" data-pid="'+t.project_id+'" onclick="deleteProjTask(this.dataset.tid,this.dataset.pid)" class="btn btn-danger btn-sm" style="padding:3px 7px"><i class="fa-solid fa-trash"></i></button>'+
-    '</div>'+
-  '</div>';
-}
-
 // ══════════════════════════════════════
 // PROJECT FINANCE TAB
 // ══════════════════════════════════════
 function renderProjFinanceTab(proj, tasks, clr) {
   var cur = proj.budgetCurrency || 'ج.م';
   var budget = proj.budget || 0;
+  
+  // Calculate from tasks
   var totalCost   = tasks.reduce(function(s,t){ return s + (t.value||0); }, 0);
   var collected   = tasks.filter(function(t){ return t.paymentCollected||t.paymentStatus==='collected'; })
                          .reduce(function(s,t){ return s + (t.value||0); }, 0);
@@ -25189,20 +25119,28 @@ function renderProjFinanceTab(proj, tasks, clr) {
   var pending     = totalCost - collected;
   var profit      = budget > 0 ? (budget - totalCost) : 0;
   var spent_pct   = budget > 0 ? Math.min(100, Math.round(totalCost/budget*100)) : 0;
+  
+  // Project transactions from global S.transactions linked to this project
   var projTrans   = (S.transactions||[]).filter(function(tr){
-    if(tr.project_id && String(tr.project_id) === String(proj.id)) return true;
-    if(tr.linkedProjTaskId && tasks.some(function(t){ return String(tr.linkedProjTaskId) === String(t.id); })) return true;
-    return false;
+    return tr.project_id === String(proj.id) || tr.linkedProjId === String(proj.id) ||
+           (tr.desc && tr.desc.indexOf(proj.name) >= 0) ||
+           tasks.some(function(t){ return tr.linkedProjTaskId === String(t.id) || String(tr.linkedProjTaskId) === String(t.id); });
   });
+
   var budgetColor = profit >= 0 ? '#4fd1a5' : '#f76f7c';
+  
   return '<div>' +
+  // ── Summary Cards ──
   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px">' +
-    _projFinCard('الميزانية', budget>0?(budget.toLocaleString()+' '+cur):'لم تُحدد', clr, 'fa-bullseye') +
-    _projFinCard('التكاليف', totalCost.toLocaleString()+' '+cur, '#f7c948', 'fa-coins') +
+    _projFinCard('الميزانية الكلية', budget>0?(budget.toLocaleString()+' '+cur):('لم تُحدد'), clr, 'fa-bullseye') +
+    _projFinCard('إجمالي التكاليف', totalCost.toLocaleString()+' '+cur, '#f7c948', 'fa-coins') +
     _projFinCard('المحصّل', collected.toLocaleString()+' '+cur, '#4fd1a5', 'fa-circle-check') +
     _projFinCard('المتبقي', pending.toLocaleString()+' '+cur, '#f97316', 'fa-clock') +
-    (budget>0 ? _projFinCard('الربح/خسارة', (profit>=0?'+':'')+profit.toLocaleString()+' '+cur, budgetColor, 'fa-chart-line') : '') +
+    (budget>0 ? _projFinCard('الربح/الخسارة', (profit>=0?'+':'')+profit.toLocaleString()+' '+cur, budgetColor, 'fa-chart-line') : '') +
+    (deposits>0 ? _projFinCard('عربونات مدفوعة', deposits.toLocaleString()+' '+cur, '#a78bfa', 'fa-hand-holding-dollar') : '') +
   '</div>' +
+  
+  // ── Budget Progress ──
   (budget>0 ? '<div class="card" style="padding:16px;margin-bottom:16px">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
       '<div style="font-size:13px;font-weight:800"><i class="fa-solid fa-chart-bar" style="color:'+clr+'"></i> استهلاك الميزانية</div>' +
@@ -25211,100 +25149,139 @@ function renderProjFinanceTab(proj, tasks, clr) {
     '<div style="height:12px;background:var(--surface3);border-radius:6px;overflow:hidden;margin-bottom:8px">' +
       '<div style="height:100%;width:'+spent_pct+'%;background:'+(spent_pct>90?'#f76f7c':spent_pct>70?'#f7c948':clr)+';border-radius:6px;transition:.5s"></div>' +
     '</div>' +
+    '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3)">' +
+      '<span>المصروف: <strong style="color:var(--text)">'+totalCost.toLocaleString()+' '+cur+'</strong></span>' +
+      '<span>الميزانية: <strong style="color:var(--text)">'+budget.toLocaleString()+' '+cur+'</strong></span>' +
+    '</div>' +
   '</div>' : '') +
+  
+  // ── Tasks Financial Breakdown ──
   '<div class="card" style="padding:16px;margin-bottom:16px">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
       '<div style="font-size:13px;font-weight:800"><i class="fa-solid fa-list-check" style="color:'+clr+'"></i> مالية المهام</div>' +
       '<button class="btn btn-primary btn-sm" onclick="openProjTaskModal('+proj.id+')"><i class="fa-solid fa-plus"></i> مهمة جديدة</button>' +
     '</div>' +
-    (tasks.filter(function(t){return t.value>0;}).length===0 ?
-      '<div style="text-align:center;padding:24px;color:var(--text3)">لا توجد مهام بقيمة مالية</div>' :
-    '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+    (tasks.filter(function(t){return t.value>0;}).length === 0 ?
+      '<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px"><i class="fa-solid fa-coins" style="font-size:28px;opacity:.3;display:block;margin-bottom:8px"></i>لا توجد مهام بقيمة مالية بعد</div>' :
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">' +
     '<thead><tr style="border-bottom:1px solid var(--border)">' +
-      '<th style="text-align:right;padding:8px 6px;color:var(--text3)">المهمة</th>' +
-      '<th style="text-align:center;padding:8px 6px;color:var(--text3)">القيمة</th>' +
-      '<th style="text-align:center;padding:8px 6px;color:var(--text3)">الحالة</th>' +
-    '</tr></thead><tbody>' +
+      '<th style="text-align:right;padding:8px 6px;color:var(--text3);font-weight:700">المهمة</th>' +
+      '<th style="text-align:right;padding:8px 6px;color:var(--text3);font-weight:700">المسؤول</th>' +
+      '<th style="text-align:center;padding:8px 6px;color:var(--text3);font-weight:700">القيمة</th>' +
+      '<th style="text-align:center;padding:8px 6px;color:var(--text3);font-weight:700">العربون</th>' +
+      '<th style="text-align:center;padding:8px 6px;color:var(--text3);font-weight:700">الحالة</th>' +
+      '<th style="text-align:center;padding:8px 6px;color:var(--text3);font-weight:700">الدفع</th>' +
+    '</tr></thead>' +
+    '<tbody>' +
     tasks.filter(function(t){return t.value>0;}).map(function(t){
-      var payLabel=(t.paymentCollected||t.paymentStatus==='collected')?'✅ محصّل':(t.deposit>0?'🟣 عربون':'⏳ معلق');
-      return '<tr style="border-bottom:1px solid var(--border)">'+
+      var st = _getTaskStatusInfo(t.status||'todo');
+      var payColor = (t.paymentCollected||t.paymentStatus==='collected') ? '#4fd1a5' : (t.paymentStatus==='deposit'||t.deposit>0) ? '#a78bfa' : '#f7c948';
+      var payLabel = (t.paymentCollected||t.paymentStatus==='collected') ? '✅ محصّل' : (t.paymentStatus==='deposit'||t.deposit>0) ? ('🟣 عربون: '+(t.deposit||0)) : '⏳ معلق';
+      return '<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="openProjTaskDetail('+t.id+','+proj.id+')">'+
         '<td style="padding:10px 6px;font-weight:700">'+escapeHtml(t.title)+'</td>'+
-        '<td style="padding:10px 6px;text-align:center;color:#f7c948;font-weight:800">'+t.value.toLocaleString()+' '+(t.currency||cur)+'</td>'+
-        '<td style="padding:10px 6px;text-align:center;font-size:11px">'+payLabel+
-          (!t.paymentCollected&&t.status==='done'?' <button data-tid="'+t.id+'" onclick="event.stopPropagation();markTaskPaymentCollected(this.dataset.tid)" class="btn btn-success btn-sm" style="font-size:9px;padding:1px 6px">تحصيل</button>':'')+
+        '<td style="padding:10px 6px;color:var(--text3)">'+escapeHtml(t.assignee_name||'—')+'</td>'+
+        '<td style="padding:10px 6px;text-align:center;font-weight:800;color:#f7c948">'+t.value.toLocaleString()+' '+(t.currency||cur)+'</td>'+
+        '<td style="padding:10px 6px;text-align:center;color:#a78bfa">'+((t.deposit>0)?t.deposit.toLocaleString()+' '+(t.currency||cur):'—')+'</td>'+
+        '<td style="padding:10px 6px;text-align:center"><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:'+st.bg+';color:'+st.color+'">'+st.label+'</span></td>'+
+        '<td style="padding:10px 6px;text-align:center">'+
+          '<span style="font-size:10px;font-weight:700;color:'+payColor+'">'+payLabel+'</span>'+
+          (!t.paymentCollected&&t.status==='done'?' <button data-tid="'+t.id+'" onclick="event.stopPropagation();markTaskPaymentCollected(this.dataset.tid)" class="btn btn-success btn-sm" style="font-size:9px;padding:1px 6px;margin-right:4px">تحصيل</button>':'') +
         '</td>'+
       '</tr>';
-    }).join('')+
-    '</tbody></table>') +
+    }).join('') +
+    '</tbody></table>' +
+    '<div style="padding:10px 6px;border-top:2px solid var(--border);display:flex;gap:24px;font-size:12px;font-weight:800">' +
+      '<span style="color:var(--text3)">الإجمالي: <span style="color:#f7c948">'+totalCost.toLocaleString()+' '+cur+'</span></span>' +
+      '<span style="color:var(--text3)">المحصّل: <span style="color:#4fd1a5">'+collected.toLocaleString()+' '+cur+'</span></span>' +
+      '<span style="color:var(--text3)">المتبقي: <span style="color:#f97316">'+pending.toLocaleString()+' '+cur+'</span></span>' +
+    '</div>' +
+    '</div>') +
   '</div>' +
+  
+  // ── Linked Transactions from Finance ──
   '<div class="card" style="padding:16px">' +
     '<div style="font-size:13px;font-weight:800;margin-bottom:12px"><i class="fa-solid fa-arrows-left-right" style="color:'+clr+'"></i> معاملات مالية مرتبطة</div>' +
-    (projTrans.length===0 ?
-      '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">لا توجد معاملات مرتبطة بعد</div>' :
-    '<div style="display:flex;flex-direction:column;gap:8px">'+
+    (projTrans.length === 0 ?
+      '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px"><i class="fa-solid fa-receipt" style="font-size:24px;opacity:.3;display:block;margin-bottom:8px"></i>لا توجد معاملات مرتبطة بهذا المشروع بعد</div>' :
+    '<div style="display:flex;flex-direction:column;gap:8px">' +
     projTrans.map(function(tr){
-      var isInc=tr.type==='income';
+      var isInc = tr.type==='income';
       return '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:8px;border-right:3px solid '+(isInc?'#4fd1a5':'#f76f7c')+'">'+
-        '<i class="fa-solid '+(isInc?'fa-arrow-up':'fa-arrow-down')+'" style="color:'+(isInc?'#4fd1a5':'#f76f7c')+'"></i>'+
-        '<div style="flex:1"><div style="font-size:12px;font-weight:700">'+escapeHtml(tr.desc||'معاملة')+'</div>'+
-        '<div style="font-size:10px;color:var(--text3)">'+((tr.date||tr.isoDate||'').slice(0,10))+'</div></div>'+
-        '<div style="font-size:13px;font-weight:900;color:'+(isInc?'#4fd1a5':'#f76f7c')+'">'+(isInc?'+':'-')+((tr.amount||0).toLocaleString())+' '+(tr.currency||cur)+'</div>'+
+        '<div style="width:30px;height:30px;border-radius:50%;background:'+(isInc?'rgba(79,209,165,.15)':'rgba(247,111,124,.15)')+';color:'+(isInc?'#4fd1a5':'#f76f7c')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px">'+
+          '<i class="fa-solid '+(isInc?'fa-arrow-up':'fa-arrow-down')+'"></i></div>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escapeHtml(tr.desc||'معاملة')+'</div>'+
+          '<div style="font-size:10px;color:var(--text3)">'+((tr.date||'').slice(0,10))+'</div>'+
+        '</div>'+
+        '<div style="font-size:13px;font-weight:900;color:'+(isInc?'#4fd1a5':'#f76f7c')+';text-align:left">'+
+          (isInc?'+':'-')+((tr.amount||0).toLocaleString())+' '+(tr.currency||cur)+'</div>'+
       '</div>';
-    }).join('')+'</div>') +
-    '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">' +
-      '<button class="btn btn-primary btn-sm" onclick="openProjIncomeModal('+proj.id+')"><i class="fa-solid fa-plus"></i> تسجيل دخل</button>' +
-      '<button class="btn btn-ghost btn-sm" onclick="openProjExpenseModal('+proj.id+')"><i class="fa-solid fa-minus"></i> مصروف</button>' +
-      '<button class="btn btn-ghost btn-sm" onclick="openNewInvoiceForProject('+proj.id+')"><i class="fa-solid fa-file-invoice"></i> فاتورة</button>' +
+    }).join('') + '</div>') +
+    '<div style="margin-top:12px;text-align:left">' +
+      '<button class="btn btn-primary btn-sm" onclick="openIncomeModal();document.getElementById(\'inc-desc\').value=\'مشروع: \'+escapeHtml(proj.name)+\'">' +
+        '<i class="fa-solid fa-plus"></i> تسجيل دخل للمشروع</button> '+
+      '<button class="btn btn-ghost btn-sm" onclick="openExpenseModal()" style="margin-right:6px">' +
+        '<i class="fa-solid fa-minus"></i> تسجيل مصروف</button>' +
     '</div>' +
-  '</div></div>';
+  '</div>' +
+  '</div>';
 }
 
 function _projFinCard(label, value, color, icon) {
   return '<div class="card" style="padding:14px;text-align:center">'+
     '<div style="font-size:18px;color:'+color+';margin-bottom:6px"><i class="fa-solid '+icon+'"></i></div>'+
-    '<div style="font-size:15px;font-weight:900">'+value+'</div>'+
+    '<div style="font-size:15px;font-weight:900;color:var(--text);line-height:1">'+value+'</div>'+
     '<div style="font-size:10px;color:var(--text3);margin-top:4px">'+label+'</div>'+
   '</div>';
 }
 
-function openProjIncomeModal(projId) {
-  var proj = _getProjById(projId); if(!proj) return;
-  var client = proj.client_id ? (S.clients||[]).find(function(c){return String(c.id)===String(proj.client_id);}) : null;
-  openIncomeModal();
-  setTimeout(function(){
-    if(client) {
-      var srcSel = document.getElementById('in-source');
-      if(srcSel) { srcSel.value = client.name; if(typeof onIncomeClientChange==='function') onIncomeClientChange(client.name); }
-    }
-    setTimeout(function(){
-      _fillOpenIncomeProject(projId);
-      var descEl = document.getElementById('in-desc');
-      if(descEl && !descEl.value) descEl.value = 'دفعة مشروع: ' + proj.name;
-    }, 80);
-  }, 30);
+function renderProjTaskRow(t,clr){
+  var pri=_getPriorityInfo(t.priority||'normal');
+  var st=_getTaskStatusInfo(t.status||'todo');
+  var steps=t.steps||[];
+  var doneSteps=steps.filter(function(s){return s.done;}).length;
+  var stepPct=steps.length?Math.round(doneSteps/steps.length*100):(t.status==='done'?100:0);
+  var priColors={high:'#f76f7c',normal:'#f7c948',low:'#4fd1a5'};
+  var priC=priColors[t.priority||'normal']||'#888';
+  var payColor=(t.paymentCollected||t.paymentStatus==='collected')?'#4fd1a5':(t.deposit>0||t.paymentStatus==='deposit')?'#a78bfa':'#f97316';
+  var payLabel=(t.paymentCollected||t.paymentStatus==='collected')?'محصّل':(t.deposit>0||t.paymentStatus==='deposit')?'عربون':'معلق';
+
+  return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;cursor:pointer;transition:border-color .18s" onclick="openProjTaskDetail('+t.id+','+t.project_id+')">' +
+    '<div style="height:3px;background:'+clr+'"></div>' +
+    '<div style="padding:12px 14px">' +
+      '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">' +
+        '<input type="checkbox" '+(t.status==='done'?'checked':'')+' onclick="event.stopPropagation()" onchange="event.stopPropagation();toggleProjTaskDone('+JSON.stringify(String(t.id))+','+JSON.stringify(String(t.project_id))+',this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:'+clr+';flex-shrink:0;margin-top:2px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:13px;font-weight:800;line-height:1.4;'+(t.status==='done'?'text-decoration:line-through;color:var(--text3)':'')+'">' + escapeHtml(t.title) + '</div>' +
+        '</div>' +
+        '<span style="font-size:9px;font-weight:800;padding:3px 8px;border-radius:8px;background:'+priC+'18;color:'+priC+';border:1px solid '+priC+'33;white-space:nowrap;flex-shrink:0">'+pri.label+'</span>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:'+(t.value>0||steps.length?'8':'0')+'px">' +
+        '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:'+st.bg+';color:'+st.color+'">'+st.label+'</span>' +
+        (t.assignee_name?'<span style="font-size:10px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:2px 8px;color:var(--text3)"><i class="fa-solid fa-user" style="color:'+clr+';margin-left:4px"></i>'+escapeHtml(t.assignee_name)+'</span>':'') +
+        (t.deadline?'<span style="font-size:10px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:2px 8px;color:var(--text3)"><i class="fa-solid fa-calendar" style="margin-left:4px"></i>'+t.deadline+'</span>':'') +
+        (steps.length?'<span style="font-size:10px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:2px 8px;color:var(--text3)">'+doneSteps+'/'+steps.length+' خطوة</span>':'') +
+      '</div>' +
+      (t.value>0?
+        '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface3);border-radius:8px;margin-bottom:4px">' +
+          '<i class="fa-solid fa-coins" style="color:#f7c948;font-size:12px"></i>' +
+          '<span style="font-size:12px;font-weight:900;color:#f7c948">'+t.value.toLocaleString()+' '+(t.currency||'ج.م')+'</span>' +
+          (t.deposit>0?'<span style="font-size:10px;color:#a78bfa"> · عربون: '+t.deposit.toLocaleString()+'</span>':'') +
+          '<div style="flex:1"></div>' +
+          '<span style="font-size:10px;font-weight:800;color:'+payColor+'">● '+payLabel+'</span>' +
+          (t.value>0&&t.status==='done'&&!t.paymentCollected?'<button data-tid="'+t.id+'" onclick="event.stopPropagation();markTaskPaymentCollected(this.dataset.tid)" class="btn btn-success btn-sm" style="padding:2px 8px;font-size:10px;margin-right:6px">✓ تحصيل</button>':'') +
+        '</div>' : '') +
+      (steps.length?
+        '<div style="margin-top:6px"><div style="height:4px;background:var(--surface3);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+stepPct+'%;background:'+clr+';border-radius:2px;transition:.4s"></div></div></div>' : '') +
+    '</div>' +
+    '<div style="display:flex;gap:4px;padding:6px 14px;border-top:1px solid var(--border);background:rgba(0,0,0,.1)" onclick="event.stopPropagation()">' +
+      '<button data-tid="'+t.id+'" data-pid="'+t.project_id+'" onclick="openProjTaskModal(this.dataset.pid,this.dataset.tid)" class="btn btn-ghost btn-sm" style="font-size:10px;padding:3px 8px"><i class="fa-solid fa-pen"></i> تعديل</button>' +
+      '<button data-tid="'+t.id+'" data-pid="'+t.project_id+'" onclick="deleteProjTask(this.dataset.tid,this.dataset.pid)" class="btn btn-danger btn-sm" style="font-size:10px;padding:3px 8px"><i class="fa-solid fa-trash"></i></button>' +
+    '</div>' +
+  '</div>';
 }
 
-function openProjExpenseModal(projId) {
-  var proj = _getProjById(projId); if(!proj) return;
-  openExpenseModal();
-  setTimeout(function(){
-    var descEl = document.getElementById('ex-desc');
-    if(descEl) descEl.value = 'مصروف مشروع: ' + proj.name;
-  }, 30);
-}
 
-function openNewInvoiceForProject(projId) {
-  var proj = _getProjById(projId); if(!proj) return;
-  showPage('invoices');
-  setTimeout(function(){
-    if(typeof openInvoiceModal === 'function') {
-      openInvoiceModal();
-      toast('<i class="fa-solid fa-file-invoice" style="color:var(--accent)"></i> فاتورة جديدة لمشروع ' + escapeHtml(proj.name));
-    }
-  }, 400);
-}
-
-// ── Kanban Tab ──
 function renderProjKanban(proj,tasks,clr){
   var cols=[
     {id:'todo',     label:'🆕 جديد',          color:'#64b5f6'},
@@ -28556,8 +28533,8 @@ var _styleEl = document.createElement('style');
 _styleEl.id = '_i18n-style';
 _styleEl.textContent = [
   // Direction-aware flex
-  
-  'body.lang-ltr .sidebar{right:auto!important;left:0!important;border-left:1px solid var(--border)!important;border-right:none!important;transform:translateX(-100%)}',
+  'body.lang-ltr .app-shell{flex-direction:row!important}',
+  'body.lang-ltr .sidebar{right:auto!important;left:0!important;border-left:none!important;border-right:1px solid var(--border)!important}',
   '@media(min-width:1025px){body.lang-ltr .app-body{margin-right:0!important;margin-left:240px!important}}',
   'body.lang-ltr .app-header{direction:ltr!important}',
   'body.lang-ltr .header-actions{flex-direction:row!important}',
@@ -29263,13 +29240,9 @@ document.addEventListener('keydown', _resetVaultLockTimer);
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:13px;color:var(--text2)">خصم</span>
-          <select id="prop-discount-type" onchange="_calcPropTotal()" style="height:28px;padding:0 6px;font-size:11px;border:1px solid var(--border);border-radius:var(--r1);background:var(--surface2);color:var(--text);cursor:pointer">
-            <option value="percent">%</option>
-            <option value="fixed">مبلغ ثابت</option>
-          </select>
-          <input class="form-input" type="number" id="prop-discount" value="0" min="0"
-            style="width:70px;height:28px;padding:0 8px;font-size:12px;text-align:center" oninput="_calcPropTotal()">
+          <span style="font-size:13px;color:var(--text2)">خصم %</span>
+          <input class="form-input" type="number" id="prop-discount" value="0" min="0" max="100"
+            style="width:60px;height:28px;padding:0 8px;font-size:12px;text-align:center" oninput="_calcPropTotal()">
         </div>
         <span id="prop-discount-val" style="color:var(--accent4);font-weight:700">-0 ج.م</span>
       </div>
@@ -29499,7 +29472,6 @@ function _addPropItem(item) {
   _propItemCount++;
   var wrap = document.getElementById('prop-items-wrap'); if (!wrap) return;
   var el = document.createElement('div');
-  el.className = 'prop-item-row';
   el.style.cssText = 'display:grid;grid-template-columns:1fr 64px 88px 30px;gap:5px;align-items:center;margin-bottom:6px';
   el.innerHTML =
     '<input class="form-input" placeholder="وصف البند" value="' + (item&&item.desc?escapeHtml(item.desc):'') + '" oninput="_calcPropTotal()" style="font-size:13px">'
@@ -29528,10 +29500,9 @@ function _getPropItems() {
 function _calcPropTotal() {
   var items    = _getPropItems();
   var subtotal = items.reduce(function(s,i){ return s+i.total; }, 0);
-  var discType = (document.getElementById('prop-discount-type')||{value:'percent'}).value || 'percent';
-  var discVal  = Math.max(0, +((document.getElementById('prop-discount')||{value:0}).value||0));
+  var disc     = Math.min(100, Math.max(0, +((document.getElementById('prop-discount')||{value:0}).value||0)));
   var tax      = Math.min(100, Math.max(0, +((document.getElementById('prop-tax')||{value:0}).value||0)));
-  var discAmt  = discType === 'fixed' ? Math.min(discVal, subtotal) : subtotal * Math.min(100, discVal) / 100;
+  var discAmt  = subtotal * disc / 100;
   var taxAmt   = (subtotal - discAmt) * tax / 100;
   var total    = subtotal - discAmt + taxAmt;
   var cur      = _propCur();
@@ -29540,7 +29511,7 @@ function _calcPropTotal() {
   setEl('prop-discount-val', '-' + discAmt.toLocaleString() + ' ' + cur);
   setEl('prop-tax-val', '+' + taxAmt.toLocaleString() + ' ' + cur);
   setEl('prop-total', total.toLocaleString() + ' ' + cur);
-  return {subtotal:subtotal, discAmt:discAmt, taxAmt:taxAmt, total:total, discType:discType};
+  return {subtotal:subtotal, discAmt:discAmt, taxAmt:taxAmt, total:total};
 }
 
 // ── Open modal ──
