@@ -2822,6 +2822,26 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <button class="btn btn-primary" onclick="openMeetingModal()" data-i18n="btn_new_meeting"><i class="fa-solid fa-plus" style="margin-left:4px"></i> ميتنج جديد</button>
     </div>
   </div>
+  <div class="grid grid-2">
+    <div>
+      <!-- Filters -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <select id="mtg-filter-client" onchange="renderMeetings()" class="form-select" style="height:34px;font-size:12px;flex:1;min-width:130px">
+          <option value="">كل العملاء</option>
+        </select>
+        <select id="mtg-filter-status" onchange="renderMeetings()" class="form-select" style="height:34px;font-size:12px">
+          <option value="">الكل</option>
+          <option value="upcoming">قادمة</option>
+          <option value="done">منتهية</option>
+        </select>
+      </div>
+      <div id="meetings-list"><div class="empty card"><div class="empty-icon"><i class="fa-solid fa-calendar"></i></div>لا اجتماعات مسجلة</div></div>
+    </div>
+    <div class="card" id="meeting-detail-card" style="display:none">
+      <div id="meeting-detail-body"></div>
+    </div>
+  </div>
+</div><!-- end page-meetings -->
 
 <!-- BOTTOM NAV (mobile) -->
 <div class="bn-overlay" id="bn-overlay" onclick="closeBnMore()"></div>
@@ -4245,8 +4265,6 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   </div>
 </div>
 
-</div>
-
 <!-- LEARNING -->
 <div class="page" id="page-learning" style="display:none!important">
   <!-- Merged into page-freelancer-goals -->
@@ -4255,29 +4273,6 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   <div id="goals-total" style="display:none">0</div>
   <div id="goals-done-count" style="display:none">0</div>
   <div id="goals-avg" style="display:none">0%</div>
-</div>
-
-
-
-  <div class="grid grid-2">
-    <div>
-      <!-- Filters -->
-      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <select id="mtg-filter-client" onchange="renderMeetings()" class="form-select" style="height:34px;font-size:12px;flex:1;min-width:130px">
-          <option value="">كل العملاء</option>
-        </select>
-        <select id="mtg-filter-status" onchange="renderMeetings()" class="form-select" style="height:34px;font-size:12px">
-          <option value="">الكل</option>
-          <option value="upcoming">قادمة</option>
-          <option value="done">منتهية</option>
-        </select>
-      </div>
-      <div id="meetings-list"><div class="empty card"><div class="empty-icon"><i class="fa-solid fa-calendar"></i></div>لا اجتماعات مسجلة</div></div>
-    </div>
-    <div class="card" id="meeting-detail-card" style="display:none">
-      <div id="meeting-detail-body"></div>
-    </div>
-  </div>
 </div>
 
 <!-- MEETING MODAL -->
