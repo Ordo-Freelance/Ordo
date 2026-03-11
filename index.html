@@ -11793,8 +11793,8 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     } else {
       // السحابة فارغة أو مش متاحة — مستخدم جديد أو مشكلة شبكة
       migrateSFields(); // تأكد إن S فيها المصفوفات الأساسية
-      window._appReady = true; // ✅ آمن للحفظ
-      window._subLoadDone = true; (S موجودة وجاهزة)
+      window._appReady = true; // ✅ آمن للحفظ (S موجودة وجاهزة)
+      window._subLoadDone = true;
       window._cloudLoadDone = true;
       console.log('Cloud load failed or empty — treating as new user');
     }
