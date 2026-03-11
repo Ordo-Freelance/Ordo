@@ -214,6 +214,13 @@ function _buildPortalLink(clientName, portalId){
     return _portalBase + '?u=' + encodeURIComponent(_un) + '&p=' + encodeURIComponent(_slug);
   }
   var clientObj = (S.clients||[]).find(function(c){ return _makeClientSlug(c.name)===_slug; });
+  // لو portalId بيشاور على client_portal record، جيب الـ client_id منه
+  if(!clientObj && portalId){
+    var portalRec = (S.client_portals||[]).find(function(p){ return p.id===portalId; });
+    if(portalRec && portalRec.client_id){
+      clientObj = (S.clients||[]).find(function(c){ return String(c.id)===String(portalRec.client_id); });
+    }
+  }
   var cid = clientObj ? clientObj.id : (portalId||'');
   return _portalBase + '?uid=' + (_supaUserId||'') + '&cid=' + cid;
 }
@@ -447,7 +454,7 @@ async function _deleteEntity(table, idField, itemId) {
 // ── Smart save: يحفظ التغييرات الجديدة في الجداول المناسبة ──
 let _lastSavedTasks = 0, _lastSavedClients = 0, _lastSavedInvoices = 0, _lastSavedTrans = 0;
 function _smartEntitySave() {
-  if (!_supaUserId || !S || !window._appReady) return;
+  if (!_supaUserId || !S || !window._cloudLoadDone || !window._appReady) return;
   // نشوف إيه اللي اتغير وبس نحفظه
   const now = Date.now();
   if ((S.tasks||[]).length !== _lastSavedTasks) {
@@ -470,6 +477,8 @@ function _smartEntitySave() {
 
 async function _doCloudSave(data, force) {
   if (!_supaUserId || !data) return false;
+  // منع الحفظ قبل ما البيانات تتحمل من السحابة — حماية من مسح البيانات
+  if (!window._cloudLoadDone && !force) return false;
   if (!force && !window._appReady) return false;
 
   // Skip if already saving — mark pending, retry after
@@ -549,6 +558,7 @@ function lsSave() {
   if (!_supaUserId) return; // مش مسجل دخول
   S._savedAt = new Date().toISOString();
   // ── لا حفظ قبل ما cloudLoad يخلص — منع الكتابة فوق البيانات ──
+  if (!window._cloudLoadDone) return;
   if (!window._appReady) return;
   clearTimeout(_syncTimer);
   _syncTimer = setTimeout(() => _doCloudSave(S, true), SAVE_DEBOUNCE_MS);
@@ -566,6 +576,7 @@ function cloudSave(data) {
 // ── cloudSaveNow: immediate save for critical ops ─────────────
 async function cloudSaveNow(data) {
   if (!_supaUserId) return;
+  if (!window._cloudLoadDone) return; // لا حفظ قبل تحميل البيانات
   if (data && data !== S) Object.assign(S, data);
   clearTimeout(_syncTimer);
   await _doCloudSave(S, true);
@@ -598,6 +609,7 @@ function _startAutoSave(){
   if(_autoSaveTimer) clearInterval(_autoSaveTimer);
   _autoSaveTimer = setInterval(function(){
     if(!_supaUserId || !S) return;
+    if(!window._cloudLoadDone || !window._appReady) return; // لا حفظ قبل التحميل
     if(_cloudSaving) return; // skip if save already in progress
     if(_syncTimer) return;   // skip if debounced save pending
     _mergeUiSettingsIntoS();
@@ -685,7 +697,7 @@ function _mergeUiSettingsIntoS(){
 
 // حفظ فوري عند إغلاق الصفحة
 window.addEventListener('beforeunload', function() {
-  if(!_supaUserId || !S || !window._appReady) return;
+  if(!_supaUserId || !S || !window._appReady || !window._cloudLoadDone) return;
   // ── حفظ cache محلي فوري قبل الإغلاق/الريفريش ──
   try {
     S._savedAt = new Date().toISOString();
@@ -1561,6 +1573,7 @@ body.pub-page #app-body {
   }
   body.sidebar-collapsed .app-body {
     margin-right: 0 !important;
+    width: 100% !important;
   }
 }
 .main {
@@ -1580,7 +1593,7 @@ body.pub-page #app-body {
 /* ═══════════════════════════════════════════════════
    PAGES
 ═══════════════════════════════════════════════════ */
-.page { display: none; }
+.page { display: none; width: 100%; }
 .page.active {
   display: block;
   animation: pageIn .25s ease both;
@@ -2005,6 +2018,7 @@ body.sidebar-collapsed .sidebar {
 }
 body.sidebar-collapsed .app-body {
   margin-right: 0 !important;
+  width: 100% !important;
 }
 body.sidebar-collapsed .sidebar-overlay {
   display: none !important;
@@ -2546,8 +2560,14 @@ function getQRDataURL(text, size) {
 <script>
 // Prevent flash: show body only after auth check AND subscription load
 window._appReady = false;
+window._cloudLoadDone = false;
 window._showApp = function(){
-  window._appReady = true;
+  // لو في login flow نشط — مش نفعّل الحفظ قبل ما البيانات تتحمل
+  if(!window._cloudLoadDone) {
+    window._appReady = false; // لا نسمح بالحفظ قبل التحميل
+  } else {
+    window._appReady = true;
+  }
   document.body.style.visibility = 'visible';
   // لو صفحة متجر عام - لا تضيف overflow:hidden
   var _pp = new URLSearchParams(window.location.search);
@@ -3770,6 +3790,9 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <option value="تسويق"><i class="fa-solid fa-bullhorn"></i> تسويق</option>
       <option value="تعليم وكورسات"><i class="fa-solid fa-books"></i> تعليم</option>
       <option value="سحب شخصي"><i class="fa-solid fa-dollar-sign"></i> شخصي</option>
+    </select>
+    <select id="fin-filter-project" onchange="applyFinanceFilter()" style="min-width:130px">
+      <option value="">كل المشاريع</option>
     </select>
     <button class="filter-reset" onclick="resetFinanceFilter()"><i class="fa-solid fa-xmark"></i> إعادة تعيين</button>
     <span id="fin-filter-label" style="font-size:12px;color:var(--accent);font-weight:700"></span>
@@ -5875,7 +5898,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">ربط بمشروع (اختياري)</label>
+        <label class="form-label">ربط بمهمة (اختياري)</label>
         <select class="form-select" id="in-linked-task" onchange="onIncomeTaskLink()">
           <option value="">— اختر عميل أولاً —</option>
         </select>
@@ -5883,14 +5906,22 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">نوع الدفعة</label>
-        <select class="form-select" id="in-payment-type" onchange="document.getElementById('in-loan-fields').style.display=this.value==='loan_received'?'block':'none'">
-          <option value="full"><i class="fa-solid fa-coins"></i> دفعة كاملة</option>
-          <option value="deposit">🔰 عربون</option>
-          <option value="partial"><i class="fa-solid fa-credit-card"></i> دفعة جزئية</option>
-          <option value="loan_received">🤝 قرض مستلم (استلفت فلوس)</option>
+        <label class="form-label"><i class="fa-solid fa-diagram-project" style="color:var(--accent)"></i> ربط بمشروع (اختياري)</label>
+        <select class="form-select" id="in-linked-project" onchange="onIncomeProjectLink()">
+          <option value="">— لا يوجد مشروع —</option>
         </select>
       </div>
+      <div class="form-group">
+        <label class="form-label">نوع الدفعة</label>
+        <select class="form-select" id="in-payment-type" onchange="document.getElementById('in-loan-fields').style.display=this.value==='loan_received'?'block':'none'">
+          <option value="full">دفعة كاملة</option>
+          <option value="deposit">🔰 عربون</option>
+          <option value="partial">دفعة جزئية</option>
+          <option value="loan_received">🤝 قرض مستلم</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
       <div class="form-group">
         <label class="form-label">طريقة التحصيل</label>
         <select class="form-select" id="in-pay-method">
@@ -6328,6 +6359,8 @@ function hasActiveSub(){
   if(!_supaUserId) return true;
   if(_isAdminUser) return true;  // المشرف له اشتراك مدى الحياة تلقائياً
   if(_isTrialActive()) return true;  // التجربة المجانية تعادل اشتراكاً نشطاً
+  // لو الاشتراك لسه بيتحمل أو مفيش نظام serial keys — افتح كل الصفحات
+  if(!window._subLoadDone) return true;
   if(!_userSubscription) return false;
   if(_userSubscription.billing==='lifetime') return true;
   if(!_userSubscription.expiresAt) return true;
@@ -7815,23 +7848,56 @@ function onTaskClientChange(clientName) {
 // INCOME MODAL - CLIENT → PROJECT FILTER
 // ============================================================
 function onIncomeClientChange(clientName) {
+  // Fill tasks dropdown
   const taskSel = document.getElementById('in-linked-task');
-  if(!taskSel) return;
-  taskSel.innerHTML = '<option value="">— لا ربط —</option>';
-  if(!clientName) return;
-  // Filter tasks belonging to this client
-  const clientTasks = S.tasks.filter(t => t.client === clientName);
-  if(!clientTasks.length) {
-    taskSel.innerHTML = '<option value="">— لا توجد مشاريع لهذا العميل —</option>';
-    return;
+  if(taskSel) {
+    taskSel.innerHTML = '<option value="">— لا ربط —</option>';
+    if(clientName) {
+      const clientTasks = S.tasks.filter(t => t.client === clientName);
+      const statusLabel = {new:'جديد', progress:'جاري', review:'مراجعة', done:'مكتمل'};
+      clientTasks.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.title + (t.status ? ' (' + (statusLabel[t.status]||t.status) + ')' : '');
+        taskSel.appendChild(opt);
+      });
+    }
   }
-  const statusLabel = {new:'جديد', progress:'جاري', review:'مراجعة', done:'مكتمل'};
-  clientTasks.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.id;
-    opt.textContent = t.title + (t.status ? ' (' + (statusLabel[t.status]||t.status) + ')' : '');
-    taskSel.appendChild(opt);
-  });
+  // Fill projects dropdown
+  const projSel = document.getElementById('in-linked-project');
+  if(projSel) {
+    projSel.innerHTML = '<option value="">— لا يوجد مشروع —</option>';
+    if(clientName) {
+      const client = (S.clients||[]).find(c => c.name === clientName);
+      const clientProjects = (S.projects||[]).filter(p =>
+        (client && String(p.client_id) === String(client.id)) ||
+        p.client === clientName
+      );
+      clientProjects.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name + (p.status ? ' · ' + ({active:'نشط',hold:'معلق',review:'مراجعة',done:'مكتمل'}[p.status]||p.status) : '');
+        projSel.appendChild(opt);
+      });
+      // Also add all projects as fallback
+      if(!clientProjects.length) {
+        (S.projects||[]).forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.name;
+          projSel.appendChild(opt);
+        });
+      }
+    } else {
+      // No client selected - show all projects
+      (S.projects||[]).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        projSel.appendChild(opt);
+      });
+    }
+  }
 }
 
 // Populate income client dropdown with all clients
@@ -9908,6 +9974,31 @@ function onIncomeTaskLink(){
     if(t && amtEl && !amtEl.value) amtEl.value = t.value||'';
   }
 }
+
+function onIncomeProjectLink(){
+  const projSel = document.getElementById('in-linked-project');
+  if(!projSel || !projSel.value) return;
+  const proj = (S.projects||[]).find(p => String(p.id) === String(projSel.value));
+  if(!proj) return;
+  // Auto-fill desc if empty
+  const descEl = document.getElementById('in-desc');
+  if(descEl && !descEl.value) descEl.value = 'دفعة مشروع: ' + proj.name;
+}
+
+function _fillOpenIncomeProject(projId) {
+  // Call this when opening income modal from project page
+  const projSel = document.getElementById('in-linked-project');
+  if(!projSel) return;
+  // Make sure all projects are loaded
+  projSel.innerHTML = '<option value="">— لا يوجد مشروع —</option>';
+  (S.projects||[]).forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    projSel.appendChild(opt);
+  });
+  if(projId) projSel.value = String(projId);
+}
 function openIncomeModal(id, prefillTaskId){
   document.getElementById('income-ttl').innerHTML=id?'<i class="fa-solid fa-coins"></i> تعديل دخل':'<i class="fa-solid fa-coins"></i> تسجيل دخل';
   document.getElementById('income-eid').value=id||'';
@@ -9929,6 +10020,7 @@ function openIncomeModal(id, prefillTaskId){
     if(t.source) onIncomeClientChange(t.source);
     const taskSel = document.getElementById('in-linked-task');
     if(taskSel) setTimeout(()=>{ taskSel.value=t.linkedTaskId||''; }, 50);
+    setTimeout(()=>{ _fillOpenIncomeProject(t.project_id||''); }, 60);
     const ptEl=document.getElementById('in-payment-type'); if(ptEl) ptEl.value=t.paymentType||'full';
     const pmEl=document.getElementById('in-pay-method');  if(pmEl) pmEl.value=t.payMethod||'cash';
   }}
@@ -9953,6 +10045,8 @@ function openIncomeModal(id, prefillTaskId){
     }
     const ptEl=document.getElementById('in-payment-type'); if(ptEl) ptEl.value='full';
     const pmEl=document.getElementById('in-pay-method');  if(pmEl) pmEl.value='cash';
+    // Fill projects dropdown for new transaction
+    setTimeout(()=>{ _fillOpenIncomeProject(''); }, 20);
   }
   openM('modal-income');
 }
@@ -9982,7 +10076,9 @@ function saveTrans(type){
   const rawDate = isInc ? v('in-date') : v('ex-date');
   const isoDate = rawDate || new Date().toISOString().split('T')[0];
   const source = isInc ? v('in-source') : (v('ex-cat')||'أخرى');
-  const linkedTaskId = isInc ? (+(document.getElementById('in-linked-task')?.value)||null) : null;
+  const linkedTaskId  = isInc ? (+(document.getElementById('in-linked-task')?.value)||null) : null;
+  const linkedProjId  = isInc ? (document.getElementById('in-linked-project')?.value||null) : null;
+  const linkedProjObj = linkedProjId ? (S.projects||[]).find(p=>String(p.id)===String(linkedProjId)) : null;
   const paymentType  = isInc ? (document.getElementById('in-payment-type')?.value||'full') : null;
   const payMethod    = isInc ? (document.getElementById('in-pay-method')?.value||'cash') : (document.getElementById('ex-pay-method')?.value||'cash');
   const expCat       = !isInc ? (v('ex-cat')||'أخرى') : null;
@@ -9998,8 +10094,9 @@ function saveTrans(type){
   const d={type,amount,source:finalSource,desc:v(isInc?'in-desc':'ex-desc'),
     date:new Date(isoDate+'T00:00:00').toLocaleDateString('ar-EG'), isoDate,
     payMethod,
-    ...(linkedTaskId ? {linkedTaskId} : {}),
-    ...(paymentType  ? {paymentType}  : {}),
+    ...(linkedTaskId  ? {linkedTaskId}  : {}),
+    ...(linkedProjId  ? {project_id: String(linkedProjId), project_name: linkedProjObj?.name||''} : {}),
+    ...(paymentType   ? {paymentType}   : {}),
     ...(expCat       ? {expCat}       : {}),
     ...(expImpact    ? {expImpact}    : {}),
     ...(incRcpt      ? {receiptImage:incRcpt} : {}),
@@ -10041,7 +10138,7 @@ function saveTrans(type){
 }
 function delTrans(id){confirmDel('هل تريد حذف هذه المعاملة؟',()=>{S.transactions=S.transactions.filter(t=>t.id!==id);lsSave();renderAll();});}
 // Finance filter state
-let finFilterState = {month:'', year:'', type:'', method:'', cat:''};
+let finFilterState = {month:'', year:'', type:'', method:'', cat:'', project:''};
 
 function populateFinYears(){
   const sel = document.getElementById('fin-filter-year'); if(!sel) return;
@@ -10055,17 +10152,18 @@ function populateFinYears(){
 }
 
 function applyFinanceFilter(){
-  finFilterState.month  = document.getElementById('fin-filter-month')?.value||'';
-  finFilterState.year   = document.getElementById('fin-filter-year')?.value||'';
-  finFilterState.type   = document.getElementById('fin-filter-type')?.value||'';
-  finFilterState.method = document.getElementById('fin-filter-method')?.value||'';
-  finFilterState.cat    = document.getElementById('fin-filter-cat')?.value||'';
+  finFilterState.month   = document.getElementById('fin-filter-month')?.value||'';
+  finFilterState.year    = document.getElementById('fin-filter-year')?.value||'';
+  finFilterState.type    = document.getElementById('fin-filter-type')?.value||'';
+  finFilterState.method  = document.getElementById('fin-filter-method')?.value||'';
+  finFilterState.cat     = document.getElementById('fin-filter-cat')?.value||'';
+  finFilterState.project = document.getElementById('fin-filter-project')?.value||'';
   renderFinance();
 }
 
 function resetFinanceFilter(){
-  finFilterState = {month:'',year:'',type:'',method:'',cat:''};
-  ['fin-filter-month','fin-filter-year','fin-filter-type','fin-filter-method','fin-filter-cat'].forEach(id=>{
+  finFilterState = {month:'',year:'',type:'',method:'',cat:'',project:''};
+  ['fin-filter-month','fin-filter-year','fin-filter-type','fin-filter-method','fin-filter-cat','fin-filter-project'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
   renderFinance();
@@ -10075,11 +10173,12 @@ function filterTransactions(transactions){
   const f = finFilterState;
   return transactions.filter(t=>{
     const d = t.isoDate || '';
-    if(f.month  && d.slice(5,7) !== f.month.padStart(2,'0')) return false;
-    if(f.year   && d.slice(0,4) !== f.year) return false;
-    if(f.type   && t.type !== f.type) return false;
-    if(f.method && (t.payMethod||'cash') !== f.method) return false;
-    if(f.cat    && (t.expCat||t.source||'') !== f.cat) return false;
+    if(f.month   && d.slice(5,7) !== f.month.padStart(2,'0')) return false;
+    if(f.year    && d.slice(0,4) !== f.year) return false;
+    if(f.type    && t.type !== f.type) return false;
+    if(f.method  && (t.payMethod||'cash') !== f.method) return false;
+    if(f.cat     && (t.expCat||t.source||'') !== f.cat) return false;
+    if(f.project && String(t.project_id||'') !== String(f.project)) return false;
     return true;
   });
 }
@@ -10113,6 +10212,20 @@ function renderFinance(){
   // Sync project task completions into transactions (avoid duplicates)
   _syncProjTaskTransactions();
   populateFinYears();
+  // Populate project filter
+  (function(){
+    var sel = document.getElementById('fin-filter-project');
+    if(!sel) return;
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">كل المشاريع</option>';
+    (S.projects||[]).forEach(function(p){
+      var opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name;
+      sel.appendChild(opt);
+    });
+    if(cur) sel.value = cur;
+  })();
   renderMonthlyTimeline();
   renderFinLoansSummary();
   const filtered = filterTransactions(S.transactions);
@@ -10156,8 +10269,10 @@ function renderFinance(){
   renderUnpaidReminders();
   
   const tbody=document.getElementById('fin-tbody');if(!tbody)return;
-  const rows = [...filtered].sort((a,b)=>(b.isoDate||'').localeCompare(a.isoDate||'')).map(t=>`<tr>
-    <td>${t.desc||'—'}${t.linkedTaskId?(()=>{const lt=S.tasks.find(x=>x.id===t.linkedTaskId);return lt?` <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:1px 6px;border-radius:8px;cursor:pointer" onclick="openTaskDetail(${t.linkedTaskId})"><i class="fa-solid fa-link"></i> ${lt.title.slice(0,20)}</span>`:''})():''}</td><td class="hide-mobile">${t.source||'—'}${t.paymentType&&t.paymentType!=='full'?` <span style="font-size:10px;color:var(--accent2)">(${t.paymentType==='deposit'?'عربون':'جزئي'})</span>`:''}</td>
+  const rows = [...filtered].sort((a,b)=>(b.isoDate||'').localeCompare(a.isoDate||'')).map(t=>{
+    const projBadge = t.project_id ? (()=>{const pj=(S.projects||[]).find(p=>String(p.id)===String(t.project_id));return pj?` <span style="font-size:10px;background:rgba(79,209,165,.12);color:#4fd1a5;padding:1px 7px;border-radius:8px;cursor:pointer" onclick="showPage('projects');setTimeout(()=>openProjectDetail('${pj.id}'),200)"><i class="fa-solid fa-diagram-project"></i> ${pj.name.slice(0,18)}</span>`:''})() : '';
+    return `<tr>
+    <td>${t.desc||'—'}${projBadge}${t.linkedTaskId?(()=>{const lt=S.tasks.find(x=>x.id===t.linkedTaskId);return lt?` <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:1px 6px;border-radius:8px;cursor:pointer" onclick="openTaskDetail(${t.linkedTaskId})"><i class="fa-solid fa-link"></i> ${lt.title.slice(0,20)}</span>`:''})():''}</td><td class="hide-mobile">${t.source||'—'}${t.paymentType&&t.paymentType!=='full'?` <span style="font-size:10px;color:var(--accent2)">(${t.paymentType==='deposit'?'عربون':'جزئي'})</span>`:''}</td>
     <td><span class="badge ${t.type==='income'?'badge-green':'badge-red'}">${t.type==='income'?'<i class="fa-solid fa-coins"></i> دخل':'<i class="fa-solid fa-money-bill-wave"></i> مصروف'}</span></td>
     <td style="font-weight:700;color:${t.type==='income'?'var(--accent3)':'var(--accent4)'}">${t.amount.toLocaleString()} ج</td>
     <td class="hide-mobile" style="font-family:var(--mono);font-size:11px">${t.isoDate||t.date||'—'}</td>
@@ -10166,7 +10281,7 @@ function renderFinance(){
       ${t.type==='income'?`<button class="btn btn-ghost btn-sm" onclick="exportReceipt(${t.id})" title="إيصال PDF" style="color:var(--accent3)"><i class="fa-solid fa-receipt"></i></button>`:''}
       <button class="btn btn-danger btn-sm" onclick="delTrans(${t.id})"><i class="fa-solid fa-trash"></i></button>
     </div></td>
-  </tr>`).join('');
+  </tr>`;}).join('');
   tbody.innerHTML = rows || '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">لا معاملات تطابق الفلتر</td></tr>';
 }
 
@@ -11696,8 +11811,8 @@ async function loginWithSupaSession(supaUser, session, userMeta){
 
   if(_bestData){
     S = _bestData;
-    window._appReady = true;
     window._cloudLoadDone = true;
+    window._appReady = true;
     migrateSFields();
     // ── Migration للجداول الجديدة (في الخلفية، مش بيعلق) ──
     setTimeout(() => _migrateToNewTables(_supaUserId, S), 2000);
@@ -11999,6 +12114,7 @@ async function loadUserSubscription(uid) {
   }
   updateSubscriptionBar();
   _updateNavLocks();
+  window._subLoadDone = true;
   return _userSubscription;
 }
 
@@ -20867,11 +20983,28 @@ function _showClientPortalLink(clientId){
 
 function openClientPortal(portalId){
   var portal=(S.client_portals||[]).find(function(p){return p.id===portalId;}); if(!portal) return;
+  var client = portal.client_id ? (S.clients||[]).find(function(c){return String(c.id)===String(portal.client_id);}) : null;
+  if(!client && portal.client_name){
+    client = (S.clients||[]).find(function(c){return c.name===portal.client_name;});
+  }
+  var uid=(typeof _supaUserId!=='undefined'&&_supaUserId)?_supaUserId:'';
+  var _cppPath=window.location.pathname.split('/').filter(function(x){return x!=='';});
+  if(_cppPath.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_cppPath[_cppPath.length-1])>=0)_cppPath.pop();
+  if(_cppPath.length&&_cppPath[_cppPath.length-1].endsWith('.html'))_cppPath.pop();
+  var _cpBase=window.location.origin+(_cppPath.length?'/'+_cppPath.join('/')+'/' :'/')+'client-portal.html';
+  var link = client ? (_cpBase+'?uid='+uid+'&cid='+client.id) : _buildPortalLink(portal.client_name, portal.id);
+  var taskLink = (client && portal.task_id) ? (_cpBase+'?uid='+uid+'&cid='+client.id+'&taskid='+portal.task_id) : link;
+
   var task=(S.tasks||[]).find(function(t){return String(t.id)===String(portal.task_id);});
   var body=document.getElementById('portal-body'); if(!body) return;
   var progress=task&&task.steps&&task.steps.length? Math.round(task.steps.filter(function(s){return s.done;}).length/task.steps.length*100) : (task&&task.done?100:0);
+
+  // حفظ الروابط في متغيرات عالمية مؤقتة عشان الـ onclick يوصلها بأمان
+  window._cpLink = link;
+  window._cpTaskLink = taskLink;
+
   body.innerHTML=
-    '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px">'+
+    '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:12px">'+
       '<div style="font-size:13px;font-weight:800;margin-bottom:10px"><i class="fa-solid fa-user"></i> بيانات العميل</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">'+
         '<div><span style="color:var(--text3)">الاسم:</span> <strong>'+escapeHtml(portal.client_name)+'</strong></div>'+
@@ -20881,25 +21014,34 @@ function openClientPortal(portalId){
       '</div>'+
     '</div>'+
     (task?
-      '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px">'+
+      '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:12px">'+
         '<div style="font-size:13px;font-weight:800;margin-bottom:8px"><i class="fa-solid fa-clipboard-list"></i> المهمة: '+escapeHtml(task.title)+'</div>'+
         '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>التقدم</span><span>'+progress+'%</span></div>'+
         '<div style="height:8px;background:var(--border);border-radius:4px"><div style="height:100%;background:var(--accent3);border-radius:4px;width:'+progress+'%"></div></div></div>'+
         '<div style="font-size:12px;color:var(--text3)">الحالة: <strong style="color:var(--accent)">'+escapeHtml(task.status||'—')+'</strong></div>'+
-        (task.steps&&task.steps.length?'<div style="margin-top:10px;font-size:12px;color:var(--text3)">الخطوات:</div>'+
-          '<div style="margin-top:6px">'+task.steps.map(function(s){return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px">'+(s.done?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>':'⏳')+' '+escapeHtml(s.text)+'</div>';}).join('')+'</div>':'')+
       '</div>'
-    : '<div style="background:rgba(247,201,72,.1);border-radius:12px;padding:14px;font-size:12px;color:var(--text3)">لا توجد مهمة مرتبطة بعد</div>')+
-    (function(){
-      var _link = _buildPortalLink(portal.client_name, portal.id);
-      var _hasUn = !!(S.settings&&S.settings.username);
-      return '<div style="margin-top:12px;padding:12px;background:var(--surface2);border-radius:12px">'+
-        '<div style="font-size:12px;font-weight:700;margin-bottom:8px"><i class="fa-solid fa-link"></i> رابط بوابة العميل</div>'+
-        (!_hasUn?'<div style="font-size:10px;color:var(--accent4);margin-bottom:8px;padding:6px 10px;background:rgba(247,107,92,.1);border-radius:8px"><i class="fa-solid fa-triangle-exclamation"></i> أضف <b>username</b> في الإعدادات للحصول على رابط قصير باسمك</div>':'')+
-        '<div id="portal-link-'+portal.id+'" style="font-size:11px;color:var(--accent3);font-family:var(--mono);word-break:break-all;margin-bottom:10px;padding:8px 10px;background:var(--surface3);border-radius:8px;user-select:all;cursor:text">'+_link+'</div>'+
-        '<button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById(\'portal-link-'+portal.id+'\').textContent.trim()).then(function(){toast(\'<i class=\"fa-solid fa-square-check\" style=\"color:var(--accent3)\"></i> تم نسخ الرابط\')})"><i class="fa-solid fa-copy" style="margin-left:4px"></i> نسخ الرابط</button>'+
-      '</div>';
-    })();
+    : '<div style="background:rgba(247,201,72,.1);border-radius:12px;padding:14px;font-size:12px;color:var(--text3);margin-bottom:12px">لا توجد مهمة مرتبطة بعد</div>')+
+    '<div style="background:rgba(79,209,165,.07);border:1.5px solid rgba(79,209,165,.3);border-radius:12px;padding:14px">'+
+      '<div style="font-size:12px;font-weight:800;color:var(--accent3);margin-bottom:10px"><i class="fa-solid fa-link"></i> روابط البوابة</div>'+
+      (task?
+        '<div style="margin-bottom:10px">'+
+          '<div style="font-size:11px;color:var(--text3);margin-bottom:5px">🔗 رابط المهمة (يفتح البوابة على المهمة):</div>'+
+          '<div style="font-size:10px;color:var(--accent3);font-family:var(--mono);word-break:break-all;padding:6px 8px;background:var(--surface3);border-radius:6px;margin-bottom:6px;user-select:all">'+escapeHtml(taskLink)+'</div>'+
+          '<div style="display:flex;gap:6px">'+
+            '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;font-size:11px" onclick="navigator.clipboard.writeText(window._cpTaskLink).then(function(){toast(\'✅ تم نسخ رابط المهمة\')})"><i class="fa-solid fa-copy"></i> نسخ</button>'+
+            '<button class="btn btn-primary btn-sm" style="font-size:11px" onclick="window.open(window._cpTaskLink,\'_blank\')"><i class="fa-solid fa-eye"></i> فتح</button>'+
+          '</div>'+
+        '</div>'
+      : '')+
+      '<div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-bottom:5px">🏠 بوابة العميل الكاملة:</div>'+
+        '<div style="font-size:10px;color:var(--accent3);font-family:var(--mono);word-break:break-all;padding:6px 8px;background:var(--surface3);border-radius:6px;margin-bottom:6px;user-select:all">'+escapeHtml(link)+'</div>'+
+        '<div style="display:flex;gap:6px">'+
+          '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;font-size:11px" onclick="navigator.clipboard.writeText(window._cpLink).then(function(){toast(\'✅ تم نسخ رابط البوابة\')})"><i class="fa-solid fa-copy"></i> نسخ</button>'+
+          '<button class="btn btn-success btn-sm" style="font-size:11px" onclick="window.open(window._cpLink,\'_blank\')"><i class="fa-solid fa-eye"></i> فتح البوابة</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
   openM('modal-portal');
 }
 
@@ -25122,9 +25264,13 @@ function renderProjFinanceTab(proj, tasks, clr) {
   
   // Project transactions from global S.transactions linked to this project
   var projTrans   = (S.transactions||[]).filter(function(tr){
-    return tr.project_id === String(proj.id) || tr.linkedProjId === String(proj.id) ||
-           (tr.desc && tr.desc.indexOf(proj.name) >= 0) ||
-           tasks.some(function(t){ return tr.linkedProjTaskId === String(t.id) || String(tr.linkedProjTaskId) === String(t.id); });
+    // Direct project link (new method)
+    if(tr.project_id && String(tr.project_id) === String(proj.id)) return true;
+    // Legacy link via project task
+    if(tr.linkedProjTaskId && tasks.some(function(t){ return String(tr.linkedProjTaskId) === String(t.id); })) return true;
+    // Legacy link via project name in desc (only if auto-recorded)
+    if(tr.source === 'project_task' && tr.desc && tr.desc.indexOf(proj.name) >= 0) return true;
+    return false;
   });
 
   var budgetColor = profit >= 0 ? '#4fd1a5' : '#f76f7c';
@@ -25217,12 +25363,12 @@ function renderProjFinanceTab(proj, tasks, clr) {
           (isInc?'+':'-')+((tr.amount||0).toLocaleString())+' '+(tr.currency||cur)+'</div>'+
       '</div>';
     }).join('') + '</div>') +
-    '<div style="margin-top:12px;text-align:left">' +
-      '<button class="btn btn-primary btn-sm" onclick="openIncomeModal();document.getElementById(\'inc-desc\').value=\'مشروع: \'+escapeHtml(proj.name)+\'">' +
-        '<i class="fa-solid fa-plus"></i> تسجيل دخل للمشروع</button> '+
-      '<button class="btn btn-ghost btn-sm" onclick="openExpenseModal()" style="margin-right:6px">' +
-        '<i class="fa-solid fa-minus"></i> تسجيل مصروف</button>' +
+    '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button class="btn btn-primary btn-sm" onclick="openProjIncomeModal('+proj.id+')"><i class="fa-solid fa-plus"></i> تسجيل دخل للمشروع</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="openProjExpenseModal('+proj.id+')"><i class="fa-solid fa-minus"></i> تسجيل مصروف</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="openNewInvoiceForProject('+proj.id+')"><i class="fa-solid fa-file-invoice"></i> إنشاء فاتورة</button>' +
     '</div>' +
+
   '</div>' +
   '</div>';
 }
@@ -25233,6 +25379,69 @@ function _projFinCard(label, value, color, icon) {
     '<div style="font-size:15px;font-weight:900;color:var(--text);line-height:1">'+value+'</div>'+
     '<div style="font-size:10px;color:var(--text3);margin-top:4px">'+label+'</div>'+
   '</div>';
+}
+
+// ── Project Finance Helpers ──
+function openProjIncomeModal(projId) {
+  var proj = _getProjById(projId); if(!proj) return;
+  var client = proj.client_id ? (S.clients||[]).find(c=>String(c.id)===String(proj.client_id)) : null;
+  openIncomeModal();
+  setTimeout(function(){
+    // Set client
+    if(client) {
+      var srcSel = document.getElementById('in-source');
+      if(srcSel) { srcSel.value = client.name; onIncomeClientChange(client.name); }
+    }
+    // Set project
+    setTimeout(function(){
+      _fillOpenIncomeProject(projId);
+      // Set description
+      var descEl = document.getElementById('in-desc');
+      if(descEl && !descEl.value) descEl.value = 'دفعة مشروع: ' + proj.name;
+    }, 80);
+  }, 30);
+}
+
+function openProjExpenseModal(projId) {
+  var proj = _getProjById(projId); if(!proj) return;
+  openExpenseModal();
+  setTimeout(function(){
+    var descEl = document.getElementById('ex-desc');
+    if(descEl) descEl.value = 'مصروف مشروع: ' + proj.name;
+  }, 30);
+}
+
+function openNewInvoiceForProject(projId) {
+  var proj = _getProjById(projId); if(!proj) return;
+  var client = proj.client_id ? (S.clients||[]).find(c=>String(c.id)===String(proj.client_id)) : null;
+  // Build pending tasks amount
+  var tasks = _getProjTasks(projId);
+  var pending = tasks.filter(function(t){ return t.value>0 && !t.paymentCollected; });
+  var totalPending = pending.reduce(function(s,t){ return s + (t.value||0); }, 0);
+  // Open invoices page and open new invoice modal with prefilled data
+  showPage('invoices');
+  setTimeout(function(){
+    if(typeof openInvoiceModal === 'function') {
+      openInvoiceModal();
+      setTimeout(function(){
+        // Set client
+        if(client) {
+          var cSel = document.getElementById('inv-client');
+          if(cSel) cSel.value = String(client.id);
+        }
+        // Set amount from pending tasks
+        var amtEl = document.getElementById('inv-amount') || document.getElementById('inv-total');
+        if(amtEl && totalPending > 0) amtEl.value = totalPending;
+        // Set description
+        var descEl = document.getElementById('inv-desc') || document.getElementById('inv-notes');
+        if(descEl) descEl.value = 'فاتورة مشروع: ' + proj.name + (pending.length ? ' (' + pending.length + ' مهمة)' : '');
+        // Store project_id for save
+        window._pendingInvoiceProjectId = String(projId);
+        window._pendingInvoiceProjectName = proj.name;
+        toast('<i class="fa-solid fa-file-invoice" style="color:var(--accent)"></i> تم فتح فاتورة جديدة لمشروع ' + escapeHtml(proj.name));
+      }, 100);
+    }
+  }, 400);
 }
 
 function renderProjTaskRow(t,clr){
@@ -25671,7 +25880,10 @@ function toggleProjTaskDone(taskId,projId,done){
       currency:t.currency||'ج.م',
       desc:'إتمام مهمة: '+(t.title||'')+(proj?' — مشروع: '+proj.name:''),
       date:new Date().toISOString().slice(0,10),
+      isoDate:new Date().toISOString().slice(0,10),
       linkedProjTaskId:t.id,
+      project_id: proj ? String(proj.id) : '',
+      project_name: proj ? proj.name : '',
       source:'project_task',
       createdAt:new Date().toISOString()
     });
@@ -25695,17 +25907,29 @@ function changeProjStatus(projId,status){
 // ── Client Portal (Share) ──
 function openProjSharePortal(projId){
   var uid=(typeof _supaUserId!=='undefined'&&_supaUserId)?_supaUserId:'';
-  var base=window.location.origin+window.location.pathname;
   var _cppPath=window.location.pathname.split('/').filter(function(x){return x!=='';});
   if(_cppPath.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_cppPath[_cppPath.length-1])>=0)_cppPath.pop();
   if(_cppPath.length&&_cppPath[_cppPath.length-1].endsWith('.html'))_cppPath.pop();
-  var _cpBase2=window.location.origin+(_cppPath.length?'/'+_cppPath.join('/')+'/' :'/')+'client-portal.html';
-  var projLink=base+'?portal=project&uid='+uid+'&pid='+projId;
+  var _cpBase=window.location.origin+(_cppPath.length?'/'+_cppPath.join('/')+'/' :'/')+'client-portal.html';
 
   // Try to find client for this project
   var proj=_getProjById(projId);
   var client=proj&&proj.client_id?(S.clients||[]).find(c=>String(c.id)===String(proj.client_id)):null;
-  var clientLink=client?_cpBase2+'?uid='+uid+'&cid='+client.id:'';
+
+  if(!client){
+    // مفيش عميل مرتبط بالمشروع
+    var over2=document.createElement('div');
+    over2.className='modal-overlay'; over2.style.display='flex';
+    over2.innerHTML='<div class="modal" style="max-width:420px;text-align:center"><div class="modal-header"><div class="modal-title"><i class="fa-solid fa-share-nodes"></i> مشاركة مع العميل</div><button class="close-btn" onclick="this.closest(\'.modal-overlay\').remove()"><i class="fa-solid fa-xmark"></i></button></div><div style="padding:24px 20px"><div style="font-size:48px;margin-bottom:12px">⚠️</div><div style="font-size:15px;font-weight:800;margin-bottom:8px">المشروع ليس له عميل محدد</div><div style="font-size:13px;color:var(--text3)">عدّل المشروع وحدد العميل أولاً لإنشاء رابط البوابة</div></div></div>';
+    document.body.appendChild(over2);
+    over2.onclick=e=>{if(e.target===over2)over2.remove();};
+    return;
+  }
+
+  // رابط بوابة العميل مع فتح تاب المشاريع مباشرة
+  var projTabLink = _cpBase+'?uid='+uid+'&cid='+client.id+'&tab=projects&pid='+projId;
+  // رابط البوابة الكاملة
+  var clientLink  = _cpBase+'?uid='+uid+'&cid='+client.id;
 
   var over=document.createElement('div');
   over.className='modal-overlay'; over.style.display='flex';
@@ -25714,25 +25938,24 @@ function openProjSharePortal(projId){
       <div class="modal-title"><i class="fa-solid fa-share-nodes"></i> مشاركة مع العميل</div>
       <button class="close-btn" onclick="this.closest('.modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <!-- Project link -->
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px"><i class="fa-solid fa-diagram-project" style="color:var(--accent);margin-left:5px"></i> رابط المشروع فقط</div>
-      <div style="font-size:10px;color:var(--text3);font-family:monospace;word-break:break-all;margin-bottom:10px">${projLink}</div>
+      <div style="font-size:13px;font-weight:800;margin-bottom:4px"><i class="fa-solid fa-diagram-project" style="color:var(--accent);margin-left:5px"></i> رابط المشروع فقط</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">يفتح بوابة العميل مباشرةً على تاب المشاريع</div>
+      <div style="font-size:10px;color:var(--accent3);font-family:monospace;word-break:break-all;margin-bottom:10px;background:var(--surface3);padding:8px;border-radius:8px">${projTabLink}</div>
       <div style="display:flex;gap:6px">
-        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${projLink}').then(()=>toast('✅ تم نسخ رابط المشروع'))"><i class="fa-solid fa-copy"></i> نسخ</button>
-        <button class="btn btn-ghost btn-sm" onclick="window.open('${projLink}','_blank')"><i class="fa-solid fa-eye"></i> معاينة</button>
+        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${projTabLink}').then(()=>toast('✅ تم نسخ رابط المشروع'))"><i class="fa-solid fa-copy"></i> نسخ</button>
+        <button class="btn btn-ghost btn-sm" onclick="window.open('${projTabLink}','_blank')"><i class="fa-solid fa-eye"></i> معاينة</button>
       </div>
     </div>
-    ${clientLink?`<!-- Client portal link -->
     <div style="background:rgba(79,209,165,.08);border:1px solid rgba(79,209,165,.3);border-radius:12px;padding:14px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;color:#4fd1a5;margin-bottom:4px"><i class="fa-solid fa-id-card" style="margin-left:5px"></i> بوابة العميل الكاملة — ${escapeHtml(client.name)}</div>
+      <div style="font-size:13px;font-weight:800;color:#4fd1a5;margin-bottom:4px"><i class="fa-solid fa-id-card" style="margin-left:5px"></i> بوابة العميل الكاملة — ${escapeHtml(client.name)}</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:8px">العميل يشوف: كل مشاريعه، فواتيره، طلباته، عقوده</div>
-      <div style="font-size:10px;color:var(--text3);font-family:monospace;word-break:break-all;margin-bottom:10px">${clientLink}</div>
+      <div style="font-size:10px;color:var(--accent3);font-family:monospace;word-break:break-all;margin-bottom:10px;background:var(--surface3);padding:8px;border-radius:8px">${clientLink}</div>
       <div style="display:flex;gap:6px">
-        <button class="btn btn-success btn-sm" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${clientLink}').then(()=>toast('✅ تم نسخ رابط البوابة الكاملة'))"><i class="fa-solid fa-copy"></i> نسخ رابط البوابة</button>
+        <button class="btn btn-success btn-sm" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${clientLink}').then(()=>toast('✅ تم نسخ رابط بوابة ${escapeHtml(client.name)}'))"><i class="fa-solid fa-copy"></i> نسخ رابط البوابة</button>
         <button class="btn btn-ghost btn-sm" onclick="window.open('${clientLink}','_blank')"><i class="fa-solid fa-eye"></i> معاينة</button>
       </div>
-    </div>`:'<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;text-align:center;color:var(--text3);font-size:12px"><i class="fa-solid fa-user-slash" style="margin-left:5px"></i> لم يُحدد عميل لهذا المشروع — عدّل المشروع وحدد العميل لإنشاء بوابة كاملة له</div>'}
+    </div>
     <div style="font-size:11px;color:var(--text3);text-align:center"><i class="fa-solid fa-lock" style="margin-left:4px"></i> العميل يرى بياناته فقط — لا يمكنه التعديل أو الحذف</div>
   </div>`;
   document.body.appendChild(over);
@@ -28533,9 +28756,10 @@ var _styleEl = document.createElement('style');
 _styleEl.id = '_i18n-style';
 _styleEl.textContent = [
   // Direction-aware flex
-  'body.lang-ltr .app-shell{flex-direction:row!important}',
-  'body.lang-ltr .sidebar{right:auto!important;left:0!important;border-left:none!important;border-right:1px solid var(--border)!important}',
-  '@media(min-width:1025px){body.lang-ltr .app-body{margin-right:0!important;margin-left:240px!important}}',
+  'body.lang-ltr .sidebar{right:auto!important;left:0!important;border-left:1px solid var(--border)!important;border-right:none!important;transform:translateX(-100%)}',
+  '@media(min-width:1025px){body.lang-ltr .sidebar{transform:translateX(0)!important}}',
+  '@media(min-width:1025px){body.lang-ltr .app-body{margin-right:0!important;width:100%!important;padding-right:0!important;margin-left:240px!important;width:calc(100% - 240px)!important}}',
+  '@media(min-width:1025px){body.lang-ltr.sidebar-collapsed .app-body{margin-left:0!important;width:100%!important}}',
   'body.lang-ltr .app-header{direction:ltr!important}',
   'body.lang-ltr .header-actions{flex-direction:row!important}',
   // Nav items
@@ -29240,9 +29464,13 @@ document.addEventListener('keydown', _resetVaultLockTimer);
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:13px;color:var(--text2)">خصم %</span>
-          <input class="form-input" type="number" id="prop-discount" value="0" min="0" max="100"
-            style="width:60px;height:28px;padding:0 8px;font-size:12px;text-align:center" oninput="_calcPropTotal()">
+          <span style="font-size:13px;color:var(--text2)">خصم</span>
+          <select id="prop-discount-type" onchange="_calcPropTotal()" style="height:28px;padding:0 6px;font-size:11px;border:1px solid var(--border);border-radius:var(--r1);background:var(--surface2);color:var(--text);cursor:pointer">
+            <option value="percent">%</option>
+            <option value="fixed">مبلغ ثابت</option>
+          </select>
+          <input class="form-input" type="number" id="prop-discount" value="0" min="0"
+            style="width:70px;height:28px;padding:0 8px;font-size:12px;text-align:center" oninput="_calcPropTotal()">
         </div>
         <span id="prop-discount-val" style="color:var(--accent4);font-weight:700">-0 ج.م</span>
       </div>
@@ -29472,6 +29700,7 @@ function _addPropItem(item) {
   _propItemCount++;
   var wrap = document.getElementById('prop-items-wrap'); if (!wrap) return;
   var el = document.createElement('div');
+  el.className = 'prop-item-row';
   el.style.cssText = 'display:grid;grid-template-columns:1fr 64px 88px 30px;gap:5px;align-items:center;margin-bottom:6px';
   el.innerHTML =
     '<input class="form-input" placeholder="وصف البند" value="' + (item&&item.desc?escapeHtml(item.desc):'') + '" oninput="_calcPropTotal()" style="font-size:13px">'
@@ -29500,9 +29729,10 @@ function _getPropItems() {
 function _calcPropTotal() {
   var items    = _getPropItems();
   var subtotal = items.reduce(function(s,i){ return s+i.total; }, 0);
-  var disc     = Math.min(100, Math.max(0, +((document.getElementById('prop-discount')||{value:0}).value||0)));
+  var discType = (document.getElementById('prop-discount-type')||{value:'percent'}).value || 'percent';
+  var discVal  = Math.max(0, +((document.getElementById('prop-discount')||{value:0}).value||0));
   var tax      = Math.min(100, Math.max(0, +((document.getElementById('prop-tax')||{value:0}).value||0)));
-  var discAmt  = subtotal * disc / 100;
+  var discAmt  = discType === 'fixed' ? Math.min(discVal, subtotal) : subtotal * Math.min(100, discVal) / 100;
   var taxAmt   = (subtotal - discAmt) * tax / 100;
   var total    = subtotal - discAmt + taxAmt;
   var cur      = _propCur();
@@ -29511,7 +29741,7 @@ function _calcPropTotal() {
   setEl('prop-discount-val', '-' + discAmt.toLocaleString() + ' ' + cur);
   setEl('prop-tax-val', '+' + taxAmt.toLocaleString() + ' ' + cur);
   setEl('prop-total', total.toLocaleString() + ' ' + cur);
-  return {subtotal:subtotal, discAmt:discAmt, taxAmt:taxAmt, total:total};
+  return {subtotal:subtotal, discAmt:discAmt, taxAmt:taxAmt, total:total, discType:discType};
 }
 
 // ── Open modal ──
@@ -29544,6 +29774,7 @@ function openProposalModal(id) {
     document.getElementById('prop-date').value          = p.date  || today;
     document.getElementById('prop-expiry').value        = p.expiry || expiry14;
     document.getElementById('prop-discount').value      = p.discount || 0;
+    document.getElementById('prop-discount-type').value = p.discountType || 'percent';
     document.getElementById('prop-tax').value           = p.tax || 0;
     document.getElementById('prop-payment-terms').value = p.paymentTerms || 'full';
     document.getElementById('prop-currency').value      = p.currency || 'ج.م';
@@ -29600,6 +29831,7 @@ function saveProposal(saveStatus) {
     items:        items,
     subtotal:     calc.subtotal,
     discount:     +((document.getElementById('prop-discount')||{value:0}).value||0),
+    discountType: (document.getElementById('prop-discount-type')||{value:'percent'}).value || 'percent',
     discountAmt:  calc.discAmt,
     tax:          +((document.getElementById('prop-tax')||{value:0}).value||0),
     taxAmt:       calc.taxAmt,
