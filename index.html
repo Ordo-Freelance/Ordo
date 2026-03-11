@@ -6344,6 +6344,8 @@ function hasActiveSub(){
   if(!_supaUserId) return true;
   if(_isAdminUser) return true;  // المشرف له اشتراك مدى الحياة تلقائياً
   if(_isTrialActive()) return true;  // التجربة المجانية تعادل اشتراكاً نشطاً
+  // لو الاشتراك لسه بيتحمل أو مفيش نظام serial keys — افتح كل الصفحات
+  if(!window._subLoadDone) return true;
   if(!_userSubscription) return false;
   if(_userSubscription.billing==='lifetime') return true;
   if(!_userSubscription.expiresAt) return true;
@@ -12015,6 +12017,7 @@ async function loadUserSubscription(uid) {
   }
   updateSubscriptionBar();
   _updateNavLocks();
+  window._subLoadDone = true;
   return _userSubscription;
 }
 
@@ -20883,11 +20886,28 @@ function _showClientPortalLink(clientId){
 
 function openClientPortal(portalId){
   var portal=(S.client_portals||[]).find(function(p){return p.id===portalId;}); if(!portal) return;
+  var client = portal.client_id ? (S.clients||[]).find(function(c){return String(c.id)===String(portal.client_id);}) : null;
+  if(!client && portal.client_name){
+    client = (S.clients||[]).find(function(c){return c.name===portal.client_name;});
+  }
+  var uid=(typeof _supaUserId!=='undefined'&&_supaUserId)?_supaUserId:'';
+  var _cppPath=window.location.pathname.split('/').filter(function(x){return x!=='';});
+  if(_cppPath.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_cppPath[_cppPath.length-1])>=0)_cppPath.pop();
+  if(_cppPath.length&&_cppPath[_cppPath.length-1].endsWith('.html'))_cppPath.pop();
+  var _cpBase=window.location.origin+(_cppPath.length?'/'+_cppPath.join('/')+'/' :'/')+'client-portal.html';
+  var link = client ? (_cpBase+'?uid='+uid+'&cid='+client.id) : _buildPortalLink(portal.client_name, portal.id);
+  var taskLink = (client && portal.task_id) ? (_cpBase+'?uid='+uid+'&cid='+client.id+'&taskid='+portal.task_id) : link;
+
   var task=(S.tasks||[]).find(function(t){return String(t.id)===String(portal.task_id);});
   var body=document.getElementById('portal-body'); if(!body) return;
   var progress=task&&task.steps&&task.steps.length? Math.round(task.steps.filter(function(s){return s.done;}).length/task.steps.length*100) : (task&&task.done?100:0);
+
+  // حفظ الروابط في متغيرات عالمية مؤقتة عشان الـ onclick يوصلها بأمان
+  window._cpLink = link;
+  window._cpTaskLink = taskLink;
+
   body.innerHTML=
-    '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px">'+
+    '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:12px">'+
       '<div style="font-size:13px;font-weight:800;margin-bottom:10px"><i class="fa-solid fa-user"></i> بيانات العميل</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">'+
         '<div><span style="color:var(--text3)">الاسم:</span> <strong>'+escapeHtml(portal.client_name)+'</strong></div>'+
@@ -20897,28 +20917,34 @@ function openClientPortal(portalId){
       '</div>'+
     '</div>'+
     (task?
-      '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px">'+
+      '<div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:12px">'+
         '<div style="font-size:13px;font-weight:800;margin-bottom:8px"><i class="fa-solid fa-clipboard-list"></i> المهمة: '+escapeHtml(task.title)+'</div>'+
         '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>التقدم</span><span>'+progress+'%</span></div>'+
         '<div style="height:8px;background:var(--border);border-radius:4px"><div style="height:100%;background:var(--accent3);border-radius:4px;width:'+progress+'%"></div></div></div>'+
         '<div style="font-size:12px;color:var(--text3)">الحالة: <strong style="color:var(--accent)">'+escapeHtml(task.status||'—')+'</strong></div>'+
-        (task.steps&&task.steps.length?'<div style="margin-top:10px;font-size:12px;color:var(--text3)">الخطوات:</div>'+
-          '<div style="margin-top:6px">'+task.steps.map(function(s){return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px">'+(s.done?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>':'⏳')+' '+escapeHtml(s.text)+'</div>';}).join('')+'</div>':'')+
       '</div>'
-    : '<div style="background:rgba(247,201,72,.1);border-radius:12px;padding:14px;font-size:12px;color:var(--text3)">لا توجد مهمة مرتبطة بعد</div>')+
-    (function(){
-      var _link = _buildPortalLink(portal.client_name, portal.id);
-      var _hasUn = !!(S.settings&&S.settings.username);
-      return '<div style="margin-top:12px;padding:12px;background:var(--surface2);border-radius:12px">'+
-        '<div style="font-size:12px;font-weight:700;margin-bottom:8px"><i class="fa-solid fa-link"></i> رابط بوابة العميل</div>'+
-        (!_hasUn?'<div style="font-size:10px;color:var(--accent4);margin-bottom:8px;padding:6px 10px;background:rgba(247,107,92,.1);border-radius:8px"><i class="fa-solid fa-triangle-exclamation"></i> أضف <b>username</b> في الإعدادات للحصول على رابط قصير باسمك</div>':'')+
-        '<div id="portal-link-'+portal.id+'" style="font-size:11px;color:var(--accent3);font-family:var(--mono);word-break:break-all;margin-bottom:10px;padding:8px 10px;background:var(--surface3);border-radius:8px;user-select:all;cursor:text">'+_link+'</div>'+
-        '<div style="display:flex;gap:8px">'+
-        '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText(document.getElementById(\'portal-link-'+portal.id+'\').textContent.trim()).then(function(){toast(\'<i class=\"fa-solid fa-square-check\" style=\"color:var(--accent3)\"></i> تم نسخ الرابط\')})"><i class="fa-solid fa-copy" style="margin-left:4px"></i> نسخ الرابط</button>'+
-        '<button class="btn btn-primary btn-sm" onclick="window.open(document.getElementById(\'portal-link-'+portal.id+'\').textContent.trim(),\'_blank\')"><i class="fa-solid fa-eye"></i> معاينة</button>'+
+    : '<div style="background:rgba(247,201,72,.1);border-radius:12px;padding:14px;font-size:12px;color:var(--text3);margin-bottom:12px">لا توجد مهمة مرتبطة بعد</div>')+
+    '<div style="background:rgba(79,209,165,.07);border:1.5px solid rgba(79,209,165,.3);border-radius:12px;padding:14px">'+
+      '<div style="font-size:12px;font-weight:800;color:var(--accent3);margin-bottom:10px"><i class="fa-solid fa-link"></i> روابط البوابة</div>'+
+      (task?
+        '<div style="margin-bottom:10px">'+
+          '<div style="font-size:11px;color:var(--text3);margin-bottom:5px">🔗 رابط المهمة (يفتح البوابة على المهمة):</div>'+
+          '<div style="font-size:10px;color:var(--accent3);font-family:var(--mono);word-break:break-all;padding:6px 8px;background:var(--surface3);border-radius:6px;margin-bottom:6px;user-select:all">'+escapeHtml(taskLink)+'</div>'+
+          '<div style="display:flex;gap:6px">'+
+            '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;font-size:11px" onclick="navigator.clipboard.writeText(window._cpTaskLink).then(function(){toast(\'✅ تم نسخ رابط المهمة\')})"><i class="fa-solid fa-copy"></i> نسخ</button>'+
+            '<button class="btn btn-primary btn-sm" style="font-size:11px" onclick="window.open(window._cpTaskLink,\'_blank\')"><i class="fa-solid fa-eye"></i> فتح</button>'+
+          '</div>'+
+        '</div>'
+      : '')+
+      '<div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-bottom:5px">🏠 بوابة العميل الكاملة:</div>'+
+        '<div style="font-size:10px;color:var(--accent3);font-family:var(--mono);word-break:break-all;padding:6px 8px;background:var(--surface3);border-radius:6px;margin-bottom:6px;user-select:all">'+escapeHtml(link)+'</div>'+
+        '<div style="display:flex;gap:6px">'+
+          '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;font-size:11px" onclick="navigator.clipboard.writeText(window._cpLink).then(function(){toast(\'✅ تم نسخ رابط البوابة\')})"><i class="fa-solid fa-copy"></i> نسخ</button>'+
+          '<button class="btn btn-success btn-sm" style="font-size:11px" onclick="window.open(window._cpLink,\'_blank\')"><i class="fa-solid fa-eye"></i> فتح البوابة</button>'+
         '</div>'+
-      '</div>';
-    })();
+      '</div>'+
+    '</div>';
   openM('modal-portal');
 }
 
