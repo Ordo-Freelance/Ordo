@@ -140,6 +140,7 @@ function showErr(m){document.getElementById('ls').style.display='none';const er=
 const P=new URLSearchParams(location.search);
 const pUid=P.get('uid'),pCid=P.get('cid'),pOrderId=P.get('order'),pTaskId=P.get('taskid'),pName=P.get('name')||'',pPhone=P.get('phone')||'';
 const pUsername=P.get('u'), pClientSlug=P.get('p');
+const pTab=P.get('tab')||'', pProjId=P.get('pid')||'';
 let _ud,_settings,_clientName,_clientPhone,_clientId,_clientTasks,_clientProjects,_clientInvoices,_clientOrders;
 
 async function boot(){
@@ -268,6 +269,18 @@ async function _bootWithData(userId, clientId, ud){
       setTimeout(()=>{
         switchTab('tasks');
         openTask(pTaskId,true);
+      },500);
+    } else if(pTab){
+      // فتح تاب محدد مباشرة (مثلاً المشاريع)
+      setTimeout(()=>{
+        switchTab(pTab);
+        // لو في project id محدد — نعمل scroll ليه
+        if(pProjId){
+          setTimeout(()=>{
+            var el=document.getElementById('proj-card-'+pProjId);
+            if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.outline='2px solid var(--ac)'; setTimeout(()=>{el.style.outline='';},2000); }
+          },300);
+        }
       },500);
     }
   }catch(e){console.error('_bootWithData error:',e);showErr('حدث خطأ، حاول تحديث الصفحة.');}
@@ -589,7 +602,7 @@ function renderProjects(){
     const prog=ptasks.length?Math.round(doneT/ptasks.length*100):0;
     const stC=stColors[p.status]||'var(--ac)';
     const stL=stLabels[p.status]||p.status||'نشط';
-    return`<div class="card">
+    return`<div class="card" id="proj-card-${xe(String(p.id))}">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">
         <div>
           <div class="card-ttl">${xe(p.name)}</div>
