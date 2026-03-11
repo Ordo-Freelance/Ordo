@@ -1,12 +1,27 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Ordo">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#7c6ff7">
+<!-- ══ ANTI-FLASH: تطبيق الثيم فوراً قبل أي رسم ══ -->
+<script>
+(function(){
+  try {
+    var mode = localStorage.getItem('studioDisplayMode') || 'dark';
+    var accent = localStorage.getItem('studioAccentColor') || '#7c6ff7';
+    if(mode === 'light') document.documentElement.classList.add('light-mode');
+    else document.documentElement.classList.remove('light-mode');
+    document.documentElement.style.setProperty('--accent', accent);
+    // تطبيق لون الخلفية فوراً لمنع الفلاش
+    var bg = mode === 'light' ? '#f0f2f8' : '#0a0a0f';
+    document.documentElement.style.background = bg;
+    document.documentElement.style.setProperty('--bg', bg);
+  } catch(e) {}
+})();
+</script>
 <title>Ordo </title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
@@ -17278,14 +17293,14 @@ function buildContractHTML(c){
       <div style="text-align:center">
         <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">توقيع مقدم الخدمة</div>
         <div style="height:80px;border:${c.freelancer_signature?'1.5px solid var(--accent3)':'2px dashed var(--border)'};border-radius:8px;display:flex;align-items:center;justify-content:center;background:${c.freelancer_signature?'rgba(79,209,165,.04)':'var(--surface2)'}">
-          ${c.freelancer_signature?`<img src="${c.freelancer_signature}" style="max-width:100%;max-height:76px;object-fit:contain">`:`<span style="color:var(--text3);font-size:12px">لم يوقّع بعد</span>`}
+          ${c.freelancer_signature?`<img src="${c.freelancer_signature}" style="max-width:100%;max-height:76px;object-fit:contain" onerror="this.style.display='none'">`:`<span style="color:var(--text3);font-size:12px">لم يوقّع بعد</span>`}
         </div>
         <div style="font-size:12px;font-weight:700;margin-top:6px">${me}</div>
       </div>
       <div style="text-align:center">
         <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">توقيع العميل</div>
         <div style="height:80px;border:${c.client_signature?'1.5px solid var(--accent3)':'2px dashed var(--border)'};border-radius:8px;display:flex;align-items:center;justify-content:center;background:${c.client_signature?'rgba(79,209,165,.04)':'var(--surface2)'}">
-          ${c.client_signature?`<img src="${c.client_signature}" style="max-width:100%;max-height:76px;object-fit:contain">`:`<span style="color:var(--text3);font-size:12px">في انتظار التوقيع</span>`}
+          ${c.client_signature?`<img src="${c.client_signature}" style="max-width:100%;max-height:76px;object-fit:contain" onerror="this.style.display='none'">`:`<span style="color:var(--text3);font-size:12px">في انتظار التوقيع</span>`}
         </div>
         <div style="font-size:12px;font-weight:700;margin-top:6px">${c.client_name||'العميل'}</div>
         ${c.client_signature&&signed?`<div style="font-size:10px;color:var(--accent3)">وقّع ${signed}</div>`:''}
