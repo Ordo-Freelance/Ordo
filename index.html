@@ -10661,7 +10661,18 @@ function saveTrans(type){
     if(savedId) setTimeout(()=>exportReceipt(savedId), 400);
   }
 }
-function delTrans(id){confirmDel('هل تريد حذف هذه المعاملة؟',()=>{S.transactions=S.transactions.filter(t=>String(t.id)!==String(id));lsSave();cloudSave(S);renderAll();});}
+function delTrans(id){
+  confirmDel('هل تريد حذف هذه المعاملة؟',()=>{
+    // لو المعاملة مرتبطة بـ project_task، ضع flag عشان الـ sync مش يرجعها
+    var tx=S.transactions.find(t=>String(t.id)===String(id));
+    if(tx && tx.linkedProjTaskId){
+      var pt=(S.project_tasks||[]).find(t=>String(t.id)===String(tx.linkedProjTaskId));
+      if(pt) pt._txDeleted=true;
+    }
+    S.transactions=S.transactions.filter(t=>String(t.id)!==String(id));
+    lsSave();cloudSave(S);renderAll();
+  });
+}
 // Finance filter state
 let finFilterState = {month:'', year:'', type:'', method:'', cat:'', project:''};
 
@@ -10710,13 +10721,16 @@ function filterTransactions(transactions){
 
 
 // ── Sync project task income to S.transactions (auto-record) ──
+// ملحوظة: لو المستخدم حذف المعاملة يدوياً، مش بنرجعها تاني
 function _syncProjTaskTransactions(){
   if(!S.project_tasks) return;
   if(!S.transactions) S.transactions=[];
   S.project_tasks.forEach(function(t){
     if(!t.paymentCollected || !t.value || t.value<=0) return;
+    // لو المستخدم حذف المعاملة يدوياً (manuallyDeleted flag) متتسجلش تاني
+    if(t._txDeleted) return;
     // Check if already recorded
-    var exists=S.transactions.some(function(tx){return tx.linkedProjTaskId===t.id;});
+    var exists=S.transactions.some(function(tx){return String(tx.linkedProjTaskId)===String(t.id);});
     if(!exists){
       var proj=_getProjById?_getProjById(t.project_id):null;
       S.transactions.push({
@@ -10726,6 +10740,7 @@ function _syncProjTaskTransactions(){
         currency:t.currency||'ج.م',
         desc:'مهمة مشروع: '+(t.title||'')+(proj?' — '+proj.name:''),
         date:t.createdAt?t.createdAt.slice(0,10):new Date().toISOString().slice(0,10),
+        isoDate:t.createdAt?t.createdAt.slice(0,10):new Date().toISOString().slice(0,10),
         linkedProjTaskId:t.id,
         source:'project_task',
         createdAt:new Date().toISOString()
