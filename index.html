@@ -3036,6 +3036,21 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   </div>
 
   <!-- KANBAN VIEW -->
+  <!-- ✅ قسم مهامي من الفرق — يظهر فقط لو العضو متضاف في فرق -->
+  <div id="member-tasks-section" style="display:none;margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px"><i class="fa-solid fa-users"></i></div>
+        <div>
+          <div style="font-size:15px;font-weight:900">مهامي من الفرق</div>
+          <div style="font-size:11px;color:var(--text3)">المهام المعينة عليك من أصحاب العمل</div>
+        </div>
+      </div>
+      <button onclick="_refreshMemberTasks()" style="padding:6px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text2);cursor:pointer"><i class="fa-solid fa-rotate"></i> تحديث</button>
+    </div>
+    <div id="member-tasks-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px"></div>
+  </div>
+
   <div id="kanban-view">
     <!-- Kanban Status Columns — drag & drop + responsive -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -8606,6 +8621,71 @@ function changeTaskStatus(id, newStatus){
   else t.done=false;
   lsSave(); renderAll();
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تغيير حالة المهمة إلى: '+{new:'جديد',progress:'قيد التنفيذ',review:'مراجعة',paused:'موقوف مؤقتاً',done:'مكتمل'}[newStatus]);
+}
+
+// ═══════════════════════════════════════════════════════
+// MEMBER TASKS SECTION — مهام العضو من الفرق في صفحة المهام
+// ═══════════════════════════════════════════════════════
+function _renderMemberTasksSection(){
+  var section = document.getElementById('member-tasks-section');
+  var listEl  = document.getElementById('member-tasks-list');
+  if(!section || !listEl) return;
+
+  var memberships = window._myTeamMemberships || [];
+  // Collect all active tasks from all memberships
+  var allTasks = [];
+  memberships.forEach(function(mem){
+    (mem.tasks||[]).forEach(function(t){
+      allTasks.push({ task:t, mem:mem });
+    });
+  });
+
+  if(!allTasks.length){
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = '';
+
+  var stColors = {new:'var(--text3)',progress:'var(--accent2)',review:'var(--accent)',paused:'#64b5f6',done:'var(--accent3)'};
+  var stLabels = {new:'🆕 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف',done:'✅ مكتمل'};
+
+  listEl.innerHTML = allTasks.map(function(entry){
+    var t   = entry.task;
+    var mem = entry.mem;
+    var isLate = t.deadline && new Date(t.deadline) < new Date();
+    var daysLeft = t.deadline ? Math.ceil((new Date(t.deadline)-new Date())/864e5) : null;
+    var stepsTotal = (t.steps||[]).length;
+    var stepsDone  = (t.steps||[]).filter(function(s){ return s.done; }).length;
+    var pct = stepsTotal ? Math.round(stepsDone/stepsTotal*100) : 0;
+    var curSt = t.status||'new';
+
+    return '<div style="background:var(--surface);border:1px solid var(--border);border-right:3px solid '+(isLate?'var(--accent4)':'var(--accent)')+';border-radius:12px;padding:14px;cursor:pointer;transition:transform .15s,box-shadow .15s" '
+      +'onmouseenter="this.style.transform=&apos;translateY(-2px)&apos;;this.style.boxShadow=&apos;0 4px 16px rgba(0,0,0,.12)&apos;" '
+      +'onmouseleave="this.style.transform=&apos;&apos;;this.style.boxShadow=&apos;&apos;" '
+      +'data-oid="'+mem.ownerId+'" onclick="openMyMemberTeamProfile(this.dataset.oid)">'  
+      +'<div style="font-size:10px;color:var(--accent3);font-weight:700;margin-bottom:6px"><i class="fa-solid fa-users"></i> '+escapeHtml(mem.ownerName)+' — '+escapeHtml(mem.teamName)+'</div>'
+      +'<div style="font-size:14px;font-weight:700;margin-bottom:6px">'+escapeHtml(t.title)+'</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;margin-bottom:8px">'
+        +'<span style="color:'+stColors[curSt]+'">'+stLabels[curSt]+'</span>'
+        +(t.deadline?'<span style="color:'+(isLate?'var(--accent4)':(daysLeft<=2?'var(--accent2)':'var(--text3)'))+'">'+(isLate?'⚠️ متأخرة':daysLeft+' يوم')+'</span>':'')
+        +(t.workerAmount?'<span style="color:var(--accent2);font-weight:700">💰 '+Number(t.workerAmount).toLocaleString()+' ج</span>':'')
+      +'</div>'
+      +(stepsTotal?'<div style="height:4px;background:var(--surface2);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--accent),var(--accent3));transition:.3s"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">'+stepsDone+'/'+stepsTotal+' خطوات</div>':'')
+      +'<div style="font-size:10px;color:var(--accent);margin-top:8px"><i class="fa-solid fa-arrow-left"></i> اضغط لعرض التفاصيل وتحديث الحالة</div>'
+    +'</div>';
+  }).join('');
+}
+
+async function _refreshMemberTasks(){
+  var myEmail = '';
+  try { var _as=JSON.parse(localStorage.getItem('studioOS_auth_v1')||'{}'); myEmail=(_as.email||'').toLowerCase().trim(); }catch(e){}
+  if(!myEmail && S.settings && S.settings.email) myEmail = (S.settings.email||'').toLowerCase().trim();
+  if(myEmail && typeof window._checkTeamMembership==='function'){
+    await window._checkTeamMembership(myEmail);
+    _renderMemberTasksSection();
+    if(typeof showMiniNotif==='function') showMiniNotif('✅ تم تحديث مهام الفرق');
+  }
 }
 
 function renderTasks(){
@@ -18567,92 +18647,166 @@ function renderMyMemberTeams(){
 window.openMyMemberTeamProfile = function(ownerId){
   var membership = (window._myTeamMemberships||[]).find(function(m){ return m.ownerId===ownerId; });
   if(!membership) return;
-  
-  var tasks = membership.tasks || [];
-  var doneTasks = membership.doneTasks || [];
-  
+
   var ex = document.getElementById('_member-team-modal');
   if(ex) ex.remove();
-  
+
   var overlay = document.createElement('div');
   overlay.id = '_member-team-modal';
   overlay.className = 'modal-overlay';
   overlay.style.display = 'flex';
-  
-  var tasksHtml = tasks.length ? tasks.map(function(t){
-    var isLate = t.deadline && new Date(t.deadline) < new Date();
-    var daysLeft = t.deadline ? Math.ceil((new Date(t.deadline) - new Date()) / 864e5) : null;
-    var stepsTotal = t.steps ? t.steps.length : 0;
-    var stepsDone  = t.steps ? t.steps.filter(function(s){ return s.done; }).length : 0;
-    var pct = stepsTotal ? Math.round(stepsDone / stepsTotal * 100) : 0;
-    var stMap = {new:'<i class="fa-solid fa-clipboard-list"></i> جديد', progress:'<i class="fa-solid fa-bolt"></i> جاري', review:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة', paused:'⏸ موقوف', done:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل'};
-    return '<div style="background:var(--surface2);border:1px solid var(--border);border-right:3px solid '+(isLate?'var(--accent4)':'var(--accent)')+';border-radius:12px;padding:12px 14px;margin-bottom:8px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
-        +'<div style="flex:1">'
-          +'<div style="font-size:14px;font-weight:700;margin-bottom:3px">'+escapeHtml(t.title)+'</div>'
-          +'<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text3)">'
-            +(t.client ? '<span><i class="fa-solid fa-user"></i> '+escapeHtml(t.client)+'</span>' : '')
-            +'<span>'+( stMap[t.status||'new'] )+'</span>'
-            +(t.workerAmount ? '<span style="color:var(--accent4);font-weight:700">مستحق: '+Number(t.workerAmount).toLocaleString()+' ج</span>' : '')
+
+  function _buildModal(){
+    var tasks = membership.tasks || [];
+    var doneTasks = membership.doneTasks || [];
+
+    // ── Update task status in owner's studio_data ──
+    window._memberUpdateTaskStatus = async function(taskId, newStatus){
+      var isDone = (newStatus === 'done');
+      // Update locally first
+      var tIdx = membership.tasks.findIndex(function(t){ return String(t.id)===String(taskId); });
+      var dIdx = membership.doneTasks.findIndex(function(t){ return String(t.id)===String(taskId); });
+      var taskObj = tIdx > -1 ? membership.tasks[tIdx] : (dIdx > -1 ? membership.doneTasks[dIdx] : null);
+      if(!taskObj) return;
+      taskObj.status = newStatus;
+      taskObj.done = isDone;
+      if(isDone && tIdx > -1){ membership.tasks.splice(tIdx,1); membership.doneTasks.unshift(taskObj); }
+      else if(!isDone && dIdx > -1){ membership.doneTasks.splice(dIdx,1); membership.tasks.push(taskObj); }
+      overlay.querySelector('.modal').innerHTML = _renderModalBody();
+      _bindModalEvents();
+      // Update in owner's studio_data
+      try {
+        var { data: ownerRow } = await supa.from('studio_data').select('data').eq('user_id', ownerId).maybeSingle();
+        if(!ownerRow) return;
+        var od = typeof ownerRow.data==='string' ? JSON.parse(ownerRow.data) : ownerRow.data;
+        if(od.data && !od.tasks) od = typeof od.data==='string' ? JSON.parse(od.data) : od.data;
+        var ot = (od.tasks||[]).find(function(t){ return String(t.id)===String(taskId); });
+        if(ot){ ot.status=newStatus; ot.done=isDone; }
+        await supa.from('studio_data').update({data:JSON.stringify(od),updated_at:new Date().toISOString()}).eq('user_id',ownerId);
+        if(typeof showMiniNotif==='function') showMiniNotif('✅ تم تحديث حالة المهمة');
+      } catch(e){ console.warn('task update err:', e); }
+    };
+
+    // ── Update step done status ──
+    window._memberToggleStep = async function(taskId, stepIdx, isDone){
+      var task = (membership.tasks||[]).concat(membership.doneTasks||[]).find(function(t){ return String(t.id)===String(taskId); });
+      if(!task || !task.steps || !task.steps[stepIdx]) return;
+      task.steps[stepIdx].done = isDone;
+      overlay.querySelector('.modal').innerHTML = _renderModalBody();
+      _bindModalEvents();
+      try {
+        var { data: ownerRow } = await supa.from('studio_data').select('data').eq('user_id', ownerId).maybeSingle();
+        if(!ownerRow) return;
+        var od = typeof ownerRow.data==='string' ? JSON.parse(ownerRow.data) : ownerRow.data;
+        if(od.data && !od.tasks) od = typeof od.data==='string' ? JSON.parse(od.data) : od.data;
+        var ot = (od.tasks||[]).find(function(t){ return String(t.id)===String(taskId); });
+        if(ot && ot.steps && ot.steps[stepIdx]) ot.steps[stepIdx].done = isDone;
+        await supa.from('studio_data').update({data:JSON.stringify(od),updated_at:new Date().toISOString()}).eq('user_id',ownerId);
+      } catch(e){ console.warn('step update err:', e); }
+    };
+
+    function _renderTaskCard(t, isActive){
+      var isLate = t.deadline && new Date(t.deadline) < new Date() && !t.done;
+      var daysLeft = t.deadline ? Math.ceil((new Date(t.deadline) - new Date()) / 864e5) : null;
+      var stepsTotal = (t.steps||[]).length;
+      var stepsDone  = (t.steps||[]).filter(function(s){ return s.done; }).length;
+      var pct = stepsTotal ? Math.round(stepsDone / stepsTotal * 100) : (t.done ? 100 : 0);
+      var stColors = {new:'var(--accent2)',progress:'var(--accent)',review:'#f7c948',paused:'var(--text3)',done:'var(--accent3)'};
+      var stLabels = {new:'🆕 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف',done:'✅ مكتمل'};
+      var curSt = t.status||'new';
+
+      var stepsHtml = '';
+      if(stepsTotal > 0){
+        stepsHtml = '<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">'
+          +'<div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px">خطوات التنفيذ ('+stepsDone+'/'+stepsTotal+')</div>'
+          +'<div style="height:4px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:8px"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:3px;transition:.3s"></div></div>'
+          +(t.steps||[]).map(function(s,si){
+            return '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:12px;color:'+(s.done?'var(--accent3)':'var(--text)')+'">'
+              +'<input type="checkbox" data-taskid="'+t.id+'" data-stepidx="'+si+'" '+(s.done?'checked':'')+' style="width:15px;height:15px;accent-color:var(--accent3);cursor:pointer">'
+              +'<span style="'+(s.done?'text-decoration:line-through;opacity:.6':'')+'">'+escapeHtml(s.title||s.text||s.name||'خطوة')+'</span>'
+            +'</label>';
+          }).join('')
+        +'</div>';
+      }
+
+      var actionBtns = isActive ? ''
+        +'<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">'
+          +(curSt!=='done'?'<button class="btn btn-primary btn-sm" data-taskaction="done" data-taskid="'+t.id+'" style="font-size:11px;background:var(--accent3)"><i class="fa-solid fa-check"></i> مكتمل</button>':'')
+          +(curSt!=='progress'?'<button class="btn btn-ghost btn-sm" data-taskaction="progress" data-taskid="'+t.id+'" style="font-size:11px"><i class="fa-solid fa-bolt"></i> قيد التنفيذ</button>':'')
+          +(curSt!=='paused'?'<button class="btn btn-ghost btn-sm" data-taskaction="paused" data-taskid="'+t.id+'" style="font-size:11px;color:var(--text3)"><i class="fa-solid fa-pause"></i> موقوف</button>':'')
+          +(curSt!=='review'?'<button class="btn btn-ghost btn-sm" data-taskaction="review" data-taskid="'+t.id+'" style="font-size:11px;color:var(--accent2)"><i class="fa-solid fa-magnifying-glass"></i> مراجعة</button>':'')
+        +'</div>'
+        : '<button class="btn btn-ghost btn-sm" data-taskaction="progress" data-taskid="'+t.id+'" style="font-size:11px;margin-top:10px"><i class="fa-solid fa-rotate-left"></i> إعادة فتح</button>';
+
+      return '<div style="background:var(--surface2);border:1px solid var(--border);border-right:3px solid '+(isLate?'var(--accent4)':(t.done?'var(--accent3)':'var(--accent)'))+';border-radius:12px;padding:12px 14px;margin-bottom:8px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+          +'<div style="flex:1;min-width:0">'
+            +'<div style="font-size:14px;font-weight:700;margin-bottom:4px;'+(t.done?'text-decoration:line-through;opacity:.7':'')+'">'+escapeHtml(t.title)+'</div>'
+            +'<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text3)">'
+              +(t.client?'<span><i class="fa-solid fa-user"></i> '+escapeHtml(t.client)+'</span>':'')
+              +'<span style="color:'+stColors[curSt]+'">'+stLabels[curSt]+'</span>'
+              +(t.workerAmount?'<span style="color:var(--accent2);font-weight:700">💰 '+Number(t.workerAmount).toLocaleString()+' ج</span>':'')
+            +'</div>'
+          +'</div>'
+          +(t.deadline?'<div style="font-size:10px;font-weight:700;color:'+(isLate?'var(--accent4)':(daysLeft<=2?'var(--accent2)':'var(--accent3)'))+';flex-shrink:0;text-align:left;padding-right:6px">'+(isLate?'⚠️ متأخرة':(t.done?'✅ منجزة':daysLeft+' يوم'))+'</div>':'')
+        +'</div>'
+        +stepsHtml
+        +actionBtns
+      +'</div>';
+    }
+
+    function _renderModalBody(){
+      var tasks2 = membership.tasks || [];
+      var doneTasks2 = membership.doneTasks || [];
+      return '<div style="background:linear-gradient(135deg,rgba(124,111,247,.12),rgba(79,209,165,.08));padding:20px 24px;border-radius:var(--radius) var(--radius) 0 0;position:sticky;top:0;backdrop-filter:blur(8px);z-index:2">'
+          +'<div style="display:flex;align-items:center;gap:14px">'
+            +(membership.ownerLogo&&typeof _validImgSrc==="function"&&_validImgSrc(membership.ownerLogo)?'<img src="'+escapeHtml(membership.ownerLogo)+'" style="width:52px;height:52px;border-radius:14px;object-fit:cover">':'<div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:24px"><i class="fa-solid fa-building"></i></div>')
+            +'<div style="flex:1">'
+              +'<div style="font-size:17px;font-weight:900">'+escapeHtml(membership.ownerName)+'</div>'
+              +'<div style="font-size:12px;color:var(--text3)">'+escapeHtml(membership.teamName)+' · دورك: <strong style="color:var(--accent)">'+escapeHtml(membership.role||'عضو')+'</strong></div>'
+            +'</div>'
+            +'<button class="close-btn" id="_mmt-close"><i class="fa-solid fa-xmark"></i></button>'
+          +'</div>'
+          +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px">'
+            +'<div style="background:rgba(0,0,0,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--accent2)">'+tasks2.length+'</div><div style="font-size:10px;color:var(--text3)">مهام نشطة</div></div>'
+            +'<div style="background:rgba(0,0,0,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--accent3)">'+doneTasks2.length+'</div><div style="font-size:10px;color:var(--text3)">مكتملة</div></div>'
+            +'<div style="background:rgba(0,0,0,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--accent4)">'+tasks2.filter(function(t){return t.deadline&&new Date(t.deadline)<new Date();}).length+'</div><div style="font-size:10px;color:var(--text3)">متأخرة</div></div>'
           +'</div>'
         +'</div>'
-        +'<div style="text-align:left;flex-shrink:0;padding-right:8px">'
-          +(t.deadline ? '<div style="font-size:11px;font-weight:700;color:'+(isLate?'var(--accent4)':(daysLeft<=2?'var(--accent2)':'var(--accent3)'))+'">'+(isLate?'<i class="fa-solid fa-triangle-exclamation"></i> متأخرة':daysLeft+' يوم')+'</div>' : '')
-        +'</div>'
-      +'</div>'
-      +(stepsTotal ? '<div>'
-        +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:3px"><span>خطوات التنفيذ</span><span>'+stepsDone+'/'+stepsTotal+' ('+pct+'%)</span></div>'
-        +'<div style="height:5px;background:var(--surface3);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:3px;transition:.3s"></div></div>'
-        +'<div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">'
-          +t.steps.map(function(s){
-            return '<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:'+(s.done?'var(--accent3)':'var(--text2)')+'">'
-              +'<div style="width:14px;height:14px;border-radius:3px;border:1.5px solid '+(s.done?'var(--accent3)':'var(--border)')+';background:'+(s.done?'var(--accent3)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px">'+(s.done?'<i class="fa-solid fa-check"></i>':'')+'</div>'
-              +'<span style="'+(s.done?'text-decoration:line-through;opacity:.6':'')+'">'+escapeHtml(s.title||s.text||s.name||'خطوة')+'</span>'
-            +'</div>';
-          }).join('')
-        +'</div>'
-      +'</div>' : '')
-    +'</div>';
-  }).join('') : '<div class="empty" style="padding:20px;text-align:center"><div style="font-size:28px;margin-bottom:8px"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i></div><div style="font-size:12px;color:var(--text3)">لا مهام نشطة الآن</div></div>';
-  
-  var doneHtml = doneTasks.slice(0,8).map(function(t){
-    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;margin-bottom:5px">'
-      +'<span style="color:var(--accent3);font-size:14px"><i class="fa-solid fa-check"></i></span>'
-      +'<span style="font-size:12px;color:var(--text2);text-decoration:line-through;flex:1">'+escapeHtml(t.title)+'</span>'
-      +(t.workerAmount ? '<span style="font-size:11px;color:var(--accent3);font-weight:700">'+Number(t.workerAmount).toLocaleString()+' ج</span>' : '')
-    +'</div>';
-  }).join('');
+        +'<div style="padding:20px">'
+          +'<div style="font-size:13px;font-weight:800;margin-bottom:12px"><i class="fa-solid fa-clipboard-list"></i> مهامي النشطة <span style="background:rgba(247,201,72,.2);color:var(--accent2);padding:2px 8px;border-radius:8px;font-size:10px">'+tasks2.length+'</span></div>'
+          +(tasks2.length ? tasks2.map(function(t){ return _renderTaskCard(t, true); }).join('') : '<div style="text-align:center;padding:20px;color:var(--text3)"><i class="fa-solid fa-square-check" style="font-size:28px;color:var(--accent3);display:block;margin-bottom:8px"></i>لا مهام نشطة الآن</div>')
+          +(doneTasks2.length ? '<div style="font-size:13px;font-weight:800;margin-top:16px;margin-bottom:10px;color:var(--accent3)"><i class="fa-solid fa-square-check"></i> مكتملة ('+doneTasks2.length+')</div>'
+            +doneTasks2.slice(0,10).map(function(t){ return _renderTaskCard(t, false); }).join('') : '')
+        +'</div>';
+    }
 
-  overlay.innerHTML = '<div class="modal" style="max-width:560px;max-height:92vh;overflow-y:auto;padding:0">'
-    // Header
-    +'<div style="background:linear-gradient(135deg,rgba(124,111,247,.12),rgba(79,209,165,.08));padding:20px 24px;border-radius:var(--radius) var(--radius) 0 0;position:sticky;top:0;backdrop-filter:blur(8px);z-index:2">'
-      +'<div style="display:flex;align-items:center;gap:14px">'
-        +(_validImgSrc(membership.ownerLogo) ? '<img src="'+escapeHtml(membership.ownerLogo)+'" style="width:52px;height:52px;border-radius:14px;object-fit:cover" onerror=\'this.style.display=\"none\"\'">'
-          : '<div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:24px"><i class="fa-solid fa-building"></i></div>')
-        +'<div style="flex:1">'
-          +'<div style="font-size:17px;font-weight:900">'+escapeHtml(membership.ownerName)+'</div>'
-          +'<div style="font-size:12px;color:var(--text3)">'+escapeHtml(membership.teamName)+' · دورك: <strong style="color:var(--accent)">'+escapeHtml(membership.role||'عضو')+'</strong></div>'
-        +'</div>'
-        +'<button class="close-btn" id="_mmt-close"><i class="fa-solid fa-xmark"></i></button>'
-      +'</div>'
-      // Stats row
-      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px">'
-        +'<div style="background:rgba(0,0,0,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--accent4)">'+tasks.length+'</div><div style="font-size:10px;color:var(--text3)">مهام نشطة</div></div>'
-        +'<div style="background:rgba(0,0,0,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--accent3)">'+doneTasks.length+'</div><div style="font-size:10px;color:var(--text3)">مكتملة</div></div>'
-        +'<div style="background:rgba(0,0,0,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--accent2)">'+tasks.filter(function(t){return t.deadline&&new Date(t.deadline)<new Date();}).length+'</div><div style="font-size:10px;color:var(--text3)">متأخرة</div></div>'
-      +'</div>'
-    +'</div>'
-    // Body
-    +'<div style="padding:20px">'
-      // Active tasks
-      +'<div style="font-size:13px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px"><i class="fa-solid fa-clipboard-list"></i> مهامي النشطة <span style="font-size:10px;background:rgba(247,201,72,.2);color:var(--accent2);padding:2px 8px;border-radius:8px;font-weight:700">'+tasks.length+'</span></div>'
-      +tasksHtml
-      +(doneTasks.length ? '<div style="font-size:13px;font-weight:800;margin-top:16px;margin-bottom:10px;color:var(--accent3)"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتملة ('+doneTasks.length+')</div>'+doneHtml : '')
-    +'</div>'
-  +'</div>';
-  
+    function _bindModalEvents(){
+      var modal = overlay.querySelector('.modal');
+      var closeBtn = modal.querySelector('#_mmt-close');
+      if(closeBtn) closeBtn.onclick = function(){ overlay.remove(); };
+      // Task action buttons
+      modal.querySelectorAll('[data-taskaction]').forEach(function(btn){
+        btn.onclick = function(){
+          var action = this.dataset.taskaction;
+          var taskId = this.dataset.taskid;
+          window._memberUpdateTaskStatus(taskId, action);
+        };
+      });
+      // Step checkboxes
+      modal.querySelectorAll('input[data-taskid][data-stepidx]').forEach(function(cb){
+        cb.onchange = function(){
+          window._memberToggleStep(this.dataset.taskid, +this.dataset.stepidx, this.checked);
+        };
+      });
+    }
+
+    overlay.innerHTML = '<div class="modal" style="max-width:560px;max-height:92vh;overflow-y:auto;padding:0">'+_renderModalBody()+'</div>';
+    _bindModalEvents();
+  }
+
+  _buildModal();
   document.body.appendChild(overlay);
-  overlay.querySelector('#_mmt-close').onclick = function(){ overlay.remove(); };
   overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
 };
 
@@ -18709,26 +18863,27 @@ window.openMyMemberTeamProfile = function(ownerId){
         });
       }
 
-      // ✅ FIX: Also scan ALL studio_data rows to find teams where this user's email appears as a member
-      // This is the most reliable fallback when user_notifications table is not available
-      if(memberships.length === 0 && myEmail) {
-        try {
-          var { data: allRows } = await supa.from('studio_data').select('user_id, data').limit(300);
-          if(allRows && allRows.length) {
-            allRows.forEach(function(row) {
-              if(row.user_id === _supaUserId) return; // skip own data
-              try {
-                var rd = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
-                if(!rd) return;
-                // handle nested data structure
-                if(rd.data && !rd.tasks) rd = typeof rd.data==='string' ? JSON.parse(rd.data) : rd.data;
-                var ownerName = (rd.settings && rd.settings.name) || 'مشرف';
-                var ownerLogo = (rd.settings && rd.settings.logo) || '';
-                (rd.teams||[]).forEach(function(team) {
-                  (team.members||[]).forEach(function(m) {
-                    if((m.email||'').toLowerCase().trim() === myEmail) {
-                      var already = memberships.find(function(x){ return x.teamName===team.name && x.ownerId===row.user_id; });
-                      if(!already) memberships.push({
+      // ✅ FIX: Scan ALL studio_data to find memberships AND load actual tasks
+      try {
+        var { data: allRows } = await supa.from('studio_data').select('user_id, data').limit(300);
+        if(allRows && allRows.length) {
+          allRows.forEach(function(row) {
+            if(row.user_id === _supaUserId) return; // skip own data
+            try {
+              var rd = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+              if(!rd) return;
+              if(rd.data && !rd.tasks) rd = typeof rd.data==='string' ? JSON.parse(rd.data) : rd.data;
+              var ownerName = (rd.settings && rd.settings.name) || 'مشرف';
+              var ownerLogo = (rd.settings && rd.settings.logo) || '';
+              var myName = '';
+              // Find this user's name in the team member list
+              (rd.teams||[]).forEach(function(team) {
+                (team.members||[]).forEach(function(m) {
+                  if((m.email||'').toLowerCase().trim() === myEmail) {
+                    if(m.name) myName = m.name;
+                    var alreadyIdx = memberships.findIndex(function(x){ return x.teamName===team.name && x.ownerId===row.user_id; });
+                    if(alreadyIdx === -1) {
+                      memberships.push({
                         ownerId   : row.user_id,
                         ownerName : ownerName,
                         ownerLogo : ownerLogo,
@@ -18736,19 +18891,53 @@ window.openMyMemberTeamProfile = function(ownerId){
                         memberName: m.name||'',
                         role      : m.role||'عضو',
                         tasks     : [],
-                        doneTasks : []
+                        doneTasks : [],
+                        _ownerData: rd  // cache owner data for task updates
                       });
                     }
-                  });
+                  }
                 });
-              } catch(e2) {}
-            });
-          }
-        } catch(eScan) { console.warn('studio_data team scan:', eScan); }
-      }
+              });
+
+              // Now load tasks assigned to this member from owner's data
+              if(myName || myEmail) {
+                (rd.tasks||[]).forEach(function(t) {
+                  var assignedTo = (t.workerMember||'').trim();
+                  // Match by name or email
+                  var isMyTask = assignedTo === myName || assignedTo.toLowerCase() === myEmail;
+                  if(!isMyTask) return;
+
+                  // Find the membership this task belongs to (match by ownerId)
+                  var mem = memberships.find(function(x){ return x.ownerId === row.user_id; });
+                  if(!mem) return;
+
+                  var taskEntry = {
+                    id         : t.id,
+                    title      : t.title||'مهمة',
+                    status     : t.status||'new',
+                    done       : t.done||false,
+                    deadline   : t.deadline||'',
+                    client     : t.client||'',
+                    steps      : t.steps||[],
+                    workerAmount: t.workerAmount||0,
+                    ownerId    : row.user_id  // needed for update
+                  };
+
+                  if(t.done || t.status === 'done') {
+                    mem.doneTasks.push(taskEntry);
+                  } else {
+                    mem.tasks.push(taskEntry);
+                  }
+                });
+              }
+            } catch(e2) { console.warn('scan row err:', e2); }
+          });
+        }
+      } catch(eScan) { console.warn('studio_data team scan:', eScan); }
 
       window._myTeamMemberships = memberships;
       if(typeof renderMyMemberTeams === 'function') renderMyMemberTeams();
+      if(typeof _renderMemberTasksSection === 'function') _renderMemberTasksSection();
       _updateInboxBadge();
       if(memberships.length){
         _showTeamMembershipBanner(memberships);
@@ -29974,11 +30163,14 @@ function _propUrl(p) {
   return base + 'proposal.html?token=' + encodeURIComponent(p.token);
 }
 
-// ══════════════════════════════════════════════════
-// ── SHORT URL GENERATOR (go.html redirector) ──
-// بيولد روابط قصيرة وأنيقة للعميل
-// ══════════════════════════════════════════════════
-function _getBase() {
+// ══════════════════════════════════════════════════════
+// ── SHORT URL GENERATOR ──
+// الروابط النظيفة: domain/USERNAME/TYPE/ID
+// مثال: ordo-freelance.github.io/Ordo/mahmoud/p/TOKEN
+// يعتمد على 404.html في GitHub Pages للـ routing
+// ══════════════════════════════════════════════════════
+function _getAppBase() {
+  // e.g. https://ordo-freelance.github.io/Ordo/
   var href = window.location.href.split('?')[0];
   return href.substring(0, href.lastIndexOf('/') + 1);
 }
@@ -29987,38 +30179,44 @@ function _getUsername() {
   return (S && S.settings && S.settings.username) || '';
 }
 
-// رابط قصير عام: go.html?u=USERNAME&t=TYPE&...
-function _shortUrl(type, extraParams) {
-  var base = _getBase() + 'go.html';
+function _shortBase() {
+  // Returns:  https://ordo-freelance.github.io/Ordo/mahmoud
   var un = _getUsername();
-  var params = un ? ('?u=' + encodeURIComponent(un)) : ('?uid=' + (_supaUserId||''));
-  params += '&t=' + encodeURIComponent(type);
-  if (extraParams) params += '&' + extraParams;
-  return base + params;
+  if (!un) return null;
+  return _getAppBase() + encodeURIComponent(un);
 }
 
-// ── روابط مختصرة لكل نوع ──
 function _shortProposalUrl(token) {
-  // أقصر رابط: go.html?u=mahmoud&t=proposal&id=TOKEN
-  return _shortUrl('proposal', 'id=' + encodeURIComponent(token));
+  var b = _shortBase();
+  if (!b) return _getAppBase() + 'proposal.html?token=' + encodeURIComponent(token);
+  // /Ordo/mahmoud/p/TOKEN  — TOKEN already short (prp_xxx)
+  return b + '/p/' + encodeURIComponent(token);
 }
 
 function _shortPortalUrl(clientId, taskId) {
-  var p = 'cid=' + encodeURIComponent(clientId||'');
-  if (taskId) p += '&tid=' + encodeURIComponent(taskId);
-  return _shortUrl('portal', p);
+  var b = _shortBase();
+  if (!b) return _getAppBase() + 'client-portal.html?uid=' + (_supaUserId||'') + '&cid=' + encodeURIComponent(clientId||'');
+  var url = b + '/c/' + encodeURIComponent(clientId||'');
+  if (taskId) url += '/' + encodeURIComponent(taskId);
+  return url;
 }
 
 function _shortReviewUrl() {
-  return _shortUrl('review');
+  var b = _shortBase();
+  if (!b) return _getAppBase() + 'review.html?uid=' + (_supaUserId||'');
+  return b + '/r';
 }
 
 function _shortStoreUrl(storeId) {
-  return _shortUrl('store', storeId ? ('id=' + encodeURIComponent(storeId)) : '');
+  var b = _shortBase();
+  if (!b) return _getAppBase() + 'store.html?uid=' + (_supaUserId||'');
+  return storeId ? (b + '/s/' + encodeURIComponent(storeId)) : (b + '/s');
 }
 
 function _shortInvoiceUrl(invoiceId) {
-  return _shortUrl('invoice', 'id=' + encodeURIComponent(invoiceId||''));
+  var b = _shortBase();
+  if (!b) return _getAppBase() + 'invoice.html?uid=' + (_supaUserId||'') + '&id=' + encodeURIComponent(invoiceId||'');
+  return b + '/i/' + encodeURIComponent(invoiceId||'');
 }
 
 function _propCur() {
