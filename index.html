@@ -2802,6 +2802,11 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <span id="_notif-dot" style="display:none;position:absolute;top:5px;right:5px;width:8px;height:8px;background:var(--accent4);border-radius:50%;border:2px solid var(--surface)"></span>
     </button>
+    <!-- Inbox Button -->
+    <button id="_inbox-btn" onclick="_toggleInboxPanel(this)" style="position:relative;width:34px;height:34px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s" title="صندوق الوارد">
+      <i class="fa-solid fa-inbox" style="font-size:15px"></i>
+      <span id="_inbox-dot" style="display:none;position:absolute;top:4px;right:4px;min-width:16px;height:16px;background:#f97316;border-radius:8px;border:2px solid var(--surface);font-size:9px;font-weight:900;color:#fff;display:none;align-items:center;justify-content:center;padding:0 3px"></span>
+    </button>
     <button class="btn btn-primary btn-sm" id="header-cta" onclick="openTaskModal()" style="display: inline-flex;" data-i18n="btn_new_task"><i class="fa-solid fa-plus" style="margin-left:4px"></i> مهمة جديدة</button>
     <!-- Profile Avatar Button -->
     <button id="_header-avatar-btn" onclick="_toggleProfileMenu(this)" style="width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid var(--border);background:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;transition:.18s;position:relative" title="الملف الشخصي">
@@ -11910,6 +11915,7 @@ function renderAll(){
   if(typeof renderStoresHomeList==='function') renderStoresHomeList();
   try{ _updateNavBtns(); }catch(e){}
   if(typeof renderSupport==='function') renderSupport();
+  if(typeof _updateInboxBadge==='function') _updateInboxBadge();
   // Refresh freelancer goals page if active
   if(document.getElementById('page-freelancer-goals')?.classList.contains('active')){
     renderFreelancerGoalsPage();
@@ -19725,6 +19731,23 @@ window.openMyMemberTeamProfile = function(ownerId){
             }
           });
           if(newCount>0){ if(typeof _saveNotifications==='function') _saveNotifications(); if(typeof _updateNotifBell==='function') _updateNotifBell(); showMiniNotif('<i class="fa-solid fa-bell"></i> لديك '+newCount+' إشعار جديد'); }
+
+          // ── Sync _inbox from server (revision requests from client portal) ──
+          if(ud._inbox && ud._inbox.length){
+            S._inbox = S._inbox||[];
+            var inboxChanged=false;
+            ud._inbox.forEach(function(item){
+              var exists=S._inbox.find(function(x){ return String(x.id)===String(item.id); });
+              if(!exists){
+                S._inbox.unshift(item);
+                inboxChanged=true;
+                if(item.type==='revision'&&item.status==='pending'){
+                  addNotification('<i class="fa-solid fa-rotate-left" style="color:#f97316"></i> طلب تعديل من <strong>'+(item.clientName||'عميل')+'</strong> على: '+escapeHtml(item.taskTitle||'مهمة'),'warning');
+                }
+              }
+            });
+            if(inboxChanged){ lsSave(); if(typeof _updateInboxBadge==='function') _updateInboxBadge(); }
+          }
           // ❗ لا نكتب ud القديمة كلها - بس نمسح الـ notifications من S الحالي
           // ده يمنع الـ poll من overwrite البيانات الجديدة في S
           if(!S._pending_notifications) S._pending_notifications = [];
@@ -25237,6 +25260,7 @@ function addNotification(msg, type, link){
 function _initNotifications(){
   _loadNotifications();
   _updateNotifBell();
+  if(typeof _updateInboxBadge==='function') _updateInboxBadge();
   // Check for auto-notifications (overdue tasks, subscriptions)
   setTimeout(_checkAutoNotifications, 2000);
   setInterval(_checkAutoNotifications, 5*60*1000); // every 5 min
@@ -25419,6 +25443,230 @@ function _clearAllNotifications(){
   _saveNotifications();
   _updateNotifBell();
   var p = document.getElementById('_notif-panel'); if(p) p.remove();
+}
+
+// ══════════════════════════════════════════════════════
+// 📥 INBOX SYSTEM — طلبات التعديل والملاحظات من العملاء
+// ══════════════════════════════════════════════════════
+function _getInbox(){ return S._inbox||[]; }
+
+function _updateInboxBadge(){
+  var dot=document.getElementById('_inbox-dot');
+  if(!dot) return;
+  var unread=_getInbox().filter(function(i){ return !i.read&&i.status==='pending'; }).length;
+  // also count store orders waiting
+  var pendingOrders=(S.orders||[]).filter(function(o){ return !o._inboxRead; }).length;
+  var total=unread+pendingOrders;
+  if(total>0){
+    dot.textContent=total>9?'9+':String(total);
+    dot.style.display='inline-flex';
+  } else {
+    dot.style.display='none';
+  }
+}
+
+function _toggleInboxPanel(triggerEl){
+  var existing=document.getElementById('_inbox-panel');
+  if(existing){ existing.remove(); return; }
+
+  var inbox=_getInbox();
+  var orders=(S.orders||[]).slice().sort(function(a,b){ return new Date(b.created_at||0)-new Date(a.created_at||0); });
+
+  // Mark orders as read in inbox view
+  var ordersChanged=false;
+  orders.forEach(function(o){ if(!o._inboxRead){ o._inboxRead=true; ordersChanged=true; } });
+  if(ordersChanged){ lsSave(); cloudSave(S); }
+  _updateInboxBadge();
+
+  var panel=document.createElement('div');
+  panel.id='_inbox-panel';
+  panel.style.cssText='position:fixed;z-index:9998;background:var(--surface);border:1px solid var(--border);border-radius:18px;width:380px;max-height:580px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,.45)';
+  var rect=triggerEl.getBoundingClientRect();
+  panel.style.top=(rect.bottom+8)+'px';
+  panel.style.left=Math.max(8,rect.left-340)+'px';
+
+  var revisions=inbox.filter(function(i){ return i.type==='revision'||i.type==='note'; });
+  var pendingRevs=revisions.filter(function(i){ return i.status==='pending'; });
+
+  var revisionsHtml = revisions.length===0
+    ? '<div style="text-align:center;padding:30px 20px;color:var(--text3);font-size:12px"><i class="fa-solid fa-rotate-left" style="font-size:28px;opacity:.3;display:block;margin-bottom:8px"></i>لا طلبات تعديل</div>'
+    : revisions.slice(0,20).map(function(item){
+        var isPending=item.status==='pending';
+        var isNote=item.type==='note';
+        var age=_timeAgo(item.createdAt||item.created_at||new Date().toISOString());
+        var safeId=String(item.id).replace(/'/g,"\\'");
+        var safeTid=String(item.taskId||'').replace(/'/g,"\\'");
+        return '<div style="padding:12px 15px;border-bottom:1px solid rgba(42,42,58,.4);background:'+(isPending&&!isNote?'rgba(249,115,22,.04)':'transparent')+'">'+
+          '<div style="display:flex;align-items:flex-start;gap:10px">'+
+            '<div style="width:34px;height:34px;border-radius:50%;background:'+(isNote?'rgba(100,181,246,.15)':'rgba(249,115,22,.15)')+';border:1.5px solid '+(isNote?'#64b5f655':'#f9731655')+';display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">'+(isNote?'<i class="fa-solid fa-comment-dots" style="color:#64b5f6"></i>':'<i class="fa-solid fa-rotate-left" style="color:#f97316"></i>')+'</div>'+
+            '<div style="flex:1;min-width:0">'+
+              '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px">'+(isNote?'ملاحظة':'طلب تعديل')+' — '+escapeHtml(item.clientName||'عميل')+'</div>'+
+              '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">'+escapeHtml(item.taskTitle||'مهمة')+'</div>'+
+              (item.note?'<div style="font-size:11px;color:var(--text2);background:var(--surface2);border-radius:7px;padding:6px 9px;border-right:2px solid '+(isNote?'#64b5f6':'#f97316')+'">'+escapeHtml(item.note)+'</div>':'')+
+              '<div style="font-size:10px;color:var(--text3);margin-top:4px">'+age+'</div>'+
+            '</div>'+
+            (isPending&&!isNote?'<span style="font-size:9px;padding:2px 7px;border-radius:8px;background:rgba(249,115,22,.15);color:#f97316;font-weight:700;flex-shrink:0">جديد</span>':'')+
+            (item.status==='accepted'?'<span style="font-size:9px;padding:2px 7px;border-radius:8px;background:rgba(79,209,165,.15);color:var(--accent3);font-weight:700;flex-shrink:0">قُبل</span>':'')+
+            (item.status==='rejected'?'<span style="font-size:9px;padding:2px 7px;border-radius:8px;background:rgba(255,107,107,.15);color:var(--accent4);font-weight:700;flex-shrink:0">رُفض</span>':'')+
+          '</div>'+
+          (isPending&&!isNote?
+            '<div style="display:flex;gap:6px;margin-top:10px">'+
+              '<button onclick="_acceptRevision(\''+safeId+'\',\''+safeTid+'\')" style="flex:1;padding:7px;background:rgba(79,209,165,.12);color:var(--accent3);border:1px solid rgba(79,209,165,.3);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:800;cursor:pointer"><i class="fa-solid fa-check"></i> قبول التعديل</button>'+
+              '<button onclick="_rejectRevision(\''+safeId+'\')" style="flex:1;padding:7px;background:rgba(255,107,107,.08);color:var(--accent4);border:1px solid rgba(255,107,107,.25);border-radius:8px;font-family:var(--font);font-size:11px;font-weight:800;cursor:pointer"><i class="fa-solid fa-xmark"></i> رفض</button>'+
+            '</div>'
+          :'')+
+        '</div>';
+      }).join('');
+
+  var ordersHtml = orders.length===0
+    ? '<div style="text-align:center;padding:30px 20px;color:var(--text3);font-size:12px"><i class="fa-solid fa-bag-shopping" style="font-size:28px;opacity:.3;display:block;margin-bottom:8px"></i>لا طلبات جديدة</div>'
+    : orders.slice(0,15).map(function(o){
+        var age=_timeAgo(o.created_at||new Date().toISOString());
+        var svcName=escapeHtml(o.service_name||o.pkg_name||o.title||'طلب');
+        var cName=escapeHtml(o.client_name||o.name||'عميل');
+        var oid=String(o.id||'').replace(/'/g,"\\'");
+        return '<div style="padding:12px 15px;border-bottom:1px solid rgba(42,42,58,.4);cursor:pointer" onclick="document.getElementById(\'_inbox-panel\')?.remove();openOrderDetail(\''+oid+'\')">'+
+          '<div style="display:flex;align-items:flex-start;gap:10px">'+
+            '<div style="width:34px;height:34px;border-radius:50%;background:rgba(247,201,72,.12);border:1.5px solid rgba(247,201,72,.35);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0"><i class="fa-solid fa-bag-shopping" style="color:var(--accent2)"></i></div>'+
+            '<div style="flex:1;min-width:0">'+
+              '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px">طلب جديد — '+cName+'</div>'+
+              '<div style="font-size:11px;color:var(--text3);margin-bottom:3px">'+svcName+'</div>'+
+              (o.total?'<div style="font-size:12px;font-weight:800;color:var(--accent3)">'+Number(o.total).toLocaleString()+' ج</div>':'')+
+              '<div style="font-size:10px;color:var(--text3);margin-top:3px">'+age+'</div>'+
+            '</div>'+
+            '<i class="fa-solid fa-arrow-left" style="font-size:11px;color:var(--accent);margin-top:4px"></i>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+
+  // Build tab state
+  var _activeTab=pendingRevs.length>0?'revisions':'orders';
+
+  panel.innerHTML=
+    '<div style="padding:13px 15px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'+
+      '<div style="font-size:13px;font-weight:800;display:flex;align-items:center;gap:6px">'+
+        '<i class="fa-solid fa-inbox" style="color:var(--accent)"></i> صندوق الوارد'+
+        (pendingRevs.length?'<span style="font-size:10px;padding:1px 7px;border-radius:10px;background:#f97316;color:#fff;font-weight:700">'+pendingRevs.length+'</span>':'')+
+      '</div>'+
+      '<button onclick="document.getElementById(\'_inbox-panel\').remove()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:2px 6px">✕</button>'+
+    '</div>'+
+    '<div id="_inbox-tabs" style="display:flex;border-bottom:1px solid var(--border)">'+
+      '<button id="_itab-revisions" onclick="_switchInboxTab(\'revisions\')" style="flex:1;padding:10px;font-family:var(--font);font-size:12px;font-weight:700;border:none;cursor:pointer;border-bottom:2px solid '+((_activeTab==='revisions')?'var(--accent)':'transparent')+';background:transparent;color:'+((_activeTab==='revisions')?'var(--accent)':'var(--text3)')+'"><i class="fa-solid fa-rotate-left"></i> تعديلات ('+revisions.length+')</button>'+
+      '<button id="_itab-orders" onclick="_switchInboxTab(\'orders\')" style="flex:1;padding:10px;font-family:var(--font);font-size:12px;font-weight:700;border:none;cursor:pointer;border-bottom:2px solid '+((_activeTab==='orders')?'var(--accent)':'transparent')+';background:transparent;color:'+((_activeTab==='orders')?'var(--accent)':'var(--text3)')+'"><i class="fa-solid fa-bag-shopping"></i> طلبات ('+orders.length+')</button>'+
+    '</div>'+
+    '<div id="_inbox-revisions-content" style="overflow-y:auto;flex:1;display:'+((_activeTab==='revisions')?'block':'none')+'">'+revisionsHtml+'</div>'+
+    '<div id="_inbox-orders-content" style="overflow-y:auto;flex:1;display:'+((_activeTab==='orders')?'block':'none')+'">'+ordersHtml+'</div>';
+
+  document.body.appendChild(panel);
+  setTimeout(function(){
+    document.addEventListener('click',function _ic(e){
+      var p2=document.getElementById('_inbox-panel');
+      if(p2&&!p2.contains(e.target)&&!triggerEl.contains(e.target)){
+        p2.remove(); document.removeEventListener('click',_ic);
+      }
+    });
+  },100);
+}
+
+function _switchInboxTab(tab){
+  var revBtn=document.getElementById('_itab-revisions');
+  var ordBtn=document.getElementById('_itab-orders');
+  var revCont=document.getElementById('_inbox-revisions-content');
+  var ordCont=document.getElementById('_inbox-orders-content');
+  if(!revBtn) return;
+  var isRev=tab==='revisions';
+  revBtn.style.borderBottomColor=isRev?'var(--accent)':'transparent';
+  revBtn.style.color=isRev?'var(--accent)':'var(--text3)';
+  ordBtn.style.borderBottomColor=!isRev?'var(--accent)':'transparent';
+  ordBtn.style.color=!isRev?'var(--accent)':'var(--text3)';
+  revCont.style.display=isRev?'block':'none';
+  ordCont.style.display=!isRev?'block':'none';
+}
+
+function _acceptRevision(inboxId, taskId){
+  // Find inbox item
+  if(!S._inbox) return;
+  var item=S._inbox.find(function(i){ return String(i.id)===String(inboxId); });
+  if(!item) return;
+
+  // Find the task (regular or project)
+  var task=(S.tasks||[]).find(function(t){ return String(t.id)===String(taskId); });
+  var ptask=(S.project_tasks||[]).find(function(t){ return String(t.id)===String(taskId); });
+  var t=task||ptask;
+
+  // Show status picker modal
+  var statuses=[
+    {id:'progress',label:'قيد التنفيذ',icon:'⚡',color:'var(--accent2)'},
+    {id:'review',label:'مراجعة',icon:'🔍',color:'var(--accent)'},
+    {id:'new',label:'جديد',icon:'📋',color:'var(--text3)'},
+    {id:'revision',label:'تعديلات',icon:'✏️',color:'#f97316'}
+  ];
+  var customStatuses=(S.customStatuses||[]).map(function(cs){
+    return {id:cs.id,label:cs.label,icon:cs.icon||'🔹',color:'var(--accent)'};
+  });
+  var allStatuses=statuses.concat(customStatuses);
+
+  var memberName=t?(t.workerMember||t.assignee_name||''):'';
+
+  var ov=document.createElement('div');
+  ov.className='modal-overlay'; ov.id='_accept-rev-ov';
+  ov.style.cssText='display:flex;align-items:center;justify-content:center;z-index:10001';
+  ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+  ov.innerHTML='<div class="modal" style="width:min(400px,95vw);max-height:90vh;overflow-y:auto;border-radius:16px;padding:24px">'+
+    '<div style="text-align:center;margin-bottom:20px">'+
+      '<div style="font-size:40px;margin-bottom:8px">✅</div>'+
+      '<div style="font-size:16px;font-weight:900;margin-bottom:6px">قبول طلب التعديل</div>'+
+      '<div style="font-size:12px;color:var(--text3)">اختر الحالة الجديدة للمهمة: '+escapeHtml((t&&t.title)||'المهمة')+'</div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">'+
+    allStatuses.map(function(st){
+      return '<button onclick="_confirmAcceptRevision(\''+String(inboxId).replace(/'/g,"\\'")+'\',\''+String(taskId).replace(/'/g,"\\'")+'\',\''+st.id+'\')" style="padding:12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;cursor:pointer;font-family:var(--font);text-align:center;transition:.15s" onmouseover="this.style.borderColor=\''+st.color+'\';this.style.background=\''+st.color+'18\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.background=\'var(--surface2)\'">'+
+        '<div style="font-size:22px;margin-bottom:4px">'+st.icon+'</div>'+
+        '<div style="font-size:12px;font-weight:700;color:'+st.color+'">'+escapeHtml(st.label)+'</div>'+
+      '</button>';
+    }).join('')+
+    '</div>'+
+    (memberName?'<div style="padding:10px 12px;background:rgba(100,181,246,.08);border-radius:10px;border-right:3px solid #64b5f6;font-size:12px;color:var(--text2);margin-bottom:12px"><i class="fa-solid fa-user" style="color:#64b5f6"></i> سيتم إرسال المهمة تلقائياً إلى <strong>'+escapeHtml(memberName)+'</strong></div>':'')+
+    '<button onclick="document.getElementById(\'_accept-rev-ov\').remove()" class="btn btn-ghost" style="width:100%;justify-content:center">إلغاء</button>'+
+  '</div>';
+  document.getElementById('_inbox-panel')?.remove();
+  document.body.appendChild(ov);
+}
+
+function _confirmAcceptRevision(inboxId, taskId, newStatus){
+  // Update inbox item
+  var item=S._inbox&&S._inbox.find(function(i){ return String(i.id)===String(inboxId); });
+  if(item){ item.status='accepted'; item.read=true; item.acceptedStatus=newStatus; }
+
+  // Update task status
+  var task=(S.tasks||[]).find(function(t){ return String(t.id)===String(taskId); });
+  var ptask=(S.project_tasks||[]).find(function(t){ return String(t.id)===String(taskId); });
+  var t=task||ptask;
+  if(t){
+    t.status=newStatus;
+    t.done=false;
+    t.clientRevisionRequested=false;
+    // If team member assigned, re-notify them
+    var memberName=t.workerMember||t.assignee_name||'';
+    if(memberName){
+      addNotification('<i class="fa-solid fa-user" style="color:#64b5f6"></i> تم إعادة مهمة <strong>'+escapeHtml(t.title)+'</strong> إلى '+escapeHtml(memberName)+' — تعديل من العميل','message');
+    }
+  }
+
+  lsSave(); cloudSave(S);
+  document.getElementById('_accept-rev-ov')?.remove();
+  renderAll();
+  _updateInboxBadge();
+  showMiniNotif('<i class="fa-solid fa-check" style="color:var(--accent3)"></i> تم قبول التعديل وتحديث حالة المهمة');
+}
+
+function _rejectRevision(inboxId){
+  var item=S._inbox&&S._inbox.find(function(i){ return String(i.id)===String(inboxId); });
+  if(item){ item.status='rejected'; item.read=true; }
+  lsSave(); cloudSave(S);
+  document.getElementById('_inbox-panel')?.remove();
+  _updateInboxBadge();
+  showMiniNotif('<i class="fa-solid fa-xmark" style="color:var(--accent4)"></i> تم رفض طلب التعديل');
 }
 
 function _timeAgo(isoStr){
