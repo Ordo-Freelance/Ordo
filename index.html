@@ -25170,7 +25170,17 @@ function saveProject(){
   } else {
     d.id=Date.now(); S.projects.push(d);
   }
-  lsSave(); cloudSave(S); closeM('modal-project'); renderProjects();
+  // ✅ FIX: تأكد من الحفظ حتى لو _appReady مش جاهز بعد
+  if (window._appReady && window._cloudLoadDone) {
+    lsSave(); cloudSave(S);
+  } else {
+    // حفظ طارئ مباشر
+    try {
+      if (typeof _doCloudSave === 'function') _doCloudSave(S, true);
+      else { window._appReady = true; window._cloudLoadDone = true; lsSave(); cloudSave(S); }
+    } catch(e) { window._appReady = true; window._cloudLoadDone = true; lsSave(); }
+  }
+  closeM('modal-project'); renderProjects();
   toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ المشروع');
 }
 
