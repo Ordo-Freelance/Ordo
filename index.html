@@ -3160,7 +3160,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
               <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">العميل</th>
               <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة</th>
               <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">تاريخ الطلب</th>
-              <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الديدلاين</th>
+              <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">ميعاد التسليم</th>
               <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المبلغ</th>
               <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">إجراءات</th>
             </tr>
@@ -8674,6 +8674,8 @@ function confirmComplete(){
   });
 
   lsSave(); closeM('modal-complete'); renderAll();
+  // اطلب رابط التسليم بعد إغلاق المودال
+  setTimeout(function(){ _askRegularTaskProjectLink(id); }, 300);
   if(!payCollected && t.value>0){
     showToast('<i class="fa-solid fa-champagne-glasses"></i> تم إنجاز المشروع: '+t.title+' — تذكير: المبلغ لم يتم تحصيله بعد!');
     // Schedule reminder notification
@@ -11886,9 +11888,9 @@ function renderAll(){
   // تحديث badge العروض
   const _pb = document.getElementById('proposals-nav-badge');
   if(_pb){ const _pc=(S.proposals||[]).filter(p=>p.status==='pending').length; _pb.textContent=_pc; _pb.style.display=_pc?'inline-flex':'none'; }
-  // تحديث badge التقييمات
+  // تحديث badge التقييمات — يظهر فقط للجديدة غير المقروءة
   const _rb = document.getElementById('reviews-badge');
-  if(_rb){ const _rc=(S.reviews||[]).length; _rb.textContent=_rc; _rb.style.display=_rc?'inline-flex':'none'; }
+  if(_rb){ const _rc=(S.reviews||[]).length; const _rread=+(localStorage.getItem('_reviewsReadCount')||0); const _runread=Math.max(0,_rc-_rread); _rb.textContent=_runread; _rb.style.display=_runread?'inline-flex':'none'; }
 }
 
 // ============================================================
@@ -17119,11 +17121,18 @@ function kbDrop(ev){
   const task = S.tasks.find(t=>t.id===taskId);
   if(!task) return;
   if(task.status === newStatus){ _kbDragId=null; return; }
+  // إذا نُقلت إلى مكتمل، استخدم completeTask لطلب رابط التسليم
+  if(newStatus === 'done'){
+    _kbDragId = null;
+    document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
+    completeTask(taskId);
+    return;
+  }
   task.status = newStatus;
   task.done   = false;
   task.doneAt = null;
   lsSave();
-  renderAll(); // use renderAll so custom cols also update
+  renderAll();
   const statusLabels = {'new':'<i class="fa-solid fa-clipboard-list"></i> جديد','progress':'<i class="fa-solid fa-bolt"></i> قيد التنفيذ','review':'<i class="fa-solid fa-magnifying-glass"></i> مراجعة','paused':'⏸ موقوف'};
   const customLabel = (S.customStatuses||[]).find(c=>c.id===newStatus)?.label||newStatus;
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> '+(statusLabels[newStatus]||customLabel));
@@ -17162,6 +17171,7 @@ function kbDropPrio(ev){
 // Touch support for mobile drag (swap via long-press menu)
 function kbMobileMoveTask(taskId, newStatus){
   const task = S.tasks.find(t=>t.id===taskId); if(!task) return;
+  const prevDone = task.done || task.status==='done';
   task.status = newStatus;
   task.done   = false;
   lsSave(); renderTasks();
@@ -17174,7 +17184,7 @@ function kbShowMoveMenu(ev, taskId){
   const existing = document.getElementById('_kb_menu');
   if(existing) existing.remove();
   const task = S.tasks.find(t=>t.id===taskId);
-  const statuses = [{id:'new',label:'<i class="fa-solid fa-clipboard-list"></i> جديد'},{id:'progress',label:'<i class="fa-solid fa-bolt"></i> قيد التنفيذ'},{id:'review',label:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة'},{id:'paused',label:'⏸ موقوف'}];
+  const statuses = [{id:'new',label:'<i class="fa-solid fa-clipboard-list"></i> جديد'},{id:'progress',label:'<i class="fa-solid fa-bolt"></i> قيد التنفيذ'},{id:'review',label:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة'},{id:'paused',label:'⏸ موقوف'},{id:'done',label:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل'}];
   const priorities = [{id:'high',label:'<i class="fa-solid fa-circle"></i> عاجل'},{id:'med',label:'<i class="fa-solid fa-circle"></i> متوسط'},{id:'low',label:'<i class="fa-solid fa-circle"></i> عادي'}];
   const menu = document.createElement('div');
   menu.id = '_kb_menu';
@@ -17186,7 +17196,7 @@ function kbShowMoveMenu(ev, taskId){
     `<div style="font-size:11px;color:var(--text3);padding:4px 8px 6px;border-bottom:1px solid var(--border);margin-bottom:6px">نقل: "${(task?.title||'').slice(0,22)}"</div>`+
     `<div style="font-size:10px;color:var(--accent);padding:2px 8px 4px;font-weight:700">الحالة</div>`+
     statuses.filter(s=>s.id!==(task?.status||'new')).map(s=>
-      `<div onclick="kbMobileMoveTask(${taskId},'${s.id}');document.getElementById('_kb_menu').remove()" style="padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer" onmouseover="this.style.background='rgba(124,111,247,.12)'" onmouseout="this.style.background=''">${s.label}</div>`
+      `<div onclick="${s.id==='done'?`completeTask(${taskId})`:`kbMobileMoveTask(${taskId},'${s.id}')`};document.getElementById('_kb_menu')?.remove()" style="padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer" onmouseover="this.style.background='rgba(124,111,247,.12)'" onmouseout="this.style.background=''">${s.label}</div>`
     ).join('')+
     `<div style="font-size:10px;color:var(--accent2);padding:6px 8px 4px;font-weight:700;border-top:1px solid var(--border);margin-top:4px">الأولوية</div>`+
     priorities.filter(p=>p.id!==(task?.priority||'med')).map(p=>
@@ -26072,7 +26082,6 @@ var _currentProjTab='overview';
 function openProjectDetail(id){
   _currentProjId=id;
   _currentProjTab='overview';
-  
   var pg=document.getElementById('page-project-detail');
   if(!pg) return;
   renderProjectDetail();
@@ -26092,7 +26101,7 @@ function renderProjectDetail(){
   var client=(S.clients||[]).find(c=>String(c.id)===String(proj.client_id));
   var clr=proj.color||'var(--accent)';
 
-  var tabs={overview:'نظرة عامة',tasks:'المهام',kanban:'كانبان',table:'<i class="fa-solid fa-table"></i> جدول',finance:'المالية',team:'الفريق',files:'الملفات'};
+  var tabs={overview:'نظرة عامة',tasks:'المهام',kanban:'كانبان',table:'<i class="fa-solid fa-table"></i> جدول',finance:' المالية',team:'الفريق',files:'الملفات'};
   var tabsHtml=Object.keys(tabs).map(k=>`<button class="proj-tab${_currentProjTab===k?' active':''}" onclick="switchProjTab('${k}')">${tabs[k]}</button>`).join('');
 
   var inner=document.getElementById('proj-detail-inner'); if(!inner) return;
@@ -26243,7 +26252,7 @@ function renderProjTasksFullTable(proj, tasks, clr){
       +'<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>'
       +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة ▾</th>'
       +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">تاريخ الطلب</th>'
-      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">ميعاد التسليم</th>'
+      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الديدلاين</th>'
       +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المبلغ</th>'
       +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المنفذ</th>'
       +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border);width:100px">إجراءات</th>'
