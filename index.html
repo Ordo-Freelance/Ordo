@@ -20893,7 +20893,17 @@ function handlePkgStThumb(input){
     }).catch(function(){ _handlePkgStThumbBase64(file); });
 }
 function _handlePkgStThumbBase64(file){
-  toast('<i class="fa-solid fa-triangle-exclamation"></i> Storage غير متاح — تأكد من إنشاء bucket اسمه "media" في Supabase');
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var b64=e.target.result;
+    _pkgStThumbData=b64;
+    var pv=document.getElementById('pkg-st-thumb-preview'); if(pv){pv.src=b64;pv.style.display='';}
+    var nm=document.getElementById('pkg-st-thumb-name'); if(nm) nm.textContent=file.name;
+    var cl=document.getElementById('pkg-st-thumb-clear'); if(cl) cl.style.display='';
+    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تحميل الصورة');
+  };
+  reader.onerror=function(){ toast('<i class="fa-solid fa-triangle-exclamation"></i> فشل تحميل الصورة'); };
+  reader.readAsDataURL(file);
 }
 function clearPkgStThumb(){
   _pkgStThumbData='';
@@ -21317,8 +21327,18 @@ function handleSvcImg(input){
 
 // Fallback: لو Storage مش شغال
 function _handleSvcImgBase64(file, input){
-  toast('<i class="fa-solid fa-triangle-exclamation"></i> Storage غير متاح — تأكد من إنشاء bucket اسمه "media" في Supabase');
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var b64=e.target.result;
+    window._svcImgData=b64;
+    var prev=document.getElementById('svc-img-preview'); if(prev){prev.src=b64;prev.style.display='';}
+    var nm=document.getElementById('svc-img-name'); if(nm) nm.textContent=file.name;
+    var cl=document.getElementById('svc-img-clear'); if(cl) cl.style.display='';
+    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تحميل الصورة');
+  };
+  reader.onerror=function(){ toast('<i class="fa-solid fa-triangle-exclamation"></i> فشل تحميل الصورة'); };
   if(input) input.value='';
+  reader.readAsDataURL(file);
 }
 
 // ── Packages ──
