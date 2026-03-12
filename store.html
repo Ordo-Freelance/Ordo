@@ -115,9 +115,27 @@ html,body{min-height:100vh;background:#f4f5fb;color:#1a1a2e;font-family:'Cairo',
 
 var SUPA_URL='https://mpfmcjgigpvdxbhgzufo.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wZm1jamdpZ3B2ZHhiaGd6dWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2Mjc3MzMsImV4cCI6MjA4ODIwMzczM30.fICNxH_7DEBHripIoyMcUugTnd4JEBx-ypegpPvb6PM';
-var ORDO_HOME='https://ordo.app';
+var ORDO_HOME='https://ordo-freelance.github.io/Ordo/';
 var BASE=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,'/');
 var PORTAL=BASE+'client-portal.html';
+
+// ── إصلاح: لو الرابط من نوع /u/mahmoud/s يتحوّل لـ store.html?u=mahmoud ──
+(function(){
+  try{
+    var href=window.location.href;
+    // لو الرابط من نوع /mahmoud/s أو /mahmoud/s/storeId
+    var shortMatch=href.match(/\/([a-z0-9_-]{3,})\/(s)(?:\/([^?#]*))?(\?.*)?$/i);
+    if(shortMatch&&!_pUid&&!_pUname){
+      var detectedUname=shortMatch[1];
+      var detectedStore=shortMatch[3]||'';
+      // override params
+      if(detectedUname){
+        _pUname=detectedUname;
+        if(detectedStore) _storeId=decodeURIComponent(detectedStore);
+      }
+    }
+  }catch(e){}
+})();
 var supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 var P=new URLSearchParams(location.search);
@@ -535,7 +553,19 @@ async function buildPage(userId){
     '._footer-bot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-top:14px;border-top:1px solid '+borderC+';font-size:12px;color:'+textMuted+'}'+
     '._empty{text-align:center;padding:60px 20px;color:'+textMuted+'}'+
     '._empty-icon{font-size:52px;margin-bottom:12px;opacity:.4}'+
-    '._empty-t{font-size:15px;font-weight:700;color:'+textSub+';margin-bottom:6px}';
+    '._empty-t{font-size:15px;font-weight:700;color:'+textSub+';margin-bottom:6px}'+
+    // COMBINED SERVICES SECTION
+    '._combo-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}'+
+    '._ctab{padding:8px 18px;border-radius:20px;font-size:13px;font-weight:800;cursor:pointer;font-family:\'Cairo\',sans-serif;border:1.5px solid '+borderC+';background:transparent;color:'+textSub+';transition:.15s}'+
+    '._ctab.active{background:'+accent+';color:#fff;border-color:'+accent+'}'+
+    '._ctab:hover:not(.active){background:'+accent+'18;border-color:'+accent+'55;color:'+accent+'}'+
+    '._cat-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}'+
+    '._cf{padding:5px 13px;border-radius:16px;font-size:11px;font-weight:700;cursor:pointer;font-family:\'Cairo\',sans-serif;border:1px solid '+borderC+';background:transparent;color:'+textMuted+';transition:.12s}'+
+    '._cf.on{background:'+accent+'22;border-color:'+accent+'66;color:'+accent+'}'+
+    '._cf:hover:not(.on){background:'+cardBg+'}'+
+    '._sc-badge{position:absolute;top:10px;right:10px;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:800;color:#fff;background:'+accent+'}'+
+    '._sc-badge.pkg{background:linear-gradient(135deg,#4fd1a5,#38b28a)}'+
+    '._sc{position:relative}';
     document.head.appendChild(css);
 
     // ══════════════════════════════════
@@ -549,15 +579,13 @@ async function buildPage(userId){
     // ══════════════════════════════════
     var navLinks=
       '<button class="_nl active" onclick="_gs(\'_hero\')">الرئيسية</button>'+
-      '<button class="_nl" onclick="_gs(\'_svcs\')">الخدمات</button>'+
-      '<button class="_nl" onclick="_gs(\'_pkgs\')">الباقات</button>'+
+      '<button class="_nl" onclick="_gs(\'_combo\')">الخدمات والباقات</button>'+
       '<button class="_nl" onclick="_gs(\'_pf\')">أعمالنا</button>'+
       '<button class="_nl" onclick="_gs(\'_contact\')">تواصل معنا</button>';
 
     var mobLinks=
       '<button class="_ml" onclick="_gs(\'_hero\');_cm()"><i class="fa-solid fa-house"></i>الرئيسية</button>'+
-      '<button class="_ml" onclick="_gs(\'_svcs\');_cm()"><i class="fa-solid fa-bag-shopping"></i>الخدمات</button>'+
-      '<button class="_ml" onclick="_gs(\'_pkgs\');_cm()"><i class="fa-solid fa-box"></i>الباقات</button>'+
+      '<button class="_ml" onclick="_gs(\'_combo\');_cm()"><i class="fa-solid fa-store"></i>الخدمات والباقات</button>'+
       '<button class="_ml" onclick="_gs(\'_pf\');_cm()"><i class="fa-solid fa-image"></i>أعمالنا</button>'+
       '<button class="_ml" onclick="_gs(\'_contact\');_cm()"><i class="fa-solid fa-phone"></i>تواصل معنا</button>';
 
@@ -666,7 +694,107 @@ async function buildPage(userId){
     '</div>';
 
     // ══════════════════════════════════
-    // ── PORTFOLIO ──
+    // ── COMBINED SERVICES + PACKAGES SECTION ──
+    // ══════════════════════════════════
+    var allCats=[];
+    services.forEach(function(s){if(s.cat&&!allCats.includes(s.cat))allCats.push(s.cat);});
+    standalonePkgs.forEach(function(p){if(p.cat&&!allCats.includes(p.cat))allCats.push(p.cat);});
+
+    var catFiltersHtml='';
+    if(allCats.length>1){
+      catFiltersHtml='<div class="_cat-filter" id="_cat-filter">'+
+        '<button class="_cf on" onclick="_filterCat(\'\')">الكل</button>'+
+        allCats.map(function(c){return '<button class="_cf" onclick="_filterCat(\''+xe(c)+'\')">'+xe(c)+'</button>';}).join('')+
+      '</div>';
+    }
+
+    var hasServices=services.length>0;
+    var hasPkgs=standalonePkgs.length>0;
+    var tabsHtml='';
+    if(hasServices||hasPkgs){
+      tabsHtml='<div class="_combo-tabs" id="_combo-tabs">'+
+        (hasServices?'<button class="_ctab active" id="_ctab-svc" onclick="_switchComboTab(\'svc\')"><i class="fa-solid fa-bag-shopping" style="margin-left:5px"></i>الخدمات'+(services.length?' ('+services.length+')':'')+'</button>':'')+
+        (hasPkgs?'<button class="_ctab'+(hasServices?'':' active')+'" id="_ctab-pkg" onclick="_switchComboTab(\'pkg\')"><i class="fa-solid fa-box" style="margin-left:5px"></i>الباقات'+(standalonePkgs.length?' ('+standalonePkgs.length+')':'')+'</button>':'')+
+        '<button class="_ctab" id="_ctab-all" onclick="_switchComboTab(\'all\')"><i class="fa-solid fa-border-all" style="margin-left:5px"></i>الكل</button>'+
+      '</div>';
+    }
+
+    function buildSvcCardTagged(s,i){
+      var pr=s.price&&+s.price?Number(s.price).toLocaleString()+' '+(s.currency||'ج.م'):'عند الطلب';
+      var img=s.image||s.img||s.photo||s.cover||'';
+      var payBtn=s.payment_link
+        ?'<a href="'+xe(s.payment_link)+'" target="_blank" class="_btn _btn-pay" onclick="event.stopPropagation()"><i class="fa-solid fa-credit-card"></i>ادفع</a>'
+        :'<button class="_btn _btn-pay" onclick="event.stopPropagation();_openOrd(\''+encodeURIComponent(s.name)+'\',\'\','+(s.price||0)+',\'\')"><i class="fa-solid fa-credit-card"></i>ادفع</button>';
+      return '<div class="_sc" data-cat="'+xe(s.cat||'')+'" data-type="svc">'+
+        '<div class="_sc-badge">خدمة</div>'+
+        (img?'<img class="_sc-img" src="'+xe(img)+'" alt="" loading="lazy" onclick="_openSvc('+i+')">':
+             '<div class="_sc-ph" onclick="_openSvc('+i+')">'+(s.icon||'<i class="fa-solid fa-bag-shopping"></i>')+'</div>')+
+        '<div class="_sc-body">'+
+          (s.cat?'<div class="_sc-cat">'+xe(s.cat)+'</div>':'')+
+          '<div class="_sc-name" onclick="_openSvc('+i+')">'+xe(s.name)+'</div>'+
+          (s.desc?'<div class="_sc-desc" onclick="_openSvc('+i+')">'+xe(s.desc)+'</div>':'')+
+          '<div class="_sc-foot">'+
+            '<div class="_sc-price">'+pr+'</div>'+
+            '<div style="display:flex;gap:4px;flex-wrap:wrap">'+
+              payBtn+
+              '<button class="_btn _btn-ghost" onclick="event.stopPropagation();_openSvc('+i+')">تفاصيل</button>'+
+              '<button class="_btn _btn-main" onclick="event.stopPropagation();_openOrd(\''+encodeURIComponent(s.name)+'\',\'\','+(s.price||0)+',\''+encodeURIComponent(s.payment_link||'')+'\')">اطلب ←</button>'+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }
+
+    function buildPkgCardTagged(p,i){
+      var pr=p.price?Number(p.price).toLocaleString()+' '+(p.currency||'ج.م'):'عند الطلب';
+      var cvr=p.thumb||p.image||p.cover||p.thumbnail||p.img||'';
+      var payBtn=p.payment_link
+        ?'<a href="'+xe(p.payment_link)+'" target="_blank" class="_btn _btn-pay" onclick="event.stopPropagation()"><i class="fa-solid fa-credit-card"></i>ادفع</a>'
+        :'<button class="_btn _btn-pay" onclick="event.stopPropagation();_openOrd(\'\',\''+encodeURIComponent(p.name)+'\','+(p.price||0)+',\'\')"><i class="fa-solid fa-credit-card"></i>ادفع</button>';
+      return '<div class="_sc" data-cat="'+xe(p.cat||'')+'" data-type="pkg">'+
+        '<div class="_sc-badge pkg">باقة</div>'+
+        (cvr?'<img class="_sc-img" src="'+xe(cvr)+'" alt="" loading="lazy" onclick="_openPkg('+i+')">':
+             '<div class="_sc-ph" onclick="_openPkg('+i+')">'+(p.icon||'<i class="fa-solid fa-box"></i>')+'</div>')+
+        '<div class="_sc-body">'+
+          (p.cat?'<div class="_sc-cat">'+xe(p.cat)+'</div>':'')+
+          '<div class="_sc-name" onclick="_openPkg('+i+')">'+xe(p.name)+'</div>'+
+          (p.desc?'<div class="_sc-desc">'+xe(p.desc)+'</div>':'')+
+          (p.items&&p.items.length?
+            '<div class="_pc-items" style="margin-bottom:8px">'+p.items.slice(0,3).map(function(it){return '<div class="_pc-item"><i class="fa-solid fa-check"></i>'+xe(it)+'</div>';}).join('')+'</div>':'')+
+          '<div class="_sc-foot">'+
+            '<div class="_sc-price">'+pr+'</div>'+
+            '<div style="display:flex;gap:4px;flex-wrap:wrap">'+
+              payBtn+
+              '<button class="_btn _btn-ghost" onclick="event.stopPropagation();_openPkg('+i+')">تفاصيل</button>'+
+              '<button class="_btn _btn-main" onclick="event.stopPropagation();_openOrd(\'\',\''+encodeURIComponent(p.name)+'\','+(p.price||0)+',\''+encodeURIComponent(p.payment_link||'')+'\')">اطلب ←</button>'+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }
+
+    function buildPkgCard(p,i){ return buildPkgCardTagged(p,i); }
+
+    var allComboCards=services.map(buildSvcCardTagged).join('')+standalonePkgs.map(buildPkgCardTagged).join('');
+
+    var comboSectionHtml='';
+    if(hasServices||hasPkgs){
+      comboSectionHtml=
+        '<div id="_combo" style="scroll-margin-top:72px" class="_sec">'+
+          '<div class="_sec-head">'+
+            '<div class="_sec-title"><i class="fa-solid fa-store"></i> خدماتنا وباقاتنا</div>'+
+          '</div>'+
+          tabsHtml+
+          catFiltersHtml+
+          '<div class="_svc-grid" id="_combo-grid">'+
+            (allComboCards||'<div class="_empty"><div class="_empty-icon">🛍️</div><div class="_empty-t">لا توجد خدمات أو باقات حالياً</div></div>')+
+          '</div>'+
+        '</div>';
+    }
+
+    window._comboServices=services; window._comboPkgs=standalonePkgs;
+
+    var pkgsHtml=''; // مدموج في comboSectionHtml
     // ══════════════════════════════════
     var pfHtml='<div id="_pf" style="scroll-margin-top:72px" class="_sec">'+
       '<div class="_sec-head">'+
@@ -745,14 +873,14 @@ async function buildPage(userId){
     // ══════════════════════════════════
     var root=document.getElementById('_root');
     root.innerHTML=navHtml+
-      '<div class="_main">'+heroHtml+svcsHtml+pkgsHtml+pfHtml+contactHtml+'</div>'+
+      '<div class="_main">'+heroHtml+svcsHtml+pkgsHtml+comboSectionHtml+pfHtml+contactHtml+'</div>'+
       footerHtml;
     root.style.display='block';
     hideLs();
 
     // scroll spy
     window.addEventListener('scroll',function(){
-      var ids=['_hero','_svcs','_pkgs','_pf','_contact'];
+      var ids=['_hero','_combo','_pf','_contact'];
       var lks=document.querySelectorAll('._nl');
       var cur=0;
       ids.forEach(function(id,i){var el=document.getElementById(id);if(el&&window.scrollY>=el.offsetTop-84)cur=i;});
@@ -999,6 +1127,53 @@ window._submitOrd=function(ue,se,pe,price,ple){
       setTimeout(function(){window.open('https://wa.me/'+studioPhone.replace(/\D/g,'')+'?text='+encodeURIComponent(txt),'_blank');},700);
     }
   }).catch(function(){if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-paper-plane"></i>إرسال الطلب';}});
+};
+
+// ── Combo Tabs ──
+window._switchComboTab=function(tab){
+  var grid=document.getElementById('_combo-grid');
+  if(!grid) return;
+  // تحديث الـ tab buttons
+  ['svc','pkg','all'].forEach(function(t){
+    var btn=document.getElementById('_ctab-'+t);
+    if(btn) btn.classList.toggle('active', t===tab);
+  });
+  // إخفاء / إظهار الكروت
+  var cards=grid.querySelectorAll('._sc');
+  cards.forEach(function(c){
+    var type=c.dataset.type;
+    var show = tab==='all' || (tab==='svc'&&type==='svc') || (tab==='pkg'&&type==='pkg');
+    c.style.display = show ? '' : 'none';
+  });
+  // reset cat filter
+  var cfs=document.querySelectorAll('._cf');
+  cfs.forEach(function(b){b.classList.toggle('on',b.textContent==='الكل'||!b.textContent);});
+};
+
+window._filterCat=function(cat){
+  var grid=document.getElementById('_combo-grid');
+  if(!grid) return;
+  // تحديث filter buttons
+  var cfs=document.querySelectorAll('._cf');
+  cfs.forEach(function(b){
+    var isCur=(cat===''&&(b.textContent==='الكل'))||(b.textContent===cat);
+    b.classList.toggle('on',isCur);
+  });
+  // فلتر الكروت
+  var cards=grid.querySelectorAll('._sc');
+  // معرفة الـ active tab
+  var activeTab='all';
+  ['svc','pkg','all'].forEach(function(t){
+    var btn=document.getElementById('_ctab-'+t);
+    if(btn&&btn.classList.contains('active')) activeTab=t;
+  });
+  cards.forEach(function(c){
+    var ccat=c.dataset.cat||'';
+    var type=c.dataset.type;
+    var matchCat = cat==='' || ccat===cat;
+    var matchTab = activeTab==='all' || (activeTab==='svc'&&type==='svc') || (activeTab==='pkg'&&type==='pkg');
+    c.style.display = (matchCat&&matchTab) ? '' : 'none';
+  });
 };
 
 document.addEventListener('DOMContentLoaded',boot);
