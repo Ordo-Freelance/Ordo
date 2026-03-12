@@ -8575,6 +8575,7 @@ function saveTask(){
   const payVal = v('t-pay');
   const depositVal = +(v('t-deposit'))||0;
   if(!eid && payVal==='deposit' && depositVal>0){
+    var _mt=document.getElementById('modal-task'); if(_mt) _mt.style.display='none';
     setTimeout(()=>_showPaymentIncomePrompt({
       amount: depositVal,
       label: 'عربون',
@@ -8583,10 +8584,11 @@ function saveTask(){
       taskId: d.id,
       paymentType: 'deposit',
       onSkip: ()=>{ if(issueInv) setTimeout(()=>openInvoiceFromTask(d),150); }
-    }), 400);
+    }), 450);
     return;
   }
   if(!eid && payVal==='full' && (d.value||0)>0){
+    var _mt2=document.getElementById('modal-task'); if(_mt2) _mt2.style.display='none';
     setTimeout(()=>_showPaymentIncomePrompt({
       amount: d.value,
       label: 'دفعة كاملة',
@@ -8595,7 +8597,7 @@ function saveTask(){
       taskId: d.id,
       paymentType: 'full',
       onSkip: ()=>{ if(issueInv) setTimeout(()=>openInvoiceFromTask(d),150); }
-    }), 400);
+    }), 450);
     return;
   }
   // إصدار فاتورة تلقائي
@@ -8624,13 +8626,14 @@ function _showPaymentIncomePrompt(opts){
   document.body.appendChild(ov);
   document.getElementById('_pim-yes').onclick=function(){
     ov.remove();
-    // تسجيل مباشر في المعاملات بدون فتح موديال
+    var now=new Date().toISOString().split('T')[0];
     var tx={
       id:Date.now(),type:'income',
       amount:opts.amount,
       source:opts.client||'',
       desc:opts.desc,
-      date:new Date().toISOString().split('T')[0],
+      date:now,
+      isoDate:now,
       paymentType:opts.paymentType||'full',
       linkedTaskId:opts.taskId||null,
       currency:S.settings?.currency||'EGP'
@@ -10658,7 +10661,7 @@ function saveTrans(type){
     if(savedId) setTimeout(()=>exportReceipt(savedId), 400);
   }
 }
-function delTrans(id){confirmDel('هل تريد حذف هذه المعاملة؟',()=>{S.transactions=S.transactions.filter(t=>t.id!==id);lsSave();renderAll();});}
+function delTrans(id){confirmDel('هل تريد حذف هذه المعاملة؟',()=>{S.transactions=S.transactions.filter(t=>String(t.id)!==String(id));lsSave();cloudSave(S);renderAll();});}
 // Finance filter state
 let finFilterState = {month:'', year:'', type:'', method:'', cat:'', project:''};
 
@@ -15999,9 +16002,14 @@ function saveLoan(){
   toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ القرض');
   // ── سؤال تسجيل القرض كمعاملة مالية (للقروض الجديدة فقط) ──
   if(isNew){
+    // ننتظر إن modal-loan يتغلق كامل قبل ما نظهر الـ prompt
+    var _loanForPrompt=Object.assign({},d);
     setTimeout(function(){
-      _showLoanTransactionPrompt(d);
-    }, 350);
+      // تأكد إن modal-loan مش open
+      var ml=document.getElementById('modal-loan');
+      if(ml) ml.style.display='none';
+      _showLoanTransactionPrompt(_loanForPrompt);
+    }, 500);
   }
 }
 
@@ -16035,13 +16043,16 @@ function _showLoanTransactionPrompt(loan){
   document.body.appendChild(ov);
   document.getElementById('_ltm-yes').onclick=function(){
     ov.remove();
+    var now=new Date().toISOString().split('T')[0];
+    var txDate=loan.date||now;
     var tx={
       id:Date.now(),
       type:txType,
       amount:loan.amount,
       source:txType==='income'?loan.person:'',
       desc:desc,
-      date:loan.date||new Date().toISOString().split('T')[0],
+      date:txDate,
+      isoDate:txDate,
       paymentType:'cash',
       loanId:loan.id,
       currency:S.settings?.currency||'EGP'
@@ -27841,7 +27852,10 @@ function saveProjTask(){
   };
   var isNewlyDone=(d.status==='done')&&(prevStatus!=='done');
   var isNewlyCollected=(payStatus==='collected')&&!prevPay;
-  var isNewDeposit=(payStatus==='deposit')&&depositVal>0&&(!eid||(()=>{var old=S.project_tasks.find(t=>String(t.id)===String(eid));return !(old&&old.paymentStatus==='deposit');})());
+  // عربون جديد: لو paymentStatus=deposit وفيه قيمة عربون
+  var oldPayStatus='';
+  if(eid){var _oldT=S.project_tasks.find(t=>String(t.id)===String(eid));if(_oldT)oldPayStatus=_oldT.paymentStatus||'';}
+  var isNewDeposit=(payStatus==='deposit')&&depositVal>0&&(oldPayStatus!=='deposit');
   if(eid){
     var i=S.project_tasks.findIndex(t=>String(t.id)===String(eid));
     if(i>-1){d.id=+eid;d.createdAt=S.project_tasks[i].createdAt;S.project_tasks[i]=d;}
@@ -27867,6 +27881,7 @@ function saveProjTask(){
   // ── سؤال تسجيل العربون كدخل ──
   if(isNewDeposit && depositVal>0){
     var _proj=_getProjById(projId);
+    var _mpt=document.getElementById('modal-proj-task'); if(_mpt) _mpt.style.display='none';
     setTimeout(function(){
       _showPaymentIncomePrompt({
         amount:depositVal,
@@ -27876,7 +27891,7 @@ function saveProjTask(){
         taskId:d.id,
         paymentType:'deposit'
       });
-    },400);
+    },450);
   }
 }
 
