@@ -20249,10 +20249,7 @@ function renderCorpEmployees(){
 
 // ── Helpers ──
 function getSvcLink(storeId){
-  // ✅ استخدم الرابط القصير لو متاح
-  if(typeof _shortStoreUrl === 'function'){
-    return _shortStoreUrl(storeId||'');
-  }
+  // ✅ دائماً ابنِ رابط store.html مباشر — الروابط القصيرة بتديك 404 على GitHub Pages
   var uid = (typeof _supaUserId!=='undefined' && _supaUserId) ? _supaUserId : '';
   var _spp=window.location.pathname,_sps=_spp.split('/').filter(function(x){return x!=='';});
   if(_sps.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_sps[_sps.length-1])>=0)_sps.pop();
@@ -31712,36 +31709,37 @@ function _shortBase() {
 }
 
 function _shortProposalUrl(token) {
-  var b = _shortBase();
-  if (!b) return _getAppBase() + 'proposal.html?token=' + encodeURIComponent(token);
-  // /Ordo/mahmoud/p/TOKEN  — TOKEN already short (prp_xxx)
-  return b + '/p/' + encodeURIComponent(token);
+  // ✅ رابط مباشر — الروابط القصيرة بتديك 404 على GitHub Pages
+  return _getAppBase() + 'proposal.html?token=' + encodeURIComponent(token);
 }
 
 function _shortPortalUrl(clientId, taskId) {
-  var b = _shortBase();
-  if (!b) return _getAppBase() + 'client-portal.html?uid=' + (_supaUserId||'') + '&cid=' + encodeURIComponent(clientId||'');
-  var url = b + '/c/' + encodeURIComponent(clientId||'');
-  if (taskId) url += '/' + encodeURIComponent(taskId);
-  return url;
+  // ✅ رابط مباشر
+  var base = _getAppBase() + 'client-portal.html?uid=' + (_supaUserId||'') + '&cid=' + encodeURIComponent(clientId||'');
+  if (taskId) base += '&tid=' + encodeURIComponent(taskId);
+  return base;
 }
 
 function _shortReviewUrl() {
-  var b = _shortBase();
-  if (!b) return _getAppBase() + 'review.html?uid=' + (_supaUserId||'');
-  return b + '/r';
+  // ✅ رابط مباشر
+  return _getAppBase() + 'review.html?uid=' + (_supaUserId||'');
 }
 
 function _shortStoreUrl(storeId) {
-  var b = _shortBase();
-  if (!b) return _getAppBase() + 'store.html?uid=' + (_supaUserId||'');
-  return storeId ? (b + '/s/' + encodeURIComponent(storeId)) : (b + '/s');
+  // ✅ رابط مباشر — getSvcLink يتجاهل هذه الدالة الآن لكن نصلحها كذلك للاتساق
+  var base = _getAppBase() + 'store.html';
+  var un = _getUsername();
+  if (storeId) {
+    var storeObj = (_getStores&&_getStores()||[]).find(function(s){return s.id===storeId;});
+    if (storeObj && storeObj.username) return base + '?u=' + encodeURIComponent(storeObj.username);
+    return (un ? base+'?u='+encodeURIComponent(un) : base+'?uid='+(_supaUserId||'')) + '&store=' + encodeURIComponent(storeId);
+  }
+  return un ? (base + '?u=' + encodeURIComponent(un)) : (base + '?uid=' + (_supaUserId||''));
 }
 
 function _shortInvoiceUrl(invoiceId) {
-  var b = _shortBase();
-  if (!b) return _getAppBase() + 'invoice.html?uid=' + (_supaUserId||'') + '&id=' + encodeURIComponent(invoiceId||'');
-  return b + '/i/' + encodeURIComponent(invoiceId||'');
+  // ✅ رابط مباشر
+  return _getAppBase() + 'invoice.html?uid=' + (_supaUserId||'') + '&id=' + encodeURIComponent(invoiceId||'');
 }
 
 function _propCur() {
