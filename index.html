@@ -14216,7 +14216,10 @@ async function saveTeam(){
     d.id = Date.now();
     S.teams.push(d);
   }
-  lsSave(); cloudSave(S); closeM('modal-team'); renderTeams();
+  // ✅ FIX: force save regardless of _appReady state
+  if(window._appReady && window._cloudLoadDone){ lsSave(); cloudSave(S); }
+  else { try{ if(typeof _doCloudSave==='function') _doCloudSave(S,true); else { window._appReady=true;window._cloudLoadDone=true;lsSave(); } }catch(e){ window._appReady=true;window._cloudLoadDone=true;lsSave(); } }
+  closeM('modal-team'); renderTeams();
   fillWorkerMembersDD();
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الفريق: '+name);
 
@@ -14260,7 +14263,7 @@ async function saveTeam(){
         title      : 'تمت إضافتك لفريق!',
         body       : 'تمت إضافتك كـ '+(m.role||'عضو')+' في فريق "'+name+'" بواسطة '+ownerName,
         type       : 'team_added',
-        data       : JSON.stringify({ teamId: d.id, teamName: name, memberRole: m.role, ownerName, ownerEmail }),
+        data       : JSON.stringify({ teamId: d.id, teamName: name, memberRole: m.role, ownerName, ownerEmail, ownerUserId: _supaUserId }),
         read       : false,
         created_at : new Date().toISOString()
       };
@@ -14277,7 +14280,7 @@ async function saveTeam(){
             ud2._pending_notifications = ud2._pending_notifications||[];
             const alreadyEx = ud2._pending_notifications.find(n=>n.type==='team_added'&&String(n.teamId)===String(d.id));
             if(!alreadyEx){
-              ud2._pending_notifications.push({ id:Date.now()+'_ta', title:'تمت إضافتك لفريق!', body:notifRow.body, type:'team_added', teamId:d.id, teamName:name, created_at:notifRow.created_at, read:false });
+              ud2._pending_notifications.push({ id:Date.now()+'_ta', title:'تمت إضافتك لفريق!', body:notifRow.body, type:'team_added', teamId:d.id, teamName:name, ownerName:ownerName, ownerUserId:_supaUserId, memberRole:m.role||'عضو', created_at:notifRow.created_at, read:false });
               await supa.from('studio_data').update({data:JSON.stringify(ud2),updated_at:new Date().toISOString()}).eq('user_id',targetUserId).catch(()=>null);
             }
           }
@@ -18691,7 +18694,7 @@ window.openMyMemberTeamProfile = function(ownerId){
         });
       }
 
-      // Also check local S.teams for membership
+      // Also check local S.teams for membership (if this user IS the owner)
       if(myEmail){
         (S.teams||[]).forEach(function(team){
           (team.members||[]).forEach(function(m){
@@ -18701,6 +18704,44 @@ window.openMyMemberTeamProfile = function(ownerId){
             }
           });
         });
+      }
+
+      // ✅ FIX: Also scan ALL studio_data rows to find teams where this user's email appears as a member
+      // This is the most reliable fallback when user_notifications table is not available
+      if(memberships.length === 0 && myEmail) {
+        try {
+          var { data: allRows } = await supa.from('studio_data').select('user_id, data').limit(300);
+          if(allRows && allRows.length) {
+            allRows.forEach(function(row) {
+              if(row.user_id === _supaUserId) return; // skip own data
+              try {
+                var rd = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+                if(!rd) return;
+                // handle nested data structure
+                if(rd.data && !rd.tasks) rd = typeof rd.data==='string' ? JSON.parse(rd.data) : rd.data;
+                var ownerName = (rd.settings && rd.settings.name) || 'مشرف';
+                var ownerLogo = (rd.settings && rd.settings.logo) || '';
+                (rd.teams||[]).forEach(function(team) {
+                  (team.members||[]).forEach(function(m) {
+                    if((m.email||'').toLowerCase().trim() === myEmail) {
+                      var already = memberships.find(function(x){ return x.teamName===team.name && x.ownerId===row.user_id; });
+                      if(!already) memberships.push({
+                        ownerId   : row.user_id,
+                        ownerName : ownerName,
+                        ownerLogo : ownerLogo,
+                        teamName  : team.name||'الفريق',
+                        memberName: m.name||'',
+                        role      : m.role||'عضو',
+                        tasks     : [],
+                        doneTasks : []
+                      });
+                    }
+                  });
+                });
+              } catch(e2) {}
+            });
+          }
+        } catch(eScan) { console.warn('studio_data team scan:', eScan); }
       }
 
       window._myTeamMemberships = memberships;
@@ -18794,7 +18835,7 @@ window.openMyMemberTeamProfile = function(ownerId){
             if(!exists){
               _notifications.unshift({ id:'pn_'+n.id, msg:(n.title?'**'+n.title+'**\n':'')+n.body, type:n.type||'message', orderId:n.orderId||'', time:n.created_at, read:false });
               if(!n.read) newCount++;
-              if((n.type==='team' || n.type==='team_invite') && n.teamName && n.ownerName) teamInvites.push(n);
+              if((n.type==='team' || n.type==='team_invite' || n.type==='team_added') && n.teamName && n.ownerName) teamInvites.push(n);
               // Handle svc_order: pull into S.svc_orders if not already there
               if(n.type==='svc_order' && ud.svc_orders){
                 S.svc_orders = S.svc_orders||[];
