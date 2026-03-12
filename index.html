@@ -8288,6 +8288,34 @@ function openTaskDetail(id){
     ${notesHTML}
     ${invHTML}
 
+    <!-- ✅ قسم الملاحظات والتعليقات على المهمة -->
+    <div style="margin:16px 0;padding:16px;background:var(--surface2);border-radius:var(--r2);border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <i class="fa-solid fa-comments" style="color:var(--accent)"></i>
+        ملاحظات وتعليقات
+        <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:2px 8px;border-radius:8px">${(t.comments||[]).filter(c=>c.stepIdx===null||c.stepIdx===undefined).length}</span>
+      </div>
+      ${(() => {
+        const taskComments = (t.comments||[]).filter(c=>c.stepIdx===null||c.stepIdx===undefined);
+        const commentsHtml = taskComments.map(c => {
+          const d = new Date(c.at);
+          const timeStr = d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+          return `<div style="background:var(--surface);border:1px solid rgba(124,111,247,.2);border-radius:10px;padding:10px 14px;margin-bottom:6px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:11px;font-weight:700;color:var(--accent)">${escapeHtml(c.author||'')}</span>
+              <span style="font-size:10px;color:var(--text3)">${timeStr}</span>
+            </div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.6">${escapeHtml(c.text)}</div>
+          </div>`;
+        }).join('') || '<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px">لا ملاحظات بعد</div>';
+        return commentsHtml;
+      })()}
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <textarea id="td-comment-input" style="flex:1;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text);resize:none;font-family:var(--font)" rows="2" placeholder="أضف ملاحظة على هذه المهمة..."></textarea>
+        <button style="padding:10px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;align-self:flex-end" onclick="window._submitLocalComment('${t.id}',document.getElementById('td-comment-input'),null)"><i class="fa-solid fa-paper-plane"></i></button>
+      </div>
+    </div>
+
     <div style="display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);flex-wrap:wrap">
       ${!t.done
         ? `<button class="btn btn-success" onclick="closeM('modal-task-detail');completeTask(${t.id})"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> إكمال المشروع</button>`
@@ -8613,6 +8641,156 @@ function confirmComplete(){
 }
 
 function toggleDone(id){completeTask(id);}
+
+
+// ══════════════════════════════════════════════════════════════════
+// TASK COMMENTS SYSTEM — ملاحظات وتعليقات على المهام والخطوات
+// ══════════════════════════════════════════════════════════════════
+
+// Add a comment to a local task (owner's own tasks)
+
+// Submit project comment
+window._submitProjComment = function(projId) {
+  var ta = document.getElementById('proj-comment-'+projId);
+  var text = ta ? ta.value.trim() : '';
+  if(!text) return;
+  var p = (S.projects||[]).find(function(x){ return String(x.id)===String(projId); });
+  if(!p) return;
+  if(!p.comments) p.comments = [];
+  p.comments.push({
+    id: Date.now(),
+    text: text,
+    author: (S.settings&&S.settings.name)||'أنا',
+    at: new Date().toISOString()
+  });
+  lsSave(); cloudSave(S);
+  // Re-render project detail to show new comment
+  if(typeof renderProjectDetail==='function') renderProjectDetail();
+  if(typeof showMiniNotif==='function') showMiniNotif('✅ تمت إضافة الملاحظة');
+};
+
+function addTaskComment(taskId, text, stepIdx) {
+  if(!text || !text.trim()) return;
+  var t = (S.tasks||[]).find(function(x){ return String(x.id)===String(taskId); });
+  if(!t) return;
+  if(!t.comments) t.comments = [];
+  var comment = {
+    id      : Date.now(),
+    text    : text.trim(),
+    author  : (S.settings&&S.settings.name)||'أنا',
+    stepIdx : (stepIdx !== undefined && stepIdx !== null) ? stepIdx : null,
+    at      : new Date().toISOString()
+  };
+  t.comments.push(comment);
+  lsSave(); cloudSave(S);
+  return comment;
+}
+
+// Add a comment to a project
+function addProjectComment(projId, text) {
+  if(!text || !text.trim()) return;
+  var p = (S.projects||[]).find(function(x){ return String(x.id)===String(projId); });
+  if(!p) return;
+  if(!p.comments) p.comments = [];
+  var comment = {
+    id     : Date.now(),
+    text   : text.trim(),
+    author : (S.settings&&S.settings.name)||'أنا',
+    at     : new Date().toISOString()
+  };
+  p.comments.push(comment);
+  lsSave(); cloudSave(S);
+  return comment;
+}
+
+// Add comment to a member task (writes to owner's studio_data)
+async function addMemberTaskComment(ownerId, taskId, text, stepIdx, authorName) {
+  if(!text || !text.trim()) return;
+  try {
+    var { data: ownerRow } = await supa.from('studio_data').select('data').eq('user_id', ownerId).maybeSingle();
+    if(!ownerRow) return;
+    var od = typeof ownerRow.data==='string' ? JSON.parse(ownerRow.data) : ownerRow.data;
+    if(od.data && !od.tasks) od = typeof od.data==='string' ? JSON.parse(od.data) : od.data;
+    var ot = (od.tasks||[]).find(function(t){ return String(t.id)===String(taskId); });
+    if(!ot) return;
+    if(!ot.comments) ot.comments = [];
+    var comment = {
+      id     : Date.now(),
+      text   : text.trim(),
+      author : authorName || (S.settings&&S.settings.name) || 'عضو',
+      stepIdx: (stepIdx !== undefined && stepIdx !== null) ? stepIdx : null,
+      at     : new Date().toISOString()
+    };
+    ot.comments.push(comment);
+    await supa.from('studio_data').update({data:JSON.stringify(od),updated_at:new Date().toISOString()}).eq('user_id',ownerId);
+    // Also update local membership cache
+    var mem = (window._myTeamMemberships||[]).find(function(m){ return m.ownerId===ownerId; });
+    if(mem) {
+      var localTask = (mem.tasks||[]).concat(mem.doneTasks||[]).find(function(t){ return String(t.id)===String(taskId); });
+      if(localTask) { if(!localTask.comments) localTask.comments=[]; localTask.comments.push(comment); }
+    }
+    return comment;
+  } catch(e) { console.warn('addMemberTaskComment:', e); }
+}
+
+// Render comments HTML (shared between task detail and member modal)
+function _renderCommentsHTML(comments, taskId, stepIdx, isMemberTask, ownerId, authorName) {
+  var filtered = (comments||[]).filter(function(c){
+    if(stepIdx !== undefined && stepIdx !== null) return String(c.stepIdx) === String(stepIdx);
+    return c.stepIdx === null || c.stepIdx === undefined;
+  });
+  var inputPlaceholder = stepIdx !== null && stepIdx !== undefined ? 'ملاحظة على هذه الخطوة...' : 'أضف ملاحظة أو تعليق...';
+  var addFn = isMemberTask
+    ? 'window._submitMemberComment(\''+ownerId+'\',\''+taskId+'\',this.previousElementSibling,'+JSON.stringify(stepIdx !== null && stepIdx !== undefined ? stepIdx : null)+',\''+authorName+'\')'
+    : '_submitLocalComment(\''+taskId+'\',this.previousElementSibling,'+JSON.stringify(stepIdx !== null && stepIdx !== undefined ? stepIdx : null)+')';
+
+  return '<div class="_comments-block" style="margin-top:10px">'
+    +(filtered.length ? '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">'
+      +filtered.map(function(c){
+        var d = new Date(c.at);
+        var timeStr = d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')+' '+d.getDate()+'/'+(d.getMonth()+1);
+        return '<div style="background:rgba(124,111,247,.08);border:1px solid rgba(124,111,247,.15);border-radius:10px;padding:8px 12px">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+            +'<span style="font-size:11px;font-weight:700;color:var(--accent)">'+escapeHtml(c.author||'')+'</span>'
+            +'<span style="font-size:10px;color:var(--text3)">'+timeStr+'</span>'
+          +'</div>'
+          +'<div style="font-size:12px;color:var(--text2);line-height:1.6">'+escapeHtml(c.text)+'</div>'
+        +'</div>';
+      }).join('')
+    +'</div>' : '')
+    +'<div style="display:flex;gap:6px">'
+      +'<textarea style="flex:1;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);resize:none;font-family:var(--font);min-height:36px;max-height:80px" rows="1" placeholder="'+inputPlaceholder+'"></textarea>'
+      +'<button style="padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;flex-shrink:0;align-self:flex-end" onclick="'+addFn+'"><i class=\"fa-solid fa-paper-plane\"></i></button>'
+    +'</div>'
+  +'</div>';
+}
+
+// Submit comment on local task (owner's own task)
+window._submitLocalComment = function(taskId, textarea, stepIdx) {
+  var text = textarea ? textarea.value.trim() : '';
+  if(!text) return;
+  addTaskComment(taskId, text, stepIdx);
+  textarea.value = '';
+  textarea.style.height = 'auto';
+  // Re-open task detail to refresh
+  var t = (S.tasks||[]).find(function(x){ return String(x.id)===String(taskId); });
+  if(t) openTaskDetail(t.id);
+  if(typeof showMiniNotif==='function') showMiniNotif('✅ تمت إضافة الملاحظة');
+};
+
+// Submit comment on member task
+window._submitMemberComment = async function(ownerId, taskId, textarea, stepIdx, authorName) {
+  var text = textarea ? textarea.value.trim() : '';
+  if(!text) return;
+  textarea.disabled = true;
+  await addMemberTaskComment(ownerId, taskId, text, stepIdx, authorName);
+  textarea.value = '';
+  textarea.disabled = false;
+  textarea.style.height = 'auto';
+  if(typeof showMiniNotif==='function') showMiniNotif('✅ تمت إضافة الملاحظة');
+  // Refresh the modal
+  if(typeof openMyMemberTeamProfile==='function') openMyMemberTeamProfile(ownerId);
+};
 
 function changeTaskStatus(id, newStatus){
   const t = S.tasks.find(t=>t.id===id); if(!t) return;
@@ -11400,28 +11578,57 @@ function toggleTaskStep(taskId,stepIdx){
     openTaskDetail(taskId);
   }
 }
-function renderStepsInDetail(task){
+function renderStepsInDetail(task, isMemberTask, ownerId, authorName){
   if(!task.steps||!task.steps.length) return '';
-  const total=task.steps.length, done=task.steps.filter(s=>s.done).length;
-  const pct=Math.round(done/total*100);
-  const currentStep=task.steps.find(s=>!s.done);
-  return `
-    <div style="margin:14px 0;padding:14px;background:var(--surface2);border-radius:var(--r2);border:1px solid var(--border)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:13px;font-weight:700"><i class="fa-solid fa-clipboard-list"></i> خطوات التنفيذ</div>
-        <div style="font-size:12px;font-weight:700;color:var(--accent)">${done}/${total} — ${pct}%</div>
-      </div>
-      <div class="steps-progress"><div class="steps-progress-fill" style="width:${pct}%"></div></div>
-      ${currentStep?`<div style="font-size:11px;color:var(--accent3);margin:6px 0 10px"><i class="fa-solid fa-play"></i> الخطوة الحالية: ${currentStep.text}</div>`:'<div style="font-size:11px;color:var(--accent3);margin:6px 0 10px"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> كل الخطوات مكتملة!</div>'}
-      <div class="steps-container">
-        ${task.steps.map((s,i)=>`
-          <div class="step-row" style="cursor:pointer" onclick="toggleTaskStep(${task.id},${i})">
-            <div class="step-num ${s.done?'done':task.steps.slice(0,i).every(x=>x.done)?'active-step':''}">${s.done?'<i class="fa-solid fa-check"></i>':i+1}</div>
-            <div class="step-text ${s.done?'done':''}">${s.text}</div>
-            <div style="font-size:10px;color:var(--text3)">${s.done?'<i class="fa-solid fa-check"></i> مكتمل':'معلق'}</div>
-          </div>`).join('')}
-      </div>
-    </div>`;
+  var total=task.steps.length, done=task.steps.filter(function(s){return s.done;}).length;
+  var pct=Math.round(done/total*100);
+  var currentStep=task.steps.find(function(s){return !s.done;});
+  var tid = String(task.id);
+  var html = '<div style="margin:14px 0;padding:14px;background:var(--surface2);border-radius:var(--r2);border:1px solid var(--border)">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<div style="font-size:13px;font-weight:700"><i class="fa-solid fa-clipboard-list"></i> خطوات التنفيذ</div>'
+      +'<div style="font-size:12px;font-weight:700;color:var(--accent)">'+done+'/'+total+' — '+pct+'%</div>'
+    +'</div>'
+    +'<div class="steps-progress"><div class="steps-progress-fill" style="width:'+pct+'%"></div></div>'
+    +(currentStep
+      ? '<div style="font-size:11px;color:var(--accent3);margin:6px 0 10px"><i class="fa-solid fa-play"></i> الخطوة الحالية: '+currentStep.text+'</div>'
+      : '<div style="font-size:11px;color:var(--accent3);margin:6px 0 10px"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> كل الخطوات مكتملة!</div>')
+    +'<div class="steps-container">';
+
+  task.steps.forEach(function(s,i){
+    var stepComments = (task.comments||[]).filter(function(c){return String(c.stepIdx)===String(i);});
+    var toggleFn = isMemberTask
+      ? 'window._memberToggleStep(\''+tid+'\','+i+',!'+s.done+')'
+      : 'toggleTaskStep('+task.id+','+i+')';
+    var inputId = 'step-note-'+tid+'-'+i;
+    var submitFn = isMemberTask
+      ? 'window._submitMemberComment(\''+ownerId+'\',\''+tid+'\',document.getElementById(\''+inputId+'\'),'+i+',\''+escapeHtml(authorName||'')+'\')' 
+      : 'window._submitLocalComment(\''+tid+'\',document.getElementById(\''+inputId+'\'),'+i+')';
+
+    html += '<div style="border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:8px">'
+      +'<div class="step-row" style="cursor:pointer;margin-bottom:0" onclick="'+toggleFn+'">'
+        +'<div class="step-num '+(s.done?'done':task.steps.slice(0,i).every(function(x){return x.done;})?'active-step':'')+'">'+(s.done?'<i class="fa-solid fa-check"></i>':String(i+1))+'</div>'
+        +'<div class="step-text '+(s.done?'done':'')+'">'+escapeHtml(s.text||s.title||s.name||'خطوة')+'</div>'
+        +'<div style="font-size:10px;color:var(--text3)">'+(s.done?'<i class="fa-solid fa-check"></i> مكتمل':'معلق')+'</div>'
+      +'</div>'
+      +'<div style="margin-top:6px;padding-right:32px">'
+        +(stepComments.length ? stepComments.map(function(c){
+          return '<div style="background:rgba(124,111,247,.08);border-radius:8px;padding:6px 10px;margin-bottom:4px;font-size:11px">'
+            +'<span style="color:var(--accent);font-weight:700">'+escapeHtml(c.author||'')+'</span>'
+            +'<span style="color:var(--text3);font-size:10px;margin-right:6px">'+new Date(c.at).toLocaleDateString('ar-EG')+'</span>'
+            +'<div style="color:var(--text2);margin-top:2px">'+escapeHtml(c.text)+'</div>'
+          +'</div>';
+        }).join('') : '')
+        +'<div style="display:flex;gap:5px;margin-top:4px">'
+          +'<input type="text" id="'+inputId+'" style="flex:1;padding:5px 8px;background:var(--surface);border:1px solid var(--border);border-radius:7px;font-size:11px;color:var(--text);font-family:var(--font)" placeholder="ملاحظة على الخطوة...">'
+          +'<button style="padding:5px 10px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:11px" onclick="'+submitFn+'"><i class="fa-solid fa-paper-plane"></i></button>'
+        +'</div>'
+      +'</div>'
+    +'</div>';
+  });
+
+  html += '</div></div>';
+  return html;
 }
 
 // ============================================================
@@ -18705,40 +18912,263 @@ window.openMyMemberTeamProfile = function(ownerId){
       } catch(e){ console.warn('step update err:', e); }
     };
 
+    // ── Open full task detail overlay for member ──
+    window._openMemberTaskDetail = function(taskId){
+      var allTasks = (membership.tasks||[]).concat(membership.doneTasks||[]);
+      var t = allTasks.find(function(x){ return String(x.id)===String(taskId); });
+      if(!t) return;
+      var ex = document.getElementById('_mtd-overlay');
+      if(ex) ex.remove();
+      var ov = document.createElement('div');
+      ov.id = '_mtd-overlay';
+      ov.className = 'modal-overlay';
+      ov.style.display = 'flex';
+      ov.style.zIndex = '10001';
+      var authorName = membership.memberName || (S.settings&&S.settings.name) || 'عضو';
+      var stColors = {new:'var(--text3)',progress:'var(--accent2)',review:'#f7c948',paused:'#64b5f6',done:'var(--accent3)'};
+      var stLabels = {new:'🆕 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف',done:'✅ مكتمل'};
+      var curSt = t.status||'new';
+      var isLate = t.deadline && new Date(t.deadline)<new Date() && !t.done;
+      var daysLeft = t.deadline ? Math.ceil((new Date(t.deadline)-new Date())/864e5) : null;
+      var tid = String(t.id);
+      var oid = ownerId;
+
+      function _buildDetailHTML(){
+        var stepsTotal = (t.steps||[]).length;
+        var stepsDone  = (t.steps||[]).filter(function(s){return s.done;}).length;
+        var pct = stepsTotal ? Math.round(stepsDone/stepsTotal*100) : (t.done?100:0);
+
+        // Steps with per-step comments + toggle
+        var stepsHTML = '';
+        if(stepsTotal){
+          stepsHTML = '<div style="margin:14px 0;padding:14px;background:var(--surface2);border-radius:12px;border:1px solid var(--border)">'
+            +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+              +'<div style="font-size:13px;font-weight:700"><i class="fa-solid fa-clipboard-list"></i> خطوات التنفيذ</div>'
+              +'<div style="font-size:12px;font-weight:700;color:var(--accent)">'+stepsDone+'/'+stepsTotal+' — '+pct+'%</div>'
+            +'</div>'
+            +'<div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:12px">'
+              +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:3px;transition:.4s"></div>'
+            +'</div>';
+          (t.steps||[]).forEach(function(s,si){
+            var stepComments = (t.comments||[]).filter(function(c){return String(c.stepIdx)===String(si);});
+            var inputId = '_mts-'+tid+'-'+si;
+            stepsHTML += '<div style="border-bottom:1px solid rgba(255,255,255,.06);padding-bottom:10px;margin-bottom:10px">'
+              +'<div style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 0" data-step-toggle="'+tid+'-'+si+'">'
+                +'<div style="width:24px;height:24px;border-radius:6px;border:2px solid '+(s.done?'var(--accent3)':'var(--border)')+';background:'+(s.done?'var(--accent3)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;color:#fff;transition:.2s">'+(s.done?'<i class="fa-solid fa-check"></i>':String(si+1))+'</div>'
+                +'<div style="flex:1;font-size:13px;font-weight:600;'+(s.done?'text-decoration:line-through;opacity:.5':'')+'" data-step-text="'+si+'">'+escapeHtml(s.title||s.text||s.name||'خطوة')+'</div>'
+                +'<div style="font-size:10px;font-weight:700;color:'+(s.done?'var(--accent3)':'var(--text3)'+';opacity:.7')+'">'+( s.done?'✅ مكتمل':'◯ معلق')+'</div>'
+              +'</div>'
+              // Step comments
+              +(stepComments.length ? '<div style="padding-right:34px;margin-bottom:6px">'+stepComments.map(function(c){
+                var d=new Date(c.at);
+                return '<div style="background:rgba(124,111,247,.1);border-radius:8px;padding:6px 10px;margin-bottom:4px">'
+                  +'<span style="font-size:10px;font-weight:700;color:var(--accent)">'+escapeHtml(c.author||'')+'</span>'
+                  +'<span style="font-size:10px;color:var(--text3);margin-right:6px">'+d.getDate()+'/'+(d.getMonth()+1)+'</span>'
+                  +'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+escapeHtml(c.text)+'</div>'
+                +'</div>';
+              }).join('')+'</div>' : '')
+              // Step comment input
+              +'<div style="padding-right:34px;display:flex;gap:6px">'
+                +'<input type="text" id="'+inputId+'" style="flex:1;padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--text);font-family:var(--font)" placeholder="ملاحظة على هذه الخطوة...">'
+                +'<button data-step-comment="'+tid+'" data-step-idx="'+si+'" data-input-id="'+inputId+'" style="padding:5px 10px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:11px"><i class="fa-solid fa-paper-plane"></i></button>'
+              +'</div>'
+            +'</div>';
+          });
+          stepsHTML += '</div>';
+        }
+
+        // Task comments
+        var taskComments = (t.comments||[]).filter(function(c){return c.stepIdx===null||c.stepIdx===undefined;});
+        var commentsHTML = '<div style="margin:14px 0;padding:14px;background:var(--surface2);border-radius:12px;border:1px solid var(--border)">'
+          +'<div style="font-size:13px;font-weight:700;margin-bottom:10px"><i class="fa-solid fa-comments" style="color:var(--accent)"></i> ملاحظات وتعليقات <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:2px 8px;border-radius:8px">'+taskComments.length+'</span></div>'
+          +(taskComments.length ? taskComments.map(function(c){
+            var d=new Date(c.at);
+            var ts=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+            return '<div style="background:var(--surface);border:1px solid rgba(124,111,247,.2);border-radius:10px;padding:10px 14px;margin-bottom:6px">'
+              +'<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
+                +'<span style="font-size:11px;font-weight:700;color:var(--accent)">'+escapeHtml(c.author||'')+'</span>'
+                +'<span style="font-size:10px;color:var(--text3)">'+ts+'</span>'
+              +'</div>'
+              +'<div style="font-size:13px;color:var(--text2);line-height:1.6">'+escapeHtml(c.text)+'</div>'
+            +'</div>';
+          }).join('') : '<div style="text-align:center;font-size:12px;color:var(--text3);padding:8px">لا ملاحظات بعد</div>')
+          +'<div style="display:flex;gap:8px;margin-top:10px">'
+            +'<textarea id="_mtc-main-'+tid+'" rows="2" style="flex:1;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text);resize:none;font-family:var(--font)" placeholder="أضف ملاحظة..."></textarea>'
+            +'<button id="_mtc-submit-'+tid+'" style="padding:10px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;align-self:flex-end"><i class="fa-solid fa-paper-plane"></i></button>'
+          +'</div>'
+        +'</div>';
+
+        // Status buttons
+        var statusBtns = !t.done
+          ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">'
+              +'<span style="font-size:12px;color:var(--text3);align-self:center">تغيير الحالة:</span>'
+              +(curSt!=='done'?'<button data-st-action="done" style="padding:7px 14px;background:var(--accent3);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700"><i class="fa-solid fa-check"></i> مكتمل</button>':'')
+              +(curSt!=='progress'?'<button data-st-action="progress" style="padding:7px 14px;background:var(--accent2)22;color:var(--accent2);border:1px solid var(--accent2)44;border-radius:8px;cursor:pointer;font-size:12px">⚡ جاري</button>':'')
+              +(curSt!=='paused'?'<button data-st-action="paused" style="padding:7px 14px;background:rgba(100,100,100,.2);color:var(--text2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px">⏸ موقوف</button>':'')
+              +(curSt!=='review'?'<button data-st-action="review" style="padding:7px 14px;background:rgba(247,201,72,.15);color:#f7c948;border:1px solid rgba(247,201,72,.3);border-radius:8px;cursor:pointer;font-size:12px">🔍 مراجعة</button>':'')
+            +'</div>'
+          : '<div style="margin-top:14px"><button data-st-action="progress" style="padding:7px 14px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px">↩ إعادة فتح</button></div>';
+
+        return '<div class="modal" style="max-width:580px;max-height:92vh;overflow-y:auto;padding:0">'
+          // Header
+          +'<div style="background:linear-gradient(135deg,rgba(124,111,247,.15),rgba(79,209,165,.08));padding:18px 20px;border-radius:12px 12px 0 0;position:sticky;top:0;backdrop-filter:blur(8px);z-index:2">'
+            +'<div style="display:flex;align-items:flex-start;gap:12px">'
+              +'<div style="flex:1">'
+                +'<div style="font-size:10px;font-weight:700;color:var(--accent3);margin-bottom:4px"><i class="fa-solid fa-users"></i> '+escapeHtml(membership.ownerName)+' — '+escapeHtml(membership.teamName)+'</div>'
+                +'<div style="font-size:18px;font-weight:900;line-height:1.3">'+escapeHtml(t.title)+'</div>'
+                +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:11px">'
+                  +'<span style="color:'+stColors[curSt]+'">'+stLabels[curSt]+'</span>'
+                  +(t.client?'<span style="color:var(--text3)"><i class="fa-solid fa-user"></i> '+escapeHtml(t.client)+'</span>':'')
+                  +(t.deadline?'<span style="color:'+(isLate?'var(--accent4)':(daysLeft<=2?'var(--accent2)':'var(--text3)'))+'">'+(isLate?'⚠️ متأخرة':(t.done?'✅ منجزة':daysLeft+' يوم'))+'</span>':'')
+                  +(t.workerAmount?'<span style="color:var(--accent2);font-weight:700">💰 '+Number(t.workerAmount).toLocaleString()+' ج</span>':'')
+                +'</div>'
+              +'</div>'
+              +'<button id="_mtd-close" style="width:32px;height:32px;border-radius:8px;background:rgba(0,0,0,.2);border:none;color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fa-solid fa-xmark"></i></button>'
+            +'</div>'
+          +'</div>'
+          // Body
+          +'<div style="padding:16px 20px">'
+            +stepsHTML
+            +commentsHTML
+            +statusBtns
+          +'</div>'
+        +'</div>';
+      }
+
+      function _bindDetailEvents(){
+        // Close
+        var closeBtn = ov.querySelector('#_mtd-close');
+        if(closeBtn) closeBtn.onclick = function(){ ov.remove(); };
+        ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
+
+        // Status change
+        ov.querySelectorAll('[data-st-action]').forEach(function(btn){
+          btn.onclick = async function(){
+            var st = this.dataset.stAction;
+            curSt = st; t.status=st; t.done=(st==='done');
+            if(t.done){ var mem=membership; var i=mem.tasks.findIndex(function(x){return String(x.id)===tid;}); if(i>-1){mem.doneTasks.unshift(mem.tasks[i]);mem.tasks.splice(i,1);} }
+            else { var doneI=membership.doneTasks.findIndex(function(x){return String(x.id)===tid;}); if(doneI>-1){membership.tasks.push(membership.doneTasks[doneI]);membership.doneTasks.splice(doneI,1);} }
+            ov.querySelector('.modal').innerHTML = _buildDetailHTML().match(/<div class="modal"[^>]*>([\s\S]*)<\/div>$/)[0]; ov.querySelector('.modal').outerHTML; 
+            ov.innerHTML = _buildDetailHTML();
+            _bindDetailEvents();
+            // Sync to owner DB
+            try {
+              var { data: ownerRow } = await supa.from('studio_data').select('data').eq('user_id', oid).maybeSingle();
+              if(!ownerRow) return;
+              var od = typeof ownerRow.data==='string' ? JSON.parse(ownerRow.data) : ownerRow.data;
+              if(od.data&&!od.tasks) od = typeof od.data==='string'?JSON.parse(od.data):od.data;
+              var ot = (od.tasks||[]).find(function(x){return String(x.id)===tid;});
+              if(ot){ot.status=st;ot.done=(st==='done');}
+              // Add notification for owner about status change
+              if(!od._pending_notifications) od._pending_notifications = [];
+              var stN={done:'✅ مكتمل',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف',new:'🆕 جديد'};
+              od._pending_notifications.push({
+                id:Date.now(), type:'task_status',
+                title:'<i class="fa-solid fa-bolt" style="color:var(--accent2)"></i> تحديث حالة مهمة',
+                body: '"'+t.title+'" — '+authorName+' غيّر الحالة إلى: '+(stN[st]||st),
+                read:false, created_at:new Date().toISOString()
+              });
+              await supa.from('studio_data').update({data:JSON.stringify(od),updated_at:new Date().toISOString()}).eq('user_id',oid);
+              if(typeof showMiniNotif==='function') showMiniNotif('✅ تم تحديث حالة المهمة');
+              // Also refresh team modal behind
+              if(typeof _renderMemberTasksSection==='function') _renderMemberTasksSection();
+            } catch(e){ console.warn('status sync:', e); }
+          };
+        });
+
+        // Step toggle
+        ov.querySelectorAll('[data-step-toggle]').forEach(function(row){
+          row.onclick = async function(){
+            var parts = this.dataset.stepToggle.split('-');
+            var si = parseInt(parts[parts.length-1]);
+            t.steps[si].done = !t.steps[si].done;
+            ov.innerHTML = _buildDetailHTML();
+            _bindDetailEvents();
+            // Sync
+            try {
+              var { data: ownerRow } = await supa.from('studio_data').select('data').eq('user_id', oid).maybeSingle();
+              if(!ownerRow) return;
+              var od = typeof ownerRow.data==='string' ? JSON.parse(ownerRow.data) : ownerRow.data;
+              if(od.data&&!od.tasks) od = typeof od.data==='string'?JSON.parse(od.data):od.data;
+              var ot = (od.tasks||[]).find(function(x){return String(x.id)===tid;});
+              if(ot&&ot.steps&&ot.steps[si]) ot.steps[si].done = t.steps[si].done;
+              await supa.from('studio_data').update({data:JSON.stringify(od),updated_at:new Date().toISOString()}).eq('user_id',oid);
+            } catch(e){}
+          };
+        });
+
+        // Step comment buttons
+        ov.querySelectorAll('[data-step-comment]').forEach(function(btn){
+          btn.onclick = async function(){
+            var si = parseInt(this.dataset.stepIdx);
+            var inputEl = document.getElementById(this.dataset.inputId);
+            var text = inputEl ? inputEl.value.trim() : '';
+            if(!text) return;
+            this.disabled = true;
+            var comment = { id:Date.now(), text:text, author:authorName, stepIdx:si, at:new Date().toISOString() };
+            if(!t.comments) t.comments=[];
+            t.comments.push(comment);
+            inputEl.value = '';
+            ov.innerHTML = _buildDetailHTML();
+            _bindDetailEvents();
+            // Sync to owner
+            try {
+              var { data: ownerRow } = await supa.from('studio_data').select('data').eq('user_id', oid).maybeSingle();
+              if(!ownerRow) return;
+              var od = typeof ownerRow.data==='string' ? JSON.parse(ownerRow.data) : ownerRow.data;
+              if(od.data&&!od.tasks) od = typeof od.data==='string'?JSON.parse(od.data):od.data;
+              var ot = (od.tasks||[]).find(function(x){return String(x.id)===tid;});
+              if(ot){ if(!ot.comments) ot.comments=[]; ot.comments.push(comment); }
+              await supa.from('studio_data').update({data:JSON.stringify(od),updated_at:new Date().toISOString()}).eq('user_id',oid);
+              if(typeof showMiniNotif==='function') showMiniNotif('✅ تمت إضافة الملاحظة');
+            } catch(e){ console.warn('step comment sync:',e); }
+          };
+        });
+
+        // Main task comment
+        var submitBtn = ov.querySelector('#_mtc-submit-'+tid);
+        if(submitBtn) submitBtn.onclick = async function(){
+          var ta = document.getElementById('_mtc-main-'+tid);
+          var text = ta ? ta.value.trim() : '';
+          if(!text) return;
+          this.disabled = true;
+          var comment = { id:Date.now(), text:text, author:authorName, stepIdx:null, at:new Date().toISOString() };
+          if(!t.comments) t.comments=[];
+          t.comments.push(comment);
+          if(ta) ta.value='';
+          ov.innerHTML = _buildDetailHTML();
+          _bindDetailEvents();
+          try {
+            var { data: ownerRow } = await supa.from('studio_data').select('data').eq('user_id', oid).maybeSingle();
+            if(!ownerRow) return;
+            var od = typeof ownerRow.data==='string' ? JSON.parse(ownerRow.data) : ownerRow.data;
+            if(od.data&&!od.tasks) od = typeof od.data==='string'?JSON.parse(od.data):od.data;
+            var ot = (od.tasks||[]).find(function(x){return String(x.id)===tid;});
+            if(ot){ if(!ot.comments) ot.comments=[]; ot.comments.push(comment); }
+            await supa.from('studio_data').update({data:JSON.stringify(od),updated_at:new Date().toISOString()}).eq('user_id',oid);
+            if(typeof showMiniNotif==='function') showMiniNotif('✅ تمت إضافة الملاحظة');
+          } catch(e){ console.warn('main comment sync:',e); }
+        };
+      }
+
+      ov.innerHTML = _buildDetailHTML();
+      document.body.appendChild(ov);
+      _bindDetailEvents();
+    };
+
+    // ── Simple task card (click → open full detail) ──
     function _renderTaskCard(t, isActive){
       var isLate = t.deadline && new Date(t.deadline) < new Date() && !t.done;
       var daysLeft = t.deadline ? Math.ceil((new Date(t.deadline) - new Date()) / 864e5) : null;
       var stepsTotal = (t.steps||[]).length;
       var stepsDone  = (t.steps||[]).filter(function(s){ return s.done; }).length;
-      var pct = stepsTotal ? Math.round(stepsDone / stepsTotal * 100) : (t.done ? 100 : 0);
+      var pct = stepsTotal ? Math.round(stepsDone/stepsTotal*100) : (t.done?100:0);
       var stColors = {new:'var(--accent2)',progress:'var(--accent)',review:'#f7c948',paused:'var(--text3)',done:'var(--accent3)'};
       var stLabels = {new:'🆕 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف',done:'✅ مكتمل'};
       var curSt = t.status||'new';
+      var commentsCount = (t.comments||[]).length;
 
-      var stepsHtml = '';
-      if(stepsTotal > 0){
-        stepsHtml = '<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">'
-          +'<div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px">خطوات التنفيذ ('+stepsDone+'/'+stepsTotal+')</div>'
-          +'<div style="height:4px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:8px"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:3px;transition:.3s"></div></div>'
-          +(t.steps||[]).map(function(s,si){
-            return '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:12px;color:'+(s.done?'var(--accent3)':'var(--text)')+'">'
-              +'<input type="checkbox" data-taskid="'+t.id+'" data-stepidx="'+si+'" '+(s.done?'checked':'')+' style="width:15px;height:15px;accent-color:var(--accent3);cursor:pointer">'
-              +'<span style="'+(s.done?'text-decoration:line-through;opacity:.6':'')+'">'+escapeHtml(s.title||s.text||s.name||'خطوة')+'</span>'
-            +'</label>';
-          }).join('')
-        +'</div>';
-      }
-
-      var actionBtns = isActive ? ''
-        +'<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">'
-          +(curSt!=='done'?'<button class="btn btn-primary btn-sm" data-taskaction="done" data-taskid="'+t.id+'" style="font-size:11px;background:var(--accent3)"><i class="fa-solid fa-check"></i> مكتمل</button>':'')
-          +(curSt!=='progress'?'<button class="btn btn-ghost btn-sm" data-taskaction="progress" data-taskid="'+t.id+'" style="font-size:11px"><i class="fa-solid fa-bolt"></i> قيد التنفيذ</button>':'')
-          +(curSt!=='paused'?'<button class="btn btn-ghost btn-sm" data-taskaction="paused" data-taskid="'+t.id+'" style="font-size:11px;color:var(--text3)"><i class="fa-solid fa-pause"></i> موقوف</button>':'')
-          +(curSt!=='review'?'<button class="btn btn-ghost btn-sm" data-taskaction="review" data-taskid="'+t.id+'" style="font-size:11px;color:var(--accent2)"><i class="fa-solid fa-magnifying-glass"></i> مراجعة</button>':'')
-        +'</div>'
-        : '<button class="btn btn-ghost btn-sm" data-taskaction="progress" data-taskid="'+t.id+'" style="font-size:11px;margin-top:10px"><i class="fa-solid fa-rotate-left"></i> إعادة فتح</button>';
-
-      return '<div style="background:var(--surface2);border:1px solid var(--border);border-right:3px solid '+(isLate?'var(--accent4)':(t.done?'var(--accent3)':'var(--accent)'))+';border-radius:12px;padding:12px 14px;margin-bottom:8px">'
+      return '<div style="background:var(--surface2);border:1px solid var(--border);border-right:3px solid '+(isLate?'var(--accent4)':(t.done?'var(--accent3)':'var(--accent)'))+';border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:opacity .15s" onclick="window._openMemberTaskDetail(\''+t.id+'\')" onmouseenter="this.style.opacity=\'.85\'" onmouseleave="this.style.opacity=\'1\'">'
         +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
           +'<div style="flex:1;min-width:0">'
             +'<div style="font-size:14px;font-weight:700;margin-bottom:4px;'+(t.done?'text-decoration:line-through;opacity:.7':'')+'">'+escapeHtml(t.title)+'</div>'
@@ -18746,12 +19176,13 @@ window.openMyMemberTeamProfile = function(ownerId){
               +(t.client?'<span><i class="fa-solid fa-user"></i> '+escapeHtml(t.client)+'</span>':'')
               +'<span style="color:'+stColors[curSt]+'">'+stLabels[curSt]+'</span>'
               +(t.workerAmount?'<span style="color:var(--accent2);font-weight:700">💰 '+Number(t.workerAmount).toLocaleString()+' ج</span>':'')
+              +(commentsCount?'<span style="color:var(--accent)"><i class="fa-solid fa-comment"></i> '+commentsCount+'</span>':'')
             +'</div>'
           +'</div>'
           +(t.deadline?'<div style="font-size:10px;font-weight:700;color:'+(isLate?'var(--accent4)':(daysLeft<=2?'var(--accent2)':'var(--accent3)'))+';flex-shrink:0;text-align:left;padding-right:6px">'+(isLate?'⚠️ متأخرة':(t.done?'✅ منجزة':daysLeft+' يوم'))+'</div>':'')
         +'</div>'
-        +stepsHtml
-        +actionBtns
+        +(stepsTotal?'<div style="margin-top:8px"><div style="height:3px;background:var(--surface3);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--accent),var(--accent3))"></div></div><div style="font-size:10px;color:var(--text3);margin-top:2px">'+stepsDone+'/'+stepsTotal+' خطوات</div></div>':'')
+        +'<div style="font-size:10px;color:var(--accent);margin-top:8px"><i class="fa-solid fa-arrow-left"></i> اضغط لفتح التفاصيل وتعديل الحالة</div>'
       +'</div>';
     }
 
@@ -18785,20 +19216,6 @@ window.openMyMemberTeamProfile = function(ownerId){
       var modal = overlay.querySelector('.modal');
       var closeBtn = modal.querySelector('#_mmt-close');
       if(closeBtn) closeBtn.onclick = function(){ overlay.remove(); };
-      // Task action buttons
-      modal.querySelectorAll('[data-taskaction]').forEach(function(btn){
-        btn.onclick = function(){
-          var action = this.dataset.taskaction;
-          var taskId = this.dataset.taskid;
-          window._memberUpdateTaskStatus(taskId, action);
-        };
-      });
-      // Step checkboxes
-      modal.querySelectorAll('input[data-taskid][data-stepidx]').forEach(function(cb){
-        cb.onchange = function(){
-          window._memberToggleStep(this.dataset.taskid, +this.dataset.stepidx, this.checked);
-        };
-      });
     }
 
     overlay.innerHTML = '<div class="modal" style="max-width:560px;max-height:92vh;overflow-y:auto;padding:0">'+_renderModalBody()+'</div>';
@@ -25589,7 +26006,34 @@ function renderProjOverview(proj,tasks,client,clr){
         <button class="btn btn-primary btn-sm" onclick="openProjTaskModal('${proj.id}')"><i class="fa-solid fa-plus"></i> مهمة</button>
       </div>
       ${tasks.slice(0,5).map(t=>renderProjTaskRow(t,clr)).join('')||'<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px">لا توجد مهام — أضف مهمة جديدة</div>'}
-    </div>`;
+    </div>
+    <!-- Project Comments -->
+    ${(()=>{
+      var pid = String(proj.id);
+      var projComments = (proj.comments||[]);
+      var commHtml = projComments.map(function(c){
+        var d=new Date(c.at);
+        var ts=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+        return '<div style="background:var(--surface);border:1px solid rgba(124,111,247,.2);border-radius:10px;padding:10px 14px;margin-bottom:6px">'
+          +'<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
+            +'<span style="font-size:11px;font-weight:700;color:var(--accent)">'+escapeHtml(c.author||'')+'</span>'
+            +'<span style="font-size:10px;color:var(--text3)">'+ts+'</span>'
+          +'</div>'
+          +'<div style="font-size:13px;color:var(--text2);line-height:1.6">'+escapeHtml(c.text)+'</div>'
+        +'</div>';
+      }).join('');
+      return '<div class="card" style="margin-top:14px">'
+        +'<div style="font-size:13px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px">'
+          +'<i class="fa-solid fa-comments" style="color:var(--accent)"></i> ملاحظات المشروع'
+          +'<span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:2px 8px;border-radius:8px">'+projComments.length+'</span>'
+        +'</div>'
+        +(projComments.length ? commHtml : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">لا ملاحظات بعد</div>')
+        +'<div style="display:flex;gap:8px;margin-top:12px">'
+          +'<textarea id="proj-comment-'+pid+'" rows="2" style="flex:1;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text);resize:none;font-family:var(--font)" placeholder="أضف ملاحظة على المشروع..."></textarea>'
+          +'<button style="padding:10px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;align-self:flex-end" onclick="_submitProjComment(\''+pid+'\')"><i class="fa-solid fa-paper-plane"></i></button>'
+        +'</div>'
+      +'</div>';
+    })()}`;
 }
 
 // ── Tasks List Tab ──
