@@ -6827,14 +6827,17 @@ function renderReviewsPage() {
 }
 
 function _copyReviewLink() {
-  const uid = _supaUserId;
-  const un = S.settings?.username;
-  var _rparts = window.location.pathname.split('/').filter(function(p){return p!=='';});
-  if(_rparts.length && _rparts[_rparts.length-1].endsWith('.html')) _rparts.pop();
-  var _rbase = _rparts.length ? '/' + _rparts.join('/') + '/' : '/';
-  var _reviewPage = window.location.origin + _rbase + 'review.html';
-  const link = un ? `${_reviewPage}?u=${encodeURIComponent(un)}` : `${_reviewPage}?uid=${uid}`;
-  navigator.clipboard?.writeText(link).then(() => toast('✅ تم نسخ رابط فورم التقييم'));
+  // ✅ استخدم الرابط القصير
+  var link = (typeof _shortReviewUrl === 'function') ? _shortReviewUrl() : (function(){
+    const uid2 = _supaUserId;
+    const un2 = S.settings && S.settings.username;
+    var _rparts = window.location.pathname.split('/').filter(function(p){return p!=='';});
+    if(_rparts.length && _rparts[_rparts.length-1].endsWith('.html')) _rparts.pop();
+    var _rbase = _rparts.length ? '/' + _rparts.join('/') + '/' : '/';
+    var _reviewPage = window.location.origin + _rbase + 'review.html';
+    return un2 ? (_reviewPage+'?u='+encodeURIComponent(un2)) : (_reviewPage+'?uid='+uid2);
+  })();
+  navigator.clipboard && navigator.clipboard.writeText(link).then(function(){ toast('✅ تم نسخ رابط التقييم'); });
 }
 
 function _exportReviews() {
@@ -19194,19 +19197,21 @@ function renderCorpEmployees(){
 
 // ── Helpers ──
 function getSvcLink(storeId){
+  // ✅ استخدم الرابط القصير لو متاح
+  if(typeof _shortStoreUrl === 'function'){
+    return _shortStoreUrl(storeId||'');
+  }
   var uid = (typeof _supaUserId!=='undefined' && _supaUserId) ? _supaUserId : '';
   var _spp=window.location.pathname,_sps=_spp.split('/').filter(function(x){return x!=='';});
   if(_sps.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_sps[_sps.length-1])>=0)_sps.pop();
   if(_sps.length&&_sps[_sps.length-1].endsWith('.html'))_sps.pop();
   var base = window.location.origin+(_sps.length?'/'+_sps.join('/')+'/' :'/')+'store.html';
-  // لو المتجر عنده username خاص → استخدمه
   if(storeId){
     var storeObj=(_getStores()||[]).find(function(s){return s.id===storeId;});
     if(storeObj&&storeObj.username){
       return base+'?u='+encodeURIComponent(storeObj.username);
     }
   }
-  // يوزرنيم المستخدم الأساسي
   var un=S&&S.settings&&S.settings.username;
   var link=un?(base+'?u='+encodeURIComponent(un)):(base+'?uid='+uid);
   if(storeId) link+='&store='+encodeURIComponent(storeId);
@@ -21107,8 +21112,13 @@ function openClientPortal(portalId){
   if(_cppPath.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_cppPath[_cppPath.length-1])>=0)_cppPath.pop();
   if(_cppPath.length&&_cppPath[_cppPath.length-1].endsWith('.html'))_cppPath.pop();
   var _cpBase=window.location.origin+(_cppPath.length?'/'+_cppPath.join('/')+'/' :'/')+'client-portal.html';
-  var link = client ? (_cpBase+'?uid='+uid+'&cid='+client.id) : _buildPortalLink(portal.client_name, portal.id);
-  var taskLink = (client && portal.task_id) ? (_cpBase+'?uid='+uid+'&cid='+client.id+'&taskid='+portal.task_id) : link;
+  // ✅ استخدم الرابط القصير
+  var link = (typeof _shortPortalUrl==='function')
+    ? (client ? _shortPortalUrl(client.id) : _buildPortalLink(portal.client_name, portal.id))
+    : (client ? (_cpBase+'?uid='+uid+'&cid='+client.id) : _buildPortalLink(portal.client_name, portal.id));
+  var taskLink = (client && portal.task_id)
+    ? ((typeof _shortPortalUrl==='function') ? _shortPortalUrl(client.id, portal.task_id) : (_cpBase+'?uid='+uid+'&cid='+client.id+'&taskid='+portal.task_id))
+    : link;
 
   var task=(S.tasks||[]).find(function(t){return String(t.id)===String(portal.task_id);});
   var body=document.getElementById('portal-body'); if(!body) return;
@@ -29948,19 +29958,67 @@ document.addEventListener('click', function(e){
   }
 });
 
-// ── Get proposal page URL ──
+// ── Get proposal page URL (short if username exists) ──
 function _propUrl(p) {
-  // ✅ FIX: استخدم PROPOSAL_PAGE_URL لو محدد في الإعدادات، وإلا احسبه تلقائياً
+  // ✅ استخدم الرابط القصير لو في username
+  if (typeof _shortProposalUrl === 'function' && (S && S.settings && S.settings.username)) {
+    return _shortProposalUrl(p.token);
+  }
   var customUrl = (S && S.settings && S.settings.proposalPageUrl) ? S.settings.proposalPageUrl.trim() : '';
   if (customUrl) {
-    // أزل أي token قديم لو فيه
     customUrl = customUrl.split('?')[0].replace(/\/$/, '');
     return customUrl + '?token=' + encodeURIComponent(p.token);
   }
-  // الطريقة التلقائية: نفس المجلد اللي فيه index.html
-  var href = window.location.href.split('?')[0]; // أزل query string
-  var base = href.substring(0, href.lastIndexOf('/') + 1); // المجلد الحالي
+  var href = window.location.href.split('?')[0];
+  var base = href.substring(0, href.lastIndexOf('/') + 1);
   return base + 'proposal.html?token=' + encodeURIComponent(p.token);
+}
+
+// ══════════════════════════════════════════════════
+// ── SHORT URL GENERATOR (go.html redirector) ──
+// بيولد روابط قصيرة وأنيقة للعميل
+// ══════════════════════════════════════════════════
+function _getBase() {
+  var href = window.location.href.split('?')[0];
+  return href.substring(0, href.lastIndexOf('/') + 1);
+}
+
+function _getUsername() {
+  return (S && S.settings && S.settings.username) || '';
+}
+
+// رابط قصير عام: go.html?u=USERNAME&t=TYPE&...
+function _shortUrl(type, extraParams) {
+  var base = _getBase() + 'go.html';
+  var un = _getUsername();
+  var params = un ? ('?u=' + encodeURIComponent(un)) : ('?uid=' + (_supaUserId||''));
+  params += '&t=' + encodeURIComponent(type);
+  if (extraParams) params += '&' + extraParams;
+  return base + params;
+}
+
+// ── روابط مختصرة لكل نوع ──
+function _shortProposalUrl(token) {
+  // أقصر رابط: go.html?u=mahmoud&t=proposal&id=TOKEN
+  return _shortUrl('proposal', 'id=' + encodeURIComponent(token));
+}
+
+function _shortPortalUrl(clientId, taskId) {
+  var p = 'cid=' + encodeURIComponent(clientId||'');
+  if (taskId) p += '&tid=' + encodeURIComponent(taskId);
+  return _shortUrl('portal', p);
+}
+
+function _shortReviewUrl() {
+  return _shortUrl('review');
+}
+
+function _shortStoreUrl(storeId) {
+  return _shortUrl('store', storeId ? ('id=' + encodeURIComponent(storeId)) : '');
+}
+
+function _shortInvoiceUrl(invoiceId) {
+  return _shortUrl('invoice', 'id=' + encodeURIComponent(invoiceId||''));
 }
 
 function _propCur() {
