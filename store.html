@@ -696,6 +696,7 @@ async function buildPage(userId){
     // ══════════════════════════════════
     // ── COMBINED SERVICES + PACKAGES SECTION ──
     // ══════════════════════════════════
+    var hasPf=pfProjects.length>0;
     var allCats=[];
     services.forEach(function(s){if(s.cat&&!allCats.includes(s.cat))allCats.push(s.cat);});
     standalonePkgs.forEach(function(p){if(p.cat&&!allCats.includes(p.cat))allCats.push(p.cat);});
@@ -710,14 +711,36 @@ async function buildPage(userId){
 
     var hasServices=services.length>0;
     var hasPkgs=standalonePkgs.length>0;
+
+    // ── تابات: خدمات / باقات / بورتفوليو ──
+    var firstActiveTab = hasServices ? 'svc' : (hasPkgs ? 'pkg' : 'pf');
     var tabsHtml='';
-    if(hasServices||hasPkgs){
+    if(hasServices||hasPkgs||hasPf){
       tabsHtml='<div class="_combo-tabs" id="_combo-tabs">'+
-        (hasServices?'<button class="_ctab active" id="_ctab-svc" onclick="_switchComboTab(\'svc\')"><i class="fa-solid fa-bag-shopping" style="margin-left:5px"></i>الخدمات'+(services.length?' ('+services.length+')':'')+'</button>':'')+
-        (hasPkgs?'<button class="_ctab'+(hasServices?'':' active')+'" id="_ctab-pkg" onclick="_switchComboTab(\'pkg\')"><i class="fa-solid fa-box" style="margin-left:5px"></i>الباقات'+(standalonePkgs.length?' ('+standalonePkgs.length+')':'')+'</button>':'')+
-        '<button class="_ctab" id="_ctab-all" onclick="_switchComboTab(\'all\')"><i class="fa-solid fa-border-all" style="margin-left:5px"></i>الكل</button>'+
+        (hasServices?'<button class="_ctab'+(firstActiveTab==='svc'?' active':'')+'" id="_ctab-svc" onclick="_switchComboTab(\'svc\')"><i class="fa-solid fa-bag-shopping" style="margin-left:5px"></i>الخدمات'+(services.length?' ('+services.length+')':'')+'</button>':'')+
+        (hasPkgs?'<button class="_ctab'+(firstActiveTab==='pkg'?' active':'')+'" id="_ctab-pkg" onclick="_switchComboTab(\'pkg\')"><i class="fa-solid fa-box" style="margin-left:5px"></i>الباقات'+(standalonePkgs.length?' ('+standalonePkgs.length+')':'')+'</button>':'')+
+        (hasPf?'<button class="_ctab'+(firstActiveTab==='pf'?' active':'')+'" id="_ctab-pf" onclick="_switchComboTab(\'pf\')"><i class="fa-solid fa-images" style="margin-left:5px"></i>أعمالنا'+(pfProjects.length?' ('+pfProjects.length+')':'')+'</button>':'')+
       '</div>';
     }
+
+    // portfolio grid HTML (مشترك)
+    var pfGridHtml=pfProjects.length
+      ?'<div class="_pf-grid" id="_combo-pf-grid">'+
+          pfProjects.map(function(p){
+            var img=p.thumb||p.image||'';
+            var link=p.url||p.link||'#';
+            var title=p.name||p.title||p.label||'مشروع';
+            var isB=p.link_type==='behance'||p.type==='behance';
+            return '<a class="_pf-card" href="'+xe(link)+'" target="_blank" title="'+xe(title)+'">'+
+              (img?'<img src="'+xe(img)+'" alt="'+xe(title)+'" loading="lazy">':
+                '<div class="_pf-ph">'+
+                  '<div class="_pf-ph-icon">'+(isB?'<i class="fa-brands fa-behance"></i>':'<i class="fa-solid fa-folder-open"></i>')+'</div>'+
+                  '<div class="_pf-ph-name">'+xe(title.slice(0,26))+'</div>'+
+                '</div>')+
+            '</a>';
+          }).join('')+
+        '</div>'
+      :'<div class="_empty"><div class="_empty-icon">🖼️</div><div class="_empty-t">لا توجد أعمال حالياً</div></div>';
 
     function buildSvcCardTagged(s,i){
       var pr=s.price&&+s.price?Number(s.price).toLocaleString()+' '+(s.currency||'ج.م'):'عند الطلب';
@@ -778,23 +801,36 @@ async function buildPage(userId){
     var allComboCards=services.map(buildSvcCardTagged).join('')+standalonePkgs.map(buildPkgCardTagged).join('');
 
     var comboSectionHtml='';
-    if(hasServices||hasPkgs){
+    if(hasServices||hasPkgs||hasPf){
+      // محتوى كل تاب
+      var svcsPanel='<div id="_combo-svc-panel" style="display:'+(firstActiveTab==='svc'?'block':'none')+'">'+
+        (hasServices
+          ?catFiltersHtml+'<div class="_svc-grid" id="_combo-grid">'+services.map(buildSvcCardTagged).join('')+'</div>'
+          :'<div class="_empty"><div class="_empty-icon">🛍️</div><div class="_empty-t">لا توجد خدمات حالياً</div></div>')+
+      '</div>';
+
+      var pkgsPanel='<div id="_combo-pkg-panel" style="display:'+(firstActiveTab==='pkg'?'block':'none')+'">'+
+        (hasPkgs
+          ?'<div class="_svc-grid">'+standalonePkgs.map(buildPkgCardTagged).join('')+'</div>'
+          :'<div class="_empty"><div class="_empty-icon">📦</div><div class="_empty-t">لا توجد باقات حالياً</div></div>')+
+      '</div>';
+
+      var pfPanel='<div id="_combo-pf-panel" style="display:'+(firstActiveTab==='pf'?'block':'none')+'">'+pfGridHtml+'</div>';
+
       comboSectionHtml=
         '<div id="_combo" style="scroll-margin-top:72px" class="_sec">'+
           '<div class="_sec-head">'+
-            '<div class="_sec-title"><i class="fa-solid fa-store"></i> خدماتنا وباقاتنا</div>'+
+            '<div class="_sec-title"><i class="fa-solid fa-store"></i> خدماتنا وأعمالنا</div>'+
           '</div>'+
           tabsHtml+
-          catFiltersHtml+
-          '<div class="_svc-grid" id="_combo-grid">'+
-            (allComboCards||'<div class="_empty"><div class="_empty-icon">🛍️</div><div class="_empty-t">لا توجد خدمات أو باقات حالياً</div></div>')+
-          '</div>'+
+          svcsPanel+pkgsPanel+pfPanel+
         '</div>';
     }
 
     window._comboServices=services; window._comboPkgs=standalonePkgs;
 
-    var pkgsHtml=''; // مدموج في comboSectionHtml
+    var pkgsHtml=''; var svcsHtml='';
+    var pfHtml='';
     // ══════════════════════════════════
     var pfHtml='<div id="_pf" style="scroll-margin-top:72px" class="_sec">'+
       '<div class="_sec-head">'+
@@ -873,14 +909,14 @@ async function buildPage(userId){
     // ══════════════════════════════════
     var root=document.getElementById('_root');
     root.innerHTML=navHtml+
-      '<div class="_main">'+heroHtml+svcsHtml+pkgsHtml+comboSectionHtml+pfHtml+contactHtml+'</div>'+
+      '<div class="_main">'+heroHtml+comboSectionHtml+pfHtml+contactHtml+'</div>'+
       footerHtml;
     root.style.display='block';
     hideLs();
 
     // scroll spy
     window.addEventListener('scroll',function(){
-      var ids=['_hero','_combo','_pf','_contact'];
+      var ids=['_hero','_combo','_contact'];
       var lks=document.querySelectorAll('._nl');
       var cur=0;
       ids.forEach(function(id,i){var el=document.getElementById(id);if(el&&window.scrollY>=el.offsetTop-84)cur=i;});
@@ -1131,23 +1167,17 @@ window._submitOrd=function(ue,se,pe,price,ple){
 
 // ── Combo Tabs ──
 window._switchComboTab=function(tab){
-  var grid=document.getElementById('_combo-grid');
-  if(!grid) return;
   // تحديث الـ tab buttons
-  ['svc','pkg','all'].forEach(function(t){
+  ['svc','pkg','pf','all'].forEach(function(t){
     var btn=document.getElementById('_ctab-'+t);
     if(btn) btn.classList.toggle('active', t===tab);
   });
-  // إخفاء / إظهار الكروت
-  var cards=grid.querySelectorAll('._sc');
-  cards.forEach(function(c){
-    var type=c.dataset.type;
-    var show = tab==='all' || (tab==='svc'&&type==='svc') || (tab==='pkg'&&type==='pkg');
-    c.style.display = show ? '' : 'none';
+  // إظهار/إخفاء الـ panels
+  var panels={svc:'_combo-svc-panel',pkg:'_combo-pkg-panel',pf:'_combo-pf-panel'};
+  Object.keys(panels).forEach(function(key){
+    var panel=document.getElementById(panels[key]);
+    if(panel) panel.style.display = (key===tab) ? 'block' : 'none';
   });
-  // reset cat filter
-  var cfs=document.querySelectorAll('._cf');
-  cfs.forEach(function(b){b.classList.toggle('on',b.textContent==='الكل'||!b.textContent);});
 };
 
 window._filterCat=function(cat){
