@@ -316,6 +316,7 @@ body{
   <div class="err-icon">📋</div>
   <div class="err-title" id="err-title">رابط غير صحيح</div>
   <div class="err-sub" id="err-sub">لم يتم العثور على هذا العرض أو انتهت صلاحيته</div>
+  <div id="err-token-info" style="margin-top:16px;padding:12px 16px;background:#f4f6fa;border-radius:10px;font-size:11px;color:#8892a4;direction:ltr;text-align:left;font-family:monospace;word-break:break-all"></div>
 </div>
 
 <div id="main-content" style="display:none">
@@ -474,6 +475,12 @@ function showErr(title, sub){
   hide('loader'); hide('main-content');
   setText('err-title', title);
   setText('err-sub', sub||'');
+  var dbgEl = el('err-token-info');
+  if (dbgEl) {
+    var dbg = 'URL: ' + location.href + ' | Token: ' + (token || 'none');
+    dbgEl.textContent = dbg;
+    dbgEl.style.display = '';
+  }
   el('err-screen').style.display = 'flex';
 }
 
