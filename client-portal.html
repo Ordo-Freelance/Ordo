@@ -96,7 +96,54 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 /* EMPTY */
 .empty{text-align:center;padding:50px 20px;color:var(--t3)}
 .empty i{font-size:40px;opacity:.35;display:block;margin-bottom:12px}
-/* FOOTER */
+/* NAV HEADER BUTTONS */
+.nav-hdr-btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9px;padding:7px 13px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer;text-decoration:none;transition:.15s;white-space:nowrap}
+.nav-meeting{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;box-shadow:0 3px 12px rgba(124,111,247,.35)}
+.nav-meeting:hover{opacity:.88;transform:translateY(-1px)}
+.nav-store{background:rgba(124,111,247,.15);color:var(--ac);border:1.5px solid rgba(124,111,247,.35)}
+.nav-store:hover{background:rgba(124,111,247,.25)}
+.nav-wa{display:flex;align-items:center;justify-content:center;width:34px;height:34px;background:#25D366;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;text-decoration:none;transition:.15s;flex-shrink:0}
+.nav-wa:hover{opacity:.88}
+@media(max-width:420px){.nav-hdr-btn span{display:none}.nav-hdr-btn{padding:7px 10px}}
+/* STORE SECTION */
+.store-sec{margin-top:40px}
+.store-divider{height:1px;background:linear-gradient(90deg,var(--ac),transparent);margin-bottom:28px;opacity:.4}
+.store-tabs{display:flex;gap:0;border-bottom:2px solid var(--bd);margin-bottom:0;overflow-x:auto;scrollbar-width:none}
+.store-tabs::-webkit-scrollbar{display:none}
+.store-tab{padding:11px 18px;font-family:var(--font);font-size:13px;font-weight:700;color:var(--t3);background:none;border:none;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s;display:flex;align-items:center;gap:7px}
+.store-tab:hover{color:var(--t2)}
+.store-tab.on{color:var(--ac);border-bottom-color:var(--ac)}
+.store-tab-panel{display:none;padding-top:20px}
+.store-tab-panel.on{display:block;animation:fadeIn .2s ease}
+/* SVC CARDS GRID */
+.svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+@media(max-width:480px){.svc-grid{grid-template-columns:1fr 1fr;gap:10px}}
+.svc-card{background:var(--s1);border:1.5px solid var(--bd);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;position:relative}
+.svc-card:hover{transform:translateY(-3px);border-color:rgba(124,111,247,.45);box-shadow:0 10px 28px rgba(124,111,247,.15)}
+.svc-img{width:100%;height:130px;object-fit:cover;display:block}
+.svc-ph{width:100%;height:88px;display:flex;align-items:center;justify-content:center;font-size:38px}
+.svc-badge{position:absolute;top:9px;right:9px;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:800;color:#fff}
+.svc-body{padding:12px 13px 14px;flex:1;display:flex;flex-direction:column;gap:5px}
+.svc-cat{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase}
+.svc-name{font-size:13px;font-weight:900;color:var(--t1);line-height:1.35}
+.svc-desc{font-size:11px;color:var(--t3);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.svc-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px}
+.svc-meta-chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--t3);background:var(--s2);border:1px solid var(--bd);padding:2px 8px;border-radius:8px}
+.svc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:10px;border-top:1px solid var(--bd)}
+.svc-price{font-size:17px;font-weight:900;line-height:1}
+.svc-price-lbl{font-size:10px;color:var(--t3)}
+.svc-order-btn{background:var(--ac);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-family:var(--font);font-size:12px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:5px;transition:opacity .15s}
+.svc-order-btn:hover{opacity:.82}
+/* PORTFOLIO GRID */
+.pf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+@media(max-width:480px){.pf-grid{grid-template-columns:repeat(3,1fr);gap:8px}}
+.pf-card{border-radius:12px;overflow:hidden;aspect-ratio:1;background:var(--s2);border:1px solid var(--bd);cursor:pointer;transition:transform .2s,border-color .2s;display:block;text-decoration:none;position:relative}
+.pf-card:hover{transform:scale(1.04);border-color:rgba(124,111,247,.5)}
+.pf-card img{width:100%;height:100%;object-fit:cover;display:block}
+.pf-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px;text-align:center}
+.pf-ph-icon{font-size:26px;color:rgba(124,111,247,.6)}
+.pf-ph-name{font-size:10px;font-weight:700;color:var(--t3);line-height:1.35;word-break:break-word}
+
 .ftr{border-top:1px solid var(--bd);padding:20px;margin-top:30px;position:relative;z-index:1}
 .ftr-in{max-width:860px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--t3)}
 .ftr-pw{display:flex;align-items:center;gap:7px}
@@ -343,7 +390,15 @@ function renderPage(){
   document.getElementById('root').innerHTML=`
   <nav class="nav"><div class="nav-in">
     <a class="nav-brand" href="${xe(_storeLink)}">${lo}<div><div class="nav-nm">${xe(nm)}</div><div class="nav-sub">بوابة العميل</div></div></a>
-    ${phone?`<a href="https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent('مرحباً '+nm)}" target="_blank" class="nav-wa"><i class="fa-brands fa-whatsapp"></i>تواصل</a>`:''}
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <button onclick="_openClientBookingForm()" class="nav-hdr-btn nav-meeting">
+        <i class="fa-solid fa-calendar-days"></i><span>احجز ميتنج</span>
+      </button>
+      <a href="${xe(_storeLink)}" target="_blank" class="nav-hdr-btn nav-store">
+        <i class="fa-solid fa-store"></i><span>المتجر</span>
+      </a>
+      ${phone?`<a href="https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent('مرحباً '+nm)}" target="_blank" class="nav-wa"><i class="fa-brands fa-whatsapp"></i></a>`:''}
+    </div>
   </div></nav>
 
   <div class="wrap">
@@ -409,15 +464,6 @@ function renderPage(){
       ${openingNote?`<div style="color:var(--t3)">${xe(openingNote)}</div>`:''}
     </div>`:''}
 
-    <!-- زرار احجز موعد بارز -->
-    <div style="margin-bottom:14px">
-      <button onclick="_openClientBookingForm()" style="width:100%;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;border:none;border-radius:14px;padding:14px 20px;font-family:var(--font);font-size:14px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:.15s;box-shadow:0 4px 20px rgba(124,111,247,.3)" onmouseover="this.style.opacity='.9';this.style.transform='translateY(-1px)'" onmouseout="this.style.opacity='1';this.style.transform=''">
-        <i class="fa-solid fa-calendar-days" style="font-size:16px"></i>
-        احجز موعد ميتنج
-        <i class="fa-solid fa-arrow-left" style="font-size:12px;opacity:.7"></i>
-      </button>
-    </div>
-
     <!-- TABS -->
     <div class="tabs" id="tabs">
       <button class="tab on" onclick="switchTab('tasks')" id="tab-tasks"><i class="fa-solid fa-clipboard-list"></i>طلباتي (${_clientTasks.length})</button>
@@ -439,7 +485,7 @@ function renderPage(){
     <div class="tab-panel" id="tp-reviews">${renderMyReviews()}</div>
   </div>
 
-  ${renderServices()}
+  ${renderStoreSection()}
 
   <footer class="ftr"><div class="ftr-in">
     <span>© ${new Date().getFullYear()} ${xe(nm)}</span>
@@ -568,7 +614,152 @@ function renderTasks(){
 }
 
 // ══════════════════════════════════════════════
-// ── SERVICES SECTION — خدماتنا وباقاتنا ──
+// ── STORE SECTION — 3 تابات: خدمات / باقات / بورتفوليو ──
+// ══════════════════════════════════════════════
+let _storeActiveTab = 'svc';
+
+function renderStoreSection(){
+  const svcs  = (_ud.services||[]).filter(s=>s&&s.name&&s.active!==false);
+  const pkgs  = (_ud.standalone_packages||[]).filter(p=>p&&p.name&&p.active!==false);
+  const pfRaw = _ud.portfolio_projects||[];
+  // portfolio من داخل الخدمات القديم
+  const pfFromSvcs = [];
+  svcs.forEach(s=>{ (s.portfolio||[]).forEach(p=>pfFromSvcs.push({id:p.id||s.id+'_pf',name:p.label||p.title||s.name,thumb:p.thumb||p.image||'',url:p.url||p.link||'#',cat:s.cat||p.cat||'',link_type:p.type||''})); });
+  const existIds = pfRaw.map(p=>String(p.id));
+  pfFromSvcs.forEach(p=>{ if(!existIds.includes(String(p.id))) pfRaw.push(p); });
+
+  if(!svcs.length && !pkgs.length && !pfRaw.length) return '';
+
+  const acc = _settings?.accent||_settings?.accentColor||'#7c6ff7';
+  const un  = _settings?.username||'';
+  const storeLink = un
+    ? (STORE_URL+'?u='+encodeURIComponent(un))
+    : (STORE_URL+'?uid='+(window._resolvedUid||pUid||''));
+
+  // ── helper: بناء كرت خدمة أو باقة ──
+  function svcCard(s, type, idx){
+    const isPkg  = type==='pkg';
+    const price  = +s.price||+s.startingPrice||0;
+    const dur    = s.deliveryDays||s.duration||s.delivery||'';
+    const revs   = s.revisions||'';
+    const img    = s.image||s.img||s.thumb||s.photo||s.logo||'';
+    const items  = s.items||s.features||[];
+    const badgeBg = isPkg ? 'linear-gradient(135deg,#4fd1a5,#38b28a)' : acc;
+    return `
+    <div class="svc-card" onclick="_openSvcDetail('${type}',${idx})">
+      <div class="svc-badge" style="background:${badgeBg}">${isPkg?'باقة':'خدمة'}</div>
+      ${img
+        ? `<img class="svc-img" src="${xe(img)}" alt="" loading="lazy"
+              onerror="this.parentElement.querySelector('.svc-ph-fb').style.display='flex';this.remove()">
+           <div class="svc-ph-fb" style="display:none;height:88px;align-items:center;justify-content:center;font-size:36px;background:${acc}18">${s.icon||(isPkg?'📦':'🎯')}</div>`
+        : `<div class="svc-ph" style="background:${acc}14">${s.icon||(isPkg?'📦':'🎯')}</div>`}
+      <div class="svc-body">
+        ${s.cat?`<div class="svc-cat" style="color:${acc}">${xe(s.cat)}</div>`:''}
+        <div class="svc-name">${xe(s.name)}</div>
+        ${s.desc||s.description?`<div class="svc-desc">${xe(s.desc||s.description)}</div>`:''}
+        ${items.length?`<div style="display:flex;flex-direction:column;gap:2px;margin-top:2px">
+          ${items.slice(0,3).map(it=>`<div style="display:flex;align-items:flex-start;gap:5px;font-size:11px;color:var(--t2)"><i class="fa-solid fa-check" style="color:${acc};font-size:9px;margin-top:3px;flex-shrink:0"></i>${xe(String(it))}</div>`).join('')}
+          ${items.length>3?`<div style="font-size:10px;color:var(--t3);margin-right:14px">+${items.length-3} أخرى</div>`:''}
+        </div>`:''}
+        ${dur||revs?`<div class="svc-meta">
+          ${dur?`<span class="svc-meta-chip"><i class="fa-solid fa-clock" style="color:${acc}"></i>${xe(String(dur))} يوم</span>`:''}
+          ${revs?`<span class="svc-meta-chip"><i class="fa-solid fa-rotate" style="color:${acc}"></i>${xe(String(revs))} تعديل</span>`:''}
+        </div>`:''}
+        <div class="svc-foot">
+          ${price
+            ? `<div><div class="svc-price" style="color:${acc}">${Number(price).toLocaleString()}</div><div class="svc-price-lbl">ج.م</div></div>`
+            : `<div style="font-size:11px;color:var(--t3)">تواصل للسعر</div>`}
+          <button class="svc-order-btn" style="background:${acc}" onclick="event.stopPropagation();_openSvcOrder('${type}',${idx})">
+            <i class="fa-solid fa-cart-plus"></i> اطلب
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── تابات ──
+  const tabs = [
+    svcs.length  ? {key:'svc', icon:'fa-bag-shopping', label:'الخدمات',   n:svcs.length}  : null,
+    pkgs.length  ? {key:'pkg', icon:'fa-box',          label:'الباقات',   n:pkgs.length}  : null,
+    pfRaw.length ? {key:'pf',  icon:'fa-images',       label:'البورتفوليو', n:pfRaw.length} : null,
+  ].filter(Boolean);
+
+  // لو التاب الحالي مش موجود ← أول تاب متاح
+  if(!tabs.find(t=>t.key===_storeActiveTab)) _storeActiveTab = tabs[0]?.key||'svc';
+
+  const tabsHtml = tabs.map(t=>{
+    const on = _storeActiveTab===t.key;
+    return `<button class="store-tab${on?' on':''}" onclick="_storeSetTab('${t.key}')">
+      <i class="fa-solid ${t.icon}"></i>${t.label}
+      <span style="background:${on?acc:'var(--s3)'};color:${on?'#fff':'var(--t3)'};border-radius:20px;padding:1px 7px;font-size:10px">${t.n}</span>
+    </button>`;
+  }).join('');
+
+  // ── محتوى كل تاب ──
+  const svcsPanel = `<div class="store-tab-panel${_storeActiveTab==='svc'?' on':''}" id="_sp-svc">
+    ${svcs.length
+      ? `<div class="svc-grid">${svcs.map((s,i)=>svcCard(s,'svc',i)).join('')}</div>`
+      : `<div class="empty"><i class="fa-solid fa-bag-shopping"></i>لا توجد خدمات حالياً</div>`}
+  </div>`;
+
+  const pkgsPanel = `<div class="store-tab-panel${_storeActiveTab==='pkg'?' on':''}" id="_sp-pkg">
+    ${pkgs.length
+      ? `<div class="svc-grid">${pkgs.map((p,i)=>svcCard(p,'pkg',i)).join('')}</div>`
+      : `<div class="empty"><i class="fa-solid fa-box"></i>لا توجد باقات حالياً</div>`}
+  </div>`;
+
+  const pfPanel = `<div class="store-tab-panel${_storeActiveTab==='pf'?' on':''}" id="_sp-pf">
+    ${pfRaw.length
+      ? `<div class="pf-grid">
+          ${pfRaw.map(p=>{
+            const img   = p.thumb||p.image||'';
+            const link  = p.url||p.link||'#';
+            const title = p.name||p.title||p.label||'مشروع';
+            const isB   = p.link_type==='behance'||p.type==='behance';
+            return `<a class="pf-card" href="${xe(link)}" target="_blank" title="${xe(title)}">
+              ${img
+                ? `<img src="${xe(img)}" alt="${xe(title)}" loading="lazy">`
+                : `<div class="pf-ph">
+                    <div class="pf-ph-icon">${isB?'<i class="fa-brands fa-behance"></i>':'<i class="fa-solid fa-folder-open"></i>'}</div>
+                    <div class="pf-ph-name">${xe(title.slice(0,24))}</div>
+                   </div>`}
+            </a>`;
+          }).join('')}
+        </div>`
+      : `<div class="empty"><i class="fa-solid fa-images"></i>لا توجد أعمال حالياً</div>`}
+  </div>`;
+
+  return `
+  <section class="store-sec" id="_store-section">
+    <div class="store-divider"></div>
+    <!-- Header -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:17px;font-weight:900;color:var(--t1)">
+          <i class="fa-solid fa-store" style="color:${acc};margin-left:7px"></i>خدماتنا وأعمالنا
+        </div>
+        <div style="font-size:12px;color:var(--t3);margin-top:3px">اطلب أي خدمة أو باقة مباشرة</div>
+      </div>
+    </div>
+    <!-- Tabs -->
+    <div class="store-tabs">${tabsHtml}</div>
+    <!-- Panels -->
+    ${svcsPanel}${pkgsPanel}${pfPanel}
+  </section>`;
+}
+
+function _storeSetTab(key){
+  _storeActiveTab = key;
+  const sec = document.getElementById('_store-section');
+  if(!sec) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = renderStoreSection();
+  const newSec = tmp.firstElementChild;
+  if(newSec) sec.parentElement.replaceChild(newSec, sec);
+}
+
+// ══════════════════════════════════════════════
+// ── SERVICES SECTION — خدماتنا وباقاتنا (legacy) ──
 // ══════════════════════════════════════════════
 let _svcActiveTab = 'all';
 let _svcActiveCat = '';
