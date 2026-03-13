@@ -7143,100 +7143,103 @@ function _markReviewsRead() {
   if (badge) { badge.textContent = '0'; badge.style.display = 'none'; }
   const btn = document.getElementById('reviews-mark-read-btn');
   if (btn) btn.style.display = 'none';
+  toast('<i class="fa-solid fa-envelope-open" style="color:var(--accent3)"></i> تم تحديد كل التقييمات كمقروءة');
+}
 
-// ── Share Review as Shareable Card Image ──
+// ── Share Review as Shareable Card ──
 function _openShareReview(rid){
   var r = (S.reviews||[]).find(function(x){return x.id===rid;});
   if(!r) return;
-  var clientName = r.client_name||'عميل';
-  var stars = +r.stars||0;
-  var comment = r.comment||'';
-  var dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('ar-EG',{day:'numeric',month:'long',year:'numeric'}) : '';
   var taskObj = (S.tasks||[]).find(function(t){return String(t.id)===String(r.task_id);});
-  var taskTitle = r.task_title||taskObj?.title||'';
-  _shareReviewCard(clientName, stars, comment, dateStr, taskTitle);
+  _shareReviewCard(r.client_name||'عميل', +r.stars||0, r.comment||'',
+    r.created_at ? new Date(r.created_at).toLocaleDateString('ar-EG',{day:'numeric',month:'long',year:'numeric'}) : '',
+    r.task_title||taskObj?.title||'');
 }
 
 function _shareReviewCard(clientName, stars, comment, dateStr, taskTitle){
-  var old = document.getElementById('_review-share-overlay');
-  if(old) old.remove();
-  var studioName = (S.settings && S.settings.name) || 'Studio';
-  var acc = (S.settings && (S.settings.accent || S.settings.accentColor)) || '#7c6ff7';
-  var logo = (S.settings && S.settings.logo) || '';
-  var starsStr = ''; for(var si=0;si<stars;si++) starsStr+='\u2B50';
-  var starLabel = ['','سيء','مقبول','جيد','رائع','ممتاز'][stars]||'';
+  var old = document.getElementById('_review-share-overlay'); if(old) old.remove();
+  var nm = (S.settings&&S.settings.name)||'Studio';
+  var ac = (S.settings&&(S.settings.accent||S.settings.accentColor))||'#7c6ff7';
+  var logo = (S.settings&&S.settings.logo)||'';
+  var starsEmoji = ''; for(var i=0;i<stars;i++) starsEmoji+='\u2B50';
+  var lbl = ['','سيء جداً','مقبول','جيد','رائع','ممتاز!'][stars]||'';
+  if(!document.getElementById('_rc-anim-style')){
+    var sty=document.createElement('style');sty.id='_rc-anim-style';
+    sty.textContent='@keyframes _rcFadeIn{from{opacity:0}to{opacity:1}}@keyframes _rcSlideUp{from{opacity:0;transform:translateY(30px) scale(.96)}to{opacity:1;transform:none}}';
+    document.head.appendChild(sty);
+  }
+  var ov = document.createElement('div'); ov.id='_review-share-overlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.82);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:20px;animation:_rcFadeIn .25s ease';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
 
-  var ov = document.createElement('div');
-  ov.id = '_review-share-overlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px';
-  ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
+  var wrap=document.createElement('div');
+  wrap.style.cssText='max-width:460px;width:100%;display:flex;flex-direction:column;gap:16px;align-items:center;animation:_rcSlideUp .4s cubic-bezier(.22,1,.36,1)';
 
-  var cardDiv = document.createElement('div');
-  cardDiv.style.cssText = 'max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px;align-items:center';
-
-  // Build the card using DOM (not innerHTML with SVG foreignObject)
-  var cardHtml = '<div id="_review-share-card" style="width:100%;max-width:400px;padding:32px 28px;border-radius:24px;'
-    +'background:linear-gradient(145deg,#0d0f1a 0%,#141826 50%,#0d1117 100%);'
-    +'border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden;font-family:Cairo,sans-serif;direction:rtl;color:#f0f0f5">'
-    +'<div style="position:absolute;top:-40px;left:-40px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,'+acc+'20,transparent);pointer-events:none"></div>'
-    +'<div style="position:absolute;bottom:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,rgba(247,201,72,.08),transparent);pointer-events:none"></div>'
-    +'<div style="text-align:center;margin-bottom:16px">'
-      +'<div style="font-size:32px;letter-spacing:4px;margin-bottom:6px">'+starsStr+'</div>'
-      +'<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(247,201,72,.12);border:1px solid rgba(247,201,72,.25);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:800;color:#f7c948">'+escapeHtml(starLabel)+'</div>'
-    +'</div>'
-    +(comment ? '<div style="font-size:15px;line-height:1.9;color:#d0d0e0;text-align:center;padding:16px 20px;background:rgba(255,255,255,.04);border-radius:16px;border-right:3px solid #f7c948;margin-bottom:16px;font-style:italic">&ldquo;'+escapeHtml(comment)+'&rdquo;</div>' : '')
-    +'<div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:6px">'
-      +'<div style="width:44px;height:44px;border-radius:50%;background:'+acc+'33;color:'+acc+';font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid '+acc+'55">'+escapeHtml(clientName.charAt(0))+'</div>'
-      +'<div>'
-        +'<div style="font-size:15px;font-weight:900;color:#f0f0f5">'+escapeHtml(clientName)+'</div>'
-        +(taskTitle ? '<div style="font-size:11px;color:#888">'+escapeHtml(taskTitle)+'</div>' : '')
-        +(dateStr ? '<div style="font-size:10px;color:#666">'+escapeHtml(dateStr)+'</div>' : '')
+  var card=document.createElement('div'); card.id='_review-share-card';
+  card.style.cssText='width:100%;max-width:420px;border-radius:28px;overflow:hidden;font-family:Cairo,sans-serif;direction:rtl;position:relative';
+  card.innerHTML=''
+    +'<div style="background:linear-gradient(160deg,#0c0e1a 0%,#12152a 40%,#0f1220 100%);padding:38px 32px 30px;position:relative">'
+      +'<div style="position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,'+ac+'15,transparent 70%);pointer-events:none"></div>'
+      +'<div style="position:absolute;bottom:-40px;left:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(247,201,72,.05),transparent 70%);pointer-events:none"></div>'
+      +'<div style="text-align:center;margin-bottom:22px;opacity:.12;font-size:52px;line-height:1;color:#f7c948">\u275D</div>'
+      +(comment
+        ?'<div style="font-size:18px;line-height:2;color:#e8e8f0;text-align:center;margin-bottom:28px;font-weight:600;letter-spacing:.2px">'+escapeHtml(comment)+'</div>'
+        :'<div style="font-size:15px;color:#555;text-align:center;margin-bottom:28px;font-style:italic">تقييم بدون تعليق</div>')
+      +'<div style="text-align:center;margin-bottom:24px">'
+        +'<div style="font-size:38px;letter-spacing:6px;margin-bottom:10px">'+starsEmoji+'</div>'
+        +'<span style="display:inline-block;background:linear-gradient(135deg,rgba(247,201,72,.18),rgba(247,201,72,.06));border:1.5px solid rgba(247,201,72,.28);border-radius:24px;padding:6px 20px;font-size:14px;font-weight:800;color:#f7c948;letter-spacing:.5px">'+escapeHtml(lbl)+'</span>'
       +'</div>'
-    +'</div>'
-    +'<div style="margin-top:18px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;gap:8px">'
-      +(logo ? '<img src="'+escapeHtml(logo)+'" style="height:20px;border-radius:4px;opacity:.7" onerror="this.style.display=\'none\'">' : '')
-      +'<span style="font-size:10px;color:#555;font-weight:600">'+escapeHtml(studioName)+'</span>'
-      +'<span style="font-size:8px;color:#333">\u00B7 Ordo</span>'
-    +'</div>'
-  +'</div>';
+      +'<div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);margin:20px 0"></div>'
+      +'<div style="display:flex;align-items:center;gap:14px;justify-content:center">'
+        +'<div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,'+ac+'40,'+ac+'18);color:'+ac+';font-size:22px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2.5px solid '+ac+'40;flex-shrink:0">'+escapeHtml(clientName.charAt(0))+'</div>'
+        +'<div>'
+          +'<div style="font-size:17px;font-weight:900;color:#f0f0f5;margin-bottom:3px">'+escapeHtml(clientName)+'</div>'
+          +(taskTitle?'<div style="font-size:11px;color:#666;margin-bottom:1px"><i class="fa-solid fa-clipboard-list" style="margin-left:4px;font-size:9px;color:#555"></i>'+escapeHtml(taskTitle)+'</div>':'')
+          +(dateStr?'<div style="font-size:10px;color:#444"><i class="fa-solid fa-calendar" style="margin-left:4px;font-size:8px"></i>'+escapeHtml(dateStr)+'</div>':'')
+        +'</div>'
+      +'</div>'
+      +'<div style="margin-top:26px;padding-top:14px;border-top:1px solid rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;gap:10px">'
+        +(logo?'<img src="'+escapeHtml(logo)+'" style="height:22px;border-radius:5px;opacity:.5" onerror="this.style.display=\'none\'">':'')
+        +'<span style="font-size:11px;color:#3a3a4a;font-weight:700">'+escapeHtml(nm)+'</span>'
+        +'<span style="width:3px;height:3px;border-radius:50%;background:#2a2a3a;display:inline-block"></span>'
+        +'<span style="font-size:9px;color:#252530;font-weight:600">Ordo</span>'
+      +'</div>'
+    +'</div>';
 
-  var btnsHtml = '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'
-    +'<button onclick="_downloadReviewCard()" style="display:flex;align-items:center;gap:6px;background:'+acc+';color:#fff;border:none;border-radius:12px;padding:10px 20px;font-family:Cairo,sans-serif;font-size:13px;font-weight:800;cursor:pointer"><i class="fa-solid fa-download"></i> حفظ كصورة</button>'
-    +'<button onclick="document.getElementById(\'_review-share-overlay\').remove()" style="display:flex;align-items:center;gap:6px;background:var(--surface2,#1e1e2e);color:var(--text2,#aaa);border:1px solid var(--border,#333);border-radius:12px;padding:10px 20px;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer"><i class="fa-solid fa-xmark"></i> إغلاق</button>'
-  +'</div>';
-
-  cardDiv.innerHTML = cardHtml + btnsHtml;
-  ov.appendChild(cardDiv);
-  document.body.appendChild(ov);
+  var btns=document.createElement('div');
+  btns.style.cssText='display:flex;gap:10px;flex-wrap:wrap;justify-content:center';
+  var dlBtn=document.createElement('button');
+  dlBtn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';
+  dlBtn.style.cssText='display:flex;align-items:center;background:'+ac+';color:#fff;border:none;border-radius:14px;padding:12px 26px;font-family:Cairo,sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:.2s;box-shadow:0 6px 24px '+ac+'40';
+  dlBtn.onmouseover=function(){this.style.opacity='.85';}; dlBtn.onmouseout=function(){this.style.opacity='1';};
+  dlBtn.onclick=function(){_downloadReviewCard();};
+  var clBtn=document.createElement('button');
+  clBtn.innerHTML='<i class="fa-solid fa-xmark" style="margin-left:6px"></i> إغلاق';
+  clBtn.style.cssText='display:flex;align-items:center;background:rgba(255,255,255,.05);color:#777;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 26px;font-family:Cairo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:.2s';
+  clBtn.onclick=function(){ov.remove();};
+  btns.appendChild(dlBtn); btns.appendChild(clBtn);
+  wrap.appendChild(card); wrap.appendChild(btns);
+  ov.appendChild(wrap); document.body.appendChild(ov);
 }
 
 function _downloadReviewCard(){
-  var card = document.getElementById('_review-share-card');
-  if(!card){ toast('لم يتم العثور على الكارت'); return; }
-  // Use html2canvas CDN
-  if(typeof html2canvas !== 'undefined'){
-    html2canvas(card,{backgroundColor:null,scale:2,useCORS:true}).then(function(canvas){
-      var a=document.createElement('a'); a.download='review-card.png'; a.href=canvas.toDataURL('image/png'); a.click();
-      toast('\u2705 تم حفظ كارت التقييم');
-    }).catch(function(e){ _fallbackScreenshot(); });
-  } else {
-    // Load html2canvas dynamically
-    var sc=document.createElement('script');
-    sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    sc.onload=function(){
-      html2canvas(card,{backgroundColor:null,scale:2,useCORS:true}).then(function(canvas){
-        var a=document.createElement('a'); a.download='review-card.png'; a.href=canvas.toDataURL('image/png'); a.click();
-        toast('\u2705 تم حفظ كارت التقييم');
-      }).catch(function(e){ _fallbackScreenshot(); });
-    };
-    sc.onerror=function(){ _fallbackScreenshot(); };
-    document.head.appendChild(sc);
+  var card=document.getElementById('_review-share-card');
+  if(!card){toast('لم يتم العثور على الكارت');return;}
+  var dlBtn=card.closest('#_review-share-overlay')?.querySelector('button');
+  if(dlBtn){dlBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin" style="margin-left:6px"></i> جاري التحويل...';dlBtn.disabled=true;}
+  function _do(){
+    html2canvas(card,{backgroundColor:'#0c0e1a',scale:3,useCORS:true,allowTaint:true,logging:false}).then(function(c){
+      var a=document.createElement('a');a.download='review-'+Date.now()+'.png';a.href=c.toDataURL('image/png',1.0);a.click();
+      toast('\u2705 تم حفظ الكارت كصورة بنجاح');
+      if(dlBtn){dlBtn.innerHTML='<i class="fa-solid fa-check" style="margin-left:6px;color:#4fd1a5"></i> تم الحفظ!';setTimeout(function(){dlBtn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';dlBtn.disabled=false;},2000);}
+    }).catch(function(e){
+      console.error('html2canvas:',e);
+      if(dlBtn){dlBtn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';dlBtn.disabled=false;}
+      toast('\u26A0\uFE0F خد Screenshot للكارت وشاركها');
+    });
   }
-}
-function _fallbackScreenshot(){
-  toast('\u26A0\uFE0F خد لقطة شاشة (Screenshot) للكارت وشاركها');
-}
-  toast('<i class="fa-solid fa-envelope-open" style="color:var(--accent3)"></i> تم تحديد كل التقييمات كمقروءة');
+  if(typeof html2canvas!=='undefined'){_do();}
+  else{var sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';sc.onload=_do;sc.onerror=function(){if(dlBtn){dlBtn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';dlBtn.disabled=false;}toast('\u26A0\uFE0F تعذر التحميل — خد Screenshot');};document.head.appendChild(sc);}
 }
 
 function showPage(id,el){
