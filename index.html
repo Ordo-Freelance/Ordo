@@ -1308,9 +1308,27 @@ html.light-mode, body.light-mode {
   --text2:   #5a5a7a;
   --text3:   #9090b0;
 }
-body.light-mode .sidebar { box-shadow: -2px 0 20px rgba(0,0,0,.08); }
-body.light-mode .card    { box-shadow: 0 2px 12px rgba(0,0,0,.06); }
-body.light-mode .modal   { box-shadow: 0 20px 60px rgba(0,0,0,.15); }
+body.light-mode { background: #f0f2f8; color: #1a1a2e; }
+body.light-mode .sidebar { box-shadow: -2px 0 20px rgba(0,0,0,.08); background: #ffffff; }
+body.light-mode .sidebar .nav-item { color: #5a5a7a; }
+body.light-mode .sidebar .nav-item:hover { background: rgba(0,0,0,.04); color: #1a1a2e; }
+body.light-mode .sidebar .nav-item.active { color: var(--accent); background: rgba(124,111,247,.08); }
+body.light-mode .card    { box-shadow: 0 2px 12px rgba(0,0,0,.06); background: #ffffff; border-color: #d8dae8; }
+body.light-mode .modal   { box-shadow: 0 20px 60px rgba(0,0,0,.15); background: #ffffff; }
+body.light-mode .modal-overlay { background: rgba(0,0,0,.4); }
+body.light-mode .form-input, body.light-mode .form-select, body.light-mode .form-textarea { background: #f5f6fb; border-color: #d8dae8; color: #1a1a2e; }
+body.light-mode .btn-ghost { color: #5a5a7a; }
+body.light-mode .btn-ghost:hover { background: rgba(0,0,0,.04); }
+body.light-mode .kb-col { background: #f5f6fb; }
+body.light-mode .kb-col-body { background: #f5f6fb; }
+body.light-mode .page-header { border-color: #d8dae8; }
+body.light-mode .top-bar, body.light-mode .app-header { background: rgba(255,255,255,.92); backdrop-filter: blur(12px); border-color: #d8dae8; }
+body.light-mode .badge { background: rgba(0,0,0,.06); }
+body.light-mode .table-wrap table th { background: #f5f6fb; color: #5a5a7a; }
+body.light-mode .table-wrap table td { border-color: #eceef5; }
+body.light-mode .filter-select { background: #f5f6fb; border-color: #d8dae8; color: #1a1a2e; }
+body.light-mode #_offline-bar { background: rgba(255,255,255,.94); color: #b38600; border-bottom-color: rgba(179,134,0,.15); }
+body.light-mode .toast { background: rgba(255,255,255,.96); color: #1a1a2e; border-color: #d8dae8; }
 
 /* ═══ DYNAMIC ACCENT COLOR ═══ */
 /* Applied via JS: document.documentElement.style.setProperty('--accent', color) */
@@ -3089,6 +3107,29 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       </div>
       <div id="log-annual-content"></div>
     </div>
+  </div>
+
+  <!-- Task Scope Tabs: My Tasks | Project Tasks | All Tasks -->
+  <div id="tasks-scope-tabs" style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:14px;overflow-x:auto;scrollbar-width:none">
+    <button class="btn btn-ghost" id="scope-my-tasks" onclick="_switchTaskScope('my')" style="padding:10px 18px;font-size:13px;font-weight:700;color:var(--accent);border:none;border-bottom:2px solid var(--accent);margin-bottom:-2px;border-radius:0;background:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px">
+      <i class="fa-solid fa-clipboard-list"></i> مهامي <span id="scope-my-count" style="background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800"></span>
+    </button>
+    <button class="btn btn-ghost" id="scope-proj-tasks" onclick="_switchTaskScope('project')" style="padding:10px 18px;font-size:13px;font-weight:700;color:var(--text3);border:none;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:0;background:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px">
+      <i class="fa-solid fa-diagram-project"></i> مهام المشاريع <span id="scope-proj-count" style="background:var(--surface3);color:var(--text3);border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800"></span>
+    </button>
+    <button class="btn btn-ghost" id="scope-all-tasks" onclick="_switchTaskScope('all')" style="padding:10px 18px;font-size:13px;font-weight:700;color:var(--text3);border:none;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:0;background:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px">
+      <i class="fa-solid fa-layer-group"></i> كل المهام <span id="scope-all-count" style="background:var(--surface3);color:var(--text3);border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800"></span>
+    </button>
+  </div>
+  
+  <!-- All Tasks View (project_tasks + tasks combined) -->
+  <div id="all-tasks-view" style="display:none">
+    <div id="all-tasks-container"></div>
+  </div>
+  
+  <!-- Project Tasks View (only project_tasks) -->
+  <div id="project-tasks-view" style="display:none">
+    <div id="project-tasks-container"></div>
   </div>
 
   <!-- Kanban View Toggle -->
@@ -9151,7 +9192,155 @@ async function _refreshMemberTasks(){
   }
 }
 
+// ══════════════════════════════════════════════════════
+// ── TASK SCOPE TABS: My Tasks / Project Tasks / All ──
+// ══════════════════════════════════════════════════════
+var _taskScope = 'my'; // 'my' | 'project' | 'all'
+
+function _switchTaskScope(scope){
+  _taskScope = scope;
+  // Update tab UI
+  ['my','proj','all'].forEach(function(k){
+    var tabKey = k === 'my' ? 'scope-my-tasks' : k === 'proj' ? 'scope-proj-tasks' : 'scope-all-tasks';
+    var btn = document.getElementById(tabKey);
+    if(!btn) return;
+    var isActive = (k === 'my' && scope === 'my') || (k === 'proj' && scope === 'project') || (k === 'all' && scope === 'all');
+    btn.style.color = isActive ? 'var(--accent)' : 'var(--text3)';
+    btn.style.borderBottomColor = isActive ? 'var(--accent)' : 'transparent';
+    var badge = btn.querySelector('span');
+    if(badge){
+      badge.style.background = isActive ? 'var(--accent)' : 'var(--surface3)';
+      badge.style.color = isActive ? '#fff' : 'var(--text3)';
+    }
+  });
+  // Show/hide views
+  var myView = document.getElementById('tasks-active-view');
+  var projView = document.getElementById('project-tasks-view');
+  var allView = document.getElementById('all-tasks-view');
+  var logView = document.getElementById('tasks-log-view');
+  if(myView) myView.style.display = scope === 'my' ? '' : 'none';
+  if(projView) projView.style.display = scope === 'project' ? '' : 'none';
+  if(allView) allView.style.display = scope === 'all' ? '' : 'none';
+  if(logView && scope !== 'my') logView.style.display = 'none';
+  // Render the selected scope
+  if(scope === 'project') _renderProjectTasksList();
+  else if(scope === 'all') _renderAllTasksList();
+}
+
+function _updateScopeCounts(){
+  var myCount = (S.tasks||[]).length;
+  var projCount = (S.project_tasks||[]).length;
+  var el1 = document.getElementById('scope-my-count');
+  var el2 = document.getElementById('scope-proj-count');
+  var el3 = document.getElementById('scope-all-count');
+  if(el1) el1.textContent = myCount;
+  if(el2) el2.textContent = projCount;
+  if(el3) el3.textContent = myCount + projCount;
+}
+
+function _renderProjectTasksList(){
+  var container = document.getElementById('project-tasks-container');
+  if(!container) return;
+  var tasks = (S.project_tasks||[]).slice().sort(function(a,b){ return new Date(b.created_at||0) - new Date(a.created_at||0); });
+  if(!tasks.length){
+    container.innerHTML = '<div style="text-align:center;padding:50px 20px;color:var(--text3)"><i class="fa-solid fa-diagram-project" style="font-size:40px;opacity:.35;display:block;margin-bottom:12px"></i><div style="font-size:14px;font-weight:700;color:var(--text2);margin-bottom:5px">لا توجد مهام مشاريع</div><div>ستظهر هنا كل المهام داخل المشاريع</div></div>';
+    return;
+  }
+  var projMap = {};
+  (S.projects||[]).forEach(function(p){ projMap[String(p.id)] = p; });
+  
+  container.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px">' + tasks.map(function(t){
+    var proj = projMap[String(t.project_id)] || {};
+    var isDone = t.status === 'done' || t.done;
+    var stLabel = isDone ? 'مكتمل' : (t.status === 'progress' ? 'جاري' : t.status === 'review' ? 'مراجعة' : t.status === 'paused' ? 'موقوف' : 'جديد');
+    var stColor = isDone ? 'var(--accent3)' : (t.status === 'progress' ? 'var(--accent2)' : t.status === 'review' ? 'var(--accent)' : t.status === 'paused' ? '#64b5f6' : 'var(--text3)');
+    var steps = t.steps||[];
+    var doneSteps = steps.filter(function(s){return s.done;}).length;
+    var prog = steps.length ? Math.round(doneSteps/steps.length*100) : (isDone?100:0);
+    return '<div class="card" style="cursor:pointer;border-right:3px solid '+stColor+'" onclick="openProjectDetail(\''+String(t.project_id)+'\')">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap">'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:4px;display:inline-flex;align-items:center;gap:4px;background:rgba(124,111,247,.1);padding:2px 8px;border-radius:6px"><i class="fa-solid fa-folder-open"></i> '+(proj.name||'مشروع')+'</div>'
+          +'<div style="font-size:14px;font-weight:800;color:var(--text)">'+escapeHtml(t.title||t.name||'مهمة')+'</div>'
+        +'</div>'
+        +'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+stColor+'22;color:'+stColor+'">'+stLabel+'</span>'
+      +'</div>'
+      +(t.desc?'<div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+escapeHtml(t.desc)+'</div>':'')
+      +(steps.length?'<div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin:6px 0"><div style="height:100%;width:'+prog+'%;background:var(--accent);border-radius:3px;transition:.3s"></div></div>':'')
+      +'<div style="display:flex;gap:10px;font-size:11px;color:var(--text3);flex-wrap:wrap;margin-top:6px">'
+        +(steps.length?'<span><i class="fa-solid fa-list-check"></i> '+doneSteps+'/'+steps.length+' خطوة</span>':'')
+        +(t.deadline?'<span><i class="fa-solid fa-calendar-days"></i> '+escapeHtml(t.deadline)+'</span>':'')
+        +(t.value?'<span style="color:var(--accent);font-weight:700"><i class="fa-solid fa-coins"></i> '+Number(t.value).toLocaleString()+' ج</span>':'')
+        +(t.assignee?'<span><i class="fa-solid fa-user"></i> '+escapeHtml(t.assignee)+'</span>':'')
+      +'</div>'
+    +'</div>';
+  }).join('') + '</div>';
+}
+
+function _renderAllTasksList(){
+  var container = document.getElementById('all-tasks-container');
+  if(!container) return;
+  
+  // Merge regular tasks + project tasks
+  var allItems = [];
+  (S.tasks||[]).forEach(function(t){
+    allItems.push({task:t, type:'task', projName:null});
+  });
+  var projMap = {};
+  (S.projects||[]).forEach(function(p){ projMap[String(p.id)] = p; });
+  (S.project_tasks||[]).forEach(function(t){
+    var proj = projMap[String(t.project_id)] || {};
+    allItems.push({task:t, type:'project_task', projName:proj.name||'مشروع'});
+  });
+  
+  // Sort by date desc
+  allItems.sort(function(a,b){
+    var da = a.task.createdAt || a.task.created_at || a.task.orderDate || 0;
+    var db = b.task.createdAt || b.task.created_at || b.task.orderDate || 0;
+    return new Date(db) - new Date(da);
+  });
+  
+  if(!allItems.length){
+    container.innerHTML = '<div style="text-align:center;padding:50px 20px;color:var(--text3)"><i class="fa-solid fa-layer-group" style="font-size:40px;opacity:.35;display:block;margin-bottom:12px"></i><div style="font-size:14px;font-weight:700;color:var(--text2);margin-bottom:5px">لا توجد مهام</div></div>';
+    return;
+  }
+  
+  container.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px">' + allItems.map(function(item){
+    var t = item.task;
+    var isDone = t.done || t.status === 'done';
+    var stLabel = isDone ? 'مكتمل' : (t.status === 'progress' ? 'جاري' : t.status === 'review' ? 'مراجعة' : t.status === 'paused' ? 'موقوف' : 'جديد');
+    var stColor = isDone ? 'var(--accent3)' : (t.status === 'progress' ? 'var(--accent2)' : t.status === 'review' ? 'var(--accent)' : t.status === 'paused' ? '#64b5f6' : 'var(--text3)');
+    var steps = t.steps||[];
+    var doneSteps = steps.filter(function(s){return s.done;}).length;
+    var prog = steps.length ? Math.round(doneSteps/steps.length*100) : (isDone?100:0);
+    var typeTag = item.type === 'project_task'
+      ? '<div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:4px;display:inline-flex;align-items:center;gap:4px;background:rgba(124,111,247,.1);padding:2px 8px;border-radius:6px"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(item.projName)+'</div>'
+      : '<div style="font-size:10px;color:var(--accent2);font-weight:700;margin-bottom:4px;display:inline-flex;align-items:center;gap:4px;background:rgba(247,201,72,.1);padding:2px 8px;border-radius:6px"><i class="fa-solid fa-clipboard-list"></i> مهمة عادية</div>';
+    var clickAction = item.type === 'project_task' 
+      ? 'openProjectDetail(\''+String(t.project_id)+'\')'
+      : 'openTaskModal('+String(t.id)+')';
+    return '<div class="card" style="cursor:pointer;border-right:3px solid '+stColor+'" onclick="'+clickAction+'">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap">'
+        +'<div style="flex:1;min-width:0">'+typeTag
+          +'<div style="font-size:14px;font-weight:800;color:var(--text)">'+escapeHtml(t.title||t.name||'مهمة')+'</div>'
+        +'</div>'
+        +'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+stColor+'22;color:'+stColor+'">'+stLabel+'</span>'
+      +'</div>'
+      +(steps.length?'<div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin:6px 0"><div style="height:100%;width:'+prog+'%;background:var(--accent);border-radius:3px;transition:.3s"></div></div>':'')
+      +'<div style="display:flex;gap:10px;font-size:11px;color:var(--text3);flex-wrap:wrap;margin-top:6px">'
+        +(steps.length?'<span><i class="fa-solid fa-list-check"></i> '+doneSteps+'/'+steps.length+'</span>':'')
+        +(t.deadline?'<span><i class="fa-solid fa-calendar-days"></i> '+escapeHtml(t.deadline)+'</span>':'')
+        +(t.client?'<span><i class="fa-solid fa-user"></i> '+escapeHtml(t.client)+'</span>':'')
+        +(t.value?'<span style="color:var(--accent);font-weight:700"><i class="fa-solid fa-coins"></i> '+Number(t.value).toLocaleString()+' ج</span>':'')
+      +'</div>'
+    +'</div>';
+  }).join('') + '</div>';
+}
+
 function renderTasks(){
+  _updateScopeCounts();
+  if(_taskScope === 'project'){ _renderProjectTasksList(); return; }
+  if(_taskScope === 'all'){ _renderAllTasksList(); return; }
   populateTaskFilterDropdowns();
   const filtered = filterTasks(S.tasks);
   const fCount = document.getElementById('tf-count');
@@ -25429,6 +25618,10 @@ async function _syncReviewsNow(btn){
 document.addEventListener('visibilitychange', function(){
   if(!document.hidden) {
     _loadServerNotifications();
+    // ── Fix #4: Refresh data from server when tab becomes visible (catches new orders, reviews, meetings) ──
+    if(_supaUserId && S && window._cloudLoadDone){
+      _refreshFromServer();
+    }
   } else {
     // المستخدم غادر التاب — احفظ فوراً للسحابة
     if(_supaUserId && S) {
@@ -25436,8 +25629,106 @@ document.addEventListener('visibilitychange', function(){
       _doCloudSave(S);
     }
   }
-});;
-// ═══════════════════════════════════════════════════
+});
+
+// ── Fix #4: Pull fresh data from server to detect new orders/reviews/meetings ──
+var _lastServerRefresh = 0;
+async function _refreshFromServer(){
+  if(!_supaUserId || !S) return;
+  // Don't refresh more than once per 15 seconds
+  if(Date.now() - _lastServerRefresh < 15000) return;
+  _lastServerRefresh = Date.now();
+  try{
+    var {data:row, error} = await supa.from('studio_data').select('data,updated_at').eq('user_id',_supaUserId).maybeSingle();
+    if(error || !row) return;
+    var serverTs = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+    var localTs = S._savedAt ? new Date(S._savedAt).getTime() : 0;
+    // Only merge if server has newer data (someone else wrote to it, e.g. client portal, review form)
+    if(serverTs > localTs + 2000){
+      var fresh = row.data;
+      if(typeof fresh === 'string') fresh = JSON.parse(fresh);
+      if(fresh && fresh.data && !fresh.tasks) fresh = typeof fresh.data === 'string' ? JSON.parse(fresh.data) : fresh.data;
+      if(!fresh) return;
+      // Merge arrays that can receive external updates
+      var changed = false;
+      // Reviews
+      if((fresh.reviews||[]).length > (S.reviews||[]).length){
+        S.reviews = fresh.reviews; changed = true;
+      }
+      // Orders
+      if((fresh.svc_orders||[]).length > (S.svc_orders||[]).length){
+        S.svc_orders = fresh.svc_orders; changed = true;
+      }
+      // Proposals (client responses)
+      (fresh.proposals||[]).forEach(function(fp){
+        var local = (S.proposals||[]).find(function(p){return p.token === fp.token;});
+        if(local && fp.status !== local.status){
+          local.status = fp.status;
+          local.clientNote = fp.clientNote;
+          local.respondedAt = fp.respondedAt;
+          changed = true;
+        }
+      });
+      // Meetings
+      if((fresh.schedule||[]).length > (S.schedule||[]).length){
+        var existingIds = (S.schedule||[]).map(function(s){return s.id;});
+        (fresh.schedule||[]).forEach(function(s){
+          if(existingIds.indexOf(s.id) < 0){
+            S.schedule.push(s);
+            changed = true;
+          }
+        });
+      }
+      if(changed){
+        S._savedAt = fresh._savedAt || new Date().toISOString();
+        try{ renderAll(); }catch(e){}
+        toast('<i class="fa-solid fa-rotate" style="color:var(--accent3)"></i> تم تحديث البيانات');
+      }
+    }
+  }catch(e){ console.warn('_refreshFromServer error',e); }
+}
+
+// ── Fix #4: Poll for new data every 20 seconds (real-time-like) ──
+setInterval(function(){
+  if(!document.hidden && _supaUserId && S && window._cloudLoadDone){
+    _refreshFromServer();
+  }
+}, 20000);
+
+// ── Fix #5: Increase auto-save frequency to prevent data loss after idle ──
+// The existing _startAutoSave uses 15s which should be fine, but add a keepalive ping
+var _keepAliveTimer = setInterval(function(){
+  if(!_supaUserId || !S || !window._cloudLoadDone || !window._appReady) return;
+  if(document.hidden) return;
+  // Save local cache periodically even during idle
+  try {
+    S._savedAt = new Date().toISOString();
+    localStorage.setItem('_ordo_cache_' + _supaUserId, JSON.stringify(S));
+  } catch(e) {}
+}, 30000);
+
+// ── Fix #6: Enhanced offline → online reconnection with data sync ──
+(function(){
+  var _wasOffline = false;
+  window.addEventListener('offline', function(){
+    _wasOffline = true;
+  });
+  window.addEventListener('online', function(){
+    if(_wasOffline && _supaUserId && S && window._cloudLoadDone){
+      _wasOffline = false;
+      // Save any pending data to cloud
+      setTimeout(function(){
+        _doCloudSave(S, true);
+        toast('<i class="fa-solid fa-wifi" style="color:var(--accent3)"></i> عاد الاتصال — جاري حفظ البيانات...');
+      }, 1500);
+      // Also refresh from server to get any updates that happened while offline
+      setTimeout(function(){
+        _refreshFromServer();
+      }, 3000);
+    }
+  });
+})();
+
 
 var _dashEditMode = false;
 var _dashDragSrc = null;
