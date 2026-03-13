@@ -726,7 +726,7 @@ async function _confirmRespond() {
     fresh._savedAt = new Date().toISOString();
 
     var { error } = await db.from('studio_data').upsert(
-      { user_id: _resolvedUid, data: fresh, updated_at: new Date().toISOString() },
+      { user_id: _resolvedUid, data: JSON.stringify(fresh), updated_at: new Date().toISOString() },
       { onConflict: 'user_id' }
     );
     if (error) throw error;
