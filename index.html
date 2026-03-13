@@ -3684,8 +3684,32 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 
   <input type="hidden" id="cf-type" value="">
   <input type="hidden" id="cf-channel" value="">
+  
+  <!-- Client View Toggle -->
+  <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px">
+      <button id="cv-grid-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;background:var(--accent);color:#fff;border-radius:7px" onclick="_switchClientView('grid')"><i class="fa-solid fa-grip"></i> كروت</button>
+      <button id="cv-list-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;border-radius:7px" onclick="_switchClientView('list')"><i class="fa-solid fa-list"></i> قائمة</button>
+      <button id="cv-table-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;border-radius:7px" onclick="_switchClientView('table')"><i class="fa-solid fa-table"></i> جدول</button>
+    </div>
+  </div>
+
   <div class="grid grid-3" id="clients-grid">
     <div class="empty" style="grid-column:span 3"><div class="empty-icon"><i class="fa-solid fa-circle-dot"></i></div>جاري التحميل...</div>
+  </div>
+  <div id="clients-list-view" style="display:none"></div>
+  <div id="clients-table-view" style="display:none">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">
+        <th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">العميل</th>
+        <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">النوع</th>
+        <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">القناة</th>
+        <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الهاتف</th>
+        <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المشاريع</th>
+        <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">هذا الشهر</th>
+        <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">إجراءات</th>
+      </tr></thead><tbody id="clients-table-body"></tbody></table></div>
+    </div>
   </div>
 </div>
 
@@ -7069,6 +7093,9 @@ function renderReviewsPage() {
                   <button data-rid="${r.id}" onclick="deleteReview(this.dataset.rid)" class="btn btn-danger btn-sm" style="padding:5px 8px;flex-shrink:0" title="حذف التقييم">
                     <i class="fa-solid fa-trash"></i>
                   </button>
+                  <button onclick="_shareReviewCard('${escapeHtml(r.client_name||'عميل')}',${+r.stars||0},'${escapeHtml((r.comment||'').replace(/'/g,"\\'"))}','${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG',{day:'numeric',month:'long',year:'numeric'}):''}','${escapeHtml(r.task_title||taskObj?.title||'')}')" class="btn btn-ghost btn-sm" style="padding:5px 8px;flex-shrink:0;color:#f7c948" title="مشاركة التقييم">
+                    <i class="fa-solid fa-share-nodes"></i>
+                  </button>
                 </div>
               </div>
               ${r.comment?`<div style="font-size:13px;color:var(--text2);line-height:1.8;padding:10px 14px;background:var(--surface2);border-radius:10px;font-style:italic;border-right:3px solid #f7c948">"${escapeHtml(r.comment)}"</div>`:''}
@@ -7115,6 +7142,89 @@ function _markReviewsRead() {
   if (badge) { badge.textContent = '0'; badge.style.display = 'none'; }
   const btn = document.getElementById('reviews-mark-read-btn');
   if (btn) btn.style.display = 'none';
+
+// ── Share Review as Shareable Card Image ──
+function _shareReviewCard(clientName, stars, comment, dateStr, taskTitle){
+  var studioName = (S.settings && S.settings.name) || 'Studio';
+  var acc = (S.settings && (S.settings.accent || S.settings.accentColor)) || '#7c6ff7';
+  var logo = (S.settings && S.settings.logo) || '';
+  var starsStr = ''; for(var si=0;si<stars;si++) starsStr+='⭐';
+  var starLabel = ['','سيء','مقبول','جيد','رائع','ممتاز'][stars]||'';
+
+  // Create overlay
+  var ov = document.createElement('div');
+  ov.id = '_review-share-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;animation:_fadeIn .25s ease';
+  ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
+
+  ov.innerHTML = '<div style="max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px;align-items:center">'
+    // The card itself (will be captured as image)
+    +'<div id="_review-share-card" style="width:400px;padding:32px 28px;border-radius:24px;background:linear-gradient(145deg,#0d0f1a 0%,#141826 50%,#0d1117 100%);border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden;font-family:Cairo,sans-serif;direction:rtl;color:#f0f0f5">'
+      // Decorative elements
+      +'<div style="position:absolute;top:-40px;left:-40px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,'+acc+'20,transparent);pointer-events:none"></div>'
+      +'<div style="position:absolute;bottom:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,#f7c94815,transparent);pointer-events:none"></div>'
+      // Stars
+      +'<div style="text-align:center;margin-bottom:16px">'
+        +'<div style="font-size:32px;letter-spacing:4px;margin-bottom:6px">'+starsStr+'</div>'
+        +'<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(247,201,72,.12);border:1px solid rgba(247,201,72,.25);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:800;color:#f7c948">'+starLabel+'</div>'
+      +'</div>'
+      // Quote
+      +(comment ? '<div style="font-size:15px;line-height:1.9;color:#d0d0e0;text-align:center;padding:16px 20px;background:rgba(255,255,255,.04);border-radius:16px;border-right:3px solid #f7c948;margin-bottom:16px;font-style:italic">"'+escapeHtml(comment)+'"</div>' : '')
+      // Client info
+      +'<div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:6px">'
+        +'<div style="width:44px;height:44px;border-radius:50%;background:'+acc+'33;color:'+acc+';font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid '+acc+'55">'+clientName.charAt(0)+'</div>'
+        +'<div>'
+          +'<div style="font-size:15px;font-weight:900;color:#f0f0f5">'+escapeHtml(clientName)+'</div>'
+          +(taskTitle ? '<div style="font-size:11px;color:#888">'+escapeHtml(taskTitle)+'</div>' : '')
+          +(dateStr ? '<div style="font-size:10px;color:#666">'+dateStr+'</div>' : '')
+        +'</div>'
+      +'</div>'
+      // Footer
+      +'<div style="margin-top:18px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;gap:8px">'
+        +(logo ? '<img src="'+escapeHtml(logo)+'" style="height:20px;border-radius:4px;opacity:.7" onerror="this.style.display=\'none\'">' : '')
+        +'<span style="font-size:10px;color:#555;font-weight:600">'+escapeHtml(studioName)+'</span>'
+        +'<span style="font-size:8px;color:#333">بواسطة Ordo</span>'
+      +'</div>'
+    +'</div>'
+    // Action buttons
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'
+      +'<button onclick="_downloadReviewCard()" style="display:flex;align-items:center;gap:6px;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:10px 20px;font-family:Cairo,sans-serif;font-size:13px;font-weight:800;cursor:pointer"><i class="fa-solid fa-download"></i> حفظ كصورة</button>'
+      +'<button onclick="document.getElementById(\'_review-share-overlay\').remove()" style="display:flex;align-items:center;gap:6px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:12px;padding:10px 20px;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer"><i class="fa-solid fa-xmark"></i> إغلاق</button>'
+    +'</div>'
+  +'</div>';
+  document.body.appendChild(ov);
+}
+
+function _downloadReviewCard(){
+  var card = document.getElementById('_review-share-card');
+  if(!card) return;
+  // Use html2canvas if available, otherwise use a canvas-based approach
+  var canvas = document.createElement('canvas');
+  var scale = 2;
+  canvas.width = card.offsetWidth * scale;
+  canvas.height = card.offsetHeight * scale;
+  var ctx = canvas.getContext('2d');
+  ctx.scale(scale,scale);
+  // Render via SVG foreignObject
+  var data = '<svg xmlns="http://www.w3.org/2000/svg" width="'+card.offsetWidth+'" height="'+card.offsetHeight+'">'
+    +'<foreignObject width="100%" height="100%">'
+    +'<div xmlns="http://www.w3.org/1999/xhtml">'+card.outerHTML+'</div>'
+    +'</foreignObject></svg>';
+  var img = new Image();
+  img.onload = function(){
+    ctx.drawImage(img, 0, 0);
+    var a = document.createElement('a');
+    a.download = 'review-card.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    toast('✅ تم حفظ كارت التقييم');
+  };
+  img.onerror = function(){
+    // Fallback: copy card HTML
+    toast('⚠️ لم يتمكن من إنشاء الصورة — جرّب لقطة شاشة');
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(data);
+}
   toast('<i class="fa-solid fa-envelope-open" style="color:var(--accent3)"></i> تم تحديد كل التقييمات كمقروءة');
 }
 
@@ -10843,13 +10953,19 @@ function renderClients(){
   if(cnt) cnt.textContent = clients.length < S.clients.length ? `${clients.length} من ${S.clients.length}` : '';
 
   if(!clients.length){
-    grid.innerHTML=S.clients.length
+    var emptyMsg = S.clients.length
       ? '<div class="empty" style="grid-column:span 3"><div class="empty-icon"><i class="fa-solid fa-magnifying-glass"></i></div>لا نتائج تطابق الفلتر</div>'
       : '<div class="empty" style="grid-column:span 3"><div class="empty-icon"><i class="fa-solid fa-circle-dot"></i></div>لم تضف عملاء بعد</div>';
+    grid.innerHTML=emptyMsg;
+    var listV=document.getElementById('clients-list-view'); if(listV) listV.innerHTML=emptyMsg;
+    var tbodyV=document.getElementById('clients-table-body'); if(tbodyV) tbodyV.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text3)">لا نتائج</td></tr>';
     return;
   }
   const cTasks=n=>S.tasks.filter(t=>t.client===n).length;
   const cInc=n=>S.transactions.filter(t=>t.type==='income'&&t.source===n).reduce((s,t)=>s+t.amount,0);
+  const cThisMonth=n=>{const now=new Date();const ms=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');return S.tasks.filter(t=>t.client===n&&((t.isoDate||'').startsWith(ms)||(t.doneAt||'').startsWith(ms))).length;};
+  
+  // Grid view (existing cards)
   grid.innerHTML=clients.map(c=>`
     <div class="client-card" onclick="openClientProfile(${c.id})" style="cursor:pointer">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -10871,11 +10987,75 @@ function renderClients(){
       ${c.notes?`<div style="font-size:12px;color:var(--text3);margin-top:6px;font-style:italic">${c.notes.slice(0,60)}${c.notes.length>60?'...':''}</div>`:''}
       <div style="display:flex;gap:16px;margin-top:12px">
         <div><div style="font-size:16px;font-weight:700;color:${c.color}">${cTasks(c.name)}</div><div style="font-size:11px;color:var(--text3)">مشاريع</div></div>
-        <div><div style="font-size:16px;font-weight:700;color:var(--accent2)">${(()=>{const now=new Date();const ms=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');return S.tasks.filter(t=>t.client===c.name&&((t.isoDate||'').startsWith(ms)||(t.doneAt||'').startsWith(ms))).length;})()}</div><div style="font-size:11px;color:var(--text3)">هذا الشهر</div></div>
+        <div><div style="font-size:16px;font-weight:700;color:var(--accent2)">${cThisMonth(c.name)}</div><div style="font-size:11px;color:var(--text3)">هذا الشهر</div></div>
         ${(()=>{const revs=(S.reviews||[]).filter(r=>String(r.client_id)===String(c.id)||r.client_name===c.name);if(!revs.length)return'';const avg=(revs.reduce((s,r)=>s+(+r.stars||0),0)/revs.length).toFixed(1);return`<div><div style="font-size:16px;font-weight:700;color:#f7c948">⭐ ${avg}</div><div style="font-size:11px;color:var(--text3)">${revs.length} تقييم</div></div>`;})()}
       </div>
     </div>`).join('');
+
+  // List view
+  var listV=document.getElementById('clients-list-view');
+  if(listV){
+    listV.innerHTML='<div style="display:flex;flex-direction:column;gap:8px">'+clients.map(c=>{
+      var acc2=c.color||'var(--accent)';
+      return '<div class="card" style="cursor:pointer;padding:14px 18px;border-right:3px solid '+acc2+'" onclick="openClientProfile('+c.id+')">'
+        +'<div style="display:flex;align-items:center;gap:12px">'
+          +'<div style="width:40px;height:40px;border-radius:50%;background:'+acc2+'22;color:'+acc2+';font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+c.name[0]+'</div>'
+          +'<div style="flex:1;min-width:0">'
+            +'<div style="font-size:14px;font-weight:800">'+escapeHtml(c.name)+'</div>'
+            +'<div style="font-size:11px;color:var(--text3)">'+(c.type||'')+' · '+(c.channel||'')+(c.phone?' · '+c.phone:'')+'</div>'
+          +'</div>'
+          +'<div style="display:flex;gap:12px;align-items:center;font-size:12px;color:var(--text3)">'
+            +'<span><strong style="color:'+acc2+'">'+cTasks(c.name)+'</strong> مشروع</span>'
+            +'<span><strong style="color:var(--accent2)">'+cThisMonth(c.name)+'</strong> هذا الشهر</span>'
+          +'</div>'
+          +'<div style="display:flex;gap:4px" onclick="event.stopPropagation()">'
+            +'<button class="btn btn-ghost btn-sm" onclick="openClientModal('+c.id+')"><i class="fa-solid fa-pen"></i></button>'
+            +'<button class="btn btn-ghost btn-sm" onclick="openClientPortal('+c.id+')"><i class="fa-solid fa-link"></i></button>'
+          +'</div>'
+        +'</div>'
+      +'</div>';
+    }).join('')+'</div>';
+  }
+
+  // Table view
+  var tbodyV=document.getElementById('clients-table-body');
+  if(tbodyV){
+    tbodyV.innerHTML=clients.map(function(c,idx){
+      var bg=idx%2===0?'var(--surface)':'var(--surface2)';
+      return '<tr style="background:'+bg+';cursor:pointer" onclick="openClientProfile('+c.id+')">'
+        +'<td style="padding:10px 14px;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;gap:8px"><div style="width:30px;height:30px;border-radius:50%;background:'+(c.color||'var(--accent)')+'22;color:'+(c.color||'var(--accent)')+';font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+c.name[0]+'</div><div style="font-weight:700">'+escapeHtml(c.name)+'</div></div></td>'
+        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+(c.type||'—')+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+(c.channel||'—')+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+(c.phone||'—')+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-weight:700;color:'+(c.color||'var(--accent)')+'">'+cTasks(c.name)+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-weight:700;color:var(--accent2)">'+cThisMonth(c.name)+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:center"><button class="btn btn-ghost btn-sm" style="padding:3px 7px" onclick="openClientModal('+c.id+')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-ghost btn-sm" style="padding:3px 7px" onclick="openClientPortal('+c.id+')"><i class="fa-solid fa-link"></i></button><button class="btn btn-danger btn-sm" style="padding:3px 7px" onclick="delClient('+c.id+')"><i class="fa-solid fa-trash"></i></button></div></td>'
+      +'</tr>';
+    }).join('');
+  }
 }
+
+// Client view switching
+var _clientViewMode = localStorage.getItem('studioClientView') || 'grid';
+function _switchClientView(mode){
+  _clientViewMode = mode;
+  localStorage.setItem('studioClientView', mode);
+  var gridEl = document.getElementById('clients-grid');
+  var listEl = document.getElementById('clients-list-view');
+  var tableEl = document.getElementById('clients-table-view');
+  var gb=document.getElementById('cv-grid-btn'), lb=document.getElementById('cv-list-btn'), tb=document.getElementById('cv-table-btn');
+  [gb,lb,tb].forEach(function(b){if(b){b.style.background='transparent';b.style.color='var(--text3)';}});
+  if(gridEl) gridEl.style.display=mode==='grid'?'':'none';
+  if(listEl) listEl.style.display=mode==='list'?'':'none';
+  if(tableEl) tableEl.style.display=mode==='table'?'':'none';
+  var activeBtn=mode==='grid'?gb:mode==='list'?lb:tb;
+  if(activeBtn){activeBtn.style.background='var(--accent)';activeBtn.style.color='#fff';}
+  renderClients();
+}
+// Apply saved view on first render
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){ if(_clientViewMode!=='grid') _switchClientView(_clientViewMode); },500);
+});
 
 // ============================================================
 // FINANCE
