@@ -439,8 +439,9 @@ async function submitReview(){
     fresh.reviews.push(review);
     fresh._savedAt=new Date().toISOString();
 
+    // ✅ يجب تحويل data لـ JSON string قبل الحفظ في Supabase
     const{error}=await db.from('studio_data').upsert(
-      {user_id:_resolvedUid,data:fresh,updated_at:new Date().toISOString()},
+      {user_id:_resolvedUid, data: JSON.stringify(fresh), updated_at:new Date().toISOString()},
       {onConflict:'user_id'}
     );
     if(error) throw error;
