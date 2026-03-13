@@ -12,13 +12,23 @@
   try {
     var mode = localStorage.getItem('studioDisplayMode') || 'dark';
     var accent = localStorage.getItem('studioAccentColor') || '#7c6ff7';
-    if(mode === 'light') document.documentElement.classList.add('light-mode');
-    else document.documentElement.classList.remove('light-mode');
+    if(mode === 'light') {
+      document.documentElement.classList.add('light-mode');
+      // body may not exist yet, so also set via style
+      document.documentElement.style.setProperty('--bg',      '#f0f2f8');
+      document.documentElement.style.setProperty('--surface', '#ffffff');
+      document.documentElement.style.setProperty('--surface2','#f5f6fb');
+      document.documentElement.style.setProperty('--surface3','#eceef5');
+      document.documentElement.style.setProperty('--border',  '#d8dae8');
+      document.documentElement.style.setProperty('--text',    '#1a1a2e');
+      document.documentElement.style.setProperty('--text2',   '#5a5a7a');
+      document.documentElement.style.setProperty('--text3',   '#9090b0');
+    } else {
+      document.documentElement.classList.remove('light-mode');
+    }
     document.documentElement.style.setProperty('--accent', accent);
-    // تطبيق لون الخلفية فوراً لمنع الفلاش
     var bg = mode === 'light' ? '#f0f2f8' : '#0a0a0f';
     document.documentElement.style.background = bg;
-    document.documentElement.style.setProperty('--bg', bg);
   } catch(e) {}
 })();
 </script>
@@ -1277,7 +1287,7 @@ function showSyncIndicator(msg, color){
 }
 
 /* ═══ LIGHT MODE ═══ */
-body.light-mode {
+html.light-mode, body.light-mode {
   --bg:      #f0f2f8;
   --surface: #ffffff;
   --surface2:#f5f6fb;
@@ -7826,6 +7836,7 @@ function toggleDarkLight() {
 
 function setDisplayMode(mode) {
   document.body.classList.toggle('light-mode', mode === 'light');
+  document.documentElement.classList.toggle('light-mode', mode === 'light');
   localStorage.setItem('studioDisplayMode', mode);
   const btnDark  = document.getElementById('btn-dark-mode');
   const btnLight = document.getElementById('btn-light-mode');
@@ -32533,12 +32544,11 @@ function saveProposal(saveStatus) {
   renderProposals();
 
   if (saveStatus !== 'draft') {
-    // إظهار مؤشر تحميل ريثما يتم الحفظ السحابي
     toast('<i class="fa-solid fa-cloud-arrow-up"></i> جارٍ الحفظ وتجهيز الرابط...');
-    cloudSaveNow(S).then(function(){
-      setTimeout(function(){ _showPropLinkModal(d.token); }, 200);
+    // استخدم _doCloudSave مع force=true لتجاوز أي guards
+    _doCloudSave(S, true).then(function(){
+      setTimeout(function(){ _showPropLinkModal(d.token); }, 300);
     }).catch(function(){
-      // حتى لو فشل الحفظ السحابي، اعرض الرابط
       setTimeout(function(){ _showPropLinkModal(d.token); }, 300);
     });
   } else {
