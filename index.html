@@ -11896,35 +11896,35 @@ function showToast(msg,dur=3000){
 // ============================================================
 var _WIDGET_DEFS = [
   {id:'stats',       label:'<i class="fa-solid fa-chart-bar"></i> الإحصائيات',          full:true,  visible:true,  row:0},
-  {id:'commitment',  label:'<i class="fa-solid fa-bullseye"></i> مؤشر الالتزام',        full:false, visible:true,  row:0},
-  {id:'momentum',    label:'<i class="fa-solid fa-bolt"></i> مقياس الزخم',           full:false, visible:true,  row:0},
-  {id:'challenge',   label:'<i class="fa-solid fa-trophy"></i> تحدي الأسبوع',          full:false, visible:true,  row:0},
-  {id:'upcoming',    label:'<i class="fa-solid fa-alarm-clock"></i> مواعيد قريبة',           full:false, visible:true,  row:1},
-  {id:'overdue',     label:'<i class="fa-solid fa-triangle-exclamation"></i> مهام متأخرة',            full:false, visible:true,  row:1},
-  {id:'subs',        label:'<i class="fa-solid fa-bell"></i> اشتراكات قريبة',        full:false, visible:true,  row:1},
-  {id:'silent',      label:'<i class="fa-solid fa-bell-slash"></i> العملاء الهادئون',       full:false, visible:true,  row:1},
-  {id:'expected',    label:'<i class="fa-solid fa-coins"></i> الدخل المتوقع وسعة العمل', full:true, visible:true, row:2},
-  {id:'kanban',      label:'<i class="fa-solid fa-bolt"></i> المهام النشطة',          full:false, visible:true,  row:3},
-  {id:'uncollected', label:'<i class="fa-solid fa-money-bill-wave"></i> مبالغ لم تُحصَّل',      full:false, visible:true,  row:3},
-  {id:'team',        label:'<i class="fa-solid fa-users"></i> مهام الفريق',            full:false, visible:true,  row:4},
-  {id:'teampay',     label:'<i class="fa-solid fa-coins"></i> مستحقات الفريق',        full:false, visible:true,  row:4},
-  {id:'tasks',       label:'<i class="fa-solid fa-clipboard-list"></i> آخر المهام',             full:false, visible:true,  row:5},
-  {id:'schedule',    label:'<i class="fa-solid fa-calendar"></i> جدول اليوم',             full:false, visible:true,  row:5},
-  {id:'invoices',    label:'<i class="fa-solid fa-receipt"></i> فواتير معلقة',           full:false, visible:true,  row:6},
-  {id:'goals',       label:'<i class="fa-solid fa-bullseye"></i> أهداف التطوير',         full:false, visible:true,  row:6},
-  {id:'meetings',    label:'<i class="fa-solid fa-calendar-days"></i> الميتنجات',              full:true,  visible:true,  row:7},
-  {id:'active_projects', label:'<i class="fa-solid fa-diagram-project"></i> المشاريع النشطة',  full:false, visible:true,  row:3},
+  {id:'commitment',  label:'<i class="fa-solid fa-bullseye"></i> مؤشر الالتزام',        full:false, visible:true,  row:1},
+  {id:'momentum',    label:'<i class="fa-solid fa-bolt"></i> مقياس الزخم',              full:false, visible:true,  row:1},
+  {id:'challenge',   label:'<i class="fa-solid fa-trophy"></i> تحدي الأسبوع',           full:false, visible:false, row:1},
+  {id:'upcoming',    label:'<i class="fa-solid fa-alarm-clock"></i> مواعيد قريبة',      full:false, visible:true,  row:2},
+  {id:'overdue',     label:'<i class="fa-solid fa-triangle-exclamation"></i> مهام متأخرة', full:false, visible:true, row:2},
+  {id:'subs',        label:'<i class="fa-solid fa-bell"></i> اشتراكات قريبة',           full:false, visible:false, row:9},
+  {id:'silent',      label:'<i class="fa-solid fa-bell-slash"></i> العملاء الهادئون',   full:false, visible:false, row:9},
+  {id:'expected',    label:'<i class="fa-solid fa-coins"></i> الدخل المتوقع وسعة العمل', full:true, visible:true,  row:3},
+  {id:'kanban',      label:'<i class="fa-solid fa-bolt"></i> المهام النشطة',            full:false, visible:true,  row:4},
+  {id:'uncollected', label:'<i class="fa-solid fa-money-bill-wave"></i> مبالغ لم تُحصَّل', full:false, visible:true, row:4},
+  {id:'team',        label:'<i class="fa-solid fa-users"></i> مهام الفريق',             full:false, visible:true,  row:5},
+  {id:'teampay',     label:'<i class="fa-solid fa-coins"></i> مستحقات الفريق',          full:false, visible:true,  row:5},
+  {id:'tasks',       label:'<i class="fa-solid fa-clipboard-list"></i> آخر المهام',     full:false, visible:true,  row:6},
+  {id:'schedule',    label:'<i class="fa-solid fa-calendar"></i> جدول اليوم',           full:false, visible:true,  row:6},
+  {id:'invoices',    label:'<i class="fa-solid fa-receipt"></i> فواتير معلقة',          full:false, visible:true,  row:7},
+  {id:'goals',       label:'<i class="fa-solid fa-bullseye"></i> أهداف التطوير',        full:false, visible:true,  row:7},
+  {id:'meetings',    label:'<i class="fa-solid fa-calendar-days"></i> الميتنجات',       full:true,  visible:true,  row:8},
+  {id:'active_projects', label:'<i class="fa-solid fa-diagram-project"></i> المشاريع النشطة', full:false, visible:false, row:10},
 ];
 
 function _getDashLayout(){
   try{
-    var s = localStorage.getItem('_dLayout_v4');
+    var s = localStorage.getItem('_dLayout_v5');
     if(s){ var p=JSON.parse(s); if(p&&p.length) return p; }
   }catch(e){}
   return _WIDGET_DEFS.map(function(w){ return {id:w.id,visible:w.visible,row:w.row,full:w.full}; });
 }
 
-function _saveDashLayout(layout){ localStorage.setItem('_dLayout_v4',JSON.stringify(layout)); }
+function _saveDashLayout(layout){ localStorage.setItem('_dLayout_v5',JSON.stringify(layout)); }
 
 function _getDef(id){ return _WIDGET_DEFS.find(function(w){ return w.id===id; })||{id:id,label:id,full:false}; }
 
@@ -20875,43 +20875,36 @@ function togglePkgStActive(){ _pkgStActive=!_pkgStActive; _updatePkgStToggle(); 
 var _pkgStThumbData='';
 function handlePkgStThumb(input){
   var file=input.files[0]; if(!file) return;
-  if(file.size>2*1024*1024){ toast('<i class="fa-solid fa-triangle-exclamation"></i> حجم الصورة أكبر من 2 ميجا'); input.value=''; return; }
-  input.value='';
-  toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري تحميل الصورة...');
+  if(file.size>5*1024*1024){ toast('<i class="fa-solid fa-triangle-exclamation"></i> حجم الصورة أكبر من 5 ميجا'); input.value=''; return; }
+  toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع الصورة...');
+  var ext=file.name.split('.').pop()||'jpg';
+  var path='pkg_images/'+(_supaUserId||'anon')+'_'+Date.now()+'.'+ext;
+  supa.storage.from('media').upload(path, file, {upsert:true, contentType:file.type})
+    .then(function(res){
+      if(res.error){ _handlePkgStThumbBase64(file); return; }
+      var urlRes=supa.storage.from('media').getPublicUrl(path);
+      var publicUrl=urlRes.data?.publicUrl||'';
+      if(!publicUrl){ _handlePkgStThumbBase64(file); return; }
+      _pkgStThumbData=publicUrl;
+      var pv=document.getElementById('pkg-st-thumb-preview'); if(pv){pv.src=publicUrl;pv.style.display='';}
+      var nm=document.getElementById('pkg-st-thumb-name'); if(nm) nm.textContent=file.name;
+      var cl=document.getElementById('pkg-st-thumb-clear'); if(cl) cl.style.display='';
+      toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع الصورة');
+    }).catch(function(){ _handlePkgStThumbBase64(file); });
+}
+function _handlePkgStThumbBase64(file){
   var reader=new FileReader();
   reader.onload=function(e){
     var b64=e.target.result;
-    // حاول Supabase Storage لو متاح، وإلا احفظ base64 مباشرة
-    var ext=file.name.split('.').pop()||'jpg';
-    var path='pkg_images/'+(_supaUserId||'anon')+'_'+Date.now()+'.'+ext;
-    var tryStorage=false;
-    try{
-      var up=supa.storage.from('media').upload(path, file, {upsert:true, contentType:file.type});
-      if(up && typeof up.then==='function'){
-        tryStorage=true;
-        up.then(function(res){
-          if(res && !res.error){
-            var urlRes=supa.storage.from('media').getPublicUrl(path);
-            var pub=urlRes&&urlRes.data&&urlRes.data.publicUrl||'';
-            if(pub){ _setPkgThumb(pub, file.name); return; }
-          }
-          _setPkgThumb(b64, file.name);
-        }).catch(function(){ _setPkgThumb(b64, file.name); });
-      }
-    }catch(e){ tryStorage=false; }
-    if(!tryStorage) _setPkgThumb(b64, file.name);
+    _pkgStThumbData=b64;
+    var pv=document.getElementById('pkg-st-thumb-preview'); if(pv){pv.src=b64;pv.style.display='';}
+    var nm=document.getElementById('pkg-st-thumb-name'); if(nm) nm.textContent=file.name;
+    var cl=document.getElementById('pkg-st-thumb-clear'); if(cl) cl.style.display='';
+    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تحميل الصورة');
   };
   reader.onerror=function(){ toast('<i class="fa-solid fa-triangle-exclamation"></i> فشل تحميل الصورة'); };
   reader.readAsDataURL(file);
 }
-function _setPkgThumb(src, name){
-  _pkgStThumbData=src;
-  var pv=document.getElementById('pkg-st-thumb-preview'); if(pv){pv.src=src;pv.style.display='';}
-  var nm=document.getElementById('pkg-st-thumb-name'); if(nm) nm.textContent=name||'صورة';
-  var cl=document.getElementById('pkg-st-thumb-clear'); if(cl) cl.style.display='';
-  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تحميل الصورة');
-}
-function _handlePkgStThumbBase64(file){ handlePkgStThumb({files:[file]}); } // legacy compat
 function clearPkgStThumb(){
   _pkgStThumbData='';
   var pv=document.getElementById('pkg-st-thumb-preview'); if(pv){pv.src='';pv.style.display='none';}
@@ -24559,21 +24552,24 @@ window.addEventListener('load', function(){
 var _DASH_PRESETS_MAP = {
   default: [
     {id:'stats',       visible:true,  row:0, full:true},
-    {id:'commitment',  visible:true,  row:0, full:false},
-    {id:'momentum',    visible:true,  row:0, full:false},
-    {id:'upcoming',    visible:true,  row:1, full:false},
-    {id:'overdue',     visible:true,  row:1, full:false},
-    {id:'subs',        visible:true,  row:1, full:false},
-    {id:'expected',    visible:true,  row:2, full:true},
-    {id:'kanban',      visible:true,  row:3, full:false},
-    {id:'uncollected', visible:true,  row:3, full:false},
-    {id:'team',        visible:true,  row:4, full:false},
-    {id:'teampay',     visible:true,  row:4, full:false},
-    {id:'tasks',       visible:true,  row:5, full:false},
-    {id:'schedule',    visible:true,  row:5, full:false},
-    {id:'invoices',    visible:true,  row:6, full:false},
-    {id:'goals',       visible:true,  row:6, full:false},
-    {id:'meetings',    visible:true,  row:7, full:true},
+    {id:'commitment',  visible:true,  row:1, full:false},
+    {id:'momentum',    visible:true,  row:1, full:false},
+    {id:'upcoming',    visible:true,  row:2, full:false},
+    {id:'overdue',     visible:true,  row:2, full:false},
+    {id:'expected',    visible:true,  row:3, full:true},
+    {id:'kanban',      visible:true,  row:4, full:false},
+    {id:'uncollected', visible:true,  row:4, full:false},
+    {id:'team',        visible:true,  row:5, full:false},
+    {id:'teampay',     visible:true,  row:5, full:false},
+    {id:'tasks',       visible:true,  row:6, full:false},
+    {id:'schedule',    visible:true,  row:6, full:false},
+    {id:'invoices',    visible:true,  row:7, full:false},
+    {id:'goals',       visible:true,  row:7, full:false},
+    {id:'meetings',    visible:true,  row:8, full:true},
+    {id:'subs',        visible:false, row:9, full:false},
+    {id:'silent',      visible:false, row:9, full:false},
+    {id:'challenge',   visible:false, row:9, full:false},
+    {id:'active_projects', visible:false, row:10, full:false},
   ],
   compact: [
     {id:'stats',       visible:true,  row:0, full:true},
@@ -25105,7 +25101,7 @@ function _renderDashGrid(){
           html += _wrapWidget(w,  _widgetInnerHTML(w.id),  true);
           html += _wrapWidget(w2, _widgetInnerHTML(w2.id), true);
         } else {
-          html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">';
+          html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:stretch">';
           html += _wrapWidget(w,  _widgetInnerHTML(w.id),  false);
           html += _wrapWidget(w2, _widgetInnerHTML(w2.id), false);
           html += '</div>';
@@ -25202,8 +25198,8 @@ function _wrapWidget(w, innerHtml, fullWidth){
     var tip = isFull ? '\u062C\u0639\u0644\u0647 \u0646\u0635\u0641' : '\u062C\u0639\u0644\u0647 \u0643\u0627\u0645\u0644';
     toggleBtn = '<button onclick="_toggleWidgetFull(\'' + w.id + '\')" title="' + tip + '" style="position:absolute;top:-7px;left:20px;z-index:10;width:22px;height:22px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:10px;cursor:pointer;font-weight:900;display:flex;align-items:center;justify-content:center">' + icon + '</button>';
   }
-  return '<div data-widget-card="' + w.id + '" style="position:relative;' + editStyle + '">' +
-    hideBtn + toggleBtn + innerHtml + '</div>';
+  return '<div data-widget-card="' + w.id + '" style="position:relative;' + editStyle + 'height:100%;display:flex;flex-direction:column">' +
+    hideBtn + toggleBtn + '<div style="flex:1;display:flex;flex-direction:column">' + innerHtml + '</div></div>';
 }
 
 function _toggleWidgetFull(id){
@@ -30388,7 +30384,9 @@ function _showTrackingShareModal(t){
     </div>
     <!-- Thumbnail -->
     <div class="form-group">
-      <label class="form-label">صورة مصغرة <span style="color:var(--text3);font-size:10px">(أقصى 2MB)</span></label>
+      <label class="form-label">صورة مصغرة <span style="color:var(--text3);font-size:10px">(أقصى 1MB)</span></label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="file" id="pkg-st-thumb-input" accept="image/*" style="display:none" onchange="handlePkgStThumb(this)">
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pkg-st-thumb-input').click()"><i class="fa-solid fa-folder"></i> رفع صورة</button>
         <span id="pkg-st-thumb-name" style="font-size:11px;color:var(--text3)">لا توجد صورة</span>
         <button class="btn btn-danger btn-sm" id="pkg-st-thumb-clear" style="display:none" onclick="clearPkgStThumb()"><i class="fa-solid fa-xmark"></i></button>
