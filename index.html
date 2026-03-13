@@ -4657,6 +4657,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn btn-ghost btn-sm" onclick="_markReviewsRead()" id="reviews-mark-read-btn" style="display:none"><i class="fa-solid fa-envelope-open"></i> تم القراءة</button>
+      <button class="btn btn-ghost btn-sm" id="reviews-sync-btn" onclick="_syncReviewsNow(this)" title="جلب التقييمات الجديدة"><i class="fa-solid fa-rotate"></i> تحديث</button>
       <button class="btn btn-ghost btn-sm" onclick="_copyReviewLink()"><i class="fa-solid fa-link"></i> رابط التقييم</button>
       <button class="btn btn-primary btn-sm" onclick="_exportReviews()"><i class="fa-solid fa-download"></i> تصدير</button>
     </div>
@@ -7057,6 +7058,8 @@ function showPage(id,el){
   }
   if(id === 'reviews'){
     setTimeout(renderReviewsPage, 50);
+    // Auto-sync on page open — silently (no button ref)
+    setTimeout(function(){ if(typeof _syncReviewsNow==='function') _syncReviewsNow(null); }, 300);
   }
   // Refresh team invites immediately when opening team page
   if(id === 'team' && typeof window._teamPollNow === 'function'){
@@ -25363,6 +25366,66 @@ async function _pollReviews(){
   }catch(e){}
 }
 setInterval(_pollReviews,45000); setTimeout(_pollReviews,5000);
+
+async function _syncReviewsNow(btn){
+  if(!_supaUserId||!supa){ toast('يرجى تسجيل الدخول أولاً'); return; }
+  if(btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-rotate fa-spin"></i> جاري الجلب...'; }
+  let found=0;
+  try{
+    // 1. review_queue
+    const {data:qRows,error:qErr}=await supa.from('review_queue')
+      .select('id,review_json,created_at')
+      .eq('target_user_id',_supaUserId)
+      .eq('processed',false)
+      .limit(100);
+    if(!qErr && qRows?.length){
+      if(!S.reviews) S.reviews=[];
+      for(const qRow of qRows){
+        try{
+          const rev=typeof qRow.review_json==='string'?JSON.parse(qRow.review_json):qRow.review_json;
+          const exists=S.reviews.find(r=>r.id===rev.id||((r.client_name||'').toLowerCase()===(rev.client_name||'').toLowerCase()&&!r.task_id));
+          if(!exists){ S.reviews.push(rev); found++; }
+          await supa.from('review_queue').update({processed:true}).eq('id',qRow.id);
+        }catch(e2){}
+      }
+    }
+    // 2. studio_data cloud reviews
+    const {data:row}=await supa.from('studio_data').select('data').eq('user_id',_supaUserId).maybeSingle();
+    if(row?.data){
+      let fresh=row.data; if(typeof fresh==='string')fresh=JSON.parse(fresh);
+      if(fresh?.data&&!fresh?.tasks)fresh=typeof fresh.data==='string'?JSON.parse(fresh.data):fresh.data;
+      const cloudRevs=fresh?.reviews||[];
+      if(!S.reviews) S.reviews=[];
+      for(const cr of cloudRevs){
+        const ex=S.reviews.find(r=>r.id===cr.id);
+        if(!ex){ S.reviews.push(cr); found++; }
+      }
+    }
+    // 3. localStorage pending
+    const pend=JSON.parse(localStorage.getItem('_ordo_pending_reviews')||'[]');
+    const mine=pend.filter(p=>p.uid===_supaUserId);
+    for(const p of mine){
+      if(!S.reviews) S.reviews=[];
+      const ex=S.reviews.find(r=>r.id===p.review.id);
+      if(!ex){ S.reviews.push(p.review); found++; }
+    }
+    if(mine.length) localStorage.setItem('_ordo_pending_reviews',JSON.stringify(pend.filter(p=>p.uid!==_supaUserId)));
+
+    if(found>0){
+      lsSave(); cloudSave(S);
+      renderReviewsPage();
+      const _rb=document.getElementById('reviews-badge');
+      if(_rb){const _rc=S.reviews.length,_rread=+(localStorage.getItem('_reviewsReadCount')||0),_runread=Math.max(0,_rc-_rread);_rb.textContent=_runread;_rb.style.display=_runread?'inline-flex':'none';}
+      toast('⭐ تم إضافة '+found+' تقييم جديد!');
+    } else {
+      toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> لا توجد تقييمات جديدة');
+    }
+  }catch(e){ console.error('syncReviews error',e); toast('حدث خطأ أثناء التحديث'); }
+  finally{
+    if(btn){ setTimeout(()=>{ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-rotate"></i> تحديث'; },1000); }
+  }
+}
+
 document.addEventListener('visibilitychange', function(){
   if(!document.hidden) {
     _loadServerNotifications();
