@@ -12,23 +12,13 @@
   try {
     var mode = localStorage.getItem('studioDisplayMode') || 'dark';
     var accent = localStorage.getItem('studioAccentColor') || '#7c6ff7';
-    if(mode === 'light') {
-      document.documentElement.classList.add('light-mode');
-      // body may not exist yet, so also set via style
-      document.documentElement.style.setProperty('--bg',      '#f0f2f8');
-      document.documentElement.style.setProperty('--surface', '#ffffff');
-      document.documentElement.style.setProperty('--surface2','#f5f6fb');
-      document.documentElement.style.setProperty('--surface3','#eceef5');
-      document.documentElement.style.setProperty('--border',  '#d8dae8');
-      document.documentElement.style.setProperty('--text',    '#1a1a2e');
-      document.documentElement.style.setProperty('--text2',   '#5a5a7a');
-      document.documentElement.style.setProperty('--text3',   '#9090b0');
-    } else {
-      document.documentElement.classList.remove('light-mode');
-    }
+    if(mode === 'light') document.documentElement.classList.add('light-mode');
+    else document.documentElement.classList.remove('light-mode');
     document.documentElement.style.setProperty('--accent', accent);
+    // تطبيق لون الخلفية فوراً لمنع الفلاش
     var bg = mode === 'light' ? '#f0f2f8' : '#0a0a0f';
     document.documentElement.style.background = bg;
+    document.documentElement.style.setProperty('--bg', bg);
   } catch(e) {}
 })();
 </script>
@@ -305,20 +295,9 @@ function applyPlatformConfig() {
   }
   // Apply accent color
   if(cfg.accent) document.documentElement.style.setProperty('--accent', cfg.accent);
-  // Apply mode — only if platform explicitly sets it, don't override user preference
-  if(cfg.mode === 'light'){
-    document.documentElement.classList.add('light-mode');
-    document.body && document.body.classList.add('light-mode');
-  } else if(cfg.mode === 'dark'){
-    document.documentElement.classList.remove('light-mode');
-    document.body && document.body.classList.remove('light-mode');
-  } else {
-    // No platform mode set — respect user's own preference from localStorage
-    const _userMode = localStorage.getItem('studioDisplayMode') || 'dark';
-    const _isLight = _userMode === 'light';
-    document.documentElement.classList.toggle('light-mode', _isLight);
-    document.body && document.body.classList.toggle('light-mode', _isLight);
-  }
+  // Apply mode
+  if(cfg.mode === 'light') document.documentElement.classList.add('light-mode');
+  else document.documentElement.classList.remove('light-mode');
   return cfg;
 }
 
@@ -671,7 +650,7 @@ function _mergeUiSettingsIntoS(){
   try{
     if(!S || !S.settings) return;
     // ── إعدادات الواجهة ──
-    S.settings.displayMode  = localStorage.getItem('studioDisplayMode') || S.settings.displayMode || 'dark';
+    S.settings.displayMode  = localStorage.getItem('studioDisplayMode') || S.settings.displayMode || 'light';
     S.settings.accentColor  = localStorage.getItem('studioAccentColor') || S.settings.accentColor || '#7c6ff7';
     S.settings.lang         = localStorage.getItem('studioLang')        || S.settings.lang        || 'ar';
     // ── تصنيفات الخدمات والبورتفوليو ──
@@ -1298,7 +1277,7 @@ function showSyncIndicator(msg, color){
 }
 
 /* ═══ LIGHT MODE ═══ */
-html.light-mode, body.light-mode {
+body.light-mode {
   --bg:      #f0f2f8;
   --surface: #ffffff;
   --surface2:#f5f6fb;
@@ -1709,65 +1688,14 @@ body.pub-page #app-body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--space-md);
-  transition: box-shadow .25s ease, transform .25s cubic-bezier(.22,1,.36,1), border-color .25s ease;
-}
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0,0,0,.14);
 }
 .stat-label  { font-size: 12px; color: var(--text2); font-weight: 600; margin-bottom: var(--space-xs); }
-.stat-value  { font-size: 26px; font-weight: 900; transition: color .3s ease; }
+.stat-value  { font-size: 26px; font-weight: 900; }
 .stat-value.green  { color: var(--accent3); }
 .stat-value.yellow { color: var(--accent2); }
 .stat-value.red    { color: var(--accent4); }
 .stat-value.purple { color: var(--accent);  }
 .stat-change { font-size: 12px; color: var(--text3); margin-top: 6px; }
-
-/* ═══════════════ ORDO ANIMATIONS ═══════════════ */
-@keyframes _ordo-fadeUp  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-@keyframes _ordo-fadeIn  { from{opacity:0} to{opacity:1} }
-@keyframes _ordo-countUp { from{opacity:0;transform:translateY(7px)} to{opacity:1;transform:translateY(0)} }
-
-/* Scroll-reveal */
-.ordo-reveal {
-  opacity:0; transform:translateY(18px);
-  transition: opacity .48s cubic-bezier(.22,1,.36,1), transform .48s cubic-bezier(.22,1,.36,1);
-  will-change: opacity,transform;
-}
-.ordo-reveal.ordo-visible { opacity:1; transform:translateY(0); }
-
-/* Stagger children */
-.ordo-stagger > * {
-  opacity:0; transform:translateY(14px);
-  transition: opacity .42s cubic-bezier(.22,1,.36,1), transform .42s cubic-bezier(.22,1,.36,1);
-  will-change: opacity,transform;
-}
-.ordo-stagger.ordo-visible > *:nth-child(1){opacity:1;transform:none;transition-delay:.04s}
-.ordo-stagger.ordo-visible > *:nth-child(2){opacity:1;transform:none;transition-delay:.10s}
-.ordo-stagger.ordo-visible > *:nth-child(3){opacity:1;transform:none;transition-delay:.16s}
-.ordo-stagger.ordo-visible > *:nth-child(4){opacity:1;transform:none;transition-delay:.22s}
-.ordo-stagger.ordo-visible > *:nth-child(5){opacity:1;transform:none;transition-delay:.28s}
-
-/* Score ring */
-.ordo-score-card { display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap; }
-.ordo-score-info { flex:1;min-width:200px; }
-.ordo-score-title{ font-size:16px;font-weight:800;margin-bottom:4px; }
-.ordo-score-sub  { font-size:12px;color:var(--text3);margin-bottom:10px; }
-.ordo-score-chips{ display:flex;flex-wrap:wrap;gap:6px; }
-.ordo-chip       { font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;transition:transform .2s; }
-.ordo-chip:hover { transform:scale(1.06); }
-.ordo-chip-green { background:rgba(79,209,165,.14);color:var(--accent3);border:1px solid rgba(79,209,165,.24); }
-.ordo-chip-red   { background:rgba(247,111,124,.12);color:var(--accent4);border:1px solid rgba(247,111,124,.22); }
-.ordo-chip-purple{ background:rgba(124,111,247,.12);color:var(--accent);border:1px solid rgba(124,111,247,.22); }
-.ordo-chip-yellow{ background:rgba(247,201,72,.11);color:var(--accent2);border:1px solid rgba(247,201,72,.22); }
-
-/* Ring SVG */
-.ordo-ring-wrap  { position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0; }
-.ordo-ring-wrap svg{ transform:rotate(-90deg);display:block; }
-.ordo-ring-track { fill:none;stroke:rgba(128,128,128,.13);stroke-width:8; }
-.ordo-ring-fill  { fill:none;stroke-width:8;stroke-linecap:round;stroke-dasharray:188.5;stroke-dashoffset:188.5;
-  transition:stroke-dashoffset 1.3s cubic-bezier(.22,1,.36,1) .25s; }
-.ordo-ring-num   { position:absolute;font-size:18px;font-weight:900;line-height:1; }
 
 /* ═══════════════════════════════════════════════════
    BUTTONS
@@ -2383,7 +2311,6 @@ body.sidebar-collapsed .sidebar-overlay {
 </style>
 <!-- QR Code library — qrcodejs via CDN (reliable, proven) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 /* ── QR wrapper: canvas-based (qrcodejs), falls back gracefully ── */
 var _qrCache = {};
@@ -3537,44 +3464,25 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 <div class="page" id="page-clients">
   <div class="page-header">
     <div><div class="page-title"><span data-i18n="title_clients">قاعدة</span> <span data-i18n="title_clients2">العملاء</span></div><div class="page-subtitle" data-i18n="sub_clients">سجل كل عميل وتاريخه معك</div></div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <!-- Filter icon button -->
-      <button id="_cf-filter-toggle" onclick="_toggleClientFilter()" title="فلترة العملاء"
-        style="width:38px;height:38px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.18s;position:relative;flex-shrink:0">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-        <span id="_cf-filter-dot" style="display:none;position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>
-      </button>
-      <button class="btn btn-primary" onclick="openClientModal()" data-i18n="btn_new_client"><i class="fa-solid fa-plus" style="margin-left:4px"></i> عميل جديد</button>
-    </div>
+    <button class="btn btn-primary" onclick="openClientModal()" data-i18n="btn_new_client"><i class="fa-solid fa-plus" style="margin-left:4px"></i> عميل جديد</button>
   </div>
-
-  <!-- Collapsible filter panel -->
-  <div id="_cf-filter-panel" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px;animation:_ordo-fadeUp .25s cubic-bezier(.22,1,.36,1) both">
-    <!-- Search row -->
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-      <i class="fa-solid fa-magnifying-glass" style="color:var(--text3);font-size:13px"></i>
-      <input id="cf-search" type="text" placeholder="بحث بالاسم..." oninput="applyClientFilters()" class="form-input" style="flex:1;height:36px;font-size:13px">
-      <span class="filter-count" id="cf-count" style="font-size:12px;color:var(--text3)"></span>
-      <button onclick="resetClientFilters()" class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--accent4)"><i class="fa-solid fa-xmark"></i> إعادة تعيين</button>
-    </div>
-    <!-- Type chips -->
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center">
-      <span style="font-size:11px;color:var(--text3);font-weight:700;min-width:40px">النوع:</span>
-      <button class="filter-chip cf-type-btn active" data-val="" onclick="setCFType('',this)"><i class="fa-solid fa-users"></i> الكل</button>
-      <button class="filter-chip cf-type-btn" data-val="فرد" onclick="setCFType('فرد',this)"><i class="fa-solid fa-user"></i> فرد</button>
-      <button class="filter-chip cf-type-btn" data-val="شركة" onclick="setCFType('شركة',this)"><i class="fa-solid fa-building"></i> شركة</button>
-    </div>
-    <!-- Channel chips -->
-    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-      <span style="font-size:11px;color:var(--text3);font-weight:700;min-width:40px">القناة:</span>
-      <button class="filter-chip cf-ch-btn active" data-val="" onclick="setCFChannel('',this)"><i class="fa-solid fa-satellite-dish"></i> كل القنوات</button>
-      <button class="filter-chip cf-ch-btn" data-val="واتساب" onclick="setCFChannel('واتساب',this)"><i class="fa-solid fa-comments"></i> واتساب</button>
-      <button class="filter-chip cf-ch-btn" data-val="انستقرام" onclick="setCFChannel('انستقرام',this)"><i class="fa-brands fa-instagram" style="color:#E1306C"></i> انستقرام</button>
-      <button class="filter-chip cf-ch-btn" data-val="إحالة" onclick="setCFChannel('إحالة',this)"><i class="fa-solid fa-handshake"></i> إحالة</button>
-      <button class="filter-chip cf-ch-btn" data-val="موقع" onclick="setCFChannel('موقع',this)"><i class="fa-solid fa-globe"></i> موقع</button>
-    </div>
+  <!-- فلتر العملاء -->
+  <div class="filter-bar" style="gap:8px">
+    <span style="font-size:13px"><i class="fa-solid fa-magnifying-glass"></i></span>
+    <input id="cf-search" type="text" placeholder="بحث بالاسم..." oninput="applyClientFilters()" style="min-width:160px;flex:1;max-width:220px">
+    <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
+    <button class="filter-chip cf-type-btn active" data-val="" onclick="setCFType('',this)"><i class="fa-solid fa-users"></i> الكل</button>
+    <button class="filter-chip cf-type-btn" data-val="فرد" onclick="setCFType('فرد',this)"><i class="fa-solid fa-user"></i> فرد</button>
+    <button class="filter-chip cf-type-btn" data-val="شركة" onclick="setCFType('شركة',this)"><i class="fa-solid fa-building"></i> شركة</button>
+    <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
+    <button class="filter-chip cf-ch-btn active" data-val="" onclick="setCFChannel('',this)"><i class="fa-solid fa-satellite-dish"></i> كل القنوات</button>
+    <button class="filter-chip cf-ch-btn" data-val="واتساب" onclick="setCFChannel('واتساب',this)"><i class="fa-solid fa-comments"></i> واتساب</button>
+    <button class="filter-chip cf-ch-btn" data-val="انستقرام" onclick="setCFChannel('انستقرام',this)"><i class="fa-brands fa-instagram" style="color:#E1306C"></i> انستقرام</button>
+    <button class="filter-chip cf-ch-btn" data-val="إحالة" onclick="setCFChannel('إحالة',this)"><i class="fa-solid fa-handshake"></i> إحالة</button>
+    <button class="filter-chip cf-ch-btn" data-val="موقع" onclick="setCFChannel('موقع',this)"><i class="fa-solid fa-globe"></i> موقع</button>
+    <button class="filter-reset" onclick="resetClientFilters()"><i class="fa-solid fa-xmark"></i> إعادة تعيين</button>
+    <span class="filter-count" id="cf-count"></span>
   </div>
-
   <input type="hidden" id="cf-type" value="">
   <input type="hidden" id="cf-channel" value="">
   <div class="grid grid-3" id="clients-grid">
@@ -4657,7 +4565,6 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn btn-ghost btn-sm" onclick="_markReviewsRead()" id="reviews-mark-read-btn" style="display:none"><i class="fa-solid fa-envelope-open"></i> تم القراءة</button>
-      <button class="btn btn-ghost btn-sm" id="reviews-sync-btn" onclick="_syncReviewsNow(this)" title="جلب التقييمات الجديدة"><i class="fa-solid fa-rotate"></i> تحديث</button>
       <button class="btn btn-ghost btn-sm" onclick="_copyReviewLink()"><i class="fa-solid fa-link"></i> رابط التقييم</button>
       <button class="btn btn-primary btn-sm" onclick="_exportReviews()"><i class="fa-solid fa-download"></i> تصدير</button>
     </div>
@@ -7058,8 +6965,6 @@ function showPage(id,el){
   }
   if(id === 'reviews'){
     setTimeout(renderReviewsPage, 50);
-    // Auto-sync on page open — silently (no button ref)
-    setTimeout(function(){ if(typeof _syncReviewsNow==='function') _syncReviewsNow(null); }, 300);
   }
   // Refresh team invites immediately when opening team page
   if(id === 'team' && typeof window._teamPollNow === 'function'){
@@ -7448,7 +7353,7 @@ function loadSettings(){
   const unEl=document.getElementById('set-username'); if(unEl) unEl.value=s.username||'';
   _updateUsernamePreview(s.username||'');
   // Reflect current theme state in buttons
-  const mode = localStorage.getItem('studioDisplayMode') || 'dark';
+  const mode = localStorage.getItem('studioDisplayMode') || 'light';
   const color = localStorage.getItem('studioAccentColor') || '#7c6ff7';
   const lang  = localStorage.getItem('studioLang') || 'ar';
   const btnDark  = document.getElementById('btn-dark-mode');
@@ -7841,7 +7746,7 @@ function toggleDeposit(){document.getElementById('deposit-row').style.display=do
 // THEME / LANGUAGE / DARK MODE
 // ============================================================
 function toggleDarkLight() {
-  const current = localStorage.getItem('studioDisplayMode') || 'dark';
+  const current = localStorage.getItem('studioDisplayMode') || 'light';
   const next = current === 'dark' ? 'light' : 'dark';
   setDisplayMode(next);
   const btn = document.getElementById('dark-toggle-btn');
@@ -7850,7 +7755,6 @@ function toggleDarkLight() {
 
 function setDisplayMode(mode) {
   document.body.classList.toggle('light-mode', mode === 'light');
-  document.documentElement.classList.toggle('light-mode', mode === 'light');
   localStorage.setItem('studioDisplayMode', mode);
   const btnDark  = document.getElementById('btn-dark-mode');
   const btnLight = document.getElementById('btn-light-mode');
@@ -8050,7 +7954,7 @@ function applyTranslations(lang) {
 }
 
 function loadThemePreferences() {
-  const mode  = localStorage.getItem('studioDisplayMode') || 'dark';
+  const mode  = localStorage.getItem('studioDisplayMode') || 'light';
   const color = localStorage.getItem('studioAccentColor') || '#7c6ff7';
   const lang  = localStorage.getItem('studioLang') || 'ar';
   setDisplayMode(mode);
@@ -11991,37 +11895,36 @@ function showToast(msg,dur=3000){
 // DASHBOARD
 // ============================================================
 var _WIDGET_DEFS = [
-  {id:'stats',       label:'<i class="fa-solid fa-chart-bar"></i> الإحصائيات',              full:true,  visible:true,  row:0},
-  {id:'commitment',  label:'<i class="fa-solid fa-bullseye"></i> مؤشر الالتزام',            full:false, visible:true,  row:1},
-  {id:'momentum',    label:'<i class="fa-solid fa-bolt"></i> مقياس الزخم',                  full:false, visible:true,  row:1},
-  {id:'charts',      label:'<i class="fa-solid fa-chart-line"></i> الرسوم البيانية',        full:true,  visible:true,  row:2},
-  {id:'challenge',   label:'<i class="fa-solid fa-trophy"></i> تحدي الأسبوع',               full:true,  visible:true,  row:3},
-  {id:'tasks',       label:'<i class="fa-solid fa-clipboard-list"></i> آخر المهام',         full:false, visible:true,  row:4},
-  {id:'expected',    label:'<i class="fa-solid fa-coins"></i> الدخل المتوقع وسعة العمل',   full:false, visible:true,  row:4},
-  {id:'upcoming',    label:'<i class="fa-solid fa-alarm-clock"></i> مواعيد قريبة',          full:false, visible:false, row:9},
-  {id:'overdue',     label:'<i class="fa-solid fa-triangle-exclamation"></i> مهام متأخرة', full:false, visible:false, row:9},
-  {id:'subs',        label:'<i class="fa-solid fa-bell"></i> اشتراكات قريبة',               full:false, visible:false, row:9},
-  {id:'silent',      label:'<i class="fa-solid fa-bell-slash"></i> العملاء الهادئون',       full:false, visible:false, row:9},
-  {id:'kanban',      label:'<i class="fa-solid fa-bolt"></i> المهام النشطة',                full:false, visible:true,  row:5},
-  {id:'uncollected', label:'<i class="fa-solid fa-money-bill-wave"></i> مبالغ لم تُحصَّل', full:false, visible:false, row:9},
-  {id:'team',        label:'<i class="fa-solid fa-users"></i> مهام الفريق',                 full:false, visible:false, row:9},
-  {id:'teampay',     label:'<i class="fa-solid fa-coins"></i> مستحقات الفريق',              full:false, visible:false, row:9},
-  {id:'schedule',    label:'<i class="fa-solid fa-calendar"></i> جدول اليوم',               full:false, visible:false, row:9},
-  {id:'invoices',    label:'<i class="fa-solid fa-receipt"></i> فواتير معلقة',              full:false, visible:false, row:9},
-  {id:'goals',       label:'<i class="fa-solid fa-bullseye"></i> أهداف التطوير',            full:false, visible:false, row:9},
-  {id:'meetings',    label:'<i class="fa-solid fa-calendar-days"></i> الميتنجات',           full:true,  visible:false, row:9},
-  {id:'active_projects', label:'<i class="fa-solid fa-diagram-project"></i> المشاريع النشطة', full:false, visible:false, row:9},
+  {id:'stats',       label:'<i class="fa-solid fa-chart-bar"></i> الإحصائيات',          full:true,  visible:true,  row:0},
+  {id:'commitment',  label:'<i class="fa-solid fa-bullseye"></i> مؤشر الالتزام',        full:false, visible:true,  row:0},
+  {id:'momentum',    label:'<i class="fa-solid fa-bolt"></i> مقياس الزخم',           full:false, visible:true,  row:0},
+  {id:'challenge',   label:'<i class="fa-solid fa-trophy"></i> تحدي الأسبوع',          full:false, visible:true,  row:0},
+  {id:'upcoming',    label:'<i class="fa-solid fa-alarm-clock"></i> مواعيد قريبة',           full:false, visible:true,  row:1},
+  {id:'overdue',     label:'<i class="fa-solid fa-triangle-exclamation"></i> مهام متأخرة',            full:false, visible:true,  row:1},
+  {id:'subs',        label:'<i class="fa-solid fa-bell"></i> اشتراكات قريبة',        full:false, visible:true,  row:1},
+  {id:'silent',      label:'<i class="fa-solid fa-bell-slash"></i> العملاء الهادئون',       full:false, visible:true,  row:1},
+  {id:'expected',    label:'<i class="fa-solid fa-coins"></i> الدخل المتوقع وسعة العمل', full:true, visible:true, row:2},
+  {id:'kanban',      label:'<i class="fa-solid fa-bolt"></i> المهام النشطة',          full:false, visible:true,  row:3},
+  {id:'uncollected', label:'<i class="fa-solid fa-money-bill-wave"></i> مبالغ لم تُحصَّل',      full:false, visible:true,  row:3},
+  {id:'team',        label:'<i class="fa-solid fa-users"></i> مهام الفريق',            full:false, visible:true,  row:4},
+  {id:'teampay',     label:'<i class="fa-solid fa-coins"></i> مستحقات الفريق',        full:false, visible:true,  row:4},
+  {id:'tasks',       label:'<i class="fa-solid fa-clipboard-list"></i> آخر المهام',             full:false, visible:true,  row:5},
+  {id:'schedule',    label:'<i class="fa-solid fa-calendar"></i> جدول اليوم',             full:false, visible:true,  row:5},
+  {id:'invoices',    label:'<i class="fa-solid fa-receipt"></i> فواتير معلقة',           full:false, visible:true,  row:6},
+  {id:'goals',       label:'<i class="fa-solid fa-bullseye"></i> أهداف التطوير',         full:false, visible:true,  row:6},
+  {id:'meetings',    label:'<i class="fa-solid fa-calendar-days"></i> الميتنجات',              full:true,  visible:true,  row:7},
+  {id:'active_projects', label:'<i class="fa-solid fa-diagram-project"></i> المشاريع النشطة',  full:false, visible:true,  row:3},
 ];
 
 function _getDashLayout(){
   try{
-    var s = localStorage.getItem('_dLayout_v5');
+    var s = localStorage.getItem('_dLayout_v4');
     if(s){ var p=JSON.parse(s); if(p&&p.length) return p; }
   }catch(e){}
   return _WIDGET_DEFS.map(function(w){ return {id:w.id,visible:w.visible,row:w.row,full:w.full}; });
 }
 
-function _saveDashLayout(layout){ localStorage.setItem('_dLayout_v5',JSON.stringify(layout)); }
+function _saveDashLayout(layout){ localStorage.setItem('_dLayout_v4',JSON.stringify(layout)); }
 
 function _getDef(id){ return _WIDGET_DEFS.find(function(w){ return w.id===id; })||{id:id,label:id,full:false}; }
 
@@ -12031,30 +11934,10 @@ function updateDash(){
   if(grid && !grid.querySelector('[data-widget-card]')) _renderDashGrid();
 
   const inc=S.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const done=S.tasks.filter(t=>t.done).length, pending=S.tasks.filter(t=>!t.done).length;
-
-  // Animated number setter
-  function setAnim(id, val){
-    const e = document.getElementById(id);
-    if(!e) return;
-    const prev = e.getAttribute('data-prev-val') || '';
-    if(prev === String(val)) return;
-    e.setAttribute('data-prev-val', String(val));
-    e.style.animation = 'none';
-    void e.offsetHeight;
-    e.style.animation = '_ordo-countUp .4s cubic-bezier(.22,1,.36,1) both';
-    e.textContent = val;
-  }
-  setAnim('dash-income', inc.toLocaleString()+' '+_getCurrency());
-  setAnim('dash-projects', pending);
-  setAnim('dash-done', done);
-  const pendTxt = document.getElementById('dash-pending-txt');
-  if(pendTxt) pendTxt.textContent = pending+' معلقة';
-  setAnim('dash-clients', S.clients.length);
-
-  // Update performance ring card
-  _updatePerfCard(done, pending, inc);
-
+  const done=S.tasks.filter(t=>t.done).length,pending=S.tasks.filter(t=>!t.done).length;
+  const set=(id,val)=>{const e=document.getElementById(id);if(e)e.textContent=val;};
+  set('dash-income',inc.toLocaleString()+' '+_getCurrency());set('dash-projects',pending);
+  set('dash-done',done);set('dash-pending-txt',pending+' معلقة');set('dash-clients',S.clients.length);
   const dtl=document.getElementById('dash-tasks-list');
   if(dtl)dtl.innerHTML=S.tasks.slice(0,5).map(t=>`
     <div class="task-clickable" onclick="openTaskDetail(${t.id})" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,42,58,.3)">
@@ -12090,54 +11973,6 @@ function updateDash(){
   renderDashTeamPay();
   renderDashKanbanMini();
   renderDashMeetings();
-  if(document.getElementById('_dash-chart-canvas')) setTimeout(_renderDashCharts, 100);
-}
-
-// ─── Performance Ring Card ───────────────────────
-function _updatePerfCard(done, pending, inc){
-  const total = done + pending;
-  const invTotal = S.invoices.length;
-  const invPaid  = S.invoices.filter(i=>i.status!=='pending').length;
-  const score = Math.min(100, Math.round(
-    (total>0 ? (done/total)*60 : 0) +
-    (invTotal>0 ? (invPaid/invTotal)*20 : 0) +
-    (S.clients.length > 0 ? 20 : 0)
-  ));
-  const color = score>=80 ? 'var(--accent3)' : score>=55 ? 'var(--accent2)' : 'var(--accent4)';
-  const emoji = score>=80 ? '🏆' : score>=55 ? '💪' : '⚡';
-  const title = score>=80 ? 'أداؤك ممتاز!' : score>=55 ? 'أداؤك جيد' : 'يمكنك التحسين';
-
-  const fill    = document.getElementById('_perf-ring-fill');
-  const num     = document.getElementById('_perf-ring-num');
-  const titleEl = document.getElementById('_perf-title');
-  const emojiEl = document.getElementById('_perf-emoji');
-  const subEl   = document.getElementById('_perf-sub');
-  const chipsEl = document.getElementById('_perf-chips');
-
-  if(fill){
-    fill.style.stroke = color;
-    const circ   = 2 * Math.PI * 30; // 188.5
-    const offset = circ - (score / 100) * circ;
-    fill.style.strokeDasharray  = circ;
-    fill.style.strokeDashoffset = circ;
-    requestAnimationFrame(() => { fill.style.strokeDashoffset = offset; });
-  }
-  if(num){ num.textContent = score; num.style.color = color; }
-  if(titleEl) titleEl.textContent = title;
-  if(emojiEl) emojiEl.textContent = emoji;
-
-  const pendingInv = S.invoices.filter(i=>i.status==='pending').length;
-  const lateTasks  = S.tasks.filter(t=>!t.done&&t.deadline&&new Date(t.deadline)<new Date()).length;
-  if(subEl) subEl.textContent = `أنهيت ${done} من ${total} مهمة · ${pending} نشطة · ${pendingInv} فاتورة معلقة`;
-
-  if(chipsEl){
-    const chips = [];
-    if(done>0)        chips.push(`<span class="ordo-chip ordo-chip-green">${done} مكتملة</span>`);
-    if(lateTasks>0)   chips.push(`<span class="ordo-chip ordo-chip-red">${lateTasks} متأخرة</span>`);
-    if(pending>0)     chips.push(`<span class="ordo-chip ordo-chip-purple">${pending} نشطة</span>`);
-    if(pendingInv>0)  chips.push(`<span class="ordo-chip ordo-chip-yellow">${pendingInv} فاتورة</span>`);
-    chipsEl.innerHTML = chips.join('');
-  }
 }
 
 // ============================================================
@@ -13245,9 +13080,7 @@ function migrateSFields(){
     }
     if(S.settings.displayMode){
       localStorage.setItem('studioDisplayMode', S.settings.displayMode);
-      const isLight = S.settings.displayMode === 'light';
-      document.body.classList.toggle('light-mode', isLight);
-      document.documentElement.classList.toggle('light-mode', isLight);
+      document.body.classList.toggle('light-mode', S.settings.displayMode === 'light');
     }
     S.tasks.forEach(t=>{
       if(t.workerType===undefined) t.workerType='me';
@@ -24071,224 +23904,6 @@ window.addEventListener('load', function(){
 function renderDashWidgets(){
   _renderDashGoals();
   _renderDashTimer();
-  _renderDashCharts();
-}
-
-// ══════════════════════════════════════════════════
-// DASH CHARTS WIDGET
-// ══════════════════════════════════════════════════
-var _dashChartInstance = null;
-var _dashChartTab = 'perf'; // 'perf' | 'orders'
-
-function _switchChartTab(tab){
-  _dashChartTab = tab;
-  var tabPerf   = document.getElementById('_chart-tab-perf');
-  var tabOrders = document.getElementById('_chart-tab-orders');
-  if(tabPerf){
-    tabPerf.style.background   = tab==='perf' ? 'var(--accent)' : 'transparent';
-    tabPerf.style.color        = tab==='perf' ? '#fff' : 'var(--text2)';
-    tabPerf.style.borderColor  = tab==='perf' ? 'var(--accent)' : 'var(--border)';
-  }
-  if(tabOrders){
-    tabOrders.style.background  = tab==='orders' ? 'var(--accent)' : 'transparent';
-    tabOrders.style.color       = tab==='orders' ? '#fff' : 'var(--text2)';
-    tabOrders.style.borderColor = tab==='orders' ? 'var(--accent)' : 'var(--border)';
-  }
-  _renderDashCharts();
-}
-
-function _renderDashCharts(){
-  var canvas = document.getElementById('_dash-chart-canvas');
-  if(!canvas) return;
-
-  var now = new Date();
-  var year = now.getFullYear();
-  var month = now.getMonth(); // 0-indexed
-  var daysInMonth = new Date(year, month+1, 0).getDate();
-  var todayDay = now.getDate();
-  var cur = _getCurrency ? _getCurrency() : 'ج';
-
-  // Build daily arrays
-  var incomeByDay  = new Array(daysInMonth).fill(0);
-  var ordersComplByDay = new Array(daysInMonth).fill(0);
-  var ordersNewByDay   = new Array(daysInMonth).fill(0);
-
-  // Income per day from transactions
-  (S.transactions||[]).forEach(function(t){
-    if(t.type !== 'income') return;
-    var d = new Date(t.isoDate || t.date || '');
-    if(d.getFullYear()===year && d.getMonth()===month){
-      var day = d.getDate()-1;
-      incomeByDay[day] += (t.amount||0);
-    }
-  });
-
-  // Tasks: new and completed per day this month
-  (S.tasks||[]).forEach(function(t){
-    // Created
-    var created = new Date(t.id ? new Date(t.id) : 0);
-    if(created.getFullYear()===year && created.getMonth()===month){
-      ordersNewByDay[created.getDate()-1]++;
-    }
-    // Completed
-    if(t.done && t.doneAt){
-      var done = new Date(t.doneAt);
-      if(done.getFullYear()===year && done.getMonth()===month){
-        ordersComplByDay[done.getDate()-1]++;
-      }
-    }
-  });
-
-  // Labels: only show days up to today
-  var labels = [];
-  for(var d=1; d<=daysInMonth; d++){
-    labels.push(d <= todayDay ? String(d) : '');
-  }
-
-  // Stats
-  var totalIncome = incomeByDay.reduce(function(a,b){return a+b;},0);
-  var totalCompl  = ordersComplByDay.reduce(function(a,b){return a+b;},0);
-  var totalNew    = ordersNewByDay.reduce(function(a,b){return a+b;},0);
-  var bestDayIdx  = incomeByDay.indexOf(Math.max.apply(null,incomeByDay));
-  var completionRate = totalNew > 0 ? Math.round(totalCompl/totalNew*100) : 0;
-
-  var incomeEl  = document.getElementById('_chart-stat-income');
-  var ordersEl  = document.getElementById('_chart-stat-orders');
-  var bestEl    = document.getElementById('_chart-stat-best-day');
-  var rateEl    = document.getElementById('_chart-stat-rate');
-  if(incomeEl)  incomeEl.textContent  = totalIncome.toLocaleString() + ' ' + cur;
-  if(ordersEl)  ordersEl.textContent  = totalCompl;
-  if(bestEl)    bestEl.textContent    = incomeByDay[bestDayIdx] > 0 ? ('يوم '+(bestDayIdx+1)) : '—';
-  if(rateEl)    rateEl.textContent    = completionRate + '%';
-
-  // Detect dark/light mode for chart colors
-  var isDark = !document.documentElement.classList.contains('light-mode');
-  var gridColor  = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
-  var tickColor  = isDark ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.4)';
-
-  var datasets;
-  if(_dashChartTab === 'perf'){
-    // Cumulative income line + daily income bar
-    var cumulative = [];
-    var sum = 0;
-    incomeByDay.forEach(function(v,i){ sum+=v; cumulative.push(i<todayDay ? sum : null); });
-    datasets = [
-      {
-        type:'bar',
-        label:'دخل يومي',
-        data: incomeByDay.map(function(v,i){ return i<todayDay?v:null; }),
-        backgroundColor: 'rgba(124,111,247,.25)',
-        borderColor: 'rgba(124,111,247,.7)',
-        borderWidth: 1.5,
-        borderRadius: 4,
-        yAxisID: 'y',
-        order: 2
-      },
-      {
-        type:'line',
-        label:'دخل تراكمي',
-        data: cumulative,
-        borderColor: '#4fd1a5',
-        backgroundColor: 'rgba(79,209,165,.1)',
-        fill: true,
-        tension: 0.4,
-        pointRadius: function(ctx){ return ctx.raw > 0 ? 3 : 0; },
-        pointBackgroundColor: '#4fd1a5',
-        borderWidth: 2.5,
-        yAxisID: 'y2',
-        order: 1
-      }
-    ];
-  } else {
-    // Orders: new vs completed bars
-    datasets = [
-      {
-        type:'bar',
-        label:'طلبات جديدة',
-        data: ordersNewByDay.map(function(v,i){ return i<todayDay?v:null; }),
-        backgroundColor: 'rgba(247,201,72,.3)',
-        borderColor: 'rgba(247,201,72,.8)',
-        borderWidth: 1.5,
-        borderRadius: 4,
-        yAxisID: 'y'
-      },
-      {
-        type:'bar',
-        label:'طلبات مكتملة',
-        data: ordersComplByDay.map(function(v,i){ return i<todayDay?v:null; }),
-        backgroundColor: 'rgba(79,209,165,.3)',
-        borderColor: 'rgba(79,209,165,.8)',
-        borderWidth: 1.5,
-        borderRadius: 4,
-        yAxisID: 'y'
-      }
-    ];
-  }
-
-  // Destroy old chart
-  if(_dashChartInstance){ try{ _dashChartInstance.destroy(); }catch(e){} _dashChartInstance=null; }
-
-  var ctx = canvas.getContext('2d');
-  _dashChartInstance = new Chart(ctx, {
-    data: { labels: labels, datasets: datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 600, easing: 'easeInOutQuart' },
-      interaction: { intersect: false, mode: 'index' },
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          align: 'end',
-          rtl: true,
-          labels: { color: tickColor, font: { family:'Cairo', size:11 }, boxWidth: 12, padding: 12, usePointStyle: true }
-        },
-        tooltip: {
-          rtl: true,
-          backgroundColor: isDark ? '#1a1d2e' : '#fff',
-          borderColor: isDark ? 'rgba(124,111,247,.3)' : '#e8ecf4',
-          borderWidth: 1,
-          titleColor: isDark ? '#fff' : '#1a1d2e',
-          bodyColor: isDark ? 'rgba(255,255,255,.7)' : '#4a5068',
-          titleFont: { family:'Cairo', weight:'bold', size:12 },
-          bodyFont: { family:'Cairo', size:11 },
-          padding: 10,
-          callbacks: {
-            label: function(ctx){
-              var val = ctx.parsed.y;
-              if(val === null || val === undefined) return null;
-              var suffix = (_dashChartTab==='perf') ? (' ' + cur) : '';
-              return ' ' + ctx.dataset.label + ': ' + (val||0).toLocaleString() + suffix;
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          grid: { color: gridColor, drawBorder: false },
-          ticks: { color: tickColor, font: { family:'Cairo', size:10 }, maxRotation: 0, maxTicksLimit: 10 }
-        },
-        y: {
-          position: 'right',
-          grid: { color: gridColor, drawBorder: false },
-          ticks: { color: tickColor, font: { family:'Cairo', size:10 },
-            callback: function(v){ return _dashChartTab==='perf' ? v.toLocaleString() : v; }
-          },
-          beginAtZero: true
-        },
-        y2: _dashChartTab==='perf' ? {
-          position: 'left',
-          display: true,
-          grid: { display: false },
-          ticks: { color: '#4fd1a5', font: { family:'Cairo', size:10 },
-            callback: function(v){ return v.toLocaleString(); }
-          },
-          beginAtZero: true
-        } : { display: false }
-      }
-    }
-  });
 }
 
 function _renderDashGoals(){
@@ -24937,25 +24552,21 @@ window.addEventListener('load', function(){
 var _DASH_PRESETS_MAP = {
   default: [
     {id:'stats',       visible:true,  row:0, full:true},
-    {id:'commitment',  visible:true,  row:1, full:false},
-    {id:'momentum',    visible:true,  row:1, full:false},
-    {id:'charts',      visible:true,  row:2, full:true},
-    {id:'challenge',   visible:true,  row:3, full:true},
-    {id:'tasks',       visible:true,  row:4, full:false},
-    {id:'expected',    visible:true,  row:4, full:false},
-    {id:'kanban',      visible:true,  row:5, full:true},
-    {id:'upcoming',    visible:false, row:9, full:false},
-    {id:'overdue',     visible:false, row:9, full:false},
-    {id:'subs',        visible:false, row:9, full:false},
-    {id:'uncollected', visible:false, row:9, full:false},
-    {id:'team',        visible:false, row:9, full:false},
-    {id:'teampay',     visible:false, row:9, full:false},
-    {id:'schedule',    visible:false, row:9, full:false},
-    {id:'invoices',    visible:false, row:9, full:false},
-    {id:'goals',       visible:false, row:9, full:false},
-    {id:'meetings',    visible:false, row:9, full:true},
-    {id:'silent',      visible:false, row:9, full:false},
-    {id:'active_projects', visible:false, row:9, full:false},
+    {id:'commitment',  visible:true,  row:0, full:false},
+    {id:'momentum',    visible:true,  row:0, full:false},
+    {id:'upcoming',    visible:true,  row:1, full:false},
+    {id:'overdue',     visible:true,  row:1, full:false},
+    {id:'subs',        visible:true,  row:1, full:false},
+    {id:'expected',    visible:true,  row:2, full:true},
+    {id:'kanban',      visible:true,  row:3, full:false},
+    {id:'uncollected', visible:true,  row:3, full:false},
+    {id:'team',        visible:true,  row:4, full:false},
+    {id:'teampay',     visible:true,  row:4, full:false},
+    {id:'tasks',       visible:true,  row:5, full:false},
+    {id:'schedule',    visible:true,  row:5, full:false},
+    {id:'invoices',    visible:true,  row:6, full:false},
+    {id:'goals',       visible:true,  row:6, full:false},
+    {id:'meetings',    visible:true,  row:7, full:true},
   ],
   compact: [
     {id:'stats',       visible:true,  row:0, full:true},
@@ -25303,54 +24914,6 @@ window.addEventListener('load', function(){
 async function _pollReviews(){
   if(!_supaUserId||!supa)return;
   try{
-    // ── Sync any locally-stored pending reviews first ──
-    try{
-      const pend=JSON.parse(localStorage.getItem('_ordo_pending_reviews')||'[]');
-      const mine=pend.filter(p=>p.uid===_supaUserId);
-      if(mine.length){
-        const rest=pend.filter(p=>p.uid!==_supaUserId);
-        for(const p of mine){
-          if(!S.reviews) S.reviews=[];
-          const exists=S.reviews.find(r=>r.id===p.review.id);
-          if(!exists) S.reviews.push(p.review);
-        }
-        localStorage.setItem('_ordo_pending_reviews',JSON.stringify(rest));
-        lsSave();
-      }
-    }catch(e){}
-
-    // ── Check review_queue table ──
-    const {data:qRows, error:qErr} = await supa.from('review_queue')
-      .select('id, review_json, created_at')
-      .eq('target_user_id', _supaUserId)
-      .eq('processed', false)
-      .limit(50);
-
-    if(!qErr && qRows && qRows.length){
-      let changed = false;
-      if(!S.reviews) S.reviews = [];
-      for(const qRow of qRows){
-        try{
-          const rev = typeof qRow.review_json==='string' ? JSON.parse(qRow.review_json) : qRow.review_json;
-          const exists = S.reviews.find(r=>r.id===rev.id || ((r.client_name||'').toLowerCase()===(rev.client_name||'').toLowerCase() && !r.task_id));
-          if(!exists){
-            S.reviews.push(rev);
-            changed = true;
-          }
-          // Mark as processed
-          await supa.from('review_queue').update({processed:true}).eq('id', qRow.id);
-        }catch(e2){}
-      }
-      if(changed){
-        lsSave();
-        const _rb=document.getElementById('reviews-badge');
-        if(_rb){_rb.textContent=S.reviews.length;_rb.style.display=S.reviews.length?'inline-flex':'none';}
-        if(document.getElementById('page-reviews')?.classList.contains('active')) renderReviewsPage();
-        toast('⭐ وصل تقييم جديد!');
-      }
-    }
-
-    // ── Also poll studio_data directly (original logic) ──
     const {data:row}=await supa.from('studio_data').select('data').eq('user_id',_supaUserId).maybeSingle();
     if(!row?.data)return;
     let fresh=row.data; if(typeof fresh==='string')fresh=JSON.parse(fresh);
@@ -25366,66 +24929,6 @@ async function _pollReviews(){
   }catch(e){}
 }
 setInterval(_pollReviews,45000); setTimeout(_pollReviews,5000);
-
-async function _syncReviewsNow(btn){
-  if(!_supaUserId||!supa){ toast('يرجى تسجيل الدخول أولاً'); return; }
-  if(btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-rotate fa-spin"></i> جاري الجلب...'; }
-  let found=0;
-  try{
-    // 1. review_queue
-    const {data:qRows,error:qErr}=await supa.from('review_queue')
-      .select('id,review_json,created_at')
-      .eq('target_user_id',_supaUserId)
-      .eq('processed',false)
-      .limit(100);
-    if(!qErr && qRows?.length){
-      if(!S.reviews) S.reviews=[];
-      for(const qRow of qRows){
-        try{
-          const rev=typeof qRow.review_json==='string'?JSON.parse(qRow.review_json):qRow.review_json;
-          const exists=S.reviews.find(r=>r.id===rev.id||((r.client_name||'').toLowerCase()===(rev.client_name||'').toLowerCase()&&!r.task_id));
-          if(!exists){ S.reviews.push(rev); found++; }
-          await supa.from('review_queue').update({processed:true}).eq('id',qRow.id);
-        }catch(e2){}
-      }
-    }
-    // 2. studio_data cloud reviews
-    const {data:row}=await supa.from('studio_data').select('data').eq('user_id',_supaUserId).maybeSingle();
-    if(row?.data){
-      let fresh=row.data; if(typeof fresh==='string')fresh=JSON.parse(fresh);
-      if(fresh?.data&&!fresh?.tasks)fresh=typeof fresh.data==='string'?JSON.parse(fresh.data):fresh.data;
-      const cloudRevs=fresh?.reviews||[];
-      if(!S.reviews) S.reviews=[];
-      for(const cr of cloudRevs){
-        const ex=S.reviews.find(r=>r.id===cr.id);
-        if(!ex){ S.reviews.push(cr); found++; }
-      }
-    }
-    // 3. localStorage pending
-    const pend=JSON.parse(localStorage.getItem('_ordo_pending_reviews')||'[]');
-    const mine=pend.filter(p=>p.uid===_supaUserId);
-    for(const p of mine){
-      if(!S.reviews) S.reviews=[];
-      const ex=S.reviews.find(r=>r.id===p.review.id);
-      if(!ex){ S.reviews.push(p.review); found++; }
-    }
-    if(mine.length) localStorage.setItem('_ordo_pending_reviews',JSON.stringify(pend.filter(p=>p.uid!==_supaUserId)));
-
-    if(found>0){
-      lsSave(); cloudSave(S);
-      renderReviewsPage();
-      const _rb=document.getElementById('reviews-badge');
-      if(_rb){const _rc=S.reviews.length,_rread=+(localStorage.getItem('_reviewsReadCount')||0),_runread=Math.max(0,_rc-_rread);_rb.textContent=_runread;_rb.style.display=_runread?'inline-flex':'none';}
-      toast('⭐ تم إضافة '+found+' تقييم جديد!');
-    } else {
-      toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> لا توجد تقييمات جديدة');
-    }
-  }catch(e){ console.error('syncReviews error',e); toast('حدث خطأ أثناء التحديث'); }
-  finally{
-    if(btn){ setTimeout(()=>{ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-rotate"></i> تحديث'; },1000); }
-  }
-}
-
 document.addEventListener('visibilitychange', function(){
   if(!document.hidden) {
     _loadServerNotifications();
@@ -25472,28 +24975,12 @@ function _showWidget(id){
 // Build inner HTML for each widget type
 function _widgetInnerHTML(id){
   if(id==='stats'){
-    return '<div>' +
-      '<div class="card ordo-score-card" id="_dash-perf-card" style="margin-bottom:12px">' +
-        '<div class="ordo-score-info">' +
-          '<div class="ordo-score-title"><span id="_perf-emoji">💪</span> <span id="_perf-title">أداؤك جيد</span></div>' +
-          '<div class="ordo-score-sub" id="_perf-sub">جارٍ الحساب...</div>' +
-          '<div class="ordo-score-chips" id="_perf-chips"></div>' +
-        '</div>' +
-        '<div class="ordo-ring-wrap">' +
-          '<svg width="78" height="78" viewBox="0 0 78 78">' +
-            '<circle class="ordo-ring-track" cx="39" cy="39" r="30"/>' +
-            '<circle class="ordo-ring-fill" id="_perf-ring-fill" cx="39" cy="39" r="30" stroke="var(--accent4)"/>' +
-          '</svg>' +
-          '<span class="ordo-ring-num" id="_perf-ring-num" style="color:var(--accent4)">0</span>' +
-        '</div>' +
-      '</div>' +
-      '<div class="grid grid-4 ordo-stagger" id="_dash-stats-inner">' +
-        '<div class="card"><div class="stat-label">💰 إيرادات مسجلة</div><div class="stat-value green" id="dash-income">0 ج</div><div class="stat-change">إجمالي الدخل</div></div>' +
-        '<div class="card"><div class="stat-label">📋 مشاريع نشطة</div><div class="stat-value purple" id="dash-projects">0</div><div class="stat-change">غير مكتملة</div></div>' +
-        '<div class="card"><div class="stat-label">✅ مهام مكتملة</div><div class="stat-value yellow" id="dash-done">0</div><div class="stat-change" id="dash-pending-txt">0 معلقة</div></div>' +
-        '<div class="card"><div class="stat-label">👥 العملاء</div><div class="stat-value" id="dash-clients">0</div><div class="stat-change">في قاعدة البيانات</div></div>' +
-      '</div>' +
-    '</div>';
+    return '<div class="grid grid-4" id="_dash-stats-inner">' +
+      '<div class="card"><div class="stat-label">\uD83D\uDCB0 \u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0645\u0633\u062C\u0644\u0629</div><div class="stat-value green" id="dash-income">0 \u062C</div><div class="stat-change">\u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u062F\u062E\u0644</div></div>' +
+      '<div class="card"><div class="stat-label">\uD83D\uDCCB \u0645\u0634\u0627\u0631\u064A\u0639 \u0646\u0634\u0637\u0629</div><div class="stat-value purple" id="dash-projects">0</div><div class="stat-change">\u063A\u064A\u0631 \u0645\u0643\u062A\u0645\u0644\u0629</div></div>' +
+      '<div class="card"><div class="stat-label">\u2705 \u0645\u0647\u0627\u0645 \u0645\u0643\u062A\u0645\u0644\u0629</div><div class="stat-value yellow" id="dash-done">0</div><div class="stat-change" id="dash-pending-txt">0 \u0645\u0639\u0644\u0642\u0629</div></div>' +
+      '<div class="card"><div class="stat-label">\uD83D\uDC65 \u0627\u0644\u0639\u0645\u0644\u0627\u0621</div><div class="stat-value" id="dash-clients">0</div><div class="stat-change">\u0641\u064A \u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A</div></div>' +
+      '</div>';
   }
   if(id==='overdue'){
     return '<div class="card" id="dash-overdue-section" style="border-color:rgba(247,111,124,.35);height:100%">' +
@@ -25573,38 +25060,6 @@ function _widgetInnerHTML(id){
       '</div></div>' +
       '<div id="dash-meetings-shortcut"><div class="empty" style="padding:8px 0"><div class="empty-icon">\uD83D\uDCC5</div>\u0644\u0627 \u0645\u064A\u062A\u0646\u062C\u0627\u062A \u0642\u0627\u062F\u0645\u0629</div></div></div>';
   }
-  if(id==='charts'){
-    return '<div class="card" style="padding:20px">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">' +
-        '<div class="section-title" style="margin:0"><i class="fa-solid fa-chart-line" style="color:var(--accent)"></i> تحليل الأداء الشهري</div>' +
-        '<div style="display:flex;gap:6px">' +
-          '<button id="_chart-tab-perf" onclick="_switchChartTab(\'perf\')" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:.2s">الأداء</button>' +
-          '<button id="_chart-tab-orders" onclick="_switchChartTab(\'orders\')" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:.2s">الطلبات</button>' +
-        '</div>' +
-      '</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">' +
-        '<div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border)">' +
-          '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">إجمالي الدخل هذا الشهر</div>' +
-          '<div style="font-size:22px;font-weight:900;color:var(--accent3)" id="_chart-stat-income">0 ج</div>' +
-        '</div>' +
-        '<div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border)">' +
-          '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">طلبات مكتملة هذا الشهر</div>' +
-          '<div style="font-size:22px;font-weight:900;color:var(--accent2)" id="_chart-stat-orders">0</div>' +
-        '</div>' +
-        '<div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border)">' +
-          '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">أفضل يوم دخل</div>' +
-          '<div style="font-size:18px;font-weight:900;color:var(--accent)" id="_chart-stat-best-day">—</div>' +
-        '</div>' +
-        '<div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border)">' +
-          '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">معدل الإنجاز</div>' +
-          '<div style="font-size:18px;font-weight:900;color:var(--accent4)" id="_chart-stat-rate">0%</div>' +
-        '</div>' +
-      '</div>' +
-      '<div style="position:relative;height:200px">' +
-        '<canvas id="_dash-chart-canvas" style="width:100%;height:100%"></canvas>' +
-      '</div>' +
-    '</div>';
-  }
   return '<div class="card">' + id + '</div>';
 }
 
@@ -25643,7 +25098,7 @@ function _renderDashGrid(){
           html += _wrapWidget(w,  _widgetInnerHTML(w.id),  true);
           html += _wrapWidget(w2, _widgetInnerHTML(w2.id), true);
         } else {
-          html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:stretch">';
+          html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">';
           html += _wrapWidget(w,  _widgetInnerHTML(w.id),  false);
           html += _wrapWidget(w2, _widgetInnerHTML(w2.id), false);
           html += '</div>';
@@ -25740,7 +25195,7 @@ function _wrapWidget(w, innerHtml, fullWidth){
     var tip = isFull ? '\u062C\u0639\u0644\u0647 \u0646\u0635\u0641' : '\u062C\u0639\u0644\u0647 \u0643\u0627\u0645\u0644';
     toggleBtn = '<button onclick="_toggleWidgetFull(\'' + w.id + '\')" title="' + tip + '" style="position:absolute;top:-7px;left:20px;z-index:10;width:22px;height:22px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:10px;cursor:pointer;font-weight:900;display:flex;align-items:center;justify-content:center">' + icon + '</button>';
   }
-  return '<div data-widget-card="' + w.id + '" class="ordo-reveal" style="position:relative;' + editStyle + '">' +
+  return '<div data-widget-card="' + w.id + '" style="position:relative;' + editStyle + '">' +
     hideBtn + toggleBtn + innerHtml + '</div>';
 }
 
@@ -25758,107 +25213,6 @@ function _toggleWidgetFull(id){
 
 // updateDash calls _renderDashGrid if grid is empty (see updateDash function above)
 window.addEventListener('load', function(){ setTimeout(_renderDashGrid, 400); });
-
-// ══════════════════════════════════════════════════════
-//  CLIENT FILTER PANEL TOGGLE
-// ══════════════════════════════════════════════════════
-function _toggleClientFilter(){
-  var panel = document.getElementById('_cf-filter-panel');
-  var btn   = document.getElementById('_cf-filter-toggle');
-  if(!panel) return;
-  var open = panel.style.display === 'none' || panel.style.display === '';
-  panel.style.display = open ? 'block' : 'none';
-  if(btn){
-    btn.style.background  = open ? 'rgba(124,111,247,.18)' : 'var(--surface2)';
-    btn.style.borderColor = open ? 'var(--accent)'         : 'var(--border)';
-    btn.style.color       = open ? 'var(--accent)'         : 'var(--text2)';
-  }
-  // Show active-filter dot when any filter is active
-  _updateClientFilterDot();
-}
-
-function _updateClientFilterDot(){
-  var dot   = document.getElementById('_cf-filter-dot');
-  var typeF = document.getElementById('cf-type')?.value    || '';
-  var chanF = document.getElementById('cf-channel')?.value || '';
-  var srcF  = document.getElementById('cf-search')?.value  || '';
-  if(dot) dot.style.display = (typeF||chanF||srcF) ? 'block' : 'none';
-}
-
-// Patch existing filter functions to also update the dot
-var _origSetCFType    = typeof setCFType    === 'function' ? setCFType    : null;
-var _origSetCFChannel = typeof setCFChannel === 'function' ? setCFChannel : null;
-var _origResetCF      = typeof resetClientFilters === 'function' ? resetClientFilters : null;
-
-if(_origSetCFType)    setCFType    = function(v,el){ _origSetCFType(v,el);    _updateClientFilterDot(); };
-if(_origSetCFChannel) setCFChannel = function(v,el){ _origSetCFChannel(v,el); _updateClientFilterDot(); };
-if(_origResetCF)      resetClientFilters = function(){
-  _origResetCF();
-  _updateClientFilterDot();
-  // close panel on reset
-  var panel = document.getElementById('_cf-filter-panel');
-  if(panel) panel.style.display = 'none';
-  var btn = document.getElementById('_cf-filter-toggle');
-  if(btn){ btn.style.background='var(--surface2)'; btn.style.borderColor='var(--border)'; btn.style.color='var(--text2)'; }
-};
-
-// ══════════════════════════════════════════════════════
-//  SCROLL-REVEAL + PAGE-LOAD ANIMATIONS
-// ══════════════════════════════════════════════════════
-(function(){
-  // Page load: fade-up the sidebar, header, grid
-  function _animatePageLoad(){
-    var sidebar = document.getElementById('sidebar');
-    var grid    = document.getElementById('_dash-grid');
-    if(sidebar) sidebar.style.animation = '_ordo-fadeIn .4s ease both';
-    if(grid)    grid.style.animation    = '_ordo-fadeUp .5s cubic-bezier(.22,1,.36,1) .15s both';
-    var hdr = document.querySelector('#page-dashboard.active .page-header');
-    if(hdr)  hdr.style.animation = '_ordo-fadeUp .45s cubic-bezier(.22,1,.36,1) .05s both';
-  }
-  setTimeout(_animatePageLoad, 150);
-
-  // Scroll-reveal IntersectionObserver
-  var _revObs = new IntersectionObserver(function(entries){
-    entries.forEach(function(e){
-      if(!e.isIntersecting) return;
-      e.target.classList.add('ordo-visible');
-      _revObs.unobserve(e.target);
-    });
-  }, { threshold: 0.07, rootMargin: '0px 0px -20px 0px' });
-
-  function _observeAll(){
-    document.querySelectorAll('.ordo-reveal:not(.ordo-visible), .ordo-stagger:not(.ordo-visible)')
-      .forEach(function(el){ _revObs.observe(el); });
-  }
-
-  // Observe after initial render
-  setTimeout(_observeAll, 700);
-
-  // Re-observe whenever new elements are injected
-  var _mo = new MutationObserver(function(){ clearTimeout(_mo._t); _mo._t = setTimeout(_observeAll, 80); });
-  _mo.observe(document.body, { childList: true, subtree: true });
-
-  // On page switch: animate incoming page header + re-observe
-  var _origShowPage = window.showPage;
-  if(typeof _origShowPage === 'function'){
-    window.showPage = function(page){
-      _origShowPage(page);
-      setTimeout(function(){
-        var ap = document.querySelector('.page.active');
-        if(!ap) return;
-        // animate page header
-        var hdr = ap.querySelector('.page-header');
-        if(hdr){ hdr.style.animation='none'; void hdr.offsetHeight; hdr.style.animation='_ordo-fadeUp .4s cubic-bezier(.22,1,.36,1) both'; }
-        // reset & re-observe reveals in this page
-        ap.querySelectorAll('.ordo-reveal').forEach(function(el){
-          el.classList.remove('ordo-visible');
-          el.style.transition = 'none'; void el.offsetHeight; el.style.transition = '';
-        });
-        setTimeout(_observeAll, 60);
-      }, 25);
-    };
-  }
-})();
 
 // ═══════════════════════════════════════════════════
 // TIME LOG EDIT/DELETE in task detail
@@ -26562,7 +25916,7 @@ function _syncThemeToCloud(){
     if(typeof S === 'undefined' || !S) return;
     if(!S.settings) S.settings = {};
     S.settings.accentColor = localStorage.getItem('studioAccentColor') || '#7c6ff7';
-    S.settings.displayMode = localStorage.getItem('studioDisplayMode') || 'dark';
+    S.settings.displayMode = localStorage.getItem('studioDisplayMode') || 'light';
     if(typeof lsSave === 'function') lsSave();
     if(typeof cloudSave === 'function') cloudSave(S);
   }, 800);
@@ -32662,19 +32016,12 @@ function saveProposal(saveStatus) {
     S.proposals.push(d);
   }
 
-  // ✅ حفظ فوري في Supabase قبل مشاركة الرابط
   lsSave();
   closeM('modal-proposal');
   renderProposals();
 
   if (saveStatus !== 'draft') {
-    toast('<i class="fa-solid fa-cloud-arrow-up"></i> جارٍ الحفظ وتجهيز الرابط...');
-    // استخدم _doCloudSave مع force=true لتجاوز أي guards
-    _doCloudSave(S, true).then(function(){
-      setTimeout(function(){ _showPropLinkModal(d.token); }, 300);
-    }).catch(function(){
-      setTimeout(function(){ _showPropLinkModal(d.token); }, 300);
-    });
+    setTimeout(function(){ _showPropLinkModal(d.token); }, 300);
   } else {
     toast('📝 تم حفظ المسودة');
   }
