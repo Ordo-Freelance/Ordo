@@ -456,7 +456,6 @@ const token = P.get('token');
 var _proposal   = null;
 var _resolvedUid= null;
 var _pendingAct = null;  // 'accepted' | 'rejected'
-var _fullData   = null;
 
 const payTermsMap = {
   'full':         'دفعة كاملة عند البدء',
@@ -490,94 +489,83 @@ async function boot(){
   if (!token) { showErr('رابط غير صحيح', 'لا يوجد رقم عرض في الرابط'); return; }
 
   try {
-    var found = null, foundUid = null, _fullData = null;
+    var rows = null;
 
-    // ── Strategy 1: Search in dedicated proposals table (fastest) ──
-    try {
-      var r0 = await db.from('proposals').select('user_id, data')
-        .eq('token', token).maybeSingle();
-      if (!r0.error && r0.data) {
-        var d0 = r0.data.data;
-        if (typeof d0 === 'string') d0 = JSON.parse(d0);
-        found = d0; foundUid = r0.data.user_id;
-      }
-    } catch(e0) { /* table may not exist */ }
-
-    // ── Strategy 2: studio_data with ilike on text cast ──
-    if (!found) {
-      try {
-        var r1 = await db.from('studio_data').select('user_id, data')
-          .ilike('data::text', '%' + token + '%').limit(5);
-        if (!r1.error && r1.data && r1.data.length) {
-          for (var i=0; i<r1.data.length; i++) {
-            var raw = r1.data[i].data;
-            if (typeof raw === 'string') raw = JSON.parse(raw);
-            if (raw && raw.data && !raw.tasks) raw = typeof raw.data==='string'?JSON.parse(raw.data):raw.data;
-            var props = raw && raw.proposals ? raw.proposals : [];
-            var p = props.find(function(x){ return x.token === token; });
-            if (p) { found=p; foundUid=r1.data[i].user_id; _fullData=raw; break; }
-          }
-        }
-      } catch(e1) { /* may fail on some setups */ }
+    // Strategy 1: JSONB text search (fastest)
+    var r1 = await db.from('studio_data').select('user_id, data')
+      .like('data::text', '%' + token + '%').limit(20);
+    if (!r1.error && r1.data && r1.data.length) {
+      rows = r1.data;
     }
 
-    // ── Strategy 3: textSearch using contains ──
-    if (!found) {
-      try {
-        var r2 = await db.from('studio_data').select('user_id, data')
-          .filter('data', 'cs', JSON.stringify({proposals:[{token}]})).limit(5);
-        if (!r2.error && r2.data && r2.data.length) {
-          for (var j=0; j<r2.data.length; j++) {
-            var raw2 = r2.data[j].data;
-            if (typeof raw2 === 'string') raw2 = JSON.parse(raw2);
-            if (raw2 && raw2.data && !raw2.tasks) raw2 = typeof raw2.data==='string'?JSON.parse(raw2.data):raw2.data;
-            var props2 = raw2 && raw2.proposals ? raw2.proposals : [];
-            var p2 = props2.find(function(x){ return x.token === token; });
-            if (p2) { found=p2; foundUid=r2.data[j].user_id; _fullData=raw2; break; }
-          }
-        }
-      } catch(e2) { /* ignore */ }
-    }
-
-    // ── Strategy 4: full scan fallback (last resort) ──
-    if (!found) {
-      var page = 0, pageSize = 100, scanned = 0;
-      outer: while(scanned < 2000) {
-        var r3 = await db.from('studio_data').select('user_id, data')
-          .range(page*pageSize, (page+1)*pageSize-1);
-        if (r3.error || !r3.data || !r3.data.length) break;
-        for (var k=0; k<r3.data.length; k++) {
-          var rowTxt = typeof r3.data[k].data === 'string' ? r3.data[k].data : JSON.stringify(r3.data[k].data||'');
-          if (rowTxt.indexOf(token) === -1) { scanned++; continue; }
-          var rawK = r3.data[k].data;
-          if (typeof rawK === 'string') rawK = JSON.parse(rawK);
-          if (rawK && rawK.data && !rawK.tasks) rawK = typeof rawK.data==='string'?JSON.parse(rawK.data):rawK.data;
-          var propsK = rawK && rawK.proposals ? rawK.proposals : [];
-          var pK = propsK.find(function(x){ return x.token === token; });
-          if (pK) { found=pK; foundUid=r3.data[k].user_id; _fullData=rawK; break outer; }
-          scanned++;
-        }
-        if (r3.data.length < pageSize) break;
-        page++;
+    // Strategy 2: filter full scan in JS (fallback for RLS / cast issues)
+    if (!rows || !rows.length) {
+      var r2 = await db.from('studio_data').select('user_id, data').limit(500);
+      if (!r2.error && r2.data && r2.data.length) {
+        rows = r2.data.filter(function(row) {
+          var txt = typeof row.data === 'string' ? row.data : JSON.stringify(row.data||'');
+          return txt.indexOf(token) > -1;
+        });
       }
     }
 
-    if (!found) {
-      showErr('لم يتم العثور على العرض', 'الرابط قد يكون منتهياً أو العرض لم يُحفظ بعد — تواصل مع الفريلانسر للحصول على رابط جديد');
+    // Strategy 3: retry once after 2s (race condition — main app may still be saving)
+    if (!rows || !rows.length) {
+      // Update loading message to tell user we're retrying
+      var ldMsg = el('loader');
+      if (ldMsg) {
+        var lp = ldMsg.querySelector('p, .loader-sub');
+        if (!lp) { lp = document.createElement('p'); lp.style.cssText='font-size:13px;color:#888;margin-top:10px'; ldMsg.appendChild(lp); }
+        lp.textContent = 'جارٍ إعادة المحاولة...';
+      }
+      await new Promise(function(res){ setTimeout(res, 2500); });
+
+      var r3 = await db.from('studio_data').select('user_id, data')
+        .like('data::text', '%' + token + '%').limit(20);
+      if (!r3.error && r3.data && r3.data.length) {
+        rows = r3.data;
+      } else {
+        // Final fallback full scan
+        var r4 = await db.from('studio_data').select('user_id, data').limit(500);
+        if (!r4.error && r4.data && r4.data.length) {
+          rows = r4.data.filter(function(row) {
+            var txt = typeof row.data === 'string' ? row.data : JSON.stringify(row.data||'');
+            return txt.indexOf(token) > -1;
+          });
+        }
+      }
+    }
+
+    if (!rows || !rows.length) {
+      showErr('لم يتم العثور على العرض', 'تأكد من صحة الرابط أو تواصل مع الفريلانسر');
       return;
     }
 
-    window._proposal    = found;
-    window._resolvedUid = foundUid;
-    window.__fullData   = _fullData;
+    var found = null, foundUid = null;
+    for (var i = 0; i < rows.length; i++) {
+      var raw = rows[i].data;
+      if (typeof raw === 'string') raw = JSON.parse(raw);
+      if (raw && raw.data && !raw.tasks) raw = typeof raw.data==='string'?JSON.parse(raw.data):raw.data;
+      var props = raw && raw.proposals ? raw.proposals : [];
+      var p = props.find(function(x){ return x.token === token; });
+      if (p) { found = p; foundUid = rows[i].user_id; _fullData = raw; break; }
+    }
 
-    // Get freelancer info
+    if (!found) {
+      var rowCount = rows ? rows.length : 0;
+      showErr('لم يتم العثور على العرض', 'تم فحص ' + rowCount + ' سجل — الرابط قد يكون منتهياً أو العرض لم يُحفظ بعد');
+      return;
+    }
+
+    _proposal    = found;
+    _resolvedUid = foundUid;
+
     var s = (_fullData && _fullData.settings) ? _fullData.settings : {};
     renderPage(s);
 
   } catch(e) {
     console.error(e);
-    showErr('خطأ في التحميل', 'حاول تحديث الصفحة مجدداً — ' + (e.message||''));
+    showErr('خطأ في التحميل', 'حاول تحديث الصفحة مجدداً');
   }
 }
 
