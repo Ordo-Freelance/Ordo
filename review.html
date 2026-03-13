@@ -379,11 +379,38 @@ async function boot(){
         `radial-gradient(ellipse 80% 50% at 50% -10%, ${userAccent}22 0%, transparent 60%),
          radial-gradient(ellipse 50% 40% at 80% 80%, ${userAccent}14 0%, transparent 60%)`;
     }
+    // Apply user's display mode
+    const userMode = s.displayMode || s.display_mode || 'dark';
+    if(userMode === 'light'){
+      document.documentElement.style.setProperty('--bg','#f4f6fa');
+      document.documentElement.style.setProperty('--surface','#ffffff');
+      document.documentElement.style.setProperty('--surface2','#f0f1f8');
+      document.documentElement.style.setProperty('--border','rgba(0,0,0,.08)');
+      document.documentElement.style.setProperty('--t1','#1a1a2e');
+      document.documentElement.style.setProperty('--t2','#444466');
+      document.documentElement.style.setProperty('--t3','#888899');
+      document.body.style.background = '#f4f6fa';
+      document.body.style.color = '#1a1a2e';
+      document.body.style.backgroundImage = 
+        `radial-gradient(ellipse 80% 50% at 50% -10%, ${userAccent||'#7c6ff7'}12 0%, transparent 60%),
+         radial-gradient(ellipse 50% 40% at 80% 80%, ${userAccent||'#7c6ff7'}08 0%, transparent 60%)`;
+    }
     if(s.logo){
       document.getElementById('avatar-wrap').innerHTML=`<img class="freelancer-avatar" src="${s.logo}" onerror="this.style.display='none'">`;
     }
     document.getElementById('fl-name').textContent=s.name||s.username||'فريلانسر';
     document.getElementById('fl-title').textContent=s.bio||s.title||'خدمات إبداعية متميزة';
+
+    // Apply user identity (title, favicon)
+    var _revUserName = s.name||s.username||'فريلانسر';
+    document.title = _revUserName + ' — تقييم الخدمة';
+    try{
+      if(s.logo){
+        var _favLink = document.querySelector("link[rel*='icon']");
+        if(!_favLink){ _favLink=document.createElement('link'); _favLink.rel='icon'; document.head.appendChild(_favLink); }
+        _favLink.href = s.logo;
+      }
+    }catch(e){}
 
     // Show UI
     document.getElementById('header-card').style.display='';
@@ -421,16 +448,33 @@ async function submitReview(){
 
   let saved=false;
 
-  // Strategy 1: review_queue table
+  // Strategy 1: review_queue table via REST API (works without auth/session)
   try{
-    const r1=await db.from('review_queue').insert({
-      target_user_id:_resolvedUid,review_json:JSON.stringify(review),
-      processed:false,created_at:new Date().toISOString()
+    const r1=await fetch(BASE+'/rest/v1/review_queue',{
+      method:'POST',
+      headers:{...HDRS,'Prefer':'return=minimal'},
+      body:JSON.stringify({
+        target_user_id:_resolvedUid,
+        review_json:JSON.stringify(review),
+        processed:false,
+        created_at:new Date().toISOString()
+      })
     });
-    if(!r1.error) saved=true;
-  }catch(e){}
+    if(r1.ok||r1.status===201) saved=true;
+  }catch(e){ console.warn('review_queue REST failed',e); }
 
-  // Strategy 2: REST PATCH on studio_data
+  // Strategy 1b: retry via Supabase JS client if REST failed
+  if(!saved){
+    try{
+      const r1b=await db.from('review_queue').insert({
+        target_user_id:_resolvedUid,review_json:JSON.stringify(review),
+        processed:false,created_at:new Date().toISOString()
+      });
+      if(!r1b.error) saved=true;
+    }catch(e){}
+  }
+
+  // Strategy 2: REST PATCH on studio_data directly
   if(!saved){
     try{
       const gr=await fetch(BASE+'/rest/v1/studio_data?user_id=eq.'+encodeURIComponent(_resolvedUid)+'&select=data',{headers:HDRS});
@@ -454,7 +498,25 @@ async function submitReview(){
     }catch(e2){ console.warn('patch failed',e2); }
   }
 
-  // Always show success — even if save failed (store locally as backup)
+  // Strategy 3: Retry once after delay (mobile network may be slow)
+  if(!saved){
+    await new Promise(r=>setTimeout(r,2000));
+    try{
+      const r3=await fetch(BASE+'/rest/v1/review_queue',{
+        method:'POST',
+        headers:{...HDRS,'Prefer':'return=minimal'},
+        body:JSON.stringify({
+          target_user_id:_resolvedUid,
+          review_json:JSON.stringify(review),
+          processed:false,
+          created_at:new Date().toISOString()
+        })
+      });
+      if(r3.ok||r3.status===201) saved=true;
+    }catch(e){}
+  }
+
+  // Backup to localStorage if all else fails
   if(!saved){
     try{
       const pend=JSON.parse(localStorage.getItem('_ordo_pending_reviews')||'[]');
