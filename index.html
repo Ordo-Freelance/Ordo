@@ -7075,7 +7075,8 @@ function renderReviewsPage() {
             const starColor = +r.stars>=4?'#f7c948':+r.stars===3?'var(--accent2)':'var(--accent4)';
             const starBg = +r.stars>=4?'rgba(247,201,72,.1)':+r.stars===3?'rgba(168,156,255,.1)':'rgba(247,111,124,.1)';
             const starLabel = ['','سيء 😞','مقبول 😐','جيد 🙂','رائع 😊','ممتاز 🤩'][+r.stars]||'';
-            return `<div class="card" style="padding:16px;border-right:3px solid ${starColor};position:relative">
+            const _rid = r.id||('r'+Math.random());
+            return `<div class="card" style="padding:16px;border-right:3px solid ${starColor};position:relative;cursor:pointer" onclick="_openShareReview('${_rid}')">
               <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:${r.comment?'10':'0'}px;flex-wrap:wrap">
                 <div style="display:flex;align-items:center;gap:10px">
                   <div style="width:36px;height:36px;border-radius:50%;background:${acc}22;color:${acc};font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(r.client_name||'?')[0]}</div>
@@ -7090,10 +7091,10 @@ function renderReviewsPage() {
                     <div style="font-size:18px;letter-spacing:1px">${'⭐'.repeat(+r.stars||0)}</div>
                     <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:8px;background:${starBg};color:${starColor}">${starLabel}</span>
                   </div>
-                  <button data-rid="${r.id}" onclick="deleteReview(this.dataset.rid)" class="btn btn-danger btn-sm" style="padding:5px 8px;flex-shrink:0" title="حذف التقييم">
+                  <button data-rid="${r.id}" onclick="event.stopPropagation();deleteReview(this.dataset.rid)" class="btn btn-danger btn-sm" style="padding:5px 8px;flex-shrink:0" title="حذف التقييم">
                     <i class="fa-solid fa-trash"></i>
                   </button>
-                  <button onclick="_shareReviewCard('${escapeHtml(r.client_name||'عميل')}',${+r.stars||0},'${escapeHtml((r.comment||'').replace(/'/g,"\\'"))}','${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG',{day:'numeric',month:'long',year:'numeric'}):''}','${escapeHtml(r.task_title||taskObj?.title||'')}')" class="btn btn-ghost btn-sm" style="padding:5px 8px;flex-shrink:0;color:#f7c948" title="مشاركة التقييم">
+                  <button onclick="event.stopPropagation();_openShareReview('${_rid}')" class="btn btn-ghost btn-sm" style="padding:5px 8px;flex-shrink:0;color:#f7c948" title="مشاركة التقييم">
                     <i class="fa-solid fa-share-nodes"></i>
                   </button>
                 </div>
@@ -7144,86 +7145,96 @@ function _markReviewsRead() {
   if (btn) btn.style.display = 'none';
 
 // ── Share Review as Shareable Card Image ──
+function _openShareReview(rid){
+  var r = (S.reviews||[]).find(function(x){return x.id===rid;});
+  if(!r) return;
+  var clientName = r.client_name||'عميل';
+  var stars = +r.stars||0;
+  var comment = r.comment||'';
+  var dateStr = r.created_at ? new Date(r.created_at).toLocaleDateString('ar-EG',{day:'numeric',month:'long',year:'numeric'}) : '';
+  var taskObj = (S.tasks||[]).find(function(t){return String(t.id)===String(r.task_id);});
+  var taskTitle = r.task_title||taskObj?.title||'';
+  _shareReviewCard(clientName, stars, comment, dateStr, taskTitle);
+}
+
 function _shareReviewCard(clientName, stars, comment, dateStr, taskTitle){
+  var old = document.getElementById('_review-share-overlay');
+  if(old) old.remove();
   var studioName = (S.settings && S.settings.name) || 'Studio';
   var acc = (S.settings && (S.settings.accent || S.settings.accentColor)) || '#7c6ff7';
   var logo = (S.settings && S.settings.logo) || '';
-  var starsStr = ''; for(var si=0;si<stars;si++) starsStr+='⭐';
+  var starsStr = ''; for(var si=0;si<stars;si++) starsStr+='\u2B50';
   var starLabel = ['','سيء','مقبول','جيد','رائع','ممتاز'][stars]||'';
 
-  // Create overlay
   var ov = document.createElement('div');
   ov.id = '_review-share-overlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;animation:_fadeIn .25s ease';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px';
   ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
 
-  ov.innerHTML = '<div style="max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px;align-items:center">'
-    // The card itself (will be captured as image)
-    +'<div id="_review-share-card" style="width:400px;padding:32px 28px;border-radius:24px;background:linear-gradient(145deg,#0d0f1a 0%,#141826 50%,#0d1117 100%);border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden;font-family:Cairo,sans-serif;direction:rtl;color:#f0f0f5">'
-      // Decorative elements
-      +'<div style="position:absolute;top:-40px;left:-40px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,'+acc+'20,transparent);pointer-events:none"></div>'
-      +'<div style="position:absolute;bottom:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,#f7c94815,transparent);pointer-events:none"></div>'
-      // Stars
-      +'<div style="text-align:center;margin-bottom:16px">'
-        +'<div style="font-size:32px;letter-spacing:4px;margin-bottom:6px">'+starsStr+'</div>'
-        +'<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(247,201,72,.12);border:1px solid rgba(247,201,72,.25);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:800;color:#f7c948">'+starLabel+'</div>'
-      +'</div>'
-      // Quote
-      +(comment ? '<div style="font-size:15px;line-height:1.9;color:#d0d0e0;text-align:center;padding:16px 20px;background:rgba(255,255,255,.04);border-radius:16px;border-right:3px solid #f7c948;margin-bottom:16px;font-style:italic">"'+escapeHtml(comment)+'"</div>' : '')
-      // Client info
-      +'<div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:6px">'
-        +'<div style="width:44px;height:44px;border-radius:50%;background:'+acc+'33;color:'+acc+';font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid '+acc+'55">'+clientName.charAt(0)+'</div>'
-        +'<div>'
-          +'<div style="font-size:15px;font-weight:900;color:#f0f0f5">'+escapeHtml(clientName)+'</div>'
-          +(taskTitle ? '<div style="font-size:11px;color:#888">'+escapeHtml(taskTitle)+'</div>' : '')
-          +(dateStr ? '<div style="font-size:10px;color:#666">'+dateStr+'</div>' : '')
-        +'</div>'
-      +'</div>'
-      // Footer
-      +'<div style="margin-top:18px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;gap:8px">'
-        +(logo ? '<img src="'+escapeHtml(logo)+'" style="height:20px;border-radius:4px;opacity:.7" onerror="this.style.display=\'none\'">' : '')
-        +'<span style="font-size:10px;color:#555;font-weight:600">'+escapeHtml(studioName)+'</span>'
-        +'<span style="font-size:8px;color:#333">بواسطة Ordo</span>'
+  var cardDiv = document.createElement('div');
+  cardDiv.style.cssText = 'max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px;align-items:center';
+
+  // Build the card using DOM (not innerHTML with SVG foreignObject)
+  var cardHtml = '<div id="_review-share-card" style="width:100%;max-width:400px;padding:32px 28px;border-radius:24px;'
+    +'background:linear-gradient(145deg,#0d0f1a 0%,#141826 50%,#0d1117 100%);'
+    +'border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden;font-family:Cairo,sans-serif;direction:rtl;color:#f0f0f5">'
+    +'<div style="position:absolute;top:-40px;left:-40px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,'+acc+'20,transparent);pointer-events:none"></div>'
+    +'<div style="position:absolute;bottom:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,rgba(247,201,72,.08),transparent);pointer-events:none"></div>'
+    +'<div style="text-align:center;margin-bottom:16px">'
+      +'<div style="font-size:32px;letter-spacing:4px;margin-bottom:6px">'+starsStr+'</div>'
+      +'<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(247,201,72,.12);border:1px solid rgba(247,201,72,.25);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:800;color:#f7c948">'+escapeHtml(starLabel)+'</div>'
+    +'</div>'
+    +(comment ? '<div style="font-size:15px;line-height:1.9;color:#d0d0e0;text-align:center;padding:16px 20px;background:rgba(255,255,255,.04);border-radius:16px;border-right:3px solid #f7c948;margin-bottom:16px;font-style:italic">&ldquo;'+escapeHtml(comment)+'&rdquo;</div>' : '')
+    +'<div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:6px">'
+      +'<div style="width:44px;height:44px;border-radius:50%;background:'+acc+'33;color:'+acc+';font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid '+acc+'55">'+escapeHtml(clientName.charAt(0))+'</div>'
+      +'<div>'
+        +'<div style="font-size:15px;font-weight:900;color:#f0f0f5">'+escapeHtml(clientName)+'</div>'
+        +(taskTitle ? '<div style="font-size:11px;color:#888">'+escapeHtml(taskTitle)+'</div>' : '')
+        +(dateStr ? '<div style="font-size:10px;color:#666">'+escapeHtml(dateStr)+'</div>' : '')
       +'</div>'
     +'</div>'
-    // Action buttons
-    +'<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'
-      +'<button onclick="_downloadReviewCard()" style="display:flex;align-items:center;gap:6px;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:10px 20px;font-family:Cairo,sans-serif;font-size:13px;font-weight:800;cursor:pointer"><i class="fa-solid fa-download"></i> حفظ كصورة</button>'
-      +'<button onclick="document.getElementById(\'_review-share-overlay\').remove()" style="display:flex;align-items:center;gap:6px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:12px;padding:10px 20px;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer"><i class="fa-solid fa-xmark"></i> إغلاق</button>'
+    +'<div style="margin-top:18px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;gap:8px">'
+      +(logo ? '<img src="'+escapeHtml(logo)+'" style="height:20px;border-radius:4px;opacity:.7" onerror="this.style.display=\'none\'">' : '')
+      +'<span style="font-size:10px;color:#555;font-weight:600">'+escapeHtml(studioName)+'</span>'
+      +'<span style="font-size:8px;color:#333">\u00B7 Ordo</span>'
     +'</div>'
   +'</div>';
+
+  var btnsHtml = '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'
+    +'<button onclick="_downloadReviewCard()" style="display:flex;align-items:center;gap:6px;background:'+acc+';color:#fff;border:none;border-radius:12px;padding:10px 20px;font-family:Cairo,sans-serif;font-size:13px;font-weight:800;cursor:pointer"><i class="fa-solid fa-download"></i> حفظ كصورة</button>'
+    +'<button onclick="document.getElementById(\'_review-share-overlay\').remove()" style="display:flex;align-items:center;gap:6px;background:var(--surface2,#1e1e2e);color:var(--text2,#aaa);border:1px solid var(--border,#333);border-radius:12px;padding:10px 20px;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer"><i class="fa-solid fa-xmark"></i> إغلاق</button>'
+  +'</div>';
+
+  cardDiv.innerHTML = cardHtml + btnsHtml;
+  ov.appendChild(cardDiv);
   document.body.appendChild(ov);
 }
 
 function _downloadReviewCard(){
   var card = document.getElementById('_review-share-card');
-  if(!card) return;
-  // Use html2canvas if available, otherwise use a canvas-based approach
-  var canvas = document.createElement('canvas');
-  var scale = 2;
-  canvas.width = card.offsetWidth * scale;
-  canvas.height = card.offsetHeight * scale;
-  var ctx = canvas.getContext('2d');
-  ctx.scale(scale,scale);
-  // Render via SVG foreignObject
-  var data = '<svg xmlns="http://www.w3.org/2000/svg" width="'+card.offsetWidth+'" height="'+card.offsetHeight+'">'
-    +'<foreignObject width="100%" height="100%">'
-    +'<div xmlns="http://www.w3.org/1999/xhtml">'+card.outerHTML+'</div>'
-    +'</foreignObject></svg>';
-  var img = new Image();
-  img.onload = function(){
-    ctx.drawImage(img, 0, 0);
-    var a = document.createElement('a');
-    a.download = 'review-card.png';
-    a.href = canvas.toDataURL('image/png');
-    a.click();
-    toast('✅ تم حفظ كارت التقييم');
-  };
-  img.onerror = function(){
-    // Fallback: copy card HTML
-    toast('⚠️ لم يتمكن من إنشاء الصورة — جرّب لقطة شاشة');
-  };
-  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(data);
+  if(!card){ toast('لم يتم العثور على الكارت'); return; }
+  // Use html2canvas CDN
+  if(typeof html2canvas !== 'undefined'){
+    html2canvas(card,{backgroundColor:null,scale:2,useCORS:true}).then(function(canvas){
+      var a=document.createElement('a'); a.download='review-card.png'; a.href=canvas.toDataURL('image/png'); a.click();
+      toast('\u2705 تم حفظ كارت التقييم');
+    }).catch(function(e){ _fallbackScreenshot(); });
+  } else {
+    // Load html2canvas dynamically
+    var sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    sc.onload=function(){
+      html2canvas(card,{backgroundColor:null,scale:2,useCORS:true}).then(function(canvas){
+        var a=document.createElement('a'); a.download='review-card.png'; a.href=canvas.toDataURL('image/png'); a.click();
+        toast('\u2705 تم حفظ كارت التقييم');
+      }).catch(function(e){ _fallbackScreenshot(); });
+    };
+    sc.onerror=function(){ _fallbackScreenshot(); };
+    document.head.appendChild(sc);
+  }
+}
+function _fallbackScreenshot(){
+  toast('\u26A0\uFE0F خد لقطة شاشة (Screenshot) للكارت وشاركها');
 }
   toast('<i class="fa-solid fa-envelope-open" style="color:var(--accent3)"></i> تم تحديد كل التقييمات كمقروءة');
 }
@@ -9494,7 +9505,32 @@ function _renderProjectTasksList(){
   }
   var empty='<div style="text-align:center;padding:50px 20px;color:var(--text3)"><i class="fa-solid fa-diagram-project" style="font-size:40px;opacity:.35;display:block;margin-bottom:12px"></i><div style="font-size:14px;font-weight:700;color:var(--text2);margin-bottom:5px">لا توجد مهام مشاريع</div></div>';
   var k=document.getElementById('project-tasks-kanban'); if(k) k.innerHTML=tasks.length?tasks.map(_card).join(''):empty;
-  var l=document.getElementById('project-tasks-list'); if(l) l.innerHTML=tasks.length?'<div style="display:flex;flex-direction:column;gap:10px">'+tasks.map(_card).join('')+'</div>':empty;
+  // List — table format
+  var l=document.getElementById('project-tasks-list');
+  if(l){
+    if(!tasks.length){ l.innerHTML=empty; }
+    else{
+      l.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">'
+        +'<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>'
+        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المشروع</th>'
+        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">تاريخ التسليم</th>'
+        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة</th>'
+        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المبلغ</th>'
+        +'</tr></thead><tbody>'+tasks.map(function(t){
+          var proj2=projMap[String(t.project_id)]||{}; var isDone2=t.status==='done'||t.done;
+          var stLabel2=isDone2?'مكتمل':(t.status==='progress'?'جاري':t.status==='review'?'مراجعة':t.status==='paused'?'موقوف':'جديد');
+          var stColor2=isDone2?'var(--accent3)':(t.status==='progress'?'var(--accent2)':t.status==='review'?'var(--accent)':t.status==='paused'?'#64b5f6':'var(--text3)');
+          var isLate2=t.deadline&&new Date(t.deadline)<new Date()&&!isDone2;
+          return '<tr style="cursor:pointer;border-bottom:1px solid var(--border)" onclick="openProjectDetail(\''+String(t.project_id)+'\')">'
+            +'<td style="padding:10px 14px"><div style="font-weight:700;'+(isDone2?'text-decoration:line-through;color:var(--text3)':'')+'">'+escapeHtml(t.title||t.name||'مهمة')+'</div></td>'
+            +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--accent)">'+escapeHtml(proj2.name||'—')+'</td>'
+            +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate2?'#f76f7c':'var(--text3)')+'">'+escapeHtml(t.deadline||'—')+'</td>'
+            +'<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+stColor2+'22;color:'+stColor2+'">'+stLabel2+'</span></td>'
+            +'<td style="padding:10px 8px;text-align:center;font-weight:700;color:var(--accent)">'+(t.value?Number(t.value).toLocaleString()+' ج':'—')+'</td>'
+          +'</tr>';
+        }).join('')+'</tbody></table></div></div>';
+    }
+  }
   var tb=document.getElementById('proj-tasks-table-body'); if(tb) tb.innerHTML=tasks.length?tasks.map(_row).join(''):'<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">لا توجد مهام</td></tr>';
   var cnt=document.getElementById('proj-tasks-table-count'); if(cnt) cnt.textContent=tasks.length+' مهمة';
 }
@@ -9505,27 +9541,29 @@ function _renderAllTasksList(){
   var projMap={}; (S.projects||[]).forEach(function(p){ projMap[String(p.id)]=p; });
   (S.project_tasks||[]).forEach(function(t){ var proj=projMap[String(t.project_id)]||{}; allItems.push({task:t,type:'project_task',projName:proj.name||'مشروع'}); });
   allItems.sort(function(a,b){ var da=a.task.createdAt||a.task.created_at||a.task.orderDate||0; var db=b.task.createdAt||b.task.created_at||b.task.orderDate||0; return new Date(db)-new Date(da); });
-  
-  // Progress
   var total=allItems.length, done=allItems.filter(function(i){return i.task.done||i.task.status==='done';}).length;
   var pct=total?Math.round(done/total*100):0;
   var pctEl=document.getElementById('all-tasks-progress-pct'); var fillEl=document.getElementById('all-tasks-progress-fill');
   if(pctEl) pctEl.textContent=pct+'%'; if(fillEl) fillEl.style.width=pct+'%';
-
+  var _ov=S.statusOverrides||{};
+  function _stInfo(t){
+    var isDone=t.done||t.status==='done'; var st=t.status||'new';
+    var label=isDone?(_ov.done?.label||'مكتمل'):(st==='progress'?(_ov.progress?.label||'جاري'):st==='review'?(_ov.review?.label||'مراجعة'):st==='paused'?'موقوف':(_ov.new?.label||'جديد'));
+    var color=isDone?'var(--accent3)':(st==='progress'?'var(--accent2)':st==='review'?'var(--accent)':st==='paused'?'#64b5f6':'var(--text3)');
+    return {label:label,color:color,isDone:isDone};
+  }
   function _card(item){
-    var t=item.task; var isDone=t.done||t.status==='done';
-    var stLabel=isDone?'مكتمل':(t.status==='progress'?'جاري':t.status==='review'?'مراجعة':t.status==='paused'?'موقوف':'جديد');
-    var stColor=isDone?'var(--accent3)':(t.status==='progress'?'var(--accent2)':t.status==='review'?'var(--accent)':t.status==='paused'?'#64b5f6':'var(--text3)');
+    var t=item.task; var si=_stInfo(t);
     var steps=t.steps||[]; var ds=steps.filter(function(s){return s.done;}).length;
-    var prog=steps.length?Math.round(ds/steps.length*100):(isDone?100:0);
+    var prog=steps.length?Math.round(ds/steps.length*100):(si.isDone?100:0);
     var typeTag=item.type==='project_task'
       ?'<div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:4px;display:inline-flex;align-items:center;gap:4px;background:rgba(124,111,247,.1);padding:2px 8px;border-radius:6px"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(item.projName)+'</div>'
       :'<div style="font-size:10px;color:var(--accent2);font-weight:700;margin-bottom:4px;display:inline-flex;align-items:center;gap:4px;background:rgba(247,201,72,.1);padding:2px 8px;border-radius:6px"><i class="fa-solid fa-clipboard-list"></i> مهمة عادية</div>';
     var click=item.type==='project_task'?'openProjectDetail(\''+String(t.project_id)+'\')':'openTaskModal('+String(t.id)+')';
-    return '<div class="card" style="cursor:pointer;border-right:3px solid '+stColor+'" onclick="'+click+'">'
+    return '<div class="card" style="cursor:pointer;border-right:3px solid '+si.color+'" onclick="'+click+'">'
       +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap"><div style="flex:1;min-width:0">'+typeTag
       +'<div style="font-size:14px;font-weight:800;color:var(--text)">'+escapeHtml(t.title||t.name||'مهمة')+'</div></div>'
-      +'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+stColor+'22;color:'+stColor+'">'+stLabel+'</span></div>'
+      +'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+si.color+'22;color:'+si.color+'">'+si.label+'</span></div>'
       +(steps.length?'<div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin:6px 0"><div style="height:100%;width:'+prog+'%;background:var(--accent);border-radius:3px"></div></div>':'')
       +'<div style="display:flex;gap:10px;font-size:11px;color:var(--text3);flex-wrap:wrap;margin-top:6px">'
       +(steps.length?'<span><i class="fa-solid fa-list-check"></i> '+ds+'/'+steps.length+'</span>':'')
@@ -9534,24 +9572,79 @@ function _renderAllTasksList(){
       +(t.value?'<span style="color:var(--accent);font-weight:700"><i class="fa-solid fa-coins"></i> '+Number(t.value).toLocaleString()+' ج</span>':'')
       +'</div></div>';
   }
-  function _row(item){
-    var t=item.task; var isDone=t.done||t.status==='done';
-    var stLabel=isDone?'مكتمل':(t.status==='progress'?'جاري':t.status==='review'?'مراجعة':t.status==='paused'?'موقوف':'جديد');
-    var stColor=isDone?'var(--accent3)':(t.status==='progress'?'var(--accent2)':t.status==='review'?'var(--accent)':t.status==='paused'?'#64b5f6':'var(--text3)');
-    var typeLbl=item.type==='project_task'?'<span style="color:var(--accent)"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(item.projName)+'</span>':'<span style="color:var(--accent2)"><i class="fa-solid fa-clipboard-list"></i> عادية</span>';
+  function _listRow(item){
+    var t=item.task; var si=_stInfo(t);
+    var isLate=t.deadline&&new Date(t.deadline)<new Date()&&!si.isDone;
+    var payBadge=t.pay==='full'?'<span style="font-size:10px;color:var(--accent3);font-weight:700">✓ مدفوع</span>':t.pay==='deposit'?'<span style="font-size:10px;color:#a78bfa;font-weight:700">عربون</span>':'<span style="font-size:10px;color:#f76f7c;font-weight:700">غير مدفوع</span>';
+    var typeLbl=item.type==='project_task'?'<span style="font-size:10px;color:var(--accent);font-weight:700"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(item.projName||'مشروع')+'</span>':'<span style="font-size:10px;color:var(--accent2);font-weight:700"><i class="fa-solid fa-clipboard-list"></i> عادية</span>';
     var click=item.type==='project_task'?'openProjectDetail(\''+String(t.project_id)+'\')':'openTaskModal('+String(t.id)+')';
     return '<tr style="cursor:pointer;border-bottom:1px solid var(--border)" onclick="'+click+'">'
-      +'<td style="padding:10px 14px"><div style="font-weight:700">'+escapeHtml(t.title||t.name||'مهمة')+'</div></td>'
+      +'<td style="padding:10px 14px"><div style="font-weight:700;'+(si.isDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+escapeHtml(t.title||t.name||'مهمة')+'</div>'+typeLbl+'</td>'
+      +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client||'—')+'</td>'
+      +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:var(--text3)">'+(t.orderDate||t.createdAt?.split('T')[0]||'—')+'</td>'
+      +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+(t.deadline||'—')+'</td>'
+      +'<td style="padding:10px 8px;text-align:center">'+payBadge+'</td>'
+      +'<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+si.color+'22;color:'+si.color+'">'+si.label+'</span></td>'
+    +'</tr>';
+  }
+  function _tableRow(item){
+    var t=item.task; var si=_stInfo(t);
+    var isLate=t.deadline&&new Date(t.deadline)<new Date()&&!si.isDone;
+    var typeLbl=item.type==='project_task'?'<span style="color:var(--accent)"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(item.projName)+'</span>':'<span style="color:var(--accent2)"><i class="fa-solid fa-clipboard-list"></i> عادية</span>';
+    var hasSteps=t.steps&&t.steps.length>0;
+    var click=item.type==='project_task'?'openProjectDetail(\''+String(t.project_id)+'\')':'openTaskModal('+String(t.id)+')';
+    var stepsHtml='';
+    if(hasSteps){
+      stepsHtml='<tr id="all-steps-row-'+t.id+'" style="display:none"><td colspan="5" style="padding:0 14px 12px 40px;background:var(--surface2);border-bottom:2px solid var(--border)">'
+        +'<div style="padding:10px 0;font-size:11px;font-weight:800;color:var(--text2);margin-bottom:4px"><i class="fa-solid fa-list-check" style="color:var(--accent);margin-left:4px"></i> خطوات ('+t.steps.filter(function(s){return s.done;}).length+'/'+t.steps.length+')</div>'
+        +t.steps.map(function(s,si2){
+          var stepDone=s.done; var stepLate=s.deadline&&new Date(s.deadline)<new Date()&&!stepDone;
+          return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">'
+            +'<div style="width:18px;height:18px;border-radius:50%;border:2px solid '+(stepDone?'var(--accent3)':'var(--border)')+';display:flex;align-items:center;justify-content:center;font-size:9px;background:'+(stepDone?'var(--accent3)':'transparent')+';color:'+(stepDone?'#fff':'transparent')+'"><i class="fa-solid fa-check"></i></div>'
+            +'<div style="flex:1;'+(stepDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+escapeHtml(s.text||s.title||'')+'</div>'
+            +(s.deadline?'<div style="font-size:10px;font-family:var(--mono);color:'+(stepLate?'#f76f7c':'var(--text3)')+'">'+s.deadline+'</div>':'')
+          +'</div>';
+        }).join('')+'</td></tr>';
+    }
+    return '<tr style="cursor:pointer;border-bottom:1px solid var(--border)" onclick="'+click+'">'
+      +'<td style="padding:10px 14px"><div style="display:flex;align-items:center;gap:6px">'
+      +(hasSteps?'<button onclick="event.stopPropagation();_toggleAllStepsRow(\''+t.id+'\',\'all-\')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;padding:2px 4px;flex-shrink:0" id="all-steps-arrow-'+t.id+'"><i class="fa-solid fa-chevron-down"></i></button>':'<span style="width:22px"></span>')
+      +'<div style="font-weight:700">'+escapeHtml(t.title||t.name||'مهمة')+'</div></div>'+typeLbl+'</td>'
       +'<td style="padding:10px 8px;text-align:center;font-size:11px">'+typeLbl+'</td>'
-      +'<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+stColor+'22;color:'+stColor+'">'+stLabel+'</span></td>'
-      +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.deadline||'—')+'</td>'
-      +'<td style="padding:10px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--accent)">'+(t.value?Number(t.value).toLocaleString()+' ج':'—')+'</td></tr>';
+      +'<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+si.color+'22;color:'+si.color+'">'+si.label+'</span></td>'
+      +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+escapeHtml(t.deadline||'—')+'</td>'
+      +'<td style="padding:10px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--accent)">'+(t.value?Number(t.value).toLocaleString()+' ج':'—')+'</td>'
+    +'</tr>'+stepsHtml;
   }
   var empty='<div style="text-align:center;padding:50px 20px;color:var(--text3)"><i class="fa-solid fa-layer-group" style="font-size:40px;opacity:.35;display:block;margin-bottom:12px"></i><div style="font-size:14px;font-weight:700;color:var(--text2);margin-bottom:5px">لا توجد مهام</div></div>';
+  // Kanban
   var k=document.getElementById('all-tasks-kanban'); if(k) k.innerHTML=allItems.length?allItems.map(_card).join(''):empty;
-  var l=document.getElementById('all-tasks-list'); if(l) l.innerHTML=allItems.length?'<div style="display:flex;flex-direction:column;gap:10px">'+allItems.map(_card).join('')+'</div>':empty;
-  var tb=document.getElementById('all-tasks-table-body'); if(tb) tb.innerHTML=allItems.length?allItems.map(_row).join(''):'<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">لا توجد مهام</td></tr>';
+  // List — TABLE format like "مهامي"
+  var l=document.getElementById('all-tasks-list');
+  if(l){
+    if(!allItems.length){ l.innerHTML=empty; }
+    else{
+      l.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">'
+        +'<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>'
+        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">العميل</th>'
+        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">تاريخ الطلب</th>'
+        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">تاريخ التسليم</th>'
+        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الدفع</th>'
+        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة</th>'
+        +'</tr></thead><tbody>'+allItems.map(_listRow).join('')+'</tbody></table></div></div>';
+    }
+  }
+  // Table (with expandable steps)
+  var tb=document.getElementById('all-tasks-table-body'); if(tb) tb.innerHTML=allItems.length?allItems.map(_tableRow).join(''):'<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">لا توجد مهام</td></tr>';
   var cnt=document.getElementById('all-tasks-table-count'); if(cnt) cnt.textContent=allItems.length+' مهمة';
+}
+function _toggleAllStepsRow(tid,prefix){
+  var row=document.getElementById((prefix||'')+'steps-row-'+tid);
+  var arrow=document.getElementById((prefix||'')+'steps-arrow-'+tid);
+  if(!row)return;
+  var isOpen=row.style.display!=='none';
+  row.style.display=isOpen?'none':'table-row';
+  if(arrow) arrow.style.transform=isOpen?'':'rotate(180deg)';
 }
 
 
