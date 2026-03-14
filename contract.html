@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>توقيع العقد</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<!-- تطبيق ثيم اليوزر فوراً من localStorage -->
+<script>
+(function(){
+  try{
+    var mode  = localStorage.getItem('studioDisplayMode') || 'dark';
+    var accent= localStorage.getItem('studioAccentColor') || '#7c6ff7';
+    var root  = document.documentElement;
+    root.style.setProperty('--accent', accent);
+    if(mode==='light'){
+      root.classList.add('light-mode');
+      root.style.setProperty('--bg','#f0f2f8');root.style.setProperty('--surface','#ffffff');
+      root.style.setProperty('--surface2','#f5f6fb');root.style.setProperty('--surface3','#eceef5');
+      root.style.setProperty('--border','#d8dae8');root.style.setProperty('--text','#1a1a2e');
+      root.style.setProperty('--text2','#5a5a7a');root.style.setProperty('--text3','#9090b0');
+      root.style.background='#f0f2f8';
+    } else { root.style.background='#0a0a0f'; }
+  }catch(e){}
+})();
+</script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--accent:#7c6ff7;--accent2:#f7c948;--accent3:#4fd1a5;--accent4:#f76f7c;--bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a28;--surface3:#222238;--border:#2a2a45;--text:#e8e8f0;--text2:#a0a0c0;--text3:#606080;--radius:14px;--font:'Cairo',sans-serif}
+html.light-mode{--bg:#f0f2f8;--surface:#ffffff;--surface2:#f5f6fb;--surface3:#eceef5;--border:#d8dae8;--text:#1a1a2e;--text2:#5a5a7a;--text3:#9090b0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:20px 16px 60px;transition:background .2s,color .2s}
+.container{max-width:700px;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:var(--font);transition:.18s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:.88}
+.btn-ghost{background:transparent;color:var(--text2);border:1.5px solid var(--border)}.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.form-input{width:100%;padding:10px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;font-family:var(--font);outline:none}.form-input:focus{border-color:var(--accent)}
+.form-label{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;display:block}
+.sig-canvas{width:100%;height:150px;background:#fff;border-radius:10px;cursor:crosshair;touch-action:none;border:2px dashed var(--border);display:block}
+#loader{display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:16px}
+.spin{animation:spin 1s linear infinite;font-size:32px;color:var(--accent)}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:20px}
+.info-label{font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px}
+.info-val{font-size:13px;font-weight:700}
+.sig-box{height:90px;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;border:2px dashed var(--border);background:var(--surface2)}
+.sig-box img{max-width:100%;max-height:86px;object-fit:contain}
+@media(max-width:480px){.info-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div style="text-align:center;margin-bottom:28px;padding-top:16px">
+    <div style="font-size:28px;margin-bottom:6px">📝</div>
+    <div style="font-size:20px;font-weight:900;color:var(--accent)">عقد عمل رقمي</div>
+    <div style="font-size:12px;color:var(--text3);margin-top:4px">يرجى القراءة بعناية قبل التوقيع</div>
+  </div>
+
+  <div id="loader"><i class="fa-solid fa-rotate spin"></i><div style="font-size:13px;color:var(--text3)">جارٍ تحميل العقد...</div></div>
+
+  <div id="contract-wrap" style="display:none">
+
+    <div id="signed-banner" style="display:none" class="card">
+      <div style="text-align:center;padding:16px 0">
+        <div style="font-size:48px;margin-bottom:12px"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i></div>
+        <div style="font-size:18px;font-weight:900;color:var(--accent3)">تم توقيع هذا العقد مسبقاً</div>
+        <div style="font-size:13px;color:var(--text2);margin-top:8px" id="signed-info"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="text-align:center;padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--border)">
+        <div style="font-size:18px;font-weight:900" id="ct-title-disp">—</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px" id="ct-date-disp"></div>
+      </div>
+      <div class="info-grid">
+        <div><div class="info-label">مقدم الخدمة</div><div class="info-val" id="ct-provider">—</div></div>
+        <div><div class="info-label">العميل</div><div class="info-val" id="ct-client-disp">—</div></div>
+        <div><div class="info-label">قيمة العقد</div><div class="info-val" style="color:var(--accent3)" id="ct-value-disp">—</div></div>
+        <div><div class="info-label">مدة التنفيذ</div><div class="info-val" id="ct-period-disp">—</div></div>
+      </div>
+      <div style="font-size:13px;line-height:1.9;color:var(--text2);white-space:pre-wrap" id="ct-content-disp"></div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:14px;font-weight:800;margin-bottom:16px"><i class="fa-solid fa-pen-nib" style="color:var(--accent)"></i> التوقيعات</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:8px;text-align:center">توقيع مقدم الخدمة</div>
+          <div id="provider-sig-box" class="sig-box"><span style="color:var(--text3);font-size:11px">لم يوقّع بعد</span></div>
+          <div style="font-size:11px;font-weight:700;text-align:center;margin-top:6px" id="provider-sig-name"></div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:8px;text-align:center">توقيع العميل</div>
+          <div id="client-sig-box" class="sig-box"><span style="color:var(--text3);font-size:11px">في انتظار التوقيع</span></div>
+          <div style="font-size:11px;font-weight:700;text-align:center;margin-top:6px" id="client-sig-name"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- فورم التوقيع (يظهر فقط لو مش موقّع) -->
+    <div id="sign-form" class="card" style="display:none">
+      <div style="font-size:14px;font-weight:800;margin-bottom:16px"><i class="fa-solid fa-signature" style="color:var(--accent)"></i> وقّع هنا</div>
+      <div style="margin-bottom:12px">
+        <label class="form-label">اسمك الكامل</label>
+        <input class="form-input" id="signer-name" placeholder="اسمك كما في الهوية">
+      </div>
+      <div style="margin-bottom:8px">
+        <label class="form-label">توقيعك</label>
+        <canvas id="sig-canvas-ct" class="sig-canvas"></canvas>
+      </div>
+      <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px;margin-bottom:14px" onclick="clearSigCt()"><i class="fa-solid fa-rotate-left"></i> مسح</button>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="submitContractSign()">
+        <i class="fa-solid fa-square-check" style="color:#fff"></i> أوافق وأؤكد توقيعي
+      </button>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px;text-align:center">بالتوقيع، أنت توافق على بنود العقد المذكورة أعلاه</div>
+    </div>
+
+    <!-- قفل: تم التوقيع مسبقاً — منع التوقيع مرة ثانية -->
+    <div id="sign-locked" class="card" style="display:none;text-align:center">
+      <div style="font-size:36px;margin-bottom:10px"><i class="fa-solid fa-lock" style="color:var(--text3)"></i></div>
+      <div style="font-size:14px;font-weight:800;color:var(--text2)">هذا العقد تم توقيعه بالفعل</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px">لا يمكن التوقيع مرة أخرى. تواصل مع مقدم الخدمة إذا احتجت تعديلاً.</div>
+    </div>
+
+    <!-- نجاح التوقيع -->
+    <div id="sign-success" class="card" style="display:none;text-align:center">
+      <div style="font-size:48px;margin-bottom:12px">🎉</div>
+      <div style="font-size:18px;font-weight:900;color:var(--accent3)">تم التوقيع بنجاح!</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:8px" id="success-msg"></div>
+    </div>
+
+  </div>
+
+  <div id="error-wrap" style="display:none;text-align:center;padding:60px 20px">
+    <div style="font-size:48px;margin-bottom:16px"><i class="fa-solid fa-lock" style="color:var(--text3)"></i></div>
+    <div style="font-size:18px;font-weight:700;color:var(--text2)">العقد غير موجود</div>
+    <div style="font-size:13px;color:var(--text3);margin-top:8px">الرابط قد يكون منتهياً أو غير صحيح</div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL  = 'https://mpfmcjgigpvdxbhgzufo.supabase.co';
+const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wZm1jamdpZ3B2ZHhiaGd6dWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2Mjc3MzMsImV4cCI6MjA4ODIwMzczM30.fICNxH_7DEBHripIoyMcUugTnd4JEBx-ypegpPvb6PM';
+const supa = supabase.createClient(SUPA_URL, SUPA_ANON);
+
+var _ctData=null, _ctToken=null, _ownerUid=null;
+var _sigCtx=null, _sigDrawing=false;
+
+// ── تطبيق ثيم اليوزر ──
+function _applyTheme(accent, mode){
+  var root=document.documentElement;
+  if(accent){ root.style.setProperty('--accent',accent); try{localStorage.setItem('studioAccentColor',accent);}catch(e){} }
+  if(mode==='light'){
+    root.classList.add('light-mode');
+    root.style.setProperty('--bg','#f0f2f8');root.style.setProperty('--surface','#ffffff');
+    root.style.setProperty('--surface2','#f5f6fb');root.style.setProperty('--surface3','#eceef5');
+    root.style.setProperty('--border','#d8dae8');root.style.setProperty('--text','#1a1a2e');
+    root.style.setProperty('--text2','#5a5a7a');root.style.setProperty('--text3','#9090b0');
+    document.body.style.background='#f0f2f8';
+    try{localStorage.setItem('studioDisplayMode','light');}catch(e){}
+  } else if(mode==='dark'){
+    root.classList.remove('light-mode');
+    document.body.style.background='#0a0a0f';
+    try{localStorage.setItem('studioDisplayMode','dark');}catch(e){}
+  }
+}
+
+// ── Load contract ──
+async function loadContract(){
+  const params=new URLSearchParams(window.location.search);
+  _ctToken=params.get('token')||params.get('ctsign');
+  if(!_ctToken){ showError(); return; }
+
+  // 1. shared_contracts
+  try{
+    const res=await supa.from('shared_contracts').select('data,user_id').eq('token',_ctToken).single();
+    if(res.data&&res.data.data){
+      _ownerUid=res.data.user_id||null;
+      try{ _ctData=JSON.parse(res.data.data); }catch(e){ _ctData=res.data.data; }
+      if(_ctData){
+        // جيب ثيم صاحب العقد
+        if(_ownerUid) await _loadOwnerTheme(_ownerUid);
+        renderContract(_ctData);
+        return;
+      }
+    }
+  }catch(e){}
+
+  // 2. studio_data scan
+  try{
+    const res2=await supa.from('studio_data').select('data,user_id').like('data','%'+_ctToken+'%').limit(5);
+    if(res2.data&&res2.data.length){
+      for(var row of res2.data){
+        try{
+          var sd=typeof row.data==='string'?JSON.parse(row.data):row.data;
+          var found=(sd.contracts||[]).find(function(c){return c.token===_ctToken;});
+          if(found){
+            _ctData=found; _ownerUid=row.user_id||null;
+            _applyTheme(sd.settings?.accentColor||sd.settings?.accent, sd.settings?.displayMode);
+            renderContract(_ctData); return;
+          }
+        }catch(e2){}
+      }
+    }
+  }catch(e){}
+
+  // 3. localStorage
+  try{
+    var stored=localStorage.getItem('ct_sign_'+_ctToken);
+    if(stored){ _ctData=JSON.parse(stored); renderContract(_ctData); return; }
+  }catch(e){}
+
+  showError();
+}
+
+async function _loadOwnerTheme(uid){
+  try{
+    var r=await supa.from('user_settings').select('data').eq('user_id',uid).single();
+    if(r.data&&r.data.data){
+      var us=typeof r.data.data==='string'?JSON.parse(r.data.data):r.data.data;
+      _applyTheme(us.accentColor||us.accent, us.displayMode);
+      return;
+    }
+  }catch(e){}
+  // fallback to studio_data settings
+  try{
+    var r2=await supa.from('studio_data').select('data').eq('user_id',uid).single();
+    if(r2.data&&r2.data.data){
+      var sd2=typeof r2.data.data==='string'?JSON.parse(r2.data.data):r2.data.data;
+      _applyTheme(sd2.settings?.accentColor||sd2.settings?.accent, sd2.settings?.displayMode);
+    }
+  }catch(e){}
+}
+
+function showError(){
+  document.getElementById('loader').style.display='none';
+  document.getElementById('error-wrap').style.display='block';
+}
+
+function renderContract(c){
+  document.getElementById('loader').style.display='none';
+  document.getElementById('contract-wrap').style.display='block';
+
+  document.title=(c.title||'عقد')+' — Ordo';
+  document.getElementById('ct-title-disp').textContent=c.title||'عقد عمل';
+  document.getElementById('ct-date-disp').textContent=c.created_at?'تاريخ الإنشاء: '+new Date(c.created_at).toLocaleDateString('ar-EG'):'';
+  document.getElementById('ct-provider').textContent=c.provider_name||'مقدم الخدمة';
+  document.getElementById('ct-client-disp').textContent=c.client_name||'—';
+  document.getElementById('ct-value-disp').textContent=c.value?Number(c.value).toLocaleString()+' ج.م':'غير محدد';
+  document.getElementById('ct-period-disp').textContent=(c.start_date||'—')+' ← '+(c.end_date||'—');
+  document.getElementById('ct-content-disp').textContent=c.content||'';
+
+  if(c.freelancer_signature){
+    var psb=document.getElementById('provider-sig-box');
+    psb.innerHTML='<img src="'+c.freelancer_signature+'" style="max-width:100%;max-height:86px;object-fit:contain">';
+    psb.style.cssText+='border:1.5px solid rgba(79,209,165,.4);background:rgba(79,209,165,.04)';
+  }
+  document.getElementById('provider-sig-name').textContent=c.provider_name||'';
+
+  if(c.client_signature){
+    var csb=document.getElementById('client-sig-box');
+    csb.innerHTML='<img src="'+c.client_signature+'" style="max-width:100%;max-height:86px;object-fit:contain">';
+    csb.style.cssText+='border:1.5px solid rgba(79,209,165,.4);background:rgba(79,209,165,.04)';
+    document.getElementById('client-sig-name').textContent=(c.client_signer_name||c.client_name||'')+(c.signed_at?' · '+new Date(c.signed_at).toLocaleDateString('ar-EG'):'');
+  }
+
+  if(c.status==='signed'){
+    // موقّع → أظهر بانر + قفل التوقيع
+    document.getElementById('signed-banner').style.display='block';
+    document.getElementById('signed-info').textContent='وقّع '+(c.client_signer_name||c.client_name||'العميل')+(c.signed_at?' في '+new Date(c.signed_at).toLocaleDateString('ar-EG'):'');
+    document.getElementById('sign-locked').style.display='block';
+  } else {
+    document.getElementById('sign-form').style.display='block';
+    setTimeout(initSigCanvas,150);
+  }
+}
+
+function initSigCanvas(){
+  var cv=document.getElementById('sig-canvas-ct'); if(!cv)return;
+  cv.width=cv.offsetWidth||600; cv.height=150;
+  _sigCtx=cv.getContext('2d');
+  _sigCtx.strokeStyle='#1a1a2e'; _sigCtx.lineWidth=2.5; _sigCtx.lineCap='round'; _sigCtx.lineJoin='round';
+  var gp=function(e){var r=cv.getBoundingClientRect();var sx=cv.width/r.width,sy=cv.height/r.height;var cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;return{x:(cx-r.left)*sx,y:(cy-r.top)*sy};};
+  cv.onmousedown=function(e){_sigDrawing=true;var p=gp(e);_sigCtx.beginPath();_sigCtx.moveTo(p.x,p.y);};
+  cv.onmousemove=function(e){if(!_sigDrawing)return;var p=gp(e);_sigCtx.lineTo(p.x,p.y);_sigCtx.stroke();};
+  cv.onmouseup=cv.onmouseleave=function(){_sigDrawing=false;};
+  cv.ontouchstart=function(e){e.preventDefault();_sigDrawing=true;var p=gp(e);_sigCtx.beginPath();_sigCtx.moveTo(p.x,p.y);};
+  cv.ontouchmove=function(e){e.preventDefault();if(!_sigDrawing)return;var p=gp(e);_sigCtx.lineTo(p.x,p.y);_sigCtx.stroke();};
+  cv.ontouchend=function(){_sigDrawing=false;};
+}
+
+function clearSigCt(){
+  var cv=document.getElementById('sig-canvas-ct');
+  if(_sigCtx&&cv) _sigCtx.clearRect(0,0,cv.width,cv.height);
+}
+
+function isSigEmpty(cv){
+  var d=cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data;
+  return !d.some(function(v,i){return i%4!==3&&v<250;});
+}
+
+async function submitContractSign(){
+  // فحص: لو موقّع اقفله
+  if(_ctData&&_ctData.status==='signed'){
+    document.getElementById('sign-form').style.display='none';
+    document.getElementById('sign-locked').style.display='block';
+    return;
+  }
+  var name=(document.getElementById('signer-name').value||'').trim();
+  if(!name){alert('يرجى إدخال اسمك الكامل');return;}
+  var cv=document.getElementById('sig-canvas-ct');
+  if(!cv||isSigEmpty(cv)){alert('يرجى التوقيع أولاً');return;}
+
+  var sig=cv.toDataURL('image/png');
+  var now=new Date().toISOString();
+  _ctData.client_signature=sig;
+  _ctData.client_signer_name=name;
+  _ctData.signed_at=now;
+  _ctData.status='signed';
+
+  try{
+    // ١. حفظ في shared_contracts
+    await supa.from('shared_contracts').upsert([{token:_ctToken,data:JSON.stringify(_ctData),updated_at:now}]);
+
+    // ٢. تحديث studio_data لصاحب الحساب (Realtime سيبعت له إشعار)
+    if(_ownerUid){
+      try{
+        var sdR=await supa.from('studio_data').select('data').eq('user_id',_ownerUid).single();
+        if(sdR.data&&sdR.data.data){
+          var sd=JSON.parse(sdR.data.data);
+          var idx=(sd.contracts||[]).findIndex(function(x){return x.token===_ctToken||x.id===_ctData.id;});
+          if(idx>-1){
+            sd.contracts[idx].status='signed';
+            sd.contracts[idx].client_signature=sig;
+            sd.contracts[idx].client_signer_name=name;
+            sd.contracts[idx].signed_at=now;
+            // هذا الـ upsert هو اللي Realtime في السيستم بيستمع له
+            await supa.from('studio_data').upsert({user_id:_ownerUid,data:JSON.stringify(sd),updated_at:now},{onConflict:'user_id'});
+          }
+        }
+      }catch(e2){}
+    }
+
+    // ٣. عرض نجاح + قفل
+    document.getElementById('sign-form').style.display='none';
+    document.getElementById('sign-success').style.display='block';
+    document.getElementById('sign-locked').style.display='block';
+    document.getElementById('success-msg').textContent='شكراً '+name+'، تم تسجيل توقيعك بنجاح على العقد.';
+
+    var csb=document.getElementById('client-sig-box');
+    csb.innerHTML='<img src="'+sig+'" style="max-width:100%;max-height:86px;object-fit:contain">';
+    csb.style.cssText+='border:1.5px solid rgba(79,209,165,.4);background:rgba(79,209,165,.04)';
+    document.getElementById('client-sig-name').textContent=name+' · '+new Date(now).toLocaleDateString('ar-EG');
+    document.getElementById('signed-banner').style.display='block';
+    document.getElementById('signed-info').textContent='وقّع '+name+' في '+new Date(now).toLocaleDateString('ar-EG');
+
+  }catch(e){
+    alert('حدث خطأ أثناء الحفظ، حاول مرة أخرى\n'+(e.message||''));
+  }
+}
+
+loadContract();
+</script>
+</body>
+</html>
