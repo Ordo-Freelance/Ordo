@@ -511,6 +511,7 @@ function renderPage(){
     <div class="tab-panel" id="tp-reviews">${renderMyReviews()}</div>
 
   ${renderStoreSection()}
+  ${_renderFreelancerReviews()}
   </div>
 
   <footer class="ftr"><div class="ftr-in">
@@ -1689,6 +1690,56 @@ function renderMyReviews(){
     ${r.comment?`<div class="rev-comment">"${xe(r.comment)}"</div>`:''}
     <div class="rev-meta"><i class="fa-solid fa-calendar"></i> ${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):''}</div>
   </div>`).join('')}`;
+}
+
+// ── Freelancer Reviews Section (shown to all visitors) ──
+function _renderFreelancerReviews(){
+  const allRevs = (_ud.reviews||[]).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  if(!allRevs.length) return '';
+  const acc = _settings?.accent||_settings?.accentColor||'#7c6ff7';
+  const total = allRevs.length;
+  const avg = (allRevs.reduce((s,r)=>s+(+r.stars||0),0)/total).toFixed(1);
+
+  return `
+  <section class="store-sec" id="_reviews-public-section" style="margin-top:40px">
+    <div class="store-divider"></div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:17px;font-weight:900;color:var(--t1)">
+          <i class="fa-solid fa-star" style="color:#f7c948;margin-left:7px"></i>تقييمات العملاء
+        </div>
+        <div style="font-size:12px;color:var(--t3);margin-top:3px">${total} تقييم · متوسط ⭐ ${avg}</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:44px;font-weight:900;color:#f7c948;line-height:1">${avg}</div>
+      <div style="font-size:20px;margin:6px 0">${'⭐'.repeat(Math.round(+avg))}</div>
+      <div style="font-size:12px;color:var(--t3)">${total} تقييم من العملاء</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${allRevs.slice(0,8).map(r=>{
+        const starLabel = ['','سيء','مقبول','جيد','رائع','ممتاز'][+r.stars]||'';
+        const starColor = +r.stars>=4?'#f7c948':+r.stars===3?acc:'#f76f7c';
+        return `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:14px;padding:14px 16px;border-right:3px solid ${starColor}">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:${r.comment?'8':'0'}px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:32px;height:32px;border-radius:50%;background:${acc}18;color:${acc};font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(r.client_name||'?')[0]}</div>
+              <div>
+                <div style="font-size:13px;font-weight:700">${xe(r.client_name||'عميل')}</div>
+                <div style="font-size:10px;color:var(--t3)"><i class="fa-solid fa-calendar-days"></i> ${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):''}</div>
+              </div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:14px;letter-spacing:1px">${'⭐'.repeat(+r.stars||0)}</div>
+              <div style="font-size:9px;font-weight:700;color:${starColor}">${starLabel}</div>
+            </div>
+          </div>
+          ${r.comment?`<div style="font-size:13px;color:var(--t2);line-height:1.8;font-style:italic;padding:8px 12px;background:var(--bg);border-radius:8px;border-right:3px solid #f7c948">"${xe(r.comment)}"</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+    ${allRevs.length>8?`<div style="text-align:center;margin-top:16px;font-size:12px;color:var(--t3)">وأكثر من ${allRevs.length-8} تقييم آخر...</div>`:''}
+  </section>`;
 }
 
 function openReviewSheet(taskId, taskTitle){

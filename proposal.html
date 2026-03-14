@@ -451,23 +451,7 @@ const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIs
 const db = supabase.createClient(SUPA_URL, SUPA_ANON);
 
 const P     = new URLSearchParams(location.search);
-// Support token from both ?token=xxx and hash-based routing
-var token = P.get('token');
-if(!token){
-  // Try extracting token from hash fragment (e.g., #/proposal?token=xxx)
-  try{
-    var hashSearch = location.hash.includes('?') ? location.hash.split('?')[1] : '';
-    if(hashSearch) token = new URLSearchParams(hashSearch).get('token');
-  }catch(e){}
-}
-// Also try from pathname for clean URL routing (e.g., /username/p/TOKEN)
-if(!token){
-  try{
-    var parts = location.pathname.split('/').filter(Boolean);
-    var pIdx = parts.indexOf('p');
-    if(pIdx >= 0 && parts[pIdx+1]) token = decodeURIComponent(parts[pIdx+1]);
-  }catch(e){}
-}
+const token = P.get('token');
 
 var _proposal   = null;
 var _resolvedUid= null;
@@ -505,50 +489,26 @@ async function boot(){
   if (!token) { showErr('رابط غير صحيح', 'لا يوجد رقم عرض في الرابط'); return; }
 
   try {
-    var rows = null;
+    // Search all studio_data for a proposal with this token
+    // We query by data->>proposals containing the token
+    // ✅ FIX: try multiple query strategies for robustness
+    var rows = null, error = null;
 
-    // Strategy 1: JSONB text search (fastest)
+    // Strategy 1: text cast (works if column is JSONB)
     var r1 = await db.from('studio_data').select('user_id, data')
-      .like('data::text', '%' + token + '%').limit(20);
+      .like('data::text', '%' + token + '%').limit(10);
     if (!r1.error && r1.data && r1.data.length) {
       rows = r1.data;
     }
 
-    // Strategy 2: filter full scan in JS (fallback for RLS / cast issues)
+    // Strategy 2: if strategy 1 failed, fetch all and filter in JS (fallback)
     if (!rows || !rows.length) {
-      var r2 = await db.from('studio_data').select('user_id, data').limit(500);
+      var r2 = await db.from('studio_data').select('user_id, data').limit(200);
       if (!r2.error && r2.data && r2.data.length) {
         rows = r2.data.filter(function(row) {
           var txt = typeof row.data === 'string' ? row.data : JSON.stringify(row.data||'');
           return txt.indexOf(token) > -1;
         });
-      }
-    }
-
-    // Strategy 3: retry once after 2s (race condition — main app may still be saving)
-    if (!rows || !rows.length) {
-      // Update loading message to tell user we're retrying
-      var ldMsg = el('loader');
-      if (ldMsg) {
-        var lp = ldMsg.querySelector('p, .loader-sub');
-        if (!lp) { lp = document.createElement('p'); lp.style.cssText='font-size:13px;color:#888;margin-top:10px'; ldMsg.appendChild(lp); }
-        lp.textContent = 'جارٍ إعادة المحاولة...';
-      }
-      await new Promise(function(res){ setTimeout(res, 2500); });
-
-      var r3 = await db.from('studio_data').select('user_id, data')
-        .like('data::text', '%' + token + '%').limit(20);
-      if (!r3.error && r3.data && r3.data.length) {
-        rows = r3.data;
-      } else {
-        // Final fallback full scan
-        var r4 = await db.from('studio_data').select('user_id, data').limit(500);
-        if (!r4.error && r4.data && r4.data.length) {
-          rows = r4.data.filter(function(row) {
-            var txt = typeof row.data === 'string' ? row.data : JSON.stringify(row.data||'');
-            return txt.indexOf(token) > -1;
-          });
-        }
       }
     }
 
@@ -568,6 +528,7 @@ async function boot(){
     }
 
     if (!found) {
+      // ✅ FIX: show how many rows were scanned for debugging
       var rowCount = rows ? rows.length : 0;
       showErr('لم يتم العثور على العرض', 'تم فحص ' + rowCount + ' سجل — الرابط قد يكون منتهياً أو العرض لم يُحفظ بعد');
       return;
@@ -576,6 +537,7 @@ async function boot(){
     _proposal    = found;
     _resolvedUid = foundUid;
 
+    // Get freelancer info
     var s = (_fullData && _fullData.settings) ? _fullData.settings : {};
     renderPage(s);
 
@@ -590,40 +552,6 @@ var _fullData = null;
 function renderPage(settings) {
   var p = _proposal;
   var cur = p.currency || 'ج.م';
-
-  // Apply user's accent color
-  var userAccent = settings.accentColor || settings.accent || '#7c6ff7';
-  document.documentElement.style.setProperty('--accent', userAccent);
-  
-  // Apply user identity (title, favicon)
-  var _userName = settings.name || settings.username || 'فريلانسر';
-  document.title = _userName + ' — عرض سعر';
-  try{
-    if(settings.logo){
-      var _favLink = document.querySelector("link[rel*='icon']");
-      if(!_favLink){ _favLink=document.createElement('link'); _favLink.rel='icon'; document.head.appendChild(_favLink); }
-      _favLink.href = settings.logo;
-    }
-    var _metaTheme = document.querySelector('meta[name="theme-color"]');
-    if(!_metaTheme){ _metaTheme=document.createElement('meta'); _metaTheme.name='theme-color'; document.head.appendChild(_metaTheme); }
-    _metaTheme.content = userAccent;
-  }catch(e){}
-
-  // Apply user's display mode
-  var userMode = settings.displayMode || settings.display_mode || 'light';
-  if(userMode === 'dark'){
-    document.documentElement.style.setProperty('--bg','#0a0d14');
-    document.documentElement.style.setProperty('--surface','#13161f');
-    document.documentElement.style.setProperty('--surface2','#1a1e2b');
-    document.documentElement.style.setProperty('--border','rgba(255,255,255,.08)');
-    document.documentElement.style.setProperty('--t1','#f0f2f8');
-    document.documentElement.style.setProperty('--t2','#9aa3bc');
-    document.documentElement.style.setProperty('--t3','#5a6380');
-    document.body.style.background = '#0a0d14';
-    document.body.style.color = '#f0f2f8';
-    var topBand = document.querySelector('.top-band');
-    if(topBand) topBand.style.background = 'linear-gradient(135deg,#0d1017 0%,#1a1e2b 100%)';
-  }
 
   // Freelancer info
   if (settings.logo) {
@@ -776,7 +704,7 @@ async function _confirmRespond() {
     fresh._savedAt = new Date().toISOString();
 
     var { error } = await db.from('studio_data').upsert(
-      { user_id: _resolvedUid, data: JSON.stringify(fresh), updated_at: new Date().toISOString() },
+      { user_id: _resolvedUid, data: fresh, updated_at: new Date().toISOString() },
       { onConflict: 'user_id' }
     );
     if (error) throw error;

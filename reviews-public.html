@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>تقييمات العملاء</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg: #0a0a0f;
+        --s1: #111118;
+        --s2: #16161f;
+        --s3: #1c1c28;
+        --t1: #f0f0f5;
+        --t2: #aaaacc;
+        --t3: #777799;
+        --ac: #7c6ff7;
+        --ac2: #4fd1a5;
+        --gold: #f7c948;
+        --bd: rgba(255, 255, 255, 0.08);
+        --font: "Cairo", sans-serif;
+      }
+      body {
+        background: var(--bg);
+        color: var(--t1);
+        font-family: var(--font);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(
+            ellipse 70% 50% at 20% 0%,
+            rgba(124, 111, 247, 0.12),
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 50% 40% at 80% 100%,
+            rgba(247, 201, 72, 0.06),
+            transparent 60%
+          );
+      }
+      #loader {
+        position: fixed;
+        inset: 0;
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+      }
+      .spin {
+        width: 36px;
+        height: 36px;
+        border: 3px solid var(--bd);
+        border-top-color: var(--ac);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #err-screen {
+        display: none;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+        padding: 40px;
+      }
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(10, 10, 15, 0.88);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--bd);
+        padding: 0 20px;
+      }
+      .nav-in {
+        max-width: 900px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        height: 60px;
+        gap: 12px;
+      }
+      .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        flex: 1;
+        min-width: 0;
+      }
+      .nav-av {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        object-fit: cover;
+        flex-shrink: 0;
+      }
+      .nav-av-ph {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--ac), var(--ac2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        color: #fff;
+        font-weight: 900;
+        flex-shrink: 0;
+      }
+      .nav-nm {
+        font-size: 15px;
+        font-weight: 900;
+        color: var(--t1);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .nb {
+        padding: 7px 16px;
+        border-radius: 9px;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+        font-family: var(--font);
+        border: none;
+        transition: 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .nb-s {
+        background: var(--ac);
+        color: #fff;
+      }
+      .nb-s:hover {
+        opacity: 0.85;
+      }
+      .nb-w {
+        background: #25d366;
+        color: #fff;
+      }
+      .nb-w:hover {
+        opacity: 0.85;
+      }
+      .hero {
+        text-align: center;
+        padding: 48px 20px 36px;
+        position: relative;
+        z-index: 1;
+      }
+      .h-av {
+        width: 88px;
+        height: 88px;
+        border-radius: 50%;
+        border: 3px solid var(--ac);
+        object-fit: cover;
+        margin: 0 auto 14px;
+        display: block;
+        background: var(--s2);
+      }
+      .h-av-ph {
+        width: 88px;
+        height: 88px;
+        border-radius: 50%;
+        border: 3px solid var(--ac);
+        background: linear-gradient(135deg, var(--ac), var(--ac2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 34px;
+        color: #fff;
+        margin: 0 auto 14px;
+      }
+      .h-nm {
+        font-size: 24px;
+        font-weight: 900;
+      }
+      .h-bio {
+        font-size: 13px;
+        color: var(--t2);
+        margin-top: 4px;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.7;
+      }
+      .sw {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 20px;
+        position: relative;
+        z-index: 1;
+      }
+      .sc {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: 20px;
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .sc-n {
+        font-size: 64px;
+        font-weight: 900;
+        color: var(--gold);
+        line-height: 1;
+      }
+      .sc-s {
+        font-size: 24px;
+        margin: 8px 0 2px;
+      }
+      .sc-c {
+        font-size: 12px;
+        color: var(--t3);
+      }
+      .sd {
+        flex: 1;
+        min-width: 200px;
+      }
+      .dr {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .db {
+        flex: 1;
+        height: 8px;
+        background: var(--s3);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .df {
+        height: 100%;
+        background: var(--gold);
+        border-radius: 4px;
+        transition: width 0.8s ease;
+      }
+      .ct {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 20px 40px;
+        position: relative;
+        z-index: 1;
+      }
+      .rg {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 14px;
+        margin-bottom: 32px;
+      }
+      @media (max-width: 720px) {
+        .rg {
+          grid-template-columns: 1fr;
+        }
+      }
+      .rc {
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: 16px;
+        padding: 18px 20px;
+        border-right: 3px solid var(--gold);
+        transition:
+          transform 0.15s,
+          box-shadow 0.15s;
+      }
+      .rc:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 32px rgba(124, 111, 247, 0.1);
+      }
+      .rcm {
+        font-size: 12px;
+        color: var(--t2);
+        line-height: 1.8;
+        font-style: italic;
+        padding: 12px 14px;
+        background: var(--s2);
+        border-radius: 10px;
+        border-right: 3px solid var(--gold);
+        margin-top: 10px;
+      }
+      .ft {
+        background: var(--s2);
+        border-top: 1px solid var(--bd);
+        padding: 32px 20px;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+      }
+      .fl {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      .fla {
+        padding: 8px 18px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: var(--font);
+        border: 1.5px solid var(--bd);
+        background: transparent;
+        color: var(--t2);
+        transition: 0.15s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .fla:hover {
+        background: var(--ac);
+        color: #fff;
+        border-color: var(--ac);
+      }
+      .oc {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 28px;
+        background: linear-gradient(135deg, var(--ac), #5a55d0);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 900;
+        cursor: pointer;
+        font-family: var(--font);
+        transition: 0.2s;
+        text-decoration: none;
+      }
+      .oc:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(124, 111, 247, 0.3);
+      }
+      body.light {
+        --bg: #f4f5fb;
+        --s1: #fff;
+        --s2: #f0f1f8;
+        --s3: #e8e9f4;
+        --t1: #1a1a2e;
+        --t2: #555577;
+        --t3: #888899;
+        --bd: rgba(0, 0, 0, 0.08);
+      }
+      body.light {
+        background: var(--bg);
+        color: var(--t1);
+      }
+      body.light::before {
+        background:
+          radial-gradient(
+            ellipse 70% 50% at 20% 0%,
+            rgba(124, 111, 247, 0.06),
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 50% 40% at 80% 100%,
+            rgba(247, 201, 72, 0.04),
+            transparent 60%
+          );
+      }
+      body.light .nav {
+        background: rgba(255, 255, 255, 0.9);
+      }
+      @media (max-width: 500px) {
+        .hero {
+          padding: 32px 16px 24px;
+        }
+        .sc-n {
+          font-size: 48px;
+        }
+        .sc {
+          padding: 20px;
+          gap: 16px;
+        }
+        .rg {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loader">
+      <div class="spin"></div>
+      <div style="margin-top: 12px; font-size: 13px; color: var(--t3)">
+        جاري تحميل التقييمات...
+      </div>
+    </div>
+    <div id="err-screen">
+      <div style="font-size: 64px; opacity: 0.3; margin-bottom: 16px">
+        <i class="fa-solid fa-star"></i>
+      </div>
+      <div style="font-size: 20px; font-weight: 900" id="err-title">خطأ</div>
+      <div
+        style="font-size: 13px; color: var(--t3); margin-top: 8px"
+        id="err-sub"
+      ></div>
+    </div>
+    <div id="main-content" style="display: none">
+      <nav class="nav">
+        <div class="nav-in">
+          <a class="nav-brand" href="#" id="nb-link"
+            ><div id="nb-av">
+              <div class="nav-av-ph">
+                <i class="fa-solid fa-star" style="font-size: 14px"></i>
+              </div>
+            </div>
+            <span class="nav-nm" id="nb-nm">فريلانسر</span></a
+          >
+          <div
+            style="display: flex; gap: 8px; align-items: center"
+            id="nb-acts"
+          ></div>
+        </div>
+      </nav>
+      <div class="hero">
+        <div id="h-av">
+          <div class="h-av-ph">
+            <i class="fa-solid fa-star" style="font-size: 28px"></i>
+          </div>
+        </div>
+        <div class="h-nm" id="h-nm">فريلانسر</div>
+        <div class="h-bio" id="h-bio"></div>
+      </div>
+      <div class="sw">
+        <div class="sc">
+          <div style="text-align: center">
+            <div class="sc-n" id="sn">0</div>
+            <div class="sc-s" id="ss"></div>
+            <div class="sc-c" id="scc">0 تقييم</div>
+          </div>
+          <div class="sd" id="sdd"></div>
+        </div>
+      </div>
+      <div class="ct">
+        <div
+          style="
+            font-size: 16px;
+            font-weight: 900;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
+          <i class="fa-solid fa-comments" style="color: var(--ac)"></i> آراء
+          العملاء
+        </div>
+        <div class="rg" id="rg"></div>
+      </div>
+      <footer class="ft">
+        <div
+          style="
+            font-size: 14px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+          "
+        >
+          <i class="fa-solid fa-star" style="color: var(--gold)"></i>
+          <span id="fn">فريلانسر</span>
+        </div>
+        <div class="fl" id="fll"></div>
+        <div
+          style="
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--bd);
+          "
+        >
+          <div style="font-size: 12px; color: var(--t3); margin-bottom: 10px">
+            هل أنت فريلانسر؟ أدر شغلك بالكامل من مكان واحد
+          </div>
+          <a
+            href="https://ordo-freelance.github.io/Ordo/"
+            target="_blank"
+            class="oc"
+            ><i class="fa-solid fa-bolt"></i> جرّب Ordo مجاناً</a
+          >
+        </div>
+        <div style="font-size: 11px; color: var(--t3); margin-top: 12px">
+          © <span id="fy">2025</span> — مدعوم بـ
+          <a
+            href="https://ordo-freelance.github.io/Ordo/"
+            target="_blank"
+            style="color: var(--ac); text-decoration: none; font-weight: 800"
+            >Ordo</a
+          >
+        </div>
+      </footer>
+    </div>
+    <script>
+      var SUPA_URL = "https://mpfmcjgigpvdxbhgzufo.supabase.co",
+        SUPA_ANON =
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wZm1jamdpZ3B2ZHhiaGd6dWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2Mjc3MzMsImV4cCI6MjA4ODIwMzczM30.fICNxH_7DEBHripIoyMcUugTnd4JEBx-ypegpPvb6PM";
+      var db = supabase.createClient(SUPA_URL, SUPA_ANON),
+        P = new URLSearchParams(location.search),
+        pUid = P.get("uid") || "",
+        pU = P.get("u") || P.get("user") || "";
+      var BASE =
+        window.location.origin +
+        window.location.pathname.replace(/\/[^\/]*$/, "/");
+      function xe(s) {
+        return String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+      function $(id) {
+        return document.getElementById(id);
+      }
+      function showErr(t, s) {
+        $("loader").style.display = "none";
+        $("main-content").style.display = "none";
+        $("err-title").textContent = t;
+        $("err-sub").textContent = s || "";
+        $("err-screen").style.display = "flex";
+      }
+      async function boot() {
+        if (!pUid && !pU) {
+          showErr("رابط غير صحيح", "لا يوجد معرف في الرابط");
+          return;
+        }
+        try {
+          var uid = pUid;
+          if (!uid && pU) {
+            try {
+              var r1 = await db
+                .from("studio_data")
+                .select("user_id")
+                .ilike("username_index", pU.toLowerCase())
+                .maybeSingle();
+              if (r1.data) uid = r1.data.user_id;
+            } catch (e) {}
+            if (!uid) {
+              try {
+                var r2 = await db
+                  .from("studio_data")
+                  .select("user_id,data")
+                  .ilike("data", '%"username":"' + pU.toLowerCase() + '"%')
+                  .limit(10);
+                if (r2.data) {
+                  for (var i = 0; i < r2.data.length; i++) {
+                    try {
+                      var d = r2.data[i].data;
+                      if (typeof d === "string") d = JSON.parse(d);
+                      if (d.data && !d.tasks)
+                        d =
+                          typeof d.data === "string"
+                            ? JSON.parse(d.data)
+                            : d.data;
+                      if (
+                        (d.settings?.username || "").toLowerCase() ===
+                        pU.toLowerCase()
+                      ) {
+                        uid = r2.data[i].user_id;
+                        break;
+                      }
+                    } catch (e) {}
+                  }
+                }
+              } catch (e) {}
+            }
+          }
+          if (!uid) {
+            showErr("لم يتم العثور على الحساب", "تأكد من صحة الرابط");
+            return;
+          }
+          var res = await db
+            .from("studio_data")
+            .select("data")
+            .eq("user_id", uid)
+            .maybeSingle();
+          if (!res.data) {
+            showErr("خطأ في التحميل", "");
+            return;
+          }
+          var ud = res.data.data;
+          if (typeof ud === "string") ud = JSON.parse(ud);
+          if (ud && ud.data && !ud.tasks)
+            ud = typeof ud.data === "string" ? JSON.parse(ud.data) : ud.data;
+          var s = ud.settings || {},
+            reviews = (ud.reviews || []).sort(function (a, b) {
+              return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+            }),
+            ac = s.accentColor || s.accent || "#7c6ff7",
+            isL = (s.displayMode || s.display_mode || "dark") === "light",
+            nm = s.name || s.username || "فريلانسر",
+            bio = s.bio || s.title || "",
+            logo = s.logo || "",
+            phone = s.phone || "",
+            un = s.username || "";
+          document.documentElement.style.setProperty("--ac", ac);
+          if (isL) document.body.classList.add("light");
+          document.title = nm + " — تقييمات العملاء";
+          $("fy").textContent = new Date().getFullYear();
+          var storeUrl = un
+            ? BASE + "store.html?u=" + encodeURIComponent(un)
+            : BASE + "store.html?uid=" + encodeURIComponent(uid);
+          try {
+            if (logo) {
+              var fav = document.querySelector("link[rel*='icon']");
+              if (!fav) {
+                fav = document.createElement("link");
+                fav.rel = "icon";
+                document.head.appendChild(fav);
+              }
+              fav.href = logo;
+            }
+          } catch (e) {}
+          $("nb-nm").textContent = nm;
+          $("nb-link").href = storeUrl;
+          if (logo)
+            $("nb-av").innerHTML =
+              '<img class="nav-av" src="' +
+              xe(logo) +
+              '" onerror="this.style.display=\'none\'">';
+          var na =
+            '<a href="' +
+            xe(storeUrl) +
+            '" class="nb nb-s"><i class="fa-solid fa-store"></i> المتجر</a>';
+          if (phone)
+            na +=
+              '<a href="https://wa.me/' +
+              phone.replace(/\D/g, "") +
+              '" target="_blank" class="nb nb-w"><i class="fa-brands fa-whatsapp"></i></a>';
+          $("nb-acts").innerHTML = na;
+          $("h-nm").textContent = nm;
+          $("h-bio").textContent = bio;
+          if (logo)
+            $("h-av").innerHTML =
+              '<img class="h-av" src="' +
+              xe(logo) +
+              '" onerror="this.parentElement.innerHTML=\'<div class=h-av-ph><i class=fa-solid fa-star style=font-size:28px></i></div>\'">';
+          $("fn").textContent = nm;
+          var fl =
+            '<a href="' +
+            xe(storeUrl) +
+            '" class="fla"><i class="fa-solid fa-store"></i> المتجر</a>';
+          if (phone)
+            fl +=
+              '<a href="https://wa.me/' +
+              phone.replace(/\D/g, "") +
+              '" target="_blank" class="fla"><i class="fa-brands fa-whatsapp"></i> تواصل معنا</a>';
+          fl +=
+            '<a href="' +
+            xe(BASE + "review.html?uid=" + encodeURIComponent(uid)) +
+            '" class="fla"><i class="fa-solid fa-pen-to-square"></i> أضف تقييمك</a>';
+          $("fll").innerHTML = fl;
+          if (!reviews.length) {
+            $("loader").style.display = "none";
+            $("main-content").style.display = "block";
+            $("rg").innerHTML =
+              '<div style="text-align:center;padding:60px 20px;color:var(--t3);grid-column:1/-1"><div style="font-size:52px;opacity:.25;margin-bottom:12px"><i class="fa-solid fa-star"></i></div><div style="font-size:16px;font-weight:800;color:var(--t2)">لا توجد تقييمات بعد</div></div>';
+            return;
+          }
+          var total = reviews.length,
+            avg = (
+              reviews.reduce(function (sm, r) {
+                return sm + (+r.stars || 0);
+              }, 0) / total
+            ).toFixed(1),
+            dist = [5, 4, 3, 2, 1].map(function (n) {
+              return {
+                n: n,
+                c: reviews.filter(function (r) {
+                  return +r.stars === n;
+                }).length,
+              };
+            });
+          $("sn").textContent = avg;
+          $("ss").textContent = "⭐".repeat(Math.round(+avg));
+          $("scc").textContent = total + " تقييم من العملاء";
+          $("sdd").innerHTML = dist
+            .map(function (d) {
+              var pct = Math.round((d.c / total) * 100);
+              return (
+                '<div class="dr"><div style="font-size:12px;color:var(--t3);width:16px;text-align:center;font-weight:700">' +
+                d.n +
+                '</div><div style="font-size:12px">⭐</div><div class="db"><div class="df" style="width:' +
+                pct +
+                '%"></div></div><div style="font-size:11px;color:var(--t3);width:24px;text-align:left">' +
+                d.c +
+                "</div></div>"
+              );
+            })
+            .join("");
+          $("rg").innerHTML = reviews
+            .map(function (r) {
+              var sl =
+                  ["", "سيء 😞", "مقبول 😐", "جيد 🙂", "رائع 😊", "ممتاز 🤩"][
+                    +r.stars
+                  ] || "",
+                clr =
+                  +r.stars >= 4 ? "#f7c948" : +r.stars === 3 ? ac : "#f76f7c";
+              return (
+                '<div class="rc" style="border-right-color:' +
+                clr +
+                '"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:' +
+                (r.comment ? "10" : "0") +
+                'px"><div style="display:flex;align-items:center;gap:10px"><div style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0;background:' +
+                ac +
+                "18;color:" +
+                ac +
+                '">' +
+                (r.client_name || "?")[0] +
+                '</div><div><div style="font-size:13px;font-weight:800">' +
+                xe(r.client_name || "عميل") +
+                '</div><div style="font-size:10px;color:var(--t3)"><i class="fa-solid fa-calendar-days" style="margin-left:3px"></i>' +
+                (r.created_at
+                  ? new Date(r.created_at).toLocaleDateString("ar-EG", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : "") +
+                "</div>" +
+                (r.task_title
+                  ? '<div style="font-size:10px;color:var(--t3)"><i class="fa-solid fa-clipboard-list" style="color:' +
+                    ac +
+                    ';margin-left:3px"></i>' +
+                    xe(r.task_title) +
+                    "</div>"
+                  : "") +
+                '</div></div><div style="text-align:center"><div style="font-size:15px;letter-spacing:2px">' +
+                "⭐".repeat(+r.stars || 0) +
+                '</div><div style="font-size:9px;font-weight:700;color:' +
+                clr +
+                ';margin-top:2px">' +
+                sl +
+                "</div></div></div>" +
+                (r.comment
+                  ? '<div class="rcm" style="border-right-color:' +
+                    clr +
+                    '">"' +
+                    xe(r.comment) +
+                    '"</div>'
+                  : "") +
+                "</div>"
+              );
+            })
+            .join("");
+          $("loader").style.display = "none";
+          $("main-content").style.display = "block";
+        } catch (e) {
+          console.error(e);
+          showErr("خطأ في التحميل", "حاول تحديث الصفحة");
+        }
+      }
+      boot();
+    </script>
+  </body>
+</html>

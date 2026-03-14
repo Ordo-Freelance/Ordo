@@ -388,6 +388,8 @@ async function buildPage(userId){
     var hasServices=services.length>0;
     var hasPkgs=standalonePkgs.length>0;
     var hasPf=pfProjects.length>0;
+    var allReviews=(ud.reviews||[]).sort(function(a,b){return new Date(b.created_at||0)-new Date(a.created_at||0);});
+    var hasReviews=allReviews.length>0;
 
     // ── store globally ──
     window._pubUd=ud; window._pubUserId=userId; window._pubAccent=accent;
@@ -570,7 +572,17 @@ async function buildPage(userId){
     '._cf:hover:not(.on){background:'+cardBg+'}'+
     '._sc-badge{position:absolute;top:10px;right:10px;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:800;color:#fff;background:'+accent+'}'+
     '._sc-badge.pkg{background:linear-gradient(135deg,#4fd1a5,#38b28a)}'+
-    '._sc{position:relative}';
+    '._sc{position:relative}'+
+    // REVIEWS SECTION
+    '._rev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}'+
+    '@media(max-width:600px){._rev-grid{grid-template-columns:1fr}}'+
+    '._rev-card{background:'+surface+';border:1px solid '+cardBorder+';border-radius:14px;padding:18px;border-right:3px solid #f7c948;transition:transform .15s,box-shadow .15s}'+
+    '._rev-card:hover{transform:translateY(-3px);box-shadow:0 8px 28px '+accent+'12}'+
+    '._rev-avg-wrap{text-align:center;padding:28px 20px;background:'+surface+';border:1px solid '+cardBorder+';border-radius:16px;margin-bottom:20px}'+
+    '._rev-avg-num{font-size:52px;font-weight:900;color:#f7c948;line-height:1}'+
+    '._rev-avg-stars{font-size:24px;margin:8px 0 4px}'+
+    '._rev-avg-count{font-size:12px;color:'+textMuted+'}'+
+    '._rev-comment{font-size:12px;color:'+textSub+';line-height:1.7;font-style:italic;padding:10px 12px;background:'+cardBg+';border-radius:10px;border-right:3px solid #f7c948;margin-top:10px}';
     document.head.appendChild(css);
 
     // ══════════════════════════════════
@@ -587,6 +599,7 @@ async function buildPage(userId){
       (hasServices?'<button class="_nl" onclick="_gs(\'_combo\')">خدماتنا</button>':'')+
       (hasPkgs?'<button class="_nl" onclick="_gs(\'_pkgs\')">باقاتنا</button>':'')+
       (hasPf?'<button class="_nl" onclick="_gs(\'_pf\')">أعمالنا</button>':'')+
+      (hasReviews?'<button class="_nl" onclick="_gs(\'_reviews\')"><i class="fa-solid fa-star" style="color:#f7c948"></i> التقييمات</button>':'')+
       '<button class="_nl" onclick="_gs(\'_contact\')">تواصل معنا</button>';
 
     var mobLinks=
@@ -594,6 +607,7 @@ async function buildPage(userId){
       (hasServices?'<button class="_ml" onclick="_gs(\'_combo\');_cm()"><i class="fa-solid fa-bag-shopping"></i>خدماتنا</button>':'')+
       (hasPkgs?'<button class="_ml" onclick="_gs(\'_pkgs\');_cm()"><i class="fa-solid fa-box"></i>باقاتنا</button>':'')+
       (hasPf?'<button class="_ml" onclick="_gs(\'_pf\');_cm()"><i class="fa-solid fa-image"></i>أعمالنا</button>':'')+
+      (hasReviews?'<button class="_ml" onclick="_gs(\'_reviews\');_cm()"><i class="fa-solid fa-star" style="color:#f7c948"></i>التقييمات</button>':'')+
       '<button class="_ml" onclick="_gs(\'_contact\');_cm()"><i class="fa-solid fa-phone"></i>تواصل معنا</button>';
 
     var navHtml=
@@ -879,6 +893,51 @@ async function buildPage(userId){
     '</div>';
 
     // ══════════════════════════════════
+    // ── REVIEWS SECTION ──
+    // ══════════════════════════════════
+    var reviewsHtml='';
+    if(hasReviews){
+      var revTotal=allReviews.length;
+      var revAvg=(allReviews.reduce(function(s,r){return s+(+r.stars||0);},0)/revTotal).toFixed(1);
+      // Build public reviews page URL
+      var publicReviewsUrl=BASE+'reviews-public.html?'+(settings.username?'u='+encodeURIComponent(settings.username):'uid='+encodeURIComponent(userId));
+
+      var reviewCards=allReviews.slice(0,6).map(function(r){
+        var starLabel=['','سيء','مقبول','جيد','رائع','ممتاز'][+r.stars]||'';
+        return '<div class="_rev-card">'+
+          '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:'+(r.comment?'8':'0')+'px">'+
+            '<div style="display:flex;align-items:center;gap:10px">'+
+              '<div style="width:36px;height:36px;border-radius:50%;background:'+accent+'18;color:'+accent+';font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(r.client_name||'?')[0]+'</div>'+
+              '<div>'+
+                '<div style="font-size:13px;font-weight:800;color:'+textMain+'">'+xe(r.client_name||'عميل')+'</div>'+
+                '<div style="font-size:10px;color:'+textMuted+'">'+(r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG',{day:'numeric',month:'long'}):'')+'</div>'+
+              '</div>'+
+            '</div>'+
+            '<div style="text-align:center">'+
+              '<div style="font-size:14px;letter-spacing:1px">'+'⭐'.repeat(+r.stars||0)+'</div>'+
+              '<div style="font-size:9px;font-weight:700;color:#f7c948">'+starLabel+'</div>'+
+            '</div>'+
+          '</div>'+
+          (r.comment?'<div class="_rev-comment">"'+xe(r.comment)+'"</div>':'')+
+        '</div>';
+      }).join('');
+
+      reviewsHtml='<div id="_reviews" style="scroll-margin-top:72px" class="_sec">'+
+        '<div class="_sec-head">'+
+          '<div class="_sec-title"><i class="fa-solid fa-star" style="color:#f7c948"></i> تقييمات العملاء</div>'+
+          '<a href="'+xe(publicReviewsUrl)+'" target="_blank" class="_sec-more"><i class="fa-solid fa-arrow-up-right-from-square" style="margin-left:4px"></i> عرض الكل</a>'+
+        '</div>'+
+        '<div class="_rev-avg-wrap">'+
+          '<div class="_rev-avg-num">'+revAvg+'</div>'+
+          '<div class="_rev-avg-stars">'+'⭐'.repeat(Math.round(+revAvg))+'</div>'+
+          '<div class="_rev-avg-count">'+revTotal+' تقييم من العملاء</div>'+
+        '</div>'+
+        '<div class="_rev-grid">'+reviewCards+'</div>'+
+        (allReviews.length>6?'<div style="text-align:center;margin-top:20px"><a href="'+xe(publicReviewsUrl)+'" target="_blank" class="_btn _btn-ghost" style="font-size:13px;padding:10px 28px"><i class="fa-solid fa-star" style="color:#f7c948"></i> عرض كل التقييمات ('+revTotal+')</a></div>':'')+
+      '</div>';
+    }
+
+    // ══════════════════════════════════
     // ── CONTACT ──
     // ══════════════════════════════════
     var contactHtml='<div id="_contact" style="scroll-margin-top:72px" class="_sec">'+
@@ -928,14 +987,14 @@ async function buildPage(userId){
     // ══════════════════════════════════
     var root=document.getElementById('_root');
     root.innerHTML=navHtml+
-      '<div class="_main">'+heroHtml+comboSectionHtml+pkgsHtml+pfHtml+contactHtml+'</div>'+
+      '<div class="_main">'+heroHtml+comboSectionHtml+pkgsHtml+pfHtml+reviewsHtml+contactHtml+'</div>'+
       footerHtml;
     root.style.display='block';
     hideLs();
 
     // scroll spy
     window.addEventListener('scroll',function(){
-      var ids=['_hero','_combo','_pkgs','_pf','_contact'];
+      var ids=['_hero','_combo','_pkgs','_pf','_reviews','_contact'];
       var lks=document.querySelectorAll('._nl');
       var cur=0;
       ids.forEach(function(id,i){var el=document.getElementById(id);if(el&&window.scrollY>=el.offsetTop-84)cur=i;});
