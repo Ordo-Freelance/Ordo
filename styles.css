@@ -1719,3 +1719,23 @@ body.sidebar-collapsed .sidebar-overlay {
   color: var(--text1);
   border-color: var(--accent);
 }
+/* ── Task List/Table: Drag & Done Section ── */
+.tl-row, .tt-row {
+  transition: background .12s, box-shadow .12s;
+}
+.tl-row.tl-dragging, .tt-row.tt-dragging {
+  opacity: .45;
+  box-shadow: 0 4px 12px rgba(124,111,247,.25);
+}
+.tl-done {
+  opacity: .62;
+}
+.tl-done-header td, .tt-done-header td {
+  background: rgba(79,209,165,.04);
+  border-top: 2px solid rgba(79,209,165,.18);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+.tl-done-header:hover td, .tt-done-header:hover td {
+  background: rgba(79,209,165,.08);
+}

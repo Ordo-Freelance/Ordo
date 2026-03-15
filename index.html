@@ -1600,11 +1600,16 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
           <span id="all-tasks-table-count" style="font-size:11px;color:var(--text3)"></span>
         </div>
         <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">
+          <th style="width:24px;border-bottom:1px solid var(--border)"></th>
+          <th style="width:28px;border-bottom:1px solid var(--border)"></th>
           <th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>
-          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">النوع</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">العميل</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)" class="hide-mobile">الأولوية</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)" class="hide-mobile">تاريخ الطلب</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">التسليم</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الدفع</th>
           <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة</th>
-          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الديدلاين</th>
-          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المبلغ</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">إجراءات</th>
         </tr></thead><tbody id="all-tasks-table-body"></tbody></table></div>
       </div>
     </div>
@@ -1628,11 +1633,15 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
           <span id="proj-tasks-table-count" style="font-size:11px;color:var(--text3)"></span>
         </div>
         <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">
+          <th style="width:24px;border-bottom:1px solid var(--border)"></th>
+          <th style="width:28px;border-bottom:1px solid var(--border)"></th>
           <th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>
-          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المشروع</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">العميل</th>
           <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)" class="hide-mobile">تاريخ الطلب</th>
           <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الديدلاين</th>
-          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المبلغ</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الدفع</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">إجراءات</th>
         </tr></thead><tbody id="proj-tasks-table-body"></tbody></table></div>
       </div>
     </div>
@@ -2310,7 +2319,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
         <i class="fa-solid fa-envelope-open-text"></i> الدعوات
         <span id="team-invite-inbox-badge" style="display:none;position:absolute;top:-5px;left:-5px;background:var(--accent4);color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">0</span>
       </button>
-      <button class="btn btn-primary" onclick="openTeamModal()" data-i18n="btn_new_team"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فريق جديد</button>
+      <button class="btn btn-primary" onclick="_openNewTeamChooser()" data-i18n="btn_new_team"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فريق جديد</button>
     </div>
   </div>
 
@@ -2407,7 +2416,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     </div>
     <!-- فرقك أنت -->
     <div id="teams-grid" class="grid grid-3">
-      <div class="empty card" style="grid-column:span 3"><div class="empty-icon"><i class="fa-solid fa-people-group"></i></div>لا فرق بعد — أضف فريق عمل<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="openTeamModal()" data-i18n="btn_new_team"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فريق جديد</button></div></div>
+      <div class="empty card" style="grid-column:span 3"><div class="empty-icon"><i class="fa-solid fa-people-group"></i></div>لا فرق بعد — أضف فريق عمل<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="_openNewTeamChooser()" data-i18n="btn_new_team"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فريق جديد</button></div></div>
     </div>
   </div>
 </div>
@@ -2442,6 +2451,59 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     </div>
     <div style="display:flex;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeM('modal-subscription')">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEAM TYPE CHOOSER -->
+<div class="modal-overlay" id="modal-team-type-chooser">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-people-group" style="color:var(--accent)"></i> نوع الفريق الجديد</div>
+      <button class="close-btn" onclick="closeM('modal-team-type-chooser')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div style="padding:20px 24px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.7">اختر نوع الفريق — كل نوع بنظام مختلف يناسب احتياجاتك</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px">
+
+        <!-- فريق عمل عادي -->
+        <div id="_tc-regular-card"
+          onclick="_chooseTeamType('regular')"
+          style="border:2px solid var(--border);border-radius:14px;padding:22px 16px;cursor:pointer;text-align:center;transition:.2s"
+          onmouseover="this.style.borderColor='var(--accent)';this.style.background='rgba(124,111,247,.05)'"
+          onmouseout="this.style.borderColor='var(--border)';this.style.background='transparent'">
+          <div style="font-size:40px;margin-bottom:12px">👥</div>
+          <div style="font-size:15px;font-weight:800;margin-bottom:6px">فريق عمل</div>
+          <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:12px">إدارة أعضاء الفريق وتوزيع المهام والمشاريع</div>
+          <div style="display:flex;flex-direction:column;gap:5px;text-align:right">
+            <div style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px"><i class="fa-solid fa-check" style="color:var(--accent3);width:14px"></i> إضافة أعضاء وتوزيع مهام</div>
+            <div style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px"><i class="fa-solid fa-check" style="color:var(--accent3);width:14px"></i> متابعة مدفوعات الأعضاء</div>
+            <div style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px"><i class="fa-solid fa-check" style="color:var(--accent3);width:14px"></i> يبقى في نفس نظام Ordo</div>
+          </div>
+        </div>
+
+        <!-- شركة -->
+        <div id="_tc-company-card"
+          onclick="_chooseTeamType('company')"
+          style="border:2px solid var(--border);border-radius:14px;padding:22px 16px;cursor:pointer;text-align:center;transition:.2s;position:relative"
+          onmouseover="this.style.borderColor='var(--accent2)';this.style.background='rgba(247,201,72,.05)'"
+          onmouseout="this.style.borderColor='var(--border)';this.style.background='transparent'">
+          <div style="position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:var(--accent2);color:#1a1a2e;font-size:9px;font-weight:900;padding:3px 12px;border-radius:0 0 10px 10px;white-space:nowrap">⭐ نظام متكامل</div>
+          <div style="font-size:40px;margin-bottom:12px;margin-top:14px">🏢</div>
+          <div style="font-size:15px;font-weight:800;margin-bottom:6px">شركة</div>
+          <div style="font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:12px">نظام إداري متكامل للشركات والمؤسسات</div>
+          <div style="display:flex;flex-direction:column;gap:5px;text-align:right">
+            <div style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px"><i class="fa-solid fa-check" style="color:var(--accent2);width:14px"></i> بورد كانبان للمشاريع</div>
+            <div style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px"><i class="fa-solid fa-check" style="color:var(--accent2);width:14px"></i> أقسام + موارد بشرية</div>
+            <div style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px"><i class="fa-solid fa-check" style="color:var(--accent2);width:14px"></i> تعليقات ومنشن الأعضاء</div>
+            <div style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px"><i class="fa-solid fa-check" style="color:var(--accent2);width:14px"></i> مشاركة الفريق برابط</div>
+          </div>
+        </div>
+
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="closeM('modal-team-type-chooser')">إلغاء</button>
+      </div>
     </div>
   </div>
 </div>

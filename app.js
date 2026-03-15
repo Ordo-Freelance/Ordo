@@ -3086,152 +3086,529 @@ function _renderProjectTasksList(){
       +(t.value?'<span style="color:var(--accent);font-weight:700"><i class="fa-solid fa-coins"></i> '+Number(t.value).toLocaleString()+' ج</span>':'')
       +'</div></div>';
   }
-  function _row(t){
-    var proj=projMap[String(t.project_id)]||{}; var isDone=t.status==='done'||t.done;
-    var stLabel=isDone?'مكتمل':(t.status==='progress'?'جاري':t.status==='review'?'مراجعة':t.status==='paused'?'موقوف':'جديد');
-    var stColor=isDone?'var(--accent3)':(t.status==='progress'?'var(--accent2)':t.status==='review'?'var(--accent)':t.status==='paused'?'#64b5f6':'var(--text3)');
-    return '<tr style="cursor:pointer;border-bottom:1px solid var(--border)" onclick="openProjectDetail(\''+String(t.project_id)+'\')">'
-      +'<td style="padding:10px 14px"><div style="font-weight:700">'+escapeHtml(t.title||t.name||'مهمة')+'</div></td>'
-      +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--accent)">'+escapeHtml(proj.name||'—')+'</td>'
-      +'<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+stColor+'22;color:'+stColor+'">'+stLabel+'</span></td>'
-      +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.deadline||'—')+'</td>'
-      +'<td style="padding:10px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--accent)">'+(t.value?Number(t.value).toLocaleString()+' ج':'—')+'</td></tr>';
-  }
+
   var empty='<div style="text-align:center;padding:50px 20px;color:var(--text3)"><i class="fa-solid fa-diagram-project" style="font-size:40px;opacity:.35;display:block;margin-bottom:12px"></i><div style="font-size:14px;font-weight:700;color:var(--text2);margin-bottom:5px">لا توجد مهام مشاريع</div></div>';
   var k=document.getElementById('project-tasks-kanban'); if(k) k.innerHTML=tasks.length?tasks.map(_card).join(''):empty;
-  // List — table format
+
+  // ── List view مع drag + done section ──
   var l=document.getElementById('project-tasks-list');
   if(l){
-    if(!tasks.length){ l.innerHTML=empty; }
-    else{
-      l.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">'
-        +'<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>'
-        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المشروع</th>'
-        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">تاريخ التسليم</th>'
-        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة</th>'
-        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المبلغ</th>'
-        +'</tr></thead><tbody>'+tasks.map(function(t){
-          var proj2=projMap[String(t.project_id)]||{}; var isDone2=t.status==='done'||t.done;
-          var stLabel2=isDone2?'مكتمل':(t.status==='progress'?'جاري':t.status==='review'?'مراجعة':t.status==='paused'?'موقوف':'جديد');
-          var stColor2=isDone2?'var(--accent3)':(t.status==='progress'?'var(--accent2)':t.status==='review'?'var(--accent)':t.status==='paused'?'#64b5f6':'var(--text3)');
-          var isLate2=t.deadline&&new Date(t.deadline)<new Date()&&!isDone2;
-          return '<tr style="cursor:pointer;border-bottom:1px solid var(--border)" onclick="openProjectDetail(\''+String(t.project_id)+'\')">'
-            +'<td style="padding:10px 14px"><div style="font-weight:700;'+(isDone2?'text-decoration:line-through;color:var(--text3)':'')+'">'+escapeHtml(t.title||t.name||'مهمة')+'</div></td>'
-            +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--accent)">'+escapeHtml(proj2.name||'—')+'</td>'
-            +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate2?'#f76f7c':'var(--text3)')+'">'+escapeHtml(t.deadline||'—')+'</td>'
-            +'<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+stColor2+'22;color:'+stColor2+'">'+stLabel2+'</span></td>'
-            +'<td style="padding:10px 8px;text-align:center;font-weight:700;color:var(--accent)">'+(t.value?Number(t.value).toLocaleString()+' ج':'—')+'</td>'
-          +'</tr>';
-        }).join('')+'</tbody></table></div></div>';
+    if(!tasks.length){ l.innerHTML=empty; return; }
+    var ptActive = tasks.filter(function(t){ return !(t.status==='done'||t.done); });
+    var ptDone   = tasks.filter(function(t){ return   t.status==='done'||t.done;  });
+    var ptDoneCollapsed = localStorage.getItem('_pt_done_collapsed')==='1';
+
+    function _ptRow(t){
+      var proj2=projMap[String(t.project_id)]||{};
+      var isDone2=t.status==='done'||t.done;
+      var stLabel2=isDone2?'مكتمل':(t.status==='progress'?'جاري':t.status==='review'?'مراجعة':t.status==='paused'?'موقوف':'جديد');
+      var stColor2=isDone2?'var(--accent3)':(t.status==='progress'?'var(--accent2)':t.status==='review'?'var(--accent)':t.status==='paused'?'#64b5f6':'var(--text3)');
+      var isLate2=t.deadline&&new Date(t.deadline)<new Date()&&!isDone2;
+      var prio2={high:'<span class="badge badge-red">عالية</span>',med:'<span class="badge badge-yellow">متوسطة</span>',low:'<span class="badge badge-green">منخفضة</span>'};
+      var pay2=t.pay==='full'?'<span class="pay-badge pay-full"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مدفوع</span>':t.pay==='deposit'?'<span class="pay-badge pay-deposit"><i class="fa-solid fa-heart"></i> عربون</span>':'<span class="pay-badge pay-none"><i class="fa-solid fa-circle-xmark"></i> لم يُدفع</span>';
+      return '<tr class="pt-row'+(isDone2?' pt-done':'')+'" draggable="true" data-ptid="'+t.id+'" '
+        +'ondragstart="_ptDragStart(event,\''+t.id+'\')" '
+        +'ondragover="_ptDragOver(event)" '
+        +'ondrop="_ptDrop(event,\''+t.id+'\')" '
+        +'ondragend="_ptDragEnd(event)" '
+        +'style="cursor:pointer;border-bottom:1px solid var(--border);'+(isDone2?'opacity:.6':'')+';" '
+        +'onclick="openProjTaskDetail(\''+t.id+'\',\''+String(t.project_id)+'\')">'
+        // drag handle
+        +'<td style="padding:10px 4px;width:24px;text-align:center;color:var(--text3);cursor:grab" onclick="event.stopPropagation()" title="اسحب لإعادة الترتيب">'
+          +'<i class="fa-solid fa-grip-vertical" style="font-size:10px"></i>'
+        +'</td>'
+        // complete + title
+        +'<td style="padding:10px 14px">'
+          +'<div style="display:flex;align-items:center;gap:8px">'
+            +(!isDone2
+              ? '<button class="btn btn-success btn-sm" onclick="event.stopPropagation();_completeProjTask(\''+t.id+'\')" title="إكمال" style="padding:4px 8px;font-size:13px;flex-shrink:0"><i class="fa-solid fa-check"></i></button>'
+              : '<span style="color:var(--accent3);font-size:16px;flex-shrink:0"><i class="fa-solid fa-square-check"></i></span>')
+            +'<div>'
+              +'<div style="font-weight:700;'+(isDone2?'text-decoration:line-through;color:var(--text2)':'')+'">'+escapeHtml(t.title||t.name||'مهمة')+'</div>'
+              +'<div style="font-size:10px;color:var(--accent);margin-top:2px"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(proj2.name||'—')+'</div>'
+            +'</div>'
+          +'</div>'
+        +'</td>'
+        // client
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client_name||proj2.client_name||'—')+'</td>'
+        // priority
+        +'<td style="padding:10px 8px;text-align:center" class="hide-mobile">'+(prio2[t.priority]||prio2.med)+'</td>'
+        // order date
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+escapeHtml(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>'
+        // deadline
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate2?'#f76f7c':'var(--text3)')+'">'+escapeHtml(t.deadline||'—')+'</td>'
+        // pay
+        +'<td style="padding:10px 8px;text-align:center">'+pay2+'</td>'
+        // status
+        +'<td style="padding:10px 8px;text-align:center">'
+          +'<span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+stColor2+'22;color:'+stColor2+'">'+stLabel2+'</span>'
+        +'</td>'
+        // actions
+        +'<td style="padding:10px 8px;text-align:center" onclick="event.stopPropagation()">'
+          +'<div style="display:flex;gap:4px;justify-content:center">'
+            +'<button class="btn btn-ghost btn-sm" onclick="openProjectDetail(\''+String(t.project_id)+'\')" style="padding:3px 7px;font-size:11px"><i class="fa-solid fa-pen"></i></button>'
+          +'</div>'
+        +'</td>'
+      +'</tr>';
+    }
+
+    var COL_COUNT = '9';
+    var activeRows = ptActive.length
+      ? ptActive.map(_ptRow).join('')
+      : '<tr><td colspan="'+COL_COUNT+'" style="text-align:center;padding:20px;color:var(--text3);font-size:12px">لا توجد مهام نشطة</td></tr>';
+
+    var doneSec = '';
+    if(ptDone.length){
+      doneSec = '<tr class="pt-done-header" onclick="_ptToggleDone()" style="cursor:pointer">'
+        +'<td colspan="'+COL_COUNT+'" style="padding:9px 14px;background:rgba(79,209,165,.05);border-top:2px solid rgba(79,209,165,.2);border-bottom:1px solid var(--border)">'
+          +'<div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--accent3)">'
+            +'<i class="fa-solid fa-square-check"></i> مكتملة '
+            +'<span style="background:rgba(79,209,165,.18);color:var(--accent3);padding:1px 9px;border-radius:20px;font-size:10px">'+ptDone.length+'</span>'
+            +'<i class="fa-solid fa-chevron-down" id="pt-done-arrow" style="margin-right:auto;font-size:10px;transition:transform .2s;'+(ptDoneCollapsed?'transform:rotate(-90deg)':'')+'"></i>'
+          +'</div>'
+        +'</td>'
+      +'</tr>';
+      if(!ptDoneCollapsed) doneSec += ptDone.map(_ptRow).join('');
+    }
+
+    l.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto">'
+      +'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">'
+      +'<th style="padding:10px 4px;width:24px;border-bottom:1px solid var(--border)"></th>'
+      +'<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>'
+      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">العميل</th>'
+      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)" class="hide-mobile">الأولوية</th>'
+      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)" class="hide-mobile">تاريخ الطلب</th>'
+      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">تاريخ التسليم</th>'
+      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الدفع</th>'
+      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة</th>'
+      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">إجراءات</th>'
+      +'</tr></thead><tbody>'+activeRows+doneSec+'</tbody></table></div></div>';
+  }
+
+  // ── Proj Tasks Table: نفس نظام مهامي ──
+  var tb=document.getElementById('proj-tasks-table-body');
+  if(tb){
+    if(!tasks.length){
+      tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text3)">لا توجد مهام مشاريع</td></tr>';
+    } else {
+      var ptblActive = tasks.filter(function(t){ return !(t.status==='done'||t.done); });
+      var ptblDone   = tasks.filter(function(t){ return   t.status==='done'||t.done;  });
+      var ptblDoneCollapsed = localStorage.getItem('_ptbl_done_collapsed')==='1';
+
+      function _ptblRow(t, idx){
+        var proj3=projMap[String(t.project_id)]||{};
+        var isDone3=t.status==='done'||t.done;
+        var stLabel3=isDone3?'مكتمل':(t.status==='progress'?'جاري':t.status==='review'?'مراجعة':t.status==='paused'?'موقوف':'جديد');
+        var stColor3=isDone3?'var(--accent3)':(t.status==='progress'?'var(--accent2)':t.status==='review'?'var(--accent)':t.status==='paused'?'#64b5f6':'var(--text3)');
+        var isLate3=t.deadline&&new Date(t.deadline)<new Date()&&!isDone3;
+        var rowBg=idx%2===0?'var(--surface)':'var(--surface2)';
+        var prio3={high:'<span class="badge badge-red">عالية</span>',med:'<span class="badge badge-yellow">متوسطة</span>',low:'<span class="badge badge-green">منخفضة</span>'};
+        var pay3=t.pay==='full'?'<span class="pay-badge pay-full"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مدفوع</span>':t.pay==='deposit'?'<span class="pay-badge pay-deposit"><i class="fa-solid fa-heart"></i> عربون</span>':'<span class="pay-badge pay-none"><i class="fa-solid fa-circle-xmark"></i> لم يُدفع</span>';
+        var hasSteps=t.steps&&t.steps.length>0;
+        var stepsHtml='';
+        if(hasSteps){
+          stepsHtml='<tr id="ptbl-steps-row-'+t.id+'" style="display:none">'
+            +'<td colspan="10" style="padding:0 14px 12px 40px;background:var(--surface2);border-bottom:2px solid var(--border)">'
+            +'<div style="padding:10px 0;font-size:11px;font-weight:800;color:var(--text2);margin-bottom:4px"><i class="fa-solid fa-list-check" style="color:var(--accent);margin-left:4px"></i> خطوات ('+t.steps.filter(function(s){return s.done;}).length+'/'+t.steps.length+')</div>'
+            +t.steps.map(function(s,si){
+              var sd=s.done; var sl=s.deadline&&new Date(s.deadline)<new Date()&&!sd;
+              return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">'
+                +'<div style="width:20px;height:20px;border-radius:50%;border:2px solid '+(sd?'var(--accent3)':'var(--border)')+';display:flex;align-items:center;justify-content:center;font-size:10px;background:'+(sd?'var(--accent3)':'transparent')+';color:'+(sd?'#fff':'transparent')+'"><i class="fa-solid fa-check"></i></div>'
+                +'<div style="flex:1;'+(sd?'text-decoration:line-through;color:var(--text3)':'')+'">'+escapeHtml(s.text||s.title||'خطوة')+'</div>'
+                +(s.deadline?'<div style="font-size:10px;font-family:var(--mono);color:'+(sl?'#f76f7c':'var(--text3)')+'">'+s.deadline+'</div>':'')
+              +'</div>';
+            }).join('')
+            +'</td></tr>';
+        }
+
+        return '<tr class="ptbl-row'+(isDone3?' ptbl-done':'')+'" draggable="true" data-ptblid="'+t.id+'" '
+          +'ondragstart="_ptblDragStart(event,\''+t.id+'\')" '
+          +'ondragover="_ptblDragOver(event)" '
+          +'ondrop="_ptblDrop(event,\''+t.id+'\')" '
+          +'ondragend="_ptblDragEnd(event)" '
+          +'style="background:'+rowBg+';transition:background .12s,box-shadow .12s;cursor:pointer;'+(isDone3?'opacity:.65':'')+';" '
+          +'onmouseover="this.style.background=\'var(--surface3)\'" '
+          +'onmouseout="this.style.background=\''+rowBg+'\'" '
+          +'onclick="openProjectDetail(\''+String(t.project_id)+'\')">'
+          // drag handle
+          +'<td style="padding:10px 4px;width:24px;text-align:center;color:var(--text3);cursor:grab;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()" title="اسحب">'
+            +'<i class="fa-solid fa-grip-vertical" style="font-size:10px"></i>'
+          +'</td>'
+          // checkbox
+          +'<td style="padding:10px 6px;width:28px;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'
+            +'<input type="checkbox" class="bulk-ptbl-cb" data-tid="'+t.id+'" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">'
+          +'</td>'
+          // title + steps expand
+          +'<td style="padding:10px 14px;font-weight:700;border-bottom:1px solid var(--border);max-width:220px">'
+            +'<div style="display:flex;align-items:center;gap:6px">'
+              +(hasSteps?'<button onclick="event.stopPropagation();_ptblToggleSteps(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;padding:2px 4px;flex-shrink:0;transition:transform .2s" id="ptbl-arrow-'+t.id+'"><i class="fa-solid fa-chevron-down"></i></button>':'<span style="width:22px;display:inline-block"></span>')
+              +'<div style="'+(isDone3?'text-decoration:line-through;color:var(--text3)':'')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escapeHtml(t.title||t.name||'مهمة')+'</div>'
+            +'</div>'
+            +'<div style="font-size:10px;color:var(--accent);margin-top:2px;margin-right:28px"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(proj3.name||'—')+'</div>'
+            +(hasSteps?'<div style="font-size:10px;color:var(--text3);margin-top:2px;margin-right:28px"><i class="fa-solid fa-list-check"></i> '+t.steps.filter(function(s){return s.done;}).length+'/'+t.steps.length+' خطوة</div>':'')
+          +'</td>'
+          // client
+          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">'+escapeHtml(t.client_name||proj3.client_name||'—')+'</td>'
+          // status (dropdown)
+          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'
+            +'<div style="position:relative;display:inline-block">'
+              +'<select data-ptid="'+t.id+'" onchange="_ptblChangeStatus(this.dataset.ptid,this.value)" '
+                +'style="appearance:none;-webkit-appearance:none;font-size:10px;font-weight:800;padding:3px 22px 3px 8px;border-radius:20px;background:'+stColor3+'22;color:'+stColor3+';border:1.5px solid '+stColor3+'55;cursor:pointer;outline:none;font-family:var(--font)">'
+                +'<option value="new"'+(t.status==='new'?' selected':'')+'>جديد</option>'
+                +'<option value="progress"'+(t.status==='progress'?' selected':'')+'>جاري</option>'
+                +'<option value="review"'+(t.status==='review'?' selected':'')+'>مراجعة</option>'
+                +'<option value="paused"'+(t.status==='paused'?' selected':'')+'>موقوف</option>'
+                +'<option value="done"'+(isDone3?' selected':'')+'>مكتمل</option>'
+              +'</select>'
+              +'<span style="position:absolute;left:5px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:8px;color:'+stColor3+'">▾</span>'
+            +'</div>'
+          +'</td>'
+          // order date
+          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px;font-family:var(--mono)" class="hide-mobile">'+escapeHtml(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>'
+          // deadline
+          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:'+(isLate3?'#f76f7c':'var(--text3)')+'">'+escapeHtml(t.deadline||'—')+'</td>'
+          // pay
+          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">'+pay3+'</td>'
+          // actions
+          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'
+            +'<div style="display:flex;gap:4px;justify-content:center">'
+              +'<button class="btn btn-ghost btn-sm" onclick="openProjectDetail(\''+String(t.project_id)+'\')" style="padding:3px 7px;font-size:11px"><i class="fa-solid fa-pen"></i></button>'
+            +'</div>'
+          +'</td>'
+        +'</tr>'+stepsHtml;
+      }
+
+      var ptblActiveHTML = ptblActive.map(function(t,i){ return _ptblRow(t,i); }).join('');
+      if(!ptblActiveHTML) ptblActiveHTML='<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text3);font-size:12px">لا توجد مهام نشطة</td></tr>';
+
+      var ptblDoneSec='';
+      if(ptblDone.length){
+        ptblDoneSec='<tr class="ptbl-done-header" onclick="_ptblToggleDone()" style="cursor:pointer">'
+          +'<td colspan="10" style="padding:9px 14px;background:rgba(79,209,165,.05);border-top:2px solid rgba(79,209,165,.2);border-bottom:1px solid var(--border)">'
+            +'<div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--accent3)">'
+              +'<i class="fa-solid fa-square-check"></i> مكتملة '
+              +'<span style="background:rgba(79,209,165,.18);color:var(--accent3);padding:1px 9px;border-radius:20px;font-size:10px">'+ptblDone.length+'</span>'
+              +'<i class="fa-solid fa-chevron-down" id="ptbl-done-arrow" style="margin-right:auto;font-size:10px;transition:transform .2s;'+(ptblDoneCollapsed?'transform:rotate(-90deg)':'')+'"></i>'
+            +'</div>'
+          +'</td>'
+        +'</tr>';
+        if(!ptblDoneCollapsed) ptblDoneSec+=ptblDone.map(function(t,i){ return _ptblRow(t,i); }).join('');
+      }
+
+      tb.innerHTML = ptblActiveHTML + ptblDoneSec;
     }
   }
-  var tb=document.getElementById('proj-tasks-table-body'); if(tb) tb.innerHTML=tasks.length?tasks.map(_row).join(''):'<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">لا توجد مهام</td></tr>';
   var cnt=document.getElementById('proj-tasks-table-count'); if(cnt) cnt.textContent=tasks.length+' مهمة';
+}
+
+// ── Proj Table: status change ──
+function _ptblChangeStatus(taskId, newStatus){
+  var t=(S.project_tasks||[]).find(function(x){return String(x.id)===String(taskId);});
+  if(!t) return;
+  t.status=newStatus; t.done=newStatus==='done';
+  lsSave(); cloudSave(S);
+  _renderProjectTasksList();
+  showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تغيير الحالة');
+}
+
+// ── Proj Table: toggle steps ──
+function _ptblToggleSteps(tid){
+  var row=document.getElementById('ptbl-steps-row-'+tid);
+  var arrow=document.getElementById('ptbl-arrow-'+tid);
+  if(!row) return;
+  var open=row.style.display!=='none';
+  row.style.display=open?'none':'table-row';
+  if(arrow) arrow.style.transform=open?'':'rotate(180deg)';
+}
+
+// ── Proj Table: toggle done section ──
+function _ptblToggleDone(){
+  var c=localStorage.getItem('_ptbl_done_collapsed')==='1';
+  localStorage.setItem('_ptbl_done_collapsed',c?'0':'1');
+  _renderProjectTasksList();
+}
+
+// ── Proj Table: drag helpers ──
+var _ptblDragId=null;
+function _ptblDragStart(e,id){ _ptblDragId=id; e.currentTarget.style.opacity='.45'; e.dataTransfer.effectAllowed='move'; }
+function _ptblDragEnd(e){ e.currentTarget.style.opacity=''; document.querySelectorAll('.ptbl-row').forEach(function(r){r.style.boxShadow='';}); }
+function _ptblDragOver(e){ e.preventDefault(); e.currentTarget.style.boxShadow='inset 0 -2px 0 var(--accent)'; }
+function _ptblDrop(e,targetId){
+  e.preventDefault();
+  document.querySelectorAll('.ptbl-row').forEach(function(r){r.style.boxShadow='';});
+  if(!_ptblDragId||String(_ptblDragId)===String(targetId)) return;
+  var fi=S.project_tasks.findIndex(function(t){return String(t.id)===String(_ptblDragId);});
+  var ti=S.project_tasks.findIndex(function(t){return String(t.id)===String(targetId);});
+  if(fi<0||ti<0) return;
+  var moved=S.project_tasks.splice(fi,1)[0];
+  S.project_tasks.splice(ti,0,moved);
+  lsSave(); cloudSave(S);
+  _renderProjectTasksList();
+  _ptblDragId=null;
+}
+
+// ── Project tasks drag helpers ──
+var _ptDragId=null;
+// إكمال مهمة مشروع من قائمة مهام المشاريع
+function _completeProjTask(taskId){
+  var t = (S.project_tasks||[]).find(function(x){ return String(x.id)===String(taskId); });
+  if(!t) return;
+  t.status = t.status==='done'?'todo':'done';
+  t.done   = t.status==='done';
+  lsSave(); cloudSave(S);
+  _renderProjectTasksList();
+  showMiniNotif(t.done
+    ? '<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إكمال المهمة'
+    : '<i class="fa-solid fa-rotate-left"></i> تم إعادة فتح المهمة');
+}
+
+function _ptDragStart(e,id){ _ptDragId=id; e.currentTarget.classList.add('tt-dragging'); e.dataTransfer.effectAllowed='move'; }
+function _ptDragEnd(e){ e.currentTarget.classList.remove('tt-dragging'); document.querySelectorAll('.pt-row').forEach(function(r){r.style.boxShadow='';}); }
+function _ptDragOver(e){ e.preventDefault(); e.currentTarget.style.boxShadow='inset 0 -2px 0 var(--accent)'; }
+function _ptDrop(e,targetId){
+  e.preventDefault();
+  document.querySelectorAll('.pt-row').forEach(function(r){r.style.boxShadow='';});
+  if(!_ptDragId||String(_ptDragId)===String(targetId)) return;
+  var fi=S.project_tasks.findIndex(function(t){return String(t.id)===String(_ptDragId);});
+  var ti=S.project_tasks.findIndex(function(t){return String(t.id)===String(targetId);});
+  if(fi<0||ti<0) return;
+  var moved=S.project_tasks.splice(fi,1)[0];
+  S.project_tasks.splice(ti,0,moved);
+  lsSave(); cloudSave(S);
+  _renderProjectTasksList();
+  _ptDragId=null;
+}
+function _ptToggleDone(){
+  var cur=localStorage.getItem('_pt_done_collapsed')==='1';
+  localStorage.setItem('_pt_done_collapsed',cur?'0':'1');
+  _renderProjectTasksList();
 }
 
 function _renderAllTasksList(){
   var allItems=[];
   (S.tasks||[]).forEach(function(t){ allItems.push({task:t,type:'task',projName:null}); });
   var projMap={}; (S.projects||[]).forEach(function(p){ projMap[String(p.id)]=p; });
-  (S.project_tasks||[]).forEach(function(t){ var proj=projMap[String(t.project_id)]||{}; allItems.push({task:t,type:'project_task',projName:proj.name||'مشروع'}); });
-  allItems.sort(function(a,b){ var da=a.task.createdAt||a.task.created_at||a.task.orderDate||0; var db=b.task.createdAt||b.task.created_at||b.task.orderDate||0; return new Date(db)-new Date(da); });
-  var total=allItems.length, done=allItems.filter(function(i){return i.task.done||i.task.status==='done';}).length;
-  var pct=total?Math.round(done/total*100):0;
-  var pctEl=document.getElementById('all-tasks-progress-pct'); var fillEl=document.getElementById('all-tasks-progress-fill');
-  if(pctEl) pctEl.textContent=pct+'%'; if(fillEl) fillEl.style.width=pct+'%';
-  var _ov=S.statusOverrides||{};
+  (S.project_tasks||[]).forEach(function(t){
+    var proj=projMap[String(t.project_id)]||{};
+    allItems.push({task:t,type:'project_task',projName:proj.name||'مشروع'});
+  });
+
   function _stInfo(t){
-    var isDone=t.done||t.status==='done'; var st=t.status||'new';
-    var label=isDone?(_ov.done?.label||'مكتمل'):(st==='progress'?(_ov.progress?.label||'جاري'):st==='review'?(_ov.review?.label||'مراجعة'):st==='paused'?'موقوف':(_ov.new?.label||'جديد'));
-    var color=isDone?'var(--accent3)':(st==='progress'?'var(--accent2)':st==='review'?'var(--accent)':st==='paused'?'#64b5f6':'var(--text3)');
-    return {label:label,color:color,isDone:isDone};
+    var isDone=t.done||t.status==='done';
+    var label=isDone?'مكتمل':(t.status==='progress'?'قيد التنفيذ':t.status==='review'?'مراجعة':t.status==='paused'?'موقوف':'جديد');
+    var color=isDone?'var(--accent3)':(t.status==='progress'?'var(--accent2)':t.status==='review'?'var(--accent)':t.status==='paused'?'#64b5f6':'var(--text3)');
+    return {isDone:isDone,label:label,color:color};
   }
+
   function _card(item){
     var t=item.task; var si=_stInfo(t);
     var steps=t.steps||[]; var ds=steps.filter(function(s){return s.done;}).length;
     var prog=steps.length?Math.round(ds/steps.length*100):(si.isDone?100:0);
-    var typeTag=item.type==='project_task'
-      ?'<div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:4px;display:inline-flex;align-items:center;gap:4px;background:rgba(124,111,247,.1);padding:2px 8px;border-radius:6px"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(item.projName)+'</div>'
-      :'<div style="font-size:10px;color:var(--accent2);font-weight:700;margin-bottom:4px;display:inline-flex;align-items:center;gap:4px;background:rgba(247,201,72,.1);padding:2px 8px;border-radius:6px"><i class="fa-solid fa-clipboard-list"></i> مهمة عادية</div>';
-    var click=item.type==='project_task'?'openProjectDetail(\''+String(t.project_id)+'\')':'openTaskModal('+String(t.id)+')';
+    var typeLbl=item.type==='project_task'?'<span style="font-size:10px;color:var(--accent);font-weight:700"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(item.projName)+'</span>':'<span style="font-size:10px;color:var(--accent2);font-weight:700"><i class="fa-solid fa-clipboard-list"></i> عادية</span>';
+    var click=item.type==='project_task'?'openProjectDetail(\''+String(t.project_id)+'\')':'openTaskDetail('+String(t.id)+')';
     return '<div class="card" style="cursor:pointer;border-right:3px solid '+si.color+'" onclick="'+click+'">'
-      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap"><div style="flex:1;min-width:0">'+typeTag
-      +'<div style="font-size:14px;font-weight:800;color:var(--text)">'+escapeHtml(t.title||t.name||'مهمة')+'</div></div>'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap"><div style="flex:1;min-width:0">'
+      +typeLbl
+      +'<div style="font-size:14px;font-weight:800;color:var(--text);margin-top:3px">'+escapeHtml(t.title||t.name||'مهمة')+'</div></div>'
       +'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+si.color+'22;color:'+si.color+'">'+si.label+'</span></div>'
       +(steps.length?'<div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin:6px 0"><div style="height:100%;width:'+prog+'%;background:var(--accent);border-radius:3px"></div></div>':'')
       +'<div style="display:flex;gap:10px;font-size:11px;color:var(--text3);flex-wrap:wrap;margin-top:6px">'
-      +(steps.length?'<span><i class="fa-solid fa-list-check"></i> '+ds+'/'+steps.length+'</span>':'')
+      +(t.client?'<span>'+escapeHtml(t.client)+'</span>':'')
       +(t.deadline?'<span><i class="fa-solid fa-calendar-days"></i> '+escapeHtml(t.deadline)+'</span>':'')
-      +(t.client?'<span><i class="fa-solid fa-user"></i> '+escapeHtml(t.client)+'</span>':'')
       +(t.value?'<span style="color:var(--accent);font-weight:700"><i class="fa-solid fa-coins"></i> '+Number(t.value).toLocaleString()+' ج</span>':'')
       +'</div></div>';
   }
-  function _listRow(item){
+
+  // ── helper لصف قابل للسحب — نفس ديزاين "مهامي" ──
+  function _dragRow(item, isList){
     var t=item.task; var si=_stInfo(t);
     var isLate=t.deadline&&new Date(t.deadline)<new Date()&&!si.isDone;
-    var payBadge=t.pay==='full'?'<span style="font-size:10px;color:var(--accent3);font-weight:700">✓ مدفوع</span>':t.pay==='deposit'?'<span style="font-size:10px;color:#a78bfa;font-weight:700">عربون</span>':'<span style="font-size:10px;color:#f76f7c;font-weight:700">غير مدفوع</span>';
-    var typeLbl=item.type==='project_task'?'<span style="font-size:10px;color:var(--accent);font-weight:700"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(item.projName||'مشروع')+'</span>':'<span style="font-size:10px;color:var(--accent2);font-weight:700"><i class="fa-solid fa-clipboard-list"></i> عادية</span>';
-    var click=item.type==='project_task'?'openProjectDetail(\''+String(t.project_id)+'\')':'openTaskModal('+String(t.id)+')';
-    return '<tr style="cursor:pointer;border-bottom:1px solid var(--border)" onclick="'+click+'">'
-      +'<td style="padding:10px 14px"><div style="font-weight:700;'+(si.isDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+escapeHtml(t.title||t.name||'مهمة')+'</div>'+typeLbl+'</td>'
-      +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client||'—')+'</td>'
-      +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:var(--text3)">'+(t.orderDate||t.createdAt?.split('T')[0]||'—')+'</td>'
-      +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+(t.deadline||'—')+'</td>'
-      +'<td style="padding:10px 8px;text-align:center">'+payBadge+'</td>'
-      +'<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+si.color+'22;color:'+si.color+'">'+si.label+'</span></td>'
-    +'</tr>';
-  }
-  function _tableRow(item){
-    var t=item.task; var si=_stInfo(t);
-    var isLate=t.deadline&&new Date(t.deadline)<new Date()&&!si.isDone;
-    var typeLbl=item.type==='project_task'?'<span style="color:var(--accent)"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(item.projName)+'</span>':'<span style="color:var(--accent2)"><i class="fa-solid fa-clipboard-list"></i> عادية</span>';
-    var hasSteps=t.steps&&t.steps.length>0;
-    var click=item.type==='project_task'?'openProjectDetail(\''+String(t.project_id)+'\')':'openTaskModal('+String(t.id)+')';
-    var stepsHtml='';
-    if(hasSteps){
-      stepsHtml='<tr id="all-steps-row-'+t.id+'" style="display:none"><td colspan="5" style="padding:0 14px 12px 40px;background:var(--surface2);border-bottom:2px solid var(--border)">'
-        +'<div style="padding:10px 0;font-size:11px;font-weight:800;color:var(--text2);margin-bottom:4px"><i class="fa-solid fa-list-check" style="color:var(--accent);margin-left:4px"></i> خطوات ('+t.steps.filter(function(s){return s.done;}).length+'/'+t.steps.length+')</div>'
-        +t.steps.map(function(s,si2){
-          var stepDone=s.done; var stepLate=s.deadline&&new Date(s.deadline)<new Date()&&!stepDone;
-          return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">'
-            +'<div style="width:18px;height:18px;border-radius:50%;border:2px solid '+(stepDone?'var(--accent3)':'var(--border)')+';display:flex;align-items:center;justify-content:center;font-size:9px;background:'+(stepDone?'var(--accent3)':'transparent')+';color:'+(stepDone?'#fff':'transparent')+'"><i class="fa-solid fa-check"></i></div>'
-            +'<div style="flex:1;'+(stepDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+escapeHtml(s.text||s.title||'')+'</div>'
-            +(s.deadline?'<div style="font-size:10px;font-family:var(--mono);color:'+(stepLate?'#f76f7c':'var(--text3)')+'">'+s.deadline+'</div>':'')
-          +'</div>';
-        }).join('')+'</td></tr>';
+    var isProjTask = item.type==='project_task';
+    var click = isProjTask ? 'openProjectDetail(\''+String(t.project_id)+'\')' : 'openTaskDetail('+String(t.id)+')';
+    var typeLbl = isProjTask
+      ? '<span style="font-size:10px;color:var(--accent);font-weight:700"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(item.projName||'مشروع')+'</span>'
+      : '<span style="font-size:10px;color:var(--accent2);font-weight:700"><i class="fa-solid fa-clipboard-list"></i> عادية</span>';
+    var prio2={high:'<span class="badge badge-red">عالية</span>',med:'<span class="badge badge-yellow">متوسطة</span>',low:'<span class="badge badge-green">منخفضة</span>'};
+    var payBadge = t.pay==='full'
+      ? '<span class="pay-badge pay-full"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مدفوع</span>'
+      : t.pay==='deposit'
+        ? '<span class="pay-badge pay-deposit"><i class="fa-solid fa-heart"></i> عربون</span>'
+        : '<span class="pay-badge pay-none"><i class="fa-solid fa-circle-xmark"></i> لم يُدفع</span>';
+    var completeBtn = !si.isDone
+      ? '<button class="btn btn-success btn-sm" onclick="event.stopPropagation();'+(isProjTask?'_completeProjTask(\''+t.id+'\')':'completeTask('+t.id+')')+'" title="إكمال" style="padding:4px 8px;font-size:13px;flex-shrink:0"><i class="fa-solid fa-check"></i></button>'
+      : '<span style="color:var(--accent3);font-size:16px;flex-shrink:0"><i class="fa-solid fa-square-check"></i></span>';
+    var editBtn = isProjTask
+      ? '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openProjectDetail(\''+String(t.project_id)+'\')" style="padding:3px 7px;font-size:11px"><i class="fa-solid fa-pen"></i></button>'
+      : '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openTaskModal('+t.id+')" style="padding:3px 7px;font-size:11px"><i class="fa-solid fa-pen"></i></button>';
+    var delBtn = isProjTask ? ''
+      : '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delTask('+t.id+')" style="padding:3px 7px;font-size:11px"><i class="fa-solid fa-trash"></i></button>';
+
+    if(isList){
+      return '<tr class="al-row'+(si.isDone?' al-done':'')+'" draggable="true" data-alid="'+t.id+'" data-altype="'+item.type+'" '
+        +'ondragstart="_alDragStart(event,\''+t.id+'\',\''+item.type+'\')" '
+        +'ondragover="_alDragOver(event)" '
+        +'ondrop="_alDrop(event,\''+t.id+'\',\''+item.type+'\')" '
+        +'ondragend="_alDragEnd(event)" '
+        +'style="cursor:pointer;border-bottom:1px solid var(--border);'+(si.isDone?'opacity:.6':'')+';" '
+        +'onclick="'+click+'">'
+        // drag
+        +'<td style="padding:10px 4px;width:24px;text-align:center;color:var(--text3);cursor:grab" onclick="event.stopPropagation()" title="اسحب لإعادة الترتيب"><i class="fa-solid fa-grip-vertical" style="font-size:10px"></i></td>'
+        // checkbox
+        +'<td style="padding:10px 6px;width:28px;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'
+          +'<input type="checkbox" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">'
+        +'</td>'
+        // complete + title
+        +'<td style="padding:10px 14px">'
+          +'<div style="display:flex;align-items:center;gap:8px">'
+            +completeBtn
+            +'<div>'
+              +'<div style="font-weight:700;'+(si.isDone?'text-decoration:line-through;color:var(--text2)':'')+'">'+escapeHtml(t.title||t.name||'مهمة')+'</div>'
+              +typeLbl
+            +'</div>'
+          +'</div>'
+        +'</td>'
+        // client
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client||t.client_name||'—')+'</td>'
+        // priority
+        +'<td style="padding:10px 8px;text-align:center" class="hide-mobile">'+(prio2[t.priority]||'—')+'</td>'
+        // order date
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>'
+        // deadline
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+(t.deadline||'—')+'</td>'
+        // pay
+        +'<td style="padding:10px 8px;text-align:center">'+payBadge+'</td>'
+        // status
+        +'<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+si.color+'22;color:'+si.color+'">'+si.label+'</span></td>'
+        // actions
+        +'<td style="padding:10px 8px;text-align:center" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:center">'+editBtn+delBtn+'</div></td>'
+      +'</tr>';
+
+    } else {
+      // ── table view ──
+      var hasSteps=t.steps&&t.steps.length>0;
+      var stepsHtml='';
+      if(hasSteps){
+        stepsHtml='<tr id="all-steps-row-'+t.id+'" style="display:none"><td colspan="11" style="padding:0 14px 12px 40px;background:var(--surface2);border-bottom:2px solid var(--border)">'
+          +'<div style="padding:10px 0;font-size:11px;font-weight:800;color:var(--text2);margin-bottom:4px"><i class="fa-solid fa-list-check" style="color:var(--accent);margin-left:4px"></i> خطوات ('+t.steps.filter(function(s){return s.done;}).length+'/'+t.steps.length+')</div>'
+          +t.steps.map(function(s){
+            var sd=s.done; var sl=s.deadline&&new Date(s.deadline)<new Date()&&!sd;
+            return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">'
+              +'<div style="width:18px;height:18px;border-radius:50%;border:2px solid '+(sd?'var(--accent3)':'var(--border)')+';display:flex;align-items:center;justify-content:center;font-size:9px;background:'+(sd?'var(--accent3)':'transparent')+';color:'+(sd?'#fff':'transparent')+'"><i class="fa-solid fa-check"></i></div>'
+              +'<div style="flex:1;'+(sd?'text-decoration:line-through;color:var(--text3)':'')+'">'+escapeHtml(s.text||s.title||'')+'</div>'
+              +(s.deadline?'<div style="font-size:10px;font-family:var(--mono);color:'+(sl?'#f76f7c':'var(--text3)')+'">'+s.deadline+'</div>':'')
+            +'</div>';
+          }).join('')+'</td></tr>';
+      }
+      return '<tr class="at-row'+(si.isDone?' at-done':'')+'" draggable="true" data-atid="'+t.id+'" data-attype="'+item.type+'" '
+        +'ondragstart="_atDragStart(event,\''+t.id+'\',\''+item.type+'\')" '
+        +'ondragover="_atDragOver(event)" '
+        +'ondrop="_atDrop(event,\''+t.id+'\',\''+item.type+'\')" '
+        +'ondragend="_atDragEnd(event)" '
+        +'style="cursor:pointer;border-bottom:1px solid var(--border);'+(si.isDone?'opacity:.6':'')+';" '
+        +'onclick="'+click+'">'
+        // drag
+        +'<td style="padding:10px 4px;width:24px;text-align:center;color:var(--text3);cursor:grab;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()"><i class="fa-solid fa-grip-vertical" style="font-size:10px"></i></td>'
+        // checkbox
+        +'<td style="padding:10px 6px;width:28px;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'
+          +'<input type="checkbox" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">'
+        +'</td>'
+        // complete + title
+        +'<td style="padding:10px 14px;font-weight:700;max-width:220px">'
+          +'<div style="display:flex;align-items:center;gap:8px">'
+            +completeBtn
+            +'<div>'
+              +'<div style="display:flex;align-items:center;gap:6px">'
+                +(hasSteps?'<button onclick="event.stopPropagation();_toggleAllStepsRow(\''+t.id+'\',\'all-\')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;padding:2px 4px;flex-shrink:0" id="all-steps-arrow-'+t.id+'"><i class="fa-solid fa-chevron-down"></i></button>':'')
+                +'<span style="'+(si.isDone?'text-decoration:line-through;color:var(--text3)':'')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escapeHtml(t.title||t.name||'مهمة')+'</span>'
+              +'</div>'
+              +typeLbl
+            +'</div>'
+          +'</div>'
+        +'</td>'
+        // client
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client||t.client_name||'—')+'</td>'
+        // priority
+        +'<td style="padding:10px 8px;text-align:center" class="hide-mobile">'+(prio2[t.priority]||'—')+'</td>'
+        // order date
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>'
+        // deadline
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+(t.deadline||'—')+'</td>'
+        // pay
+        +'<td style="padding:10px 8px;text-align:center">'+payBadge+'</td>'
+        // status
+        +'<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+si.color+'22;color:'+si.color+'">'+si.label+'</span></td>'
+        // actions
+        +'<td style="padding:10px 8px;text-align:center" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:center">'+editBtn+delBtn+'</div></td>'
+      +'</tr>'+stepsHtml;
     }
-    return '<tr style="cursor:pointer;border-bottom:1px solid var(--border)" onclick="'+click+'">'
-      +'<td style="padding:10px 14px"><div style="display:flex;align-items:center;gap:6px">'
-      +(hasSteps?'<button onclick="event.stopPropagation();_toggleAllStepsRow(\''+t.id+'\',\'all-\')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;padding:2px 4px;flex-shrink:0" id="all-steps-arrow-'+t.id+'"><i class="fa-solid fa-chevron-down"></i></button>':'<span style="width:22px"></span>')
-      +'<div style="font-weight:700">'+escapeHtml(t.title||t.name||'مهمة')+'</div></div>'+typeLbl+'</td>'
-      +'<td style="padding:10px 8px;text-align:center;font-size:11px">'+typeLbl+'</td>'
-      +'<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+si.color+'22;color:'+si.color+'">'+si.label+'</span></td>'
-      +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+escapeHtml(t.deadline||'—')+'</td>'
-      +'<td style="padding:10px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--accent)">'+(t.value?Number(t.value).toLocaleString()+' ج':'—')+'</td>'
-    +'</tr>'+stepsHtml;
   }
+
+  function _doneSec(doneItems, prefix, toggleFn, arrowId, colSpan){
+    if(!doneItems.length) return '';
+    var collapsed=localStorage.getItem('_'+prefix+'_done_collapsed')==='1';
+    var sec='<tr class="'+prefix+'-done-header" onclick="'+toggleFn+'()" style="cursor:pointer">'
+      +'<td colspan="'+colSpan+'" style="padding:9px 14px;background:rgba(79,209,165,.05);border-top:2px solid rgba(79,209,165,.2);border-bottom:1px solid var(--border)">'
+        +'<div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--accent3)">'
+          +'<i class="fa-solid fa-square-check"></i> مكتملة '
+          +'<span style="background:rgba(79,209,165,.18);color:var(--accent3);padding:1px 9px;border-radius:20px;font-size:10px">'+doneItems.length+'</span>'
+          +'<i class="fa-solid fa-chevron-down" id="'+arrowId+'" style="margin-right:auto;font-size:10px;transition:transform .2s;'+(collapsed?'transform:rotate(-90deg)':'')+'"></i>'
+        +'</div>'
+      +'</td>'
+    +'</tr>';
+    if(!collapsed) sec+=doneItems.join('');
+    return sec;
+  }
+
   var empty='<div style="text-align:center;padding:50px 20px;color:var(--text3)"><i class="fa-solid fa-layer-group" style="font-size:40px;opacity:.35;display:block;margin-bottom:12px"></i><div style="font-size:14px;font-weight:700;color:var(--text2);margin-bottom:5px">لا توجد مهام</div></div>';
+
   // Kanban
   var k=document.getElementById('all-tasks-kanban'); if(k) k.innerHTML=allItems.length?allItems.map(_card).join(''):empty;
-  // List — TABLE format like "مهامي"
+
+  // ── List view مع drag + done ──
   var l=document.getElementById('all-tasks-list');
   if(l){
     if(!allItems.length){ l.innerHTML=empty; }
     else{
-      l.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">'
+      var alActive=allItems.filter(function(x){ return !_stInfo(x.task).isDone; });
+      var alDone  =allItems.filter(function(x){  return _stInfo(x.task).isDone; });
+      var activeRows=alActive.map(function(x){ return _dragRow(x,true); });
+      var doneRows  =alDone.map(function(x){   return _dragRow(x,true); });
+      var doneSec=_doneSec(doneRows,'al','_alToggleDone','al-done-arrow','11');
+      l.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto">'
+        +'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">'
+        +'<th style="width:24px;border-bottom:1px solid var(--border)"></th>'
+        +'<th style="width:28px;border-bottom:1px solid var(--border)"></th>'
         +'<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>'
         +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">العميل</th>'
-        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">تاريخ الطلب</th>'
-        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">تاريخ التسليم</th>'
+        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)" class="hide-mobile">الأولوية</th>'
+        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)" class="hide-mobile">تاريخ الطلب</th>'
+        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">التسليم</th>'
         +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الدفع</th>'
         +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة</th>'
-        +'</tr></thead><tbody>'+allItems.map(_listRow).join('')+'</tbody></table></div></div>';
+        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">إجراءات</th>'
+        +'</tr></thead><tbody>'
+        +(activeRows.join('')||'<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--text3);font-size:12px">لا توجد مهام نشطة</td></tr>')
+        +doneSec
+        +'</tbody></table></div></div>';
     }
   }
-  // Table (with expandable steps)
-  var tb=document.getElementById('all-tasks-table-body'); if(tb) tb.innerHTML=allItems.length?allItems.map(_tableRow).join(''):'<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text3)">لا توجد مهام</td></tr>';
+
+  // ── Table view مع drag + done ──
+  var tb=document.getElementById('all-tasks-table-body');
+  if(tb){
+    if(!allItems.length){ tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text3)">لا توجد مهام</td></tr>'; }
+    else{
+      var atActive=allItems.filter(function(x){ return !_stInfo(x.task).isDone; });
+      var atDone  =allItems.filter(function(x){  return _stInfo(x.task).isDone; });
+      var atActiveRows=atActive.map(function(x){ return _dragRow(x,false); });
+      var atDoneRows  =atDone.map(function(x){   return _dragRow(x,false); });
+      var atDoneSec=_doneSec(atDoneRows,'at','_atToggleDone','at-done-arrow','11');
+      tb.innerHTML=(atActiveRows.join('')||'<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--text3);font-size:12px">لا توجد مهام نشطة</td></tr>')+atDoneSec;
+    }
+  }
   var cnt=document.getElementById('all-tasks-table-count'); if(cnt) cnt.textContent=allItems.length+' مهمة';
 }
+
 function _toggleAllStepsRow(tid,prefix){
   var row=document.getElementById((prefix||'')+'steps-row-'+tid);
   var arrow=document.getElementById((prefix||'')+'steps-arrow-'+tid);
@@ -3240,6 +3617,44 @@ function _toggleAllStepsRow(tid,prefix){
   row.style.display=isOpen?'none':'table-row';
   if(arrow) arrow.style.transform=isOpen?'':'rotate(180deg)';
 }
+
+// ── All-tasks list drag helpers ──
+var _alDragId=null,_alDragType=null;
+function _alDragStart(e,id,type){ _alDragId=id;_alDragType=type; e.currentTarget.classList.add('tt-dragging'); e.dataTransfer.effectAllowed='move'; }
+function _alDragEnd(e){ e.currentTarget.classList.remove('tt-dragging'); document.querySelectorAll('.al-row').forEach(function(r){r.style.boxShadow='';}); }
+function _alDragOver(e){ e.preventDefault(); e.currentTarget.style.boxShadow='inset 0 -2px 0 var(--accent)'; }
+function _alDrop(e,targetId,targetType){
+  e.preventDefault(); document.querySelectorAll('.al-row').forEach(function(r){r.style.boxShadow='';});
+  if(!_alDragId||_alDragId===targetId) return;
+  var arr = _alDragType==='project_task'?S.project_tasks:S.tasks;
+  var tarr = targetType==='project_task'?S.project_tasks:S.tasks;
+  if(arr!==tarr){ _alDragId=null; return; } // don't mix types
+  var fi=arr.findIndex(function(t){return String(t.id)===String(_alDragId);});
+  var ti=tarr.findIndex(function(t){return String(t.id)===String(targetId);});
+  if(fi<0||ti<0) return;
+  var moved=arr.splice(fi,1)[0]; arr.splice(ti,0,moved);
+  lsSave(); cloudSave(S); _renderAllTasksList(); _alDragId=null;
+}
+function _alToggleDone(){ var c=localStorage.getItem('_al_done_collapsed')==='1'; localStorage.setItem('_al_done_collapsed',c?'0':'1'); _renderAllTasksList(); }
+
+// ── All-tasks table drag helpers ──
+var _atDragId=null,_atDragType=null;
+function _atDragStart(e,id,type){ _atDragId=id;_atDragType=type; e.currentTarget.classList.add('tt-dragging'); e.dataTransfer.effectAllowed='move'; }
+function _atDragEnd(e){ e.currentTarget.classList.remove('tt-dragging'); document.querySelectorAll('.at-row').forEach(function(r){r.style.boxShadow='';}); }
+function _atDragOver(e){ e.preventDefault(); e.currentTarget.style.boxShadow='inset 0 -2px 0 var(--accent)'; }
+function _atDrop(e,targetId,targetType){
+  e.preventDefault(); document.querySelectorAll('.at-row').forEach(function(r){r.style.boxShadow='';});
+  if(!_atDragId||_atDragId===targetId) return;
+  var arr = _atDragType==='project_task'?S.project_tasks:S.tasks;
+  var tarr = targetType==='project_task'?S.project_tasks:S.tasks;
+  if(arr!==tarr){ _atDragId=null; return; }
+  var fi=arr.findIndex(function(t){return String(t.id)===String(_atDragId);});
+  var ti=tarr.findIndex(function(t){return String(t.id)===String(targetId);});
+  if(fi<0||ti<0) return;
+  var moved=arr.splice(fi,1)[0]; arr.splice(ti,0,moved);
+  lsSave(); cloudSave(S); _renderAllTasksList(); _atDragId=null;
+}
+function _atToggleDone(){ var c=localStorage.getItem('_at_done_collapsed')==='1'; localStorage.setItem('_at_done_collapsed',c?'0':'1'); _renderAllTasksList(); }
 
 
 function renderTasks(){
@@ -3425,41 +3840,117 @@ function renderTasks(){
   }
 
   const tbody=document.getElementById('tasks-tbody');if(!tbody)return;
-  tbody.innerHTML=filtered.map(t=>`<tr style="${t.done?'opacity:.55':''}" onclick="openTaskDetail(${t.id})" class="task-clickable" title="اضغط لعرض التفاصيل">
-    <td>
-      <div style="display:flex;align-items:center;gap:8px">
-        ${!t.done
-          ? `<button class="btn btn-success btn-sm" onclick="event.stopPropagation();completeTask(${t.id})" title="إكمال المشروع" style="padding:4px 8px;font-size:13px;flex-shrink:0"><i class="fa-solid fa-check"></i></button>`
-          : `<span style="color:var(--accent3);font-size:16px;flex-shrink:0"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i></span>`
-        }
-        <div>
-          <b style="${t.done?'text-decoration:line-through;color:var(--text2)':''}">${t.title}</b>
-          ${t.brief?'<span style="font-size:10px;color:var(--accent);margin-right:6px"><i class="fa-solid fa-file-lines"></i></span>':''}
-          <div style="margin-top:2px">${jtBadge(t.jobType)}</div>
+
+  // ── فصل المهام: نشطة / مكتملة ──
+  const activeTasks = filtered.filter(t=>!t.done && t.status!=='done');
+  const doneTasks   = filtered.filter(t=> t.done || t.status==='done');
+
+  const makeListRow = t => {
+    const isDone = t.done||t.status==='done';
+    return `<tr class="tl-row${isDone?' tl-done':''}"
+      draggable="true"
+      data-tid="${t.id}"
+      ondragstart="_tlDragStart(event,'${t.id}')"
+      ondragover="_tlDragOver(event)"
+      ondrop="_tlDrop(event,'${t.id}')"
+      ondragend="_tlDragEnd(event)"
+      onclick="openTaskDetail(${t.id})"
+      style="${isDone?'opacity:.6':''};cursor:pointer">
+      <td style="width:24px;padding:6px 4px;cursor:grab;color:var(--text3);text-align:center" onclick="event.stopPropagation()" title="اسحب لإعادة الترتيب">
+        <i class="fa-solid fa-grip-vertical" style="font-size:11px"></i>
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${!isDone
+            ? `<button class="btn btn-success btn-sm" onclick="event.stopPropagation();completeTask(${t.id})" title="إكمال" style="padding:4px 8px;font-size:13px;flex-shrink:0"><i class="fa-solid fa-check"></i></button>`
+            : `<span style="color:var(--accent3);font-size:16px;flex-shrink:0"><i class="fa-solid fa-square-check"></i></span>`}
+          <div>
+            <b style="${isDone?'text-decoration:line-through;color:var(--text2)':''}">${t.title}</b>
+            ${t.brief?'<span style="font-size:10px;color:var(--accent);margin-right:6px"><i class="fa-solid fa-file-lines"></i></span>':''}
+            <div style="margin-top:2px">${jtBadge(t.jobType)}</div>
+          </div>
         </div>
-      </div>
-    </td>
-    <td>${t.client||'—'}</td>
-    <td class="hide-mobile">${prioBadge[t.priority]}</td>
-    <td class="hide-mobile" style="font-family:var(--mono);font-size:11px">${t.orderDate||'—'}</td>
-    <td class="hide-mobile" style="font-family:var(--mono);font-size:11px">${t.deadline||'—'}</td>
-    <td>
-      ${(t.jobType==='fulltime'||t.jobType==='parttime')&&t.salary
-        ? `<span style="color:var(--accent3);font-weight:700;font-size:12px">${t.salary.toLocaleString()} ج/شهر</span>`
-        : `${payBadge[t.pay||'none']}${t.pay==='deposit'&&t.deposit?`<div style="font-size:11px;color:var(--accent2)">${t.deposit.toLocaleString()} ج</div>`:''}`
-      }
-    </td>
-    <td>${t.done?'<span class="badge badge-green"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل</span>':statusBadge[t.status]}</td>
-    <td><div style="display:flex;gap:4px" onclick="event.stopPropagation()">
-      <button class="btn btn-ghost btn-sm" onclick="openTaskModal(${t.id})"><i class="fa-solid fa-pen"></i></button>
-      <button class="btn btn-danger btn-sm" onclick="delTask(${t.id})"><i class="fa-solid fa-trash"></i></button>
-    </div></td>
-  </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">لا توجد مهام تطابق الفلتر</td></tr>';
+      </td>
+      <td>${t.client||'—'}</td>
+      <td class="hide-mobile">${prioBadge[t.priority]}</td>
+      <td class="hide-mobile" style="font-family:var(--mono);font-size:11px">${t.orderDate||'—'}</td>
+      <td class="hide-mobile" style="font-family:var(--mono);font-size:11px">${t.deadline||'—'}</td>
+      <td>
+        ${(t.jobType==='fulltime'||t.jobType==='parttime')&&t.salary
+          ? `<span style="color:var(--accent3);font-weight:700;font-size:12px">${t.salary.toLocaleString()} ج/شهر</span>`
+          : `${payBadge[t.pay||'none']}${t.pay==='deposit'&&t.deposit?`<div style="font-size:11px;color:var(--accent2)">${t.deposit.toLocaleString()} ج</div>`:''}`}
+      </td>
+      <td>${isDone?'<span class="badge badge-green"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل</span>':statusBadge[t.status]}</td>
+      <td><div style="display:flex;gap:4px" onclick="event.stopPropagation()">
+        <button class="btn btn-ghost btn-sm" onclick="openTaskModal(${t.id})"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="delTask(${t.id})"><i class="fa-solid fa-trash"></i></button>
+      </div></td>
+    </tr>`;
+  };
+
+  const activeHTML = activeTasks.length
+    ? activeTasks.map(makeListRow).join('')
+    : '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">لا توجد مهام نشطة</td></tr>';
+
+  let doneSectionHTML = '';
+  if(doneTasks.length){
+    const collapsed = localStorage.getItem('_tl_done_collapsed')==='1';
+    doneSectionHTML = `
+    <tr class="tl-done-header" onclick="_tlToggleDone()" style="cursor:pointer">
+      <td colspan="9" style="padding:9px 14px;background:rgba(79,209,165,.05);border-top:2px solid rgba(79,209,165,.2);border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--accent3)">
+          <i class="fa-solid fa-square-check"></i>
+          مكتملة
+          <span style="background:rgba(79,209,165,.18);color:var(--accent3);padding:1px 9px;border-radius:20px;font-size:10px">${doneTasks.length}</span>
+          <i class="fa-solid fa-chevron-down" id="tl-done-arrow" style="margin-right:auto;font-size:10px;transition:transform .2s;${collapsed?'transform:rotate(-90deg)':''}"></i>
+        </div>
+      </td>
+    </tr>
+    ${collapsed ? '' : doneTasks.map(makeListRow).join('')}`;
+  }
+
+  tbody.innerHTML = activeHTML + doneSectionHTML;
+
   const badge=document.getElementById('tasks-badge');
   const urgent=S.tasks.filter(t=>!t.done&&t.priority==='high').length;
   badge.textContent=urgent||'';badge.style.display=urgent?'inline-block':'none';
-  // Refresh table view if active
   if(document.getElementById('table-view')?.style.display!=='none') _renderTasksTable();
+}
+
+// ── Toggle مكتملة section في list view ──
+function _tlToggleDone(){
+  const cur = localStorage.getItem('_tl_done_collapsed')==='1';
+  localStorage.setItem('_tl_done_collapsed', cur?'0':'1');
+  renderTasks();
+}
+
+// ── Drag to reorder في list view ──
+var _tlDragId = null;
+function _tlDragStart(e, tid){
+  _tlDragId = tid;
+  e.currentTarget.classList.add('tl-dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function _tlDragEnd(e){
+  e.currentTarget.classList.remove('tl-dragging');
+  document.querySelectorAll('.tl-row').forEach(r=>r.style.boxShadow='');
+}
+function _tlDragOver(e){
+  e.preventDefault();
+  e.currentTarget.style.boxShadow = 'inset 0 -2px 0 var(--accent)';
+}
+function _tlDrop(e, targetId){
+  e.preventDefault();
+  document.querySelectorAll('.tl-row').forEach(r=>r.style.boxShadow='');
+  if(!_tlDragId || String(_tlDragId)===String(targetId)) return;
+  const fi = S.tasks.findIndex(t=>String(t.id)===String(_tlDragId));
+  const ti = S.tasks.findIndex(t=>String(t.id)===String(targetId));
+  if(fi<0||ti<0) return;
+  const [moved] = S.tasks.splice(fi,1);
+  S.tasks.splice(ti,0,moved);
+  lsSave(); cloudSave(S);
+  renderTasks();
+  _tlDragId = null;
 }
 
 // ============================================================
@@ -6968,6 +7459,24 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   showPage(_startPage);
   showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> أهلاً ' + (userObj.name||''), '#4fd1a5');
 
+  // ── فحص لو في دعوة فريق شركة معلقة من URL ──
+  (function _checkPendingTeamInviteFromUrl(){
+    var urlParams = new URLSearchParams(window.location.search);
+    var urlInvite = urlParams.get('teamInvite');
+    var urlTd     = urlParams.get('td') || localStorage.getItem('_pendingTeamTd') || '';
+    var lsInvite  = localStorage.getItem('_pendingTeamInvite');
+    var inviteTeamId = urlInvite || lsInvite;
+
+    if(inviteTeamId){
+      localStorage.removeItem('_pendingTeamInvite');
+      localStorage.removeItem('_pendingTeamTd');
+      if(urlInvite) window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+      setTimeout(function(){
+        _showInlineTeamInviteModal(inviteTeamId, urlTd);
+      }, 1500);
+    }
+  })();
+
   // ── بوبأب ترحيب للمستخدم الجديد ──
   var _newUserKey = 'ordo_welcome_shown_' + supaUser.id;
   if(!localStorage.getItem(_newUserKey)){
@@ -6978,6 +7487,79 @@ async function loginWithSupaSession(supaUser, session, userMeta){
 }
 
 // ══ SUBSCRIPTION SYSTEM ══
+
+// ── نافذة الانضمام لفريق شركة من داخل index.html ──
+function _showInlineTeamInviteModal(teamId, tdEncoded){
+  // ابحث عن بيانات الفريق
+  var teamName = 'الفريق';
+  var teamEmoji = '🏢';
+  var teamColor = 'var(--accent2)';
+
+  // جرّب تفكّ بيانات الفريق من الـ td param
+  if(tdEncoded){
+    try {
+      var decoded = JSON.parse(decodeURIComponent(escape(atob(tdEncoded))));
+      if(decoded){
+        teamName  = decoded.name  || teamName;
+        teamEmoji = decoded.emoji || teamEmoji;
+        teamColor = decoded.color || teamColor;
+      }
+    }catch(e){}
+  }
+
+  // لو ما فيش td — ابحث في localStorage
+  if(teamName==='الفريق'){
+    try {
+      var raw = localStorage.getItem('ordo_teams_v2');
+      if(raw){
+        var tsData = JSON.parse(raw);
+        var found = (tsData.teams||[]).find(function(t){ return t.id===teamId; });
+        if(found){ teamName=found.name; teamEmoji=found.emoji||'🏢'; teamColor=found.color||'var(--accent2)'; }
+      }
+    }catch(e){}
+  }
+
+  var ex = document.getElementById('_inline-team-invite-modal');
+  if(ex) ex.remove();
+
+  var ov = document.createElement('div');
+  ov.id = '_inline-team-invite-modal';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:99998;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:_fadeUp .25s cubic-bezier(.22,1,.36,1) both">'
+    +'<div style="font-size:52px;margin-bottom:14px">'+teamEmoji+'</div>'
+    +'<div style="font-size:18px;font-weight:900;margin-bottom:6px">دعوة للانضمام</div>'
+    +'<div style="font-size:13px;color:var(--text3);margin-bottom:6px">تمت دعوتك للانضمام لـ</div>'
+    +'<div style="font-size:20px;font-weight:900;color:'+teamColor+';margin-bottom:18px">'+escapeHtml(teamName)+'</div>'
+    +'<div style="background:rgba(124,111,247,.07);border:1px solid rgba(124,111,247,.15);border-radius:12px;padding:12px 16px;margin-bottom:20px;text-align:right">'
+      +'<div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:800">ستتمكن من:</div>'
+      +'<div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--text2)">'
+        +'<div><i class="fa-solid fa-check" style="color:var(--accent3);margin-left:6px"></i> عرض بورد المهام والكانبان</div>'
+        +'<div><i class="fa-solid fa-check" style="color:var(--accent3);margin-left:6px"></i> إضافة وتعديل المهام</div>'
+        +'<div><i class="fa-solid fa-check" style="color:var(--accent3);margin-left:6px"></i> التعليق ومنشن الزملاء</div>'
+        +'<div><i class="fa-solid fa-check" style="color:var(--accent3);margin-left:6px"></i> تغيير حالات المهام</div>'
+      +'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:10px">'
+      +'<button id="_itim-accept" style="flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">'
+        +'<i class="fa-solid fa-check"></i> انضم الآن'
+      +'</button>'
+      +'<button onclick="document.getElementById(\'_inline-team-invite-modal\').remove()" style="padding:12px 16px;background:var(--surface2);color:var(--text2);border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">لاحقاً</button>'
+    +'</div>'
+  +'</div>';
+
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+
+  document.getElementById('_itim-accept').onclick = function(){
+    ov.remove();
+    var base = window.location.href.replace(/[^/]*(\?.*)?$/, '');
+    var teamUrl = base+'team.html?join='+encodeURIComponent(teamId)+(tdEncoded?'&td='+encodeURIComponent(tdEncoded):'');
+    window.open(teamUrl, '_blank');
+    showMiniNotif('<i class="fa-solid fa-building" style="color:var(--accent2)"></i> جارٍ فتح بورد الفريق...');
+    window.open(teamUrl, '_blank');
+    showMiniNotif('<i class="fa-solid fa-building" style="color:var(--accent2)"></i> جارٍ فتح بورد الفريق...');
+  };
+}
 let _userSubscription = null;
 
 // ══ WELCOME POPUP ══
@@ -8986,6 +9568,22 @@ function fillWorkerMembersDD(){
 // ============================================================
 let teamMembersForm = []; // members being added in form
 
+// ── اختيار نوع الفريق (فريق عمل / شركة) ──
+function _openNewTeamChooser(){
+  openM('modal-team-type-chooser');
+}
+
+function _chooseTeamType(type){
+  closeM('modal-team-type-chooser');
+  if(type === 'regular'){
+    openTeamModal();
+  } else {
+    // شركة — افتح team.html
+    const base = window.location.href.replace(/[^/]*(\?.*)?$/, '');
+    window.open(base + 'team.html', '_blank');
+  }
+}
+
 function openTeamModal(id){
   teamMembersForm = [];
   document.getElementById('team-modal-ttl').innerHTML = id ? '<i class="fa-solid fa-users"></i> تعديل الفريق' : '<i class="fa-solid fa-users"></i> فريق جديد';
@@ -9209,10 +9807,15 @@ function delTeam(id){
 
 function renderTeams(){
   const grid = document.getElementById('teams-grid'); if(!grid) return;
-  if(!S.teams.length){
-    grid.innerHTML = '<div class="empty card" style="grid-column:span 3"><div class="empty-icon"><i class="fa-solid fa-people-group"></i></div>لا فرق بعد — أضف فريق عمل<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="openTeamModal()" data-i18n="btn_new_team"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فريق جديد</button></div></div>';
+  // ── فحص إذا في فرق شركات محفوظة ──
+  var _hasCompanyTeams = false;
+  try { var _ct=JSON.parse(localStorage.getItem('ordo_teams_v2')||'{}'); _hasCompanyTeams=(_ct.teams||[]).some(t=>t.type==='company'); } catch(e){}
+
+  if(!S.teams.length && !_hasCompanyTeams){
+    grid.innerHTML = '<div class="empty card" style="grid-column:span 3"><div class="empty-icon"><i class="fa-solid fa-people-group"></i></div>لا فرق بعد — أضف فريق عمل<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="_openNewTeamChooser()" data-i18n="btn_new_team"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فريق جديد</button></div></div>';
     // Update badge
     const badge = document.getElementById('team-badge'); if(badge) badge.style.display='none';
+    renderMyMemberTeams();
     return;
   }
   const roleIcon = {'كونتنت كريتور':'<i class="fa-solid fa-pen-nib"></i>','مستقل':'<i class="fa-solid fa-user"></i>','فيديو إديتور':'<i class="fa-solid fa-clapperboard"></i>','مودريتور':'<i class="fa-solid fa-comments"></i>','أخرى':'<i class="fa-solid fa-thumbtack"></i>'};
@@ -9224,7 +9827,39 @@ function renderTeams(){
   // Also render "teams I'm a member of"
   renderMyMemberTeams();
 
-  grid.innerHTML = S.teams.map(team=>`
+  // ── فرق الشركات من نظام team.html ──
+  var _companyTeams = [];
+  try {
+    var _tsRaw = localStorage.getItem('ordo_teams_v2');
+    if(_tsRaw){ var _tsData = JSON.parse(_tsRaw); _companyTeams = (_tsData.teams||[]).filter(function(t){ return t.type==='company'; }); }
+  } catch(e){}
+
+  grid.innerHTML = [
+    // ── فرق الشركات ──
+    ..._companyTeams.map(team=>`
+    <div class="card" style="border-color:rgba(247,201,72,.25);position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;right:0;width:3px;height:100%;background:var(--accent2)"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:38px;height:38px;border-radius:10px;background:${team.color||'var(--accent2)'};color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${team.emoji||'🏢'}</div>
+          <div>
+            <div style="font-size:15px;font-weight:800">${team.name}</div>
+            <span style="font-size:10px;background:rgba(247,201,72,.12);color:var(--accent2);padding:2px 8px;border-radius:10px;font-weight:800">🏢 شركة</span>
+          </div>
+        </div>
+        <a href="team.html" target="_blank" class="btn btn-ghost btn-sm" title="فتح نظام الشركة"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+      </div>
+      <div style="display:flex;gap:16px;font-size:12px;color:var(--text3);margin-bottom:12px">
+        <span><i class="fa-solid fa-users"></i> ${(team.members||[]).length} عضو</span>
+        <span><i class="fa-solid fa-clipboard-list"></i> ${(team.tasks||[]).length} مهمة</span>
+        <span><i class="fa-solid fa-check" style="color:var(--accent3)"></i> ${(team.tasks||[]).filter(t=>t.status==='done'||t.done).length} منجزة</span>
+      </div>
+      <a href="team.html" target="_blank" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center">
+        <i class="fa-solid fa-table-columns"></i> فتح البورد والمهام
+      </a>
+    </div>`),
+    // ── فرق العمل العادية ──
+    ...S.teams.map(team=>`
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <div>
@@ -9247,7 +9882,6 @@ function renderTeams(){
               <div style="font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
                 ${escapeHtml(m.name)}
                 ${m.linked ? '<span style="font-size:9px;background:rgba(79,209,165,.15);color:var(--accent3);padding:1px 5px;border-radius:5px;font-weight:700"><i class="fa-solid fa-check"></i> مرتبط</span>' : ''}
-                ${(m.email && !m.linked) ? '' : ''}
               </div>
               <div style="font-size:11px;color:var(--text3)">${escapeHtml(m.role)}${m.rate?' · '+m.rate+'%':''}</div>
             </div>
@@ -9257,7 +9891,8 @@ function renderTeams(){
           </div>`;
         }).join('')}
       </div>
-    </div>`).join('');
+    </div>`)
+  ].join('');
 }
 
 // ============================================================
@@ -9401,11 +10036,15 @@ function _renderTasksTable(){
   };
 
   if(!filtered.length){
-    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px;font-size:13px">لا توجد مهام تطابق الفلتر</td></tr>';
+    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px;font-size:13px">لا توجد مهام تطابق الفلتر</td></tr>';
     return;
   }
 
-  tbody.innerHTML = filtered.map(function(t, idx){
+  // ── فصل نشطة / مكتملة ──
+  var activeTbl = filtered.filter(function(t){ return !(t.done||t.status==='done'); });
+  var doneTbl   = filtered.filter(function(t){ return  t.done||t.status==='done'; });
+
+  function makeTableRow(t, idx){
     var rowBg = idx%2===0?'var(--surface)':'var(--surface2)';
     var isDone = t.done||t.status==='done';
     var isLate = t.deadline && new Date(t.deadline)<new Date() && !isDone;
@@ -9413,7 +10052,7 @@ function _renderTasksTable(){
     var hasSteps = t.steps && t.steps.length > 0;
     var stepsHtml = '';
     if(hasSteps){
-      stepsHtml = '<tr id="steps-row-'+t.id+'" style="display:none"><td colspan="8" style="padding:0 14px 12px 40px;background:var(--surface2);border-bottom:2px solid var(--border)">'
+      stepsHtml = '<tr id="steps-row-'+t.id+'" style="display:none"><td colspan="9" style="padding:0 14px 12px 40px;background:var(--surface2);border-bottom:2px solid var(--border)">'
         +'<div style="padding:10px 0;font-size:11px;font-weight:800;color:var(--text2);margin-bottom:4px"><i class="fa-solid fa-list-check" style="color:var(--accent);margin-left:4px"></i> خطوات المهمة ('+t.steps.filter(function(s){return s.done;}).length+'/'+t.steps.length+')</div>'
         +t.steps.map(function(s,si){
           var stepDone = s.done;
@@ -9426,13 +10065,24 @@ function _renderTasksTable(){
         }).join('')
       +'</td></tr>';
     }
-    return '<tr style="background:'+rowBg+';transition:background .12s;cursor:pointer" '
+    return '<tr class="tt-row" draggable="true" data-tid="'+t.id+'" '
+      +'ondragstart="_ttDragStart(event,\''+t.id+'\')" '
+      +'ondragover="_ttDragOver(event)" '
+      +'ondrop="_ttDrop(event,\''+t.id+'\')" '
+      +'ondragend="_ttDragEnd(event)" '
+      +'style="background:'+rowBg+';transition:background .12s,box-shadow .12s;cursor:pointer" '
       +'onmouseover="this.style.background=\'var(--surface3)\'" '
       +'onmouseout="this.style.background=\''+rowBg+'\'" '
       +'onclick="openTaskDetail('+t.id+')">'
-      +'<td style="padding:10px 6px;border-bottom:1px solid var(--border);width:30px" onclick="event.stopPropagation()">'
+      // drag handle
+      +'<td style="padding:10px 4px;border-bottom:1px solid var(--border);width:22px;text-align:center;color:var(--text3);cursor:grab" onclick="event.stopPropagation()" title="اسحب لإعادة الترتيب">'
+        +'<i class="fa-solid fa-grip-vertical" style="font-size:10px"></i>'
+      +'</td>'
+      // checkbox
+      +'<td style="padding:10px 6px;border-bottom:1px solid var(--border);width:28px" onclick="event.stopPropagation()">'
         +'<input type="checkbox" class="bulk-task-cb" data-tid="'+t.id+'" onchange="_bulkTasksUpdateCount()" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">'
       +'</td>'
+      // title
       +'<td style="padding:10px 14px;font-weight:700;border-bottom:1px solid var(--border);max-width:220px">'
         +'<div style="display:flex;align-items:center;gap:6px">'
           +(hasSteps?'<button onclick="event.stopPropagation();_toggleStepsRow('+t.id+')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;padding:2px 4px;flex-shrink:0;transition:transform .2s" id="steps-arrow-'+t.id+'"><i class="fa-solid fa-chevron-down"></i></button>':'<span style="width:22px"></span>')
@@ -9456,7 +10106,65 @@ function _renderTasksTable(){
         +'</div>'
       +'</td>'
     +'</tr>' + stepsHtml;
-  }).join('');
+  }
+
+  var activeHTML = activeTbl.map(function(t,i){ return makeTableRow(t,i); }).join('');
+  if(!activeHTML) activeHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px;font-size:12px">لا توجد مهام نشطة</td></tr>';
+
+  var doneSectionHTML = '';
+  if(doneTbl.length){
+    var collapsed = localStorage.getItem('_tt_done_collapsed')==='1';
+    doneSectionHTML = '<tr class="tt-done-header" onclick="_ttToggleDone()" style="cursor:pointer">'
+      +'<td colspan="9" style="padding:9px 14px;background:rgba(79,209,165,.05);border-top:2px solid rgba(79,209,165,.2);border-bottom:1px solid var(--border)">'
+        +'<div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--accent3)">'
+          +'<i class="fa-solid fa-square-check"></i> مكتملة '
+          +'<span style="background:rgba(79,209,165,.18);color:var(--accent3);padding:1px 9px;border-radius:20px;font-size:10px">'+doneTbl.length+'</span>'
+          +'<i class="fa-solid fa-chevron-down" id="tt-done-arrow" style="margin-right:auto;font-size:10px;transition:transform .2s;'+(collapsed?'transform:rotate(-90deg)':'')+'"></i>'
+        +'</div>'
+      +'</td>'
+    +'</tr>';
+    if(!collapsed){
+      doneSectionHTML += doneTbl.map(function(t,i){ return makeTableRow(t,i); }).join('');
+    }
+  }
+
+  tbody.innerHTML = activeHTML + doneSectionHTML;
+}
+
+// Toggle مكتملة section في table view
+function _ttToggleDone(){
+  var cur = localStorage.getItem('_tt_done_collapsed')==='1';
+  localStorage.setItem('_tt_done_collapsed', cur?'0':'1');
+  _renderTasksTable();
+}
+
+// Drag-to-reorder في table view
+var _ttDragId = null;
+function _ttDragStart(e, tid){
+  _ttDragId = tid;
+  e.currentTarget.classList.add('tt-dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function _ttDragEnd(e){
+  e.currentTarget.classList.remove('tt-dragging');
+  document.querySelectorAll('.tt-row').forEach(function(r){ r.style.boxShadow=''; });
+}
+function _ttDragOver(e){
+  e.preventDefault();
+  e.currentTarget.style.boxShadow = 'inset 0 -2px 0 var(--accent)';
+}
+function _ttDrop(e, targetId){
+  e.preventDefault();
+  document.querySelectorAll('.tt-row').forEach(function(r){ r.style.boxShadow=''; });
+  if(!_ttDragId || String(_ttDragId)===String(targetId)) return;
+  var fi = S.tasks.findIndex(function(t){ return String(t.id)===String(_ttDragId); });
+  var ti = S.tasks.findIndex(function(t){ return String(t.id)===String(targetId); });
+  if(fi<0||ti<0) return;
+  var moved = S.tasks.splice(fi,1)[0];
+  S.tasks.splice(ti,0,moved);
+  lsSave(); cloudSave(S);
+  _renderTasksTable();
+  _ttDragId = null;
 }
 
 // Toggle steps sub-rows in table view
@@ -13919,9 +14627,47 @@ function renderMyMemberTeams(){
     var tasks = m.tasks || [];
     var doneTasks = m.doneTasks || [];
     var lateTasks = tasks.filter(function(t){ return t.deadline && new Date(t.deadline) < new Date(); });
+    var isCompany = m.isCompany || m.type==='company';
+
+    // ── بطاقة الشركة ──
+    if(isCompany){
+      var teamUrl = m.teamUrl || (function(){
+        var base = window.location.href.replace(/[^/]*(\?.*)?$/,'');
+        return base+'team.html?openTeam='+(m.teamId||'');
+      })();
+      return '<div class="card" style="cursor:pointer;border-color:rgba(247,201,72,.2);transition:border-color .15s,transform .15s;position:relative;overflow:hidden" onclick="window.open(\''+teamUrl+'\',\'_blank\')" onmouseenter="this.style.borderColor=\'var(--accent2)\';this.style.transform=\'translateY(-2px)\'" onmouseleave="this.style.borderColor=\'rgba(247,201,72,.2)\';this.style.transform=\'\'">'
+        +'<div style="position:absolute;top:0;right:0;width:3px;height:100%;background:var(--accent2)"></div>'
+        +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
+          +'<div style="width:44px;height:44px;border-radius:12px;background:'+(m.teamColor||'var(--accent2)')+';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+(m.teamEmoji||'🏢')+'</div>'
+          +'<div style="flex:1;min-width:0">'
+            +'<div style="font-size:15px;font-weight:800">'+escapeHtml(m.teamName)+'</div>'
+            +'<span style="font-size:10px;background:rgba(247,201,72,.12);color:var(--accent2);padding:2px 8px;border-radius:10px;font-weight:800">🏢 شركة · '+escapeHtml(m.role||'عضو')+'</span>'
+          +'</div>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">'
+          +'<div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center">'
+            +'<div style="font-size:20px;font-weight:900;color:var(--accent4)">'+tasks.length+'</div>'
+            +'<div style="font-size:10px;color:var(--text3)">نشطة</div>'
+          +'</div>'
+          +'<div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center">'
+            +'<div style="font-size:20px;font-weight:900;color:var(--accent3)">'+doneTasks.length+'</div>'
+            +'<div style="font-size:10px;color:var(--text3)">مكتملة</div>'
+          +'</div>'
+          +'<div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center">'
+            +'<div style="font-size:20px;font-weight:900;color:'+(lateTasks.length?'var(--accent4)':'var(--accent3)')+'">'+lateTasks.length+'</div>'
+            +'<div style="font-size:10px;color:var(--text3)">متأخرة</div>'
+          +'</div>'
+        +'</div>'
+        +'<div style="font-size:11px;color:var(--accent2);border-top:1px solid var(--border);padding-top:10px;display:flex;align-items:center;gap:6px">'
+          +'<i class="fa-solid fa-table-columns"></i> اضغط لفتح بورد الشركة'
+        +'</div>'
+      +'</div>';
+    }
+
+    // ── بطاقة الفريق العادي ──
     return '<div class="card" style="cursor:pointer;transition:border-color .15s,transform .15s" data-oid="'+m.ownerId+'" onclick="openMyMemberTeamProfile(this.dataset.oid)" onmouseenter="this.style.borderColor=\'var(--accent3)\';this.style.transform=\'translateY(-2px)\'" onmouseleave="this.style.borderColor=\'\';this.style.transform=\'\'">'
       +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
-        +(m.ownerLogo ? '<img src="'+escapeHtml(m.ownerLogo)+'" style="width:44px;height:44px;border-radius:12px;object-fit:cover;flex-shrink:0" onerror=\'this.style.display=\"none\"\'">'
+        +(m.ownerLogo ? '<img src="'+escapeHtml(m.ownerLogo)+'" style="width:44px;height:44px;border-radius:12px;object-fit:cover;flex-shrink:0" onerror=\'this.style.display="none"\'">'
           : '<div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0"><i class="fa-solid fa-building"></i></div>')
         +'<div style="flex:1;min-width:0">'
           +'<div style="font-size:15px;font-weight:800;color:var(--accent3)">'+escapeHtml(m.ownerName)+'</div>'
@@ -14367,12 +15113,74 @@ window.openMyMemberTeamProfile = function(ownerId){
               teamName  : d2.teamName||'الفريق',
               memberName: n.title||'',
               role      : d2.memberRole||'عضو',
+              isCompany : d2.isCompanyTeam||false,
+              type      : d2.isCompanyTeam?'company':'team',
+              teamColor : d2.teamColor||'',
+              teamEmoji : d2.teamEmoji||'',
               tasks     : [],
               doneTasks : []
             });
           }catch(e){}
         });
       }
+
+      // ── ابحث في team snapshots (user_notifications type=team_data_snapshot) ──
+      try {
+        var {data:snapRows} = await supa.from('user_notifications')
+          .select('user_id,data,body')
+          .eq('type','team_data_snapshot')
+          .neq('user_id', _supaUserId);
+        if(snapRows && snapRows.length){
+          snapRows.forEach(function(srow){
+            try {
+              var snap = typeof srow.data==='string'?JSON.parse(srow.data):srow.data;
+              var ownerNameSnap = snap.ownerName||srow.body||'مشرف';
+              (snap.teams||[]).forEach(function(team){
+                (team.members||[]).forEach(function(m){
+                  if((m.email||'').toLowerCase().trim()===myEmail){
+                    var alreadyIdx=memberships.findIndex(function(x){
+                      return (x.teamId===team.id||x.teamName===team.name)&&x.ownerId===srow.user_id;
+                    });
+                    if(alreadyIdx===-1){
+                      memberships.push({
+                        ownerId   : srow.user_id,
+                        ownerName : ownerNameSnap,
+                        ownerLogo : '',
+                        teamId    : team.id||'',
+                        teamName  : team.name||'الفريق',
+                        teamColor : team.color||'',
+                        teamEmoji : team.emoji||'',
+                        memberName: m.name||'',
+                        role      : m.role||'عضو',
+                        isCompany : team.type==='company',
+                        type      : team.type==='company'?'company':'team',
+                        tasks     : [],
+                        doneTasks : [],
+                        // حفظ الـ tasks مباشرة
+                        _teamTasks: team.tasks||[]
+                      });
+                    }
+                    // حمّل مهامه من snapshot
+                    var mem2 = memberships.find(function(x){
+                      return (x.teamId===team.id||x.teamName===team.name)&&x.ownerId===srow.user_id;
+                    });
+                    if(mem2 && (team.tasks||[]).length){
+                      (team.tasks||[]).forEach(function(t){
+                        if(String(t.assigneeId)!==String(m.id)) return;
+                        var te={id:t.id,title:t.title||'مهمة',status:t.status||'todo',
+                          done:t.status==='done'||t.done||false,deadline:t.deadline||'',
+                          client:t.client||'',steps:t.steps||[],isCompanyTask:true,teamName:team.name};
+                        if(te.done||te.status==='done') mem2.doneTasks.push(te);
+                        else mem2.tasks.push(te);
+                      });
+                    }
+                  }
+                });
+              });
+            }catch(e){}
+          });
+        }
+      }catch(eSnap){ console.warn('snapshot scan:', eSnap); }
 
       // Also check local S.teams for membership (if this user IS the owner)
       if(myEmail){
@@ -14399,23 +15207,57 @@ window.openMyMemberTeamProfile = function(ownerId){
               var ownerName = (rd.settings && rd.settings.name) || 'مشرف';
               var ownerLogo = (rd.settings && rd.settings.logo) || '';
               var myName = '';
-              // Find this user's name in the team member list
-              (rd.teams||[]).forEach(function(team) {
+
+              // ── جمع كل الفرق من المصادر المختلفة ──
+              var allTeamsFromRow = [];
+
+              // أ. فرق Ordo العادية (S.teams)
+              (rd.teams||[]).forEach(function(t){ allTeamsFromRow.push({team:t, isCompany:false}); });
+
+              // ب. فرق الشركات من _companyTeams (array مباشر)
+              (rd._companyTeams||[]).forEach(function(t){
+                if(!allTeamsFromRow.find(function(x){return x.team.id===t.id;}))
+                  allTeamsFromRow.push({team:t, isCompany:true});
+              });
+
+              // ج. فرق الشركات من _teamAppData (JSON string)
+              if(rd._teamAppData){
+                try{
+                  var _ctd = typeof rd._teamAppData==='string'?JSON.parse(rd._teamAppData):rd._teamAppData;
+                  (_ctd.teams||[]).forEach(function(t){
+                    if(!allTeamsFromRow.find(function(x){return x.team.id===t.id;}))
+                      allTeamsFromRow.push({team:t, isCompany:t.type==='company'});
+                  });
+                }catch(e){}
+              }
+
+              // ── ابحث عن الإيميل في كل الفرق ──
+              allTeamsFromRow.forEach(function(entry) {
+                var team = entry.team;
+                var isCompany = entry.isCompany || team.type==='company';
                 (team.members||[]).forEach(function(m) {
+                  if(m.id==='me') return; // تخطي صاحب الفريق
                   if((m.email||'').toLowerCase().trim() === myEmail) {
                     if(m.name) myName = m.name;
-                    var alreadyIdx = memberships.findIndex(function(x){ return x.teamName===team.name && x.ownerId===row.user_id; });
+                    var alreadyIdx = memberships.findIndex(function(x){
+                      return (x.teamId===team.id || x.teamName===team.name) && x.ownerId===row.user_id;
+                    });
                     if(alreadyIdx === -1) {
                       memberships.push({
                         ownerId   : row.user_id,
                         ownerName : ownerName,
                         ownerLogo : ownerLogo,
+                        teamId    : team.id||'',
                         teamName  : team.name||'الفريق',
+                        teamColor : team.color||'var(--accent)',
+                        teamEmoji : team.emoji||'',
                         memberName: m.name||'',
                         role      : m.role||'عضو',
                         tasks     : [],
                         doneTasks : [],
-                        _ownerData: rd  // cache owner data for task updates
+                        isCompany : isCompany,
+                        type      : isCompany?'company':'team',
+                        _ownerData: rd
                       });
                     }
                   }
@@ -14486,6 +15328,41 @@ window.openMyMemberTeamProfile = function(ownerId){
                   } else {
                     mem.tasks.push(taskEntry);
                   }
+                });
+
+                // ── تحميل مهام فرق الشركات (assigneeId) ──
+                // فرق الشركات بتستخدم assigneeId بدل workerMember
+                var _companyTeamsInRow = [];
+                if(rd._companyTeams) _companyTeamsInRow = rd._companyTeams;
+                else if(rd._teamAppData){
+                  try{ var _ctd2=typeof rd._teamAppData==='string'?JSON.parse(rd._teamAppData):rd._teamAppData; _companyTeamsInRow=(_ctd2.teams||[]).filter(function(t){return t.type==='company';}); }catch(e){}
+                }
+
+                _companyTeamsInRow.forEach(function(compTeam){
+                  // ابحث عن memberId بالإيميل
+                  var compMember = (compTeam.members||[]).find(function(m){
+                    return (m.email||'').toLowerCase().trim()===myEmail;
+                  });
+                  if(!compMember) return;
+
+                  var mem2 = memberships.find(function(x){
+                    return (x.teamId===compTeam.id || x.teamName===compTeam.name) && x.ownerId===row.user_id;
+                  });
+                  if(!mem2) return;
+
+                  (compTeam.tasks||[]).forEach(function(t){
+                    if(String(t.assigneeId)!==String(compMember.id)) return;
+                    var te = {
+                      id: t.id, title: t.title||'مهمة',
+                      status: t.status||'todo', done: t.status==='done'||t.done||false,
+                      deadline: t.deadline||'', client: t.client||'',
+                      steps: t.steps||[], workerAmount: 0,
+                      ownerId: row.user_id, isCompanyTask: true,
+                      teamName: compTeam.name
+                    };
+                    if(te.done||te.status==='done') mem2.doneTasks.push(te);
+                    else mem2.tasks.push(te);
+                  });
                 });
               }
             } catch(e2) { console.warn('scan row err:', e2); }
@@ -14568,6 +15445,194 @@ window.openMyMemberTeamProfile = function(ownerId){
   _checkPendingTeamInvitesImpl();
   // Also poll every 30 seconds for new invites
   setInterval(_checkPendingTeamInvitesImpl, 30000);
+
+  // ══════════════════════════════════════════════════════
+  //  BRIDGE: نظام الشركات ↔ index.html
+  //  ١. يعرض فرق الشركات في صفحة الفريق بالـ index
+  //  ٢. يجيب إشعارات نظام الشركات على الهوم
+  //  ٣. لو في membership في فرق شركات تظهر في my-member-teams
+  // ══════════════════════════════════════════════════════
+  (function _initCompanyBridge(){
+
+    // ── أ. مراقبة إشعارات الشركات من localStorage + Supabase ──
+    async function _syncCompanyNotifications(){
+      try {
+        var myEmail = '';
+        try{ var _as=JSON.parse(localStorage.getItem('studioOS_auth_v1')||'{}'); myEmail=(_as.email||'').toLowerCase().trim(); }catch(e){}
+        if(!myEmail && S.settings && S.settings.email) myEmail=(S.settings.email||'').toLowerCase().trim();
+        if(!myEmail) return;
+
+        var allTeamsToCheck = [];
+
+        // ── ١. من localStorage (نفس الجهاز / المالك) ──
+        var raw = localStorage.getItem('ordo_teams_v2');
+        if(raw){
+          try {
+            var tsData = JSON.parse(raw);
+            (tsData.teams||[]).forEach(function(t){ if(t.type==='company') allTeamsToCheck.push({team:t, source:'local'}); });
+          }catch(e){}
+        }
+
+        // ── ٢. من Supabase (أجهزة مختلفة / مستخدمون آخرون) ──
+        if(_supaUserId && typeof supa!=='undefined'){
+          try {
+            var {data:rows} = await supa.from('studio_data').select('user_id,data');
+            if(rows){
+              rows.forEach(function(row){
+                if(row.user_id===_supaUserId) return; // تخطي بياناتك أنت
+                try{
+                  var rd = typeof row.data==='string'?JSON.parse(row.data):row.data;
+                  // Method A: _companyTeams
+                  (rd?._companyTeams||[]).forEach(function(ct){
+                    allTeamsToCheck.push({team:ct, source:'supabase', ownerUserId:row.user_id});
+                  });
+                  // Method B: _teamAppData
+                  if(rd?._teamAppData){
+                    var ctd = typeof rd._teamAppData==='string'?JSON.parse(rd._teamAppData):rd._teamAppData;
+                    (ctd?.teams||[]).filter(function(t){return t.type==='company';}).forEach(function(ct){
+                      allTeamsToCheck.push({team:ct, source:'supabase', ownerUserId:row.user_id});
+                    });
+                  }
+                }catch(e){}
+              });
+            }
+          }catch(e){ console.warn('Supabase team scan:', e); }
+        }
+
+        // ── فحص العضوية في كل الفرق ──
+        var companyMemberships = [];
+        allTeamsToCheck.forEach(function(item){
+          var team = item.team;
+          (team.members||[]).forEach(function(m){
+            var mEmail = (m.email||'').toLowerCase().trim();
+            if(mEmail === myEmail && m.id !== 'me'){
+              // تجنب التكرار
+              var already = companyMemberships.find(function(x){ return x.teamId===team.id; });
+              if(!already){
+                companyMemberships.push({
+                  teamId:    team.id,
+                  teamName:  team.name,
+                  teamColor: team.color,
+                  teamEmoji: team.emoji,
+                  role:      m.role||'عضو',
+                  memberId:  m.id,
+                  source:    item.source,
+                  ownerUserId: item.ownerUserId||null,
+                  tasks:     (team.tasks||[]).filter(function(t){ return t.assigneeId===m.id && t.status!=='done' && !t.done; }),
+                  doneTasks: (team.tasks||[]).filter(function(t){ return t.assigneeId===m.id && (t.status==='done'||t.done); }),
+                });
+              }
+            }
+          });
+        });
+
+        // أيضاً تحقق من user_notifications في Supabase
+        if(_supaUserId && typeof supa!=='undefined'){
+          try {
+            var {data:notifRows} = await supa.from('user_notifications')
+              .select('*').eq('user_id',_supaUserId).eq('type','team_added');
+            if(notifRows){
+              notifRows.forEach(function(n){
+                try {
+                  var nd = typeof n.data==='string'?JSON.parse(n.data||'{}'):(n.data||{});
+                  if(nd.isCompanyTeam && nd.teamId){
+                    var already = companyMemberships.find(function(x){ return x.teamId===nd.teamId; });
+                    if(!already){
+                      companyMemberships.push({
+                        teamId:    nd.teamId,
+                        teamName:  nd.teamName||n.body||'شركة',
+                        teamColor: 'var(--accent2)',
+                        teamEmoji: '🏢',
+                        role:      nd.memberRole||'عضو',
+                        source:    'notification',
+                        ownerUserId: nd.ownerUserId||null,
+                        tasks:     [], doneTasks:[],
+                        teamUrl:   nd.teamUrl||null
+                      });
+                    }
+                  }
+                }catch(e){}
+              });
+            }
+          }catch(e){}
+        }
+
+        // ── إظهار فرق الشركات في قسم "الفرق التي أنا عضو فيها" ──
+        if(companyMemberships.length){
+          var knownKey  = '_known_company_memberships_'+(_supaUserId||'g');
+          var knownList = JSON.parse(localStorage.getItem(knownKey)||'[]');
+          companyMemberships.forEach(function(cm){
+            var isNew = !knownList.includes(cm.teamId);
+            if(isNew){
+              if(typeof addNotification==='function'){
+                addNotification('<i class="fa-solid fa-building" style="color:var(--accent2)"></i> تمت إضافتك لشركة <strong>'+escapeHtml(cm.teamName)+'</strong> كـ '+escapeHtml(cm.role), 'info');
+              }
+              if(typeof showMiniNotif==='function'){
+                showMiniNotif('<i class="fa-solid fa-building" style="color:var(--accent2)"></i> انضممت لشركة "'+escapeHtml(cm.teamName)+'"');
+              }
+            }
+          });
+          localStorage.setItem(knownKey, JSON.stringify(companyMemberships.map(function(cm){ return cm.teamId; })));
+
+          var existing = window._myTeamMemberships || [];
+          companyMemberships.forEach(function(cm){
+            var alreadyIdx = existing.findIndex(function(x){ return (x.teamId||x.ownerId)===cm.teamId && x.type==='company'; });
+            var entry = {
+              type:'company', teamId:cm.teamId,
+              ownerId:'local_company_'+cm.teamId,
+              ownerName:cm.teamName, ownerLogo:'',
+              teamName:cm.teamName, teamColor:cm.teamColor, teamEmoji:cm.teamEmoji,
+              memberName:'', role:cm.role,
+              tasks:cm.tasks, doneTasks:cm.doneTasks,
+              isCompany:true,
+              teamUrl: cm.teamUrl||null
+            };
+            if(alreadyIdx===-1) existing.push(entry);
+            else existing[alreadyIdx]=entry;
+          });
+          window._myTeamMemberships = existing;
+          if(typeof renderMyMemberTeams==='function') renderMyMemberTeams();
+        }
+
+        // ── إشعارات موجهة من نظام الشركات (localStorage) ──
+        if(raw){
+          try {
+            var tsData2 = JSON.parse(raw);
+            var _companyNotifs = tsData2._companyNotifications || {};
+            var myNotifs = _companyNotifs[myEmail] || [];
+            myNotifs.forEach(function(n){
+              var nid = 'cn_'+n.id;
+              var notifExists = typeof _notifications!=='undefined' && _notifications.find(function(x){ return x.id===nid; });
+              if(!notifExists){
+                if(typeof _notifications!=='undefined'){
+                  _notifications.unshift({ id:nid, msg:(n.title||'إشعار')+(n.body?'\n'+n.body:''), type:n.type||'company', time:n.createdAt||new Date().toISOString(), read:false });
+                  if(typeof _saveNotifications==='function') _saveNotifications();
+                  if(typeof _updateNotifBell==='function') _updateNotifBell();
+                }
+                if(typeof showMiniNotif==='function'){
+                  showMiniNotif('<i class="fa-solid fa-bell" style="color:var(--accent2)"></i> '+escapeHtml(n.title||'إشعار جديد'));
+                }
+              }
+            });
+          }catch(e){}
+        }
+
+      } catch(e){ console.warn('_syncCompanyNotifications:', e); }
+    }
+
+    // شغّل فور الفتح وكل دقيقة
+    setTimeout(_syncCompanyNotifications, 3000);
+    setInterval(_syncCompanyNotifications, 60000);
+
+    // استمع لتغييرات localStorage من team.html
+    window.addEventListener('storage', function(e){
+      if(e.key === 'ordo_teams_v2'){
+        setTimeout(_syncCompanyNotifications, 500);
+        if(typeof renderTeams==='function') setTimeout(renderTeams, 600);
+      }
+    });
+
+  })();
 
   (function _startPolling(){
     if(!_supaUserId){ setTimeout(_startPolling, 5000); return; }
@@ -14804,18 +15869,30 @@ window.openMyMemberTeamProfile = function(ownerId){
     }
     if(!el) return;
     var totalTasks = memberships.reduce(function(s,m){ return s+(m.tasks?m.tasks.length:0); },0);
+    var base = window.location.href.replace(/[^/]*(\?.*)?$/, '');
+
     el.innerHTML =
       '<div class="nav-section-label" style="color:var(--accent3)"><i class="fa-solid fa-users"></i> فرقي</div>'
       +memberships.map(function(m){
         var tc = m.tasks?m.tasks.length:0;
-        return '<div class="nav-item" onclick="openTeamMemberDashboard(\''+m.ownerId+'\')" style="flex-direction:column;align-items:flex-start;padding:10px 16px;gap:4px;cursor:pointer">'
+        var isCompany = m.isCompany || m.type==='company';
+        var icon = isCompany ? '🏢' : '<i class="fa-solid fa-users"></i>';
+        var color = isCompany ? 'var(--accent2)' : 'var(--accent3)';
+        var teamColor = m.teamColor || color;
+        var onclick = isCompany
+          ? 'window.open(\''+base+'team.html\',\'_blank\')'
+          : 'openTeamMemberDashboard(\''+m.ownerId+'\')';
+        return '<div class="nav-item" onclick="'+onclick+'" style="flex-direction:column;align-items:flex-start;padding:10px 16px;gap:4px;cursor:pointer">'
           +'<div style="display:flex;align-items:center;gap:8px;width:100%">'
-            +'<span style="font-size:14px"><i class="fa-solid fa-building"></i></span>'
-            +'<span style="font-size:13px;font-weight:700;flex:1;color:var(--accent3)">'+escapeHtml(m.ownerName)+'</span>'
-            +(tc ? '<span style="background:var(--accent4);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">'+tc+' مهام</span>'
-                 : '<span style="background:var(--accent3);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px"><i class="fa-solid fa-check"></i></span>')
+            +'<span style="font-size:14px;flex-shrink:0">'+icon+'</span>'
+            +'<span style="font-size:13px;font-weight:700;flex:1;color:'+color+'">'+escapeHtml(m.teamName)+'</span>'
+            +(tc ? '<span style="background:var(--accent4);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">'+tc+'</span>'
+                 : '<span style="background:'+color+';color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px"><i class="fa-solid fa-check"></i></span>')
           +'</div>'
-          +'<div style="font-size:11px;color:var(--text3);padding-right:22px">'+escapeHtml(m.teamName)+' · '+escapeHtml(m.role||'عضو')+'</div>'
+          +'<div style="font-size:11px;color:var(--text3);padding-right:22px">'
+            +escapeHtml(m.ownerName)+' · '+escapeHtml(m.role||'عضو')
+            +(isCompany ? ' · <span style="color:var(--accent2)">فتح البورد ↗</span>' : '')
+          +'</div>'
         +'</div>';
       }).join('')
       +(totalTasks>0 ? '<div style="margin:4px 16px 8px;padding:7px 12px;background:rgba(247,111,124,.08);border:1px solid rgba(247,111,124,.2);border-radius:8px;font-size:11px;color:var(--accent4);font-weight:700"><i class="fa-solid fa-bolt"></i> لديك '+totalTasks+' مهمة نشطة في الفريق</div>' : '');

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#7c6ff7">
+<title>Ordo — إدارة الفرق</title>
+<script>
+(function(){
+  try {
+    var m=localStorage.getItem('studioDisplayMode')||'dark';
+    var a=localStorage.getItem('studioAccentColor')||'#7c6ff7';
+    if(m==='light') document.documentElement.classList.add('light-mode');
+    document.documentElement.style.setProperty('--accent',a);
+    document.documentElement.style.background=m==='light'?'#f0f2f8':'#0a0a0f';
+  }catch(e){}
+})();
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="team-style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+<div id="toast-portal"></div>
+
+<div class="app-shell">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo" id="sb-logo">O</div>
+      <div style="overflow:hidden;flex:1;min-width:0">
+        <div class="sidebar-name" id="sb-name">Ordo Teams</div>
+        <div class="sidebar-type" id="sb-type">نظام إدارة الفرق</div>
+      </div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">القائمة</div>
+      <a class="nav-item" data-nav="teams" onclick="switchView('teams')">
+        <span class="nav-icon"><i class="fa-solid fa-grid-2"></i></span>
+        <span class="nav-label">كل الفرق</span>
+      </a>
+      <a class="nav-item" data-nav="board" onclick="switchView('board')">
+        <span class="nav-icon"><i class="fa-solid fa-table-columns"></i></span>
+        <span class="nav-label">البورد</span>
+      </a>
+      <a class="nav-item" data-nav="list" onclick="switchView('list')">
+        <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span>
+        <span class="nav-label">قائمة المهام</span>
+      </a>
+      <a class="nav-item" data-nav="members" onclick="switchView('members')">
+        <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
+        <span class="nav-label">الأعضاء</span>
+        <span class="nav-badge" id="sb-members-badge"></span>
+      </a>
+      <a class="nav-item" data-nav="clients" onclick="switchView('clients')">
+        <span class="nav-icon"><i class="fa-solid fa-address-book"></i></span>
+        <span class="nav-label">العملاء</span>
+      </a>
+      <div id="sb-company-nav" style="display:none">
+        <div class="nav-section">الشركة</div>
+        <a class="nav-item" data-nav="depts" onclick="switchView('depts')">
+          <span class="nav-icon"><i class="fa-solid fa-sitemap"></i></span>
+          <span class="nav-label">الأقسام</span>
+        </a>
+        <a class="nav-item" data-nav="hr" onclick="switchView('hr')">
+          <span class="nav-icon"><i class="fa-solid fa-id-card"></i></span>
+          <span class="nav-label">الموارد البشرية</span>
+        </a>
+      </div>
+      <div class="nav-section">أخرى</div>
+      <a class="nav-item" data-nav="settings" onclick="switchView('settings')">
+        <span class="nav-icon"><i class="fa-solid fa-gear"></i></span>
+        <span class="nav-label">إعدادات الفريق</span>
+      </a>
+    </div>
+    <div class="sidebar-footer">
+      <a class="nav-item" href="index.html" style="color:var(--text3)">
+        <span class="nav-icon"><i class="fa-solid fa-arrow-right"></i></span>
+        <span class="nav-label">العودة لـ Ordo</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main-area">
+    <div class="topbar">
+      <button class="btn btn-icon btn-ghost" onclick="document.getElementById('sidebar').classList.toggle('collapsed')">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <div class="topbar-title" id="topbar-title">إدارة الفرق</div>
+      <div id="view-toggle" style="display:none;gap:3px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r1);padding:3px">
+        <button id="vt-kanban" class="btn btn-sm" onclick="setBoardMode('kanban')"
+          style="padding:5px 12px;font-size:11px;background:var(--accent);color:#fff;border:none;border-radius:6px">
+          <i class="fa-solid fa-table-columns"></i> كانبان
+        </button>
+        <button id="vt-list" class="btn btn-sm" onclick="setBoardMode('list')"
+          style="padding:5px 12px;font-size:11px;background:transparent;color:var(--text3);border:none;border-radius:6px">
+          <i class="fa-solid fa-list"></i> قائمة
+        </button>
+      </div>
+      <div class="topbar-actions" id="topbar-actions">
+        <button class="btn btn-primary btn-sm" onclick="openCreateTeamModal()">
+          <i class="fa-solid fa-plus"></i> فريق جديد
+        </button>
+      </div>
+    </div>
+
+    <div class="content-area">
+      <div data-view="teams"    id="view-teams"></div>
+      <div data-view="board"    id="view-board"    style="display:none"></div>
+      <div data-view="list"     id="view-list"     style="display:none"></div>
+      <div data-view="members"  id="view-members"  style="display:none"></div>
+      <div data-view="clients"  id="view-clients"  style="display:none"></div>
+      <div data-view="depts"    id="view-depts"    style="display:none"></div>
+      <div data-view="hr"       id="view-hr"       style="display:none"></div>
+      <div data-view="settings" id="view-settings" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Create Team -->
+<div class="modal-backdrop" id="modal-create-team" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-people-group" style="color:var(--accent)"></i> فريق جديد</div>
+      <button class="close-btn" onclick="closeModal('modal-create-team')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="type-chooser">
+        <div class="type-card active" data-type="team" onclick="selectNewTeamType('team')">
+          <div class="type-card-emoji">👥</div>
+          <div class="type-card-title">فريق عمل</div>
+          <div class="type-card-desc">مهام ومشاريع بشكل مرن وسريع</div>
+        </div>
+        <div class="type-card" data-type="company" onclick="selectNewTeamType('company')">
+          <div class="type-card-emoji">🏢</div>
+          <div class="type-card-title">شركة</div>
+          <div class="type-card-desc">أقسام + موارد بشرية + عملاء</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الاسم *</label>
+        <input class="form-input" id="ct-name" placeholder="مثال: فريق التصميم">
+      </div>
+      <div class="form-group">
+        <label class="form-label">وصف مختصر</label>
+        <input class="form-input" id="ct-desc" placeholder="ما هدف الفريق؟">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">اللون</label>
+          <div class="color-swatches">
+            <div class="color-swatch active" data-color="#7c6ff7" style="background:#7c6ff7" onclick="selectNewTeamColor('#7c6ff7')"></div>
+            <div class="color-swatch" data-color="#f7c948" style="background:#f7c948" onclick="selectNewTeamColor('#f7c948')"></div>
+            <div class="color-swatch" data-color="#4fd1a5" style="background:#4fd1a5" onclick="selectNewTeamColor('#4fd1a5')"></div>
+            <div class="color-swatch" data-color="#f76f7c" style="background:#f76f7c" onclick="selectNewTeamColor('#f76f7c')"></div>
+            <div class="color-swatch" data-color="#64b5f6" style="background:#64b5f6" onclick="selectNewTeamColor('#64b5f6')"></div>
+            <div class="color-swatch" data-color="#ff8a65" style="background:#ff8a65" onclick="selectNewTeamColor('#ff8a65')"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">إيموجي</label>
+          <input class="form-input" id="ct-emoji" placeholder="👥" style="text-align:center;font-size:20px" maxlength="4">
+        </div>
+      </div>
+      <div id="ct-company-extras" style="display:none;background:rgba(124,111,247,.06);border:1px solid rgba(124,111,247,.2);border-radius:var(--r2);padding:14px;margin-top:4px">
+        <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:10px">ميزات الشركة</div>
+        <div class="company-feats">
+          <div class="company-feat-card"><div class="company-feat-icon">📊</div><div><div style="font-weight:800;font-size:12px">الأقسام</div></div></div>
+          <div class="company-feat-card"><div class="company-feat-icon">👤</div><div><div style="font-weight:800;font-size:12px">الموارد البشرية</div></div></div>
+          <div class="company-feat-card"><div class="company-feat-icon">📋</div><div><div style="font-weight:800;font-size:12px">قاعدة عملاء</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create-team')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveNewTeam()"><i class="fa-solid fa-check"></i> إنشاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Add Task -->
+<div class="modal-backdrop" id="modal-add-task" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="at-modal-title"><i class="fa-solid fa-plus" style="color:var(--accent)"></i> مهمة جديدة</div>
+      <button class="close-btn" onclick="closeModal('modal-add-task')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="at-eid">
+      <input type="hidden" id="at-col">
+      <div class="form-group">
+        <label class="form-label">العنوان *</label>
+        <input class="form-input" id="at-title" placeholder="ما المهمة؟">
+      </div>
+      <div class="form-group">
+        <label class="form-label">الوصف</label>
+        <textarea class="form-textarea" id="at-desc" placeholder="تفاصيل..." rows="2"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">الحالة</label>
+          <select class="form-select" id="at-status"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">الأولوية</label>
+          <select class="form-select" id="at-priority">
+            <option value="high">🔴 عالية</option>
+            <option value="med" selected>🟡 متوسطة</option>
+            <option value="low">🟢 منخفضة</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">المُعيَّن له</label>
+          <select class="form-select" id="at-assignee"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">الموعد النهائي</label>
+          <input class="form-input" type="date" id="at-deadline">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">العميل</label>
+          <input class="form-input" id="at-client" placeholder="اسم العميل..." list="at-clients-dl">
+          <datalist id="at-clients-dl"></datalist>
+        </div>
+        <div class="form-group">
+          <label class="form-label">نوع المهمة</label>
+          <input class="form-input" id="at-type" placeholder="تصميم، برمجة...">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tags</label>
+        <input class="form-input" id="at-tags" placeholder="urgent, frontend — افصل بفاصلة">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-task')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveTask()"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Task Detail -->
+<div class="modal-backdrop" id="modal-task-detail" style="display:none">
+  <div class="modal-box modal-lg">
+    <div class="modal-header">
+      <div class="modal-title" id="td-modal-title" style="flex:1;min-width:0"></div>
+      <button class="close-btn" onclick="closeModal('modal-task-detail')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" id="td-body"></div>
+  </div>
+</div>
+
+<!-- MODAL: Add Member -->
+<div class="modal-backdrop" id="modal-add-member" style="display:none">
+  <div class="modal-box" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-user-plus" style="color:var(--accent)"></i> إضافة عضو جديد</div>
+      <button class="close-btn" onclick="closeModal('modal-add-member')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <!-- معلومات العضو -->
+      <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">معلومات العضو</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">الاسم *</label><input class="form-input" id="am-name" placeholder="اسم العضو"></div>
+        <div class="form-group"><label class="form-label">البريد الإلكتروني</label><input class="form-input" id="am-email" type="email" dir="ltr" placeholder="email@example.com"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">الوظيفة / الدور</label><input class="form-input" id="am-title" placeholder="مصمم، مطور، مدير..."></div>
+        <div class="form-group"><label class="form-label">الهاتف</label><input class="form-input" id="am-phone" type="tel" placeholder="+20..."></div>
+      </div>
+      <div id="am-hr-row" style="display:none">
+        <div class="form-group"><label class="form-label">الراتب الشهري (ج)</label><input class="form-input" id="am-salary" type="number" placeholder="0"></div>
+      </div>
+
+      <!-- الصلاحية -->
+      <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 10px">الصلاحية والأذونات</div>
+      <input type="hidden" id="am-role" value="member">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px" id="am-role-cards">
+        <!-- مشرف -->
+        <div class="am-role-card" data-role="admin" onclick="_selectMemberRole('admin')"
+          style="border:2px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;text-align:center;transition:.18s">
+          <div style="font-size:26px;margin-bottom:6px">👑</div>
+          <div style="font-size:13px;font-weight:800;margin-bottom:4px">مشرف</div>
+          <div style="font-size:10px;color:var(--text3);line-height:1.5">كل الصلاحيات<br>+ إدارة الفريق</div>
+        </div>
+        <!-- عضو -->
+        <div class="am-role-card selected" data-role="member" onclick="_selectMemberRole('member')"
+          style="border:2px solid var(--accent);border-radius:12px;padding:14px;cursor:pointer;text-align:center;background:rgba(124,111,247,.06);transition:.18s">
+          <div style="font-size:26px;margin-bottom:6px">👤</div>
+          <div style="font-size:13px;font-weight:800;margin-bottom:4px">عضو</div>
+          <div style="font-size:10px;color:var(--text3);line-height:1.5">إضافة وتعديل<br>المهام والتعليق</div>
+        </div>
+        <!-- مشاهد -->
+        <div class="am-role-card" data-role="viewer" onclick="_selectMemberRole('viewer')"
+          style="border:2px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;text-align:center;transition:.18s">
+          <div style="font-size:26px;margin-bottom:6px">👁</div>
+          <div style="font-size:13px;font-weight:800;margin-bottom:4px">مشاهد</div>
+          <div style="font-size:10px;color:var(--text3);line-height:1.5">عرض فقط<br>بدون تعديل</div>
+        </div>
+      </div>
+
+      <!-- جدول الصلاحيات التفصيلية -->
+      <div id="am-perm-detail" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:11px">
+        <div style="font-weight:800;color:var(--text2);margin-bottom:8px">الأذونات التفصيلية للصلاحية المختارة:</div>
+        <div id="am-perm-list" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-member')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveMember()"><i class="fa-solid fa-check"></i> إضافة العضو</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Share -->
+<div class="modal-backdrop" id="modal-share" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-share-nodes" style="color:var(--accent)"></i> مشاركة الفريق</div>
+      <button class="close-btn" onclick="closeModal('modal-share')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.7">شارك هذا الرابط — يمكن للأعضاء رؤية المهام، التعليق، والتفاعل.</div>
+      <div class="share-link-box">
+        <input type="text" id="share-link-input" readonly>
+        <button class="btn btn-primary btn-sm" onclick="copyShareLink()"><i class="fa-solid fa-copy"></i> نسخ</button>
+      </div>
+      <div style="margin-top:14px;font-size:12px;display:flex;flex-direction:column;gap:7px;color:var(--text2)">
+        <div><i class="fa-solid fa-check" style="color:var(--accent3);margin-left:6px"></i> رؤية وإضافة وتعديل المهام</div>
+        <div><i class="fa-solid fa-check" style="color:var(--accent3);margin-left:6px"></i> التعليق والمنشن (@)</div>
+        <div><i class="fa-solid fa-check" style="color:var(--accent3);margin-left:6px"></i> تغيير حالات المهام</div>
+        <div><i class="fa-solid fa-xmark" style="color:var(--text3);margin-left:6px"></i> لا يمكن حذف الفريق أو إعداداته</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Add Client -->
+<div class="modal-backdrop" id="modal-add-client" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-user-tie" style="color:var(--accent)"></i> إضافة عميل</div>
+      <button class="close-btn" onclick="closeModal('modal-add-client')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">الاسم *</label><input class="form-input" id="cl-name" placeholder="اسم العميل"></div>
+        <div class="form-group"><label class="form-label">النوع</label>
+          <select class="form-select" id="cl-type"><option value="فرد">فرد</option><option value="شركة">شركة</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">الهاتف</label><input class="form-input" id="cl-phone" type="tel"></div>
+        <div class="form-group"><label class="form-label">البريد الإلكتروني</label><input class="form-input" id="cl-email" type="email" dir="ltr"></div>
+      </div>
+      <div class="form-group"><label class="form-label">ملاحظات</label><textarea class="form-textarea" id="cl-notes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-client')">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveClient()"><i class="fa-solid fa-check"></i> إضافة</button>
+    </div>
+  </div>
+</div>
+
+<script src="team-app.js"></script>
+</body>
+</html>
