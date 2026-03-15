@@ -17,6 +17,100 @@ function escapeHtml(str){
     .replace(/'/g,'&#039;');
 }
 
+// ══════════════════════════════════════════════════
+//  FRIENDLY DATES — show Today, Yesterday, Tomorrow, day name, or raw date
+// ══════════════════════════════════════════════════
+function _friendlyDate(dateStr){
+  if(!dateStr || dateStr==='—') return dateStr||'—';
+  try{
+    var today=new Date(); today.setHours(0,0,0,0);
+    var d=new Date(dateStr); d.setHours(0,0,0,0);
+    var diff=Math.round((d-today)/(1000*60*60*24));
+    var isEn = (typeof _currentLang!=='undefined' && _currentLang==='en') || (typeof _i18n!=='undefined' && _i18n.lang && _i18n.lang()==='en');
+    if(diff===0) return isEn?'Today':'اليوم';
+    if(diff===-1) return isEn?'Yesterday':'أمس';
+    if(diff===1) return isEn?'Tomorrow':'غداً';
+    if(diff>=-6 && diff<=6){
+      var daysAr=['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+      var daysEn=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      return isEn?daysEn[d.getDay()]:daysAr[d.getDay()];
+    }
+    return dateStr;
+  }catch(e){ return dateStr; }
+}
+
+// ══════════════════════════════════════════════════
+//  TABLE COLUMN VISIBILITY SETTINGS
+// ══════════════════════════════════════════════════
+var _defaultTableCols = [
+  {id:'client',   label:'العميل',       visible:true},
+  {id:'deadline',  label:'تاريخ التسليم',  visible:true},
+  {id:'priority',  label:'الأولوية',       visible:true},
+  {id:'orderDate', label:'تاريخ الطلب',    visible:false},
+  {id:'pay',       label:'حالة الدفع',     visible:true},
+  {id:'status',    label:'الحالة',          visible:true},
+  {id:'value',     label:'القيمة',          visible:false},
+  {id:'actions',   label:'إجراءات',        visible:true}
+];
+function _getTableCols(){
+  try{
+    var saved=JSON.parse(localStorage.getItem('_taskTableCols'));
+    if(saved && saved.length){
+      // merge with defaults to pick up any new columns
+      var map={}; saved.forEach(function(c){ map[c.id]=c; });
+      return _defaultTableCols.map(function(d){
+        return map[d.id] ? {id:d.id,label:d.label,visible:map[d.id].visible} : d;
+      });
+    }
+  }catch(e){}
+  return _defaultTableCols.map(function(c){ return {id:c.id,label:c.label,visible:c.visible}; });
+}
+function _saveTableCols(cols){ localStorage.setItem('_taskTableCols',JSON.stringify(cols)); }
+function _isColVisible(colId){
+  var cols=_getTableCols();
+  var c=cols.find(function(x){return x.id===colId;});
+  return c ? c.visible : true;
+}
+function _openTableColumnsSettings(){
+  var ex=document.getElementById('_tbl-col-modal'); if(ex) ex.remove();
+  var cols=_getTableCols();
+  var ov=document.createElement('div');
+  ov.id='_tbl-col-modal';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px';
+  var inner='<div style="background:var(--surface);width:min(380px,92vw);border-radius:18px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.5)">'
+    +'<div style="font-size:18px;font-weight:900;text-align:center;margin-bottom:16px;color:var(--text)"><i class="fa-solid fa-gear" style="color:var(--accent)"></i> تخصيص أعمدة الجدول</div>'
+    +'<div style="font-size:12px;color:var(--text3);text-align:center;margin-bottom:18px">اختر الأعمدة اللي عايز تظهر</div>';
+  cols.forEach(function(c,i){
+    inner+='<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--surface2);margin-bottom:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text)">'
+      +'<input type="checkbox" class="_tbl-col-cb" data-col="'+c.id+'" '+(c.visible?'checked':'')+' style="width:17px;height:17px;accent-color:var(--accent);cursor:pointer">'
+      +'<span>'+c.label+'</span></label>';
+  });
+  inner+='<div style="display:flex;gap:10px;margin-top:18px">'
+    +'<button id="_tbl-col-save" class="btn btn-primary" style="flex:1"><i class="fa-solid fa-check"></i> حفظ</button>'
+    +'<button id="_tbl-col-cancel" class="btn btn-ghost" style="flex:1">إلغاء</button>'
+  +'</div></div>';
+  ov.innerHTML=inner;
+  document.body.appendChild(ov);
+  document.getElementById('_tbl-col-save').onclick=function(){
+    var checks=document.querySelectorAll('._tbl-col-cb');
+    var newCols=[];
+    checks.forEach(function(cb){
+      var id=cb.dataset.col;
+      var orig=cols.find(function(c){return c.id===id;});
+      newCols.push({id:id,label:orig?orig.label:id,visible:cb.checked});
+    });
+    _saveTableCols(newCols);
+    ov.remove();
+    _renderTasksTable();
+    if(typeof renderTasks==='function') renderTasks();
+    if(_taskScope==='all' && typeof _renderAllTasksList==='function') _renderAllTasksList();
+    if(_taskScope==='project' && typeof _renderProjectTasksList==='function') _renderProjectTasksList();
+    showMiniNotif('<i class="fa-solid fa-gear" style="color:var(--accent)"></i> تم تحديث أعمدة الجدول');
+  };
+  document.getElementById('_tbl-col-cancel').onclick=function(){ ov.remove(); };
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+}
+
 // ── Time Tracker global state (declared early to avoid TDZ errors) ──
 let _tt={running:false,elapsed:0,startedAt:null,interval:null};
 let _ttFilter='all';
@@ -1732,174 +1826,15 @@ function setThemeColor(color) {
   }
 }
 
-// ═══ TRANSLATION SYSTEM ═══
-const TRANSLATIONS = {
-  en: {
-    // Nav
-    'الرئيسية':'Dashboard','المهام':'Tasks','المهام والمشاريع':'Tasks & Projects',
-    'العملاء':'Clients','إدارة العملاء':'Clients','المالية':'Finance',
-    'الفواتير':'Invoices','الفواتير والعقود':'Invoices & Contracts',
-    'جدولة اليوم':'Schedule','التقارير':'Reports','الإعدادات':'Settings',
-    'فريق العمل':'Team','الميتنج':'Meetings','التعلم والأهداف':'Learning',
-    // Auth
-    'تسجيل الدخول':'Sign In','إنشاء حساب':'Register',
-    'أهلاً بعودتك':'Welcome back','سجّل دخولك لمتابعة العمل':'Sign in to continue',
-    'البريد الإلكتروني':'Email','كلمة المرور':'Password',
-    'نسيت كلمة المرور؟':'Forgot password?','أو':'or',
-    'متابعة بـ Google':'Continue with Google',
-    'اسم العمل / المشروع':'Ordo name','رقم الهاتف':'Phone',
-    // Dashboard
-    'نظرة عامة على استوديوك':'Overview of your studio',
-    'مهمة نشطة':'Active task','مهمة منتهية':'Done',
-    'إجمالي الدخل':'Total income','اشتراكات منتهية':'Expired subscriptions',
-    'مشاريع هذا الشهر':'This month projects',
-    // Actions
-    'إضافة':'Add','حفظ':'Save','إلغاء':'Cancel','حذف':'Delete','تعديل':'Edit',
-    'إغلاق':'Close','بحث':'Search','تصفية':'Filter','تصدير':'Export',
-    'حفظ الإعدادات':'Save Settings','<i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات':'<i class="fa-solid fa-floppy-disk"></i> Save Settings',
-    // Tasks
-    'إضافة مهمة':'New Task','مهمة جديدة':'New Task','اسم المشروع':'Project Name',
-    'العميل':'Client','القيمة':'Value','الموعد النهائي':'Deadline',
-    'الحالة':'Status','النوع':'Type','الأولوية':'Priority',
-    'جديد':'New','جاري':'In Progress','مراجعة':'Review',
-    'قيد التنفيذ':'In Progress','موقوف':'On Hold','منتهي':'Done',
-    'ملاحظات':'Notes','إضافة خطوة':'Add Step',
-    // Finance
-    'تسجيل دخل':'Add Income','تسجيل مصروف':'Add Expense',
-    'المبلغ':'Amount','التاريخ':'Date','وصف':'Description',
-    'الفئة':'Category','طريقة الدفع':'Payment Method',
-    'دخل':'Income','صرف':'Expense','الربح الصافي':'Net Profit',
-    'إجمالي الصرف':'Total Expense',
-    // Clients
-    'عميل جديد':'New Client','اسم العميل':'Client Name',
-    'نوع العمل':'Work Type','فري لانس':'Freelance','دوام':'Full-time',
-    // Settings
-    'إعدادات النظام':'Ordo Settings','خصّص النظام كما تريد':'Customize your system',
-    'بيانات العمل':'Ordo Info','شعار العمل':'Ordo Logo',
-    'منصات التواصل':'Social Media','مظهر النظام':'Appearance',
-    'وضع العرض':'Display Mode','<i class="fa-solid fa-moon"></i> ليلي':'<i class="fa-solid fa-moon"></i> Dark','<i class="fa-solid fa-sun"></i>️ نهاري':'<i class="fa-solid fa-sun"></i>️ Light',
-    'لون هوية النظام':'Accent Color','لون مخصص':'Custom color',
-    'وسائل الدفع والحسابات':'Payment Methods','بنود الصرف':'Expense Categories',
-    'أنواع المهام':'Task Types','حالات المهام':'Task Statuses',
-    'قوالب رسائل واتساب':'WhatsApp Templates',
-    // Subscription
-    'لا يوجد اشتراك نشط':'No active subscription',
-    'اشترِ باقة وفعّل كودك هنا':'Purchase a plan and activate your code',
-    'تفعيل كود الاشتراك':'Activate Code','أدخل الكود هنا...':'Enter code here...',
-    'تفعيل':'Activate','شراء باقة عبر واتساب':'Buy via WhatsApp',
-    'اشتراكي الحالي':'My Subscription','الباقات المتاحة':'Available Plans',
-    'باقتك الحالية':'Current Plan','عندي كود':'I have a code','اطلب كود':'Request Code',
-    // Common
-    'جاري التحميل...':'Loading...','لا توجد بيانات':'No data',
-    'تأكيد':'Confirm','خطأ':'Error','نجح':'Success',
-    'عام':'General','المظهر':'Appearance','خطر':'Danger',
-    'منطقة الخطر':'Danger Zone','واتساب':'WhatsApp',
-  }
-};
-
-let _currentLang = localStorage.getItem('studioLang') || 'ar';
-
-function t(arabicText) {
-  if(_currentLang === 'ar') return arabicText;
-  return TRANSLATIONS.en[arabicText] || arabicText;
-}
-
-function setLanguage(lang) {
-  _currentLang = lang;
-  localStorage.setItem('studioLang', lang);
-  localStorage.setItem('_lang', lang);
-  // Update language button indicator
-  var li = document.querySelector('._lang-indicator');
-  if(li) li.textContent = lang==='ar'?'EN':'AR';
-  // Sync document direction
-  document.documentElement.lang = lang;
-  document.documentElement.dir  = lang==='ar'?'rtl':'ltr';
-  document.body.classList.toggle('lang-en', lang==='en');
-
-  // HTML dir/lang
-  document.documentElement.lang = lang === 'en' ? 'en' : 'ar';
-  document.documentElement.dir  = lang === 'en' ? 'ltr' : 'rtl';
-
-  // Buttons
-  const btnAr = document.getElementById('btn-lang-ar');
-  const btnEn = document.getElementById('btn-lang-en');
-  if(btnAr) btnAr.className = lang === 'ar' ? 'btn btn-primary' : 'btn btn-ghost';
-  if(btnEn) btnEn.className = lang === 'en' ? 'btn btn-primary' : 'btn btn-ghost';
-
-  // Apply to all [data-i18n] elements
-  applyTranslations(lang);
-
-  // Re-render app
-  if(typeof renderAll === 'function') renderAll();
-  if(typeof renderNav === 'function') renderNav();
-}
-
-function applyTranslations(lang) {
-  const dict = lang === 'en' ? TRANSLATIONS.en : null;
-  if(!dict) {
-    // Restore Arabic
-    document.querySelectorAll('[data-i18n-ar]').forEach(el => {
-      el.innerHTML = el.getAttribute('data-i18n-ar');
-    });
-    document.querySelectorAll('.nav-label[data-ar]').forEach(el => {
-      const icon = el.querySelector('i,svg');
-      const ar = el.getAttribute('data-ar');
-      if(ar){ el.textContent = ar; if(icon) el.prepend(icon); }
-    });
-    return;
-  }
-  // Translate [data-i18n] elements — preserve FA icons inside
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if(!dict[key]) return;
-    const icon = el.querySelector('i.fa-solid, i.fa-regular, svg');
-    if(icon){
-      // Save original AR for restoration
-      if(!el.getAttribute('data-i18n-ar')) el.setAttribute('data-i18n-ar', el.innerHTML);
-      el.innerHTML = '';
-      el.appendChild(icon.cloneNode(true));
-      el.appendChild(document.createTextNode(' ' + dict[key]));
-    } else {
-      if(!el.getAttribute('data-i18n-ar')) el.setAttribute('data-i18n-ar', el.innerHTML);
-      el.textContent = dict[key];
-    }
-  });
-  // Translate nav labels — preserve icons
-  document.querySelectorAll('.nav-label').forEach(el => {
-    const ar = el.getAttribute('data-ar') || el.textContent.trim();
-    el.setAttribute('data-ar', ar);
-    const icon = el.querySelector('i,svg');
-    if(icon){
-      el.innerHTML = '';
-      el.appendChild(icon.cloneNode(true));
-      el.appendChild(document.createTextNode(' ' + (dict[ar] || ar)));
-    } else {
-      el.textContent = dict[ar] || ar;
-    }
-  });
-  // Translate buttons with data-ar — preserve icons
-  document.querySelectorAll('button[data-ar], .btn[data-ar]').forEach(el => {
-    const ar = el.getAttribute('data-ar');
-    if(!ar || !dict[ar]) return;
-    const icon = el.querySelector('i.fa-solid, i.fa-regular, svg');
-    if(icon){
-      el.innerHTML = '';
-      el.appendChild(icon.cloneNode(true));
-      el.appendChild(document.createTextNode(' ' + dict[ar]));
-    } else {
-      el.textContent = dict[ar];
-    }
-  });
-}
+// ═══ TRANSLATION SYSTEM (disabled) ═══
+let _currentLang = 'ar';
+function t(arabicText) { return arabicText; }
 
 function loadThemePreferences() {
   const mode  = localStorage.getItem('studioDisplayMode') || 'dark';
   const color = localStorage.getItem('studioAccentColor') || '#7c6ff7';
-  const lang  = localStorage.getItem('studioLang') || 'ar';
   setDisplayMode(mode);
   setThemeColor(color);
-  setLanguage(lang);
-  // Update sidebar toggle icon
   const btn = document.getElementById('dark-toggle-btn');
   if(btn){ var _ic=btn.querySelector('i'); if(_ic) _ic.className=mode==='dark'?'fa-solid fa-moon':'fa-solid fa-sun'; }
 }
@@ -2278,8 +2213,8 @@ function openTaskDetail(id){
       ${t.workerType==='team'&&t.value&&t.workerAmount?`<div class="td-info-cell"><div class="lbl"><i class="fa-solid fa-trophy"></i> ربحي الصافي</div><div class="val" style="color:var(--accent3)">${(t.value-t.workerAmount).toLocaleString()} ج</div></div>`:''}
       ${t.paymentCollected?`<div class="td-info-cell"><div class="lbl">تحصيل المبلغ</div><div class="val" style="color:var(--accent3)"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم التحصيل</div></div>`:(t.done&&t.value?`<div class="td-info-cell"><div class="lbl">تحصيل المبلغ</div><div class="val" style="color:var(--accent4)">⏳ لم يتم بعد</div></div>`:'')}
       <div class="td-info-cell"><div class="lbl">حالة الدفع</div><div class="val" style="font-size:12px">${payLabel[t.pay||'none']}</div></div>
-      ${t.orderDate?`<div class="td-info-cell"><div class="lbl">تاريخ الطلب</div><div class="val" style="font-family:var(--mono)">${t.orderDate}</div></div>`:''}
-      ${t.deadline?`<div class="td-info-cell"><div class="lbl">تاريخ التسليم</div><div class="val" style="font-family:var(--mono);color:var(--accent4)">${t.deadline}</div></div>`:''}
+      ${t.orderDate?`<div class="td-info-cell"><div class="lbl">تاريخ الطلب</div><div class="val" style="font-family:var(--mono)">${_friendlyDate(t.orderDate)}</div></div>`:''}
+      ${t.deadline?`<div class="td-info-cell"><div class="lbl">تاريخ التسليم</div><div class="val" style="font-family:var(--mono);color:var(--accent4)">${_friendlyDate(t.deadline)}</div></div>`:''}
     </div>
 
     ${renderStepsInDetail(t)}
@@ -2535,6 +2470,24 @@ function saveTask(){
       onSkip: ()=>{ if(issueInv) setTimeout(()=>openInvoiceFromTask(d),150); }
     }), 450);
     return;
+  }
+  // Also prompt on edit if deposit changed/added
+  if(eid && payVal==='deposit' && depositVal>0){
+    var oldTask = S.tasks.find(x=>x.id===+eid);
+    var oldDepositRegistered = (S.transactions||[]).some(tx=>tx.linkedTaskId===+eid && tx.paymentType==='deposit');
+    if(!oldDepositRegistered){
+      var _mt1b=document.getElementById('modal-task'); if(_mt1b) _mt1b.style.display='none';
+      setTimeout(()=>_showPaymentIncomePrompt({
+        amount: depositVal,
+        label: 'عربون',
+        desc: 'عربون: '+d.title,
+        client: d.client||'',
+        taskId: d.id,
+        paymentType: 'deposit',
+        onSkip: ()=>{}
+      }), 450);
+      return;
+    }
   }
   if(!eid && payVal==='full' && (d.value||0)>0){
     var _mt2=document.getElementById('modal-task'); if(_mt2) _mt2.style.display='none';
@@ -2891,13 +2844,14 @@ window._submitMemberComment = async function(ownerId, taskId, textarea, stepIdx,
 function changeTaskStatus(id, newStatus){
   const t = S.tasks.find(t=>t.id===id); if(!t) return;
   const prevDone = t.done || t.status==='done';
+  if(newStatus==='done' && !prevDone){
+    // Use completeTask flow which has income registration prompt
+    completeTask(id);
+    return;
+  }
   t.status = newStatus;
   if(newStatus==='done'){ 
     t.done=true; t.doneAt=t.doneAt||new Date().toISOString().split('T')[0];
-    // اطلب رابط التسليم
-    if(!prevDone){
-      _askRegularTaskProjectLink(id);
-    }
   } else {
     t.done=false;
     if(newStatus==='revision' && prevDone) _notifyClientRevision(t);
@@ -3099,6 +3053,7 @@ function _renderProjectTasksList(){
     var ptDoneCollapsed = localStorage.getItem('_pt_done_collapsed')==='1';
 
     function _ptRow(t){
+      var _ptCV=_getTableCols();var _ptVis={};_ptCV.forEach(function(c){_ptVis[c.id]=c.visible;});
       var proj2=projMap[String(t.project_id)]||{};
       var isDone2=t.status==='done'||t.done;
       var stLabel2=isDone2?'مكتمل':(t.status==='progress'?'جاري':t.status==='review'?'مراجعة':t.status==='paused'?'موقوف':'جديد');
@@ -3106,50 +3061,49 @@ function _renderProjectTasksList(){
       var isLate2=t.deadline&&new Date(t.deadline)<new Date()&&!isDone2;
       var prio2={high:'<span class="badge badge-red">عالية</span>',med:'<span class="badge badge-yellow">متوسطة</span>',low:'<span class="badge badge-green">منخفضة</span>'};
       var pay2=t.pay==='full'?'<span class="pay-badge pay-full"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مدفوع</span>':t.pay==='deposit'?'<span class="pay-badge pay-deposit"><i class="fa-solid fa-heart"></i> عربون</span>':'<span class="pay-badge pay-none"><i class="fa-solid fa-circle-xmark"></i> لم يُدفع</span>';
-      return '<tr class="pt-row'+(isDone2?' pt-done':'')+'" draggable="true" data-ptid="'+t.id+'" '
-        +'ondragstart="_ptDragStart(event,\''+t.id+'\')" '
-        +'ondragover="_ptDragOver(event)" '
-        +'ondrop="_ptDrop(event,\''+t.id+'\')" '
-        +'ondragend="_ptDragEnd(event)" '
+      var hasSteps2=t.steps&&t.steps.length>0;
+      var stepsDone2=hasSteps2?t.steps.filter(function(s){return s.done;}).length:0;
+      var stepsSubRow2='';
+      if(hasSteps2){
+        stepsSubRow2='<tr id="pt-steps-row-'+t.id+'" style="display:none"><td colspan="10" style="padding:0 14px 12px 40px;background:var(--surface2);border-bottom:2px solid var(--border)">'
+          +'<div style="padding:10px 0;font-size:11px;font-weight:800;color:var(--text2);margin-bottom:4px"><i class="fa-solid fa-list-check" style="color:var(--accent);margin-left:4px"></i> خطوات ('+stepsDone2+'/'+t.steps.length+')</div>'
+          +t.steps.map(function(s,si){
+            var sd=s.done; var sl=s.deadline&&new Date(s.deadline)<new Date()&&!sd;
+            return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">'
+              +'<div style="width:20px;height:20px;border-radius:50%;border:2px solid '+(sd?'var(--accent3)':'var(--border)')+';display:flex;align-items:center;justify-content:center;font-size:10px;background:'+(sd?'var(--accent3)':'transparent')+';color:'+(sd?'#fff':'transparent')+'"><i class="fa-solid fa-check"></i></div>'
+              +'<div style="flex:1;'+(sd?'text-decoration:line-through;color:var(--text3)':'')+'">'+escapeHtml(s.text||s.title||'خطوة')+'</div>'
+              +(s.deadline?'<div style="font-size:10px;font-family:var(--mono);color:'+(sl?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(s.deadline)+'</div>':'')
+            +'</div>';
+          }).join('')
+        +'</td></tr>';
+      }
+      var ptR='<tr class="pt-row'+(isDone2?' pt-done':'')+'" draggable="true" data-ptid="'+t.id+'" '
+        +'ondragstart="_ptDragStart(event,\''+t.id+'\')" ondragover="_ptDragOver(event)" '
+        +'ondrop="_ptDrop(event,\''+t.id+'\')" ondragend="_ptDragEnd(event)" '
         +'style="cursor:pointer;border-bottom:1px solid var(--border);'+(isDone2?'opacity:.6':'')+';" '
         +'onclick="openProjTaskDetail(\''+t.id+'\',\''+String(t.project_id)+'\')">'
-        // drag handle
-        +'<td style="padding:10px 4px;width:24px;text-align:center;color:var(--text3);cursor:grab" onclick="event.stopPropagation()" title="اسحب لإعادة الترتيب">'
-          +'<i class="fa-solid fa-grip-vertical" style="font-size:10px"></i>'
-        +'</td>'
-        // complete + title
-        +'<td style="padding:10px 14px">'
-          +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<td style="padding:10px 4px;width:24px;text-align:center;color:var(--text3);cursor:grab" onclick="event.stopPropagation()"><i class="fa-solid fa-grip-vertical" style="font-size:10px"></i></td>'
+        +'<td style="padding:10px 14px"><div style="display:flex;align-items:center;gap:6px">'
+            +(hasSteps2?'<button onclick="event.stopPropagation();_ptToggleStepsRow(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;padding:2px 4px;flex-shrink:0;transition:transform .2s" id="pt-steps-arrow-'+t.id+'"><i class="fa-solid fa-chevron-down"></i></button>':'<span style="width:22px;display:inline-block"></span>')
             +(!isDone2
               ? '<button class="btn btn-success btn-sm" onclick="event.stopPropagation();_completeProjTask(\''+t.id+'\')" title="إكمال" style="padding:4px 8px;font-size:13px;flex-shrink:0"><i class="fa-solid fa-check"></i></button>'
               : '<span style="color:var(--accent3);font-size:16px;flex-shrink:0"><i class="fa-solid fa-square-check"></i></span>')
             +'<div>'
               +'<div style="font-weight:700;'+(isDone2?'text-decoration:line-through;color:var(--text2)':'')+'">'+escapeHtml(t.title||t.name||'مهمة')+'</div>'
               +'<div style="font-size:10px;color:var(--accent);margin-top:2px"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(proj2.name||'—')+'</div>'
+              +(hasSteps2?'<div style="font-size:10px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-list-check"></i> '+stepsDone2+'/'+t.steps.length+' خطوة</div>':'')
             +'</div>'
-          +'</div>'
-        +'</td>'
-        // client
-        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client_name||proj2.client_name||'—')+'</td>'
-        // priority
-        +'<td style="padding:10px 8px;text-align:center" class="hide-mobile">'+(prio2[t.priority]||prio2.med)+'</td>'
-        // order date
-        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+escapeHtml(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>'
-        // deadline
-        +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate2?'#f76f7c':'var(--text3)')+'">'+escapeHtml(t.deadline||'—')+'</td>'
-        // pay
-        +'<td style="padding:10px 8px;text-align:center">'+pay2+'</td>'
-        // status
-        +'<td style="padding:10px 8px;text-align:center">'
-          +'<span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+stColor2+'22;color:'+stColor2+'">'+stLabel2+'</span>'
-        +'</td>'
-        // actions
-        +'<td style="padding:10px 8px;text-align:center" onclick="event.stopPropagation()">'
-          +'<div style="display:flex;gap:4px;justify-content:center">'
-            +'<button class="btn btn-ghost btn-sm" onclick="openProjectDetail(\''+String(t.project_id)+'\')" style="padding:3px 7px;font-size:11px"><i class="fa-solid fa-pen"></i></button>'
-          +'</div>'
-        +'</td>'
-      +'</tr>';
+          +'</div></td>';
+      if(_ptVis.client!==false) ptR+='<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client_name||proj2.client_name||'—')+'</td>';
+      if(_ptVis.deadline!==false) ptR+='<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate2?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(t.deadline||'—')+'</td>';
+      if(_ptVis.priority!==false) ptR+='<td style="padding:10px 8px;text-align:center" class="hide-mobile">'+(prio2[t.priority]||prio2.med)+'</td>';
+      if(_ptVis.orderDate) ptR+='<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+_friendlyDate(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>';
+      if(_ptVis.pay!==false) ptR+='<td style="padding:10px 8px;text-align:center">'+pay2+'</td>';
+      if(_ptVis.status!==false) ptR+='<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+stColor2+'22;color:'+stColor2+'">'+stLabel2+'</span></td>';
+      if(_ptVis.value) ptR+='<td style="padding:10px 8px;text-align:center">'+(t.value?'<div style="font-weight:900;color:#f7c948;font-size:12px">'+Number(t.value).toLocaleString()+' ج</div>':'—')+'</td>';
+      if(_ptVis.actions!==false) ptR+='<td style="padding:10px 8px;text-align:center" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:center"><button class="btn btn-ghost btn-sm" onclick="openProjectDetail(\''+String(t.project_id)+'\')" style="padding:3px 7px;font-size:11px"><i class="fa-solid fa-pen"></i></button></div></td>';
+      ptR+='</tr>'+stepsSubRow2;
+      return ptR;
     }
 
     var COL_COUNT = '9';
@@ -3171,17 +3125,28 @@ function _renderProjectTasksList(){
       if(!ptDoneCollapsed) doneSec += ptDone.map(_ptRow).join('');
     }
 
-    l.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto">'
+    // Build dynamic header from column settings
+    var _ptCols=_getTableCols();var _ptV={};_ptCols.forEach(function(c){_ptV[c.id]=c.visible;});
+    var _ptThs='padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)';
+    var _ptHdr='<th style="padding:10px 4px;width:24px;border-bottom:1px solid var(--border)"></th>'
+      +'<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>';
+    if(_ptV.client!==false) _ptHdr+='<th style="'+_ptThs+'">العميل</th>';
+    if(_ptV.deadline!==false) _ptHdr+='<th style="'+_ptThs+'">تاريخ التسليم</th>';
+    if(_ptV.priority!==false) _ptHdr+='<th style="'+_ptThs+'" class="hide-mobile">الأولوية</th>';
+    if(_ptV.orderDate) _ptHdr+='<th style="'+_ptThs+'" class="hide-mobile">تاريخ الطلب</th>';
+    if(_ptV.pay!==false) _ptHdr+='<th style="'+_ptThs+'">حالة الدفع</th>';
+    if(_ptV.status!==false) _ptHdr+='<th style="'+_ptThs+'">الحالة</th>';
+    if(_ptV.value) _ptHdr+='<th style="'+_ptThs+'">القيمة</th>';
+    if(_ptV.actions!==false) _ptHdr+='<th style="'+_ptThs+'">إجراءات</th>';
+
+    l.innerHTML='<div class="card" style="padding:0;overflow:hidden">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">'
+        +'<div style="font-weight:800;font-size:13px;color:var(--text)">مهام المشاريع</div>'
+        +'<button onclick="_openTableColumnsSettings()" class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:13px;color:var(--text3)" title="تخصيص الأعمدة"><i class="fa-solid fa-gear"></i></button>'
+      +'</div>'
+      +'<div style="overflow-x:auto">'
       +'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">'
-      +'<th style="padding:10px 4px;width:24px;border-bottom:1px solid var(--border)"></th>'
-      +'<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>'
-      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">العميل</th>'
-      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)" class="hide-mobile">الأولوية</th>'
-      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)" class="hide-mobile">تاريخ الطلب</th>'
-      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">تاريخ التسليم</th>'
-      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الدفع</th>'
-      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة</th>'
-      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">إجراءات</th>'
+      +_ptHdr
       +'</tr></thead><tbody>'+activeRows+doneSec+'</tbody></table></div></div>';
   }
 
@@ -3266,7 +3231,7 @@ function _renderProjectTasksList(){
           // order date
           +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px;font-family:var(--mono)" class="hide-mobile">'+escapeHtml(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>'
           // deadline
-          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:'+(isLate3?'#f76f7c':'var(--text3)')+'">'+escapeHtml(t.deadline||'—')+'</td>'
+          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:'+(isLate3?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(t.deadline||'—')+'</td>'
           // pay
           +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">'+pay3+'</td>'
           // actions
@@ -3383,6 +3348,15 @@ function _ptToggleDone(){
   localStorage.setItem('_pt_done_collapsed',cur?'0':'1');
   _renderProjectTasksList();
 }
+// Toggle steps in project tasks list view
+function _ptToggleStepsRow(tid){
+  var row=document.getElementById('pt-steps-row-'+tid);
+  var arrow=document.getElementById('pt-steps-arrow-'+tid);
+  if(!row) return;
+  var isOpen=row.style.display!=='none';
+  row.style.display=isOpen?'none':'table-row';
+  if(arrow) arrow.style.transform=isOpen?'':'rotate(180deg)';
+}
 
 function _renderAllTasksList(){
   var allItems=[];
@@ -3444,44 +3418,50 @@ function _renderAllTasksList(){
       : '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delTask('+t.id+')" style="padding:3px 7px;font-size:11px"><i class="fa-solid fa-trash"></i></button>';
 
     if(isList){
-      return '<tr class="al-row'+(si.isDone?' al-done':'')+'" draggable="true" data-alid="'+t.id+'" data-altype="'+item.type+'" '
+      var _alCV=_getTableCols();var _alVis={};_alCV.forEach(function(c){_alVis[c.id]=c.visible;});
+      var hasStepsAl=t.steps&&t.steps.length>0;
+      var stepsDoneAl=hasStepsAl?t.steps.filter(function(s){return s.done;}).length:0;
+      var stepsSubRowAl='';
+      if(hasStepsAl){
+        stepsSubRowAl='<tr id="al-steps-row-'+t.id+'" style="display:none"><td colspan="11" style="padding:0 14px 12px 40px;background:var(--surface2);border-bottom:2px solid var(--border)">'
+          +'<div style="padding:10px 0;font-size:11px;font-weight:800;color:var(--text2);margin-bottom:4px"><i class="fa-solid fa-list-check" style="color:var(--accent);margin-left:4px"></i> خطوات ('+stepsDoneAl+'/'+t.steps.length+')</div>'
+          +t.steps.map(function(s){
+            var sd=s.done; var sl=s.deadline&&new Date(s.deadline)<new Date()&&!sd;
+            return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">'
+              +'<div style="width:20px;height:20px;border-radius:50%;border:2px solid '+(sd?'var(--accent3)':'var(--border)')+';display:flex;align-items:center;justify-content:center;font-size:10px;background:'+(sd?'var(--accent3)':'transparent')+';color:'+(sd?'#fff':'transparent')+'"><i class="fa-solid fa-check"></i></div>'
+              +'<div style="flex:1;'+(sd?'text-decoration:line-through;color:var(--text3)':'')+'">'+escapeHtml(s.text||s.title||'خطوة')+'</div>'
+              +(s.deadline?'<div style="font-size:10px;font-family:var(--mono);color:'+(sl?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(s.deadline)+'</div>':'')
+            +'</div>';
+          }).join('')+'</td></tr>';
+      }
+      var alRow='<tr class="al-row'+(si.isDone?' al-done':'')+'" draggable="true" data-alid="'+t.id+'" data-altype="'+item.type+'" '
         +'ondragstart="_alDragStart(event,\''+t.id+'\',\''+item.type+'\')" '
         +'ondragover="_alDragOver(event)" '
         +'ondrop="_alDrop(event,\''+t.id+'\',\''+item.type+'\')" '
         +'ondragend="_alDragEnd(event)" '
         +'style="cursor:pointer;border-bottom:1px solid var(--border);'+(si.isDone?'opacity:.6':'')+';" '
         +'onclick="'+click+'">'
-        // drag
-        +'<td style="padding:10px 4px;width:24px;text-align:center;color:var(--text3);cursor:grab" onclick="event.stopPropagation()" title="اسحب لإعادة الترتيب"><i class="fa-solid fa-grip-vertical" style="font-size:10px"></i></td>'
-        // checkbox
-        +'<td style="padding:10px 6px;width:28px;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'
-          +'<input type="checkbox" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">'
-        +'</td>'
-        // complete + title
-        +'<td style="padding:10px 14px">'
-          +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<td style="padding:10px 4px;width:24px;text-align:center;color:var(--text3);cursor:grab" onclick="event.stopPropagation()"><i class="fa-solid fa-grip-vertical" style="font-size:10px"></i></td>'
+        +'<td style="padding:10px 6px;width:28px;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()"><input type="checkbox" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)"></td>'
+        +'<td style="padding:10px 14px"><div style="display:flex;align-items:center;gap:6px">'
+            +(hasStepsAl?'<button onclick="event.stopPropagation();_alToggleStepsRow(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;padding:2px 4px;flex-shrink:0;transition:transform .2s" id="al-steps-arrow-'+t.id+'"><i class="fa-solid fa-chevron-down"></i></button>':'<span style="width:22px;display:inline-block"></span>')
             +completeBtn
             +'<div>'
               +'<div style="font-weight:700;'+(si.isDone?'text-decoration:line-through;color:var(--text2)':'')+'">'+escapeHtml(t.title||t.name||'مهمة')+'</div>'
               +typeLbl
+              +(hasStepsAl?'<div style="font-size:10px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-list-check"></i> '+stepsDoneAl+'/'+t.steps.length+' خطوة</div>':'')
             +'</div>'
-          +'</div>'
-        +'</td>'
-        // client
-        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client||t.client_name||'—')+'</td>'
-        // priority
-        +'<td style="padding:10px 8px;text-align:center" class="hide-mobile">'+(prio2[t.priority]||'—')+'</td>'
-        // order date
-        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>'
-        // deadline
-        +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+(t.deadline||'—')+'</td>'
-        // pay
-        +'<td style="padding:10px 8px;text-align:center">'+payBadge+'</td>'
-        // status
-        +'<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+si.color+'22;color:'+si.color+'">'+si.label+'</span></td>'
-        // actions
-        +'<td style="padding:10px 8px;text-align:center" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:center">'+editBtn+delBtn+'</div></td>'
-      +'</tr>';
+          +'</div></td>';
+      if(_alVis.client!==false) alRow+='<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client||t.client_name||'—')+'</td>';
+      if(_alVis.deadline!==false) alRow+='<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(t.deadline||'—')+'</td>';
+      if(_alVis.priority!==false) alRow+='<td style="padding:10px 8px;text-align:center" class="hide-mobile">'+(prio2[t.priority]||'—')+'</td>';
+      if(_alVis.orderDate) alRow+='<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+_friendlyDate(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>';
+      if(_alVis.pay!==false) alRow+='<td style="padding:10px 8px;text-align:center">'+payBadge+'</td>';
+      if(_alVis.status!==false) alRow+='<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+si.color+'22;color:'+si.color+'">'+si.label+'</span></td>';
+      if(_alVis.value) alRow+='<td style="padding:10px 8px;text-align:center">'+(t.value?'<div style="font-weight:900;color:#f7c948;font-size:12px">'+Number(t.value).toLocaleString()+' ج</div>':'—')+'</td>';
+      if(_alVis.actions!==false) alRow+='<td style="padding:10px 8px;text-align:center" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:center">'+editBtn+delBtn+'</div></td>';
+      alRow+='</tr>'+stepsSubRowAl;
+      return alRow;
 
     } else {
       // ── table view ──
@@ -3530,9 +3510,9 @@ function _renderAllTasksList(){
         // priority
         +'<td style="padding:10px 8px;text-align:center" class="hide-mobile">'+(prio2[t.priority]||'—')+'</td>'
         // order date
-        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+_friendlyDate(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>'
         // deadline
-        +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+(t.deadline||'—')+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(t.deadline||'—')+'</td>'
         // pay
         +'<td style="padding:10px 8px;text-align:center">'+payBadge+'</td>'
         // status
@@ -3574,18 +3554,29 @@ function _renderAllTasksList(){
       var activeRows=alActive.map(function(x){ return _dragRow(x,true); });
       var doneRows  =alDone.map(function(x){   return _dragRow(x,true); });
       var doneSec=_doneSec(doneRows,'al','_alToggleDone','al-done-arrow','11');
-      l.innerHTML='<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto">'
-        +'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">'
-        +'<th style="width:24px;border-bottom:1px solid var(--border)"></th>'
+      // Dynamic header from column settings
+      var _alCols=_getTableCols();var _alV={};_alCols.forEach(function(c){_alV[c.id]=c.visible;});
+      var _alThs='padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)';
+      var _alHdr='<th style="width:24px;border-bottom:1px solid var(--border)"></th>'
         +'<th style="width:28px;border-bottom:1px solid var(--border)"></th>'
-        +'<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>'
-        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">العميل</th>'
-        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)" class="hide-mobile">الأولوية</th>'
-        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)" class="hide-mobile">تاريخ الطلب</th>'
-        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">التسليم</th>'
-        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الدفع</th>'
-        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة</th>'
-        +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">إجراءات</th>'
+        +'<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>';
+      if(_alV.client!==false) _alHdr+='<th style="'+_alThs+'">العميل</th>';
+      if(_alV.deadline!==false) _alHdr+='<th style="'+_alThs+'">تاريخ التسليم</th>';
+      if(_alV.priority!==false) _alHdr+='<th style="'+_alThs+'" class="hide-mobile">الأولوية</th>';
+      if(_alV.orderDate) _alHdr+='<th style="'+_alThs+'" class="hide-mobile">تاريخ الطلب</th>';
+      if(_alV.pay!==false) _alHdr+='<th style="'+_alThs+'">حالة الدفع</th>';
+      if(_alV.status!==false) _alHdr+='<th style="'+_alThs+'">الحالة</th>';
+      if(_alV.value) _alHdr+='<th style="'+_alThs+'">القيمة</th>';
+      if(_alV.actions!==false) _alHdr+='<th style="'+_alThs+'">إجراءات</th>';
+
+      l.innerHTML='<div class="card" style="padding:0;overflow:hidden">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">'
+          +'<div style="font-weight:800;font-size:13px;color:var(--text)">كل المهام</div>'
+          +'<button onclick="_openTableColumnsSettings()" class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:13px;color:var(--text3)" title="تخصيص الأعمدة"><i class="fa-solid fa-gear"></i></button>'
+        +'</div>'
+        +'<div style="overflow-x:auto">'
+        +'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">'
+        +_alHdr
         +'</tr></thead><tbody>'
         +(activeRows.join('')||'<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--text3);font-size:12px">لا توجد مهام نشطة</td></tr>')
         +doneSec
@@ -3636,6 +3627,15 @@ function _alDrop(e,targetId,targetType){
   lsSave(); cloudSave(S); _renderAllTasksList(); _alDragId=null;
 }
 function _alToggleDone(){ var c=localStorage.getItem('_al_done_collapsed')==='1'; localStorage.setItem('_al_done_collapsed',c?'0':'1'); _renderAllTasksList(); }
+// Toggle steps in all-tasks list view
+function _alToggleStepsRow(tid){
+  var row=document.getElementById('al-steps-row-'+tid);
+  var arrow=document.getElementById('al-steps-arrow-'+tid);
+  if(!row) return;
+  var isOpen=row.style.display!=='none';
+  row.style.display=isOpen?'none':'table-row';
+  if(arrow) arrow.style.transform=isOpen?'':'rotate(180deg)';
+}
 
 // ── All-tasks table drag helpers ──
 var _atDragId=null,_atDragType=null;
@@ -3840,6 +3840,26 @@ function renderTasks(){
   }
 
   const tbody=document.getElementById('tasks-tbody');if(!tbody)return;
+  // Column visibility for list view too
+  const _lvCols=_getTableCols();
+  const _lvV={};_lvCols.forEach(c=>{_lvV[c.id]=c.visible;});
+  // Dynamic list-view header
+  const _lvThead=document.getElementById('list-view-thead');
+  if(_lvThead){
+    const _ths='padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)';
+    let hdr='<th style="padding:10px 4px;width:24px;border-bottom:1px solid var(--border)"></th>'
+      +'<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>';
+    if(_lvV.client!==false) hdr+='<th style="'+_ths+'">العميل</th>';
+    if(_lvV.deadline!==false) hdr+='<th style="'+_ths+'">تاريخ التسليم</th>';
+    if(_lvV.priority!==false) hdr+='<th style="'+_ths+'" class="hide-mobile">الأولوية</th>';
+    if(_lvV.orderDate) hdr+='<th style="'+_ths+'" class="hide-mobile">تاريخ الطلب</th>';
+    if(_lvV.pay!==false) hdr+='<th style="'+_ths+'">حالة الدفع</th>';
+    if(_lvV.status!==false) hdr+='<th style="'+_ths+'">الحالة</th>';
+    if(_lvV.value) hdr+='<th style="'+_ths+'">القيمة</th>';
+    if(_lvV.actions!==false) hdr+='<th style="'+_ths+'">إجراءات</th>';
+    _lvThead.innerHTML='<tr style="background:var(--surface2)">'+hdr+'</tr>';
+  }
+  let _lvColCount=2;_lvCols.forEach(c=>{if(c.visible)_lvColCount++;});
 
   // ── فصل المهام: نشطة / مكتملة ──
   const activeTasks = filtered.filter(t=>!t.done && t.status!=='done');
@@ -3847,20 +3867,35 @@ function renderTasks(){
 
   const makeListRow = t => {
     const isDone = t.done||t.status==='done';
-    return `<tr class="tl-row${isDone?' tl-done':''}"
-      draggable="true"
-      data-tid="${t.id}"
-      ondragstart="_tlDragStart(event,'${t.id}')"
-      ondragover="_tlDragOver(event)"
-      ondrop="_tlDrop(event,'${t.id}')"
-      ondragend="_tlDragEnd(event)"
-      onclick="openTaskDetail(${t.id})"
-      style="${isDone?'opacity:.6':''};cursor:pointer">
-      <td style="width:24px;padding:6px 4px;cursor:grab;color:var(--text3);text-align:center" onclick="event.stopPropagation()" title="اسحب لإعادة الترتيب">
+    const isLate = t.deadline && new Date(t.deadline)<new Date() && !isDone;
+    const hasSteps = t.steps && t.steps.length > 0;
+    const stepsDone = hasSteps ? t.steps.filter(s=>s.done).length : 0;
+    // Steps sub-row
+    let stepsSubRow = '';
+    if(hasSteps){
+      stepsSubRow = `<tr id="tl-steps-row-${t.id}" style="display:none"><td colspan="${_lvColCount}" style="padding:0 14px 12px 40px;background:var(--surface2);border-bottom:2px solid var(--border)">
+        <div style="padding:10px 0;font-size:11px;font-weight:800;color:var(--text2);margin-bottom:4px"><i class="fa-solid fa-list-check" style="color:var(--accent);margin-left:4px"></i> خطوات المهمة (${stepsDone}/${t.steps.length})</div>
+        ${t.steps.map((s,si)=>{
+          const sd=s.done; const sl=s.deadline&&new Date(s.deadline)<new Date()&&!sd;
+          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px" onclick="event.stopPropagation()">
+            <div onclick="toggleTaskStep(${t.id},${si});renderTasks()" style="width:20px;height:20px;border-radius:50%;border:2px solid ${sd?'var(--accent3)':'var(--border)'};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:10px;background:${sd?'var(--accent3)':'transparent'};color:${sd?'#fff':'transparent'};transition:.15s"><i class="fa-solid fa-check"></i></div>
+            <div style="flex:1;${sd?'text-decoration:line-through;color:var(--text3)':'color:var(--text)'}">${escapeHtml(s.text||s.title||'خطوة')}</div>
+            ${s.deadline?`<div style="font-size:10px;font-family:var(--mono);color:${sl?'#f76f7c':'var(--text3)'};white-space:nowrap">${sl?'<i class="fa-solid fa-triangle-exclamation" style="font-size:9px"></i> ':''}${_friendlyDate(s.deadline)}</div>`:''}
+          </div>`;
+        }).join('')}
+      </td></tr>`;
+    }
+    let row = `<tr class="tl-row${isDone?' tl-done':''}"
+      draggable="true" data-tid="${t.id}"
+      ondragstart="_tlDragStart(event,'${t.id}')" ondragover="_tlDragOver(event)"
+      ondrop="_tlDrop(event,'${t.id}')" ondragend="_tlDragEnd(event)"
+      onclick="openTaskDetail(${t.id})" style="${isDone?'opacity:.6':''};cursor:pointer">
+      <td style="width:24px;padding:6px 4px;cursor:grab;color:var(--text3);text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()" title="اسحب لإعادة الترتيب">
         <i class="fa-solid fa-grip-vertical" style="font-size:11px"></i>
       </td>
-      <td>
-        <div style="display:flex;align-items:center;gap:8px">
+      <td style="padding:10px 14px;font-weight:700;border-bottom:1px solid var(--border);max-width:220px">
+        <div style="display:flex;align-items:center;gap:6px">
+          ${hasSteps?`<button onclick="event.stopPropagation();_tlToggleSteps(${t.id})" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;padding:2px 4px;flex-shrink:0;transition:transform .2s" id="tl-steps-arrow-${t.id}"><i class="fa-solid fa-chevron-down"></i></button>`:'<span style="width:22px;display:inline-block"></span>'}
           ${!isDone
             ? `<button class="btn btn-success btn-sm" onclick="event.stopPropagation();completeTask(${t.id})" title="إكمال" style="padding:4px 8px;font-size:13px;flex-shrink:0"><i class="fa-solid fa-check"></i></button>`
             : `<span style="color:var(--accent3);font-size:16px;flex-shrink:0"><i class="fa-solid fa-square-check"></i></span>`}
@@ -3868,36 +3903,39 @@ function renderTasks(){
             <b style="${isDone?'text-decoration:line-through;color:var(--text2)':''}">${t.title}</b>
             ${t.brief?'<span style="font-size:10px;color:var(--accent);margin-right:6px"><i class="fa-solid fa-file-lines"></i></span>':''}
             <div style="margin-top:2px">${jtBadge(t.jobType)}</div>
+            ${hasSteps?`<div style="font-size:10px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-list-check"></i> ${stepsDone}/${t.steps.length} خطوة</div>`:''}
           </div>
         </div>
-      </td>
-      <td>${t.client||'—'}</td>
-      <td class="hide-mobile">${prioBadge[t.priority]}</td>
-      <td class="hide-mobile" style="font-family:var(--mono);font-size:11px">${t.orderDate||'—'}</td>
-      <td class="hide-mobile" style="font-family:var(--mono);font-size:11px">${t.deadline||'—'}</td>
-      <td>
+      </td>`;
+    if(_lvV.client!==false) row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">${t.client||'—'}</td>`;
+    if(_lvV.deadline!==false) row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:${isLate?'#f76f7c':'var(--text3)'}">${_friendlyDate(t.deadline)||'—'}</td>`;
+    if(_lvV.priority!==false) row+=`<td class="hide-mobile" style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">${prioBadge[t.priority]}</td>`;
+    if(_lvV.orderDate) row+=`<td class="hide-mobile" style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:var(--text3)">${_friendlyDate(t.orderDate)||'—'}</td>`;
+    if(_lvV.pay!==false) row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">
         ${(t.jobType==='fulltime'||t.jobType==='parttime')&&t.salary
           ? `<span style="color:var(--accent3);font-weight:700;font-size:12px">${t.salary.toLocaleString()} ج/شهر</span>`
           : `${payBadge[t.pay||'none']}${t.pay==='deposit'&&t.deposit?`<div style="font-size:11px;color:var(--accent2)">${t.deposit.toLocaleString()} ج</div>`:''}`}
-      </td>
-      <td>${isDone?'<span class="badge badge-green"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل</span>':statusBadge[t.status]}</td>
-      <td><div style="display:flex;gap:4px" onclick="event.stopPropagation()">
+      </td>`;
+    if(_lvV.status!==false) row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">${isDone?'<span class="badge badge-green"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل</span>':statusBadge[t.status]}</td>`;
+    if(_lvV.value) row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">${t.value>0?`<div style="font-weight:900;color:#f7c948;font-size:12px">${t.value.toLocaleString()} ج</div>`:'<span style="color:var(--text3)">—</span>'}</td>`;
+    if(_lvV.actions!==false) row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)"><div style="display:flex;gap:4px;justify-content:center" onclick="event.stopPropagation()">
         <button class="btn btn-ghost btn-sm" onclick="openTaskModal(${t.id})"><i class="fa-solid fa-pen"></i></button>
         <button class="btn btn-danger btn-sm" onclick="delTask(${t.id})"><i class="fa-solid fa-trash"></i></button>
-      </div></td>
-    </tr>`;
+      </div></td>`;
+    row+=`</tr>${stepsSubRow}`;
+    return row;
   };
 
   const activeHTML = activeTasks.length
     ? activeTasks.map(makeListRow).join('')
-    : '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">لا توجد مهام نشطة</td></tr>';
+    : `<tr><td colspan="${_lvColCount}" style="text-align:center;color:var(--text3);padding:24px">لا توجد مهام نشطة</td></tr>`;
 
   let doneSectionHTML = '';
   if(doneTasks.length){
     const collapsed = localStorage.getItem('_tl_done_collapsed')==='1';
     doneSectionHTML = `
     <tr class="tl-done-header" onclick="_tlToggleDone()" style="cursor:pointer">
-      <td colspan="9" style="padding:9px 14px;background:rgba(79,209,165,.05);border-top:2px solid rgba(79,209,165,.2);border-bottom:1px solid var(--border)">
+      <td colspan="${_lvColCount}" style="padding:9px 14px;background:rgba(79,209,165,.05);border-top:2px solid rgba(79,209,165,.2);border-bottom:1px solid var(--border)">
         <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--accent3)">
           <i class="fa-solid fa-square-check"></i>
           مكتملة
@@ -3915,6 +3953,16 @@ function renderTasks(){
   const urgent=S.tasks.filter(t=>!t.done&&t.priority==='high').length;
   badge.textContent=urgent||'';badge.style.display=urgent?'inline-block':'none';
   if(document.getElementById('table-view')?.style.display!=='none') _renderTasksTable();
+}
+
+// ── Toggle steps in list view ──
+function _tlToggleSteps(taskId){
+  var row=document.getElementById('tl-steps-row-'+taskId);
+  var arrow=document.getElementById('tl-steps-arrow-'+taskId);
+  if(!row) return;
+  var isOpen=row.style.display!=='none';
+  row.style.display=isOpen?'none':'table-row';
+  if(arrow) arrow.style.transform=isOpen?'':'rotate(180deg)';
 }
 
 // ── Toggle مكتملة section في list view ──
@@ -9997,6 +10045,7 @@ function switchTaskView(mode){
 function _renderTasksTable(){
   var tbody = document.getElementById('tasks-table-body');
   var countEl = document.getElementById('tasks-table-count');
+  var thead = document.getElementById('tasks-table-thead');
   if(!tbody) return;
   var filtered = filterTasks(S.tasks);
   if(countEl) countEl.textContent = filtered.length + ' مهمة';
@@ -10029,14 +10078,39 @@ function _renderTasksTable(){
     +'</div>';
   }
 
-  var payBadge = {
+  var payBadgeTbl = {
     none:    '<span style="font-size:10px;color:#f76f7c;font-weight:700">غير مدفوع</span>',
     deposit: '<span style="font-size:10px;color:#a78bfa;font-weight:700">عربون</span>',
     full:    '<span style="font-size:10px;color:#4fd1a5;font-weight:700">✓ مدفوع</span>'
   };
 
+  // Column visibility
+  var cols = _getTableCols();
+  var colVisible = {};
+  cols.forEach(function(c){ colVisible[c.id] = c.visible; });
+
+  // Build table header dynamically
+  if(thead){
+    var thStyle = 'padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)';
+    var hdrCells = '<th style="padding:10px 4px;width:22px;border-bottom:1px solid var(--border)"></th>'
+      +'<th style="padding:10px 6px;width:28px;border-bottom:1px solid var(--border)"></th>'
+      +'<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>';
+    if(colVisible.client!==false) hdrCells += '<th style="'+thStyle+'">العميل</th>';
+    if(colVisible.deadline!==false) hdrCells += '<th style="'+thStyle+'">تاريخ التسليم</th>';
+    if(colVisible.priority!==false) hdrCells += '<th style="'+thStyle+'" class="hide-mobile">الأولوية</th>';
+    if(colVisible.orderDate) hdrCells += '<th style="'+thStyle+'" class="hide-mobile">تاريخ الطلب</th>';
+    if(colVisible.pay!==false) hdrCells += '<th style="'+thStyle+'">حالة الدفع</th>';
+    if(colVisible.status!==false) hdrCells += '<th style="'+thStyle+'">الحالة</th>';
+    if(colVisible.value) hdrCells += '<th style="'+thStyle+'">القيمة</th>';
+    if(colVisible.actions!==false) hdrCells += '<th style="'+thStyle+'">إجراءات</th>';
+    thead.innerHTML = '<tr style="background:var(--surface2)">'+hdrCells+'</tr>';
+  }
+
+  var totalCols = 3; // drag + cb + title always shown
+  cols.forEach(function(c){ if(c.visible) totalCols++; });
+
   if(!filtered.length){
-    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px;font-size:13px">لا توجد مهام تطابق الفلتر</td></tr>';
+    tbody.innerHTML='<tr><td colspan="'+totalCols+'" style="text-align:center;color:var(--text3);padding:32px;font-size:13px">لا توجد مهام تطابق الفلتر</td></tr>';
     return;
   }
 
@@ -10052,7 +10126,7 @@ function _renderTasksTable(){
     var hasSteps = t.steps && t.steps.length > 0;
     var stepsHtml = '';
     if(hasSteps){
-      stepsHtml = '<tr id="steps-row-'+t.id+'" style="display:none"><td colspan="9" style="padding:0 14px 12px 40px;background:var(--surface2);border-bottom:2px solid var(--border)">'
+      stepsHtml = '<tr id="steps-row-'+t.id+'" style="display:none"><td colspan="'+totalCols+'" style="padding:0 14px 12px 40px;background:var(--surface2);border-bottom:2px solid var(--border)">'
         +'<div style="padding:10px 0;font-size:11px;font-weight:800;color:var(--text2);margin-bottom:4px"><i class="fa-solid fa-list-check" style="color:var(--accent);margin-left:4px"></i> خطوات المهمة ('+t.steps.filter(function(s){return s.done;}).length+'/'+t.steps.length+')</div>'
         +t.steps.map(function(s,si){
           var stepDone = s.done;
@@ -10060,12 +10134,12 @@ function _renderTasksTable(){
           return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px" onclick="event.stopPropagation()">'
             +'<div onclick="toggleTaskStep('+t.id+','+si+');_renderTasksTable()" style="width:20px;height:20px;border-radius:50%;border:2px solid '+(stepDone?'var(--accent3)':'var(--border)')+';display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:10px;background:'+(stepDone?'var(--accent3)':'transparent')+';color:'+(stepDone?'#fff':'transparent')+';transition:.15s"><i class="fa-solid fa-check"></i></div>'
             +'<div style="flex:1;'+(stepDone?'text-decoration:line-through;color:var(--text3)':'color:var(--text)')+'">'+escapeHtml(s.text||s.title||'خطوة')+'</div>'
-            +(s.deadline?'<div style="font-size:10px;font-family:var(--mono);color:'+(stepLate?'#f76f7c':'var(--text3)')+';white-space:nowrap">'+(stepLate?'<i class="fa-solid fa-triangle-exclamation" style="font-size:9px"></i> ':'')+s.deadline+'</div>':'')
+            +(s.deadline?'<div style="font-size:10px;font-family:var(--mono);color:'+(stepLate?'#f76f7c':'var(--text3)')+';white-space:nowrap">'+(stepLate?'<i class="fa-solid fa-triangle-exclamation" style="font-size:9px"></i> ':'')+_friendlyDate(s.deadline)+'</div>':'')
           +'</div>';
         }).join('')
       +'</td></tr>';
     }
-    return '<tr class="tt-row" draggable="true" data-tid="'+t.id+'" '
+    var row = '<tr class="tt-row" draggable="true" data-tid="'+t.id+'" '
       +'ondragstart="_ttDragStart(event,\''+t.id+'\')" '
       +'ondragover="_ttDragOver(event)" '
       +'ondrop="_ttDrop(event,\''+t.id+'\')" '
@@ -10082,7 +10156,7 @@ function _renderTasksTable(){
       +'<td style="padding:10px 6px;border-bottom:1px solid var(--border);width:28px" onclick="event.stopPropagation()">'
         +'<input type="checkbox" class="bulk-task-cb" data-tid="'+t.id+'" onchange="_bulkTasksUpdateCount()" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent)">'
       +'</td>'
-      // title
+      // title (always visible)
       +'<td style="padding:10px 14px;font-weight:700;border-bottom:1px solid var(--border);max-width:220px">'
         +'<div style="display:flex;align-items:center;gap:6px">'
           +(hasSteps?'<button onclick="event.stopPropagation();_toggleStepsRow('+t.id+')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;padding:2px 4px;flex-shrink:0;transition:transform .2s" id="steps-arrow-'+t.id+'"><i class="fa-solid fa-chevron-down"></i></button>':'<span style="width:22px"></span>')
@@ -10090,32 +10164,47 @@ function _renderTasksTable(){
         +'</div>'
         +(hasSteps?'<div style="font-size:10px;color:var(--text3);margin-top:2px;margin-right:28px"><i class="fa-solid fa-list-check"></i> '+t.steps.filter(function(s){return s.done;}).length+'/'+t.steps.length+' خطوة</div>':'')
         +(projLink&&isDone?'<div style="font-size:9px;color:var(--accent3);margin-top:2px;margin-right:28px"><i class="fa-solid fa-link"></i> رابط التسليم</div>':'')
-      +'</td>'
-      +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">'+(escapeHtml(t.client||'—'))+'</td>'
-      +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'+stSelect(t)+'</td>'
-      +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px;font-family:var(--mono)">'+(t.orderDate||'—')+'</td>'
-      +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'"><span title="'+(isLate?'متأخرة':'')+'">'+(t.deadline||'—')+'</span></td>'
-      +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">'
-        +(t.value>0?'<div style="font-weight:900;color:#f7c948;font-size:12px">'+t.value.toLocaleString()+' ج</div>':'<span style="color:var(--text3)">—</span>')
-        +(t.value>0?'<div>'+( payBadge[t.pay||'none']||'')+'</div>':'')
-      +'</td>'
-      +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'
-        +'<div style="display:flex;gap:4px;justify-content:center">'
-          +'<button data-tid="'+t.id+'" onclick="openTaskModal(this.dataset.tid)" class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:11px"><i class="fa-solid fa-pen"></i></button>'
-          +'<button data-tid="'+t.id+'" onclick="delTask(this.dataset.tid)" class="btn btn-danger btn-sm" style="padding:3px 7px;font-size:11px"><i class="fa-solid fa-trash"></i></button>'
-        +'</div>'
-      +'</td>'
-    +'</tr>' + stepsHtml;
+      +'</td>';
+    // client
+    if(colVisible.client!==false) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">'+(escapeHtml(t.client||'—'))+'</td>';
+    // deadline
+    if(colVisible.deadline!==false) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'"><span title="'+(isLate?'متأخرة':'')+'">'+_friendlyDate(t.deadline||'—')+'</span></td>';
+    // priority
+    if(colVisible.priority!==false){
+      var prioBadgeT = {high:'<span class="badge badge-red">عالية</span>',med:'<span class="badge badge-yellow">متوسطة</span>',low:'<span class="badge badge-green">منخفضة</span>'};
+      row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" class="hide-mobile">'+(prioBadgeT[t.priority]||'—')+'</td>';
+    }
+    // orderDate
+    if(colVisible.orderDate) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px;font-family:var(--mono)" class="hide-mobile">'+_friendlyDate(t.orderDate||'—')+'</td>';
+    // pay
+    if(colVisible.pay!==false) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">'
+      +(t.value>0?'<div>'+(payBadgeTbl[t.pay||'none']||'')+'</div>':'<span style="color:var(--text3)">—</span>')
+      +(t.pay==='deposit'&&t.deposit?'<div style="font-size:10px;color:#a78bfa">'+t.deposit.toLocaleString()+' ج</div>':'')
+      +'</td>';
+    // status
+    if(colVisible.status!==false) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'+stSelect(t)+'</td>';
+    // value
+    if(colVisible.value) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">'
+      +(t.value>0?'<div style="font-weight:900;color:#f7c948;font-size:12px">'+t.value.toLocaleString()+' ج</div>':'<span style="color:var(--text3)">—</span>')
+      +'</td>';
+    // actions
+    if(colVisible.actions!==false) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'
+      +'<div style="display:flex;gap:4px;justify-content:center">'
+        +'<button data-tid="'+t.id+'" onclick="openTaskModal(this.dataset.tid)" class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:11px"><i class="fa-solid fa-pen"></i></button>'
+        +'<button data-tid="'+t.id+'" onclick="delTask(this.dataset.tid)" class="btn btn-danger btn-sm" style="padding:3px 7px;font-size:11px"><i class="fa-solid fa-trash"></i></button>'
+      +'</div></td>';
+    row += '</tr>' + stepsHtml;
+    return row;
   }
 
   var activeHTML = activeTbl.map(function(t,i){ return makeTableRow(t,i); }).join('');
-  if(!activeHTML) activeHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px;font-size:12px">لا توجد مهام نشطة</td></tr>';
+  if(!activeHTML) activeHTML = '<tr><td colspan="'+totalCols+'" style="text-align:center;color:var(--text3);padding:24px;font-size:12px">لا توجد مهام نشطة</td></tr>';
 
   var doneSectionHTML = '';
   if(doneTbl.length){
     var collapsed = localStorage.getItem('_tt_done_collapsed')==='1';
     doneSectionHTML = '<tr class="tt-done-header" onclick="_ttToggleDone()" style="cursor:pointer">'
-      +'<td colspan="9" style="padding:9px 14px;background:rgba(79,209,165,.05);border-top:2px solid rgba(79,209,165,.2);border-bottom:1px solid var(--border)">'
+      +'<td colspan="'+totalCols+'" style="padding:9px 14px;background:rgba(79,209,165,.05);border-top:2px solid rgba(79,209,165,.2);border-bottom:1px solid var(--border)">'
         +'<div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--accent3)">'
           +'<i class="fa-solid fa-square-check"></i> مكتملة '
           +'<span style="background:rgba(79,209,165,.18);color:var(--accent3);padding:1px 9px;border-radius:20px;font-size:10px">'+doneTbl.length+'</span>'
@@ -10181,16 +10270,19 @@ function _changeRegTaskStatusFromTable(taskId, newStatus){
   var t = S.tasks.find(function(x){ return String(x.id)===String(taskId); });
   if(!t) return;
   var prevDone = t.done||t.status==='done';
+  if(newStatus==='done' && !prevDone){
+    // Use completeTask flow which has income registration prompt
+    completeTask(+taskId);
+    return;
+  }
   t.status = newStatus;
   if(newStatus==='done'){
     t.done = true;
     t.doneAt = t.doneAt||new Date().toISOString().split('T')[0];
-    if(!prevDone) _askRegularTaskProjectLink(taskId);
   } else {
     t.done = false;
   }
   lsSave(); cloudSave(S);
-  // Re-render table without full page refresh
   _renderTasksTable();
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تغيير الحالة');
 }
