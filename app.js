@@ -12751,7 +12751,7 @@ supa.auth.onAuthStateChange(async (event, session) => {
 
   console.log('Auth event:', event, session?.user?.email);
 
-  // TOKEN_REFRESHED = الـ session اتجدد تلقائياً — مش محتاج login جديد
+  // TOKEN_REFRESHED = الـ session اتجدد — كل حاجة تمام
   if(event === 'TOKEN_REFRESHED' && session && session.user){
     _supaUserId = session.user.id;
     const existing = getSession();
@@ -12764,13 +12764,18 @@ supa.auth.onAuthStateChange(async (event, session) => {
     // PHASE 2 FIX: Prevent duplicate processing for same user
     if(_authProcessingUserId === session.user.id) return;
 
-    // لو بالفعل initialized بنفس المستخدم — مش محتاج نعمل حاجة
-    // Exception: SIGNED_IN after OAuth redirect should always proceed
-    const isOAuthRedirect = event === 'SIGNED_IN' && session.user.app_metadata?.provider === 'google';
-    if(_supaUserId === session.user.id && _authInitialized && !isOAuthRedirect) return;
+    // ── إصلاح: لو نفس المستخدم والبيانات محملة — تجاهل تماماً ──
+    // ده بيمنع الـ lock timeout من إعادة تحميل البيانات
+    if(_supaUserId === session.user.id && _authInitialized && window._cloudLoadDone) {
+      // بس حدّث الـ session في localStorage
+      const _ex = getSession();
+      if(_ex) saveSession({..._ex, supaId:session.user.id, id:session.user.id});
+      return;
+    }
+
     // لو فيه مستخدم تاني logged in في tab تاني — ignore
     const existingSession = getSession();
-    if(existingSession && existingSession.id && existingSession.id !== session.user.id && _authInitialized && !isOAuthRedirect){
+    if(existingSession && existingSession.id && existingSession.id !== session.user.id && _authInitialized){
       console.warn('Session conflict: ignoring auth change for different user');
       return;
     }
@@ -12812,9 +12817,24 @@ supa.auth.onAuthStateChange(async (event, session) => {
   }
 
   if(event === 'SIGNED_OUT'){
+    // ── لا تمسح فوراً — الـ lock timeout ممكن يسبب SIGNED_OUT وهمي ──
+    // تحقق: هل الـ session لسه في localStorage؟
+    try {
+      var _stored = localStorage.getItem('sb-mpfmcjgigpvdxbhgzufo-auth-token');
+      if(_stored){
+        var _p = JSON.parse(_stored);
+        if(_p && _p.refresh_token && _p.user && _p.user.id){
+          // الـ session لسه موجودة — ده SIGNED_OUT وهمي من lock timeout
+          console.warn('SIGNED_OUT received but session still in storage — ignoring (lock timeout artifact)');
+          _supaUserId = _p.user.id; // رجّع الـ userId
+          return;
+        }
+      }
+    } catch(e) {}
+    // فعلاً مفيش session — ده logout حقيقي
     _supaUserId = null;
     _authInitialized = false;
-    _authProcessingUserId = null; // PHASE 2 FIX
+    _authProcessingUserId = null;
   }
 
   // لو مفيش session — اعرض شاشة اللوجين
@@ -13366,7 +13386,10 @@ function applyContractTemplate(type){const tpl=CT_TEMPLATES[type];if(tpl){docume
 
 function ctShare(id){
   const c=ctContracts().find(x=>x.id===id);if(!c)return;
-  const base=window.location.href.split('?')[0].split('#')[0];
+  var _p=window.location.pathname.split('/').filter(function(x){return x!=='';});
+  var _sl=['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports','contracts','proposals'];
+  if(_p.length && (_sl.indexOf(_p[_p.length-1])>=0 || _p[_p.length-1].endsWith('.html'))) _p.pop();
+  const base=window.location.origin+(_p.length?'/'+_p.join('/')+'/':'/')+'contract.html';
   // Generate token if not exists
   if(!c.token){ c.token = 'ct_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
   const url=base+'?ctsign='+encodeURIComponent(c.token);

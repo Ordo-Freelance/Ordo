@@ -46,27 +46,38 @@
 // ══════════════════════════════════════════════════
 const SUPA_URL  = 'https://mpfmcjgigpvdxbhgzufo.supabase.co';
 const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wZm1jamdpZ3B2ZHhiaGd6dWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2Mjc3MzMsImV4cCI6MjA4ODIwMzczM30.fICNxH_7DEBHripIoyMcUugTnd4JEBx-ypegpPvb6PM';
-// ── Block BroadcastChannel to prevent DataCloneError with Headers object ──
-// Supabase uses BroadcastChannel internally to sync sessions across tabs,
-// but postMessage fails when Headers objects are in the payload (iframe/preview env).
+// ── BroadcastChannel stub — يمنع DataCloneError بدون تعليق الـ Promises ──
 (function() {
   try {
-    const noop = function() {};
-    const stub = function BroadcastChannelStub(name) {
+    var stub = function BroadcastChannelStub(name) {
       this.name = name;
+      this._listeners = [];
       this.onmessage = null;
       this.onmessageerror = null;
-      this.postMessage = noop;
-      this.close = noop;
-      this.addEventListener = noop;
-      this.removeEventListener = noop;
+      this.postMessage = function(msg) {
+        var self = this;
+        try {
+          // Test if cloneable — skip Headers/Response/etc
+          var safe = JSON.parse(JSON.stringify(msg, function(k, v) {
+            if(v && typeof v === 'object' && (v instanceof Headers || v instanceof Response || v instanceof Request || v instanceof Blob || v instanceof File || v instanceof ArrayBuffer)) return undefined;
+            return v;
+          }));
+          // Deliver async
+          setTimeout(function(){
+            var evt = {data: safe};
+            if(self.onmessage) try{self.onmessage(evt);}catch(e){}
+            for(var i=0;i<self._listeners.length;i++) try{self._listeners[i](evt);}catch(e){}
+          }, 0);
+        } catch(e) {
+          // Non-cloneable — skip silently, do NOT throw or hang
+        }
+      };
+      this.close = function() { this._listeners = []; this.onmessage = null; };
+      this.addEventListener = function(type, fn) { if(type === 'message') this._listeners.push(fn); };
+      this.removeEventListener = function(type, fn) { this._listeners = this._listeners.filter(function(f){return f!==fn;}); };
       this.dispatchEvent = function(){ return true; };
     };
-    Object.defineProperty(window, 'BroadcastChannel', {
-      value: stub,
-      writable: true,
-      configurable: true
-    });
+    Object.defineProperty(window, 'BroadcastChannel', { value: stub, writable: true, configurable: true });
   } catch(e) {
     try { window.BroadcastChannel = undefined; } catch(e2) {}
   }
@@ -141,10 +152,18 @@ const supa = supabase.createClient(SUPA_URL, SUPA_ANON, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storage: _safeStorage,
-    lock: async (name, acquireTimeout, fn) => fn(),
+    lock: async (name, acquireTimeout, fn) => {
+      // ── Custom lock — يتجنب مشكلة navigator.locks timeout ──
+      // ينفذ الـ function ويرجع النتيجة — بسيط وآمن
+      try { return await fn(); }
+      catch(e) {
+        if(!(e?.message||'').match(/DataCloneError|postMessage|Headers/)) console.warn('Auth lock error:', e.message);
+        return undefined;
+      }
+    },
     flowType: 'pkce',
     debug: false,
-    multiTab: false
+    multiTab: true
   }
 });
 
@@ -742,7 +761,7 @@ window.addEventListener('beforeunload', function() {
       headers: {
         'Content-Type': 'application/json',
         'apikey': SUPA_ANON,
-        'Authorization': 'Bearer ' + SUPA_ANON,
+        'Authorization': 'Bearer ' + (function(){ try{ var s=localStorage.getItem('sb-mpfmcjgigpvdxbhgzufo-auth-token'); if(s){var o=JSON.parse(s);if(o&&o.access_token)return o.access_token;} }catch(e){} return SUPA_ANON; })(),
         'Prefer': 'resolution=merge-duplicates'
       },
       body: JSON.stringify({ user_id: _supaUserId, data: JSON.stringify(_safe), updated_at: _ts }),
