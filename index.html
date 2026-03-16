@@ -2610,6 +2610,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     </div>
   </div>
 
+  <div id="fin-summary-cards">
   <div class="grid grid-4" style="margin-bottom:16px">
     <div class="card"><div class="stat-label"><i class="fa-solid fa-coins"></i> إجمالي الدخل</div><div class="stat-value green" id="fin-in">0 ج</div><div class="stat-change" id="fin-in-sub" style="font-size:11px;color:var(--text3)"></div></div>
     <div class="card"><div class="stat-label"><i class="fa-solid fa-money-bill-wave"></i> إجمالي المصروفات</div><div class="stat-value red" id="fin-out">0 ج</div></div>
@@ -2629,12 +2630,13 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <div style="font-size:12px;color:var(--text3);margin-top:5px">مبالغ عربون من مشاريع لم تكتمل بعد</div>
     </div>
   </div>
+  </div><!-- /fin-summary-cards -->
 
   <!-- تذكيرات المدفوعات غير المحصّلة -->
   <div id="fin-unpaid-reminders" style="display:none;margin-bottom:16px"></div>
 
   <!-- Monthly Timeline -->
-  <div class="card" style="margin-bottom:16px">
+  <div class="card" id="fin-monthly-timeline" style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <div class="section-title" style="margin:0"><i class="fa-solid fa-calendar-days"></i> سجل الشهور</div>
       <select id="fin-year-timeline" onchange="renderMonthlyTimeline()" style="height:32px;padding:0 10px;background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px"></select>
@@ -4308,8 +4310,20 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 <!-- TASK -->
 <div class="modal-overlay" id="modal-task">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title" id="task-modal-ttl"><i class="fa-solid fa-star-of-life"></i> مهمة / مشروع جديد</div><div style="display:flex;gap:6px"><button class="expand-btn" title="توسيع" onclick="toggleModalExpand('modal-task')"><i class="fa-solid fa-expand"></i></button><button class="close-btn" onclick="closeM(&#39;modal-task&#39;)"><i class="fa-solid fa-xmark"></i></button></div></div>
+    <div class="modal-header">
+      <div class="modal-title" id="task-modal-ttl"><i class="fa-solid fa-star-of-life"></i> مهمة / مشروع جديد</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="expand-btn" id="_tf-gear" title="تخصيص حقول الفورم" onclick="event.stopPropagation();_openTFSettings()" style="color:var(--text3)"><i class="fa-solid fa-sliders"></i></button>
+        <button class="expand-btn" title="توسيع" onclick="toggleModalExpand('modal-task')"><i class="fa-solid fa-expand"></i></button>
+        <button class="close-btn" onclick="closeM(&#39;modal-task&#39;)"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
     <input type="hidden" id="task-eid">
+    <!-- شريط نوع المهمة: لعميل / شخصية -->
+    <div id="_tt-kind-bar" style="display:flex;gap:6px;margin-bottom:14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:5px">
+      <button id="_tt-client-btn" onclick="_setTaskKind('client')" style="flex:1;padding:8px 0;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font);background:var(--accent);color:#fff;transition:.2s;display:flex;align-items:center;justify-content:center;gap:6px"><i class="fa-solid fa-user-tie"></i> مهمة لعميل</button>
+      <button id="_tt-personal-btn" onclick="_setTaskKind('personal')" style="flex:1;padding:8px 0;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font);background:transparent;color:var(--text3);transition:.2s;display:flex;align-items:center;justify-content:center;gap:6px"><i class="fa-solid fa-person"></i> مهمة شخصية</button>
+    </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">اسم المهمة *</label><input class="form-input" id="t-title" placeholder="مثال: تصميم لوجو شركة X"></div>
       <div class="form-group">
@@ -4463,7 +4477,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
       <button class="btn btn-ghost" onclick="closeM(&#39;modal-task&#39;)">إلغاء</button>
-      <button class="btn btn-primary" onclick="saveTask()" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
+      <button class="btn btn-primary" onclick="_beforeSaveTask();saveTask()" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
     </div>
   </div>
 </div>
@@ -4471,7 +4485,13 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 <!-- CLIENT -->
 <div class="modal-overlay" id="modal-client">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title" id="client-modal-ttl"><i class="fa-solid fa-circle-dot"></i> عميل جديد</div><button class="close-btn" onclick="closeM(&#39;modal-client&#39;)"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-header">
+      <div class="modal-title" id="client-modal-ttl"><i class="fa-solid fa-circle-dot"></i> عميل جديد</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="expand-btn" id="_cf-gear" title="تخصيص حقول الفورم" onclick="event.stopPropagation();_openCFSettings()" style="color:var(--text3)"><i class="fa-solid fa-gear"></i></button>
+        <button class="close-btn" onclick="closeM(&#39;modal-client&#39;)"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
     <input type="hidden" id="client-eid">
     <div class="form-row">
       <div class="form-group"><label class="form-label">اسم العميل *</label><input class="form-input" id="c-name" placeholder="الاسم الكامل أو الشركة"></div>
@@ -5052,6 +5072,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 </div>
 
 <script src="app.js"></script>
+<script src="app_patch.js"></script>
 
 <!-- ═══ BACKUP MODAL ═══ -->
 <div class="modal-overlay" id="modal-backup">
@@ -5162,6 +5183,21 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     <div id="subtabp-plans" style="display:none">
       <div id="plans-listing-body">
         <div style="text-align:center;padding:20px;color:var(--text3)">جاري تحميل الباقات...</div>
+      </div>
+      <!-- Code activation at bottom -->
+      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;text-align:center">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:10px">أو فعّل كود اشتراك لديك مباشرة</div>
+        <div style="display:flex;gap:8px">
+          <input id="_si_serial" type="text" placeholder="أدخل الكود هنا..." dir="ltr"
+            style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;letter-spacing:1.5px;outline:none"
+            oninput="this.value=this.value.toUpperCase()"
+            onkeydown="if(event.key==='Enter')_activateCode('_si_serial','_si_msg',()=>{closeM('modal-subscription-info');openSubscriptionInfo();})">
+          <button onclick="_activateCode('_si_serial','_si_msg',()=>{closeM('modal-subscription-info');openSubscriptionInfo();})"
+            style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 15px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+            تفعيل
+          </button>
+        </div>
+        <div id="_si_msg" style="font-size:11px;min-height:14px;text-align:center;margin-top:6px"></div>
       </div>
     </div>
 
@@ -6239,4 +6275,5 @@ function _rlmCopy(){
   setTimeout(_startRealtime,3000);
 })();
 </script>
+<script src="customization_patch.js"></script>
 </body></html>
