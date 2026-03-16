@@ -27,16 +27,74 @@ function _friendlyDate(dateStr){
     var d=new Date(dateStr); d.setHours(0,0,0,0);
     var diff=Math.round((d-today)/(1000*60*60*24));
     var isEn = (typeof _currentLang!=='undefined' && _currentLang==='en') || (typeof _i18n!=='undefined' && _i18n.lang && _i18n.lang()==='en');
-    if(diff===0) return isEn?'Today':'اليوم';
-    if(diff===-1) return isEn?'Yesterday':'أمس';
-    if(diff===1) return isEn?'Tomorrow':'غداً';
-    if(diff>=-6 && diff<=6){
+    var label = null;
+    if(diff===0) label = isEn?'Today':'اليوم';
+    else if(diff===-1) label = isEn?'Yesterday':'أمس';
+    else if(diff===1) label = isEn?'Tomorrow':'غداً';
+    else if(diff>=-6 && diff<=6){
       var daysAr=['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
       var daysEn=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-      return isEn?daysEn[d.getDay()]:daysAr[d.getDay()];
+      label = isEn?daysEn[d.getDay()]:daysAr[d.getDay()];
     }
+    if(label) return '<span style="font-weight:800;font-size:12px;font-family:Cairo,var(--font),sans-serif">'+label+'</span>';
     return dateStr;
   }catch(e){ return dateStr; }
+}
+
+// ══════════════════════════════════════════════════
+//  STATUS COLOR/LABEL UTILITY — respects user overrides
+// ══════════════════════════════════════════════════
+function _getStatusColor(statusId){
+  var defaults={new:'var(--text3)',progress:'var(--accent2)',review:'var(--accent)',paused:'#64b5f6',done:'var(--accent3)'};
+  // Check user overrides first
+  var ov=(typeof S!=='undefined'&&S.statusOverrides)?S.statusOverrides[statusId]:null;
+  if(ov&&ov.color) return ov.color;
+  // Check custom statuses
+  if(typeof S!=='undefined'){
+    var cs=(S.customStatuses||[]).find(function(c){return c.id===statusId;});
+    if(cs&&cs.color) return cs.color;
+  }
+  return defaults[statusId]||'var(--text3)';
+}
+function _getStatusLabel(statusId){
+  var defaults={new:'جديد',progress:'قيد التنفيذ',review:'مراجعة',paused:'موقوف',done:'مكتمل'};
+  var ov=(typeof S!=='undefined'&&S.statusOverrides)?S.statusOverrides[statusId]:null;
+  if(ov&&ov.label) return ov.label;
+  var cs=(typeof S!=='undefined')?(S.customStatuses||[]).find(function(c){return c.id===statusId;}):null;
+  if(cs&&cs.label) return cs.label;
+  return defaults[statusId]||statusId;
+}
+function _getStatusIcon(statusId){
+  var defaults={new:'<i class="fa-solid fa-clipboard-list"></i>',progress:'<i class="fa-solid fa-bolt"></i>',review:'<i class="fa-solid fa-magnifying-glass"></i>',paused:'⏸',done:'<i class="fa-solid fa-square-check"></i>'};
+  var ov=(typeof S!=='undefined'&&S.statusOverrides)?S.statusOverrides[statusId]:null;
+  if(ov&&ov.icon) return ov.icon;
+  var cs=(typeof S!=='undefined')?(S.customStatuses||[]).find(function(c){return c.id===statusId;}):null;
+  if(cs&&cs.icon) return cs.icon;
+  return defaults[statusId]||'';
+}
+
+// ── Update kanban column headers with current colors/labels ──
+function _updateKanbanHeaders(){
+  ['new','progress','review','paused'].forEach(function(st){
+    var color = _getStatusColor(st);
+    var label = _getStatusLabel(st);
+    var icon  = _getStatusIcon(st);
+    // Column wrapper border
+    var wrap = document.getElementById('kb-col-wrap-'+st);
+    if(wrap) wrap.style.border = '1px solid '+color+'40';
+    // Header background
+    var hdr = document.getElementById('kb-col-hdr-'+st);
+    if(hdr) hdr.style.background = color+'18';
+    // Title text with icon
+    var title = document.getElementById('kb-col-title-'+st);
+    if(title){ title.innerHTML = (icon?icon+' ':'')+label; title.style.color = color; }
+    // Badge
+    var badge = document.getElementById('cnt-'+st);
+    if(badge) badge.style.background = color;
+    // Gear button color
+    var gearBtn = hdr ? hdr.querySelector('button') : null;
+    if(gearBtn) gearBtn.style.color = color;
+  });
 }
 
 // ══════════════════════════════════════════════════
@@ -2916,7 +2974,7 @@ function _renderMemberTasksSection(){
 
   section.style.display = '';
 
-  var stColors = {new:'var(--text3)',progress:'var(--accent2)',review:'var(--accent)',paused:'#64b5f6',done:'var(--accent3)'};
+  var stColors = {new:_getStatusColor('new'),progress:_getStatusColor('progress'),review:_getStatusColor('review'),paused:_getStatusColor('paused'),done:_getStatusColor('done')};
   var stLabels = {new:'🆕 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف',done:'✅ مكتمل'};
 
   listEl.innerHTML = allTasks.map(function(entry){
@@ -3025,7 +3083,7 @@ function _renderProjectTasksList(){
     var proj = projMap[String(t.project_id)] || {};
     var isDone = t.status==='done'||t.done;
     var stLabel = isDone?'مكتمل':(t.status==='progress'?'جاري':t.status==='review'?'مراجعة':t.status==='paused'?'موقوف':'جديد');
-    var stColor = isDone?'var(--accent3)':(t.status==='progress'?'var(--accent2)':t.status==='review'?'var(--accent)':t.status==='paused'?'#64b5f6':'var(--text3)');
+    var stColor = isDone?_getStatusColor('done'):_getStatusColor(t.status||'new');
     var steps=t.steps||[]; var ds=steps.filter(function(s){return s.done;}).length;
     var prog=steps.length?Math.round(ds/steps.length*100):(isDone?100:0);
     return '<div class="card" style="cursor:pointer;border-right:3px solid '+stColor+'" onclick="openProjectDetail(\''+String(t.project_id)+'\')">'
@@ -3057,7 +3115,7 @@ function _renderProjectTasksList(){
       var proj2=projMap[String(t.project_id)]||{};
       var isDone2=t.status==='done'||t.done;
       var stLabel2=isDone2?'مكتمل':(t.status==='progress'?'جاري':t.status==='review'?'مراجعة':t.status==='paused'?'موقوف':'جديد');
-      var stColor2=isDone2?'var(--accent3)':(t.status==='progress'?'var(--accent2)':t.status==='review'?'var(--accent)':t.status==='paused'?'#64b5f6':'var(--text3)');
+      var stColor2=isDone2?_getStatusColor('done'):_getStatusColor(t.status||'new');
       var isLate2=t.deadline&&new Date(t.deadline)<new Date()&&!isDone2;
       var prio2={high:'<span class="badge badge-red">عالية</span>',med:'<span class="badge badge-yellow">متوسطة</span>',low:'<span class="badge badge-green">منخفضة</span>'};
       var pay2=t.pay==='full'?'<span class="pay-badge pay-full"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مدفوع</span>':t.pay==='deposit'?'<span class="pay-badge pay-deposit"><i class="fa-solid fa-heart"></i> عربون</span>':'<span class="pay-badge pay-none"><i class="fa-solid fa-circle-xmark"></i> لم يُدفع</span>';
@@ -3164,7 +3222,7 @@ function _renderProjectTasksList(){
         var proj3=projMap[String(t.project_id)]||{};
         var isDone3=t.status==='done'||t.done;
         var stLabel3=isDone3?'مكتمل':(t.status==='progress'?'جاري':t.status==='review'?'مراجعة':t.status==='paused'?'موقوف':'جديد');
-        var stColor3=isDone3?'var(--accent3)':(t.status==='progress'?'var(--accent2)':t.status==='review'?'var(--accent)':t.status==='paused'?'#64b5f6':'var(--text3)');
+        var stColor3=isDone3?_getStatusColor('done'):_getStatusColor(t.status||'new');
         var isLate3=t.deadline&&new Date(t.deadline)<new Date()&&!isDone3;
         var rowBg=idx%2===0?'var(--surface)':'var(--surface2)';
         var prio3={high:'<span class="badge badge-red">عالية</span>',med:'<span class="badge badge-yellow">متوسطة</span>',low:'<span class="badge badge-green">منخفضة</span>'};
@@ -3370,7 +3428,7 @@ function _renderAllTasksList(){
   function _stInfo(t){
     var isDone=t.done||t.status==='done';
     var label=isDone?'مكتمل':(t.status==='progress'?'قيد التنفيذ':t.status==='review'?'مراجعة':t.status==='paused'?'موقوف':'جديد');
-    var color=isDone?'var(--accent3)':(t.status==='progress'?'var(--accent2)':t.status==='review'?'var(--accent)':t.status==='paused'?'#64b5f6':'var(--text3)');
+    var color=isDone?_getStatusColor('done'):_getStatusColor(t.status||'new');
     return {isDone:isDone,label:label,color:color};
   }
 
@@ -3659,6 +3717,7 @@ function _atToggleDone(){ var c=localStorage.getItem('_at_done_collapsed')==='1'
 
 function renderTasks(){
   _updateScopeCounts();
+  _updateKanbanHeaders();
   if(_taskScope === 'project'){ _renderProjectTasksList(); return; }
   if(_taskScope === 'all'){ _renderAllTasksList(); return; }
   populateTaskFilterDropdowns();
@@ -3690,16 +3749,11 @@ function renderTasks(){
     const items=filtered.filter(t=>t.priority===p&&!t.done);
     el.innerHTML=items.length?items.map(t=>{
       const st=t.status||'new';
-      const _ov=S.statusOverrides||{};
-      const stMap={
-        new: '<i class="fa-solid fa-clipboard-list"></i> '+(_ov.new?.label||'جديد'),
-        progress:'<i class="fa-solid fa-bolt"></i> '+(_ov.progress?.label||'جاري'),
-        review:'<i class="fa-solid fa-magnifying-glass"></i> '+(_ov.review?.label||'مراجعة'),
-        paused:'⏸ '+(_ov.paused?.label||'موقوف'),
-        done:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل'
-      };
+      const stMap={};
+      ['new','progress','review','paused','done'].forEach(function(sid){ stMap[sid]=_getStatusIcon(sid)+' '+_getStatusLabel(sid); });
       (S.customStatuses||[]).forEach(cs=>{ stMap[cs.id]=(cs.icon||'')+(cs.icon?' ':'')+cs.label; });
-      const stColor={new:'var(--text3)',progress:'var(--accent2)',review:'var(--accent)',paused:'#64b5f6',done:'var(--accent3)'};
+      var stColor={};
+      ['new','progress','review','paused','done'].forEach(function(sid){ stColor[sid]=_getStatusColor(sid); });
       (S.customStatuses||[]).forEach(cs=>{ stColor[cs.id]=cs.color||'var(--accent)'; });
       const stepsTotal=t.steps?t.steps.length:0;
       const stepsDone=t.steps?t.steps.filter(s=>s.done).length:0;
@@ -3738,8 +3792,10 @@ function renderTasks(){
     const cnt = document.getElementById('cnt-'+st);
     if(cnt){ cnt.textContent=stItems.length; cnt.style.display=stItems.length?'inline-block':'none'; }
     if(!stItems.length){ el.innerHTML='<div style="font-size:11px;color:var(--text3);padding:8px;text-align:center">لا مهام</div>'; return; }
-    const stMap={new:'<i class="fa-solid fa-clipboard-list"></i> جديد',progress:'<i class="fa-solid fa-bolt"></i> جاري',review:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة',paused:'⏸ موقوف'};
-    const stColor={new:'var(--text3)',progress:'var(--accent2)',review:'var(--accent)',paused:'#64b5f6'};
+    const stMap={};
+    ['new','progress','review','paused'].forEach(function(sid){stMap[sid]=_getStatusIcon(sid)+' '+_getStatusLabel(sid);});
+    var stColor={};
+    ['new','progress','review','paused'].forEach(function(sid){stColor[sid]=_getStatusColor(sid);});
     el.innerHTML = stItems.map(t=>{
       const stepsTotal=t.steps?t.steps.length:0;
       const stepsDone=t.steps?t.steps.filter(s=>s.done).length:0;
@@ -10824,7 +10880,7 @@ function renderDashTeamTasks(){
   }
 
   const stMap={new:'<i class="fa-solid fa-clipboard-list"></i> جديد',progress:'<i class="fa-solid fa-bolt"></i> جاري',review:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة',paused:'⏸ موقوف'};
-  const stColor={new:'var(--text3)',progress:'var(--accent2)',review:'var(--accent)',paused:'#64b5f6'};
+  var stColor={new:_getStatusColor('new'),progress:_getStatusColor('progress'),review:_getStatusColor('review'),paused:_getStatusColor('paused')};
 
   container.innerHTML = memberData.map(m=>{
     const rows = m.tasks.map(t=>{
@@ -13499,7 +13555,7 @@ function renderDashKanbanMini(){
   const el=document.getElementById('dash-kanban-mini-list'); if(!el) return;
   const active=S.tasks.filter(t=>!t.done).slice(0,6);
   if(!active.length){ el.innerHTML='<div class="empty" style="padding:8px 0"><div class="empty-icon"><i class="fa-solid fa-star-of-life"></i></div><div style="font-size:12px">لا مهام نشطة</div></div>'; return; }
-  const stColor={new:'var(--text3)',progress:'var(--accent2)',review:'var(--accent)',paused:'#64b5f6'};
+  var stColor={new:_getStatusColor('new'),progress:_getStatusColor('progress'),review:_getStatusColor('review'),paused:_getStatusColor('paused')};
   const stLabel={new:'<i class="fa-solid fa-clipboard-list"></i>',progress:'<i class="fa-solid fa-bolt"></i>',review:'<i class="fa-solid fa-magnifying-glass"></i>',paused:'⏸'};
   el.innerHTML=active.map(t=>`
     <div onclick="openTaskDetail(${t.id})" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(42,42,58,.2);cursor:pointer">
@@ -22015,10 +22071,7 @@ function _toggleNotifPanel(triggerEl){
   var existing = document.getElementById('_notif-panel');
   if(existing){ existing.remove(); return; }
   _loadNotifications();
-  _notifications.forEach(function(n){ n.read=true; });
-  _saveNotifications();
-  _updateNotifBell();
-  _markServerNotifsRead();
+  // DON'T auto-mark all as read — user chooses when
 
   var ICONS  = {info:'ℹ', success:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>', warning:'<i class="fa-solid fa-triangle-exclamation"></i>', error:'<i class="fa-solid fa-circle-xmark"></i>', message:'<i class="fa-solid fa-comments"></i>', broadcast:'<i class="fa-solid fa-bullhorn"></i>', order:'<i class="fa-solid fa-bag-shopping"></i>'};
   var COLORS = {info:'var(--accent)', success:'var(--accent3)', warning:'var(--accent2)', error:'var(--accent4)', message:'#64b5f6', broadcast:'#f7c948', order:'var(--accent2)'};
@@ -22039,16 +22092,11 @@ function _toggleNotifPanel(triggerEl){
         var icon     = ICONS[n.type]  || 'ℹ';
         var color    = COLORS[n.type] || 'var(--accent)';
         var msgHtml  = (n.msg||'').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
-        // isAdmin = notification came from Supabase user_notifications (admin broadcast)
         var isAdminMsg  = !!n.supaId;
-        // isOrder = notification from a client order
         var isOrderNotif = n.type === 'order' || (n.msg && n.msg.includes('طلب جديد'));
-        // Build badge
         var badge = '';
         if(isAdminMsg)  badge = '<span style="font-size:9px;padding:2px 7px;border-radius:8px;background:rgba(108,99,255,.15);color:var(--accent);font-weight:700">من الإدارة</span>';
         else if(isOrderNotif) badge = '<span style="font-size:9px;padding:2px 7px;border-radius:8px;background:rgba(247,201,72,.15);color:var(--accent2);font-weight:700">طلب جديد</span>';
-        // Click action
-        var clickAttr = '';
         var navAction = '';
         if(isOrderNotif && n.orderId){
           navAction = "openOrderDetail('"+n.orderId+"')";
@@ -22068,19 +22116,21 @@ function _toggleNotifPanel(triggerEl){
         } else if(n.type === 'goal' || (n.msg && n.msg.includes('هدف'))){
           navAction = "_notifNavTo('goals')";
         } else if(n.page){ navAction = "_notifNavTo('"+n.page+"')"; }
-        if(navAction){
-          clickAttr = 'onclick="document.getElementById(\'_notif-panel\')&&document.getElementById(\'_notif-panel\').remove();'+navAction+'" style="cursor:pointer"';
-        }
-        return '<div '+clickAttr+' style="padding:12px 15px;border-bottom:1px solid rgba(42,42,58,.4);display:flex;gap:11px;align-items:flex-start'+(isAdminMsg?';background:rgba(108,99,255,.04)':'')+(isOrderNotif?';background:rgba(247,201,72,.03)':'')+'">'+
+        // Mark as read on click + navigate
+        var clickAction = '_markSingleNotifRead('+n.id+');';
+        if(navAction) clickAction += "document.getElementById('_notif-panel')&&document.getElementById('_notif-panel').remove();"+navAction;
+        var isUnread = !n.read;
+        return '<div onclick="'+clickAction+'" style="padding:12px 15px;border-bottom:1px solid rgba(42,42,58,.4);display:flex;gap:11px;align-items:flex-start;cursor:pointer'+(isAdminMsg?';background:rgba(108,99,255,.04)':'')+(isOrderNotif?';background:rgba(247,201,72,.03)':'')+(isUnread?';background:rgba(124,111,247,.06)':'')+'">'+
           '<div style="width:34px;height:34px;border-radius:50%;background:'+color+'18;border:1.5px solid '+color+'44;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">'+icon+'</div>'+
           '<div style="flex:1;min-width:0">'+
-            '<div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.5">'+msgHtml+'</div>'+
+            '<div style="font-size:12px;font-weight:'+(isUnread?'800':'600')+';color:var(--text);line-height:1.5">'+msgHtml+'</div>'+
             '<div style="display:flex;align-items:center;gap:6px;margin-top:4px">'+
               badge+
+              (isUnread?'<span style="width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0"></span>':'')+
               '<div style="font-size:10px;color:var(--text3)">'+ago+'</div>'+
             '</div>'+
           '</div>'+
-          (clickAttr?'<div style="font-size:11px;color:var(--accent);flex-shrink:0;margin-top:2px;font-weight:700">←</div>':'')+
+          (navAction?'<div style="font-size:11px;color:var(--accent);flex-shrink:0;margin-top:2px;font-weight:700">←</div>':'')+
         '</div>';
       }).join('');
 
@@ -22091,7 +22141,10 @@ function _toggleNotifPanel(triggerEl){
         'الإشعارات'+
         (unread?'<span style="font-size:10px;padding:1px 7px;border-radius:10px;background:var(--accent4);color:#fff;font-weight:700">'+unread+'</span>':'')+
       '</div>'+
-      '<button onclick="_clearAllNotifications()" style="font-size:10px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:3px 8px;border-radius:6px" onmouseover="this.style.color=\'var(--accent4)\'" onmouseout="this.style.color=\'var(--text3)\'">مسح الكل</button>'+
+      '<div style="display:flex;gap:6px">'+
+        (unread?'<button onclick="_markAllNotifsRead()" style="font-size:10px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:var(--font);padding:3px 8px;border-radius:6px" title="قراءة الكل"><i class="fa-solid fa-check-double"></i> قراءة الكل</button>':'')+
+        '<button onclick="_clearAllNotifications()" style="font-size:10px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:3px 8px;border-radius:6px" onmouseover="this.style.color=\'var(--accent4)\'" onmouseout="this.style.color=\'var(--text3)\'"><i class="fa-solid fa-trash"></i> مسح الكل</button>'+
+      '</div>'+
     '</div>'+
     '<div style="overflow-y:auto;flex:1">'+listHtml+'</div>';
 
@@ -22144,10 +22197,52 @@ function _showAdminMsgDetail(msg, ago){
 }
 
 function _clearAllNotifications(){
-  _notifications = [];
+  if(!_notifications.length) return;
+  var ov=document.createElement('div');
+  ov.id='_notif-confirm-del';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px';
+  ov.innerHTML='<div style="background:var(--surface);width:min(360px,90vw);border-radius:18px;padding:28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)">'
+    +'<div style="font-size:36px;margin-bottom:10px">🗑️</div>'
+    +'<div style="font-size:16px;font-weight:900;color:var(--text);margin-bottom:8px">مسح جميع الإشعارات؟</div>'
+    +'<div style="font-size:13px;color:var(--text3);margin-bottom:20px">سيتم حذف كل الإشعارات نهائياً ولن تتمكن من استرجاعها</div>'
+    +'<div style="display:flex;gap:10px">'
+      +'<button id="_notif-del-yes" class="btn btn-danger" style="flex:1"><i class="fa-solid fa-trash"></i> نعم، امسح الكل</button>'
+      +'<button id="_notif-del-no" class="btn btn-ghost" style="flex:1">إلغاء</button>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+  document.getElementById('_notif-del-yes').onclick=function(){
+    _notifications = [];
+    _saveNotifications();
+    _updateNotifBell();
+    var p = document.getElementById('_notif-panel'); if(p) p.remove();
+    ov.remove();
+    if(typeof showMiniNotif==='function') showMiniNotif('<i class="fa-solid fa-trash" style="color:var(--accent4)"></i> تم مسح جميع الإشعارات');
+  };
+  document.getElementById('_notif-del-no').onclick=function(){ ov.remove(); };
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+}
+
+function _markAllNotifsRead(){
+  _loadNotifications();
+  _notifications.forEach(function(n){ n.read=true; });
   _saveNotifications();
   _updateNotifBell();
-  var p = document.getElementById('_notif-panel'); if(p) p.remove();
+  // Refresh panel if open
+  var p=document.getElementById('_notif-panel');
+  if(p){
+    var trigger=document.getElementById('_notif-bell-btn');
+    p.remove();
+    if(trigger) _toggleNotifPanel(trigger);
+  }
+  if(typeof showMiniNotif==='function') showMiniNotif('<i class="fa-solid fa-check-double" style="color:var(--accent3)"></i> تم تعليم الكل كمقروء');
+}
+
+function _markSingleNotifRead(notifId){
+  _loadNotifications();
+  var n=_notifications.find(function(x){ return x.id==notifId; });
+  if(n) n.read=true;
+  _saveNotifications();
+  _updateNotifBell();
 }
 
 // ══════════════════════════════════════════════════════
@@ -25080,7 +25175,8 @@ function openStatusPopover(statusId, triggerEl){
       <div style="margin-bottom:10px">
         <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">تعديل الحالة</div>
         <div style="display:flex;gap:6px;align-items:center">
-          <input id="_sp-edit-icon"  value="${(icon||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}" placeholder="رمز" style="width:38px;height:30px;padding:0 6px;background:var(--surface3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:14px;text-align:center;outline:none;font-family:var(--font)">
+          <div id="_sp-icon-preview" onclick="document.getElementById('_sp-edit-icon-input').focus()" style="width:38px;height:30px;display:flex;align-items:center;justify-content:center;background:var(--surface3);border:1px solid var(--border);border-radius:7px;font-size:14px;cursor:pointer" title="أيقونة">${icon||'📝'}</div>
+          <input id="_sp-edit-icon-input" value="${(icon||'').replace(/<[^>]*>/g,'').trim()}" placeholder="</>" style="width:0;height:0;opacity:0;position:absolute;pointer-events:none">
           <input id="_sp-edit-label" value="${(label||'').replace(/"/g,'&quot;')}" placeholder="اسم الحالة" style="flex:1;height:30px;padding:0 8px;background:var(--surface3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;font-family:var(--font);outline:none">
           <input id="_sp-edit-color" type="color" value="${color.startsWith('var')?'#7c6ff7':color}" style="width:30px;height:30px;border:none;border-radius:7px;cursor:pointer;background:none;padding:0">
           <button onclick="_spSaveEdit('${statusId}')" style="height:30px;padding:0 10px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">حفظ</button>
@@ -25122,10 +25218,20 @@ function openStatusPopover(statusId, triggerEl){
 }
 
 function _spSaveEdit(statusId){
-  const icon  = document.getElementById('_sp-edit-icon')?.value.trim()||'';
+  var iconInput = document.getElementById('_sp-edit-icon-input')?.value.trim()||'';
   const label = document.getElementById('_sp-edit-label')?.value.trim();
   const color = document.getElementById('_sp-edit-color')?.value||'#7c6ff7';
   if(!label){toast('أدخل اسم الحالة');return;}
+
+  // If icon input is empty, keep the original icon
+  const defaultDefs={new:{icon:'<i class="fa-solid fa-clipboard-list"></i>'},progress:{icon:'<i class="fa-solid fa-bolt"></i>'},review:{icon:'<i class="fa-solid fa-magnifying-glass"></i>'},paused:{icon:'⏸'}};
+  var icon = iconInput;
+  if(!icon){
+    var def = defaultDefs[statusId];
+    var custom = (S.customStatuses||[]).find(s=>s.id===statusId);
+    var override = (S.statusOverrides||{})[statusId];
+    icon = override?.icon || def?.icon || custom?.icon || '';
+  }
 
   const defaultIds = ['new','progress','review','paused'];
   if(defaultIds.includes(statusId)){

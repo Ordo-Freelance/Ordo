@@ -1558,27 +1558,22 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     </div>
   </div>
 
-  <!-- Task Scope Tabs: My Tasks | Project Tasks | All Tasks -->
-  <div id="tasks-scope-tabs" style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:14px;overflow-x:auto;scrollbar-width:none">
-    <button class="btn btn-ghost" id="scope-my-tasks" onclick="_switchTaskScope('my')" style="padding:10px 18px;font-size:13px;font-weight:700;color:var(--accent);border:none;border-bottom:2px solid var(--accent);margin-bottom:-2px;border-radius:0;background:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px">
-      <i class="fa-solid fa-clipboard-list"></i> مهامي <span id="scope-my-count" style="background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800"></span>
-    </button>
-    <button class="btn btn-ghost" id="scope-proj-tasks" onclick="_switchTaskScope('project')" style="padding:10px 18px;font-size:13px;font-weight:700;color:var(--text3);border:none;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:0;background:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px">
-      <i class="fa-solid fa-diagram-project"></i> مهام المشاريع <span id="scope-proj-count" style="background:var(--surface3);color:var(--text3);border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800"></span>
-    </button>
-    <button class="btn btn-ghost" id="scope-all-tasks" onclick="_switchTaskScope('all')" style="padding:10px 18px;font-size:13px;font-weight:700;color:var(--text3);border:none;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:0;background:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px">
-      <i class="fa-solid fa-layer-group"></i> كل المهام <span id="scope-all-count" style="background:var(--surface3);color:var(--text3);border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800"></span>
-    </button>
-  </div>
-
-  <!-- SHARED View Toggle (kanban / list / table) — works across all scope tabs -->
-  <div id="tasks-view-toggle-wrap" style="margin-bottom:14px">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px">
-        <button id="view-kanban-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;background:var(--accent);color:#fff;border-radius:7px" onclick="switchTaskView('kanban')"><i class="fa-solid fa-clipboard-list"></i> كانبان</button>
-        <button id="view-list-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;border-radius:7px" onclick="switchTaskView('list')"><i class="fa-solid fa-chart-bar"></i> قائمة</button>
-        <button id="view-table-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;border-radius:7px" onclick="switchTaskView('table')"><i class="fa-solid fa-table"></i> جدول</button>
-      </div>
+  <!-- Task Scope Tabs: My Tasks | Project Tasks | All Tasks + View Toggle -->
+  <div id="tasks-scope-tabs" style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--border);margin-bottom:14px;overflow-x:auto;scrollbar-width:none;gap:8px">
+    <div style="display:flex;gap:0">
+      <button class="btn btn-ghost" id="scope-my-tasks" onclick="_switchTaskScope('my')" style="padding:10px 18px;font-size:13px;font-weight:700;color:var(--accent);border:none;border-bottom:2px solid var(--accent);margin-bottom:-2px;border-radius:0;background:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px">
+        <i class="fa-solid fa-clipboard-list"></i> مهامي <span id="scope-my-count" style="background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800"></span>
+      </button>
+      <button class="btn btn-ghost" id="scope-proj-tasks" onclick="_switchTaskScope('project')" style="padding:10px 18px;font-size:13px;font-weight:700;color:var(--text3);border:none;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:0;background:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px">
+        <i class="fa-solid fa-diagram-project"></i> مهام المشاريع <span id="scope-proj-count" style="background:var(--surface3);color:var(--text3);border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800"></span>
+      </button>
+      <button class="btn btn-ghost" id="scope-all-tasks" onclick="_switchTaskScope('all')" style="padding:10px 18px;font-size:13px;font-weight:700;color:var(--text3);border:none;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:0;background:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px">
+        <i class="fa-solid fa-layer-group"></i> كل المهام <span id="scope-all-count" style="background:var(--surface3);color:var(--text3);border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800"></span>
+      </button>
+    </div>
+    <div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px;flex-shrink:0">
+      <button id="view-kanban-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;background:var(--accent);color:#fff;border-radius:7px" onclick="switchTaskView('kanban')"><i class="fa-solid fa-clipboard-list"></i> كانبان</button>
+      <button id="view-list-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;border-radius:7px" onclick="switchTaskView('list')"><i class="fa-solid fa-chart-bar"></i> قائمة</button>
     </div>
   </div>
   
@@ -1687,45 +1682,45 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     </div>
 
     <div id="status-cols">
-      <div class="kb-col" style="border:1px solid rgba(150,150,180,.3)">
-        <div class="kb-col-header" style="background:rgba(90,90,112,.3)">
-          <div style="font-size:12px;font-weight:700;color:var(--text2)"><i class="fa-solid fa-clipboard-list"></i> جديد</div>
+      <div class="kb-col" id="kb-col-wrap-new">
+        <div class="kb-col-header" id="kb-col-hdr-new">
+          <div id="kb-col-title-new" style="font-size:12px;font-weight:700"></div>
           <div style="display:flex;align-items:center;gap:4px">
-            <span class="nav-badge" id="cnt-new" style="display:none;background:var(--text3)">0</span>
-            <button onclick="openStatusPopover('new',this)" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--text3);font-size:13px;border-radius:5px;line-height:1;transition:.15s" title="إعدادات الحالة" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'"><i class="fa-solid fa-gear"></i></button>
+            <span class="nav-badge" id="cnt-new" style="display:none">0</span>
+            <button onclick="openStatusPopover('new',this)" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--text3);font-size:13px;border-radius:5px;line-height:1;transition:.15s" title="إعدادات الحالة"><i class="fa-solid fa-gear"></i></button>
           </div>
         </div>
         <div class="kb-col-body" id="col-status-new" data-status="new"
           ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDrop(event)"></div>
       </div>
-      <div class="kb-col" style="border:1px solid rgba(247,201,72,.25)">
-        <div class="kb-col-header" style="background:rgba(247,201,72,.1)">
-          <div style="font-size:12px;font-weight:700;color:var(--accent2)"><i class="fa-solid fa-bolt"></i> قيد التنفيذ</div>
+      <div class="kb-col" id="kb-col-wrap-progress">
+        <div class="kb-col-header" id="kb-col-hdr-progress">
+          <div id="kb-col-title-progress" style="font-size:12px;font-weight:700"></div>
           <div style="display:flex;align-items:center;gap:4px">
-            <span class="nav-badge" id="cnt-progress" style="display:none;background:var(--accent2)">0</span>
-            <button onclick="openStatusPopover('progress',this)" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--accent2);opacity:.6;font-size:13px;border-radius:5px;line-height:1;transition:.15s" title="إعدادات الحالة" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.6'"><i class="fa-solid fa-gear"></i></button>
+            <span class="nav-badge" id="cnt-progress" style="display:none">0</span>
+            <button onclick="openStatusPopover('progress',this)" style="background:none;border:none;cursor:pointer;padding:2px 4px;font-size:13px;border-radius:5px;line-height:1;transition:.15s" title="إعدادات الحالة"><i class="fa-solid fa-gear"></i></button>
           </div>
         </div>
         <div class="kb-col-body" id="col-status-progress" data-status="progress"
           ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDrop(event)"></div>
       </div>
-      <div class="kb-col" style="border:1px solid rgba(124,111,247,.25)">
-        <div class="kb-col-header" style="background:rgba(124,111,247,.1)">
-          <div style="font-size:12px;font-weight:700;color:var(--accent)"><i class="fa-solid fa-magnifying-glass"></i> مراجعة</div>
+      <div class="kb-col" id="kb-col-wrap-review">
+        <div class="kb-col-header" id="kb-col-hdr-review">
+          <div id="kb-col-title-review" style="font-size:12px;font-weight:700"></div>
           <div style="display:flex;align-items:center;gap:4px">
-            <span class="nav-badge" id="cnt-review" style="display:none;background:var(--accent)">0</span>
-            <button onclick="openStatusPopover('review',this)" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:var(--accent);opacity:.6;font-size:13px;border-radius:5px;line-height:1;transition:.15s" title="إعدادات الحالة" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.6'"><i class="fa-solid fa-gear"></i></button>
+            <span class="nav-badge" id="cnt-review" style="display:none">0</span>
+            <button onclick="openStatusPopover('review',this)" style="background:none;border:none;cursor:pointer;padding:2px 4px;font-size:13px;border-radius:5px;line-height:1;transition:.15s" title="إعدادات الحالة"><i class="fa-solid fa-gear"></i></button>
           </div>
         </div>
         <div class="kb-col-body" id="col-status-review" data-status="review"
           ondragover="kbDragOver(event)" ondragleave="kbDragLeave(event)" ondrop="kbDrop(event)"></div>
       </div>
-      <div class="kb-col" style="border:1px solid rgba(100,181,246,.25)">
-        <div class="kb-col-header" style="background:rgba(100,181,246,.1)">
-          <div style="font-size:12px;font-weight:700;color:#64b5f6">⏸ موقوف</div>
+      <div class="kb-col" id="kb-col-wrap-paused">
+        <div class="kb-col-header" id="kb-col-hdr-paused">
+          <div id="kb-col-title-paused" style="font-size:12px;font-weight:700"></div>
           <div style="display:flex;align-items:center;gap:4px">
-            <span class="nav-badge" id="cnt-paused" style="display:none;background:#64b5f6">0</span>
-            <button onclick="openStatusPopover('paused',this)" style="background:none;border:none;cursor:pointer;padding:2px 4px;color:#64b5f6;opacity:.6;font-size:13px;border-radius:5px;line-height:1;transition:.15s" title="إعدادات الحالة" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.6'"><i class="fa-solid fa-gear"></i></button>
+            <span class="nav-badge" id="cnt-paused" style="display:none">0</span>
+            <button onclick="openStatusPopover('paused',this)" style="background:none;border:none;cursor:pointer;padding:2px 4px;font-size:13px;border-radius:5px;line-height:1;transition:.15s" title="إعدادات الحالة"><i class="fa-solid fa-gear"></i></button>
           </div>
         </div>
         <div class="kb-col-body" id="col-status-paused" data-status="paused"

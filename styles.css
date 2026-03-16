@@ -324,7 +324,7 @@
   --text2:     #9090a8;
   --text3:     #5a5a70;
   --font:      'Cairo', sans-serif;
-  --mono:      'JetBrains Mono', monospace;
+  --mono:      'Cairo', sans-serif;
   --radius:    12px;
   --radius-sm: 8px;
   --r2:        8px;
