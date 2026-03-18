@@ -22,11 +22,11 @@
 <link rel="stylesheet" href="team-style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
-<body>
+<body style="visibility:hidden">
 
 <div id="toast-portal"></div>
 
-<div class="app-shell">
+<div class="app-shell" id="team-app-shell">
   <!-- SIDEBAR -->
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-brand">
@@ -102,6 +102,13 @@
         </button>
       </div>
       <div class="topbar-actions" id="topbar-actions">
+        <!-- زر الرسائل الخاصة -->
+        <button class="btn btn-ghost btn-sm" onclick="openTeamInbox()" id="_team-inbox-btn"
+          title="رسائل الفريق الخاصة"
+          style="position:relative;width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:10px">
+          <i class="fa-solid fa-comments"></i>
+          <span id="_ti-badge" style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--accent4);border-radius:50%;border:1.5px solid var(--surface)"></span>
+        </button>
         <button class="btn btn-primary btn-sm" onclick="openCreateTeamModal()">
           <i class="fa-solid fa-plus"></i> فريق جديد
         </button>
@@ -214,16 +221,30 @@
           </select>
         </div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">المُعيَّن له</label>
-          <select class="form-select" id="at-assignee"></select>
+
+      <!-- ══ تعيين الأعضاء ══ -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:10px"><i class="fa-solid fa-users" style="color:var(--accent)"></i> تعيين الأعضاء</div>
+        <div class="form-row" style="margin-bottom:8px">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">المُعيَّن له (المسؤول)</label>
+            <select class="form-select" id="at-assignee"></select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">الموعد النهائي</label>
+            <input class="form-input" type="date" id="at-deadline">
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">الموعد النهائي</label>
-          <input class="form-input" type="date" id="at-deadline">
+        <!-- أعضاء إضافيون يشتغلون على المهمة -->
+        <div class="form-group" style="margin:0">
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+            <span>👥 أعضاء يشتغلون عليها</span>
+            <span style="font-size:10px;color:var(--text3);font-weight:400">اختر أكثر من عضو</span>
+          </label>
+          <div id="at-workers-list" style="display:flex;flex-wrap:wrap;gap:6px;min-height:36px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px"></div>
         </div>
       </div>
+
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">العميل</label>
@@ -367,6 +388,77 @@
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-add-client')">إلغاء</button>
       <button class="btn btn-primary" onclick="saveClient()"><i class="fa-solid fa-check"></i> إضافة</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Member Profile + Direct Message -->
+<div class="modal-backdrop" id="modal-member-profile" style="display:none">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-id-card" style="color:var(--accent)"></i> <span id="mp-title">بروفايل العضو</span></div>
+      <button class="close-btn" onclick="closeModal('modal-member-profile')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <!-- Avatar + Info -->
+      <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--surface2);border-radius:14px;margin-bottom:16px">
+        <div id="mp-avatar" style="width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div id="mp-name" style="font-size:16px;font-weight:900"></div>
+          <div id="mp-role-badge" style="margin-top:4px"></div>
+          <div id="mp-title-info" style="font-size:12px;color:var(--text3);margin-top:3px"></div>
+        </div>
+      </div>
+      <!-- Stats -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+        <div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center">
+          <div id="mp-tasks-count" style="font-size:20px;font-weight:900;color:var(--accent)">0</div>
+          <div style="font-size:10px;color:var(--text3)">مهمة نشطة</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center">
+          <div id="mp-done-count" style="font-size:20px;font-weight:900;color:var(--accent3)">0</div>
+          <div style="font-size:10px;color:var(--text3)">مكتملة</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center">
+          <div id="mp-joined" style="font-size:11px;font-weight:700;color:var(--text2)">—</div>
+          <div style="font-size:10px;color:var(--text3)">تاريخ الانضمام</div>
+        </div>
+      </div>
+      <!-- Tasks assigned to this member -->
+      <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:8px"><i class="fa-solid fa-list-check" style="color:var(--accent)"></i> مهامه الحالية</div>
+      <div id="mp-tasks-list" style="max-height:150px;overflow-y:auto;margin-bottom:14px"></div>
+      <!-- Message -->
+      <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:8px"><i class="fa-solid fa-paper-plane" style="color:var(--accent3)"></i> إرسال رسالة خاصة</div>
+      <textarea id="mp-msg-input" class="form-textarea" rows="2" placeholder="اكتب رسالة لهذا العضو..." style="margin-bottom:8px"></textarea>
+      <button class="btn btn-primary" style="width:100%" onclick="sendPrivateMessageFromProfile()">
+        <i class="fa-solid fa-paper-plane"></i> إرسال
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Team Inbox (رسائل الفريق الخاصة) -->
+<div class="modal-backdrop" id="modal-team-inbox" style="display:none">
+  <div class="modal-box" style="max-width:560px;max-height:85vh">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-inbox" style="color:var(--accent)"></i> رسائل الفريق الخاصة</div>
+      <button class="close-btn" onclick="closeModal('modal-team-inbox')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" style="padding:0;display:flex;height:480px">
+      <!-- Left: Conversations list -->
+      <div style="width:170px;flex-shrink:0;border-left:1px solid var(--border);overflow-y:auto;padding:8px">
+        <div style="font-size:11px;font-weight:800;color:var(--text3);padding:4px 6px 8px">المحادثات</div>
+        <div id="ti-convs-list"></div>
+      </div>
+      <!-- Right: Active conversation -->
+      <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+        <div id="ti-conv-header" style="padding:10px 14px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;background:var(--surface2)">اختر محادثة</div>
+        <div id="ti-messages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px"></div>
+        <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:8px">
+          <input id="ti-msg-inp" class="form-input" placeholder="اكتب رسالة..." style="flex:1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendTeamMsg();}">
+          <button class="btn btn-primary btn-sm" onclick="sendTeamMsg()"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

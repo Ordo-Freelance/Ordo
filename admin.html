@@ -767,8 +767,6 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
                 <th>الباقة</th>
                 <th>الحالة</th>
                 <th>تاريخ التسجيل</th>
-                <th>عدد العملاء</th>
-                <th>آخر نشاط</th>
                 <th>إجراءات</th>
               </tr>
             </thead>
@@ -980,10 +978,9 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
 
       <!-- Tabs -->
       <div class="detail-tabs">
-        <button class="detail-tab active" onclick="switchDetailTab('overview')">📊 نظرة عامة</button>
-        <button class="detail-tab" onclick="switchDetailTab('contracts')">📝 العقود</button>
-        <button class="detail-tab" onclick="switchDetailTab('timetracker')">⏱ الوقت</button>
-        <button class="detail-tab" onclick="switchDetailTab('subscription')">📦 الاشتراك</button>
+        <button class="detail-tab active" onclick="switchDetailTab('overview')" data-tab="overview">📊 نظرة عامة</button>
+        <button class="detail-tab" onclick="switchDetailTab('subscription')" data-tab="subscription">📦 الاشتراك</button>
+        <button class="detail-tab" onclick="switchDetailTab('activity')" data-tab="activity">📜 سجل النشاط</button>
       </div>
 
       <!-- Tab: Overview -->
@@ -1685,307 +1682,376 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
 </div>
 
 <!-- ═══ CREATE PLAN MODAL ═══ -->
+<style>
+#modal-create-plan .plan-2col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+#modal-create-plan .perm-section { border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:8px; }
+#modal-create-plan .perm-sec-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer; background:var(--surface2); transition:background .15s; user-select:none; }
+#modal-create-plan .perm-sec-header:hover { background:var(--surface3); }
+#modal-create-plan .perm-sec-header.open { background:rgba(108,99,255,.08); border-bottom:1px solid var(--border); }
+#modal-create-plan .perm-sec-title { display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700; }
+#modal-create-plan .perm-sec-badge { font-size:10px; background:rgba(108,99,255,.15); color:var(--accent); padding:2px 8px; border-radius:20px; font-weight:700; }
+#modal-create-plan .perm-sec-body { padding:12px 14px; background:var(--surface); display:none; flex-direction:column; gap:6px; }
+#modal-create-plan .perm-sec-body.open { display:flex; }
+#modal-create-plan .perm-row { display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--text2); padding:5px 0; border-bottom:1px solid rgba(255,255,255,.03); }
+#modal-create-plan .perm-row:last-child { border-bottom:none; }
+#modal-create-plan .perm-row label { flex:1; line-height:1.4; }
+#modal-create-plan .perm-num { width:85px; height:28px; padding:4px 8px; font-size:12px; text-align:center; }
+#modal-create-plan .perm-toggle { display:flex; align-items:center; gap:6px; }
+#modal-create-plan .perm-sub-label { font-size:10px; font-weight:700; color:var(--text3); margin-top:8px; margin-bottom:2px; text-transform:uppercase; letter-spacing:.5px; }
+#modal-create-plan .perm-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+#modal-create-plan .plan-sticky-footer { position:sticky; bottom:0; background:var(--surface); padding:12px 0 2px; border-top:1px solid var(--border); margin-top:12px; display:flex; gap:10px; justify-content:space-between; align-items:center; }
+#modal-create-plan .copy-plan-inline { display:flex; gap:6px; flex-wrap:wrap; }
+#modal-create-plan .copy-plan-btn { font-size:11px; padding:5px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; cursor:pointer; color:var(--text2); transition:.15s; }
+#modal-create-plan .copy-plan-btn:hover { border-color:var(--accent); color:var(--accent); }
+@media(max-width:600px){ #modal-create-plan .plan-2col { grid-template-columns:1fr; } }
+</style>
 <div class="modal-overlay" id="modal-create-plan">
-  <div class="modal" style="max-width:680px;max-height:90vh;overflow-y:auto">
-    <div class="modal-header" style="position:sticky;top:0;background:var(--surface);z-index:2;margin-bottom:0;padding-bottom:14px">
-      <div class="modal-title" id="plan-modal-title">➕ إنشاء باقة جديدة</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="position:relative" id="_copy-plan-wrap">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('_copy-plan-dropdown').classList.toggle('hidden')" title="نسخ الصلاحيات من باقة موجودة" style="font-size:11px">
-            <i class="fa-solid fa-copy"></i> نسخ صلاحيات
-          </button>
-          <div id="_copy-plan-dropdown" class="hidden" style="position:absolute;top:110%;left:0;background:var(--surface2);border:1px solid var(--border);border-radius:10px;min-width:200px;z-index:100;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
-            <div style="font-size:10px;color:var(--text3);padding:4px 8px;font-weight:700">اختر باقة للنسخ منها:</div>
-            <div id="_copy-plan-list"></div>
-          </div>
+  <div class="modal" style="max-width:720px;max-height:92vh;overflow-y:auto;padding:0">
+
+    <!-- STICKY HEADER -->
+    <div style="position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--border);padding:18px 24px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div class="modal-title" id="plan-modal-title" style="margin-bottom:2px">➕ إنشاء باقة جديدة</div>
+          <div style="font-size:11px;color:var(--text3)">حدد الميزات والصلاحيات لكل قسم بشكل مستقل</div>
         </div>
         <button class="close-btn" onclick="closeModal('modal-create-plan')">✕</button>
       </div>
     </div>
+
+    <div style="padding:20px 24px">
     <input type="hidden" id="cp-edit-id">
 
-    <!-- Basic Info -->
-    <div class="form-row">
-      <div class="form-group">
-        <div class="form-label">اسم الباقة</div>
-        <input class="form-input" id="cp-name" placeholder="مثال: احترافي">
-      </div>
-      <div class="form-group" style="max-width:80px">
-        <div class="form-label">أيقونة</div>
-        <input class="form-input" id="cp-icon" placeholder="🚀" style="text-align:center;font-size:20px">
+    <!-- ── SECTION A: معلومات الباقة ── -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">📦 معلومات الباقة</div>
+      <div class="plan-2col">
+        <div class="form-group" style="margin:0">
+          <div class="form-label">اسم الباقة *</div>
+          <input class="form-input" id="cp-name" placeholder="مثال: احترافي">
+        </div>
+        <div style="display:flex;gap:10px">
+          <div class="form-group" style="margin:0;flex:1">
+            <div class="form-label">السعر الشهري (ج)</div>
+            <input class="form-input" type="number" id="cp-price-monthly" placeholder="0 = مجاني" min="0">
+          </div>
+          <div class="form-group" style="margin:0;width:60px">
+            <div class="form-label">أيقونة</div>
+            <input class="form-input" id="cp-icon" placeholder="🚀" style="text-align:center;font-size:18px;padding:8px 4px">
+          </div>
+        </div>
+        <div class="form-group" style="margin:0">
+          <div class="form-label">وصف مختصر</div>
+          <input class="form-input" id="cp-desc" placeholder="وصف يظهر للمستخدم">
+        </div>
+        <div class="form-group" style="margin:0">
+          <div class="form-label">السعر السنوي (ج)</div>
+          <input class="form-input" type="number" id="cp-price-annual" placeholder="0 = مجاني" min="0">
+        </div>
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <div class="form-label">السعر الشهري (ج)</div>
-        <input class="form-input" type="number" id="cp-price-monthly" placeholder="0 = مجاني">
-      </div>
-      <div class="form-group">
-        <div class="form-label">السعر السنوي (ج)</div>
-        <input class="form-input" type="number" id="cp-price-annual" placeholder="0 = مجاني">
-      </div>
-    </div>
-    <!-- مخفي — المدة تتحسب تلقائياً من نوع الكود (شهري/سنوي/مدى الحياة) -->
     <input type="hidden" id="cp-duration" value="30">
-    <div class="form-group">
-      <div class="form-label">الوصف</div>
-      <input class="form-input" id="cp-desc" placeholder="وصف مختصر للباقة">
+
+    <!-- ── نسخ من باقة موجودة ── -->
+    <div id="_copy-plan-section" style="background:rgba(108,99,255,.06);border:1px dashed rgba(108,99,255,.3);border-radius:10px;padding:10px 14px;margin-bottom:16px;display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px"><i class="fa-solid fa-copy"></i> نسخ الصلاحيات من باقة موجودة:</div>
+      <div class="copy-plan-inline" id="_copy-plan-list"></div>
     </div>
 
-    <!-- Sections Accordion -->
-    <div class="form-label" style="margin-bottom:8px">🎛 صلاحيات الأقسام — اضغط على القسم لتفصيله</div>
+    <!-- ── SECTION B: الصلاحيات والأقسام ── -->
+    <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      <span>🎛 صلاحيات الأقسام</span>
+      <span style="font-size:10px;color:var(--text3);font-weight:400">— اضغط على القسم لتفصيل الصلاحيات</span>
+    </div>
     <div id="cp-sections-accordion" style="display:flex;flex-direction:column;gap:6px">
 
-      <!-- المهام -->
-      <div class="acc-section" id="acc-tasks">
-        <div class="acc-header" onclick="toggleAcc('tasks')">
-          <div style="display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="feat-tasks" checked onclick="event.stopPropagation()" style="width:16px;height:16px">
-            <span style="font-weight:700">📋 المهام والمشاريع</span>
+
+      <!-- 1. المهام والمشاريع -->
+      <div class="perm-section" id="acc-tasks">
+        <div class="perm-sec-header" onclick="toggleAcc('tasks')">
+          <div class="perm-sec-title">
+            <input type="checkbox" id="feat-tasks" checked onclick="event.stopPropagation()" style="width:15px;height:15px">
+            <span>📋 المهام والمشاريع</span>
           </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="acc-badge" id="acc-tasks-badge">غير محدود</span>
-            <span class="acc-arrow">▾</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="perm-sec-badge" id="acc-tasks-badge">غير محدود</span>
+            <span class="acc-arrow" style="font-size:11px;color:var(--text3);transition:transform .2s">▾</span>
           </div>
         </div>
-        <div class="acc-body" id="acc-body-tasks" style="display:none">
-          <div class="acc-row"><label>عدد المهام الإجمالي</label><input type="number" class="form-input acc-num" id="feat-max-tasks" placeholder="0=∞" min="0" oninput="updateAccBadge('tasks')"></div>
-          <div class="acc-row"><label>عدد المشاريع النشطة في نفس الوقت</label><input type="number" class="form-input acc-num" id="feat-max-active-tasks" placeholder="0=∞" min="0"></div>
-          <div class="acc-row acc-check"><label>إمكانية إرفاق ملفات بالمهمة</label><input type="checkbox" id="feat-task-attachments" checked></div>
-          <div class="acc-row acc-check"><label>تتبع الخطوات والمراحل</label><input type="checkbox" id="feat-task-steps" checked></div>
-          <div class="acc-row acc-check"><label>ربط المهمة بعميل</label><input type="checkbox" id="feat-task-client-link" checked></div>
+        <div class="perm-sec-body" id="acc-body-tasks">
+          <div class="perm-row"><label>الحد الأقصى للمهام</label><input type="number" class="form-input perm-num" id="feat-max-tasks" placeholder="0=∞" min="0" oninput="updateAccBadge('tasks')"></div>
+          <div class="perm-row"><label>الحد الأقصى للمشاريع المتزامنة</label><input type="number" class="form-input perm-num" id="feat-max-active-tasks" placeholder="0=∞" min="0"></div>
+          <div class="perm-sub-label">خصائص المهام</div>
+          <div class="perm-grid">
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إرفاق ملفات</label><input type="checkbox" id="feat-task-attachments" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>خطوات ومراحل</label><input type="checkbox" id="feat-task-steps" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>ربط بعميل</label><input type="checkbox" id="feat-task-client-link" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>الكانبان بورد</label><input type="checkbox" id="feat-task-kanban" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تواريخ التسليم</label><input type="checkbox" id="feat-task-dates" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تعليق وذكر الأعضاء</label><input type="checkbox" id="feat-task-mentions" checked></div>
+          </div>
         </div>
       </div>
 
-      <!-- العملاء -->
-      <div class="acc-section" id="acc-clients">
-        <div class="acc-header" onclick="toggleAcc('clients')">
-          <div style="display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="feat-clients" checked onclick="event.stopPropagation()" style="width:16px;height:16px">
-            <span style="font-weight:700">👥 إدارة العملاء</span>
+      <!-- 2. قاعدة العملاء -->
+      <div class="perm-section" id="acc-clients">
+        <div class="perm-sec-header" onclick="toggleAcc('clients')">
+          <div class="perm-sec-title">
+            <input type="checkbox" id="feat-clients" checked onclick="event.stopPropagation()" style="width:15px;height:15px">
+            <span>👥 قاعدة العملاء</span>
           </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="acc-badge" id="acc-clients-badge">غير محدود</span>
-            <span class="acc-arrow">▾</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="perm-sec-badge" id="acc-clients-badge">غير محدود</span>
+            <span class="acc-arrow" style="font-size:11px;color:var(--text3);transition:transform .2s">▾</span>
           </div>
         </div>
-        <div class="acc-body" id="acc-body-clients" style="display:none">
-          <div class="acc-row"><label>الحد الأقصى للعملاء</label><input type="number" class="form-input acc-num" id="feat-max-clients-feat" placeholder="0=∞" min="0" oninput="updateAccBadge('clients')"></div>
-          <div class="acc-row acc-check"><label>عملاء فري لانس</label><input type="checkbox" id="feat-clients-freelance" checked></div>
-          <div class="acc-row acc-check"><label>عملاء دوام/بارت تايم</label><input type="checkbox" id="feat-clients-fulltime" checked></div>
-          <div class="acc-row acc-check"><label>صفحة بروفايل العميل</label><input type="checkbox" id="feat-clients-profile" checked></div>
+        <div class="perm-sec-body" id="acc-body-clients">
+          <div class="perm-row"><label>الحد الأقصى للعملاء</label><input type="number" class="form-input perm-num" id="feat-max-clients-feat" placeholder="0=∞" min="0" oninput="updateAccBadge('clients')"></div>
+          <div class="perm-sub-label">أنواع العملاء</div>
+          <div class="perm-grid">
+            <div class="perm-row" style="border:none;padding:3px 0"><label>عملاء فريلانس</label><input type="checkbox" id="feat-clients-freelance" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>عملاء دوام/بارت تايم</label><input type="checkbox" id="feat-clients-fulltime" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>صفحة بروفايل العميل</label><input type="checkbox" id="feat-clients-profile" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>عملاء محتملون (Leads)</label><input type="checkbox" id="feat-clients-leads" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>جهات الاتصال</label><input type="checkbox" id="feat-clients-contacts" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>استيراد جهات الاتصال</label><input type="checkbox" id="feat-clients-import"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>بوابة العميل (Portal)</label><input type="checkbox" id="feat-client-portal" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>كشف حساب للعميل</label><input type="checkbox" id="feat-statements"></div>
+          </div>
         </div>
       </div>
 
-      <!-- المالية -->
-      <div class="acc-section" id="acc-finance">
-        <div class="acc-header" onclick="toggleAcc('finance')">
-          <div style="display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="feat-finance" checked onclick="event.stopPropagation()" style="width:16px;height:16px">
-            <span style="font-weight:700">💰 المالية</span>
+      <!-- 3. المالية -->
+      <div class="perm-section" id="acc-finance">
+        <div class="perm-sec-header" onclick="toggleAcc('finance')">
+          <div class="perm-sec-title">
+            <input type="checkbox" id="feat-finance" checked onclick="event.stopPropagation()" style="width:15px;height:15px">
+            <span>💰 المالية والمحافظ</span>
           </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="acc-badge" id="acc-finance-badge">كامل</span>
-            <span class="acc-arrow">▾</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="perm-sec-badge" id="acc-finance-badge">كامل</span>
+            <span class="acc-arrow" style="font-size:11px;color:var(--text3);transition:transform .2s">▾</span>
           </div>
         </div>
-        <div class="acc-body" id="acc-body-finance" style="display:none">
-          <div class="acc-row"><label>عدد المعاملات الشهرية</label><input type="number" class="form-input acc-num" id="feat-max-transactions" placeholder="0=∞" min="0"></div>
-          <div class="acc-row acc-check"><label>تسجيل الدخل</label><input type="checkbox" id="feat-fin-income" checked></div>
-          <div class="acc-row acc-check"><label>تسجيل الصرف/المصروفات</label><input type="checkbox" id="feat-fin-expense" checked></div>
-          <div class="acc-row acc-check"><label>هامش الربح</label><input type="checkbox" id="feat-fin-profit" checked></div>
-          <div class="acc-row acc-check"><label>إيصال دخل رقمي</label><input type="checkbox" id="feat-fin-receipt" checked></div>
-          <div class="acc-row acc-check"><label>الاشتراكات الشهرية المتكررة</label><input type="checkbox" id="feat-fin-subscriptions"></div>
-          <div class="acc-row acc-check"><label>إحصائيات ومخططات مالية</label><input type="checkbox" id="feat-fin-charts" checked></div>
-          <div style="margin-top:8px;font-size:11px;font-weight:700;color:var(--text3)">وسائل الدفع المتاحة:</div>
-          <div class="acc-row acc-check"><label>💵 نقدي</label><input type="checkbox" id="feat-pay-cash" checked></div>
-          <div class="acc-row acc-check"><label>📲 إنستاباي</label><input type="checkbox" id="feat-pay-instapay" checked></div>
-          <div class="acc-row acc-check"><label>📱 فودافون كاش</label><input type="checkbox" id="feat-pay-vodafone" checked></div>
-          <div class="acc-row acc-check"><label>📞 اتصالات كاش</label><input type="checkbox" id="feat-pay-etisalat"></div>
-          <div class="acc-row acc-check"><label>🏦 تحويل بنكي</label><input type="checkbox" id="feat-pay-bank"></div>
-          <div class="acc-row acc-check"><label>💳 بطاقة ائتمان</label><input type="checkbox" id="feat-pay-card"></div>
+        <div class="perm-sec-body" id="acc-body-finance">
+          <div class="perm-row"><label>الحد الأقصى للمعاملات الشهرية</label><input type="number" class="form-input perm-num" id="feat-max-transactions" placeholder="0=∞" min="0"></div>
+          <div class="perm-sub-label">العمليات المالية</div>
+          <div class="perm-grid">
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تسجيل الدخل</label><input type="checkbox" id="feat-fin-income" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تسجيل المصروفات</label><input type="checkbox" id="feat-fin-expense" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>هامش الربح</label><input type="checkbox" id="feat-fin-profit" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إيصال دخل رقمي</label><input type="checkbox" id="feat-fin-receipt" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>اشتراكات متكررة</label><input type="checkbox" id="feat-fin-subscriptions"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إحصائيات ومخططات</label><input type="checkbox" id="feat-fin-charts" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تعديل المعاملات</label><input type="checkbox" id="feat-fin-edit" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>أهداف مالية</label><input type="checkbox" id="feat-fin-goals"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>القروض والديون</label><input type="checkbox" id="feat-loans"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>الميزانيات</label><input type="checkbox" id="feat-budgets"></div>
+          </div>
+          <div class="perm-sub-label">وسائل الدفع المتاحة</div>
+          <div class="perm-grid">
+            <div class="perm-row" style="border:none;padding:3px 0"><label>💵 نقدي</label><input type="checkbox" id="feat-pay-cash" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>📲 إنستاباي</label><input type="checkbox" id="feat-pay-instapay" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>📱 فودافون كاش</label><input type="checkbox" id="feat-pay-vodafone" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>📞 اتصالات كاش</label><input type="checkbox" id="feat-pay-etisalat"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>🏦 تحويل بنكي</label><input type="checkbox" id="feat-pay-bank"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>💳 بطاقة ائتمان</label><input type="checkbox" id="feat-pay-card"></div>
+          </div>
         </div>
       </div>
 
-      <!-- الفواتير -->
-      <div class="acc-section" id="acc-invoices">
-        <div class="acc-header" onclick="toggleAcc('invoices')">
-          <div style="display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="feat-invoices" checked onclick="event.stopPropagation()" style="width:16px;height:16px">
-            <span style="font-weight:700">🧾 الفواتير والعقود</span>
+      <!-- 4. الفواتير والعقود -->
+      <div class="perm-section" id="acc-invoices">
+        <div class="perm-sec-header" onclick="toggleAcc('invoices')">
+          <div class="perm-sec-title">
+            <input type="checkbox" id="feat-invoices" checked onclick="event.stopPropagation()" style="width:15px;height:15px">
+            <span>🧾 الفواتير والعقود وعروض الأسعار</span>
           </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="acc-badge" id="acc-invoices-badge">غير محدود</span>
-            <span class="acc-arrow">▾</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="perm-sec-badge" id="acc-invoices-badge">غير محدود</span>
+            <span class="acc-arrow" style="font-size:11px;color:var(--text3);transition:transform .2s">▾</span>
           </div>
         </div>
-        <div class="acc-body" id="acc-body-invoices" style="display:none">
-          <div class="acc-row"><label>عدد الفواتير في الشهر</label><input type="number" class="form-input acc-num" id="feat-max-invoices" placeholder="0=∞" min="0" oninput="updateAccBadge('invoices')"></div>
-          <div class="acc-row acc-check"><label>إنشاء فاتورة جديدة</label><input type="checkbox" id="feat-inv-create" checked></div>
-          <div class="acc-row acc-check"><label>تصدير PDF</label><input type="checkbox" id="feat-inv-pdf" checked></div>
-          <div class="acc-row acc-check"><label>قوالب واتساب</label><input type="checkbox" id="feat-inv-whatsapp" checked></div>
-          <div class="acc-row acc-check"><label>العقود</label><input type="checkbox" id="feat-inv-contracts"></div>
-          <div class="acc-row acc-check"><label>سياسات مخصصة في الفاتورة</label><input type="checkbox" id="feat-inv-policies" checked></div>
+        <div class="perm-sec-body" id="acc-body-invoices">
+          <div class="perm-row"><label>الحد الأقصى للفواتير شهرياً</label><input type="number" class="form-input perm-num" id="feat-max-invoices" placeholder="0=∞" min="0" oninput="updateAccBadge('invoices')"></div>
+          <div class="perm-sub-label">الفواتير</div>
+          <div class="perm-grid">
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إنشاء فاتورة</label><input type="checkbox" id="feat-inv-create" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تصدير PDF</label><input type="checkbox" id="feat-inv-pdf" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>قوالب واتساب</label><input type="checkbox" id="feat-inv-whatsapp" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>سياسات مخصصة</label><input type="checkbox" id="feat-inv-policies" checked></div>
+          </div>
+          <div class="perm-sub-label">العقود وعروض الأسعار</div>
+          <div class="perm-grid">
+            <div class="perm-row" style="border:none;padding:3px 0"><label>العقود الرقمية</label><input type="checkbox" id="feat-inv-contracts"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>توقيع العقود إلكترونياً</label><input type="checkbox" id="feat-contracts" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>عروض الأسعار (Proposals)</label><input type="checkbox" id="feat-proposals" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تصدير عروض الأسعار PDF</label><input type="checkbox" id="feat-proposals-pdf" checked></div>
+          </div>
         </div>
       </div>
 
-      <!-- الجدولة -->
-      <div class="acc-section" id="acc-schedule">
-        <div class="acc-header" onclick="toggleAcc('schedule')">
-          <div style="display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="feat-schedule" onclick="event.stopPropagation()" style="width:16px;height:16px">
-            <span style="font-weight:700">📅 تنظيم اليوم</span>
+      <!-- 5. الخدمات والمتجر -->
+      <div class="perm-section" id="acc-services">
+        <div class="perm-sec-header" onclick="toggleAcc('services')">
+          <div class="perm-sec-title">
+            <input type="checkbox" id="feat-services" checked onclick="event.stopPropagation()" style="width:15px;height:15px">
+            <span>🛍 الخدمات والمتجر الإلكتروني</span>
           </div>
-          <span class="acc-arrow">▾</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="perm-sec-badge" id="acc-services-badge">كامل</span>
+            <span class="acc-arrow" style="font-size:11px;color:var(--text3);transition:transform .2s">▾</span>
+          </div>
         </div>
-        <div class="acc-body" id="acc-body-schedule" style="display:none">
-          <div class="acc-row acc-check"><label>تنظيم اليوم الكامل</label><input type="checkbox" id="feat-schedule-day" checked></div>
-          <div class="acc-row acc-check"><label>تصدير الجدول</label><input type="checkbox" id="feat-schedule-export"></div>
+        <div class="perm-sec-body" id="acc-body-services">
+          <div class="perm-row"><label>الحد الأقصى للخدمات</label><input type="number" class="form-input perm-num" id="feat-max-services" placeholder="0=∞" min="0" oninput="updateAccBadge('services')"></div>
+          <div class="perm-sub-label">المتجر والخدمات</div>
+          <div class="perm-grid">
+            <div class="perm-row" style="border:none;padding:3px 0"><label>باقات داخل الخدمة</label><input type="checkbox" id="feat-svc-packages" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>صور الخدمات</label><input type="checkbox" id="feat-svc-images" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>معرض الأعمال</label><input type="checkbox" id="feat-svc-portfolio" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>رابط الطلب العام</label><input type="checkbox" id="feat-svc-order-link" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>استقبال الطلبات</label><input type="checkbox" id="feat-svc-orders" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تحويل طلب لمهمة</label><input type="checkbox" id="feat-svc-auto-task" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>متاجر متعددة</label><input type="checkbox" id="feat-svc-multi-store"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تقييمات المتجر</label><input type="checkbox" id="feat-svc-reviews" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>صفحة عامة (Client Portal)</label><input type="checkbox" id="feat-client-portal-svc" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>صفحة تقييمات عامة</label><input type="checkbox" id="feat-reviews-public" checked></div>
+          </div>
         </div>
       </div>
 
-      <!-- التقارير -->
-      <div class="acc-section" id="acc-reports">
-        <div class="acc-header" onclick="toggleAcc('reports')">
-          <div style="display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="feat-reports" onclick="event.stopPropagation()" style="width:16px;height:16px">
-            <span style="font-weight:700">📊 التقارير</span>
+      <!-- 6. فريق العمل والشركات -->
+      <div class="perm-section" id="acc-team">
+        <div class="perm-sec-header" onclick="toggleAcc('team')">
+          <div class="perm-sec-title">
+            <input type="checkbox" id="feat-team" onclick="event.stopPropagation()" style="width:15px;height:15px">
+            <span>👨‍👩‍👧 فريق العمل والشركات</span>
           </div>
-          <span class="acc-arrow">▾</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="perm-sec-badge" id="acc-team-badge">—</span>
+            <span class="acc-arrow" style="font-size:11px;color:var(--text3);transition:transform .2s">▾</span>
+          </div>
         </div>
-        <div class="acc-body" id="acc-body-reports" style="display:none">
-          <div class="acc-row acc-check"><label>تقرير الأداء الشهري</label><input type="checkbox" id="feat-rep-monthly" checked></div>
-          <div class="acc-row acc-check"><label>تقرير العملاء</label><input type="checkbox" id="feat-rep-clients" checked></div>
-          <div class="acc-row acc-check"><label>تصدير التقارير</label><input type="checkbox" id="feat-rep-export"></div>
+        <div class="perm-sec-body" id="acc-body-team">
+          <div class="perm-row"><label>الحد الأقصى لأعضاء الفريق</label><input type="number" class="form-input perm-num" id="feat-max-team" placeholder="0=∞" min="0" oninput="updateAccBadge('team')"></div>
+          <div class="perm-sub-label">الفريق والتعاون</div>
+          <div class="perm-grid">
+            <div class="perm-row" style="border:none;padding:3px 0"><label>دعوة أعضاء</label><input type="checkbox" id="feat-team-invite" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>قبول/رفض الدعوات</label><input type="checkbox" id="feat-team-invite-accept" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تخصصات الفريق</label><input type="checkbox" id="feat-specializations" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إدارة التخصصات</label><input type="checkbox" id="feat-spec-manage" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تخصصات متعددة للعضو</label><input type="checkbox" id="feat-spec-multi" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إشعار إضافة العضو</label><input type="checkbox" id="feat-team-notif" checked></div>
+          </div>
+          <div class="perm-sub-label" style="color:#f9c846">🏢 وضع الشركة (Enterprise)</div>
+          <div style="font-size:11px;color:var(--text3);background:rgba(249,200,70,.06);border-radius:8px;padding:8px;margin-bottom:8px">تتيح للمستخدم إنشاء حساب شركة وإضافة موظفين بحساب مجاني تابع.</div>
+          <div class="perm-grid">
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تفعيل وضع الشركة</label><input type="checkbox" id="feat-corp-mode" oninput="updateAccBadge('corporate')"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>حد الموظفين</label><input type="number" class="form-input perm-num" id="feat-corp-max-employees" placeholder="0=∞" min="0" style="width:70px"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>عرض مهام الآخرين</label><input type="checkbox" id="feat-corp-emp-others"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>صلاحية إدارة المالية</label><input type="checkbox" id="feat-corp-emp-finance"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>صلاحية إدارة العملاء</label><input type="checkbox" id="feat-corp-emp-clients"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>دعوة بالبريد</label><input type="checkbox" id="feat-corp-invite-email" checked></div>
+          </div>
+          <!-- Hidden compat fields -->
+          <input type="hidden" id="feat-corporate">
+          <input type="hidden" id="feat-corp-max-depts">
+          <input type="hidden" id="feat-corp-emp-tasks">
+          <input type="hidden" id="feat-corp-emp-projects">
+          <input type="hidden" id="feat-corp-emp-files">
+          <input type="hidden" id="feat-corp-invite-accept">
         </div>
       </div>
 
-      <!-- ميزات أخرى -->
-      <div class="acc-section" id="acc-other">
-        <div class="acc-header" onclick="toggleAcc('other')">
-          <div style="display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="feat-other-on" checked onclick="event.stopPropagation()" style="width:16px;height:16px">
-            <span style="font-weight:700">✨ ميزات أخرى</span>
+      <!-- 7. الأدوات والمرافق -->
+      <div class="perm-section" id="acc-tools">
+        <div class="perm-sec-header" onclick="toggleAcc('tools')">
+          <div class="perm-sec-title">
+            <input type="checkbox" id="feat-other-on" checked onclick="event.stopPropagation()" style="width:15px;height:15px">
+            <span>⚡ الأدوات والمرافق</span>
           </div>
-          <span class="acc-arrow">▾</span>
+          <span class="acc-arrow" style="font-size:11px;color:var(--text3);transition:transform .2s">▾</span>
         </div>
-        <div class="acc-body" id="acc-body-other" style="display:none">
-          <div class="acc-row acc-check"><label>الميتنج / الاجتماعات</label><input type="checkbox" id="feat-meetings"></div>
-          <div class="acc-row acc-check"><label>التعلم والأهداف</label><input type="checkbox" id="feat-learning"></div>
-          <div class="acc-row acc-check"><label>فريق العمل</label><input type="checkbox" id="feat-team"></div>
-          <div class="acc-row"><label>حد أعضاء الفريق</label><input type="number" class="form-input acc-num" id="feat-max-team" placeholder="0=∞" min="0"></div>
-          <div class="acc-row acc-check"><label>مزامنة السحابة</label><input type="checkbox" id="feat-cloud" checked></div>
+        <div class="perm-sec-body" id="acc-body-tools">
+          <div class="perm-grid">
+            <div class="perm-row" style="border:none;padding:3px 0"><label>⏱ تتبع الوقت</label><input type="checkbox" id="feat-timetracker" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>📅 تنظيم اليوم</label><input type="checkbox" id="feat-schedule"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تصدير الجدول</label><input type="checkbox" id="feat-schedule-export"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>📅 يوم كامل</label><input type="checkbox" id="feat-schedule-day" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>📆 الميتنج والاجتماعات</label><input type="checkbox" id="feat-meetings"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>☁️ مزامنة السحابة</label><input type="checkbox" id="feat-cloud" checked></div>
+          </div>
         </div>
       </div>
 
-      <!-- أدوات الفريلانسر -->
-      <div class="accordion-section">
-        <div class="accordion-header" onclick="toggleAcc(this)">
-          <span>⚡ أدوات الفريلانسر</span><span class="acc-arrow">▼</span>
+      <!-- 8. التقارير والأهداف -->
+      <div class="perm-section" id="acc-reports">
+        <div class="perm-sec-header" onclick="toggleAcc('reports')">
+          <div class="perm-sec-title">
+            <input type="checkbox" id="feat-reports" onclick="event.stopPropagation()" style="width:15px;height:15px">
+            <span>📊 التقارير والأهداف والتعلم</span>
+          </div>
+          <span class="acc-arrow" style="font-size:11px;color:var(--text3);transition:transform .2s">▾</span>
         </div>
-        <div class="accordion-body">
-          <div class="acc-row acc-check"><label>⏱ تتبع الوقت</label><input type="checkbox" id="feat-timetracker" checked></div>
-          <div class="acc-row acc-check"><label>📝 العقود الرقمية</label><input type="checkbox" id="feat-contracts" checked></div>
-          <div class="acc-row acc-check"><label>🔗 بوابة العميل</label><input type="checkbox" id="feat-client-portal" checked></div>
+        <div class="perm-sec-body" id="acc-body-reports">
+          <div class="perm-grid">
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تقرير شهري</label><input type="checkbox" id="feat-rep-monthly" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تقرير العملاء</label><input type="checkbox" id="feat-rep-clients" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>تصدير التقارير</label><input type="checkbox" id="feat-rep-export"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>🎯 الأهداف الشخصية</label><input type="checkbox" id="feat-goals" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>📚 التعلم والكورسات</label><input type="checkbox" id="feat-learning"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>🌐 تبديل اللغة</label><input type="checkbox" id="feat-languages"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>اللغة الإنجليزية</label><input type="checkbox" id="feat-lang-en" checked></div>
+          </div>
+          <!-- hidden compat -->
+          <input type="hidden" id="feat-lang-switch" value="1">
+          <input type="hidden" id="feat-lang-ar" value="1">
         </div>
       </div>
 
-      <!-- الخدمات والباقات -->
-      <div class="acc-section" id="acc-services">
-        <div class="acc-header" onclick="toggleAcc('services')">
-          <div style="display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="feat-services" checked onclick="event.stopPropagation()" style="width:16px;height:16px">
-            <span style="font-weight:700">🛍 الخدمات والباقات العامة</span>
+      <!-- 9. الأقسام المخفية — للإعلان عنها لاحقاً -->
+      <div class="perm-section" id="acc-hidden" style="border-color:rgba(247,201,72,.3)">
+        <div class="perm-sec-header" onclick="toggleAcc('hidden')" style="background:rgba(247,201,72,.05)">
+          <div class="perm-sec-title" style="color:var(--accent2)">
+            👁 الأقسام المخفية — ستُعلَن لاحقاً
           </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="acc-badge" id="acc-services-badge">كامل</span>
-            <span class="acc-arrow">▾</span>
-          </div>
-        </div>
-        <div class="acc-body" id="acc-body-services" style="display:none">
-          <div class="acc-row"><label>عدد الخدمات المتاحة</label><input type="number" class="form-input acc-num" id="feat-max-services" placeholder="0=∞" min="0" oninput="updateAccBadge('services')"></div>
-          <div class="acc-row acc-check"><label>باقات داخل الخدمة</label><input type="checkbox" id="feat-svc-packages" checked></div>
-          <div class="acc-row acc-check"><label>صور الخدمات والباقات</label><input type="checkbox" id="feat-svc-images" checked></div>
-          <div class="acc-row acc-check"><label>معرض الأعمال (Portfolio)</label><input type="checkbox" id="feat-svc-portfolio" checked></div>
-          <div class="acc-row acc-check"><label>رابط الطلب العام</label><input type="checkbox" id="feat-svc-order-link" checked></div>
-          <div class="acc-row acc-check"><label>استقبال وإدارة الطلبات</label><input type="checkbox" id="feat-svc-orders" checked></div>
-          <div class="acc-row acc-check"><label>تحويل الطلب لمهمة تلقائياً</label><input type="checkbox" id="feat-svc-auto-task" checked></div>
-          <div class="acc-row acc-check"><label>بوابة العميل (Client Portal)</label><input type="checkbox" id="feat-client-portal-svc" checked></div>
-        </div>
-      </div>
-
-      <!-- باقة الشركات -->
-      <div class="acc-section" id="acc-corporate" style="border:1.5px solid rgba(249,200,70,.3);background:rgba(249,200,70,.04)">
-        <div class="acc-header" onclick="toggleAcc('corporate')" style="background:rgba(249,200,70,.06)">
-          <div style="display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="feat-corporate" onclick="event.stopPropagation()" style="width:16px;height:16px">
-            <span style="font-weight:700;color:#f9c846">🏢 باقة الشركات</span>
-            <span style="font-size:10px;background:rgba(249,200,70,.2);color:#f9c846;padding:2px 8px;border-radius:8px;font-weight:700">Enterprise</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="acc-badge" id="acc-corporate-badge" style="background:rgba(249,200,70,.2);color:#f9c846">معطل</span>
-            <span class="acc-arrow">▾</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:10px;background:rgba(247,201,72,.15);color:var(--accent2);padding:2px 8px;border-radius:20px;font-weight:700">إطلاق تدريجي</span>
+            <span class="acc-arrow" style="font-size:11px;color:var(--text3);transition:transform .2s">▾</span>
           </div>
         </div>
-        <div class="acc-body" id="acc-body-corporate" style="display:none">
-          <div style="font-size:11px;color:var(--accent2);margin-bottom:10px;background:rgba(249,200,70,.07);padding:8px;border-radius:8px">
-            🏢 تتيح هذه الخاصية للمستخدم إنشاء حساب شركة وإضافة موظفين يحصلون على اشتراك مجاني تابع للشركة.
+        <div class="perm-sec-body" id="acc-body-hidden">
+          <div style="font-size:11px;color:var(--text3);background:rgba(247,201,72,.06);border-radius:8px;padding:10px;margin-bottom:10px">
+            💡 الأقسام المحددة هنا ستظهر مغلقة "قريباً" في واجهة المستخدم — يمكنك الإعلان عنها ميزة بميزة مع الوقت.
           </div>
-          <div class="acc-row acc-check"><label>تفعيل وضع الشركة</label><input type="checkbox" id="feat-corp-mode" oninput="updateAccBadge('corporate')"></div>
-          <div class="acc-row"><label>الحد الأقصى للموظفين</label><input type="number" class="form-input acc-num" id="feat-corp-max-employees" placeholder="0=∞" min="0"></div>
-          <div class="acc-row"><label>الحد الأقصى للأقسام</label><input type="number" class="form-input acc-num" id="feat-corp-max-depts" placeholder="0=∞" min="0"></div>
-          <div style="margin-top:8px;font-size:11px;font-weight:700;color:var(--text3)">صلاحيات موظفي الشركة:</div>
-          <div class="acc-row acc-check"><label>✅ عرض مهامهم الخاصة فقط</label><input type="checkbox" id="feat-corp-emp-tasks" checked></div>
-          <div class="acc-row acc-check"><label>عرض المشاريع المكلفين بها</label><input type="checkbox" id="feat-corp-emp-projects" checked></div>
-          <div class="acc-row acc-check"><label>رفع ملفات بالمهمة</label><input type="checkbox" id="feat-corp-emp-files" checked></div>
-          <div class="acc-row acc-check"><label>❌ عرض ملفات ومهام الآخرين</label><input type="checkbox" id="feat-corp-emp-others" style="accent-color:var(--accent4)"></div>
-          <div class="acc-row acc-check"><label>❌ إدارة المالية والفواتير</label><input type="checkbox" id="feat-corp-emp-finance" style="accent-color:var(--accent4)"></div>
-          <div class="acc-row acc-check"><label>❌ إدارة العملاء</label><input type="checkbox" id="feat-corp-emp-clients" style="accent-color:var(--accent4)"></div>
-          <div style="margin-top:8px;font-size:11px;font-weight:700;color:var(--text3)">إعدادات دعوة الموظف:</div>
-          <div class="acc-row acc-check"><label>إرسال دعوة بالبريد الإلكتروني</label><input type="checkbox" id="feat-corp-invite-email" checked></div>
-          <div class="acc-row acc-check"><label>قبول/رفض الدعوة من الموظف</label><input type="checkbox" id="feat-corp-invite-accept" checked></div>
-        </div>
-      </div>
-
-      <!-- نظام التخصصات -->
-      <div class="acc-section" id="acc-specializations">
-        <div class="acc-header" onclick="toggleAcc('specializations')">
-          <div style="display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="feat-specializations" checked onclick="event.stopPropagation()" style="width:16px;height:16px">
-            <span style="font-weight:700">🏷 تخصصات الفريق</span>
+          <div class="perm-grid">
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إخفاء المتجر</label><input type="checkbox" id="feat-hide-store"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إخفاء فريق العمل</label><input type="checkbox" id="feat-hide-team"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إخفاء التقارير</label><input type="checkbox" id="feat-hide-reports"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إخفاء تتبع الوقت</label><input type="checkbox" id="feat-hide-timetracker"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إخفاء الأهداف</label><input type="checkbox" id="feat-hide-goals"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إخفاء التعلم</label><input type="checkbox" id="feat-hide-learning"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إخفاء الميتنج</label><input type="checkbox" id="feat-hide-meetings"></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إخفاء قاعدة العملاء المحتملين</label><input type="checkbox" id="feat-hide-leads"></div>
           </div>
-          <span class="acc-arrow">▾</span>
-        </div>
-        <div class="acc-body" id="acc-body-specializations" style="display:none">
-          <div class="acc-row acc-check"><label>إنشاء وتعديل التخصصات</label><input type="checkbox" id="feat-spec-manage" checked></div>
-          <div class="acc-row acc-check"><label>تعيين تخصصات متعددة للعضو</label><input type="checkbox" id="feat-spec-multi" checked></div>
-          <div class="acc-row acc-check"><label>نظام دعوة الفريق</label><input type="checkbox" id="feat-team-invite" checked></div>
-          <div class="acc-row acc-check"><label>قبول/رفض دعوات الفريق</label><input type="checkbox" id="feat-team-invite-accept" checked></div>
-        </div>
-      </div>
-
-      <!-- اللغات -->
-      <div class="acc-section" id="acc-languages">
-        <div class="acc-header" onclick="toggleAcc('languages')">
-          <div style="display:flex;align-items:center;gap:10px">
-            <input type="checkbox" id="feat-languages" onclick="event.stopPropagation()" style="width:16px;height:16px">
-            <span style="font-weight:700">🌐 تبديل اللغة (AR/EN)</span>
-          </div>
-          <span class="acc-arrow">▾</span>
-        </div>
-        <div class="acc-body" id="acc-body-languages" style="display:none">
-          <div class="acc-row acc-check"><label>تفعيل تبديل اللغة في الإعدادات</label><input type="checkbox" id="feat-lang-switch" checked></div>
-          <div class="acc-row acc-check"><label>اللغة العربية (افتراضي)</label><input type="checkbox" id="feat-lang-ar" checked></div>
-          <div class="acc-row acc-check"><label>اللغة الإنجليزية</label><input type="checkbox" id="feat-lang-en" checked></div>
         </div>
       </div>
 
     </div>
 
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;position:sticky;bottom:0;background:var(--surface);padding-top:12px">
-      <button class="btn btn-ghost" onclick="closeModal('modal-create-plan')">إلغاء</button>
-      <button class="btn btn-primary" onclick="savePlan()">💾 حفظ الباقة</button>
+    <!-- STICKY FOOTER -->
+    <div class="plan-sticky-footer">
+      <button class="btn btn-ghost btn-sm" onclick="_toggleCopyPlanSection()" style="font-size:11px">
+        <i class="fa-solid fa-copy"></i> نسخ من باقة موجودة
+      </button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" onclick="closeModal('modal-create-plan')">إلغاء</button>
+        <button class="btn btn-primary" onclick="savePlan()"><i class="fa-solid fa-floppy-disk" style="margin-left:6px"></i> حفظ الباقة</button>
+      </div>
     </div>
+
+    </div><!-- end padding wrapper -->
   </div>
 </div>
 
@@ -3027,13 +3093,6 @@ function applyUserFilters() {
         <td>${statusBadge}</td>
         <td style="font-size:12px;color:var(--text2)">${date}</td>
         <td>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-weight:700">${clients}</span>
-            ${sub?.plan?.max_clients ? `<span style="font-size:10px;color:var(--text3)">/ ${sub.plan.max_clients||'∞'}</span>` : ''}
-          </div>
-        </td>
-        <td style="font-size:11px;color:var(--text3)">${date}</td>
-        <td>
           <div style="display:flex;gap:4px;flex-wrap:wrap">
             <button class="btn btn-ghost btn-sm" onclick="openUserDetailPage('${uid}')">👁</button>
             <button class="btn btn-primary btn-sm" onclick="openEditUserModal('${uid}')" title="تعديل البيانات">✏</button>
@@ -3575,12 +3634,15 @@ function renderPlans() {
 // ── Copy permissions from existing plan ──
 function _populateCopyPlanDropdown() {
   const list = document.getElementById('_copy-plan-list');
+  const section = document.getElementById('_copy-plan-section');
   if(!list) return;
-  if(!PLANS.length) { list.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px">لا توجد باقات بعد</div>'; return; }
+  if(!PLANS.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--text3)">لا توجد باقات بعد</div>';
+    return;
+  }
+  if(section) section.style.display = 'block';
   list.innerHTML = PLANS.map(p =>
-    `<div onclick="_copyPlanPerms('${p.id}')" style="padding:8px 10px;border-radius:7px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;transition:.12s" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='transparent'">
-      <span>${p.icon||'📦'}</span> <span>${p.name}</span>
-    </div>`
+    `<button class="copy-plan-btn" onclick="_copyPlanPerms('${p.id}')">${p.icon||'📦'} ${p.name}</button>`
   ).join('');
 }
 function _copyPlanPerms(fromId) {
@@ -3590,21 +3652,26 @@ function _copyPlanPerms(fromId) {
   const fkey = k => k.replace(/-/g, '_');
   const allChecks = [
     'tasks','clients','finance','invoices','schedule','reports','team','meetings','learning','cloud',
-    'task-attachments','task-steps','task-client-link',
-    'clients-freelance','clients-fulltime','clients-profile',
-    'fin-income','fin-expense','fin-profit','fin-receipt','fin-subscriptions','fin-charts',
+    'task-attachments','task-steps','task-client-link','task-kanban','task-dates','task-mentions',
+    'clients-freelance','clients-fulltime','clients-profile','clients-leads','clients-contacts','clients-import',
+    'client-portal','statements',
+    'fin-income','fin-expense','fin-profit','fin-receipt','fin-subscriptions','fin-charts','fin-edit','fin-goals',
+    'loans','budgets',
     'pay-cash','pay-instapay','pay-vodafone','pay-etisalat','pay-bank','pay-card',
     'inv-create','inv-pdf','inv-whatsapp','inv-contracts','inv-policies',
+    'contracts','proposals','proposals-pdf',
     'schedule-day','schedule-export','rep-monthly','rep-clients','rep-export','other-on',
-    'timetracker','contracts','client-portal',
-    'services','svc-packages','svc-images','svc-portfolio','svc-order-link','svc-orders','svc-auto-task','client-portal-svc',
-    'corporate','corp-mode','corp-emp-tasks','corp-emp-projects','corp-emp-files','corp-emp-others','corp-emp-finance','corp-emp-clients','corp-invite-email','corp-invite-accept',
-    'specializations','spec-manage','spec-multi','team-invite','team-invite-accept',
-    'languages','lang-switch','lang-ar','lang-en'
+    'timetracker',
+    'services','svc-packages','svc-images','svc-portfolio','svc-order-link','svc-orders','svc-auto-task',
+    'svc-multi-store','svc-reviews','client-portal-svc','reviews-public',
+    'corp-mode','corp-emp-others','corp-emp-finance','corp-emp-clients','corp-invite-email',
+    'specializations','spec-manage','spec-multi','team-invite','team-invite-accept','team-notif',
+    'goals','learning','languages','lang-en',
+    'hide-store','hide-team','hide-reports','hide-timetracker','hide-goals','hide-learning','hide-meetings','hide-leads'
   ];
   allChecks.forEach(k => {
     const el = document.getElementById('feat-' + k);
-    if(!el) return;
+    if(!el || el.type === 'hidden') return;
     const stored = f[fkey(k)];
     if(stored !== undefined) el.checked = !!stored;
   });
@@ -3612,13 +3679,12 @@ function _copyPlanPerms(fromId) {
     ['max_tasks','feat-max-tasks'],['max_active_tasks','feat-max-active-tasks'],
     ['max_clients_feat','feat-max-clients-feat'],['max_transactions','feat-max-transactions'],
     ['max_invoices','feat-max-invoices'],['max_team','feat-max-team'],
-    ['max_services','feat-max-services'],['corp_max_employees','feat-corp-max-employees'],['corp_max_depts','feat-corp-max-depts']
+    ['max_services','feat-max-services'],['corp_max_employees','feat-corp-max-employees']
   ];
-  numFields.forEach(([fk,elId]) => { const el=document.getElementById(elId); if(el) el.value=f[fk]||''; });
-  document.getElementById('_copy-plan-dropdown')?.classList.add('hidden');
-  toast(`✅ تم نسخ صلاحيات "${from.icon} ${from.name}"`);
+  numFields.forEach(([fk,elId]) => { const el=document.getElementById(elId); if(el&&el.type!=='hidden') el.value=f[fk]||''; });
+  toast(`✅ تم نسخ صلاحيات "${from.icon||''} ${from.name}"`);
 }
-// Close dropdown on outside click
+// Close dropdown on outside click (legacy)
 document.addEventListener('click', function(e){
   var wrap = document.getElementById('_copy-plan-wrap');
   var dd = document.getElementById('_copy-plan-dropdown');
@@ -3629,11 +3695,32 @@ function openCreatePlanModal() {
   document.getElementById('plan-modal-title').textContent = '➕ إنشاء باقة جديدة';
   document.getElementById('cp-edit-id').value = '';
   ['cp-name','cp-icon','cp-desc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  ['cp-price-monthly','cp-price-annual','cp-max-clients'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  ['cp-price-monthly','cp-price-annual'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('cp-duration').value = '30';
-  ['tasks','clients','finance','invoices','schedule','reports','cloud'].forEach(f => {
-    const el = document.getElementById('feat-'+f); if(el) el.checked = ['tasks','clients','invoices','cloud'].includes(f);
+  // Reset all section bodies
+  document.querySelectorAll('.perm-sec-body').forEach(b => b.classList.remove('open'));
+  document.querySelectorAll('.perm-sec-header').forEach(h => { h.classList.remove('open'); const arr=h.querySelector('.acc-arrow'); if(arr) arr.style.transform=''; });
+  // Reset all checkboxes to defaults
+  const defaultOn = ['feat-tasks','feat-clients','feat-finance','feat-invoices','feat-other-on',
+    'feat-task-attachments','feat-task-steps','feat-task-client-link','feat-task-kanban','feat-task-dates','feat-task-mentions',
+    'feat-clients-freelance','feat-clients-fulltime','feat-clients-profile','feat-clients-leads','feat-clients-contacts',
+    'feat-client-portal','feat-fin-income','feat-fin-expense','feat-fin-profit','feat-fin-receipt','feat-fin-charts','feat-fin-edit',
+    'feat-pay-cash','feat-pay-instapay','feat-pay-vodafone',
+    'feat-inv-create','feat-inv-pdf','feat-inv-whatsapp','feat-inv-policies',
+    'feat-contracts','feat-proposals','feat-proposals-pdf',
+    'feat-services','feat-svc-packages','feat-svc-images','feat-svc-portfolio','feat-svc-order-link','feat-svc-orders','feat-svc-auto-task','feat-svc-reviews','feat-client-portal-svc','feat-reviews-public',
+    'feat-cloud','feat-goals','feat-rep-monthly','feat-rep-clients',
+    'feat-specializations','feat-spec-manage','feat-spec-multi','feat-team-invite','feat-team-invite-accept','feat-team-notif','feat-lang-en'
+  ];
+  document.querySelectorAll('[id^="feat-"]').forEach(el => {
+    if(el.type === 'checkbox') el.checked = defaultOn.includes(el.id);
+    else if(el.type === 'number') el.value = '';
   });
+  // Reset number inputs  
+  document.querySelectorAll('.perm-num').forEach(el => el.value = '');
+  // Hide copy section unless plans exist
+  const cs = document.getElementById('_copy-plan-section');
+  if(cs) cs.style.display = 'none';
   _populateCopyPlanDropdown();
   openModal('modal-create-plan');
 }
@@ -3642,9 +3729,9 @@ function editPlan(id) {
   const plan = PLANS.find(p => p.id === id);
   if(!plan) return;
 
-  // أولاً: reset الـ accordion (مثل openCreatePlanModal)
-  document.querySelectorAll('.acc-body').forEach(b => b.style.display='none');
-  document.querySelectorAll('.acc-header').forEach(h => h.classList.remove('open'));
+  // Reset sections
+  document.querySelectorAll('.perm-sec-body').forEach(b => b.classList.remove('open'));
+  document.querySelectorAll('.perm-sec-header').forEach(h => { h.classList.remove('open'); const arr=h.querySelector('.acc-arrow'); if(arr) arr.style.transform=''; });
 
   document.getElementById('plan-modal-title').textContent = '✏ تعديل الباقة';
   document.getElementById('cp-edit-id').value = id;
@@ -3658,62 +3745,65 @@ function editPlan(id) {
   setVal('cp-duration',      plan.duration_days||30);
 
   const f = plan.features || {};
-
-  // helper: convert key like 'task-attachments' → 'task_attachments'
   const fkey = k => k.replace(/-/g, '_');
 
-  // checkboxes — default fallback = checked for known-default ones
   const defaultOn = new Set([
-    'tasks','clients','finance','invoices','cloud',
-    'task-attachments','task-steps','task-client-link',
-    'clients-freelance','clients-fulltime','clients-profile',
-    'fin-income','fin-expense','fin-profit','fin-receipt','fin-charts',
+    'tasks','clients','finance','invoices','cloud','other-on',
+    'task-attachments','task-steps','task-client-link','task-kanban','task-dates','task-mentions',
+    'clients-freelance','clients-fulltime','clients-profile','clients-leads','clients-contacts',
+    'client-portal','fin-income','fin-expense','fin-profit','fin-receipt','fin-charts','fin-edit',
     'pay-cash','pay-instapay','pay-vodafone',
     'inv-create','inv-pdf','inv-whatsapp','inv-policies',
-    'rep-monthly','rep-clients','other-on',
-    'timetracker','contracts','client-portal'
+    'contracts','proposals','proposals-pdf',
+    'services','svc-packages','svc-images','svc-portfolio','svc-order-link','svc-orders','svc-auto-task','svc-reviews','client-portal-svc','reviews-public',
+    'goals','rep-monthly','rep-clients',
+    'specializations','spec-manage','spec-multi','team-invite','team-invite-accept','team-notif','lang-en',
+    'corp-invite-email'
   ]);
 
   const allChecks = [
     'tasks','clients','finance','invoices','schedule','reports','team','meetings','learning','cloud',
-    'task-attachments','task-steps','task-client-link',
-    'clients-freelance','clients-fulltime','clients-profile',
-    'fin-income','fin-expense','fin-profit','fin-receipt','fin-subscriptions','fin-charts',
+    'task-attachments','task-steps','task-client-link','task-kanban','task-dates','task-mentions',
+    'clients-freelance','clients-fulltime','clients-profile','clients-leads','clients-contacts','clients-import',
+    'client-portal','statements',
+    'fin-income','fin-expense','fin-profit','fin-receipt','fin-subscriptions','fin-charts','fin-edit','fin-goals',
+    'loans','budgets',
     'pay-cash','pay-instapay','pay-vodafone','pay-etisalat','pay-bank','pay-card',
     'inv-create','inv-pdf','inv-whatsapp','inv-contracts','inv-policies',
+    'contracts','proposals','proposals-pdf',
     'schedule-day','schedule-export','rep-monthly','rep-clients','rep-export','other-on',
-    'timetracker','contracts','client-portal',
-    'services','svc-packages','svc-images','svc-portfolio','svc-order-link','svc-orders','svc-auto-task','client-portal-svc',
-    'corporate','corp-mode','corp-emp-tasks','corp-emp-projects','corp-emp-files','corp-emp-others','corp-emp-finance','corp-emp-clients','corp-invite-email','corp-invite-accept',
-    'specializations','spec-manage','spec-multi','team-invite','team-invite-accept',
-    'languages','lang-switch','lang-ar','lang-en'
+    'timetracker',
+    'services','svc-packages','svc-images','svc-portfolio','svc-order-link','svc-orders','svc-auto-task',
+    'svc-multi-store','svc-reviews','client-portal-svc','reviews-public',
+    'corp-mode','corp-emp-others','corp-emp-finance','corp-emp-clients','corp-invite-email',
+    'specializations','spec-manage','spec-multi','team-invite','team-invite-accept','team-notif',
+    'goals','learning','languages','lang-en',
+    'hide-store','hide-team','hide-reports','hide-timetracker','hide-goals','hide-learning','hide-meetings','hide-leads'
   ];
 
   allChecks.forEach(k => {
     const el = document.getElementById('feat-' + k);
-    if(!el) return;
+    if(!el || el.type === 'hidden') return;
     const stored = f[fkey(k)];
     el.checked = stored !== undefined ? !!stored : defaultOn.has(k);
   });
 
-  // number fields
   const numFields = [
-    ['max_tasks',              'feat-max-tasks'],
-    ['max_active_tasks',       'feat-max-active-tasks'],
-    ['max_clients_feat',       'feat-max-clients-feat'],
-    ['max_transactions',       'feat-max-transactions'],
-    ['max_invoices',           'feat-max-invoices'],
-    ['max_team',               'feat-max-team'],
-    ['max_services',           'feat-max-services'],
-    ['corp_max_employees',     'feat-corp-max-employees'],
-    ['corp_max_depts',         'feat-corp-max-depts']
+    ['max_tasks',          'feat-max-tasks'],
+    ['max_active_tasks',   'feat-max-active-tasks'],
+    ['max_clients_feat',   'feat-max-clients-feat'],
+    ['max_transactions',   'feat-max-transactions'],
+    ['max_invoices',       'feat-max-invoices'],
+    ['max_team',           'feat-max-team'],
+    ['max_services',       'feat-max-services'],
+    ['corp_max_employees', 'feat-corp-max-employees'],
   ];
   numFields.forEach(([fk, elId]) => {
     const el = document.getElementById(elId);
-    if(el) el.value = f[fk] || '';
+    if(el && el.type !== 'hidden') el.value = f[fk] || '';
   });
 
-  ['tasks','clients','invoices'].forEach(k => updateAccBadge(k));
+  ['tasks','clients','invoices','services'].forEach(k => updateAccBadge(k));
   _populateCopyPlanDropdown();
   openModal('modal-create-plan');
 }
@@ -3723,16 +3813,33 @@ function toggleAcc(key) {
   const body   = document.getElementById('acc-body-' + key);
   const header = body?.previousElementSibling;
   if(!body) return;
-  const isOpen = body.style.display !== 'none';
-  body.style.display   = isOpen ? 'none' : 'flex';
-  if(header) header.classList.toggle('open', !isOpen);
+  const isOpen = body.classList.contains('open');
+  // Close all others
+  document.querySelectorAll('.perm-sec-body.open').forEach(b => {
+    b.classList.remove('open');
+    const h = b.previousElementSibling;
+    if(h) { h.classList.remove('open'); const arr=h.querySelector('.acc-arrow'); if(arr) arr.style.transform=''; }
+  });
+  // Legacy acc-body support
+  document.querySelectorAll('.acc-body').forEach(b => { if(b!==body) b.style.display='none'; });
+  if(!isOpen) {
+    body.classList.add('open');
+    body.style.display = 'flex';
+    if(header) { header.classList.add('open'); const arr=header.querySelector('.acc-arrow'); if(arr) arr.style.transform='rotate(180deg)'; }
+  }
 }
 function updateAccBadge(key) {
   const input = document.getElementById('feat-max-' + key) || document.getElementById('feat-max-' + key + '-feat');
   const badge = document.getElementById('acc-' + key + '-badge');
   if(!badge) return;
   const val = input ? +input.value : 0;
-  badge.textContent = val ? val + ' كحد أقصى' : 'غير محدود';
+  badge.textContent = val ? val + ' كحد أقصى' : (key==='team'?'—':'غير محدود');
+}
+function _toggleCopyPlanSection() {
+  const el = document.getElementById('_copy-plan-section');
+  if(!el) return;
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
 }
 
 function _chk(id) { return !!document.getElementById(id)?.checked; }
@@ -3756,12 +3863,20 @@ function savePlan() {
     task_attachments:   _chk('feat-task-attachments'),
     task_steps:         _chk('feat-task-steps'),
     task_client_link:   _chk('feat-task-client-link'),
+    task_kanban:        _chk('feat-task-kanban'),
+    task_dates:         _chk('feat-task-dates'),
+    task_mentions:      _chk('feat-task-mentions'),
     // العملاء
     clients:            _chk('feat-clients'),
     max_clients_feat:   _num('feat-max-clients-feat'),
     clients_freelance:  _chk('feat-clients-freelance'),
     clients_fulltime:   _chk('feat-clients-fulltime'),
     clients_profile:    _chk('feat-clients-profile'),
+    clients_leads:      _chk('feat-clients-leads'),
+    clients_contacts:   _chk('feat-clients-contacts'),
+    clients_import:     _chk('feat-clients-import'),
+    client_portal:      _chk('feat-client-portal'),
+    statements:         _chk('feat-statements'),
     // المالية
     finance:            _chk('feat-finance'),
     max_transactions:   _num('feat-max-transactions'),
@@ -3771,6 +3886,10 @@ function savePlan() {
     fin_receipt:        _chk('feat-fin-receipt'),
     fin_subscriptions:  _chk('feat-fin-subscriptions'),
     fin_charts:         _chk('feat-fin-charts'),
+    fin_edit:           _chk('feat-fin-edit'),
+    fin_goals:          _chk('feat-fin-goals'),
+    loans:              _chk('feat-loans'),
+    budgets:            _chk('feat-budgets'),
     // وسائل الدفع
     pay_cash:           _chk('feat-pay-cash'),
     pay_instapay:       _chk('feat-pay-instapay'),
@@ -3786,6 +3905,9 @@ function savePlan() {
     inv_whatsapp:       _chk('feat-inv-whatsapp'),
     inv_contracts:      _chk('feat-inv-contracts'),
     inv_policies:       _chk('feat-inv-policies'),
+    contracts:          _chk('feat-contracts'),
+    proposals:          _chk('feat-proposals'),
+    proposals_pdf:      _chk('feat-proposals-pdf'),
     // الجدولة
     schedule:           _chk('feat-schedule'),
     schedule_day:       _chk('feat-schedule-day'),
@@ -3801,11 +3923,9 @@ function savePlan() {
     team:               _chk('feat-team'),
     max_team:           _num('feat-max-team'),
     cloud:              _chk('feat-cloud'),
-    // أدوات الفريلانسر
+    // أدوات
     timetracker:        _chk('feat-timetracker'),
-    contracts:          _chk('feat-contracts'),
-    client_portal:      _chk('feat-client-portal'),
-    // الخدمات والباقات
+    // الخدمات والمتجر
     services:           _chk('feat-services'),
     max_services:       _num('feat-max-services'),
     svc_packages:       _chk('feat-svc-packages'),
@@ -3814,31 +3934,46 @@ function savePlan() {
     svc_order_link:     _chk('feat-svc-order-link'),
     svc_orders:         _chk('feat-svc-orders'),
     svc_auto_task:      _chk('feat-svc-auto-task'),
+    svc_multi_store:    _chk('feat-svc-multi-store'),
+    svc_reviews:        _chk('feat-svc-reviews'),
     client_portal_svc:  _chk('feat-client-portal-svc'),
-    // باقة الشركات
-    corporate:          _chk('feat-corporate'),
+    reviews_public:     _chk('feat-reviews-public'),
+    // الفريق والشركات
+    corporate:          _chk('feat-corp-mode'),
     corp_mode:          _chk('feat-corp-mode'),
     corp_max_employees: _num('feat-corp-max-employees'),
-    corp_max_depts:     _num('feat-corp-max-depts'),
-    corp_emp_tasks:     _chk('feat-corp-emp-tasks'),
-    corp_emp_projects:  _chk('feat-corp-emp-projects'),
-    corp_emp_files:     _chk('feat-corp-emp-files'),
+    corp_max_depts:     0,
+    corp_emp_tasks:     true,
+    corp_emp_projects:  true,
+    corp_emp_files:     true,
     corp_emp_others:    _chk('feat-corp-emp-others'),
     corp_emp_finance:   _chk('feat-corp-emp-finance'),
     corp_emp_clients:   _chk('feat-corp-emp-clients'),
     corp_invite_email:  _chk('feat-corp-invite-email'),
-    corp_invite_accept: _chk('feat-corp-invite-accept'),
+    corp_invite_accept: true,
     // التخصصات
     specializations:    _chk('feat-specializations'),
     spec_manage:        _chk('feat-spec-manage'),
     spec_multi:         _chk('feat-spec-multi'),
     team_invite:        _chk('feat-team-invite'),
     team_invite_accept: _chk('feat-team-invite-accept'),
+    team_notif:         _chk('feat-team-notif'),
+    // الأهداف والتعلم
+    goals:              _chk('feat-goals'),
     // اللغات
     languages:          _chk('feat-languages'),
-    lang_switch:        _chk('feat-lang-switch'),
-    lang_ar:            _chk('feat-lang-ar'),
+    lang_switch:        true,
+    lang_ar:            true,
     lang_en:            _chk('feat-lang-en'),
+    // الأقسام المخفية
+    hide_store:         _chk('feat-hide-store'),
+    hide_team:          _chk('feat-hide-team'),
+    hide_reports:       _chk('feat-hide-reports'),
+    hide_timetracker:   _chk('feat-hide-timetracker'),
+    hide_goals:         _chk('feat-hide-goals'),
+    hide_learning:      _chk('feat-hide-learning'),
+    hide_meetings:      _chk('feat-hide-meetings'),
+    hide_leads:         _chk('feat-hide-leads'),
   };
 
   const mc = features.max_clients_feat || 0;
@@ -4558,26 +4693,21 @@ function openUserDetailPage(uid) {
       (studio !== '—' && studio !== name+' Studio' ? `<span class="badge badge-gray">🏢 ${studio}</span>` : '');
   }
 
-  // Stats
+  // Stats — subscription-focused only (no private user financial data)
   const statsEl = document.getElementById('udp-stats');
   if(statsEl) {
-    const tasks    = p.tasks?.length || 0;
-    const clients  = p.clients?.length || 0;
-    const invoices = p.invoices?.length || 0;
-    const contracts = p.contracts?.length || 0;
-    const signedContracts = (p.contracts||[]).filter(ct=>ct.status==='signed').length;
-    const timeEntries = p.timeEntries?.length || 0;
-    const income   = (p.transactions||[]).filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
-    const ttSecs   = (p.timeEntries||[]).reduce((s,e)=>s+(e.duration_seconds||0),0);
-    const ttHours  = (ttSecs/3600).toFixed(1);
+    const sub3  = getSubscription(uid);
+    const plan3 = sub3 ? PLANS.find(pl=>pl.id===sub3.planId) : null;
+    const st3   = getUserStatus(uid);
+    const daysl = sub3?.expiresAt && sub3.billing !== 'lifetime'
+      ? Math.max(0, Math.ceil((new Date(sub3.expiresAt) - Date.now()) / 86400000))
+      : null;
     statsEl.innerHTML = [
-      {v:clients, l:'عميل', c:'purple'},
-      {v:tasks,   l:'مهمة', c:'green'},
-      {v:invoices,l:'فاتورة',c:'yellow'},
-      {v:income.toLocaleString()+' ج', l:'إجمالي الدخل',c:'green'},
-      {v:contracts+(signedContracts?` (${signedContracts}✅)`:''), l:'عقد', c:''},
-      {v:ttHours+'h', l:'ساعات عمل', c:''}
-    ].map(s=>`<div class="stat-mini"><div class="stat-mini-val" style="color:var(--accent${s.c==='green'?'3':s.c==='yellow'?'2':''})">${s.v}</div><div class="stat-mini-lbl">${s.l}</div></div>`).join('');
+      {v: plan3?.name || (sub3?.planId||'—'), l:'الباقة الحالية'},
+      {v: sub3?.billing === 'lifetime' ? '♾️ مدى الحياة' : sub3?.billing === 'annual' ? '📆 سنوي' : sub3?.billing === 'monthly' ? '📅 شهري' : '—', l:'نوع الاشتراك'},
+      {v: daysl !== null ? daysl+' يوم' : sub3?.billing === 'lifetime' ? '♾️' : '—', l:'أيام متبقية'},
+      {v: st3.banned ? '<span style="color:var(--accent4);font-size:11px">⛔ موقوف</span>' : '<span style="color:var(--accent3);font-size:11px">✅ نشط</span>', l:'حالة الحساب'},
+    ].map(s=>`<div class="stat-mini" style="text-align:center"><div class="stat-mini-val" style="font-size:13px;font-weight:700">${s.v}</div><div class="stat-mini-lbl">${s.l}</div></div>`).join('');
   }
 
   // Account status
@@ -4691,18 +4821,21 @@ function loadDetailOverview(uid, p, sub, plan) {
   }
 
   // Quick stats
+  // Quick stats — subscription info only (no private user data)
   const qsEl = document.getElementById('udp-quick-stats');
-  if(qsEl && p) {
-    const income  = (p.transactions||[]).filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
-    const expense = (p.transactions||[]).filter(t=>t.type==='expense').reduce((s,t)=>s+(+t.amount||0),0);
-    const doneTasks = (p.tasks||[]).filter(t=>t.done||t.status==='done').length;
-    const paidInv   = (p.invoices||[]).filter(i=>i.status==='paid').length;
+  if(qsEl) {
+    const sub2 = getSubscription(uid);
+    const plan2 = sub2 ? PLANS.find(pl=>pl.id===sub2.planId) : null;
+    const daysLeft2 = sub2?.expiresAt && sub2.billing !== 'lifetime'
+      ? Math.max(0, Math.ceil((new Date(sub2.expiresAt) - Date.now()) / 86400000))
+      : null;
+    const st = getUserStatus(uid);
     qsEl.innerHTML = [
-      {v:income.toLocaleString()+' ج', l:'إجمالي الدخل', c:'var(--accent3)'},
-      {v:expense.toLocaleString()+' ج', l:'إجمالي المصروفات', c:'var(--accent4)'},
-      {v:doneTasks, l:'مهام مكتملة', c:'var(--accent)'},
-      {v:paidInv,   l:'فواتير محصّلة', c:'var(--accent2)'},
-    ].map(s=>`<div class="stat-mini"><div class="stat-mini-val" style="color:${s.c}">${s.v}</div><div class="stat-mini-lbl">${s.l}</div></div>`).join('');
+      {v: plan2?.name || (sub2?.planId||'—'), l:'الباقة', c:'var(--accent)'},
+      {v: sub2?.billing === 'lifetime' ? '♾️' : sub2?.billing === 'annual' ? 'سنوي' : sub2?.billing === 'monthly' ? 'شهري' : '—', l:'نوع الاشتراك', c:'var(--text)'},
+      {v: daysLeft2 !== null ? daysLeft2+' يوم' : (sub2?.billing === 'lifetime' ? '♾️' : '—'), l:'الأيام المتبقية', c: daysLeft2 !== null && daysLeft2 < 7 ? 'var(--accent4)' : 'var(--accent3)'},
+      {v: st.banned ? '<span style="color:var(--accent4)">موقوف</span>' : '<span style="color:var(--accent3)">نشط</span>', l:'حالة الحساب', c:'var(--text)'},
+    ].map(s=>`<div class="stat-mini"><div class="stat-mini-val" style="color:${s.c};font-size:14px">${s.v}</div><div class="stat-mini-lbl">${s.l}</div></div>`).join('');
   }
 }
 
@@ -5707,7 +5840,7 @@ function openNewUpdateModal() {
     <div class="modal" style="max-width:520px">
       <div class="modal-header">
         <div class="modal-title"><i class="fa-solid fa-bullhorn"></i> رسالة تحديث جديدة</div>
-        <button class="close-btn" onclick="document.getElementById('modal-new-update').remove()">✕</button>
+        <button class="close-btn" id="upd-close-btn">✕</button>
       </div>
       <input type="hidden" id="upd-edit-id">
       <div class="form-row">
@@ -5755,12 +5888,18 @@ function openNewUpdateModal() {
         </select>
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
-        <button class="btn btn-ghost" onclick="document.getElementById('modal-new-update').remove()">إلغاء</button>
-        <button class="btn btn-ghost" onclick="saveUpdate(false)"><i class="fa-solid fa-floppy-disk"></i> حفظ مسودة</button>
-        <button class="btn btn-primary" onclick="saveUpdate(true)"><i class="fa-solid fa-paper-plane"></i> إرسال للكل</button>
+        <button class="btn btn-ghost" id="upd-cancel-btn">إلغاء</button>
+        <button class="btn btn-ghost" id="upd-draft-btn"><i class="fa-solid fa-floppy-disk"></i> حفظ مسودة</button>
+        <button class="btn btn-primary" id="upd-send-btn"><i class="fa-solid fa-paper-plane"></i> إرسال للكل</button>
       </div>
     </div>`;
   document.body.appendChild(m);
+  // Event listeners — avoid inline onclick scope issues
+  document.getElementById('upd-close-btn').onclick = () => m.remove();
+  document.getElementById('upd-cancel-btn').onclick = () => m.remove();
+  document.getElementById('upd-draft-btn').onclick = () => saveUpdate(false);
+  document.getElementById('upd-send-btn').onclick = () => saveUpdate(true);
+  m.onclick = e => { if(e.target === m) m.remove(); };
 }
 
 function editUpdate(id) {
@@ -5796,8 +5935,12 @@ async function saveUpdate(sendNow) {
   else _updates.unshift(update);
   _saveUpdates();
   document.getElementById('modal-new-update')?.remove();
-  if(sendNow) await sendUpdate(update.id);
-  else { renderUpdatesPage(); toast('✅ تم حفظ المسودة'); }
+  if(sendNow) {
+    await sendUpdate(update.id);
+  } else {
+    renderUpdatesPage();
+    toast('✅ تم حفظ المسودة');
+  }
 }
 
 async function sendUpdate(id) {
@@ -5970,7 +6113,7 @@ function openNewChallengeModal(editId) {
     <div class="modal" style="max-width:520px">
       <div class="modal-header">
         <div class="modal-title"><i class="fa-solid fa-trophy"></i> ${edit ? 'تعديل التحدي' : 'تحدي أسبوع جديد'}</div>
-        <button class="close-btn" onclick="document.getElementById('modal-new-challenge').remove()">✕</button>
+        <button class="close-btn" id="ch-close-btn">✕</button>
       </div>
       <input type="hidden" id="ch-edit-id" value="${edit?.id||''}">
 
@@ -5981,7 +6124,7 @@ function openNewChallengeModal(editId) {
         </div>
         <div class="form-group" style="margin:0">
           <div class="form-label">نوع التحدي</div>
-          <select class="form-select" id="ch-type" onchange="updateChallengeUnit()">${typeOpts}</select>
+          <select class="form-select" id="ch-type">${typeOpts}</select>
         </div>
       </div>
 
@@ -6012,12 +6155,18 @@ function openNewChallengeModal(editId) {
       </div>
 
       <div style="display:flex;gap:10px;margin-top:4px">
-        <button class="btn btn-ghost" onclick="document.getElementById('modal-new-challenge').remove()">إلغاء</button>
-        <button class="btn btn-ghost" style="flex:1" onclick="saveChallenge(false)"><i class="fa-solid fa-floppy-disk"></i> حفظ مسودة</button>
-        <button class="btn btn-primary" style="flex:1" onclick="saveChallenge(true)"><i class="fa-solid fa-paper-plane"></i> إرسال للكل الآن</button>
+        <button class="btn btn-ghost" id="ch-cancel-btn">إلغاء</button>
+        <button class="btn btn-ghost" style="flex:1" id="ch-draft-btn"><i class="fa-solid fa-floppy-disk"></i> حفظ مسودة</button>
+        <button class="btn btn-primary" style="flex:1" id="ch-send-btn"><i class="fa-solid fa-paper-plane"></i> إرسال للكل الآن</button>
       </div>
     </div>`;
   document.body.appendChild(m);
+  // Event listeners
+  document.getElementById('ch-close-btn').onclick = () => m.remove();
+  document.getElementById('ch-cancel-btn').onclick = () => m.remove();
+  document.getElementById('ch-type').onchange = updateChallengeUnit;
+  document.getElementById('ch-draft-btn').onclick = () => saveChallenge(false);
+  document.getElementById('ch-send-btn').onclick = () => saveChallenge(true);
   m.onclick = e => { if(e.target === m) m.remove(); };
 }
 

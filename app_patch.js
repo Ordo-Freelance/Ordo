@@ -1193,7 +1193,72 @@ window.openSubscriptionInfo = function() {
   }, 100);
 };
 
+
 // ══════════════════════════════════════════════════════════════
-// END OF PATCH
+// PATCH 3: تسجيل عميل محتمل تلقائياً من عروض الأسعار
 // ══════════════════════════════════════════════════════════════
-console.log('[Ordo Patch] ✅ All patches loaded successfully');
+(function _patchProposalAutoLead(){
+  // نعمل override لـ saveProposal بعد تحميلها
+  var _patchInterval = setInterval(function(){
+    if(typeof saveProposal !== 'function') return;
+    clearInterval(_patchInterval);
+    var _origSaveProp = saveProposal;
+    window.saveProposal = async function(saveStatus){
+      await _origSaveProp.apply(this, arguments);
+      // بعد الحفظ — تحديث leads
+      if(!S.leads) S.leads=[];
+      _syncLeadsFromProposals && _syncLeadsFromProposals();
+    };
+  }, 1000);
+})();
+
+// ══════════════════════════════════════════════════════════════
+// PATCH 4: إشعار إضافة العضو للفريق/الشركة
+// ══════════════════════════════════════════════════════════════
+(function _patchTeamNotification(){
+  // نبحث عن دالة قبول الدعوة أو إضافة عضو
+  var _pi = setInterval(function(){
+    if(typeof acceptTeamInvite !== 'function' && typeof joinTeam !== 'function') return;
+    clearInterval(_pi);
+    // patch acceptTeamInvite إن وُجدت
+    if(typeof acceptTeamInvite === 'function'){
+      var _orig = acceptTeamInvite;
+      window.acceptTeamInvite = async function(){
+        await _orig.apply(this, arguments);
+        // إشعار للمستخدم
+        toast('<i class="fa-solid fa-people-group" style="color:var(--accent3)"></i> تم قبولك في الفريق! 🎉');
+      };
+    }
+  }, 1500);
+})();
+
+// ══════════════════════════════════════════════════════════════
+// PATCH 5: تشغيل أرشيف المهام (24 ساعة) بشكل دوري
+// ══════════════════════════════════════════════════════════════
+(function _startArchiveWatcher(){
+  var _ai = setInterval(function(){
+    if(typeof _startArchiveTimer === 'function'){
+      clearInterval(_ai);
+      _startArchiveTimer();
+    } else if(typeof runDailyArchive === 'function'){
+      clearInterval(_ai);
+      runDailyArchive();
+      setInterval(runDailyArchive, 30*60*1000);
+    }
+  }, 2000);
+})();
+
+// ══════════════════════════════════════════════════════════════
+// PATCH 6: إضافة S.leads وS.contacts لـ migrateSFields
+// ══════════════════════════════════════════════════════════════
+(function _ensureLeadsContacts(){
+  var _mi = setInterval(function(){
+    if(typeof S === 'undefined' || !window._appReady) return;
+    clearInterval(_mi);
+    if(!S.leads) S.leads=[];
+    if(!S.contacts) S.contacts=[];
+  }, 1500);
+})();
+
+console.log('[Ordo Patch v2] ✅ Extended patches loaded — leads, contacts, archive, support fix');
+;

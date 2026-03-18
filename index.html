@@ -2075,74 +2075,124 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 <!-- CLIENTS -->
 <div class="page" id="page-clients">
   <div class="page-header">
-    <div><div class="page-title"><span data-i18n="title_clients">قاعدة</span> <span data-i18n="title_clients2">العملاء</span></div><div class="page-subtitle" data-i18n="sub_clients">سجل كل عميل وتاريخه معك</div></div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <!-- Filter icon button -->
+    <div>
+      <div class="page-title"><span data-i18n="title_clients">قاعدة</span> <span data-i18n="title_clients2">العملاء</span></div>
+      <div class="page-subtitle" data-i18n="sub_clients">سجل كل عميل وتاريخه معك</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center" id="_clients-header-actions">
       <button id="_cf-filter-toggle" onclick="_toggleClientFilter()" title="فلترة العملاء"
         style="width:38px;height:38px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.18s;position:relative;flex-shrink:0">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
         <span id="_cf-filter-dot" style="display:none;position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>
       </button>
-      <button class="btn btn-primary" onclick="openClientModal()" data-i18n="btn_new_client"><i class="fa-solid fa-plus" style="margin-left:4px"></i> عميل جديد</button>
+      <button class="btn btn-primary" id="_clients-add-btn" onclick="_clientsTabAddAction()" data-i18n="btn_new_client">
+        <i class="fa-solid fa-plus" style="margin-left:4px"></i> <span id="_clients-add-label">عميل جديد</span>
+      </button>
     </div>
   </div>
 
-  <!-- Collapsible filter panel -->
-  <div id="_cf-filter-panel" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px;animation:_ordo-fadeUp .25s cubic-bezier(.22,1,.36,1) both">
-    <!-- Search row -->
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-      <i class="fa-solid fa-magnifying-glass" style="color:var(--text3);font-size:13px"></i>
-      <input id="cf-search" type="text" placeholder="بحث بالاسم..." oninput="applyClientFilters()" class="form-input" style="flex:1;height:36px;font-size:13px">
-      <span class="filter-count" id="cf-count" style="font-size:12px;color:var(--text3)"></span>
-      <button onclick="resetClientFilters()" class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--accent4)"><i class="fa-solid fa-xmark"></i> إعادة تعيين</button>
+  <!-- ═══ TABS ═══ -->
+  <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border);padding-bottom:12px">
+    <button id="_ctab-clients" onclick="_switchClientsTab('clients',this)"
+      style="display:flex;align-items:center;gap:7px;padding:7px 16px;border-radius:10px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer;transition:.2s">
+      <i class="fa-solid fa-users"></i> العملاء
+      <span id="_clients-main-count" style="background:rgba(255,255,255,.25);border-radius:20px;padding:0 7px;font-size:10px"></span>
+    </button>
+    <button id="_ctab-leads" onclick="_switchClientsTab('leads',this)"
+      style="display:flex;align-items:center;gap:7px;padding:7px 16px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;transition:.2s">
+      <i class="fa-solid fa-user-plus" style="color:var(--accent2)"></i> المحتملون
+      <span id="_leads-count" style="background:var(--accent2);color:#1a1a2e;border-radius:20px;padding:0 7px;font-size:10px;font-weight:900;display:none"></span>
+    </button>
+    <button id="_ctab-contacts" onclick="_switchClientsTab('contacts',this)"
+      style="display:flex;align-items:center;gap:7px;padding:7px 16px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;transition:.2s">
+      <i class="fa-solid fa-address-book" style="color:var(--accent3)"></i> جهات الاتصال
+      <span id="_contacts-count" style="background:var(--accent3);color:#1a1a2e;border-radius:20px;padding:0 7px;font-size:10px;font-weight:900;display:none"></span>
+    </button>
+  </div>
+
+  <!-- ═══ TAB: CLIENTS ═══ -->
+  <div id="_tab-content-clients">
+    <!-- Collapsible filter panel -->
+    <div id="_cf-filter-panel" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px;animation:_ordo-fadeUp .25s cubic-bezier(.22,1,.36,1) both">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <i class="fa-solid fa-magnifying-glass" style="color:var(--text3);font-size:13px"></i>
+        <input id="cf-search" type="text" placeholder="بحث بالاسم..." oninput="applyClientFilters()" class="form-input" style="flex:1;height:36px;font-size:13px">
+        <span class="filter-count" id="cf-count" style="font-size:12px;color:var(--text3)"></span>
+        <button onclick="resetClientFilters()" class="btn btn-ghost btn-sm" style="font-size:11px;color:var(--accent4)"><i class="fa-solid fa-xmark"></i> إعادة تعيين</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center">
+        <span style="font-size:11px;color:var(--text3);font-weight:700;min-width:40px">النوع:</span>
+        <button class="filter-chip cf-type-btn active" data-val="" onclick="setCFType('',this)"><i class="fa-solid fa-users"></i> الكل</button>
+        <button class="filter-chip cf-type-btn" data-val="فرد" onclick="setCFType('فرد',this)"><i class="fa-solid fa-user"></i> فرد</button>
+        <button class="filter-chip cf-type-btn" data-val="شركة" onclick="setCFType('شركة',this)"><i class="fa-solid fa-building"></i> شركة</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+        <span style="font-size:11px;color:var(--text3);font-weight:700;min-width:40px">القناة:</span>
+        <button class="filter-chip cf-ch-btn active" data-val="" onclick="setCFChannel('',this)"><i class="fa-solid fa-satellite-dish"></i> كل القنوات</button>
+        <button class="filter-chip cf-ch-btn" data-val="واتساب" onclick="setCFChannel('واتساب',this)"><i class="fa-solid fa-comments"></i> واتساب</button>
+        <button class="filter-chip cf-ch-btn" data-val="انستقرام" onclick="setCFChannel('انستقرام',this)"><i class="fa-brands fa-instagram" style="color:#E1306C"></i> انستقرام</button>
+        <button class="filter-chip cf-ch-btn" data-val="إحالة" onclick="setCFChannel('إحالة',this)"><i class="fa-solid fa-handshake"></i> إحالة</button>
+        <button class="filter-chip cf-ch-btn" data-val="موقع" onclick="setCFChannel('موقع',this)"><i class="fa-solid fa-globe"></i> موقع</button>
+      </div>
     </div>
-    <!-- Type chips -->
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center">
-      <span style="font-size:11px;color:var(--text3);font-weight:700;min-width:40px">النوع:</span>
-      <button class="filter-chip cf-type-btn active" data-val="" onclick="setCFType('',this)"><i class="fa-solid fa-users"></i> الكل</button>
-      <button class="filter-chip cf-type-btn" data-val="فرد" onclick="setCFType('فرد',this)"><i class="fa-solid fa-user"></i> فرد</button>
-      <button class="filter-chip cf-type-btn" data-val="شركة" onclick="setCFType('شركة',this)"><i class="fa-solid fa-building"></i> شركة</button>
+    <input type="hidden" id="cf-type" value="">
+    <input type="hidden" id="cf-channel" value="">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px">
+        <button id="cv-grid-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;background:var(--accent);color:#fff;border-radius:7px" onclick="_switchClientView('grid')"><i class="fa-solid fa-grip"></i> كروت</button>
+        <button id="cv-list-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;border-radius:7px" onclick="_switchClientView('list')"><i class="fa-solid fa-list"></i> قائمة</button>
+        <button id="cv-table-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;border-radius:7px" onclick="_switchClientView('table')"><i class="fa-solid fa-table"></i> جدول</button>
+      </div>
     </div>
-    <!-- Channel chips -->
-    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-      <span style="font-size:11px;color:var(--text3);font-weight:700;min-width:40px">القناة:</span>
-      <button class="filter-chip cf-ch-btn active" data-val="" onclick="setCFChannel('',this)"><i class="fa-solid fa-satellite-dish"></i> كل القنوات</button>
-      <button class="filter-chip cf-ch-btn" data-val="واتساب" onclick="setCFChannel('واتساب',this)"><i class="fa-solid fa-comments"></i> واتساب</button>
-      <button class="filter-chip cf-ch-btn" data-val="انستقرام" onclick="setCFChannel('انستقرام',this)"><i class="fa-brands fa-instagram" style="color:#E1306C"></i> انستقرام</button>
-      <button class="filter-chip cf-ch-btn" data-val="إحالة" onclick="setCFChannel('إحالة',this)"><i class="fa-solid fa-handshake"></i> إحالة</button>
-      <button class="filter-chip cf-ch-btn" data-val="موقع" onclick="setCFChannel('موقع',this)"><i class="fa-solid fa-globe"></i> موقع</button>
+    <div class="grid grid-3" id="clients-grid">
+      <div class="empty" style="grid-column:span 3"><div class="empty-icon"><i class="fa-solid fa-circle-dot"></i></div>جاري التحميل...</div>
+    </div>
+    <div id="clients-list-view" style="display:none"></div>
+    <div id="clients-table-view" style="display:none">
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">
+          <th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">العميل</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">النوع</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">القناة</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الهاتف</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المشاريع</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">هذا الشهر</th>
+          <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">إجراءات</th>
+        </tr></thead><tbody id="clients-table-body"></tbody></table></div>
+      </div>
     </div>
   </div>
 
-  <input type="hidden" id="cf-type" value="">
-  <input type="hidden" id="cf-channel" value="">
-  
-  <!-- Client View Toggle -->
-  <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-    <div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px">
-      <button id="cv-grid-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;background:var(--accent);color:#fff;border-radius:7px" onclick="_switchClientView('grid')"><i class="fa-solid fa-grip"></i> كروت</button>
-      <button id="cv-list-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;border-radius:7px" onclick="_switchClientView('list')"><i class="fa-solid fa-list"></i> قائمة</button>
-      <button id="cv-table-btn" class="btn btn-ghost btn-sm" style="padding:6px 14px;font-size:12px;border-radius:7px" onclick="_switchClientView('table')"><i class="fa-solid fa-table"></i> جدول</button>
+  <!-- ═══ TAB: LEADS (العملاء المحتملون) ═══ -->
+  <div id="_tab-content-leads" style="display:none">
+    <div style="background:rgba(247,201,72,.06);border:1px solid rgba(247,201,72,.2);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <i class="fa-solid fa-lightbulb" style="color:var(--accent2);font-size:16px;flex-shrink:0"></i>
+      <div style="font-size:12px;color:var(--text2)">يُسجَّل تلقائياً عند إنشاء عرض سعر لعميل غير موجود في قاعدتك · يمكنك تحويله لعميل فعلي بضغطة واحدة</div>
+    </div>
+    <div id="_leads-list">
+      <div class="empty card" style="text-align:center;padding:48px">
+        <div class="empty-icon"><i class="fa-solid fa-user-plus" style="color:var(--accent2)"></i></div>
+        <div style="font-size:15px;font-weight:800;margin-bottom:6px">لا عملاء محتملون بعد</div>
+        <div style="font-size:12px;color:var(--text3)">أنشئ عرض سعر لعميل جديد وسيظهر هنا تلقائياً</div>
+      </div>
     </div>
   </div>
 
-  <div class="grid grid-3" id="clients-grid">
-    <div class="empty" style="grid-column:span 3"><div class="empty-icon"><i class="fa-solid fa-circle-dot"></i></div>جاري التحميل...</div>
-  </div>
-  <div id="clients-list-view" style="display:none"></div>
-  <div id="clients-table-view" style="display:none">
-    <div class="card" style="padding:0;overflow:hidden">
-      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--surface2)">
-        <th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">العميل</th>
-        <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">النوع</th>
-        <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">القناة</th>
-        <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الهاتف</th>
-        <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المشاريع</th>
-        <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">هذا الشهر</th>
-        <th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">إجراءات</th>
-      </tr></thead><tbody id="clients-table-body"></tbody></table></div>
+  <!-- ═══ TAB: CONTACTS (جهات الاتصال) ═══ -->
+  <div id="_tab-content-contacts" style="display:none">
+    <div style="background:rgba(79,209,165,.06);border:1px solid rgba(79,209,165,.2);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <i class="fa-solid fa-address-book" style="color:var(--accent3);font-size:16px;flex-shrink:0"></i>
+      <div style="font-size:12px;color:var(--text2)">أرقام هواتف عملائك والمحتملين · يُجمع تلقائياً من قاعدة البيانات · يمكن استيراد ملف CSV</div>
+    </div>
+    <div id="_contacts-list">
+      <div class="empty card" style="text-align:center;padding:48px">
+        <div class="empty-icon"><i class="fa-solid fa-address-book" style="color:var(--accent3)"></i></div>
+        <div style="font-size:15px;font-weight:800;margin-bottom:6px">لا جهات اتصال بعد</div>
+        <div style="font-size:12px;color:var(--text3)">أضف عملاء أو محتملين وستظهر أرقامهم هنا</div>
+      </div>
     </div>
   </div>
+
 </div>
 
 <!-- TIME TRACKER PAGE -->
@@ -2294,6 +2344,9 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <button class="btn btn-primary" onclick="_openNewTeamChooser()" data-i18n="btn_new_team"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فريق جديد</button>
     </div>
   </div>
+
+  <!-- ══ دعوات الفريق المعلقة ══ -->
+  <div id="_pending-invites-section" style="display:none;margin-bottom:16px"></div>
 
   <!-- Team Member Profile (hidden by default) -->
   <div id="member-profile-view" style="display:none">
@@ -2690,8 +2743,8 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fin-wallet-detail-card').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="table-wrap">
-        <table><thead><tr><th>الوصف</th><th>النوع</th><th>المبلغ</th><th class="hide-mobile">التاريخ</th></tr></thead>
-        <tbody id="fin-wd-tbody"><tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text3)">اختر محفظة</td></tr></tbody>
+        <table><thead><tr><th>الوصف</th><th>النوع</th><th>المبلغ</th><th class="hide-mobile">التاريخ</th><th>إجراءات</th></tr></thead>
+        <tbody id="fin-wd-tbody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text3)">اختر محفظة</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -2832,7 +2885,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   </div>
 
   <!-- شاشة إنشاء/إدخال كلمة مرور الخزنة -->
-  <div id="vault-lock-screen" style="display:none">
+  <div id="vault-lock-screen">
     <div class="card" style="max-width:440px;margin:40px auto;text-align:center;padding:36px 28px">
       <div style="font-size:48px;margin-bottom:16px">🔐</div>
       <div style="font-size:18px;font-weight:800;margin-bottom:8px" id="vault-lock-title">أدخل كلمة مرور الخزنة</div>
@@ -6274,6 +6327,978 @@ function _rlmCopy(){
   }
   setTimeout(_startRealtime,3000);
 })();
+</script>
+<script>
+// ═══════════════════════════════════════════════════════
+// CLIENTS TABS — العملاء / المحتملون / جهات الاتصال
+// ═══════════════════════════════════════════════════════
+var _activeClientsTab = 'clients';
+
+function _switchClientsTabInline(tab, btn) {
+  _activeClientsTab = tab;
+  // إخفاء كل المحتوى
+  ['clients','leads','contacts'].forEach(function(t) {
+    var el = document.getElementById('_tab-content-' + t);
+    if(el) el.style.display = 'none';
+    var b = document.getElementById('_ctab-' + t);
+    if(b) {
+      b.style.background = 'transparent';
+      b.style.color = 'var(--text2)';
+      b.style.borderColor = 'var(--border)';
+    }
+  });
+  // إظهار المطلوب
+  var show = document.getElementById('_tab-content-' + tab);
+  if(show) show.style.display = 'block';
+  var activeBtn = document.getElementById('_ctab-' + tab);
+  if(activeBtn) {
+    var colors = {clients:'var(--accent)', leads:'var(--accent2)', contacts:'var(--accent3)'};
+    activeBtn.style.background = colors[tab] || 'var(--accent)';
+    activeBtn.style.color = tab === 'clients' ? '#fff' : '#1a1a2e';
+    activeBtn.style.borderColor = colors[tab] || 'var(--accent)';
+  }
+  // تحديث زر الإضافة
+  var addLabel = document.getElementById('_clients-add-label');
+  var filterBtn = document.getElementById('_cf-filter-toggle');
+  if(tab === 'clients') {
+    if(addLabel) addLabel.textContent = 'عميل جديد';
+    if(filterBtn) filterBtn.style.display = '';
+  } else if(tab === 'leads') {
+    if(addLabel) addLabel.textContent = 'إضافة محتمل';
+    if(filterBtn) filterBtn.style.display = 'none';
+  } else {
+    if(addLabel) addLabel.textContent = 'إضافة جهة';
+    if(filterBtn) filterBtn.style.display = 'none';
+  }
+  // تحديث البيانات
+  if(tab === 'leads') _renderLeads();
+  if(tab === 'contacts') _renderContacts();
+  _updateClientTabCounts();
+}
+
+function _clientsTabAddAction() {
+  if(_activeClientsTab === 'clients') {
+    if(typeof openClientModal === 'function') openClientModal();
+  } else if(_activeClientsTab === 'leads') {
+    _openAddLeadModal();
+  } else {
+    _openAddContactModal();
+  }
+}
+
+function _updateClientTabCounts() {
+  var mc = document.getElementById('_clients-main-count');
+  if(mc) { mc.textContent = (S&&S.clients&&S.clients.length) || ''; mc.style.display = S&&S.clients&&S.clients.length ? '' : 'none'; }
+  var lc = document.getElementById('_leads-count');
+  var leadsLen = (S&&S.leads&&S.leads.length) || 0;
+  if(lc) { lc.textContent = leadsLen; lc.style.display = leadsLen ? '' : 'none'; }
+  var cc = document.getElementById('_contacts-count');
+  var contLen = ((S&&S.contacts&&S.contacts.length)||0) + ((S&&S.clients||[]).filter(function(c){return c.phone;}).length);
+  if(cc) { cc.textContent = contLen; cc.style.display = contLen ? '' : 'none'; }
+}
+
+// ── عرض المحتملين ──
+function _renderLeads() {
+  var el = document.getElementById('_leads-list'); if(!el) return;
+  if(!S.leads) S.leads = [];
+  _syncLeadsFromProposals();
+  var leads = S.leads.slice().sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); });
+  _updateClientTabCounts();
+  if(!leads.length) {
+    el.innerHTML = '<div class="empty card" style="text-align:center;padding:48px"><div class="empty-icon"><i class="fa-solid fa-user-plus" style="color:var(--accent2)"></i></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">لا عملاء محتملون بعد</div><div style="font-size:12px;color:var(--text3)">أنشئ عرض سعر لعميل جديد وسيظهر هنا تلقائياً</div></div>';
+    return;
+  }
+  var statusColor = {active:'var(--accent3)',pending:'var(--accent2)',lost:'var(--accent4)',converted:'var(--accent)'};
+  var statusLabel = {active:'نشط',pending:'في الانتظار',lost:'لم يتحوّل',converted:'تحوّل لعميل'};
+  var jobLabel = {freelance:'فري لانس',fulltime:'دوام كامل',parttime:'بارت تايم',project:'مشروع'};
+  var jobColor = {freelance:'var(--accent)',fulltime:'var(--accent3)',parttime:'var(--accent2)',project:'#ce93d8'};
+
+  // فلتر + بحث
+  var searchQ = (document.getElementById('_leads-search')||{}).value||'';
+  var filterStatus = (document.getElementById('_leads-filter-status')||{}).value||'';
+  var filterJob = (document.getElementById('_leads-filter-job')||{}).value||'';
+  if(searchQ||filterStatus||filterJob) {
+    leads = leads.filter(function(l){
+      var matchQ = !searchQ || (l.name||'').toLowerCase().includes(searchQ.toLowerCase()) || (l.phone||'').includes(searchQ);
+      var matchSt = !filterStatus || (l.status||'pending')===filterStatus;
+      var matchJob = !filterJob || (l.jobType||'')===filterJob;
+      return matchQ && matchSt && matchJob;
+    });
+  }
+
+  // شريط الأدوات
+  var toolbar = '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">'+
+    '<input id="_leads-search" class="form-input" placeholder="🔍 بحث..." oninput="_renderLeads()" style="flex:1;min-width:140px;height:34px;font-size:12px" value="'+escapeHtml(searchQ)+'">'+
+    '<select id="_leads-filter-status" class="form-select" onchange="_renderLeads()" style="height:34px;font-size:12px">'+
+      '<option value="">كل الحالات</option>'+
+      '<option value="pending"'+(filterStatus==='pending'?' selected':'')+'>في الانتظار</option>'+
+      '<option value="active"'+(filterStatus==='active'?' selected':'')+'>نشط</option>'+
+      '<option value="lost"'+(filterStatus==='lost'?' selected':'')+'>لم يتحوّل</option>'+
+      '<option value="converted"'+(filterStatus==='converted'?' selected':'')+'>تحوّل لعميل</option>'+
+    '</select>'+
+    '<select id="_leads-filter-job" class="form-select" onchange="_renderLeads()" style="height:34px;font-size:12px">'+
+      '<option value="">كل الأنواع</option>'+
+      '<option value="freelance"'+(filterJob==='freelance'?' selected':'')+'>فري لانس</option>'+
+      '<option value="fulltime"'+(filterJob==='fulltime'?' selected':'')+'>دوام كامل</option>'+
+      '<option value="parttime"'+(filterJob==='parttime'?' selected':'')+'>بارت تايم</option>'+
+      '<option value="project"'+(filterJob==='project'?' selected':'')+'>مشروع</option>'+
+    '</select>'+
+    '<span style="font-size:11px;color:var(--text3)">'+leads.length+' محتمل</span>'+
+  '</div>';
+
+  if(!leads.length) {
+    el.innerHTML = toolbar + '<div class="empty card" style="text-align:center;padding:32px"><div class="empty-icon"><i class="fa-solid fa-filter"></i></div><div>لا نتائج</div></div>';
+    return;
+  }
+
+  el.innerHTML = toolbar + '<div class="grid grid-3">' + leads.map(function(l) {
+    var sc = statusColor[l.status||'pending'] || 'var(--accent2)';
+    var sl = statusLabel[l.status||'pending'] || 'في الانتظار';
+    var jc = jobColor[l.jobType||''] || '';
+    var jl = jobLabel[l.jobType||''] || '';
+    var isConverted = l.status === 'converted';
+
+    // آخر تواصل
+    var lastContact = '';
+    if(l.lastContactDate) {
+      var lcd = new Date(l.lastContactDate);
+      var now = new Date();
+      var days = Math.floor((now-lcd)/(1000*60*60*24));
+      lastContact = days===0?'اليوم':days===1?'أمس':(days+' يوم');
+    }
+
+    return '<div class="card" style="border-top:3px solid '+sc+';transition:.15s" onmouseover="this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.transform=\'\'">' +
+      // Header: الاسم + الحالة
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">' +
+        '<div style="font-size:14px;font-weight:800;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:6px">' + escapeHtml(l.name||'—') + '</div>' +
+        '<span style="font-size:10px;background:'+sc+'22;color:'+sc+';padding:2px 8px;border-radius:8px;font-weight:700;white-space:nowrap;flex-shrink:0">' + sl + '</span>' +
+      '</div>' +
+      // نوع العمل + المجال
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">' +
+        (jl ? '<span style="font-size:10px;background:'+jc+'22;color:'+jc+';padding:2px 8px;border-radius:8px;font-weight:700">'+jl+'</span>' : '') +
+        (l.specialty ? '<span style="font-size:10px;background:var(--surface3);color:var(--text2);padding:2px 8px;border-radius:8px">'+escapeHtml(l.specialty)+'</span>' : '') +
+      '</div>' +
+      // بيانات الاتصال
+      (l.phone ? '<div style="font-size:12px;color:var(--text3);margin-bottom:3px"><i class="fa-solid fa-phone" style="width:14px;color:var(--accent3)"></i> <a href="https://wa.me/'+l.phone.replace(/\D/g,'')+'" target="_blank" style="color:inherit;text-decoration:none">'+escapeHtml(l.phone)+'</a></div>' : '') +
+      (l.source ? '<div style="font-size:11px;color:var(--text3);margin-bottom:3px"><i class="fa-solid fa-tag" style="width:14px"></i> '+escapeHtml(l.source)+'</div>' : '') +
+      // آخر تواصل
+      (lastContact ? '<div style="font-size:11px;color:'+(l.lastContactDate&&(new Date()-new Date(l.lastContactDate))>7*86400000?'var(--accent4)':'var(--accent3)')+';margin-bottom:3px"><i class="fa-solid fa-clock" style="width:14px"></i> آخر تواصل: '+lastContact+'</div>' : '<div style="font-size:11px;color:var(--accent4);margin-bottom:3px"><i class="fa-solid fa-clock" style="width:14px"></i> لم يتم التواصل</div>') +
+      (l.proposalTotal ? '<div style="font-size:11px;color:var(--accent2);margin-bottom:6px"><i class="fa-solid fa-file-contract" style="width:14px"></i> عرض: '+Number(l.proposalTotal).toLocaleString()+' ج</div>' : '') +
+      (l.notes ? '<div style="font-size:11px;color:var(--text3);font-style:italic;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">"'+escapeHtml(l.notes)+'"</div>' : '') +
+      // أزرار
+      '<div style="display:flex;gap:5px;margin-top:8px">' +
+        '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;font-size:11px" onclick="_openEditLeadModal(\''+l.id+'\')"><i class="fa-solid fa-pen"></i> تعديل</button>' +
+        (!isConverted ? '<button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;font-size:11px" onclick="_convertLeadToClient(\''+l.id+'\')"><i class="fa-solid fa-user-check"></i> تحويل</button>' : '<div style="flex:1;text-align:center;font-size:10px;color:var(--accent);font-weight:700;padding:6px"><i class="fa-solid fa-circle-check"></i> تم</div>') +
+        '<button class="btn btn-ghost btn-sm" onclick="_deleteLead(\''+l.id+'\')" title="حذف" style="color:var(--accent4)"><i class="fa-solid fa-trash"></i></button>' +
+      '</div>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+// ── مزامنة المحتملين من عروض الأسعار ──
+function _syncLeadsFromProposals() {
+  if(!S.proposals||!S.proposals.length) return;
+  if(!S.leads) S.leads = [];
+  S.proposals.forEach(function(p) {
+    var cn = (p.clientName||'').trim();
+    if(!cn) return;
+    var inClients = (S.clients||[]).find(function(c){ return c.name===cn; });
+    if(inClients) return;
+    var inLeads = S.leads.find(function(l){ return l.proposalId===p.id||l.name===cn; });
+    if(inLeads) {
+      inLeads.lastProposalDate = p.date||p.createdAt||inLeads.lastProposalDate;
+      inLeads.proposalId = p.id;
+      inLeads.proposalTotal = p.total||inLeads.proposalTotal;
+      return;
+    }
+    S.leads.push({
+      id: 'lead_'+p.id,
+      name: cn,
+      phone: p.clientPhone||'',
+      email: p.clientEmail||'',
+      source: 'عرض سعر',
+      status: 'pending',
+      proposalId: p.id,
+      proposalTotal: p.total||0,
+      lastProposalDate: p.date||p.createdAt||'',
+      createdAt: p.createdAt||new Date().toISOString()
+    });
+  });
+}
+
+// ── تحويل محتمل لعميل ──
+function _convertLeadToClient(leadId) {
+  if(!S.leads) return;
+  var lead = S.leads.find(function(l){ return l.id===leadId; });
+  if(!lead) return;
+  if(!S.clients) S.clients=[];
+  S.clients.push({
+    id: Date.now(),
+    name: lead.name,
+    phone: lead.phone||'',
+    email: lead.email||'',
+    source: lead.source==='عرض سعر' ? 'عرض سعر' : 'محتمل',
+    type: 'فرد',
+    createdAt: new Date().toISOString()
+  });
+  lead.status = 'converted';
+  lead.convertedAt = new Date().toISOString();
+  lsSave(); cloudSave(S);
+  _renderLeads();
+  if(typeof renderClients==='function') renderClients();
+  _updateClientTabCounts();
+  toast('<i class="fa-solid fa-user-check" style="color:var(--accent3)"></i> تم تحويل ' + escapeHtml(lead.name) + ' لعميل! 🎉');
+}
+
+function _deleteLead(leadId) {
+  if(!confirm('حذف هذا العميل المحتمل؟')) return;
+  S.leads = (S.leads||[]).filter(function(l){ return l.id!==leadId; });
+  lsSave(); _renderLeads(); _updateClientTabCounts();
+}
+
+// ── عرض جهات الاتصال ──
+function _renderContacts() {
+  var el = document.getElementById('_contacts-list'); if(!el) return;
+  if(!S.contacts) S.contacts = [];
+  var all = [];
+  // من قاعدة العملاء
+  (S.clients||[]).forEach(function(c) {
+    if(c.name||c.phone) all.push({id:'cli_'+c.id, name:c.name||'—', phone:c.phone||'', email:c.email||'', type:'client', tag:'عميل'});
+  });
+  // من المحتملين
+  (S.leads||[]).forEach(function(l) {
+    if(!all.find(function(x){return x.phone&&x.phone===l.phone;}))
+      all.push({id:'lea_'+l.id, name:l.name||'—', phone:l.phone||'', email:l.email||'', type:'lead', tag:'محتمل'});
+  });
+  // جهات اتصال منفصلة
+  (S.contacts||[]).forEach(function(c) {
+    if(!all.find(function(x){return x.phone&&x.phone===c.phone;}))
+      all.push({id:'con_'+c.id, name:c.name||'—', phone:c.phone||'', email:c.email||'', type:'contact', tag:c.source||'جهة اتصال'});
+  });
+  _updateClientTabCounts();
+  if(!all.length) {
+    el.innerHTML='<div class="empty card" style="text-align:center;padding:48px"><div class="empty-icon"><i class="fa-solid fa-address-book" style="color:var(--accent3)"></i></div><div style="font-size:15px;font-weight:800;margin-bottom:6px">لا جهات اتصال</div><div style="font-size:12px;color:var(--text3)">أضف عملاء لتظهر أرقامهم هنا تلقائياً</div></div>';
+    return;
+  }
+  var tagColor = {client:'var(--accent3)',lead:'var(--accent2)',contact:'var(--accent)'};
+  el.innerHTML = '<div class="card" style="padding:0;overflow:hidden">' +
+    '<div style="padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:space-between">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text2)"><i class="fa-solid fa-address-book" style="color:var(--accent3)"></i> ' + all.length + ' جهة اتصال</div>' +
+      '<input placeholder="بحث..." oninput="_filterContacts(this.value)" class="form-input" style="width:180px;height:30px;font-size:12px">' +
+    '</div>' +
+    '<div id="_contacts-table-wrap" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
+    '<thead><tr style="background:var(--surface2)">' +
+      '<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3)">الاسم</th>' +
+      '<th style="padding:10px 8px;text-align:right;font-weight:800;color:var(--text3)">الهاتف</th>' +
+      '<th style="padding:10px 8px;text-align:right;font-weight:800;color:var(--text3)">البريد</th>' +
+      '<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3)">النوع</th>' +
+      '<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3)">إجراء</th>' +
+    '</tr></thead>' +
+    '<tbody id="_contacts-tbody">' +
+    all.map(function(c) {
+      var tc = tagColor[c.type]||'var(--text3)';
+      return '<tr class="_con-row" style="border-bottom:1px solid var(--border)">' +
+        '<td style="padding:10px 14px;font-weight:700">' + escapeHtml(c.name) + '</td>' +
+        '<td style="padding:10px 8px">' +
+          (c.phone ? '<a href="https://wa.me/'+c.phone.replace(/\D/g,'')+'" target="_blank" style="color:var(--accent3);text-decoration:none;display:flex;align-items:center;gap:6px;font-size:12px"><i class="fa-brands fa-whatsapp"></i> ' + escapeHtml(c.phone) + '</a>' : '<span style="color:var(--text3)">—</span>') +
+        '</td>' +
+        '<td style="padding:10px 8px;font-size:12px;color:var(--text3)">' + escapeHtml(c.email||'—') + '</td>' +
+        '<td style="padding:10px 8px;text-align:center"><span style="font-size:10px;background:'+tc+'22;color:'+tc+';padding:2px 8px;border-radius:8px;font-weight:700">' + escapeHtml(c.tag) + '</span></td>' +
+        '<td style="padding:10px 8px;text-align:center">' +
+          (c.phone ? '<a href="https://wa.me/'+c.phone.replace(/\D/g,'')+'" target="_blank" class="btn btn-ghost btn-sm" title="واتساب"><i class="fa-brands fa-whatsapp" style="color:var(--accent3)"></i></a>' : '') +
+        '</td>' +
+      '</tr>';
+    }).join('') +
+    '</tbody></table></div></div>';
+}
+
+function _filterContacts(q) {
+  var rows = document.querySelectorAll('._con-row');
+  rows.forEach(function(r) {
+    r.style.display = q ? (r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none') : '';
+  });
+}
+
+function _importContactsCSV() {
+  var inp = document.createElement('input'); inp.type='file'; inp.accept='.csv,.txt';
+  inp.onchange = function() {
+    var file = inp.files[0]; if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var lines = (e.target.result||'').split('\n').filter(Boolean);
+      if(!S.contacts) S.contacts=[];
+      var added=0;
+      lines.forEach(function(line) {
+        var p=line.split(',').map(function(x){return x.trim().replace(/^"|"$/g,'');});
+        var name=p[0]||'',phone=p[1]||'',email=p[2]||'';
+        if(!name&&!phone) return;
+        if(S.contacts.find(function(c){return c.phone&&c.phone===phone;})) return;
+        S.contacts.push({id:'imp_'+Date.now()+'_'+added,name,phone,email,source:'CSV',createdAt:new Date().toISOString()});
+        added++;
+      });
+      if(added){lsSave();_renderContacts();toast('✅ تم استيراد '+added+' جهة اتصال');}
+      else toast('⚠ تنسيق غير صحيح — يجب: الاسم, الهاتف, البريد');
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
+function _getLeadSpecialties() {
+  // جمع كل التخصصات المستخدمة + افتراضية
+  var used = (S.leads||[]).map(function(l){return l.specialty||'';}).filter(Boolean);
+  var defaults = ['تصميم جرافيك','تصميم UI/UX','برمجة وتطوير','تسويق رقمي','كتابة محتوى','فيديو وموشن','تصوير','إدارة حسابات','SEO','استشارات','أخرى'];
+  var all = [...new Set([...defaults,...used])];
+  return all;
+}
+
+function _buildLeadModal(lead) {
+  var isEdit = !!lead;
+  var specs = _getLeadSpecialties();
+  var specsOpts = specs.map(function(s){
+    return '<option value="'+escapeHtml(s)+'"'+(lead&&lead.specialty===s?' selected':'')+'>'+escapeHtml(s)+'</option>';
+  }).join('');
+
+  var m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.style.display = 'flex';
+  m.innerHTML = '<div class="modal" style="max-width:520px">'+
+    '<div class="modal-header">'+
+      '<div class="modal-title"><i class="fa-solid fa-user-plus" style="color:var(--accent2)"></i> '+(isEdit?'تعديل عميل محتمل':'إضافة عميل محتمل')+'</div>'+
+      '<button class="close-btn" onclick="this.closest(\'.modal-overlay\').remove()">✕</button>'+
+    '</div>'+
+
+    // Row 1: الاسم + الهاتف
+    '<div class="form-row">'+
+      '<div class="form-group"><div class="form-label">الاسم *</div><input class="form-input" id="_lm-name" placeholder="اسم العميل" value="'+escapeHtml(lead?lead.name:'')+'"></div>'+
+      '<div class="form-group"><div class="form-label">الهاتف</div><input class="form-input" id="_lm-phone" placeholder="01xxxxxxxxx" dir="ltr" value="'+escapeHtml(lead?lead.phone:'')+'"></div>'+
+    '</div>'+
+
+    // Row 2: البريد + المصدر
+    '<div class="form-row">'+
+      '<div class="form-group"><div class="form-label">البريد الإلكتروني</div><input class="form-input" id="_lm-email" type="email" placeholder="email@example.com" dir="ltr" value="'+escapeHtml(lead?lead.email:'')+'"></div>'+
+      '<div class="form-group"><div class="form-label">مصدر التعرف</div>'+
+        '<select class="form-select" id="_lm-source">'+
+          ['واتساب','انستقرام','إحالة','موقع','تيك توك','لينكد إن','فيسبوك','معرض أعمال','أخرى'].map(function(s){
+            return '<option value="'+s+'"'+(lead&&lead.source===s?' selected':'')+'>'+s+'</option>';
+          }).join('')+
+        '</select>'+
+      '</div>'+
+    '</div>'+
+
+    // Row 3: نوع العمل + الحالة
+    '<div class="form-row">'+
+      '<div class="form-group"><div class="form-label">نوع العمل</div>'+
+        '<select class="form-select" id="_lm-jobtype">'+
+          '<option value="">— اختر —</option>'+
+          '<option value="freelance"'+(lead&&lead.jobType==='freelance'?' selected':'')+'>🎯 فري لانس</option>'+
+          '<option value="fulltime"'+(lead&&lead.jobType==='fulltime'?' selected':'')+'>🏢 دوام كامل</option>'+
+          '<option value="parttime"'+(lead&&lead.jobType==='parttime'?' selected':'')+'>⏰ بارت تايم</option>'+
+          '<option value="project"'+(lead&&lead.jobType==='project'?' selected':'')+'>📋 مشروع محدد</option>'+
+        '</select>'+
+      '</div>'+
+      '<div class="form-group"><div class="form-label">حالة المحتمل</div>'+
+        '<select class="form-select" id="_lm-status">'+
+          '<option value="pending"'+((!lead||lead.status==='pending')?' selected':'')+'>⏳ في الانتظار</option>'+
+          '<option value="active"'+(lead&&lead.status==='active'?' selected':'')+'>✅ نشط</option>'+
+          '<option value="lost"'+(lead&&lead.status==='lost'?' selected':'')+'>❌ لم يتحوّل</option>'+
+        '</select>'+
+      '</div>'+
+    '</div>'+
+
+    // Row 4: المجال/التخصص (مع إضافة مخصص)
+    '<div class="form-row">'+
+      '<div class="form-group" style="flex:1"><div class="form-label">المجال / التخصص</div>'+
+        '<div style="display:flex;gap:6px">'+
+          '<select class="form-select" id="_lm-spec-sel" style="flex:1" onchange="_lmSpecSelChange(this)">'+
+            '<option value="">— اختر أو اكتب —</option>'+
+            specsOpts+
+            '<option value="__custom__">➕ أضف مجالاً جديداً</option>'+
+          '</select>'+
+          '<input class="form-input" id="_lm-spec-input" placeholder="مجال مخصص..." style="flex:1;display:none" value="'+escapeHtml(lead?lead.specialty:'')+'">'+
+        '</div>'+
+      '</div>'+
+      '<div class="form-group"><div class="form-label">آخر تواصل</div>'+
+        '<input class="form-input" type="date" id="_lm-last-contact" value="'+escapeHtml(lead&&lead.lastContactDate?lead.lastContactDate.slice(0,10):'')+'">'+
+      '</div>'+
+    '</div>'+
+
+    // ملاحظة
+    '<div class="form-group"><div class="form-label">ملاحظات</div>'+
+      '<textarea class="form-input" id="_lm-notes" rows="2" placeholder="أي تفاصيل مهمة...">'+escapeHtml(lead?lead.notes:'')+'</textarea>'+
+    '</div>'+
+
+    '<div style="display:flex;gap:8px;justify-content:flex-end">'+
+      '<button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">إلغاء</button>'+
+      '<button class="btn btn-primary" id="_lm-save-btn"><i class="fa-solid fa-floppy-disk"></i> '+(isEdit?'حفظ التعديل':'إضافة')+'</button>'+
+    '</div>'+
+  '</div>';
+
+  document.body.appendChild(m);
+
+  // لو التخصص مش في الـ list → أظهر الـ input
+  if(lead && lead.specialty && !specs.includes(lead.specialty)) {
+    var sel = document.getElementById('_lm-spec-sel');
+    var inp = document.getElementById('_lm-spec-input');
+    if(sel) sel.style.display='none';
+    if(inp) inp.style.display='block';
+  } else if(lead && lead.specialty) {
+    var sel2 = document.getElementById('_lm-spec-sel');
+    if(sel2) sel2.value = lead.specialty;
+  }
+
+  document.getElementById('_lm-save-btn').onclick = function() {
+    var name=(document.getElementById('_lm-name').value||'').trim();
+    if(!name){ toast('⚠ الاسم مطلوب'); return; }
+
+    var specSel = document.getElementById('_lm-spec-sel');
+    var specInp = document.getElementById('_lm-spec-input');
+    var specialty = '';
+    if(specInp && specInp.style.display!=='none') {
+      specialty = (specInp.value||'').trim();
+    } else if(specSel && specSel.value && specSel.value!=='__custom__') {
+      specialty = specSel.value;
+    }
+
+    var lastContactDate = (document.getElementById('_lm-last-contact').value||'').trim();
+
+    if(!S.leads) S.leads=[];
+    var entry = {
+      id: lead ? lead.id : ('lead_'+Date.now()),
+      name,
+      phone: (document.getElementById('_lm-phone').value||'').trim(),
+      email: (document.getElementById('_lm-email').value||'').trim(),
+      source: document.getElementById('_lm-source').value||'أخرى',
+      jobType: document.getElementById('_lm-jobtype').value||'',
+      status: document.getElementById('_lm-status').value||'pending',
+      specialty,
+      lastContactDate,
+      notes: (document.getElementById('_lm-notes').value||'').trim(),
+      createdAt: lead ? (lead.createdAt||new Date().toISOString()) : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      // حافظ على بيانات الـ proposal لو موجودة
+      proposalId: lead ? lead.proposalId : undefined,
+      proposalTotal: lead ? lead.proposalTotal : undefined
+    };
+
+    if(lead) {
+      var idx = S.leads.findIndex(function(l){ return l.id===lead.id; });
+      if(idx>-1) S.leads[idx]=entry; else S.leads.push(entry);
+    } else {
+      S.leads.push(entry);
+    }
+    lsSave(); m.remove(); _renderLeads();
+    toast(isEdit ? '✅ تم حفظ التعديل' : '✅ تم إضافة العميل المحتمل');
+  };
+  m.onclick = function(e){ if(e.target===m) m.remove(); };
+}
+
+function _lmSpecSelChange(sel) {
+  var inp = document.getElementById('_lm-spec-input');
+  if(!inp) return;
+  if(sel.value === '__custom__') {
+    sel.style.display = 'none';
+    inp.style.display = 'block';
+    inp.value = '';
+    inp.focus();
+  }
+}
+
+function _openAddLeadModal() { _buildLeadModal(null); }
+
+function _openEditLeadModal(leadId) {
+  var lead = (S.leads||[]).find(function(l){ return l.id===leadId; });
+  if(!lead) return;
+  _buildLeadModal(lead);
+}
+
+function _openAddContactModal() {
+  var m=document.createElement('div');m.className='modal-overlay';m.style.display='flex';
+  m.innerHTML='<div class="modal" style="max-width:420px">'+
+    '<div class="modal-header"><div class="modal-title"><i class="fa-solid fa-address-book" style="color:var(--accent3)"></i> إضافة جهة اتصال</div>'+
+      '<button class="close-btn" onclick="this.closest(\'.modal-overlay\').remove()">✕</button></div>'+
+    '<div class="form-group"><div class="form-label">الاسم</div><input class="form-input" id="_ac-name" placeholder="الاسم الكامل"></div>'+
+    '<div class="form-group"><div class="form-label">الهاتف *</div><input class="form-input" id="_ac-phone" placeholder="01xxxxxxxxx" dir="ltr"></div>'+
+    '<div class="form-group"><div class="form-label">البريد الإلكتروني</div><input class="form-input" id="_ac-email" type="email" placeholder="email@example.com" dir="ltr"></div>'+
+    '<div style="display:flex;gap:8px;justify-content:space-between;align-items:center">'+
+      '<button class="btn btn-ghost btn-sm" onclick="_importContactsCSV()"><i class="fa-solid fa-file-import"></i> استيراد CSV</button>'+
+      '<div style="display:flex;gap:8px">'+
+        '<button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">إلغاء</button>'+
+        '<button class="btn btn-primary" id="_ac-save-btn"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+  document.body.appendChild(m);
+  document.getElementById('_ac-save-btn').onclick=function(){
+    var phone=(document.getElementById('_ac-phone').value||'').trim();
+    if(!phone){toast('⚠ الهاتف مطلوب');return;}
+    if(!S.contacts)S.contacts=[];
+    S.contacts.push({id:'con_'+Date.now(),name:(document.getElementById('_ac-name').value||'').trim(),phone,email:(document.getElementById('_ac-email').value||'').trim(),source:'يدوي',createdAt:new Date().toISOString()});
+    lsSave();m.remove();_renderContacts();toast('✅ تم إضافة جهة الاتصال');
+  };
+  m.onclick=function(e){if(e.target===m)m.remove();};
+}
+
+// ═══════════════════════════════════════════════════════
+// VAULT SYSTEM — حساباتي (خزنة كلمات المرور)
+// AES-256 encryption via SubtleCrypto Web API
+// ═══════════════════════════════════════════════════════
+
+var _vaultKey = null;       // CryptoKey المشتقة من كلمة المرور
+var _vaultSalt = null;      // Salt مخزّن مع البيانات
+var _vaultEntries = [];     // الحسابات المحفوظة (بعد فك التشفير)
+var _vaultIsNew = false;    // هل الخزنة جديدة (أول مرة)
+
+// ── تهيئة صفحة الخزنة عند فتحها ──
+function initVaultPage() {
+  var lockScreen = document.getElementById('vault-lock-screen');
+  var content = document.getElementById('vault-content');
+  if(!lockScreen || !content) return;
+
+  if(_vaultKey) {
+    // الخزنة مفتوحة بالفعل
+    lockScreen.style.display = 'none';
+    content.style.display = 'block';
+    renderVault();
+    return;
+  }
+
+  // تحقق هل عندنا بيانات مشفرة
+  var stored = _getVaultStored();
+  _vaultIsNew = !stored || !stored.iv;
+
+  content.style.display = 'none';
+  lockScreen.style.display = 'block';
+
+  var titleEl = document.getElementById('vault-lock-title');
+  var subEl = document.getElementById('vault-lock-sub');
+  var confirmWrap = document.getElementById('vault-confirm-wrap');
+  var lockBtn = document.getElementById('vault-lock-btn');
+  var strengthBar = document.getElementById('vault-strength-bar');
+
+  if(_vaultIsNew) {
+    if(titleEl) titleEl.textContent = '🔐 إنشاء كلمة مرور للخزنة';
+    if(subEl) subEl.textContent = 'اختر كلمة مرور قوية — لا يمكن استعادتها إذا نسيتها';
+    if(confirmWrap) confirmWrap.style.display = 'block';
+    if(lockBtn) lockBtn.textContent = '✅ إنشاء الخزنة';
+    if(strengthBar) strengthBar.style.display = 'block';
+  } else {
+    if(titleEl) titleEl.textContent = '🔓 أدخل كلمة مرور الخزنة';
+    if(subEl) subEl.textContent = 'بياناتك محفوظة ومشفّرة — أدخل كلمة المرور للوصول';
+    if(confirmWrap) confirmWrap.style.display = 'none';
+    if(lockBtn) lockBtn.textContent = '🔓 فتح الخزنة';
+    if(strengthBar) strengthBar.style.display = 'none';
+  }
+
+  // قوة كلمة المرور
+  var masterInput = document.getElementById('vault-master-input');
+  if(masterInput) {
+    masterInput.value = '';
+    masterInput.oninput = function() {
+      if(_vaultIsNew) _updateVaultStrength(this.value);
+    };
+    masterInput.onkeydown = function(e) { if(e.key==='Enter') submitVaultLock(); };
+  }
+  var masterConfirm = document.getElementById('vault-master-confirm');
+  if(masterConfirm) {
+    masterConfirm.value = '';
+    masterConfirm.onkeydown = function(e) { if(e.key==='Enter') submitVaultLock(); };
+  }
+  setTimeout(function(){ if(masterInput) masterInput.focus(); }, 200);
+}
+
+function _updateVaultStrength(pwd) {
+  var fill = document.getElementById('vault-strength-fill');
+  var lbl = document.getElementById('vault-strength-label');
+  if(!fill||!lbl) return;
+  var score = 0;
+  if(pwd.length >= 8) score++;
+  if(pwd.length >= 12) score++;
+  if(/[A-Z]/.test(pwd)) score++;
+  if(/[0-9]/.test(pwd)) score++;
+  if(/[^A-Za-z0-9]/.test(pwd)) score++;
+  var levels = [
+    {pct:'20%', color:'#f76f7c', label:'ضعيفة جداً'},
+    {pct:'40%', color:'#f76f7c', label:'ضعيفة'},
+    {pct:'60%', color:'#f7c948', label:'متوسطة'},
+    {pct:'80%', color:'#4fd1a5', label:'قوية'},
+    {pct:'100%',color:'#4fd1a5', label:'قوية جداً ✓'}
+  ];
+  var lv = levels[Math.max(0,score-1)] || levels[0];
+  fill.style.width = lv.pct;
+  fill.style.background = lv.color;
+  lbl.textContent = pwd ? lv.label : '';
+  lbl.style.color = lv.color;
+}
+
+// ── مفتاح التشفير من كلمة المرور ──
+async function _deriveKey(password, salt) {
+  var enc = new TextEncoder();
+  var keyMaterial = await crypto.subtle.importKey(
+    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+  );
+  return await crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt:salt, iterations:100000, hash:'SHA-256' },
+    keyMaterial,
+    { name:'AES-GCM', length:256 },
+    false, ['encrypt','decrypt']
+  );
+}
+
+// ── تشفير ──
+async function _vaultEncrypt(data) {
+  var enc = new TextEncoder();
+  var iv = crypto.getRandomValues(new Uint8Array(12));
+  var encrypted = await crypto.subtle.encrypt(
+    { name:'AES-GCM', iv:iv },
+    _vaultKey,
+    enc.encode(JSON.stringify(data))
+  );
+  return {
+    iv: Array.from(iv).join(','),
+    data: Array.from(new Uint8Array(encrypted)).join(',')
+  };
+}
+
+// ── فك التشفير ──
+async function _vaultDecrypt(stored) {
+  try {
+    var iv = new Uint8Array(stored.iv.split(',').map(Number));
+    var data = new Uint8Array(stored.data.split(',').map(Number));
+    var dec = new TextDecoder();
+    var decrypted = await crypto.subtle.decrypt(
+      { name:'AES-GCM', iv:iv },
+      _vaultKey,
+      data
+    );
+    return JSON.parse(dec.decode(decrypted));
+  } catch(e) {
+    return null; // كلمة مرور خاطئة
+  }
+}
+
+// ── جيب البيانات المخزنة ──
+function _getVaultStored() {
+  try {
+    var uid = (typeof _supaUserId !== 'undefined' && _supaUserId) ? _supaUserId : 'local';
+    var raw = localStorage.getItem('_vault_' + uid);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+// ── احفظ البيانات ──
+async function _saveVaultData() {
+  try {
+    var uid = (typeof _supaUserId !== 'undefined' && _supaUserId) ? _supaUserId : 'local';
+    var encrypted = await _vaultEncrypt(_vaultEntries);
+    var obj = {
+      iv: encrypted.iv,
+      data: encrypted.data,
+      salt: Array.from(_vaultSalt).join(','),
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem('_vault_' + uid, JSON.stringify(obj));
+  } catch(e) { console.error('vault save error:', e); }
+}
+
+// ── فتح / إنشاء الخزنة ──
+async function submitVaultLock() {
+  var pwd = (document.getElementById('vault-master-input')||{}).value || '';
+  if(!pwd) { _vaultToast('⚠ أدخل كلمة المرور'); return; }
+
+  var lockBtn = document.getElementById('vault-lock-btn');
+  if(lockBtn) { lockBtn.disabled=true; lockBtn.textContent='⏳ جاري...'; }
+
+  try {
+    if(_vaultIsNew) {
+      // إنشاء خزنة جديدة
+      var confirm = (document.getElementById('vault-master-confirm')||{}).value || '';
+      if(pwd !== confirm) {
+        _vaultToast('⚠ كلمتا المرور غير متطابقتين');
+        if(lockBtn) { lockBtn.disabled=false; lockBtn.textContent='✅ إنشاء الخزنة'; }
+        return;
+      }
+      if(pwd.length < 6) {
+        _vaultToast('⚠ كلمة المرور قصيرة جداً (6 أحرف على الأقل)');
+        if(lockBtn) { lockBtn.disabled=false; lockBtn.textContent='✅ إنشاء الخزنة'; }
+        return;
+      }
+      _vaultSalt = crypto.getRandomValues(new Uint8Array(16));
+      _vaultKey = await _deriveKey(pwd, _vaultSalt);
+      _vaultEntries = [];
+      await _saveVaultData();
+      _vaultToast('✅ تم إنشاء الخزنة بنجاح!');
+    } else {
+      // فتح خزنة موجودة
+      var stored = _getVaultStored();
+      if(!stored) { _vaultToast('⚠ لا توجد بيانات'); if(lockBtn){lockBtn.disabled=false;lockBtn.textContent='🔓 فتح الخزنة';} return; }
+      _vaultSalt = new Uint8Array(stored.salt.split(',').map(Number));
+      _vaultKey = await _deriveKey(pwd, _vaultSalt);
+      var result = await _vaultDecrypt(stored);
+      if(result === null) {
+        _vaultKey = null;
+        _vaultToast('❌ كلمة المرور غير صحيحة');
+        if(lockBtn) { lockBtn.disabled=false; lockBtn.textContent='🔓 فتح الخزنة'; }
+        // هزّ الـ input
+        var inp = document.getElementById('vault-master-input');
+        if(inp) { inp.style.borderColor='var(--accent4)'; setTimeout(function(){ inp.style.borderColor=''; },1500); }
+        return;
+      }
+      _vaultEntries = Array.isArray(result) ? result : [];
+    }
+
+    // نجح الفتح
+    document.getElementById('vault-lock-screen').style.display = 'none';
+    document.getElementById('vault-content').style.display = 'block';
+    renderVault();
+    if(lockBtn) { lockBtn.disabled=false; }
+
+  } catch(e) {
+    console.error('vault unlock error:', e);
+    _vaultToast('⚠ خطأ: ' + e.message);
+    if(lockBtn) { lockBtn.disabled=false; lockBtn.textContent='🔓 فتح الخزنة'; }
+  }
+}
+
+// ── عرض الحسابات ──
+function renderVault() {
+  var listEl = document.getElementById('vault-list');
+  var statsEl = document.getElementById('vault-stats');
+  if(!listEl) return;
+
+  var q = (document.getElementById('vault-search')||{}).value || '';
+  var cat = (document.getElementById('vault-cat-filter')||{}).value || '';
+
+  var entries = _vaultEntries.filter(function(e) {
+    var matchQ = !q || (e.name||'').toLowerCase().includes(q.toLowerCase()) || (e.username||'').toLowerCase().includes(q.toLowerCase());
+    var matchCat = !cat || e.cat === cat;
+    return matchQ && matchCat;
+  });
+
+  // إحصائيات
+  if(statsEl) {
+    var catCounts = {};
+    _vaultEntries.forEach(function(e){ catCounts[e.cat||'other'] = (catCounts[e.cat||'other']||0)+1; });
+    var catIcons = {social:'📱',email:'📧',bank:'🏦',work:'💼',shopping:'🛍',other:'📁'};
+    statsEl.innerHTML = Object.entries(catCounts).map(function(kv){
+      return '<span style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;color:var(--text2)">'+(catIcons[kv[0]]||'📁')+' '+kv[1]+'</span>';
+    }).join('') + '<span style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;color:var(--accent)"><i class="fa-solid fa-key"></i> '+_vaultEntries.length+' حساب</span>';
+  }
+
+  if(!entries.length) {
+    listEl.innerHTML = '<div class="empty card" style="text-align:center;padding:48px"><div class="empty-icon">🔐</div><div style="font-size:15px;font-weight:800;margin-bottom:6px">'+(_vaultEntries.length?'لا نتائج':'الخزنة فارغة')+'</div><div style="font-size:12px;color:var(--text3)">'+(_vaultEntries.length?'جرب بحثاً مختلفاً':'أضف أول حساب بالضغط على "+ حساب جديد"')+'</div></div>';
+    return;
+  }
+
+  var catIcons2 = {social:'📱',email:'📧',bank:'🏦',work:'💼',shopping:'🛍',other:'📁'};
+  listEl.innerHTML = '<div class="grid grid-3">' + entries.map(function(e) {
+    var icon = catIcons2[e.cat||'other']||'📁';
+    var domain = '';
+    try { if(e.url) domain = new URL(e.url).hostname.replace('www.',''); } catch(err){}
+    return '<div class="card" style="position:relative;transition:.15s" onmouseover="this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.transform=\'\'">' +
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">' +
+        '<div style="width:42px;height:42px;border-radius:12px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">' + icon + '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _vaultEscape(e.name||'—') + '</div>' +
+          (domain ? '<div style="font-size:10px;color:var(--text3)">' + _vaultEscape(domain) + '</div>' : '') +
+        '</div>' +
+      '</div>' +
+      (e.username ? '<div style="font-size:12px;color:var(--text2);margin-bottom:6px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-user" style="color:var(--text3);width:14px"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _vaultEscape(e.username) + '</span><button onclick="_vaultCopy(\''+_vaultEscape(e.username)+'\')" class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;flex-shrink:0"><i class="fa-solid fa-copy"></i></button></div>' : '') +
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:6px">' +
+        '<i class="fa-solid fa-key" style="color:var(--text3);width:14px"></i>' +
+        '<span id="vpwd-'+e.id+'" style="letter-spacing:3px;font-size:14px;flex:1">••••••••</span>' +
+        '<button onclick="toggleVaultPwdShow(\''+e.id+'\')" class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px"><i class="fa-solid fa-eye" id="veye-'+e.id+'"></i></button>' +
+        '<button onclick="_vaultCopyPwd(\''+e.id+'\')" class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px"><i class="fa-solid fa-copy"></i></button>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px">' +
+        (e.url ? '<a href="'+_vaultEscape(e.url)+'" target="_blank" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;font-size:11px"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح</a>' : '<div style="flex:1"></div>') +
+        '<button onclick="openVaultEntryModal(\''+e.id+'\')" class="btn btn-ghost btn-sm"><i class="fa-solid fa-pen"></i></button>' +
+        '<button onclick="_deleteVaultEntry(\''+e.id+'\')" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>' +
+      '</div>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+// ── إظهار/إخفاء كلمة المرور في الكارد ──
+function toggleVaultPwdShow(id) {
+  var entry = _vaultEntries.find(function(e){ return e.id===id; });
+  if(!entry) return;
+  var span = document.getElementById('vpwd-'+id);
+  var eye = document.getElementById('veye-'+id);
+  if(!span) return;
+  var isHidden = span.style.letterSpacing === '3px';
+  if(isHidden) {
+    span.textContent = entry.password||'—';
+    span.style.letterSpacing = 'normal';
+    span.style.fontSize = '12px';
+    if(eye) eye.className='fa-solid fa-eye-slash';
+    // إخفاء تلقائي بعد 10 ثواني
+    setTimeout(function(){ var s=document.getElementById('vpwd-'+id); if(s&&s.style.letterSpacing!=='3px'){ s.textContent='••••••••'; s.style.letterSpacing='3px'; s.style.fontSize='14px'; var ey=document.getElementById('veye-'+id); if(ey) ey.className='fa-solid fa-eye'; } }, 10000);
+  } else {
+    span.textContent = '••••••••';
+    span.style.letterSpacing = '3px';
+    span.style.fontSize = '14px';
+    if(eye) eye.className='fa-solid fa-eye';
+  }
+}
+
+function _vaultCopyPwd(id) {
+  var entry = _vaultEntries.find(function(e){ return e.id===id; });
+  if(!entry||!entry.password) return;
+  _vaultCopy(entry.password);
+}
+
+function _vaultCopy(text) {
+  navigator.clipboard&&navigator.clipboard.writeText(text).then(function(){
+    _vaultToast('<i class="fa-solid fa-copy" style="color:var(--accent3)"></i> تم النسخ');
+  });
+}
+
+function _vaultEscape(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function _vaultToast(msg) {
+  if(typeof toast === 'function') toast(msg);
+}
+
+// ── نافذة إضافة/تعديل حساب ──
+function openVaultEntryModal(id) {
+  if(!_vaultKey) { _vaultToast('⚠ افتح الخزنة أولاً'); return; }
+  var entry = id ? _vaultEntries.find(function(e){ return e.id===id; }) : null;
+
+  var titleEl = document.getElementById('vault-entry-title');
+  var idEl = document.getElementById('vault-entry-id');
+  if(titleEl) titleEl.innerHTML = entry ? '<i class="fa-solid fa-pen"></i> تعديل الحساب' : '<i class="fa-solid fa-key"></i> حساب جديد';
+  if(idEl) idEl.value = id||'';
+
+  var fields = {
+    've-name': entry ? entry.name : '',
+    've-cat': entry ? (entry.cat||'other') : 'other',
+    've-username': entry ? (entry.username||'') : '',
+    've-password': entry ? (entry.password||'') : '',
+    've-url': entry ? (entry.url||'') : '',
+    've-notes': entry ? (entry.notes||'') : ''
+  };
+  Object.entries(fields).forEach(function(kv){
+    var el=document.getElementById(kv[0]);
+    if(el) el.value=kv[1];
+  });
+
+  // إعادة ضبط قوة كلمة المرور
+  var fill=document.getElementById('ve-strength-fill');
+  if(fill) fill.style.width='0';
+  var pwdInput=document.getElementById('ve-password');
+  if(pwdInput) {
+    pwdInput.oninput=function(){
+      var f=document.getElementById('ve-strength-fill');
+      if(!f) return;
+      var s=this.value;
+      var score=0;
+      if(s.length>=8)score++;if(s.length>=12)score++;
+      if(/[A-Z]/.test(s))score++;if(/[0-9]/.test(s))score++;if(/[^A-Za-z0-9]/.test(s))score++;
+      var colors=['#f76f7c','#f76f7c','#f7c948','#4fd1a5','#4fd1a5'];
+      f.style.width=(score*20)+'%'; f.style.background=colors[Math.max(0,score-1)]||colors[0];
+    };
+  }
+
+  if(typeof openM==='function') openM('modal-vault-entry');
+}
+
+// ── حفظ حساب ──
+async function saveVaultEntry() {
+  if(!_vaultKey) { _vaultToast('⚠ الخزنة مغلقة'); return; }
+  var name = (document.getElementById('ve-name')||{}).value||'';
+  var pwd = (document.getElementById('ve-password')||{}).value||'';
+  if(!name.trim()) { _vaultToast('⚠ اسم الموقع مطلوب'); return; }
+  if(!pwd) { _vaultToast('⚠ كلمة المرور مطلوبة'); return; }
+
+  var eid = (document.getElementById('vault-entry-id')||{}).value||'';
+  var entry = {
+    id: eid || ('ve_'+Date.now()),
+    name: name.trim(),
+    cat: (document.getElementById('ve-cat')||{}).value||'other',
+    username: (document.getElementById('ve-username')||{}).value||'',
+    password: pwd,
+    url: (document.getElementById('ve-url')||{}).value||'',
+    notes: (document.getElementById('ve-notes')||{}).value||'',
+    updatedAt: new Date().toISOString()
+  };
+
+  if(eid) {
+    var idx = _vaultEntries.findIndex(function(e){ return e.id===eid; });
+    if(idx>-1) _vaultEntries[idx]=entry; else _vaultEntries.push(entry);
+  } else {
+    _vaultEntries.push(entry);
+  }
+
+  await _saveVaultData();
+  if(typeof closeM==='function') closeM('modal-vault-entry');
+  renderVault();
+  _vaultToast('✅ تم حفظ الحساب');
+}
+
+// ── حذف حساب ──
+async function _deleteVaultEntry(id) {
+  if(!confirm('حذف هذا الحساب من الخزنة؟')) return;
+  _vaultEntries = _vaultEntries.filter(function(e){ return e.id!==id; });
+  await _saveVaultData();
+  renderVault();
+  _vaultToast('🗑 تم الحذف');
+}
+
+// ── قفل الخزنة ──
+function lockVault() {
+  _vaultKey = null;
+  _vaultSalt = null;
+  _vaultEntries = [];
+  var lock = document.getElementById('vault-lock-screen');
+  var content = document.getElementById('vault-content');
+  if(lock) lock.style.display='block';
+  if(content) content.style.display='none';
+  var inp = document.getElementById('vault-master-input');
+  if(inp) inp.value='';
+  _vaultToast('<i class="fa-solid fa-lock"></i> تم قفل الخزنة');
+}
+
+// ── توليد كلمة مرور قوية ──
+function generateVaultPassword() {
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
+  var pwd = '';
+  var arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  arr.forEach(function(b){ pwd += chars[b % chars.length]; });
+  var el = document.getElementById('ve-password');
+  if(el) {
+    el.value = pwd;
+    el.type = 'text';
+    el.dispatchEvent(new Event('input'));
+    setTimeout(function(){ el.type='password'; }, 3000);
+    _vaultCopy(pwd);
+    _vaultToast('<i class="fa-solid fa-wand-magic-sparkles" style="color:var(--accent)"></i> كلمة مرور قوية — تم النسخ!');
+  }
+}
+
+// ── إظهار/إخفاء كلمة المرور في الـ input ──
+function toggleVaultPwdVisibility(inputId, eyeId) {
+  var inp = document.getElementById(inputId);
+  var eye = document.getElementById(eyeId);
+  if(!inp) return;
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  if(eye) eye.className = inp.type==='password' ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+}
+
+// ═══════════════════════════════════════════════════════
+// FIX: _switchClientsTab = inline version (no duplicate injection)
+// ═══════════════════════════════════════════════════════
+window._switchClientsTab = _switchClientsTabInline;
+
+// تأكد من إن الـ vault page تفتح صح لو كانت active عند التحميل
+document.addEventListener('DOMContentLoaded', function(){
+  if(document.querySelector('#page-vault.active')){
+    setTimeout(initVaultPage, 300);
+  }
+});
 </script>
 <script src="customization_patch.js"></script>
 </body></html>

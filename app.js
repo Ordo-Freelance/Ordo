@@ -1030,14 +1030,20 @@ function showPage(id,el){
     window._teamPollNow();
   }
   // Also check team_invites table on team page open
-  if(id === 'team' && typeof window._checkPendingTeamInvitesNow === 'function'){
-    window._checkPendingTeamInvitesNow().then && window._checkPendingTeamInvitesNow();
-    // Re-render member teams after check
+  if(id === 'team'){
+    if(typeof window._checkPendingTeamInvitesNow === 'function') window._checkPendingTeamInvitesNow();
+    // Render invite cards directly in the page
     setTimeout(function(){
+      if(typeof _renderPendingInvitesSection==='function') _renderPendingInvitesSection();
       if(typeof renderMyMemberTeams==='function') renderMyMemberTeams();
-      // Update inbox badge
       if(typeof window._updateInboxBadge==='function') window._updateInboxBadge();
-    }, 1500);
+    }, 600);
+  }
+  // Vault page — init on open
+  if(id === 'vault'){
+    setTimeout(function(){
+      if(typeof initVaultPage==='function') initVaultPage();
+    }, 100);
   }
   // Always reset ALL stab-panels on every navigation
   const settingsPage = document.getElementById('page-settings');
@@ -7566,6 +7572,44 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   }
   _checkTeamMembership(supaUser.email || userObj.email);
 
+  // ── فحص دعوات الفريق فوراً بعد الـ login ──
+  (async function(){
+    try {
+      var myEmail = (supaUser.email || userObj.email || '').toLowerCase().trim();
+      if(!myEmail || typeof supa==='undefined') return;
+      var res = await supa.from('team_invites').select('*')
+        .eq('to_email', myEmail).in('status',['pending','delivered']);
+      var invites = res.data || [];
+      if(!invites.length) return;
+      var localAccepted = JSON.parse(localStorage.getItem('_accepted_team_invites_'+(supaUser.id||''))||'[]');
+      var localDeclined = JSON.parse(localStorage.getItem('_declined_team_invites_'+(supaUser.id||''))||'[]');
+      var fresh = invites.filter(function(p){
+        return !localAccepted.some(function(a){return String(a.teamId)===String(p.team_id);}) &&
+               !localDeclined.includes(String(p.id));
+      });
+      if(!fresh.length) return;
+      // عرض الدعوات
+      setTimeout(function(){
+        var toShow = fresh.map(function(pinv){
+          var pl={};
+          try{pl=typeof pinv.payload==='string'?JSON.parse(pinv.payload):(pinv.payload||{});}catch(e){}
+          return { id:pinv.id, type:'team_invite', teamName:pinv.team_name, teamId:pinv.team_id,
+            ownerName:pinv.owner_name, memberName:pinv.member_name, memberRole:pinv.member_role,
+            ownerUserId:pl.ownerUserId||'', isCompanyTeam:pl.isCompanyTeam||false,
+            teamUrl:pl.teamUrl||'', body:'دعوة للانضمام لـ "'+pinv.team_name+'" بواسطة '+pinv.owner_name,
+            status:'pending', read:false };
+        });
+        window._pendingTeamInvites = (window._pendingTeamInvites||[]).concat(toShow.filter(function(t){
+          return !(window._pendingTeamInvites||[]).find(function(x){return x.id===t.id;});
+        }));
+        if(typeof _updateInboxBadge==='function') _updateInboxBadge();
+        var inboxBtn = document.getElementById('team-invite-inbox-btn');
+        if(inboxBtn) inboxBtn.style.display='';
+        if(typeof window._showTeamInviteDialog==='function') window._showTeamInviteDialog(toShow);
+      }, 2500);
+    }catch(e){ console.warn('[invites]', e.message||e); }
+  })();
+
   // إخفاء اللوجين وإظهار التطبيق
   if(window._showApp) window._showApp();
   // تأكد إن body مش hidden
@@ -9710,10 +9754,83 @@ function _chooseTeamType(type){
   if(type === 'regular'){
     openTeamModal();
   } else {
-    // شركة — افتح team.html
-    const base = window.location.href.replace(/[^/]*(\?.*)?$/, '');
-    window.open(base + 'team.html', '_blank');
+    // شركة — modal مخصص لإنشاء الشركة
+    _openCreateCompanyModal();
   }
+}
+
+function _openCreateCompanyModal(){
+  var old = document.getElementById('_modal-create-company');
+  if(old) old.remove();
+  var m = document.createElement('div');
+  m.id = '_modal-create-company';
+  m.className = 'modal-overlay';
+  m.style.display = 'flex';
+  m.innerHTML = `
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-building" style="color:var(--accent2)"></i> شركة جديدة</div>
+      <button class="close-btn" onclick="document.getElementById('_modal-create-company').remove()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">اسم الشركة *</label>
+      <input class="form-input" id="_cc-name" placeholder="مثال: شركة الإبداع للتسويق">
+    </div>
+    <div class="form-group">
+      <label class="form-label">وصف الشركة</label>
+      <input class="form-input" id="_cc-desc" placeholder="اختياري">
+    </div>
+    <div style="background:rgba(247,201,72,.07);border:1px solid rgba(247,201,72,.2);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--text2);line-height:1.7">
+      <i class="fa-solid fa-building" style="color:var(--accent2)"></i>
+      بعد الإنشاء ستفتح صفحة الشركة المتكاملة — يمكنك إضافة الأعضاء والمهام من هناك
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="document.getElementById('_modal-create-company').remove()">إلغاء</button>
+      <button class="btn btn-primary" onclick="_saveNewCompany()">
+        <i class="fa-solid fa-floppy-disk"></i> إنشاء الشركة
+      </button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+  setTimeout(function(){ var n=document.getElementById('_cc-name'); if(n) n.focus(); }, 100);
+  m.onclick = function(e){ if(e.target===m) m.remove(); };
+  document.getElementById('_cc-name').addEventListener('keydown', function(e){
+    if(e.key==='Enter') _saveNewCompany();
+  });
+}
+
+function _saveNewCompany(){
+  var name = (document.getElementById('_cc-name')?.value||'').trim();
+  if(!name){ toast('⚠ أدخل اسم الشركة'); return; }
+  var desc = (document.getElementById('_cc-desc')?.value||'').trim();
+  try {
+    var raw = localStorage.getItem('ordo_teams_v2')||'{}';
+    var tsData = JSON.parse(raw);
+    if(!tsData.teams) tsData.teams=[];
+    var newCompany = {
+      id: 'co_'+Date.now(),
+      name, desc,
+      type: 'company',
+      emoji: '🏢',
+      color: 'var(--accent2)',
+      members: [],
+      tasks: [],
+      columns: [
+        {id:'todo',   label:'قائمة الانتظار', color:'#5a5a80'},
+        {id:'inprog', label:'قيد التنفيذ',    color:'#f7c948'},
+        {id:'review', label:'مراجعة',          color:'#7c6ff7'},
+        {id:'done',   label:'مكتمل',           color:'#4fd1a5'}
+      ],
+      createdAt: new Date().toISOString()
+    };
+    tsData.teams.push(newCompany);
+    localStorage.setItem('ordo_teams_v2', JSON.stringify(tsData));
+  } catch(e){ toast('⚠ خطأ في الحفظ'); return; }
+  document.getElementById('_modal-create-company')?.remove();
+  renderTeams();
+  showMiniNotif('<i class="fa-solid fa-building" style="color:var(--accent2)"></i> تم إنشاء الشركة: '+name);
+  const base = window.location.href.replace(/[^/]*(\?.*)?$/, '');
+  setTimeout(function(){ window.open(base + 'team.html', '_blank'); }, 400);
 }
 
 function openTeamModal(id){
@@ -9937,6 +10054,166 @@ function delTeam(id){
   });
 }
 
+function delCompanyTeam(teamId){
+  if(!confirm('حذف هذه الشركة نهائياً؟\nسيتم حذف كل المهام والأعضاء والبيانات.')) return;
+  try {
+    var raw = localStorage.getItem('ordo_teams_v2');
+    if(!raw) return;
+    var tsData = JSON.parse(raw);
+    tsData.teams = (tsData.teams||[]).filter(function(t){ return String(t.id) !== String(teamId); });
+    if(String(tsData.currentTeamId) === String(teamId)) tsData.currentTeamId = null;
+    localStorage.setItem('ordo_teams_v2', JSON.stringify(tsData));
+    renderTeams();
+    showMiniNotif('🗑 تم حذف الشركة بنجاح');
+  } catch(e){ showMiniNotif('⚠ خطأ أثناء الحذف'); }
+}
+
+function _editCompanyTeam(teamId){
+  var raw = localStorage.getItem('ordo_teams_v2');
+  if(!raw) return;
+  var tsData;
+  try{ tsData = JSON.parse(raw); }catch(e){ return; }
+  var team = (tsData.teams||[]).find(function(t){ return String(t.id)===String(teamId); });
+  if(!team) return;
+
+  var old = document.getElementById('_modal-edit-company');
+  if(old) old.remove();
+  var m = document.createElement('div');
+  m.id = '_modal-edit-company';
+  m.className = 'modal-overlay';
+  m.style.display = 'flex';
+  m.innerHTML = `
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-pen" style="color:var(--accent2)"></i> تعديل الشركة</div>
+      <button class="close-btn" onclick="document.getElementById('_modal-edit-company').remove()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">اسم الشركة *</label>
+      <input class="form-input" id="_ec-name" value="${escapeHtml(team.name||'')}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">وصف الشركة</label>
+      <input class="form-input" id="_ec-desc" value="${escapeHtml(team.desc||'')}">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="document.getElementById('_modal-edit-company').remove()">إلغاء</button>
+      <button class="btn btn-primary" onclick="_saveEditCompany('${teamId}')">
+        <i class="fa-solid fa-floppy-disk"></i> حفظ التعديلات
+      </button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+  m.onclick = function(e){ if(e.target===m) m.remove(); };
+  setTimeout(function(){ var n=document.getElementById('_ec-name'); if(n){ n.focus(); n.select(); } }, 100);
+}
+
+function _saveEditCompany(teamId){
+  var name = (document.getElementById('_ec-name')?.value||'').trim();
+  if(!name){ showMiniNotif('⚠ أدخل اسم الشركة'); return; }
+  var desc = (document.getElementById('_ec-desc')?.value||'').trim();
+  try {
+    var raw = localStorage.getItem('ordo_teams_v2');
+    if(!raw) return;
+    var tsData = JSON.parse(raw);
+    var team = (tsData.teams||[]).find(function(t){ return String(t.id)===String(teamId); });
+    if(!team){ showMiniNotif('⚠ لم يُعثر على الشركة'); return; }
+    team.name = name;
+    team.desc = desc;
+    localStorage.setItem('ordo_teams_v2', JSON.stringify(tsData));
+    document.getElementById('_modal-edit-company')?.remove();
+    renderTeams();
+    showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ التعديلات: '+name);
+  } catch(e){ showMiniNotif('⚠ خطأ في الحفظ'); }
+}
+
+// ── عرض دعوات الفريق مباشرة في صفحة الفريق ──
+async function _renderPendingInvitesSection(){
+  var el = document.getElementById('_pending-invites-section');
+  if(!el || typeof supa==='undefined' || !_supaUserId) return;
+  var myEmail='';
+  try{ var _as=JSON.parse(localStorage.getItem('studioOS_auth_v1')||'{}'); myEmail=(_as.email||'').toLowerCase().trim(); }catch(e){}
+  if(!myEmail && S.settings) myEmail=(S.settings.email||'').toLowerCase().trim();
+  if(!myEmail){ el.style.display='none'; return; }
+  try{
+    var res = await supa.from('team_invites').select('*').eq('to_email',myEmail).in('status',['pending','delivered']);
+    var invites = res.data||[];
+    if(res.error||!invites.length){ el.style.display='none'; return; }
+    var localAccepted=JSON.parse(localStorage.getItem('_accepted_team_invites_'+(_supaUserId||''))||'[]');
+    var localDeclined=JSON.parse(localStorage.getItem('_declined_team_invites_'+(_supaUserId||''))||'[]');
+    var fresh=invites.filter(function(p){
+      return !localAccepted.some(function(a){return String(a.teamId)===String(p.team_id);}) &&
+             !localDeclined.includes(String(p.id));
+    });
+    if(!fresh.length){ el.style.display='none'; return; }
+    el.style.display='block';
+    el.innerHTML='<div style="background:rgba(247,201,72,.08);border:1.5px solid rgba(247,201,72,.25);border-radius:14px;padding:16px">'
+      +'<div style="font-size:13px;font-weight:800;color:var(--accent2);margin-bottom:12px"><i class="fa-solid fa-envelope"></i> لديك '+fresh.length+' دعوة فريق</div>'
+      +fresh.map(function(inv){
+        var pl={};try{pl=typeof inv.payload==='string'?JSON.parse(inv.payload):(inv.payload||{});}catch(e){}
+        var isComp=pl.isCompanyTeam||false;
+        var eid=String(inv.id).replace(/'/g,'');
+        var tname=escapeHtml(inv.team_name||'الفريق');
+        var oname=escapeHtml(inv.owner_name||'مشرف');
+        var mrole=escapeHtml(inv.member_role||'عضو');
+        var tid=escapeHtml(inv.team_id||'');
+        var oid=escapeHtml(pl.ownerUserId||'');
+        return '<div class="_inv-card" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+          +'<div style="width:40px;height:40px;border-radius:10px;background:'+(isComp?'var(--accent2)':'var(--accent)')+';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+(isComp?'🏢':'👥')+'</div>'
+          +'<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800">'+tname+'</div>'
+          +'<div style="font-size:12px;color:var(--text3)">من: '+oname+' · دورك: '+mrole+'</div></div>'
+          +'<div style="display:flex;gap:8px;flex-shrink:0">'
+            +'<button class="btn btn-ghost btn-sm" onclick="_directRejectInvite(\''+eid+'\',this.closest(\'._inv-card\'))" style="color:var(--accent4)"><i class="fa-solid fa-xmark"></i> رفض</button>'
+            +'<button class="btn btn-primary btn-sm" onclick="_directAcceptInvite(\''+eid+'\',\''+tname+'\',\''+oname+'\',\''+mrole+'\',\''+tid+'\','+(isComp?'true':'false')+',\''+oid+'\',this.closest(\'._inv-card\'))"><i class="fa-solid fa-check"></i> قبول</button>'
+          +'</div></div>';
+      }).join('')+'</div>';
+  }catch(e){ el.style.display='none'; }
+}
+
+async function _directAcceptInvite(invId,teamName,ownerName,memberRole,teamId,isCompany,ownerUserId,cardEl){
+  if(cardEl) cardEl.style.opacity='0.5';
+  if(typeof supa!=='undefined'){
+    try{ await supa.from('team_invites').update({status:'accepted'}).eq('id',invId); }catch(e){}
+    if(_supaUserId){
+      try{ await supa.from('user_notifications').insert([{user_id:_supaUserId,title:'تمت إضافتك لفريق "'+teamName+'"',body:'تمت إضافتك كـ '+(memberRole||'عضو')+' في "'+teamName+'" بواسطة '+ownerName,type:'team_added',data:JSON.stringify({teamId,teamName,ownerName,ownerUserId,memberRole:memberRole||'عضو',isCompanyTeam:isCompany}),read:true,created_at:new Date().toISOString()}]); }catch(e){}
+    }
+  }
+  var localKey='_accepted_team_invites_'+(_supaUserId||'');
+  var localList=JSON.parse(localStorage.getItem(localKey)||'[]');
+  if(!localList.some(function(a){return String(a.teamId)===String(teamId);})){
+    localList.push({teamId:String(teamId),ownerId:ownerUserId||'',teamName});
+    localStorage.setItem(localKey,JSON.stringify(localList));
+  }
+  if(!window._myTeamMemberships) window._myTeamMemberships=[];
+  if(!window._myTeamMemberships.find(function(x){return x.teamId===teamId||x.teamName===teamName;})){
+    window._myTeamMemberships.push({ownerId:ownerUserId||'',ownerName:ownerName||'مشرف',ownerLogo:'',teamId:teamId||'',teamName:teamName||'الفريق',memberName:'',role:memberRole||'عضو',isCompany,type:isCompany?'company':'team',tasks:[],doneTasks:[]});
+  }
+  if(cardEl) cardEl.remove();
+  showMiniNotif('🎉 انضممت لفريق "'+teamName+'"!');
+  if(typeof renderMyMemberTeams==='function') renderMyMemberTeams();
+  if(typeof renderTeams==='function') renderTeams();
+  _renderPendingInvitesSection();
+  if(isCompany){
+    var base=window.location.href.replace(/[^/]*(\?.*)?$/,'');
+    var banner=document.createElement('div');
+    banner.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:99999;background:var(--surface);border:1.5px solid var(--accent2);border-radius:16px;padding:16px 24px;box-shadow:0 20px 60px rgba(0,0,0,.5);font-family:Cairo,sans-serif;direction:rtl;display:flex;align-items:center;gap:14px;max-width:420px;width:90%';
+    banner.innerHTML='<div style="font-size:24px">🏢</div><div style="flex:1"><div style="font-weight:800;margin-bottom:4px">انضممت لشركة "'+escapeHtml(teamName)+'"!</div><div style="font-size:12px;color:var(--text3)">اضغط لفتح صفحة الشركة</div></div><a href="'+base+'team.html" target="_blank" style="background:var(--accent2);color:#1a1a2e;padding:10px 18px;border-radius:10px;font-weight:800;text-decoration:none;font-size:13px">فتح الشركة ←</a><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px">✕</button>';
+    document.body.appendChild(banner);
+    setTimeout(function(){if(banner.parentNode)banner.remove();},20000);
+  }
+}
+
+function _directRejectInvite(invId,cardEl){
+  if(typeof supa!=='undefined') supa.from('team_invites').update({status:'declined'}).eq('id',invId).catch(function(){});
+  var decKey='_declined_team_invites_'+(_supaUserId||'');
+  var decList=JSON.parse(localStorage.getItem(decKey)||'[]');
+  if(!decList.includes(String(invId))) decList.push(String(invId));
+  localStorage.setItem(decKey,JSON.stringify(decList));
+  if(cardEl) cardEl.remove();
+  _renderPendingInvitesSection();
+  showMiniNotif('تم رفض الدعوة');
+}
+
 function renderTeams(){
   const grid = document.getElementById('teams-grid'); if(!grid) return;
   // ── فحص إذا في فرق شركات محفوظة ──
@@ -9979,7 +10256,11 @@ function renderTeams(){
             <span style="font-size:10px;background:rgba(247,201,72,.12);color:var(--accent2);padding:2px 8px;border-radius:10px;font-weight:800">🏢 شركة</span>
           </div>
         </div>
-        <a href="team.html" target="_blank" class="btn btn-ghost btn-sm" title="فتح نظام الشركة"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+        <div style="display:flex;gap:4px;align-items:center">
+          <a href="team.html" target="_blank" class="btn btn-ghost btn-sm" title="فتح الشركة"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+          <button class="btn btn-ghost btn-sm" onclick="_editCompanyTeam('${team.id}')" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-danger btn-sm" onclick="delCompanyTeam('${team.id}')" title="حذف"><i class="fa-solid fa-trash"></i></button>
+        </div>
       </div>
       <div style="display:flex;gap:16px;font-size:12px;color:var(--text3);margin-bottom:12px">
         <span><i class="fa-solid fa-users"></i> ${(team.members||[]).length} عضو</span>
@@ -15267,284 +15548,72 @@ window.openMyMemberTeamProfile = function(ownerId){
     if(!myEmail || typeof supa==='undefined') return;
     myEmail = myEmail.toLowerCase().trim();
     try {
-      // Use user_notifications table — no RLS issues (each user reads own rows)
       if(!_supaUserId) return;
-      var { data: notifRows } = await supa
-        .from('user_notifications')
-        .select('*')
-        .eq('user_id', _supaUserId)
-        .eq('type', 'team_added')
-        .order('created_at', {ascending:false});
-
       var memberships = [];
-      if(notifRows && notifRows.length){
+
+      // ── Source 1: team_invites accepted ──
+      try {
+        var invRes = await supa.from('team_invites').select('*')
+          .eq('to_email', myEmail).eq('status','accepted');
+        var acceptedInvs = invRes.data || [];
+        acceptedInvs.forEach(function(inv){
+          var pl={};
+          try{ pl=typeof inv.payload==='string'?JSON.parse(inv.payload):(inv.payload||{}); }catch(e){}
+          var already=memberships.find(function(x){return String(x.teamId||x.teamName)===String(inv.team_id||inv.team_name);});
+          if(!already) memberships.push({
+            ownerId:pl.ownerUserId||'', ownerName:inv.owner_name||pl.ownerName||'مشرف', ownerLogo:'',
+            teamId:inv.team_id||'', teamName:inv.team_name||'الفريق', memberName:inv.member_name||'',
+            role:inv.member_role||'عضو', isCompany:pl.isCompanyTeam||false,
+            type:pl.isCompanyTeam?'company':'team', tasks:[], doneTasks:[], _fromInvite:true
+          });
+        });
+      }catch(e){ console.warn('team_invites check:', e.message||e); }
+
+      // ── Source 2: user_notifications type=team_added ──
+      try {
+        var notifRes = await supa.from('user_notifications').select('*')
+          .eq('user_id',_supaUserId).eq('type','team_added');
+        var notifRows = notifRes.data || [];
         notifRows.forEach(function(n){
           try{
-            var d2 = typeof n.data==='string' ? JSON.parse(n.data||'{}') : (n.data||{});
-            var already = memberships.find(function(x){ return x.teamName===d2.teamName && x.ownerName===d2.ownerName; });
+            var d2=typeof n.data==='string'?JSON.parse(n.data||'{}'):(n.data||{});
+            var already=memberships.find(function(x){return (x.teamId&&x.teamId===d2.teamId)||(x.teamName===d2.teamName&&x.ownerName===(d2.ownerName||'مشرف'));});
             if(!already) memberships.push({
-              ownerId   : d2.ownerUserId||'',
-              ownerName : d2.ownerName||'مشرف',
-              ownerLogo : '',
-              teamName  : d2.teamName||'الفريق',
-              memberName: n.title||'',
-              role      : d2.memberRole||'عضو',
-              isCompany : d2.isCompanyTeam||false,
-              type      : d2.isCompanyTeam?'company':'team',
-              teamColor : d2.teamColor||'',
-              teamEmoji : d2.teamEmoji||'',
-              tasks     : [],
-              doneTasks : []
+              ownerId:d2.ownerUserId||'', ownerName:d2.ownerName||'مشرف', ownerLogo:'',
+              teamId:d2.teamId||'', teamName:d2.teamName||'الفريق', memberName:'',
+              role:d2.memberRole||'عضو', isCompany:d2.isCompanyTeam||false,
+              type:d2.isCompanyTeam?'company':'team', teamColor:'', teamEmoji:'',
+              tasks:[], doneTasks:[]
             });
           }catch(e){}
         });
-      }
+      }catch(e){}
 
-      // ── ابحث في team snapshots (user_notifications type=team_data_snapshot) ──
+      // ── Source 3: scan studio_data (owner's data) ──
       try {
-        var {data:snapRows} = await supa.from('user_notifications')
-          .select('user_id,data,body')
-          .eq('type','team_data_snapshot')
-          .neq('user_id', _supaUserId);
-        if(snapRows && snapRows.length){
-          snapRows.forEach(function(srow){
-            try {
-              var snap = typeof srow.data==='string'?JSON.parse(srow.data):srow.data;
-              var ownerNameSnap = snap.ownerName||srow.body||'مشرف';
-              (snap.teams||[]).forEach(function(team){
-                (team.members||[]).forEach(function(m){
-                  if((m.email||'').toLowerCase().trim()===myEmail){
-                    var alreadyIdx=memberships.findIndex(function(x){
-                      return (x.teamId===team.id||x.teamName===team.name)&&x.ownerId===srow.user_id;
-                    });
-                    if(alreadyIdx===-1){
-                      memberships.push({
-                        ownerId   : srow.user_id,
-                        ownerName : ownerNameSnap,
-                        ownerLogo : '',
-                        teamId    : team.id||'',
-                        teamName  : team.name||'الفريق',
-                        teamColor : team.color||'',
-                        teamEmoji : team.emoji||'',
-                        memberName: m.name||'',
-                        role      : m.role||'عضو',
-                        isCompany : team.type==='company',
-                        type      : team.type==='company'?'company':'team',
-                        tasks     : [],
-                        doneTasks : [],
-                        // حفظ الـ tasks مباشرة
-                        _teamTasks: team.tasks||[]
-                      });
-                    }
-                    // حمّل مهامه من snapshot
-                    var mem2 = memberships.find(function(x){
-                      return (x.teamId===team.id||x.teamName===team.name)&&x.ownerId===srow.user_id;
-                    });
-                    if(mem2 && (team.tasks||[]).length){
-                      (team.tasks||[]).forEach(function(t){
-                        if(String(t.assigneeId)!==String(m.id)) return;
-                        var te={id:t.id,title:t.title||'مهمة',status:t.status||'todo',
-                          done:t.status==='done'||t.done||false,deadline:t.deadline||'',
-                          client:t.client||'',steps:t.steps||[],isCompanyTask:true,teamName:team.name};
-                        if(te.done||te.status==='done') mem2.doneTasks.push(te);
-                        else mem2.tasks.push(te);
-                      });
-                    }
-                  }
-                });
-              });
-            }catch(e){}
-          });
-        }
-      }catch(eSnap){ console.warn('snapshot scan:', eSnap); }
-
-      // Also check local S.teams for membership (if this user IS the owner)
-      if(myEmail){
-        (S.teams||[]).forEach(function(team){
-          (team.members||[]).forEach(function(m){
-            if((m.email||'').toLowerCase().trim() === myEmail){
-              var already = memberships.find(function(x){ return x.teamName===team.name && x.ownerId==='local'; });
-              if(!already) memberships.push({ ownerId:'local', ownerName:(S.settings&&S.settings.name)||'مشرف', ownerLogo:'', teamName:team.name||'الفريق', memberName:m.name, role:m.role||'عضو', tasks:[], doneTasks:[] });
-            }
-          });
-        });
-      }
-
-      // ✅ FIX: Scan ALL studio_data to find memberships AND load actual tasks
-      try {
-        var { data: allRows } = await supa.from('studio_data').select('user_id, data').limit(300);
-        if(allRows && allRows.length) {
-          allRows.forEach(function(row) {
-            if(row.user_id === _supaUserId) return; // skip own data
-            try {
-              var rd = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
-              if(!rd) return;
-              if(rd.data && !rd.tasks) rd = typeof rd.data==='string' ? JSON.parse(rd.data) : rd.data;
-              var ownerName = (rd.settings && rd.settings.name) || 'مشرف';
-              var ownerLogo = (rd.settings && rd.settings.logo) || '';
-              var myName = '';
-
-              // ── جمع كل الفرق من المصادر المختلفة ──
-              var allTeamsFromRow = [];
-
-              // أ. فرق Ordo العادية (S.teams)
-              (rd.teams||[]).forEach(function(t){ allTeamsFromRow.push({team:t, isCompany:false}); });
-
-              // ب. فرق الشركات من _companyTeams (array مباشر)
-              (rd._companyTeams||[]).forEach(function(t){
-                if(!allTeamsFromRow.find(function(x){return x.team.id===t.id;}))
-                  allTeamsFromRow.push({team:t, isCompany:true});
-              });
-
-              // ج. فرق الشركات من _teamAppData (JSON string)
-              if(rd._teamAppData){
-                try{
-                  var _ctd = typeof rd._teamAppData==='string'?JSON.parse(rd._teamAppData):rd._teamAppData;
-                  (_ctd.teams||[]).forEach(function(t){
-                    if(!allTeamsFromRow.find(function(x){return x.team.id===t.id;}))
-                      allTeamsFromRow.push({team:t, isCompany:t.type==='company'});
+        var sdRes = await supa.from('studio_data').select('user_id,data');
+        var sdRows = sdRes.data || [];
+        sdRows.forEach(function(row){
+          if(row.user_id===_supaUserId) return;
+          try{
+            var rd=typeof row.data==='string'?JSON.parse(row.data):row.data;
+            var ownerName=(rd.settings&&rd.settings.name)||'مشرف';
+            (rd.teams||[]).forEach(function(team){
+              (team.members||[]).forEach(function(m){
+                if((m.email||'').toLowerCase().trim()===myEmail){
+                  var already=memberships.find(function(x){return (x.teamId===team.id||x.teamName===team.name)&&x.ownerId===row.user_id;});
+                  if(!already) memberships.push({
+                    ownerId:row.user_id, ownerName:ownerName, ownerLogo:'',
+                    teamId:team.id||'', teamName:team.name||'الفريق', memberName:m.name||'',
+                    role:m.role||'عضو', isCompany:team.type==='company',
+                    type:team.type==='company'?'company':'team', tasks:[], doneTasks:[]
                   });
-                }catch(e){}
-              }
-
-              // ── ابحث عن الإيميل في كل الفرق ──
-              allTeamsFromRow.forEach(function(entry) {
-                var team = entry.team;
-                var isCompany = entry.isCompany || team.type==='company';
-                (team.members||[]).forEach(function(m) {
-                  if(m.id==='me') return; // تخطي صاحب الفريق
-                  if((m.email||'').toLowerCase().trim() === myEmail) {
-                    if(m.name) myName = m.name;
-                    var alreadyIdx = memberships.findIndex(function(x){
-                      return (x.teamId===team.id || x.teamName===team.name) && x.ownerId===row.user_id;
-                    });
-                    if(alreadyIdx === -1) {
-                      memberships.push({
-                        ownerId   : row.user_id,
-                        ownerName : ownerName,
-                        ownerLogo : ownerLogo,
-                        teamId    : team.id||'',
-                        teamName  : team.name||'الفريق',
-                        teamColor : team.color||'var(--accent)',
-                        teamEmoji : team.emoji||'',
-                        memberName: m.name||'',
-                        role      : m.role||'عضو',
-                        tasks     : [],
-                        doneTasks : [],
-                        isCompany : isCompany,
-                        type      : isCompany?'company':'team',
-                        _ownerData: rd
-                      });
-                    }
-                  }
-                });
-              });
-
-              // Now load tasks assigned to this member from owner's data
-              if(myName || myEmail) {
-                (rd.tasks||[]).forEach(function(t) {
-                  var assignedTo = (t.workerMember||'').trim();
-                  // Match by name or email
-                  var isMyTask = assignedTo === myName || assignedTo.toLowerCase() === myEmail;
-                  if(!isMyTask) return;
-
-                  // Find the membership this task belongs to (match by ownerId)
-                  var mem = memberships.find(function(x){ return x.ownerId === row.user_id; });
-                  if(!mem) return;
-
-                  var taskEntry = {
-                    id         : t.id,
-                    title      : t.title||'مهمة',
-                    status     : t.status||'new',
-                    done       : t.done||false,
-                    deadline   : t.deadline||'',
-                    client     : t.client||'',
-                    steps      : t.steps||[],
-                    workerAmount: t.workerAmount||0,
-                    ownerId    : row.user_id  // needed for update
-                  };
-
-                  if(t.done || t.status === 'done') {
-                    mem.doneTasks.push(taskEntry);
-                  } else {
-                    mem.tasks.push(taskEntry);
-                  }
-                });
-
-                // ── تحميل مهام المشاريع (project_tasks) المعينة لهذا العضو ──
-                (rd.project_tasks||[]).forEach(function(t) {
-                  var assignedTo = (t.assignee_name||t.workerMember||'').trim();
-                  var isMyTask = assignedTo === myName || assignedTo.toLowerCase() === myEmail;
-                  if(!isMyTask) return;
-
-                  var mem = memberships.find(function(x){ return x.ownerId === row.user_id; });
-                  if(!mem) return;
-
-                  // Find parent project name
-                  var proj = (rd.projects||[]).find(function(p){ return String(p.id)===String(t.project_id); });
-                  var projName = proj ? (proj.name||'مشروع') : 'مشروع';
-
-                  var taskEntry = {
-                    id          : t.id,
-                    title       : t.title||'مهمة',
-                    status      : t.status||'todo',
-                    done        : t.status==='done',
-                    deadline    : t.deadline||'',
-                    client      : proj ? (proj.client_name||'') : '',
-                    steps       : t.steps||[],
-                    workerAmount: t.value||0,
-                    ownerId     : row.user_id,
-                    isProjectTask: true,
-                    projectName : projName,
-                    projectId   : t.project_id
-                  };
-
-                  if(t.status==='done') {
-                    mem.doneTasks.push(taskEntry);
-                  } else {
-                    mem.tasks.push(taskEntry);
-                  }
-                });
-
-                // ── تحميل مهام فرق الشركات (assigneeId) ──
-                // فرق الشركات بتستخدم assigneeId بدل workerMember
-                var _companyTeamsInRow = [];
-                if(rd._companyTeams) _companyTeamsInRow = rd._companyTeams;
-                else if(rd._teamAppData){
-                  try{ var _ctd2=typeof rd._teamAppData==='string'?JSON.parse(rd._teamAppData):rd._teamAppData; _companyTeamsInRow=(_ctd2.teams||[]).filter(function(t){return t.type==='company';}); }catch(e){}
                 }
-
-                _companyTeamsInRow.forEach(function(compTeam){
-                  // ابحث عن memberId بالإيميل
-                  var compMember = (compTeam.members||[]).find(function(m){
-                    return (m.email||'').toLowerCase().trim()===myEmail;
-                  });
-                  if(!compMember) return;
-
-                  var mem2 = memberships.find(function(x){
-                    return (x.teamId===compTeam.id || x.teamName===compTeam.name) && x.ownerId===row.user_id;
-                  });
-                  if(!mem2) return;
-
-                  (compTeam.tasks||[]).forEach(function(t){
-                    if(String(t.assigneeId)!==String(compMember.id)) return;
-                    var te = {
-                      id: t.id, title: t.title||'مهمة',
-                      status: t.status||'todo', done: t.status==='done'||t.done||false,
-                      deadline: t.deadline||'', client: t.client||'',
-                      steps: t.steps||[], workerAmount: 0,
-                      ownerId: row.user_id, isCompanyTask: true,
-                      teamName: compTeam.name
-                    };
-                    if(te.done||te.status==='done') mem2.doneTasks.push(te);
-                    else mem2.tasks.push(te);
-                  });
-                });
-              }
-            } catch(e2) { console.warn('scan row err:', e2); }
-          });
-        }
-      } catch(eScan) { console.warn('studio_data team scan:', eScan); }
+              });
+            });
+          }catch(e){}
+        });
+      }catch(e){}
 
       window._myTeamMemberships = memberships;
       if(typeof renderMyMemberTeams === 'function') renderMyMemberTeams();
@@ -15944,6 +16013,56 @@ window.openMyMemberTeamProfile = function(ownerId){
         })
         .subscribe();
     } catch(e) { console.warn('[Realtime] Review subscription failed:', e); }
+
+    // ━━ Realtime listener for team_invites — instant invite notification ━━
+    try {
+      var myEmail2 = '';
+      try{ var _as2=JSON.parse(localStorage.getItem('studioOS_auth_v1')||'{}'); myEmail2=(_as2.email||'').toLowerCase().trim(); }catch(e){}
+      if(!myEmail2 && S.settings) myEmail2=(S.settings.email||'').toLowerCase().trim();
+
+      if(myEmail2){
+        supa.channel('team-invites-' + _supaUserId)
+          .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'team_invites'
+          }, function(payload) {
+            var rec = payload.new || {};
+            if((rec.to_email||'').toLowerCase().trim() !== myEmail2) return;
+            console.log('[Realtime] New team invite received!');
+            // بناء الإشعار
+            var pl={};
+            try{ pl=typeof rec.payload==='string'?JSON.parse(rec.payload):(rec.payload||{}); }catch(e){}
+            var inv = {
+              id: rec.id, type:'team_invite',
+              teamName: rec.team_name, teamId: rec.team_id,
+              ownerName: rec.owner_name, memberName: rec.member_name,
+              memberRole: rec.member_role, ownerUserId: pl.ownerUserId||'',
+              isCompanyTeam: pl.isCompanyTeam||false, teamUrl: pl.teamUrl||'',
+              body: 'دعوة للانضمام لـ "'+(rec.team_name||'فريق')+'" بواسطة '+(rec.owner_name||'مشرف'),
+              status:'pending', read:false
+            };
+            // أضف للقائمة وأظهر الـ dialog
+            window._pendingTeamInvites = window._pendingTeamInvites||[];
+            var exists = window._pendingTeamInvites.find(function(x){return x.id===inv.id;});
+            if(!exists){
+              window._pendingTeamInvites.push(inv);
+              if(typeof _updateInboxBadge==='function') _updateInboxBadge();
+              var inboxBtn=document.getElementById('team-invite-inbox-btn');
+              if(inboxBtn) inboxBtn.style.display='';
+              showMiniNotif('<i class="fa-solid fa-envelope" style="color:var(--accent2)"></i> دعوة جديدة من '+escapeHtml(rec.owner_name||'مشرف')+'!');
+              if(typeof window._showTeamInviteDialog==='function'){
+                setTimeout(function(){ window._showTeamInviteDialog([inv]); }, 1000);
+              }
+              // حدّث قسم الدعوات في صفحة الفريق
+              if(typeof _renderPendingInvitesSection==='function'){
+                setTimeout(_renderPendingInvitesSection, 500);
+              }
+            }
+          })
+          .subscribe();
+      }
+    } catch(e) { console.warn('[Realtime] Team invites subscription failed:', e); }
   })();
 
   window._showTeamInviteDialog = function(invites){

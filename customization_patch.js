@@ -384,7 +384,8 @@ function _injectTableSortBar(){
     +'<button onclick="_quickSort(\'status\')" class="btn btn-ghost btn-sm" style="font-size:11px;padding:4px 10px">🏷 الحالة</button>'
     +'<span id="_sort-label" style="color:var(--accent);font-weight:700;margin-right:auto;font-size:11px"></span>';
   var tbl=tableView.querySelector('table');
-  if(tbl)tableView.insertBefore(bar,tbl);else tableView.prepend(bar);
+  if(tbl && tbl.parentNode===tableView) tableView.insertBefore(bar,tbl);
+  else tableView.prepend(bar);
   _updateSortLabel();
 }
 

@@ -69,12 +69,12 @@ function closeModal(id){ const el=document.getElementById(id); if(el) el.style.d
 //  PERSISTENCE
 // ══════════════════════════════════════════════════
 function saveLS(){
-  try{ localStorage.setItem('ordo_teams_v2', JSON.stringify({ teams:TS.teams, currentTeamId:TS.currentTeamId, me:TS.me })); }catch(e){}
+  try{ localStorage.setItem('ordo_teams_v2', JSON.stringify({ teams:TS.teams, currentTeamId:TS.currentTeamId, me:TS.me, _teamMessages:TS._teamMessages||{} })); }catch(e){}
 }
 function loadLS(){
   try{
     const raw = localStorage.getItem('ordo_teams_v2');
-    if(raw){ const d=JSON.parse(raw); TS.teams=d.teams||[]; TS.currentTeamId=d.currentTeamId||null; if(d.me) TS.me={...TS.me,...d.me}; }
+    if(raw){ const d=JSON.parse(raw); TS.teams=d.teams||[]; TS.currentTeamId=d.currentTeamId||null; if(d.me) TS.me={...TS.me,...d.me}; TS._teamMessages=d._teamMessages||{}; }
   }catch(e){}
 }
 
@@ -197,6 +197,49 @@ window.addEventListener('DOMContentLoaded', async ()=>{
     return;
   }
 
+  // ── لو مفيش session بعد كل المحاولات — أخفي الـ app واعرض login ──
+  if(!sessionLoaded){
+    // إخفاء الـ app-shell فوراً عشان ما يظهرش فاضي
+    const shell = document.querySelector('.app-shell');
+    if(shell) shell.style.display = 'none';
+    document.body.style.visibility = 'visible';
+
+    const base = location.href.replace(/[^/]*(\?.*)?$/, '');
+    const returnUrl = base + 'index.html';
+
+    // إنشاء overlay تسجيل دخول مدمج
+    const overlay = document.createElement('div');
+    overlay.id = '_team-login-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg,#07080f);display:flex;align-items:center;justify-content:center;z-index:99999;font-family:Cairo,sans-serif;direction:rtl;padding:20px';
+    overlay.innerHTML = `
+      <div style="max-width:400px;width:100%;background:var(--surface,#111121);border:1px solid rgba(124,111,247,.25);border-radius:24px;padding:36px 32px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6)">
+        <div style="width:70px;height:70px;background:rgba(124,111,247,.12);border:1.5px solid rgba(124,111,247,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px">🏢</div>
+        <div style="font-size:22px;font-weight:900;color:var(--text,#e8e8f4);margin-bottom:8px">نظام إدارة الفرق</div>
+        <div style="font-size:13px;color:var(--text3,#8080a0);margin-bottom:28px;line-height:1.8">
+          يجب تسجيل الدخول لاستخدام نظام إدارة الفرق.<br>
+          سجّل دخولك من خلال الصفحة الرئيسية لـ Ordo.
+        </div>
+        <a href="${returnUrl}" style="display:flex;align-items:center;justify-content:center;gap:10px;background:#7c6ff7;color:#fff;padding:14px 28px;border-radius:12px;font-size:15px;font-weight:800;text-decoration:none;margin-bottom:12px;transition:.2s"
+          onmouseover="this.style.background='#6c5fe7'" onmouseout="this.style.background='#7c6ff7'">
+          <i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول
+        </a>
+        <div style="font-size:11px;color:var(--text3,#8080a0);margin-top:8px">
+          سيتم توجيهك تلقائياً خلال <span id="_team-countdown">5</span> ثواني...
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    // عدّاد تنازلي + redirect تلقائي
+    let count = 5;
+    const timer = setInterval(()=>{
+      count--;
+      const el = document.getElementById('_team-countdown');
+      if(el) el.textContent = count;
+      if(count <= 0){ clearInterval(timer); window.location.href = returnUrl; }
+    }, 1000);
+    return; // إيقاف الـ init
+  }
+
   // ── handle join link (with session) ──
   if(joinId){
     handleJoinLink(joinId);
@@ -216,6 +259,11 @@ window.addEventListener('DOMContentLoaded', async ()=>{
     setTimeout(()=>syncToCloud(TS.currentTeamId), 2000);
   }
 
+  // ── إظهار الـ app بعد تأكيد الـ session ──
+  document.body.style.visibility = 'visible';
+  const appShell = document.getElementById('team-app-shell') || document.querySelector('.app-shell');
+  if(appShell) appShell.style.display = '';
+
   // ── استعادة آخر فريق أو عرض القائمة ──
   if(TS.currentTeamId && TS.teams.find(t=>t.id===TS.currentTeamId)){
     openTeam(TS.currentTeamId);
@@ -234,10 +282,17 @@ function showTeamsList(){
   saveLS();
   updateSidebar(null);
   document.getElementById('topbar-title').textContent = 'إدارة الفرق';
-  document.getElementById('topbar-actions').innerHTML = `
-    <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-team')">
-      <i class="fa-solid fa-plus"></i> فريق جديد
-    </button>`;
+  // حافظ على زر الـ inbox وأضف فقط زر الفريق الجديد
+  const actionsEl = document.getElementById('topbar-actions');
+  if(actionsEl){
+    // شيل أي btn-primary قديم وأضف جديد
+    actionsEl.querySelectorAll('.btn-primary').forEach(b=>b.remove());
+    const newTeamBtn = document.createElement('button');
+    newTeamBtn.className = 'btn btn-primary btn-sm';
+    newTeamBtn.innerHTML = '<i class="fa-solid fa-plus"></i> فريق جديد';
+    newTeamBtn.onclick = function(){ openModal('modal-create-team'); };
+    actionsEl.appendChild(newTeamBtn);
+  }
   document.getElementById('view-toggle').style.display='none';
   showView('teams');
   renderTeamsList();
@@ -432,6 +487,7 @@ function renderBoard(){
 
 function renderKbCard(t, team){
   const assignee  = (team.members||[]).find(m=>m.id===t.assigneeId);
+  const workers   = (t.workerIds||[]).map(wid=>(team.members||[]).find(m=>m.id===wid)).filter(Boolean);
   const priColor  = {high:'var(--accent4)',med:'var(--accent2)',low:'var(--accent3)'}[t.priority||'med'];
   const priLabel  = {high:'🔴 عالية',med:'🟡 متوسطة',low:'🟢 منخفضة'}[t.priority||'med'];
   const late = isLate(t.deadline, t.done||t.status==='done');
@@ -439,6 +495,12 @@ function renderKbCard(t, team){
   const tags = (t.tags||[]).slice(0,3);
   const stepsTotal= (t.steps||[]).length;
   const stepsDone = (t.steps||[]).filter(s=>s.done).length;
+
+  // كل الأعضاء المعيَّنين (المسؤول + العاملون)
+  const allAssigned = [];
+  if(assignee) allAssigned.push({...assignee, isLead:true});
+  workers.forEach(w=>{ if(!allAssigned.find(a=>a.id===w.id)) allAssigned.push(w); });
+
   return `
   <div class="kb-card" draggable="true"
     ondragstart="_kbDragStart(event,'${t.id}','${t.status}')"
@@ -459,12 +521,17 @@ function renderKbCard(t, team){
       ${t.client?`<span style="font-size:10px;color:var(--text3)">📋 ${esc(t.client)}</span>`:''}
     </div>
     <div class="kb-card-footer">
-      <div style="display:flex;align-items:center;gap:6px">
-        ${assignee
-          ? `<div style="width:22px;height:22px;border-radius:50%;background:${assignee.color||'var(--accent)'};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center" title="${esc(assignee.name)}">${assignee.name[0]}</div>
-             <span style="font-size:10px;color:var(--text3)">${esc(assignee.name)}</span>`
+      <!-- صف الأعضاء المعيَّنين -->
+      <div style="display:flex;align-items:center;gap:4px;flex:1;flex-wrap:wrap">
+        ${allAssigned.length ? allAssigned.map((m,i)=>`
+          <div style="position:relative" title="${esc(m.name)}${m.isLead?' (المسؤول)':' (عامل)'}">
+            <div style="width:22px;height:22px;border-radius:50%;background:${m.color||'var(--accent)'};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--surface);margin-right:${i>0?'-6px':'0'};position:relative;z-index:${10-i}">${m.name[0]}</div>
+            ${m.isLead?`<div style="position:absolute;bottom:-2px;right:-2px;width:8px;height:8px;background:var(--accent3);border-radius:50%;border:1.5px solid var(--surface)"></div>`:''}
+          </div>`).join('')
           : `<span style="font-size:10px;color:var(--text3)">غير مُعيَّن</span>`
         }
+        ${allAssigned.length===1&&assignee?`<span style="font-size:10px;color:var(--text3);margin-right:6px">${esc(assignee.name)}</span>`:''}
+        ${allAssigned.length>1?`<span style="font-size:10px;color:var(--text3);margin-right:4px">${allAssigned.length} عضو</span>`:''}
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         ${comments?`<span style="font-size:10px;color:var(--text3)"><i class="fa-regular fa-comment"></i> ${comments}</span>`:''}
@@ -506,6 +573,10 @@ function renderList(){
 
   function makeRow(t, idx){
     const assignee = (team.members||[]).find(m=>m.id===t.assigneeId);
+    const workers  = (t.workerIds||[]).map(wid=>(team.members||[]).find(m=>m.id===wid)).filter(Boolean);
+    const allAssigned = [];
+    if(assignee) allAssigned.push({...assignee, isLead:true});
+    workers.forEach(w=>{ if(!allAssigned.find(a=>a.id===w.id)) allAssigned.push(w); });
     const col      = colMap[t.status];
     const isDone   = t.done||t.status==='done';
     const late     = isLate(t.deadline, isDone);
@@ -529,10 +600,12 @@ function renderList(){
         ${col?`<span style="font-size:11px;font-weight:700;color:${col.color||'var(--text3)'}">${esc(col.label)}</span>`:'—'}
       </td>
       <td>
-        ${assignee
-          ? `<div style="display:flex;align-items:center;gap:6px">
-               <div style="width:20px;height:20px;border-radius:50%;background:${assignee.color||'var(--accent)'};color:#fff;font-size:8px;font-weight:800;display:flex;align-items:center;justify-content:center">${assignee.name[0]}</div>
-               <span style="font-size:11px">${esc(assignee.name)}</span>
+        ${allAssigned.length
+          ? `<div style="display:flex;align-items:center;gap:3px">
+               ${allAssigned.map((m,i)=>`
+                 <div style="width:22px;height:22px;border-radius:50%;background:${m.color||'var(--accent)'};color:#fff;font-size:8px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--surface);margin-right:${i>0?'-5px':'0'};position:relative;z-index:${10-i}" title="${esc(m.name)}${m.isLead?' ★':''}">${m.name[0]}</div>`
+               ).join('')}
+               <span style="font-size:10px;color:var(--text3);margin-right:6px">${allAssigned.length===1?esc(allAssigned[0].name):(allAssigned.length+' عضو')}</span>
              </div>`
           : '<span style="font-size:11px;color:var(--text3)">—</span>'
         }
@@ -549,9 +622,9 @@ function renderList(){
   }
 
   const activeHTML = active.length ? active.map(makeRow).join('') :
-    `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px;font-size:12px">لا توجد مهام نشطة</td></tr>`;
+    `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px;font-size:12px">لا توجد مهام نشطة — <button class="btn btn-primary btn-sm" onclick="openAddTaskModal(null)" style="margin-right:8px"><i class="fa-solid fa-plus"></i> أضف مهمة</button></td></tr>`;
   const doneSectionHTML = done.length ? `
-    <tr class="done-section-hdr" onclick="_toggleDoneSection()">
+    <tr class="done-section-hdr" onclick="_toggleDoneSection()" style="cursor:pointer">
       <td colspan="7" style="padding:9px 12px">
         <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--accent3)">
           <i class="fa-solid fa-square-check"></i> مكتملة
@@ -569,15 +642,17 @@ function renderList(){
     <button class="btn btn-primary btn-sm" onclick="openAddTaskModal(null)"><i class="fa-solid fa-plus"></i> مهمة جديدة</button>
   </div>
   <div class="card" style="padding:0;overflow:hidden">
-    <table class="tasks-list-table">
+    <div style="overflow-x:auto">
+    <table class="tasks-list-table" style="min-width:600px">
       <thead><tr>
         <th style="width:28px"></th>
-        <th>المهمة</th><th>الحالة</th><th>المُعيَّن</th>
+        <th>المهمة</th><th>الحالة</th><th>المُعيَّنون</th>
         <th>الموعد</th><th>💬</th><th></th>
       </tr></thead>
       <tbody id="active-tbody">${activeHTML}</tbody>
       ${doneSectionHTML}
     </table>
+    </div>
   </div>`;
 }
 
@@ -621,6 +696,49 @@ function _listDrop(e, targetId){
 // ══════════════════════════════════════════════════
 //  TASK CRUD
 // ══════════════════════════════════════════════════
+// ── بناء قائمة أعضاء العمل (workers) ──
+function fillWorkersDD(selectedIds){
+  const team = currentTeam(); if(!team) return;
+  const el = document.getElementById('at-workers-list'); if(!el) return;
+  const members = team.members||[];
+  if(!members.length){ el.innerHTML='<span style="font-size:11px;color:var(--text3)">لا أعضاء</span>'; return; }
+  const selected = selectedIds ? (Array.isArray(selectedIds)?selectedIds:[selectedIds]) : [];
+  el.innerHTML = members.map(m=>{
+    const isOn = selected.includes(m.id);
+    return `<div onclick="_toggleWorker('${m.id}',this)" data-wid="${m.id}"
+      style="display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;cursor:pointer;
+      border:1.5px solid ${isOn?m.color||'var(--accent)':'var(--border)'};
+      background:${isOn?(m.color||'var(--accent)')+'22':'transparent'};
+      font-size:12px;font-weight:${isOn?'800':'500'};
+      color:${isOn?m.color||'var(--accent)':'var(--text2)'};transition:.15s">
+      <div style="width:18px;height:18px;border-radius:50%;background:${m.color||'var(--accent)'};color:#fff;font-size:8px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">${m.name[0]}</div>
+      ${esc(m.name)}
+      ${isOn?'<i class="fa-solid fa-check" style="font-size:9px;margin-right:2px"></i>':''}
+    </div>`;
+  }).join('');
+}
+
+function _toggleWorker(memberId, el){
+  if(!el) return;
+  const team = currentTeam(); if(!team) return;
+  const m = (team.members||[]).find(x=>x.id===memberId);
+  if(!m) return;
+  const isOn = el.dataset.active==='1';
+  el.dataset.active = isOn?'0':'1';
+  el.style.borderColor = !isOn?(m.color||'var(--accent)'):'var(--border)';
+  el.style.background  = !isOn?(m.color||'var(--accent)')+'22':'transparent';
+  el.style.fontWeight  = !isOn?'800':'500';
+  el.style.color       = !isOn?(m.color||'var(--accent)'):'var(--text2)';
+  const checkEl = el.querySelector('i');
+  if(!isOn){ if(!checkEl){ const ci=document.createElement('i'); ci.className='fa-solid fa-check'; ci.style.cssText='font-size:9px;margin-right:2px'; el.appendChild(ci); } }
+  else { if(checkEl) checkEl.remove(); }
+}
+
+function _getSelectedWorkers(){
+  const els = document.querySelectorAll('#at-workers-list [data-wid]');
+  return [...els].filter(e=>e.dataset.active==='1').map(e=>e.dataset.wid);
+}
+
 function openAddTaskModal(colId){
   const team = currentTeam(); if(!team) return;
   document.getElementById('at-eid').value='';
@@ -637,6 +755,7 @@ function openAddTaskModal(colId){
   fillAssigneeDD('at-assignee');
   fillClientsDD('at-client');
   fillStatusDD('at-status', colId||'todo');
+  fillWorkersDD([]);
   openModal('modal-add-task');
   setTimeout(()=>document.getElementById('at-title')?.focus(),100);
 }
@@ -657,6 +776,14 @@ function editTask(taskId){
   fillAssigneeDD('at-assignee', t.assigneeId);
   fillClientsDD('at-client');
   fillStatusDD('at-status', t.status);
+  fillWorkersDD(t.workerIds||[]);
+  // تفعيل الـ workers المحفوظة
+  setTimeout(()=>{
+    (t.workerIds||[]).forEach(wid=>{
+      const el = document.querySelector(`#at-workers-list [data-wid="${wid}"]`);
+      if(el){ el.dataset.active='1'; el.click(); el.dataset.active='1'; }
+    });
+  },50);
   openModal('modal-add-task');
 }
 
@@ -666,6 +793,7 @@ function saveTask(){
   if(!title){ toast('<i class="fa-solid fa-triangle-exclamation" style="color:var(--accent4)"></i> أدخل عنوان المهمة'); return; }
   const eid = document.getElementById('at-eid').value;
   const assigneeId = document.getElementById('at-assignee').value||null;
+  const workerIds = _getSelectedWorkers();
   const tagsRaw = document.getElementById('at-tags').value;
   const tags = tagsRaw ? tagsRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
   const d = {
@@ -673,7 +801,7 @@ function saveTask(){
     desc:       document.getElementById('at-desc').value.trim(),
     priority:   document.getElementById('at-priority').value,
     status:     document.getElementById('at-status').value,
-    assigneeId, tags,
+    assigneeId, workerIds, tags,
     deadline:   document.getElementById('at-deadline').value,
     client:     document.getElementById('at-client').value.trim(),
     type:       document.getElementById('at-type').value.trim(),
@@ -689,11 +817,12 @@ function saveTask(){
     d.id=uid(); d.createdAt=new Date().toISOString(); d.comments=[]; d.steps=[];
     if(!team.tasks) team.tasks=[];
     team.tasks.push(d);
-    // Notify assignee
-    if(assigneeId&&assigneeId!=='me'){
-      const m=(team.members||[]).find(x=>x.id===assigneeId);
+    // Notify assignee + workers
+    const notifyIds = [...new Set([assigneeId,...workerIds].filter(Boolean).filter(x=>x!=='me'))];
+    notifyIds.forEach(mid=>{
+      const m=(team.members||[]).find(x=>x.id===mid);
       if(m) toast(`<i class="fa-solid fa-user-check" style="color:var(--accent3)"></i> تم تعيين المهمة لـ ${m.name}`);
-    }
+    });
   }
   saveLS(); syncToCloud(TS.currentTeamId);
   closeModal('modal-add-task');
@@ -993,7 +1122,11 @@ function renderMembers(){
             <option value="member" ${!m.role||m.role==='member'?'selected':''}>عضو</option>
             <option value="viewer" ${m.role==='viewer'?'selected':''}>مشاهد</option>
           </select>
-          ${m.id!=='me'?`<button class="btn btn-danger btn-xs" onclick="removeMember('${m.id}')"><i class="fa-solid fa-user-minus"></i></button>`:''}
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-ghost btn-xs" onclick="openMemberProfile('${m.id}')" title="بروفايل"><i class="fa-solid fa-id-card"></i></button>
+            ${m.id!=='me'?`<button class="btn btn-ghost btn-xs" onclick="openTeamInbox()" title="رسالة خاصة"><i class="fa-solid fa-comments"></i></button>`:''}
+            ${m.id!=='me'?`<button class="btn btn-danger btn-xs" onclick="removeMember('${m.id}')"><i class="fa-solid fa-user-minus"></i></button>`:''}
+          </div>
         </div>
       </div>`;
     }).join('')}
@@ -1150,75 +1283,38 @@ async function _notifyNewMember(member, team){
   try {
     const email = (member.email||'').toLowerCase().trim();
     if(!email) return;
-    // ابحث عن user_id بالإيميل
-    let targetUserId = null;
-    try {
-      const {data:rpcId} = await supa.rpc('get_user_id_by_email',{p_email:email}).catch(()=>({data:null}));
-      if(rpcId) targetUserId=rpcId;
-    }catch(e){}
-    if(!targetUserId){
-      try {
-        const {data:pr} = await supa.from('profiles').select('id').eq('email',email).maybeSingle().catch(()=>({data:null}));
-        if(pr) targetUserId=pr.id;
-      }catch(e){}
-    }
-    if(!targetUserId){
-      // حاول تبحث في studio_data
-      const {data:rows} = await supa.from('studio_data').select('user_id,data').catch(()=>({data:null}));
-      if(rows){
-        for(const row of rows){
-          try {
-            const rd = typeof row.data==='string'?JSON.parse(row.data):row.data;
-            if(rd?.settings?.email && rd.settings.email.toLowerCase().trim()===email){ targetUserId=row.user_id; break; }
-          }catch(e){}
-        }
-      }
-    }
-    if(!targetUserId) return;
 
-    // بعّت الإشعار
-    await supa.from('user_notifications').insert([{
-      user_id: targetUserId,
-      title: `تمت إضافتك لفريق شركة!`,
-      body: `تمت إضافتك كـ ${member.role||'عضو'} في شركة "${team.name}" بواسطة ${TS.me.name||'مشرف'}`,
-      type: 'team_added',
-      data: JSON.stringify({
-        teamId: team.id,
-        teamName: team.name,
-        memberRole: member.role||'عضو',
-        ownerName: TS.me.name||'مشرف',
-        ownerUserId: TS.me.supaId,
+    // ── الكتابة في team_invites بالإيميل مباشرة — بدون البحث عن user_id ──
+    // لما الشخص يسجل دخوله يلاقي الدعوة تلقائياً
+    const inviteRow = {
+      to_email   : email,
+      team_id    : String(team.id),
+      team_name  : team.name,
+      owner_name : TS.me.name||'مشرف',
+      owner_id   : TS.me.supaId||'',
+      member_name: member.name||'',
+      member_role: member.role||'عضو',
+      status     : 'pending',
+      payload    : JSON.stringify({
+        teamId      : team.id,
+        teamName    : team.name,
+        ownerName   : TS.me.name||'مشرف',
+        ownerUserId : TS.me.supaId||'',
+        memberRole  : member.role||'عضو',
+        memberName  : member.name||'',
         isCompanyTeam: true,
-        teamUrl: window.location.href.split('?')[0]
+        teamUrl     : window.location.href.split('?')[0]
       }),
-      read: false,
       created_at: new Date().toISOString()
-    }]).catch(()=>{});
+    };
 
-    // أيضاً أرسل في studio_data fallback
-    const {data:tgtRow} = await supa.from('studio_data').select('data').eq('user_id',targetUserId).maybeSingle().catch(()=>({data:null}));
-    if(tgtRow?.data){
-      let ud = typeof tgtRow.data==='string'?JSON.parse(tgtRow.data):tgtRow.data;
-      ud._pending_notifications=ud._pending_notifications||[];
-      const already=ud._pending_notifications.find(n=>n.type==='team_added'&&n.teamId===team.id);
-      if(!already){
-        ud._pending_notifications.push({
-          id: Date.now()+'_cta',
-          title: `👥 تمت إضافتك لشركة "${team.name}"`,
-          body: `تمت إضافتك كـ ${member.role||'عضو'} بواسطة ${TS.me.name||'مشرف'}`,
-          type: 'team_added',
-          teamId: team.id,
-          teamName: team.name,
-          ownerName: TS.me.name||'مشرف',
-          ownerUserId: TS.me.supaId,
-          memberRole: member.role||'عضو',
-          isCompanyTeam: true,
-          teamUrl: window.location.href.split('?')[0],
-          created_at: new Date().toISOString(),
-          read: false
-        });
-        await supa.from('studio_data').update({data:JSON.stringify(ud),updated_at:new Date().toISOString()}).eq('user_id',targetUserId).catch(()=>{});
-      }
+    const { error: invErr } = await supa.from('team_invites').insert([inviteRow]).catch(e=>({error:e}));
+
+    if(invErr){
+      console.warn('team_invites insert failed:', invErr.message);
+      toast(`⚠ ${member.name} — تأكد من إعدادات Supabase (team_invites)`);
+    } else {
+      toast(`✅ ${member.name} — سيصله إشعار بالدعوة عند تسجيل الدخول`);
     }
   }catch(e){ console.warn('_notifyNewMember:', e); }
 }
@@ -1852,3 +1948,391 @@ function fillClientsDD(elId){
 document.addEventListener('click', e=>{
   if(e.target.classList.contains('modal-backdrop')) e.target.style.display='none';
 });
+
+// ═══════════════════════════════════════════════════════════════
+// MEMBER PROFILE + PRIVATE MESSAGING SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+// ── بروفايل العضو ──
+function openMemberProfile(memberId) {
+  const team = currentTeam(); if(!team) return;
+  const m = (team.members||[]).find(x=>x.id===memberId);
+  if(!m) return;
+
+  // Fill avatar
+  const avatarEl = document.getElementById('mp-avatar');
+  if(avatarEl){ avatarEl.style.background=m.color||'var(--accent)'; avatarEl.textContent=m.name[0]; }
+
+  // Fill info
+  const nameEl = document.getElementById('mp-name');
+  if(nameEl) nameEl.textContent = m.name;
+  const roleEl = document.getElementById('mp-role-badge');
+  const roleColors = {owner:'var(--accent2)',admin:'var(--accent)',manager:'var(--accent3)',member:'var(--text3)'};
+  const roleLabels = {owner:'👑 مالك',admin:'🛡 مشرف',manager:'⭐ مدير',member:'👤 عضو'};
+  if(roleEl) roleEl.innerHTML = `<span style="font-size:11px;background:${roleColors[m.role]||'var(--surface3)'}22;color:${roleColors[m.role]||'var(--text3)'};padding:2px 8px;border-radius:8px;font-weight:700">${roleLabels[m.role]||m.role}</span>`;
+  const titleEl = document.getElementById('mp-title-info');
+  if(titleEl) titleEl.textContent = m.title||(m.phone?'📞 '+m.phone:'');
+
+  // Stats
+  const tasks = (team.tasks||[]);
+  const myActive = tasks.filter(t=>!t.done&&!t.status!=='done'&&(t.assigneeId===memberId||(t.workerIds||[]).includes(memberId)));
+  const myDone   = tasks.filter(t=>(t.done||t.status==='done')&&(t.assigneeId===memberId||(t.workerIds||[]).includes(memberId)));
+  const tasksCountEl = document.getElementById('mp-tasks-count');
+  const doneCountEl  = document.getElementById('mp-done-count');
+  const joinedEl     = document.getElementById('mp-joined');
+  if(tasksCountEl) tasksCountEl.textContent = myActive.length;
+  if(doneCountEl)  doneCountEl.textContent  = myDone.length;
+  if(joinedEl) joinedEl.textContent = m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('ar-EG',{month:'short',year:'numeric'}) : '—';
+
+  // Tasks list
+  const tasksListEl = document.getElementById('mp-tasks-list');
+  const memberTasks = tasks.filter(t=>!t.done&&(t.assigneeId===memberId||(t.workerIds||[]).includes(memberId)));
+  if(tasksListEl){
+    if(!memberTasks.length){
+      tasksListEl.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px">لا مهام نشطة</div>';
+    } else {
+      tasksListEl.innerHTML=memberTasks.slice(0,5).map(t=>{
+        const isLead = t.assigneeId===memberId;
+        const priColor={high:'var(--accent4)',med:'var(--accent2)',low:'var(--accent3)'}[t.priority||'med'];
+        return `<div style="display:flex;align-items:center;gap:8px;padding:7px;background:var(--surface2);border-radius:8px;margin-bottom:4px;cursor:pointer" onclick="closeModal('modal-member-profile');openTaskDetail('${t.id}')">
+          <div style="width:6px;height:6px;border-radius:50%;background:${priColor};flex-shrink:0"></div>
+          <div style="font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.title)}</div>
+          ${isLead?'<span style="font-size:9px;background:var(--accent)22;color:var(--accent);padding:1px 5px;border-radius:4px">مسؤول</span>':'<span style="font-size:9px;background:var(--surface3);color:var(--text3);padding:1px 5px;border-radius:4px">عامل</span>'}
+        </div>`;
+      }).join('')+(memberTasks.length>5?`<div style="font-size:11px;color:var(--text3);text-align:center;padding:4px">+${memberTasks.length-5} أخرى</div>`:'');
+    }
+  }
+
+  // Clear message input
+  const msgInp = document.getElementById('mp-msg-input');
+  if(msgInp) msgInp.value='';
+
+  // حفظ الـ memberId للإرسال
+  document.getElementById('modal-member-profile').dataset.memberId = memberId;
+  document.getElementById('mp-title').textContent = 'بروفايل: '+m.name;
+
+  openModal('modal-member-profile');
+}
+
+// ── إرسال رسالة خاصة من بروفايل العضو ──
+function sendPrivateMessageFromProfile() {
+  const modal = document.getElementById('modal-member-profile');
+  const toId  = modal?.dataset.memberId;
+  const text  = (document.getElementById('mp-msg-input')?.value||'').trim();
+  if(!text){ toast('⚠ اكتب رسالة أولاً'); return; }
+  _sendDirectMsg(toId, text);
+  document.getElementById('mp-msg-input').value='';
+  toast('<i class="fa-solid fa-paper-plane" style="color:var(--accent3)"></i> تم الإرسال');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DIRECT MESSAGES — نظام الرسائل المباشرة بين الأعضاء
+// ═══════════════════════════════════════════════════════════════
+// مخزنة في TS._teamMessages = { teamId: { convId: [{from,to,text,at}] } }
+
+function _getTeamMsgs(teamId) {
+  if(!TS._teamMessages) TS._teamMessages={};
+  if(!TS._teamMessages[teamId]) TS._teamMessages[teamId]={};
+  return TS._teamMessages[teamId];
+}
+
+function _getConvId(id1, id2) {
+  return [id1,id2].sort().join('__');
+}
+
+function _sendDirectMsg(toMemberId, text) {
+  const team = currentTeam(); if(!team||!toMemberId||!text.trim()) return;
+  const convs = _getTeamMsgs(team.id);
+  const myId  = 'me';
+  const convId = _getConvId(myId, toMemberId);
+  if(!convs[convId]) convs[convId]=[];
+  convs[convId].push({ from:myId, to:toMemberId, text:text.trim(), at:new Date().toISOString() });
+  saveLS(); syncToCloud(TS.currentTeamId);
+  // لو الـ inbox مفتوح على نفس المحادثة — حدّثها
+  if(document.getElementById('modal-team-inbox')?.style.display!=='none') {
+    const activeConvId = document.getElementById('ti-messages')?.dataset.convId;
+    if(activeConvId===convId) _renderConvMessages(team.id, convId, toMemberId);
+  }
+}
+
+// ── فتح الـ inbox ──
+function openTeamInbox() {
+  const team = currentTeam(); if(!team) return;
+  _renderInboxConvsList(team.id);
+  openModal('modal-team-inbox');
+}
+
+function _renderInboxConvsList(teamId) {
+  const convs  = _getTeamMsgs(teamId);
+  const team   = currentTeam(); if(!team) return;
+  const listEl = document.getElementById('ti-convs-list');
+  if(!listEl) return;
+
+  const members = (team.members||[]).filter(m=>m.id!=='me');
+  if(!members.length){
+    listEl.innerHTML='<div style="font-size:11px;color:var(--text3);padding:8px">لا أعضاء</div>';
+    return;
+  }
+
+  listEl.innerHTML = members.map(m=>{
+    const convId = _getConvId('me', m.id);
+    const msgs   = convs[convId]||[];
+    const unread = msgs.filter(msg=>msg.from===m.id&&!msg.read).length;
+    const last   = msgs[msgs.length-1];
+    return `<div onclick="_openConversation('${teamId}','${convId}','${m.id}',this)"
+      data-conv-id="${convId}"
+      style="padding:8px 6px;border-radius:8px;cursor:pointer;transition:.15s;margin-bottom:2px"
+      onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='transparent'">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${m.color||'var(--accent)'};color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative">
+          ${m.name[0]}
+          ${unread?`<span style="position:absolute;top:-2px;right:-2px;width:10px;height:10px;background:var(--accent4);border-radius:50%;border:1.5px solid var(--surface)"></span>`:''}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</div>
+          ${last?`<div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(last.text.slice(0,30))}</div>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _openConversation(teamId, convId, withMemberId, btnEl) {
+  const team = currentTeam(); if(!team) return;
+  // تحديث active style
+  document.querySelectorAll('#ti-convs-list [data-conv-id]').forEach(el=>{
+    el.style.background='transparent'; el.style.fontWeight='';
+  });
+  if(btnEl){ btnEl.style.background='var(--surface3)'; }
+
+  const partner = (team.members||[]).find(m=>m.id===withMemberId);
+  const headerEl = document.getElementById('ti-conv-header');
+  if(headerEl && partner){
+    headerEl.innerHTML=`<div style="display:flex;align-items:center;gap:8px">
+      <div style="width:28px;height:28px;border-radius:50%;background:${partner.color||'var(--accent)'};color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">${partner.name[0]}</div>
+      <span>${esc(partner.name)}</span>
+      <button class="btn btn-ghost btn-sm" style="margin-right:auto;font-size:10px" onclick="openMemberProfile('${withMemberId}')"><i class="fa-solid fa-id-card"></i> بروفايل</button>
+    </div>`;
+  }
+
+  // حفظ الـ convId على الـ messages div
+  const msgsEl = document.getElementById('ti-messages');
+  if(msgsEl) msgsEl.dataset.convId = convId;
+  document.getElementById('modal-team-inbox').dataset.withMemberId = withMemberId;
+
+  _renderConvMessages(teamId, convId, withMemberId);
+}
+
+function _renderConvMessages(teamId, convId, withMemberId) {
+  const convs  = _getTeamMsgs(teamId);
+  const msgs   = convs[convId]||[];
+  const team   = currentTeam(); if(!team) return;
+  const msgsEl = document.getElementById('ti-messages');
+  if(!msgsEl) return;
+
+  // علّم كل الرسائل من الطرف الثاني كـ read
+  let changed = false;
+  msgs.forEach(msg=>{ if(msg.from===withMemberId&&!msg.read){ msg.read=true; changed=true; } });
+  if(changed){ saveLS(); _renderInboxConvsList(teamId); }
+
+  if(!msgs.length){
+    msgsEl.innerHTML='<div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px">لا رسائل بعد — ابدأ المحادثة!</div>';
+    return;
+  }
+
+  const partner = (team.members||[]).find(m=>m.id===withMemberId);
+  msgsEl.innerHTML = msgs.map(msg=>{
+    const isMe = msg.from==='me';
+    const sender = isMe ? (TS.me?.name||'أنا') : (partner?.name||'عضو');
+    const t = new Date(msg.at);
+    const timeStr = t.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'});
+    return `<div style="display:flex;flex-direction:${isMe?'row-reverse':'row'};gap:7px;align-items:flex-end">
+      <div style="width:26px;height:26px;border-radius:50%;background:${isMe?'var(--accent)':partner?.color||'var(--accent3)'};color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">${sender[0]}</div>
+      <div style="max-width:70%;background:${isMe?'var(--accent)':'var(--surface3)'};color:${isMe?'#fff':'var(--text)'};padding:8px 12px;border-radius:${isMe?'14px 14px 4px 14px':'14px 14px 14px 4px'};font-size:13px;line-height:1.5;word-break:break-word">
+        ${esc(msg.text)}
+        <div style="font-size:9px;opacity:.7;margin-top:3px;text-align:${isMe?'left':'right'}">${timeStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // scroll to bottom
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+// ── إرسال رسالة من الـ inbox ──
+function sendTeamMsg() {
+  const modal = document.getElementById('modal-team-inbox');
+  const toId  = modal?.dataset.withMemberId;
+  const inp   = document.getElementById('ti-msg-inp');
+  const text  = (inp?.value||'').trim();
+  if(!toId||!text){ toast('⚠ اختر محادثة واكتب رسالة'); return; }
+  _sendDirectMsg(toId, text);
+  if(inp) inp.value='';
+  const team = currentTeam();
+  if(team) {
+    const convId = _getConvId('me', toId);
+    _renderConvMessages(team.id, convId, toId);
+  }
+}
+
+// ── إضافة زر inbox في الـ header ──
+(function _injectInboxBtn(){
+  const observer = new MutationObserver(function(){
+    const header = document.querySelector('.app-header .header-right') || document.querySelector('.app-header');
+    if(!header || document.getElementById('_team-inbox-btn')) return;
+    const btn = document.createElement('button');
+    btn.id = '_team-inbox-btn';
+    btn.title = 'رسائل الفريق';
+    btn.className = 'btn btn-ghost btn-sm';
+    btn.style.cssText = 'position:relative;width:34px;height:34px;border-radius:10px;padding:0;display:flex;align-items:center;justify-content:center';
+    btn.innerHTML = '<i class="fa-solid fa-comments"></i><span id="_ti-badge" style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--accent4);border-radius:50%"></span>';
+    btn.onclick = openTeamInbox;
+    header.appendChild(btn);
+  });
+  observer.observe(document.body, {childList:true, subtree:true});
+  setTimeout(()=>observer.disconnect(), 5000);
+})();
+
+// ── تحديث badge الرسائل الغير مقروءة ──
+function _updateInboxBadge(){
+  const team = currentTeam(); if(!team) return;
+  const convs = _getTeamMsgs(team.id);
+  const unread = Object.values(convs).flat().filter(m=>m.from!=='me'&&!m.read).length;
+  const badge = document.getElementById('_ti-badge');
+  if(badge) badge.style.display = unread?'block':'none';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NOTIFICATIONS: إشعار عند الإضافة للفريق (للعضو الجديد)
+// ═══════════════════════════════════════════════════════════════
+(function _checkTeamAddedNotif(){
+  try {
+    const myEmail = (TS.me?.email||'').toLowerCase().trim();
+    if(!myEmail) return;
+    const raw = localStorage.getItem('ordo_teams_v2');
+    if(!raw) return;
+    const tsData = JSON.parse(raw);
+    const notifs = tsData._companyNotifications?.[myEmail]||[];
+    const unread = notifs.filter(n=>!n.read);
+    if(!unread.length) return;
+    // عرض إشعار لكل رسالة
+    unread.forEach(function(n){
+      setTimeout(function(){
+        _showTeamNotifBanner(n);
+        n.read=true;
+      }, 500);
+    });
+    localStorage.setItem('ordo_teams_v2', JSON.stringify(tsData));
+  }catch(e){}
+})();
+
+function _showTeamNotifBanner(notif) {
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:99999;max-width:420px;width:90%;background:var(--surface,#1a1a2e);border:1.5px solid var(--accent,#7c6ff7);border-radius:16px;padding:16px 20px;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:_teamNotifIn .4s ease;direction:rtl;font-family:Cairo,sans-serif';
+  banner.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:12px">
+      <div style="width:40px;height:40px;border-radius:12px;background:var(--accent,#7c6ff7);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">👥</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:800;color:var(--text,#e2e4f0);margin-bottom:4px">${notif.title||'إشعار جديد'}</div>
+        <div style="font-size:12px;color:var(--text3,#9090b0);line-height:1.5">${notif.body||''}</div>
+        ${notif.teamUrl?`<a href="${notif.teamUrl}" style="display:inline-block;margin-top:8px;font-size:12px;color:var(--accent,#7c6ff7);text-decoration:none;font-weight:700">فتح صفحة الفريق ←</a>`:''}
+      </div>
+      <button onclick="this.closest('div[style]').remove()" style="background:none;border:none;color:var(--text3,#9090b0);cursor:pointer;font-size:16px;padding:0;line-height:1">✕</button>
+    </div>`;
+  if(!document.getElementById('_teamNotifStyle')){
+    const s=document.createElement('style');
+    s.id='_teamNotifStyle';
+    s.textContent='@keyframes _teamNotifIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+    document.head.appendChild(s);
+  }
+  document.body.appendChild(banner);
+  setTimeout(()=>{ if(banner.parentNode) banner.style.opacity='0'; banner.style.transition='opacity .4s'; setTimeout(()=>banner.remove(),400); }, 6000);
+}
+
+// ── إضافة زر "رسالة" في كارت العضو في صفحة الأعضاء ──
+const _origRenderMembers = typeof renderMembers === 'function' ? renderMembers : null;
+if(_origRenderMembers) {
+  window.renderMembers = function(){
+    _origRenderMembers.apply(this, arguments);
+    // بعد الـ render — أضف زر رسالة وبروفايل لكل عضو
+    setTimeout(function(){
+      const team = typeof currentTeam === 'function' ? currentTeam() : null;
+      if(!team) return;
+      document.querySelectorAll('[data-member-id]').forEach(function(card){
+        const mid = card.dataset.memberId;
+        if(!mid||mid==='me'||card.querySelector('._msg-btn')) return;
+        const actionsDiv = card.querySelector('.member-actions')||card;
+        const btn = document.createElement('button');
+        btn.className='btn btn-ghost btn-sm _msg-btn';
+        btn.style.cssText='font-size:11px;padding:4px 8px';
+        btn.innerHTML='<i class="fa-solid fa-comments"></i> رسالة';
+        btn.onclick=function(e){ e.stopPropagation(); openTeamInbox(); };
+        const profileBtn = document.createElement('button');
+        profileBtn.className='btn btn-ghost btn-sm';
+        profileBtn.style.cssText='font-size:11px;padding:4px 8px';
+        profileBtn.innerHTML='<i class="fa-solid fa-id-card"></i>';
+        profileBtn.title='بروفايل';
+        profileBtn.onclick=function(e){ e.stopPropagation(); openMemberProfile(mid); };
+        if(actionsDiv){ actionsDiv.appendChild(profileBtn); actionsDiv.appendChild(btn); }
+      });
+      _updateInboxBadge();
+    }, 200);
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE SETUP HELPER — يتحقق من وجود الجدول والـ policies
+// ═══════════════════════════════════════════════════════════════
+async function _checkSupabaseSetup(){
+  if(typeof supa === 'undefined') return;
+  try {
+    // اختبار INSERT في team_invites
+    const testRow = {
+      to_email: 'test@setup-check.invalid',
+      team_id: 'setup_test',
+      team_name: 'Setup Test',
+      owner_name: 'System',
+      member_name: 'Test',
+      member_role: 'member',
+      status: 'pending',
+      payload: '{}',
+      created_at: new Date().toISOString()
+    };
+    const { error: insertErr } = await supa.from('team_invites').insert([testRow]).catch(e=>({error:e}));
+
+    if(insertErr){
+      console.warn('[Ordo] team_invites INSERT failed:', insertErr.message);
+      // عرض تعليمات إصلاح Supabase
+      _showSupabaseFixBanner(insertErr.message);
+    } else {
+      // نظف صف الاختبار
+      await supa.from('team_invites').delete().eq('team_id','setup_test').catch(()=>{});
+      console.log('[Ordo] ✅ team_invites table OK');
+    }
+  }catch(e){}
+}
+
+function _showSupabaseFixBanner(errMsg){
+  var old = document.getElementById('_supa-fix-banner');
+  if(old) return; // لا تعرضها مرتين
+  var b = document.createElement('div');
+  b.id = '_supa-fix-banner';
+  b.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#1a0a0a;border-top:2px solid #f76f7c;padding:12px 20px;font-family:Cairo,sans-serif;direction:rtl;font-size:12px;color:#f0d0d0;display:flex;align-items:center;gap:12px';
+  b.innerHTML = `
+    <i class="fa-solid fa-triangle-exclamation" style="color:#f76f7c;font-size:18px;flex-shrink:0"></i>
+    <div style="flex:1">
+      <strong>مشكلة في Supabase:</strong> جدول team_invites لا يقبل الإدراج.
+      اذهب إلى <strong>Supabase → SQL Editor</strong> وشغّل:
+      <code style="background:rgba(255,255,255,.1);padding:2px 6px;border-radius:4px;margin:0 4px;direction:ltr;display:inline-block">
+        ALTER TABLE team_invites ENABLE ROW LEVEL SECURITY;<br>
+        CREATE POLICY "allow_insert" ON team_invites FOR INSERT TO authenticated WITH CHECK (true);<br>
+        CREATE POLICY "allow_select" ON team_invites FOR SELECT TO authenticated USING (true);<br>
+        CREATE POLICY "allow_update" ON team_invites FOR UPDATE TO authenticated USING (true);
+      </code>
+    </div>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#f0d0d0;cursor:pointer;font-size:18px;flex-shrink:0">✕</button>`;
+  document.body.appendChild(b);
+}
+
+// شغّله بعد 3 ثواني من التحميل
+setTimeout(_checkSupabaseSetup, 3000);

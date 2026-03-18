@@ -188,27 +188,31 @@ async function resolveUname(u){
   if(!u) return null;
   var uLower=u.toLowerCase().trim();
 
-  // محاولة 1: username_index column (الأسرع)
+  // محاولة 1: username_index column (الأسرع) — للـ username الرئيسي
   try{
     var r=await supa.from('studio_data').select('user_id').ilike('username_index',uLower).maybeSingle();
     if(r.data&&r.data.user_id){ console.log('[Store] resolved via username_index'); return r.data.user_id; }
   }catch(e){ console.warn('[Store] username_index lookup failed:',e.message); }
 
-  // محاولة 2: بحث في data JSON نصي (للسجلات القديمة)
+  // محاولة 2: بحث في data JSON نصي (للسجلات القديمة + username الفروع)
   try{
-    var r2=await supa.from('studio_data').select('user_id,data').ilike('data','%"username":"'+uLower+'"%').limit(5);
+    // ابحث في settings.username وكمان في stores[].username
+    var r2=await supa.from('studio_data').select('user_id,data').or(
+      'data.ilike.%"username":"'+uLower+'"%,username_index.ilike.'+uLower
+    ).limit(10);
     if(r2.data&&r2.data.length){
       for(var i=0;i<r2.data.length;i++){
         try{
           var d=JSON.parse(r2.data[i].data||'{}');
+          // تحقق من username الرئيسي
           var un=(d.settings&&d.settings.username||'').toLowerCase();
-          if(un===uLower){ console.log('[Store] resolved via JSON search'); return r2.data[i].user_id; }
-          // بحث في stores[] كمان
+          if(un===uLower){ console.log('[Store] resolved via JSON username'); return r2.data[i].user_id; }
+          // تحقق من usernames الفروع
           if(d.stores&&d.stores.length){
             for(var j=0;j<d.stores.length;j++){
               if((d.stores[j].username||'').toLowerCase()===uLower){
-                console.log('[Store] resolved via store username');
-                _storeId=d.stores[j].id; // override storeId
+                console.log('[Store] resolved via store branch username, storeId='+d.stores[j].id);
+                _storeId=d.stores[j].id;
                 return r2.data[i].user_id;
               }
             }
@@ -216,7 +220,29 @@ async function resolveUname(u){
         }catch(pe){}
       }
     }
-  }catch(e){ console.warn('[Store] JSON search failed:',e.message); }
+  }catch(e){
+    // Fallback: بحث بسيط بدون .or() (في حالة مفيش دعم)
+    try{
+      var r3=await supa.from('studio_data').select('user_id,data').ilike('data','%"username":"'+uLower+'"%').limit(5);
+      if(r3.data&&r3.data.length){
+        for(var i=0;i<r3.data.length;i++){
+          try{
+            var d=JSON.parse(r3.data[i].data||'{}');
+            var un=(d.settings&&d.settings.username||'').toLowerCase();
+            if(un===uLower){ return r3.data[i].user_id; }
+            if(d.stores&&d.stores.length){
+              for(var j=0;j<d.stores.length;j++){
+                if((d.stores[j].username||'').toLowerCase()===uLower){
+                  _storeId=d.stores[j].id;
+                  return r3.data[i].user_id;
+                }
+              }
+            }
+          }catch(pe){}
+        }
+      }
+    }catch(e2){ console.warn('[Store] JSON search failed:',e2.message); }
+  }
 
   console.error('[Store] Could not resolve username:',u);
   return null;
@@ -1217,7 +1243,23 @@ window._submitOrd=function(ue,se,pe,price,ple){
         }
         // ربط الطلب بالعميل
         order.client_id=savedClientId;
+        // ── تسجيل الطلب في svc_orders وكذلك support_msgs ──
         ud2.svc_orders=ud2.svc_orders||[];ud2.svc_orders.push(order);
+        // إضافة رسالة في الدعم والرسائل
+        ud2.support_msgs=ud2.support_msgs||[];
+        var supportMsg={
+          id:order.id+'_sm',
+          type:'svc_order',
+          client_name:nm,
+          client_phone:ph,
+          client_email:em||'',
+          subject:'طلب خدمة: '+(sn||pn||sv||'خدمة'),
+          message:'الخدمة: '+(sn||pn||sv||'—')+(ds?'\nملاحظات: '+ds:''),
+          created_at:new Date().toISOString(),
+          read:false,
+          order_ref:order.id
+        };
+        ud2.support_msgs.push(supportMsg);
         ud2._pending_notifications=ud2._pending_notifications||[];
         ud2._pending_notifications.push({id:order.id+'_n',title:'طلب جديد!',body:nm+' — '+(sn||pn||sv),type:'svc_order',created_at:new Date().toISOString(),read:false});
         return supa.from('studio_data').update({data:JSON.stringify(ud2),updated_at:new Date().toISOString()}).eq('user_id',uid);

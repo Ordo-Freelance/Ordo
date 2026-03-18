@@ -1208,6 +1208,15 @@ async function _submitSvcOrder(uid, svcName, svcType, price){
     if(fresh?.data && !fresh?.tasks) fresh = typeof fresh.data==='string'?JSON.parse(fresh.data):fresh.data;
 
     (fresh.svc_orders = fresh.svc_orders||[]).push(order);
+    // إضافة في support_msgs أيضاً لتظهر في صفحة الدعم
+    (fresh.support_msgs = fresh.support_msgs||[]).push({
+      id:order.id+'_sm', type:'svc_order',
+      client_name:name, client_phone:phone, client_id:String(_clientId||''),
+      subject:'طلب خدمة: '+svcName,
+      message:'الخدمة: '+svcName+(desc?'\nملاحظات: '+desc:''),
+      created_at:new Date().toISOString(), read:false,
+      order_ref:order.id
+    });
     (fresh._pending_notifications = fresh._pending_notifications||[]).push({
       id:order.id+'_n', title:'طلب خدمة جديد!',
       body:name+' — '+svcName, type:'svc_order',
