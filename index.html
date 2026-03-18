@@ -6866,25 +6866,46 @@ function _buildLeadModal(lead) {
 }
 
 async function _pickPhoneContactForLead(){
-  try {
-    if(!('contacts' in navigator) || !('ContactsManager' in window)){
-      // فتح input يدوي على الأجهزة التي لا تدعم API
-      toast('<i class="fa-solid fa-mobile-screen"></i> أدخل الاسم والرقم يدوياً أو افتح جهات الاتصال من هاتفك ثم انسخ الرقم');
+  // Chrome Android — Contact Picker API
+  if('contacts' in navigator && 'ContactsManager' in window){
+    try {
+      var contacts = await navigator.contacts.select(['name','tel'], {multiple:false});
+      if(!contacts || !contacts.length) return;
+      var c = contacts[0];
       var nameEl = document.getElementById('_lm-name');
-      if(nameEl) nameEl.focus();
+      var phoneEl = document.getElementById('_lm-phone');
+      if(nameEl && c.name && c.name[0]) nameEl.value = c.name[0];
+      if(phoneEl && c.tel && c.tel[0]) phoneEl.value = c.tel[0].replace(/\s+/g,'');
+      toast('✅ تم استيراد جهة الاتصال');
       return;
-    }
-    var contacts = await navigator.contacts.select(['name','tel'], {multiple:false});
-    if(!contacts || !contacts.length) return;
-    var c = contacts[0];
-    var nameEl = document.getElementById('_lm-name');
-    var phoneEl = document.getElementById('_lm-phone');
-    if(nameEl && c.name && c.name[0]) nameEl.value = c.name[0];
-    if(phoneEl && c.tel && c.tel[0]) phoneEl.value = c.tel[0];
-    toast('✅ تم استيراد جهة الاتصال');
-  } catch(e) {
-    toast('⚠ تعذّر فتح جهات الاتصال: ' + (e.message||e));
+    } catch(e) {}
   }
+  // iOS / غير مدعوم — vCard file picker
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.vcf,text/vcard,text/x-vcard';
+  inp.style.display = 'none';
+  document.body.appendChild(inp);
+  inp.onchange = function(){
+    var file = inp.files[0];
+    if(!file){ inp.remove(); return; }
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var text = e.target.result || '';
+      // parse vCard
+      var nameMatch = text.match(/FN[^:]*:(.+)/);
+      var telMatch  = text.match(/TEL[^:]*:([+\d\s\-().]+)/);
+      var nameEl = document.getElementById('_lm-name');
+      var phoneEl = document.getElementById('_lm-phone');
+      if(nameEl && nameMatch) nameEl.value = nameMatch[1].trim();
+      if(phoneEl && telMatch) phoneEl.value = telMatch[1].replace(/\s+/g,'').trim();
+      if(nameMatch || telMatch) toast('✅ تم استيراد جهة الاتصال');
+      else toast('⚠ لم يتم التعرف على البيانات — حاول مرة أخرى');
+    };
+    reader.readAsText(file);
+    inp.remove();
+  };
+  inp.click();
 }
 
 function _lmSpecSelChange(sel){
@@ -6955,24 +6976,45 @@ function _openAddContactModal() {
 }
 
 async function _pickPhoneContact(){
-  try {
-    if(!('contacts' in navigator) || !('ContactsManager' in window)){
-      toast('<i class="fa-solid fa-mobile-screen"></i> افتح جهات الاتصال من هاتفك ثم انسخ الاسم والرقم');
-      var nameEl2 = document.getElementById('_ac-name');
-      if(nameEl2) nameEl2.focus();
+  // Chrome Android — Contact Picker API
+  if('contacts' in navigator && 'ContactsManager' in window){
+    try {
+      var contacts = await navigator.contacts.select(['name','tel'], {multiple:false});
+      if(!contacts || !contacts.length) return;
+      var c = contacts[0];
+      var nameEl = document.getElementById('_ac-name');
+      var phoneEl = document.getElementById('_ac-phone');
+      if(nameEl && c.name && c.name[0]) nameEl.value = c.name[0];
+      if(phoneEl && c.tel && c.tel[0]) phoneEl.value = c.tel[0].replace(/\s+/g,'');
+      toast('✅ تم استيراد جهة الاتصال');
       return;
-    }
-    var contacts = await navigator.contacts.select(['name','tel'], {multiple:false});
-    if(!contacts || !contacts.length) return;
-    var c = contacts[0];
-    var nameEl = document.getElementById('_ac-name');
-    var phoneEl = document.getElementById('_ac-phone');
-    if(nameEl && c.name && c.name[0]) nameEl.value = c.name[0];
-    if(phoneEl && c.tel && c.tel[0]) phoneEl.value = c.tel[0];
-    toast('✅ تم استيراد جهة الاتصال');
-  } catch(e) {
-    toast('⚠ تعذّر فتح جهات الاتصال: ' + (e.message||e));
+    } catch(e) {}
   }
+  // iOS / غير مدعوم — vCard file picker
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.vcf,text/vcard,text/x-vcard';
+  inp.style.display = 'none';
+  document.body.appendChild(inp);
+  inp.onchange = function(){
+    var file = inp.files[0];
+    if(!file){ inp.remove(); return; }
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var text = e.target.result || '';
+      var nameMatch = text.match(/FN[^:]*:(.+)/);
+      var telMatch  = text.match(/TEL[^:]*:([+\d\s\-().]+)/);
+      var nameEl = document.getElementById('_ac-name');
+      var phoneEl = document.getElementById('_ac-phone');
+      if(nameEl && nameMatch) nameEl.value = nameMatch[1].trim();
+      if(phoneEl && telMatch) phoneEl.value = telMatch[1].replace(/\s+/g,'').trim();
+      if(nameMatch || telMatch) toast('✅ تم استيراد جهة الاتصال');
+      else toast('⚠ لم يتم التعرف على البيانات — حاول مرة أخرى');
+    };
+    reader.readAsText(file);
+    inp.remove();
+  };
+  inp.click();
 }
 
 // ═══════════════════════════════════════════════════════
