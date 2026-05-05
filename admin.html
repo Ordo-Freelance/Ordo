@@ -613,6 +613,9 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
     <a class="nav-item" onclick="showPage('platform')" id="nav-platform">
       <span class="nav-icon"><i class="fa-solid fa-sliders"></i></span>إعدادات المنصة
     </a>
+    <a class="nav-item" onclick="showPage('user-features')" id="nav-user-features">
+      <span class="nav-icon"><i class="fa-solid fa-toggle-on"></i></span>تحكم أقسام المستخدم
+    </a>
 
     <div class="sb-footer">
       <div class="sb-admin-badge">
@@ -713,6 +716,89 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           </div>
         </div>
         <div id="dash-sales-chart" style="display:flex;align-items:flex-end;gap:3px;height:60px"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="section-title">🧩 تحكم أقسام ومميزات المستخدم</div>
+        <div style="font-size:12px;color:var(--text3);line-height:1.8;margin-bottom:12px">
+          اقفل أو افتح أي قسم في موقع المستخدم لكل الحسابات. استخدم "قادم" لعرض الميزة كترويج بدون فتحها.
+        </div>
+        <div id="plt-user-feature-controls" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px"></div>
+      </div>
+    </div>
+
+    <!-- ═══ USER FEATURES PAGE ═══ -->
+    <div class="page" id="page-user-features">
+      <div class="page-header">
+        <div>
+          <div class="page-title">تحكم <span>أقسام المستخدم</span></div>
+          <div class="page-sub">افتح، اقفل، أو اعرض أقسام موقع المستخدم كميزات قادمة</div>
+        </div>
+        <button class="btn btn-primary" onclick="savePlatformConfig()">
+          <i class="fa-solid fa-floppy-disk"></i> حفظ التحكم
+        </button>
+      </div>
+
+      <div class="grid grid-3" style="margin-bottom:16px">
+        <div class="card card-sm">
+          <div class="stat-lbl"><i class="fa-solid fa-circle-check" style="color:var(--accent3)"></i> أقسام مفعلة</div>
+          <div class="stat-val green" id="uf-enabled-count">—</div>
+          <div class="stat-delta">تظهر وتعمل للمستخدم</div>
+        </div>
+        <div class="card card-sm">
+          <div class="stat-lbl"><i class="fa-solid fa-hourglass-half" style="color:var(--accent2)"></i> قادمة قريباً</div>
+          <div class="stat-val yellow" id="uf-coming-count">—</div>
+          <div class="stat-delta">تظهر كميزة ترويجية</div>
+        </div>
+        <div class="card card-sm">
+          <div class="stat-lbl"><i class="fa-solid fa-lock" style="color:var(--accent4)"></i> مقفولة</div>
+          <div class="stat-val red" id="uf-disabled-count">—</div>
+          <div class="stat-delta">تختفي من موقع المستخدم</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+          <div>
+            <div class="section-title" style="margin-bottom:4px">🧩 أقسام ومميزات موقع المستخدم</div>
+            <div style="font-size:12px;color:var(--text3);line-height:1.8">
+              الحالة <b>مفعل</b> تفتح القسم، <b>قادم</b> تعرضه كترويج فقط، و <b>مقفول</b> تخفيه من قوائم المستخدم.
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="setAllUserFeatures('enabled')"><i class="fa-solid fa-check-double"></i> تفعيل الكل</button>
+            <button class="btn btn-ghost btn-sm" onclick="setAllUserFeatures('coming')"><i class="fa-solid fa-hourglass-half"></i> الكل قادم</button>
+            <button class="btn btn-primary btn-sm" onclick="applyCurrentFeaturesToAllUsers()"><i class="fa-solid fa-users-gear"></i> تطبيق على كل المستخدمين</button>
+          </div>
+        </div>
+        <div id="user-features-team-mode"></div>
+        <div id="user-features-controls" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+          <div>
+            <div class="section-title" style="margin-bottom:4px"><i class="fa-solid fa-users-gear"></i> تحكم حسب المستخدم</div>
+            <div style="font-size:12px;color:var(--text3)">اختار مستخدم وغيّر حالة أي ميزة له بشكل فردي.</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="renderUserFeatureUsersList()"><i class="fa-solid fa-rotate"></i> تحديث</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <input class="form-input" id="uf-user-search" placeholder="ابحث باسم أو إيميل..." oninput="renderUserFeatureUsersList()" style="max-width:320px">
+          <select class="form-select" id="uf-user-feature-pick" onchange="renderUserFeatureUsersList()" style="max-width:260px">
+            <option value="">كل المميزات</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>المستخدم</th><th>الميزة</th><th>الحالة العامة</th><th>حالة هذا المستخدم</th><th>نوع الفريق</th><th>إجراء</th></tr>
+            </thead>
+            <tbody id="uf-users-tbody">
+              <tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">جاري التحميل...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -980,6 +1066,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
       <div class="detail-tabs">
         <button class="detail-tab active" onclick="switchDetailTab('overview')" data-tab="overview">📊 نظرة عامة</button>
         <button class="detail-tab" onclick="switchDetailTab('subscription')" data-tab="subscription">📦 الاشتراك</button>
+        <button class="detail-tab" onclick="switchDetailTab('features')" data-tab="features">🧩 المميزات</button>
         <button class="detail-tab" onclick="switchDetailTab('activity')" data-tab="activity">📜 سجل النشاط</button>
       </div>
 
@@ -1074,6 +1161,22 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
             <div style="font-size:13px;font-weight:700;margin-bottom:14px">✏ تعديل الاشتراك</div>
             <div id="udp-sub-edit"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- Tab: Feature Overrides -->
+      <div class="detail-tab-panel" id="dtab-features">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+            <div>
+              <div style="font-size:14px;font-weight:900;margin-bottom:4px">تحكم فردي في المميزات</div>
+              <div style="font-size:12px;color:var(--text3);line-height:1.8">اتركها على “يرث من العام” لو عايز المستخدم يتبع إعدادات المنصة العامة.</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveUserFeatureOverrides(_currentDetailUid)">
+              <i class="fa-solid fa-floppy-disk"></i> حفظ للمستخدم
+            </button>
+          </div>
+          <div id="udp-feature-overrides"></div>
         </div>
       </div>
 
@@ -1529,7 +1632,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           <div class="page-title">تحدي <span>الأسبوع</span></div>
           <div class="page-sub">أرسل تحديات أسبوعية مخصصة لجميع المستخدمين</div>
         </div>
-        <button class="btn btn-primary" onclick="openNewChallengeModal()">
+        <button class="btn btn-primary" id="admin-new-challenge-btn" onclick="openAdminChallengeModalSafe(event)">
           <i class="fa-solid fa-trophy"></i> تحدي جديد
         </button>
       </div>
@@ -2038,7 +2141,41 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
         </div>
       </div>
 
-    </div>
+      <!-- ══ قسم: نمط العمل والتكامل المتقدم ══ -->
+      <div class="perm-sec" style="margin-bottom:10px">
+        <div class="perm-sec-header" onclick="toggleAcc('integration')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800">
+            <i class="fa-solid fa-diagram-project" style="color:var(--accent)"></i>
+            نمط العمل والتكامل المتقدم
+          </div>
+          <i class="fa-solid fa-chevron-down acc-arrow" style="font-size:11px;color:var(--text3);transition:.2s"></i>
+        </div>
+        <div class="perm-sec-body" id="acc-body-integration" style="display:none;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px">
+
+          <div style="font-size:10px;font-weight:800;color:var(--accent);margin-bottom:4px;letter-spacing:.5px">نمط العمل</div>
+          <div class="perm-row" style="border:none;padding:3px 0"><label>وضع الفريلانسر (Freelancer Mode)</label><input type="checkbox" id="feat-mode-freelancer" checked></div>
+          <div class="perm-row" style="border:none;padding:3px 0"><label>وضع الشركة / الأجنسي (Company Mode)</label><input type="checkbox" id="feat-mode-company"></div>
+
+          <div style="font-size:10px;font-weight:800;color:var(--accent);margin:8px 0 4px;letter-spacing:.5px">سير العمل</div>
+          <div class="perm-row" style="border:none;padding:3px 0"><label>سير عمل خارجي (عملاء / مشاريع / فواتير)</label><input type="checkbox" id="feat-external-workflow" checked></div>
+          <div class="perm-row" style="border:none;padding:3px 0"><label>سير عمل داخلي (فريق / مهام داخلية)</label><input type="checkbox" id="feat-internal-workflow"></div>
+          <div class="perm-row" style="border:none;padding:3px 0"><label>مهام داخلية منفصلة عن مهام العملاء</label><input type="checkbox" id="feat-internal-tasks"></div>
+
+          <div style="font-size:10px;font-weight:800;color:var(--accent);margin:8px 0 4px;letter-spacing:.5px">ربط الكيانات</div>
+          <div class="perm-row" style="border:none;padding:3px 0"><label>ربط المشاريع بالعملاء والعقود والعروض</label><input type="checkbox" id="feat-project-linking" checked></div>
+          <div class="perm-row" style="border:none;padding:3px 0"><label>تحويل عرض السعر لمشروع (Convert Proposal)</label><input type="checkbox" id="feat-convert-proposal"></div>
+          <div class="perm-row" style="border:none;padding:3px 0"><label>السجل الزمني للعميل (Client Timeline)</label><input type="checkbox" id="feat-client-timeline" checked></div>
+          <div class="perm-row" style="border:none;padding:3px 0"><label>الملخص المالي للمشروع (Project Finance Summary)</label><input type="checkbox" id="feat-project-finance-summary" checked></div>
+          <div class="perm-row" style="border:none;padding:3px 0"><label>علاقات متقدمة (عقد + عرض + مشروع)</label><input type="checkbox" id="feat-advanced-relations"></div>
+
+          <div style="font-size:10px;font-weight:800;color:var(--accent);margin:8px 0 4px;letter-spacing:.5px">هيكل الشركة (جاهز للتوسع)</div>
+          <div class="perm-row" style="border:none;padding:3px 0"><label>دعم الأقسام (Departments-Ready)</label><input type="checkbox" id="feat-departments-ready"></div>
+          <div class="perm-row" style="border:none;padding:3px 0"><label>دعم الأدوار (Role-Ready Structure)</label><input type="checkbox" id="feat-role-ready"></div>
+          <div class="perm-row" style="border:none;padding:3px 0"><label>تقارير متقدمة (Advanced Reports Ready)</label><input type="checkbox" id="feat-advanced-reports-ready"></div>
+
+        </div>
+      </div>
+      <!-- ══ نهاية قسم التكامل المتقدم ══ -->
 
     <!-- STICKY FOOTER -->
     <div class="plan-sticky-footer">
@@ -2353,12 +2490,18 @@ let PLANS = lsGet('plans', [
       clients:true,     max_clients_feat:5,
       finance:true,     max_transactions:50,
       invoices:true,    max_invoices:10,
-      schedule:false,
-      reports:false,
+      schedule:false,   reports:false,
       team:false,       max_team:0,
-      meetings:false,
-      learning:false,
-      cloud:true
+      meetings:false,   learning:false,
+      cloud:true,
+      proposals:false,  contracts:false,
+      workspace_mode:'freelancer', mode_freelancer:true, mode_company:false,
+      external_workflow:true,      internal_workflow:false, internal_tasks:false,
+      project_linking:true,        convert_proposal:false,
+      client_timeline:true,        project_finance_summary:true,
+      advanced_relations:false,    departments_ready:false,
+      role_ready:false,            advanced_reports_ready:false,
+      _use_case_profile:'freelancer_basic'
     }
   },
   {
@@ -2369,12 +2512,40 @@ let PLANS = lsGet('plans', [
       clients:true,     max_clients_feat:20,
       finance:true,     max_transactions:500,
       invoices:true,    max_invoices:100,
-      schedule:true,
-      reports:false,
+      schedule:true,    reports:false,
       team:true,        max_team:3,
-      meetings:true,
-      learning:true,
-      cloud:true
+      meetings:true,    learning:true,
+      cloud:true,
+      proposals:true,   contracts:true,
+      workspace_mode:'freelancer', mode_freelancer:true, mode_company:false,
+      external_workflow:true,      internal_workflow:false, internal_tasks:true,
+      project_linking:true,        convert_proposal:true,
+      client_timeline:true,        project_finance_summary:true,
+      advanced_relations:true,     departments_ready:false,
+      role_ready:false,            advanced_reports_ready:false,
+      _use_case_profile:'freelancer_pro'
+    }
+  },
+  {
+    id:'studio', name:'استوديو', icon:'🎨', price_monthly:149, price_annual:1290,
+    max_clients:50, duration_days:30, desc:'للاستوديوهات والفرق الصغيرة',
+    features: {
+      tasks:true,       max_tasks:0,
+      clients:true,     max_clients_feat:50,
+      finance:true,     max_transactions:0,
+      invoices:true,    max_invoices:0,
+      schedule:true,    reports:true,
+      team:true,        max_team:10,
+      meetings:true,    learning:true,
+      cloud:true,
+      proposals:true,   contracts:true,
+      workspace_mode:'freelancer', mode_freelancer:true, mode_company:false,
+      external_workflow:true,      internal_workflow:true, internal_tasks:true,
+      project_linking:true,        convert_proposal:true,
+      client_timeline:true,        project_finance_summary:true,
+      advanced_relations:true,     departments_ready:false,
+      role_ready:false,            advanced_reports_ready:true,
+      _use_case_profile:'studio'
     }
   },
   {
@@ -2385,12 +2556,21 @@ let PLANS = lsGet('plans', [
       clients:true,     max_clients_feat:0,
       finance:true,     max_transactions:0,
       invoices:true,    max_invoices:0,
-      schedule:true,
-      reports:true,
+      schedule:true,    reports:true,
       team:true,        max_team:0,
-      meetings:true,
-      learning:true,
-      cloud:true
+      meetings:true,    learning:true,
+      cloud:true,
+      proposals:true,   contracts:true,
+      corporate:true,   corp_mode:true,
+      corp_emp_others:true, corp_emp_finance:true,
+      corp_emp_clients:true, corp_invite_email:true,
+      workspace_mode:'company', mode_freelancer:true, mode_company:true,
+      external_workflow:true,   internal_workflow:true, internal_tasks:true,
+      project_linking:true,     convert_proposal:true,
+      client_timeline:true,     project_finance_summary:true,
+      advanced_relations:true,  departments_ready:true,
+      role_ready:true,          advanced_reports_ready:true,
+      _use_case_profile:'agency'
     }
   }
 ]);
@@ -2578,13 +2758,19 @@ async function adminLogin() {
   showApp(user);
 }
 
+let _adminAppShown = false;
+let _adminLoadPromise = null;
+
 function showApp(user) {
   document.getElementById('admin-login').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   const name = user.user_metadata?.name || user.email || 'Admin';
   document.getElementById('admin-name-badge').textContent = name;
-  logActivity('تسجيل دخول', `${name} سجّل دخوله`, 'var(--accent3)');
-  loadAll();
+  if(!_adminAppShown) {
+    _adminAppShown = true;
+    logActivity('تسجيل دخول', `${name} سجّل دخوله`, 'var(--accent3)');
+    loadAll();
+  }
 }
 
 async function adminLogout() {
@@ -2595,6 +2781,12 @@ async function adminLogout() {
 
 // Check existing session on load
 supa.auth.onAuthStateChange((event, session) => {
+  if(event === 'SIGNED_OUT') {
+    _adminAppShown = false;
+    document.getElementById('admin-login').classList.remove('hidden');
+    document.getElementById('app').classList.add('hidden');
+    return;
+  }
   if(session?.user) {
     const meta    = session.user.user_metadata || {};
     const appMeta = session.user.app_metadata  || {};
@@ -2630,6 +2822,7 @@ function showPage(name) {
   if(name === 'sales')        renderSalesPage();
   if(name === 'updates')      renderUpdatesPage();
   if(name === 'challenge')    renderChallengePage();
+  if(name === 'user-features') loadUserFeaturesPage();
 }
 
 function toggleSidebar() {
@@ -2645,13 +2838,28 @@ function closeSidebar() {
 //  DATA LOADING
 // ══════════════════════════════════════════════════
 async function loadAll() {
+  if(_adminLoadPromise) return _adminLoadPromise;
+  _adminLoadPromise = (async () => {
   const icon = document.getElementById('refresh-icon');
   if(icon) icon.textContent = '⏳';
 
   ALL_STUDIO_DATA = {}; // reset
-  await Promise.all([loadStudioData(), syncSerialsFromSupabase()]);
+  try {
+    const cached = JSON.parse(localStorage.getItem('admin_studio_data_cache') || '{}');
+    if(cached && Object.keys(cached).length) {
+      ALL_STUDIO_DATA = cached;
+      loadDashboard();
+      renderUsersTable();
+    }
+  } catch(e) {}
+  await loadStudioData();
   loadDashboard();
   renderUsersTable();
+  syncSerialsFromSupabase().then(() => {
+    loadDashboard();
+    renderUsersTable();
+    renderSerials();
+  }).catch(e => console.warn('serial sync background failed:', e));
 
   if(icon) icon.textContent = '🔄';
   const count = Object.keys(ALL_STUDIO_DATA).length;
@@ -2661,6 +2869,13 @@ async function loadAll() {
   } else {
     toast(`✅ تم تحميل ${count} مستخدم`);
   }
+  _adminLoadPromise = null;
+  })().catch(e => {
+    _adminLoadPromise = null;
+    console.error('loadAll failed:', e);
+    toast('⚠ تعذر تحميل بيانات الأدمن');
+  });
+  return _adminLoadPromise;
 }
 
 function showRlsWarning(){
@@ -2844,7 +3059,7 @@ async function loadUsers() {
 
 async function loadStudioData() {
   try {
-    const { data, error } = await supa.from('studio_data').select('*');
+    const { data, error } = await supa.from('studio_data').select('user_id, data, updated_at');
     if(error){
       console.error('studio_data RLS error:', error.message);
     } else if(data) {
@@ -2856,6 +3071,7 @@ async function loadStudioData() {
           };
         } catch {}
       });
+      try { localStorage.setItem('admin_studio_data_cache', JSON.stringify(ALL_STUDIO_DATA)); } catch(e) {}
     }
   } catch(e) { console.error('loadStudioData exception:', e); }
 
@@ -3710,7 +3926,8 @@ function openCreatePlanModal() {
     'feat-contracts','feat-proposals','feat-proposals-pdf',
     'feat-services','feat-svc-packages','feat-svc-images','feat-svc-portfolio','feat-svc-order-link','feat-svc-orders','feat-svc-auto-task','feat-svc-reviews','feat-client-portal-svc','feat-reviews-public',
     'feat-cloud','feat-goals','feat-rep-monthly','feat-rep-clients',
-    'feat-specializations','feat-spec-manage','feat-spec-multi','feat-team-invite','feat-team-invite-accept','feat-team-notif','feat-lang-en'
+    'feat-specializations','feat-spec-manage','feat-spec-multi','feat-team-invite','feat-team-invite-accept','feat-team-notif','feat-lang-en',
+    'feat-mode-freelancer','feat-external-workflow','feat-project-linking','feat-client-timeline','feat-project-finance-summary'
   ];
   document.querySelectorAll('[id^="feat-"]').forEach(el => {
     if(el.type === 'checkbox') el.checked = defaultOn.includes(el.id);
@@ -3758,7 +3975,8 @@ function editPlan(id) {
     'services','svc-packages','svc-images','svc-portfolio','svc-order-link','svc-orders','svc-auto-task','svc-reviews','client-portal-svc','reviews-public',
     'goals','rep-monthly','rep-clients',
     'specializations','spec-manage','spec-multi','team-invite','team-invite-accept','team-notif','lang-en',
-    'corp-invite-email'
+    'corp-invite-email',
+    'mode-freelancer','external-workflow','project-linking','client-timeline','project-finance-summary'
   ]);
 
   const allChecks = [
@@ -3778,7 +3996,10 @@ function editPlan(id) {
     'corp-mode','corp-emp-others','corp-emp-finance','corp-emp-clients','corp-invite-email',
     'specializations','spec-manage','spec-multi','team-invite','team-invite-accept','team-notif',
     'goals','learning','languages','lang-en',
-    'hide-store','hide-team','hide-reports','hide-timetracker','hide-goals','hide-learning','hide-meetings','hide-leads'
+    'hide-store','hide-team','hide-reports','hide-timetracker','hide-goals','hide-learning','hide-meetings','hide-leads',
+    'mode-freelancer','mode-company','external-workflow','internal-workflow','internal-tasks',
+    'project-linking','convert-proposal','client-timeline','project-finance-summary',
+    'advanced-relations','departments-ready','role-ready','advanced-reports-ready'
   ];
 
   allChecks.forEach(k => {
@@ -3804,6 +4025,23 @@ function editPlan(id) {
   });
 
   ['tasks','clients','invoices','services'].forEach(k => updateAccBadge(k));
+
+  // ── Integration Layer: fill new feature flags ──
+  const _setIL = (id, val, def) => { const el=document.getElementById(id); if(el) el.checked = val!==undefined ? !!val : !!def; };
+  _setIL('feat-mode-freelancer',        f.mode_freelancer,        true);
+  _setIL('feat-mode-company',           f.mode_company,           !!(f.corp_mode||f.corporate));
+  _setIL('feat-external-workflow',      f.external_workflow,      true);
+  _setIL('feat-internal-workflow',      f.internal_workflow,      !!(f.corp_mode||f.corporate));
+  _setIL('feat-internal-tasks',         f.internal_tasks,         !!f.team);
+  _setIL('feat-project-linking',        f.project_linking,        true);
+  _setIL('feat-convert-proposal',       f.convert_proposal,       !!f.proposals);
+  _setIL('feat-client-timeline',        f.client_timeline,        true);
+  _setIL('feat-project-finance-summary',f.project_finance_summary,true);
+  _setIL('feat-advanced-relations',     f.advanced_relations,     !!(f.proposals||f.contracts));
+  _setIL('feat-departments-ready',      f.departments_ready,      !!(f.corp_mode||f.corporate));
+  _setIL('feat-role-ready',             f.role_ready,             !!(f.corp_mode||f.corporate));
+  _setIL('feat-advanced-reports-ready', f.advanced_reports_ready, !!f.reports);
+
   _populateCopyPlanDropdown();
   openModal('modal-create-plan');
 }
@@ -3974,6 +4212,22 @@ function savePlan() {
     hide_learning:      _chk('feat-hide-learning'),
     hide_meetings:      _chk('feat-hide-meetings'),
     hide_leads:         _chk('feat-hide-leads'),
+
+    // ── Integration Layer features ──
+    mode_freelancer         : _chk('feat-mode-freelancer'),
+    mode_company            : _chk('feat-mode-company'),
+    external_workflow       : _chk('feat-external-workflow'),
+    internal_workflow       : _chk('feat-internal-workflow'),
+    internal_tasks          : _chk('feat-internal-tasks'),
+    project_linking         : _chk('feat-project-linking'),
+    convert_proposal        : _chk('feat-convert-proposal'),
+    client_timeline         : _chk('feat-client-timeline'),
+    project_finance_summary : _chk('feat-project-finance-summary'),
+    advanced_relations      : _chk('feat-advanced-relations'),
+    departments_ready       : _chk('feat-departments-ready'),
+    role_ready              : _chk('feat-role-ready'),
+    advanced_reports_ready  : _chk('feat-advanced-reports-ready'),
+    workspace_mode          : _chk('feat-mode-company') ? 'company' : 'freelancer',
   };
 
   const mc = features.max_clients_feat || 0;
@@ -4479,6 +4733,232 @@ async function deleteUserAccount(uid, email) {
 //  PLATFORM CONFIG
 // ══════════════════════════════════════════════════
 let _platformConfig = JSON.parse(localStorage.getItem('platform_config') || '{}');
+const USER_FEATURE_CONTROLS = [
+  {key:'dashboard', label:'الرئيسية'},
+  {key:'tasks', label:'المهام'},
+  {key:'projects', label:'المشاريع'},
+  {key:'schedule', label:'تنظيم اليوم والميتنج'},
+  {key:'clients', label:'العملاء'},
+  {key:'finance', label:'المالية'},
+  {key:'invoices', label:'الفواتير والعقود وعروض الأسعار'},
+  {key:'services', label:'خدماتي والمتجر'},
+  {key:'support', label:'الدعم والرسائل'},
+  {key:'team', label:'الفريق'},
+  {key:'timetracker', label:'تتبع الوقت'},
+  {key:'freelancer-goals', label:'الأهداف والإنجازات'},
+  {key:'vault', label:'حساباتي'},
+  {key:'workspace', label:'المساحة الحرة'},
+  {key:'reviews', label:'التقييمات'}
+];
+
+function _readDirectUserFeatures(){
+  try {
+    const direct = JSON.parse(localStorage.getItem('ordo_user_features') || '{}');
+    return direct && typeof direct === 'object' ? direct : {};
+  } catch(e) { return {}; }
+}
+
+function _mergeUserFeaturesFromStorage(){
+  _platformConfig = _platformConfig || {};
+  _platformConfig.user_features = Object.assign(
+    {},
+    _platformConfig.user_features || {},
+    _readDirectUserFeatures()
+  );
+  return _platformConfig.user_features;
+}
+
+function _collectUserFeatureControls(){
+  const features = Object.assign({}, _mergeUserFeaturesFromStorage());
+  USER_FEATURE_CONTROLS.forEach(f => {
+    const els = Array.from(document.querySelectorAll('[data-user-feature="'+f.key+'"]'));
+    const active = els.find(el => el.closest('.page.active')) || els[0];
+    features[f.key] = active?.value || features[f.key] || 'enabled';
+  });
+  return features;
+}
+
+function _setPlatformTeamModeSelects(value){
+  document.querySelectorAll('[data-platform-team-mode]').forEach(el => { el.value = value || 'both'; });
+}
+
+function _renderPlatformTeamMode(box){
+  if(!box) return;
+  const mode = _platformConfig.team_mode || 'both';
+  box.innerHTML = `
+    <div style="background:rgba(247,201,72,.06);border:1px solid rgba(247,201,72,.22);border-radius:12px;padding:12px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:900;margin-bottom:6px">نوع فرق العمل المتاح</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.7;margin-bottom:10px">اختر هل المستخدمين يقدروا ينشئوا فريق عادي، شركة، أو الاثنين.</div>
+      <select class="form-select" data-platform-team-mode style="height:38px">
+        <option value="both" ${mode==='both'?'selected':''}>فريق عادي + فريق شركة</option>
+        <option value="regular" ${mode==='regular'?'selected':''}>فريق عادي فقط</option>
+        <option value="company" ${mode==='company'?'selected':''}>فريق شركة فقط</option>
+      </select>
+    </div>`;
+}
+
+function renderUserFeatureControls(){
+  const controls=_mergeUserFeaturesFromStorage();
+  const boxes=[
+    document.getElementById('plt-user-feature-controls'),
+    document.getElementById('user-features-controls')
+  ].filter(Boolean);
+  if(!boxes.length) return;
+  _renderPlatformTeamMode(document.getElementById('user-features-team-mode'));
+  const html=USER_FEATURE_CONTROLS.map(f=>{
+    const state=controls[f.key]||'enabled';
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px">
+      <div style="font-size:12px;font-weight:900;margin-bottom:8px">${f.label}</div>
+      <select class="form-select" data-user-feature="${f.key}" style="height:34px;font-size:12px">
+        <option value="enabled" ${state==='enabled'?'selected':''}>مفتوح</option>
+        <option value="coming" ${state==='coming'?'selected':''}>قادم قريباً</option>
+        <option value="disabled" ${state==='disabled'?'selected':''}>مغلق</option>
+      </select>
+    </div>`;
+  }).join('');
+  boxes.forEach(box=>box.innerHTML=html);
+  updateUserFeatureStats();
+}
+
+function updateUserFeatureStats(){
+  const controls=_mergeUserFeaturesFromStorage();
+  const counts={enabled:0,coming:0,disabled:0};
+  USER_FEATURE_CONTROLS.forEach(f=>{
+    counts[controls[f.key]||'enabled']++;
+  });
+  const set=(id,val)=>{const el=document.getElementById(id); if(el) el.textContent=val;};
+  set('uf-enabled-count', counts.enabled);
+  set('uf-coming-count', counts.coming);
+  set('uf-disabled-count', counts.disabled);
+}
+
+function loadUserFeaturesPage(){
+  renderUserFeatureControls();
+  renderUserFeatureUsersList();
+}
+
+function renderUserFeatureUsersList(){
+  const tbody = document.getElementById('uf-users-tbody');
+  const pick = document.getElementById('uf-user-feature-pick');
+  if(!tbody) return;
+  _mergeUserFeaturesFromStorage();
+  if(pick && !pick.dataset.ready) {
+    pick.innerHTML = '<option value="">كل المميزات</option>' + USER_FEATURE_CONTROLS.map(f => `<option value="${f.key}">${f.label}</option>`).join('');
+    pick.dataset.ready = '1';
+  }
+  const q = (document.getElementById('uf-user-search')?.value || '').trim().toLowerCase();
+  const chosenFeature = pick?.value || '';
+  const users = Object.entries(ALL_STUDIO_DATA || {}).filter(([uid,row]) => {
+    const p = row.parsed || {};
+    const txt = [uid, p.settings?.name, p.settings?.email, p.settings?.phone].join(' ').toLowerCase();
+    return !q || txt.includes(q);
+  }).slice(0, 80);
+  if(!users.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">لا يوجد مستخدمين مطابقين</td></tr>';
+    return;
+  }
+  const featureRows = chosenFeature
+    ? USER_FEATURE_CONTROLS.filter(f => f.key === chosenFeature)
+    : USER_FEATURE_CONTROLS;
+  tbody.innerHTML = users.map(([uid,row]) => {
+    const p = row.parsed || {};
+    const name = p.settings?.name || 'مستخدم';
+    const email = p.settings?.email || uid;
+    const overrides = p.admin_feature_overrides || {};
+    const teamMode = p.admin_team_mode || 'inherit';
+    const rows = featureRows.map((f, idx) => {
+      const globalState = (_platformConfig.user_features || {})[f.key] || 'enabled';
+      const globalLabel = globalState === 'disabled' ? 'مغلق' : globalState === 'coming' ? 'قادم' : 'مفتوح';
+      const value = overrides[f.key] || '';
+      return `<tr>
+        ${idx === 0 ? `<td rowspan="${featureRows.length}" style="vertical-align:top">
+          <div style="font-weight:900">${name}</div>
+          <div style="font-size:11px;color:var(--text3)" dir="ltr">${email}</div>
+        </td>` : ''}
+        <td>${f.label}</td>
+        <td><span class="badge badge-gray">${globalLabel}</span></td>
+        <td>
+          <select class="form-select" data-uf-user="${uid}" data-uf-key="${f.key}" style="height:32px;font-size:12px">
+            <option value="" ${!value?'selected':''}>يرث من العام</option>
+            <option value="enabled" ${value==='enabled'?'selected':''}>مفتوح</option>
+            <option value="coming" ${value==='coming'?'selected':''}>قادم قريباً</option>
+            <option value="disabled" ${value==='disabled'?'selected':''}>مغلق</option>
+          </select>
+        </td>
+        ${idx === 0 ? `<td rowspan="${featureRows.length}" style="vertical-align:top">
+          <select class="form-select" data-uf-team-user="${uid}" style="height:32px;font-size:12px">
+            <option value="inherit" ${teamMode==='inherit'?'selected':''}>يرث العام</option>
+            <option value="both" ${teamMode==='both'?'selected':''}>الاثنين</option>
+            <option value="regular" ${teamMode==='regular'?'selected':''}>فريق عادي</option>
+            <option value="company" ${teamMode==='company'?'selected':''}>فريق شركة</option>
+          </select>
+        </td>
+        <td rowspan="${featureRows.length}" style="vertical-align:top">
+          <button class="btn btn-primary btn-sm" onclick="saveInlineUserFeatureOverrides('${uid}')"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
+        </td>` : ''}
+      </tr>`;
+    }).join('');
+    return rows;
+  }).join('');
+}
+
+async function saveInlineUserFeatureOverrides(uid){
+  if(!uid || !ALL_STUDIO_DATA[uid]) return toast('⚠ المستخدم غير موجود');
+  const row = ALL_STUDIO_DATA[uid];
+  const data = row.parsed || {};
+  const next = Object.assign({}, data.admin_feature_overrides || {});
+  document.querySelectorAll('[data-uf-user="'+uid+'"]').forEach(sel => {
+    if(sel.value) next[sel.dataset.ufKey] = sel.value;
+    else delete next[sel.dataset.ufKey];
+  });
+  data.admin_feature_overrides = next;
+  data.admin_team_mode = document.querySelector('[data-uf-team-user="'+uid+'"]')?.value || data.admin_team_mode || 'inherit';
+  data._admin_overrides_updated_at = new Date().toISOString();
+  row.parsed = data;
+  try {
+    if(typeof supa !== 'undefined') {
+      await supa.from('studio_data')
+        .update({ data: JSON.stringify(data), updated_at: new Date().toISOString() })
+        .eq('user_id', uid);
+    }
+    toast('✅ تم حفظ تحكم المستخدم');
+  } catch(e) {
+    console.warn('saveInlineUserFeatureOverrides:', e);
+    toast('⚠ تعذر حفظ تحكم المستخدم');
+  }
+}
+
+function syncUserFeatureDraft(){
+  const changed = event && event.target && event.target.matches('[data-user-feature]') ? event.target : null;
+  if(changed) {
+    document.querySelectorAll('[data-user-feature="'+changed.dataset.userFeature+'"]').forEach(el => {
+      if(el !== changed) el.value = changed.value;
+    });
+  }
+  _platformConfig.user_features = _collectUserFeatureControls();
+  const teamMode = document.querySelector('[data-platform-team-mode]')?.value;
+  if(teamMode) _platformConfig.team_mode = teamMode;
+  localStorage.setItem('ordo_user_features', JSON.stringify(_platformConfig.user_features));
+  localStorage.setItem('platform_config', JSON.stringify(_platformConfig));
+  updateUserFeatureStats();
+}
+
+function setAllUserFeatures(state){
+  _platformConfig.user_features = _platformConfig.user_features || {};
+  USER_FEATURE_CONTROLS.forEach(f=>_platformConfig.user_features[f.key]=state);
+  localStorage.setItem('ordo_user_features', JSON.stringify(_platformConfig.user_features));
+  localStorage.setItem('platform_config', JSON.stringify(_platformConfig));
+  renderUserFeatureControls();
+}
+
+document.addEventListener('change', function(e){
+  if(e.target && e.target.matches('[data-user-feature]')) syncUserFeatureDraft();
+  if(e.target && e.target.matches('[data-platform-team-mode]')) {
+    _platformConfig.team_mode = e.target.value || 'both';
+    _setPlatformTeamModeSelects(_platformConfig.team_mode);
+    localStorage.setItem('platform_config', JSON.stringify(_platformConfig));
+  }
+});
 
 function loadPlatformPage() {
   const cfg = _platformConfig;
@@ -4505,6 +4985,7 @@ function loadPlatformPage() {
   if(picker) picker.value = color;
   // update preview
   updatePlatformPreview();
+  renderUserFeatureControls();
 }
 
 function setPlatformMode(mode) {
@@ -4553,9 +5034,13 @@ function savePlatformConfig() {
   _platformConfig.welcome_title= document.getElementById('plt-welcome-title')?.value?.trim() || '';
   _platformConfig.welcome_body = document.getElementById('plt-welcome-body')?.value?.trim()  || '';
   _platformConfig.welcome_note = document.getElementById('plt-welcome-note')?.value?.trim()  || '';
+  _platformConfig.user_features = _collectUserFeatureControls();
+  _platformConfig.team_mode = document.querySelector('[data-platform-team-mode]')?.value || _platformConfig.team_mode || 'both';
   _platformConfig._ts          = Date.now();
 
   localStorage.setItem('platform_config', JSON.stringify(_platformConfig));
+  localStorage.setItem('ordo_user_features', JSON.stringify(_platformConfig.user_features));
+  renderUserFeatureControls();
 
   // Save to Supabase so ALL users get the config (not just same-browser)
   _savePlatformConfigToSupabase(_platformConfig);
@@ -4624,7 +5109,9 @@ async function _loadAdminPlatformConfig() {
     if(!error && data?.config) {
       const cfg = typeof data.config === 'string' ? JSON.parse(data.config) : data.config;
       _platformConfig = { ..._platformConfig, ...cfg };
+      _mergeUserFeaturesFromStorage();
       try { localStorage.setItem('platform_config', JSON.stringify(_platformConfig)); } catch(e) {}
+      try { if(_platformConfig.user_features) localStorage.setItem('ordo_user_features', JSON.stringify(_platformConfig.user_features)); } catch(e) {}
       const iconSrc = cfg.logo || cfg.favicon || '';
       if(iconSrc) {
         let link = document.querySelector("link[rel*='icon']");
@@ -4638,6 +5125,7 @@ async function _loadAdminPlatformConfig() {
       if(platformSection && platformSection.style.display !== 'none') {
         if(typeof loadPlatformPage === 'function') loadPlatformPage();
       }
+      renderUserFeatureControls();
     }
   } catch(e) { console.warn('Admin platform config load:', e.message||e); }
 }
@@ -4741,6 +5229,7 @@ function openUserDetailPage(uid) {
   loadDetailSubscription(uid, sub, plan);
   loadDetailContracts(p);
   loadDetailTimeTracker(p);
+  loadDetailFeatureOverrides(uid, p);
 
   // Switch tabs back to first
   switchDetailTab('overview');
@@ -4759,6 +5248,98 @@ function switchDetailTab(tab) {
   if(tab === 'activity') renderUserActivityLog(_currentDetailUid);
   if(tab === 'contracts') loadDetailContracts((ALL_STUDIO_DATA[_currentDetailUid]?.parsed)||{});
   if(tab === 'timetracker') loadDetailTimeTracker((ALL_STUDIO_DATA[_currentDetailUid]?.parsed)||{});
+  if(tab === 'features') loadDetailFeatureOverrides(_currentDetailUid, (ALL_STUDIO_DATA[_currentDetailUid]?.parsed)||{});
+}
+
+function loadDetailFeatureOverrides(uid, p){
+  const box = document.getElementById('udp-feature-overrides');
+  if(!box || !uid) return;
+  p = p || {};
+  _mergeUserFeaturesFromStorage();
+  const global = _platformConfig.user_features || {};
+  const overrides = p.admin_feature_overrides || {};
+  const teamMode = p.admin_team_mode || 'inherit';
+  const controlsHtml = USER_FEATURE_CONTROLS.map(f => {
+    const ov = overrides[f.key] || '';
+    const g = global[f.key] || 'enabled';
+    const gLabel = g === 'disabled' ? 'مغلق عام' : g === 'coming' ? 'قادم عام' : 'مفتوح عام';
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px">
+      <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:900">${f.label}</div>
+        <span style="font-size:10px;color:var(--text3)">${gLabel}</span>
+      </div>
+      <select class="form-select" data-user-feature-override="${f.key}" style="height:34px;font-size:12px">
+        <option value="" ${!ov?'selected':''}>يرث من العام</option>
+        <option value="enabled" ${ov==='enabled'?'selected':''}>مفتوح لهذا المستخدم</option>
+        <option value="coming" ${ov==='coming'?'selected':''}>قادم قريباً لهذا المستخدم</option>
+        <option value="disabled" ${ov==='disabled'?'selected':''}>مغلق لهذا المستخدم</option>
+      </select>
+    </div>`;
+  }).join('');
+  box.innerHTML = `
+    <div style="background:rgba(247,201,72,.06);border:1px solid rgba(247,201,72,.22);border-radius:12px;padding:12px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:900;margin-bottom:6px">نوع فرق العمل لهذا المستخدم</div>
+      <select class="form-select" id="udp-team-mode" style="height:38px">
+        <option value="inherit" ${teamMode==='inherit'?'selected':''}>يرث من إعداد المنصة</option>
+        <option value="both" ${teamMode==='both'?'selected':''}>فريق عادي + فريق شركة</option>
+        <option value="regular" ${teamMode==='regular'?'selected':''}>فريق عادي فقط</option>
+        <option value="company" ${teamMode==='company'?'selected':''}>فريق شركة فقط</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">${controlsHtml}</div>`;
+}
+
+async function saveUserFeatureOverrides(uid){
+  if(!uid || !ALL_STUDIO_DATA[uid]) return toast('⚠ لا يوجد مستخدم محدد');
+  const row = ALL_STUDIO_DATA[uid];
+  const data = row.parsed || {};
+  const overrides = {};
+  document.querySelectorAll('[data-user-feature-override]').forEach(el => {
+    if(el.value) overrides[el.dataset.userFeatureOverride] = el.value;
+  });
+  data.admin_feature_overrides = overrides;
+  data.admin_team_mode = document.getElementById('udp-team-mode')?.value || 'inherit';
+  data._admin_overrides_updated_at = new Date().toISOString();
+  row.parsed = data;
+  try {
+    if(typeof supa !== 'undefined') {
+      await supa.from('studio_data')
+        .update({ data: JSON.stringify(data), updated_at: new Date().toISOString() })
+        .eq('user_id', uid);
+    }
+    toast('✅ تم حفظ تحكم المميزات لهذا المستخدم');
+    logActivity('تحكم مستخدم', 'تم تحديث مميزات مستخدم محدد', 'var(--accent3)');
+  } catch(e) {
+    console.warn('saveUserFeatureOverrides failed:', e);
+    toast('⚠ تعذر حفظ تحكم المستخدم');
+  }
+}
+
+async function applyCurrentFeaturesToAllUsers(){
+  if(!confirm('تطبيق حالة المميزات الحالية على كل المستخدمين؟')) return;
+  _platformConfig.user_features = _collectUserFeatureControls();
+  const teamMode = document.querySelector('[data-platform-team-mode]')?.value || _platformConfig.team_mode || 'both';
+  _platformConfig.team_mode = teamMode;
+  savePlatformConfig();
+  let ok = 0, fail = 0;
+  const entries = Object.entries(ALL_STUDIO_DATA || {});
+  for(const [uid,row] of entries){
+    try {
+      const data = row.parsed || {};
+      data.admin_feature_overrides = Object.assign({}, _platformConfig.user_features);
+      data.admin_team_mode = teamMode;
+      data._admin_overrides_updated_at = new Date().toISOString();
+      row.parsed = data;
+      if(typeof supa !== 'undefined') {
+        await supa.from('studio_data')
+          .update({ data: JSON.stringify(data), updated_at: new Date().toISOString() })
+          .eq('user_id', uid);
+      }
+      ok++;
+    } catch(e) { fail++; }
+  }
+  toast(`✅ تم تطبيق التحكم على ${ok} مستخدم${fail ? ` — فشل ${fail}` : ''}`, 4500);
+  logActivity('تحكم جماعي', `تطبيق مميزات المستخدم على ${ok} حساب`, 'var(--accent3)');
 }
 
 function loadDetailOverview(uid, p, sub, plan) {
@@ -5315,7 +5896,33 @@ function copySqlGuide() {
 
 let _currentMsgType = 'info';
 let _currentMsgUserId = null;
-let _allMessages = [];
+let _allMessages = JSON.parse(localStorage.getItem('admin_messages_fallback') || '[]');
+
+async function _pushAdminPendingNotificationToStudioData(targetUserId, notif, broadcast){
+  let ok = 0, fail = 0;
+  try {
+    const rows = broadcast
+      ? (await supa.from('studio_data').select('user_id, data')).data || []
+      : (await supa.from('studio_data').select('user_id, data').eq('user_id', targetUserId)).data || [];
+    for(const row of rows) {
+      try {
+        let ud = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+        if(!ud) ud = {};
+        ud._pending_notifications = ud._pending_notifications || [];
+        const nid = notif.id || (Date.now() + '_' + Math.random().toString(36).slice(2));
+        if(!ud._pending_notifications.find(n => String(n.id) === String(nid))) {
+          ud._pending_notifications.unshift(Object.assign({}, notif, { id: nid, read: false }));
+          ud._pending_notifications = ud._pending_notifications.slice(0, 50);
+        }
+        const { error } = await supa.from('studio_data')
+          .update({ data: JSON.stringify(ud), updated_at: new Date().toISOString() })
+          .eq('user_id', row.user_id);
+        if(error) fail++; else ok++;
+      } catch(e) { fail++; }
+    }
+  } catch(e) { fail++; }
+  return { ok, fail };
+}
 
 function setMsgType(type, btn) {
   _currentMsgType = type;
@@ -5395,8 +6002,24 @@ async function doSendMessage() {
       sent_by   : 'admin'
     };
 
+    let sentViaTable = false;
     const { error } = await supa.from('user_notifications').insert([notif]);
-    if(error) throw error;
+    if(error) {
+      const fallback = await _pushAdminPendingNotificationToStudioData(_currentMsgUserId, {
+        id: Date.now() + '_admin_msg',
+        title: title || 'رسالة من الإدارة',
+        body: _bodyWithPage,
+        type: isBroadcast ? 'broadcast' : _currentMsgType,
+        created_at: new Date().toISOString()
+      }, isBroadcast);
+      if(!fallback.ok) throw error;
+    } else {
+      sentViaTable = true;
+    }
+    const localMsg = Object.assign({ id: 'local_' + Date.now(), local: !sentViaTable }, notif);
+    _allMessages.unshift(localMsg);
+    _allMessages = _allMessages.slice(0, 100);
+    localStorage.setItem('admin_messages_fallback', JSON.stringify(_allMessages));
 
     closeModal('modal-send-message');
     toast('✅ تم إرسال الرسالة' + (isBroadcast ? ' للجميع' : ''));
@@ -5423,11 +6046,17 @@ async function loadMessagesPage() {
       .order('created_at', { ascending: false })
       .limit(100);
     if(error) throw error;
-    _allMessages = data || [];
+    const fallback = JSON.parse(localStorage.getItem('admin_messages_fallback') || '[]');
+    const map = new Map();
+    (data || []).concat(fallback || []).forEach(m => map.set(String(m.id || m.created_at || Math.random()), m));
+    _allMessages = Array.from(map.values()).sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
     renderMessagesList(_allMessages);
     updateMsgStats(_allMessages);
   } catch(e) {
-    if(bodyEl) bodyEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--accent4)">❌ تعذّر التحميل: '+e.message+'<br><div style="font-size:11px;color:var(--text3);margin-top:8px">تأكد من إنشاء جدول user_notifications في Supabase</div></div>';
+    _allMessages = JSON.parse(localStorage.getItem('admin_messages_fallback') || '[]');
+    renderMessagesList(_allMessages);
+    updateMsgStats(_allMessages);
+    if(!_allMessages.length && bodyEl) bodyEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--accent4)">تعذّر تحميل جدول الرسائل، وسيتم استخدام الحفظ الاحتياطي عند الإرسال.</div>';
   }
 }
 
@@ -6227,6 +6856,18 @@ async function sendChallenge(id) {
           weekKey: ch.weekKey, done: false, progress: 0,
           sentAt: new Date().toISOString()
         };
+        ud._pending_notifications = ud._pending_notifications || [];
+        if(!ud._pending_notifications.find(n => n.type === 'challenge' && n.challengeId === ch.id)) {
+          ud._pending_notifications.unshift({
+            id: ch.id + '_challenge',
+            title: 'تحدي الأسبوع',
+            body: ch.title,
+            type: 'challenge',
+            challengeId: ch.id,
+            created_at: new Date().toISOString(),
+            read: false
+          });
+        }
         const { error } = await supa.from('studio_data')
           .update({ data: JSON.stringify(ud), updated_at: new Date().toISOString() })
           .eq('user_id', row.user_id);
@@ -6239,6 +6880,97 @@ async function sendChallenge(id) {
     logActivity('تحدي الأسبوع', `"${ch.title}" — ${ok} مستخدم`, 'var(--accent2)');
   } catch(e) { toast('⚠ خطأ: ' + e.message); }
 }
+
+function openFallbackChallengeModal(editId) {
+  const exists = document.getElementById('modal-new-challenge');
+  if(exists) exists.remove();
+  const edit = editId ? _challenges.find(c => c.id === editId) : null;
+  const types = Array.isArray(window._CHALLENGE_TYPES) && window._CHALLENGE_TYPES.length ? window._CHALLENGE_TYPES : _CHALLENGE_TYPES;
+  const typeOptions = types.map(t => `<option value="${t.value}" ${edit?.type === t.value ? 'selected' : ''}>${t.label}</option>`).join('');
+  const modal = document.createElement('div');
+  modal.id = 'modal-new-challenge';
+  modal.className = 'modal-overlay';
+  modal.style.display = 'flex';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:560px">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fa-solid fa-trophy"></i> ${edit ? 'تعديل التحدي' : 'تحدي أسبوع جديد'}</div>
+        <button class="close-btn" data-close-challenge>×</button>
+      </div>
+      <input type="hidden" id="ch-edit-id" value="${edit?.id || ''}">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <label class="form-group" style="margin:0">
+          <div class="form-label">نوع التحدي</div>
+          <select class="form-select" id="ch-type">${typeOptions}</select>
+        </label>
+        <label class="form-group" style="margin:0">
+          <div class="form-label">رمز التحدي</div>
+          <input class="form-input" id="ch-emoji" value="${edit?.emoji || '🏆'}" maxlength="4" style="font-size:22px;text-align:center">
+        </label>
+      </div>
+      <label class="form-group">
+        <div class="form-label">عنوان التحدي *</div>
+        <input class="form-input" id="ch-title" value="${edit?.title || ''}" placeholder="مثال: أنهِ 5 مهام هذا الأسبوع">
+      </label>
+      <label class="form-group">
+        <div class="form-label">وصف مختصر</div>
+        <input class="form-input" id="ch-desc" value="${edit?.desc || ''}" placeholder="تفاصيل قصيرة تظهر للمستخدم">
+      </label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <label class="form-group" style="margin:0">
+          <div class="form-label">الهدف العددي *</div>
+          <input class="form-input" type="number" id="ch-target" min="1" value="${edit?.target || 5}">
+        </label>
+        <label class="form-group" style="margin:0">
+          <div class="form-label">الوحدة</div>
+          <input class="form-input" id="ch-unit" value="${edit?.unit || 'مهمة'}">
+        </label>
+      </div>
+      <label class="form-group">
+        <div class="form-label">مكافأة الإنجاز</div>
+        <input class="form-input" id="ch-reward" value="${edit?.reward || ''}" placeholder="مثال: ممتاز، أنجزت تحدي الأسبوع">
+      </label>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn btn-ghost" data-close-challenge>إلغاء</button>
+        <button class="btn btn-ghost" style="flex:1" id="ch-draft-btn"><i class="fa-solid fa-floppy-disk"></i> حفظ مسودة</button>
+        <button class="btn btn-primary" style="flex:1" id="ch-send-btn"><i class="fa-solid fa-paper-plane"></i> إرسال الآن</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelectorAll('[data-close-challenge]').forEach(btn => btn.addEventListener('click', () => modal.remove()));
+  modal.addEventListener('click', e => { if(e.target === modal) modal.remove(); });
+  const syncUnit = () => {
+    const type = document.getElementById('ch-type')?.value;
+    const found = types.find(t => t.value === type);
+    const unit = document.getElementById('ch-unit');
+    if(unit && found) unit.value = found.unit;
+  };
+  document.getElementById('ch-type')?.addEventListener('change', syncUnit);
+  document.getElementById('ch-draft-btn')?.addEventListener('click', () => saveChallenge(false));
+  document.getElementById('ch-send-btn')?.addEventListener('click', () => saveChallenge(true));
+}
+
+(function installSafeChallengeModal(){
+  if(window.__ordoSafeChallengeModalInstalled) return;
+  window.__ordoSafeChallengeModalInstalled = true;
+  const nativeOpen = window.openNewChallengeModal;
+  window.openAdminChallengeModalSafe = function(event, editId) {
+    if(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      if(event.stopImmediatePropagation) event.stopImmediatePropagation();
+    }
+    try {
+      return openFallbackChallengeModal(editId);
+    } catch(err) {
+      console.error('safe challenge modal failed, opening legacy modal:', err);
+      if(typeof nativeOpen === 'function') return nativeOpen(editId);
+    }
+  };
+  window.openNewChallengeModal = function(editId) {
+    return window.openAdminChallengeModalSafe(null, editId);
+  };
+})();
 
 function deleteChallenge(id) {
   if(!confirm('حذف هذا التحدي؟')) return;
@@ -6751,6 +7483,84 @@ async function bulkDeleteSerials() {
   renderSerials();
   updateDashStats();
 }
+
+// ══ Integration Layer: auto-sync corp-mode → company features ══
+document.addEventListener('change', function(e) {
+  if (!e.target) return;
+  // feat-corp-mode → يفعّل كل company features تلقائياً
+  if (e.target.id === 'feat-corp-mode') {
+    var ids = ['feat-mode-company','feat-internal-workflow','feat-internal-tasks','feat-departments-ready','feat-role-ready'];
+    ids.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && e.target.checked) el.checked = true;
+    });
+  }
+  // feat-proposals → يفعّل convert-proposal و advanced-relations
+  if (e.target.id === 'feat-proposals') {
+    var cp = document.getElementById('feat-convert-proposal');
+    var ar = document.getElementById('feat-advanced-relations');
+    if (cp) cp.checked = e.target.checked;
+    if (ar && e.target.checked) ar.checked = true;
+  }
+  // feat-contracts → يفعّل advanced-relations
+  if (e.target.id === 'feat-contracts') {
+    var ar2 = document.getElementById('feat-advanced-relations');
+    if (ar2 && e.target.checked) ar2.checked = true;
+  }
+  // feat-team → يفعّل internal-tasks
+  if (e.target.id === 'feat-team') {
+    var it = document.getElementById('feat-internal-tasks');
+    if (it && e.target.checked) it.checked = true;
+  }
+  // feat-mode-company → يفعّل internal-workflow
+  if (e.target.id === 'feat-mode-company') {
+    var iw = document.getElementById('feat-internal-workflow');
+    if (iw && e.target.checked) iw.checked = true;
+  }
+});
+
+// Robust admin action bindings: fixes buttons when inline handlers are blocked by stale DOM/state.
+(function installAdminActionGuards(){
+  if(window.__ordoAdminActionGuards) return;
+  window.__ordoAdminActionGuards = true;
+  function hasText(btn, words){
+    const txt = (btn && btn.textContent || '').replace(/\s+/g,' ').trim();
+    return words.some(w => txt.includes(w));
+  }
+  document.addEventListener('click', function(e){
+    const btn = e.target && e.target.closest ? e.target.closest('button') : null;
+    if(!btn) return;
+    const pageUpdates = btn.closest('#page-updates');
+    const pageChallenge = btn.closest('#page-challenge');
+    const pageMessages = btn.closest('#page-messages');
+    const id = btn.id || '';
+    try {
+      if(pageUpdates && hasText(btn, ['رسالة جديدة','ط±ط³ط§ظ„ط© ط¬ط¯ظٹط¯ط©'])) {
+        e.preventDefault(); e.stopPropagation();
+        if(typeof openNewUpdateModal === 'function') openNewUpdateModal();
+        return;
+      }
+      if(pageChallenge && hasText(btn, ['تحدي جديد','طھط­ط¯ظٹ ط¬ط¯ظٹط¯'])) {
+        e.preventDefault(); e.stopPropagation();
+        if(typeof openNewChallengeModal === 'function') openNewChallengeModal();
+        return;
+      }
+      if(pageMessages && hasText(btn, ['بث للجميع','ط¨ط«'])) {
+        e.preventDefault(); e.stopPropagation();
+        if(typeof openSendMessageModal === 'function') openSendMessageModal(null,'الكل — بث عام');
+        return;
+      }
+      if(id === 'upd-draft-btn') { e.preventDefault(); e.stopPropagation(); saveUpdate(false); return; }
+      if(id === 'upd-send-btn')  { e.preventDefault(); e.stopPropagation(); saveUpdate(true);  return; }
+      if(id === 'ch-draft-btn')  { e.preventDefault(); e.stopPropagation(); saveChallenge(false); return; }
+      if(id === 'ch-send-btn')   { e.preventDefault(); e.stopPropagation(); saveChallenge(true);  return; }
+      if(id === 'msg-send-btn')  { e.preventDefault(); e.stopPropagation(); doSendMessage(); return; }
+    } catch(err) {
+      console.error('admin guarded action failed:', err);
+      if(typeof toast === 'function') toast('⚠ حدث خطأ أثناء تنفيذ الإجراء');
+    }
+  }, true);
+})();
 
 </script>
 </body>

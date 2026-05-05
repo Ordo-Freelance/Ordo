@@ -1,0 +1,534 @@
+<!--
+════════════════════════════════════════════════════════════════════════════
+ORDO ADMIN — INTEGRATION PATCH v1.0
+════════════════════════════════════════════════════════════════════════════
+
+كيفية الاستخدام:
+  هذا الملف يحتوي على قطعتين:
+
+  القطعة 1 — HTML:
+    أضفها داخل modal-create-plan، بعد قسم "التخصيص وإخفاء الأقسام"
+    (بعد feat-hide-leads div)
+
+  القطعة 2 — JavaScript:
+    أضفها في نهاية <script> الرئيسي في admin.html
+    (بعد آخر function)
+
+════════════════════════════════════════════════════════════════════════════
+-->
+
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- القطعة 1: HTML — أضف هذا داخل modal-create-plan                    -->
+<!-- بعد div feat-hide-leads مباشرة (قبل إغلاق accordion section آخر) -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+
+<!-- ══ قسم جديد: نمط العمل والتكامل المتقدم ══ -->
+<div class="perm-sec" style="margin-top:10px">
+  <div class="perm-sec-header" onclick="toggleAcc('integration')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800">
+      <input type="checkbox" id="feat-integration-on" checked onclick="event.stopPropagation()" style="width:15px;height:15px">
+      <i class="fa-solid fa-diagram-project" style="color:var(--accent)"></i>
+      نمط العمل والتكامل المتقدم
+    </div>
+    <i class="fa-solid fa-chevron-down acc-arrow" style="font-size:11px;color:var(--text3);transition:.2s"></i>
+  </div>
+  <div class="perm-sec-body" id="acc-body-integration" style="display:none;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px">
+
+    <!-- نمط العمل الأساسي -->
+    <div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">نمط العمل</div>
+
+    <div class="perm-row" style="border:none;padding:3px 0">
+      <label>وضع الفريلانسر (Freelancer Mode)</label>
+      <input type="checkbox" id="feat-mode-freelancer" checked>
+    </div>
+    <div class="perm-row" style="border:none;padding:3px 0">
+      <label>وضع الشركة / الأجنسي (Company Mode)</label>
+      <input type="checkbox" id="feat-mode-company">
+    </div>
+
+    <!-- Workflow -->
+    <div style="font-size:11px;font-weight:800;color:var(--accent);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px">سير العمل</div>
+
+    <div class="perm-row" style="border:none;padding:3px 0">
+      <label>سير عمل خارجي (عملاء / مشاريع / فواتير)</label>
+      <input type="checkbox" id="feat-external-workflow" checked>
+    </div>
+    <div class="perm-row" style="border:none;padding:3px 0">
+      <label>سير عمل داخلي (فريق / مهام داخلية)</label>
+      <input type="checkbox" id="feat-internal-workflow">
+    </div>
+    <div class="perm-row" style="border:none;padding:3px 0">
+      <label>مهام داخلية منفصلة عن مهام العملاء</label>
+      <input type="checkbox" id="feat-internal-tasks">
+    </div>
+
+    <!-- Entity Linking -->
+    <div style="font-size:11px;font-weight:800;color:var(--accent);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px">ربط الكيانات</div>
+
+    <div class="perm-row" style="border:none;padding:3px 0">
+      <label>ربط المشاريع بالعملاء والعقود والعروض</label>
+      <input type="checkbox" id="feat-project-linking" checked>
+    </div>
+    <div class="perm-row" style="border:none;padding:3px 0">
+      <label>تحويل عرض السعر لمشروع (Convert Proposal)</label>
+      <input type="checkbox" id="feat-convert-proposal">
+    </div>
+    <div class="perm-row" style="border:none;padding:3px 0">
+      <label>السجل الزمني للعميل (Client Timeline)</label>
+      <input type="checkbox" id="feat-client-timeline" checked>
+    </div>
+    <div class="perm-row" style="border:none;padding:3px 0">
+      <label>الملخص المالي للمشروع (Project Finance Summary)</label>
+      <input type="checkbox" id="feat-project-finance-summary" checked>
+    </div>
+    <div class="perm-row" style="border:none;padding:3px 0">
+      <label>علاقات متقدمة (عقد + عرض + مشروع)</label>
+      <input type="checkbox" id="feat-advanced-relations">
+    </div>
+
+    <!-- Company Structure -->
+    <div style="font-size:11px;font-weight:800;color:var(--accent);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px">هيكل الشركة (جاهز للتوسع)</div>
+
+    <div class="perm-row" style="border:none;padding:3px 0">
+      <label>دعم الأقسام (Departments-Ready)</label>
+      <input type="checkbox" id="feat-departments-ready">
+    </div>
+    <div class="perm-row" style="border:none;padding:3px 0">
+      <label>دعم الأدوار (Role-Ready Structure)</label>
+      <input type="checkbox" id="feat-role-ready">
+    </div>
+    <div class="perm-row" style="border:none;padding:3px 0">
+      <label>تقارير متقدمة (جاهز)</label>
+      <input type="checkbox" id="feat-advanced-reports-ready">
+    </div>
+
+  </div>
+</div>
+<!-- ══ نهاية قسم التكامل المتقدم ══ -->
+
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- القطعة 2: JavaScript — أضف هذا في نهاية script الرئيسي في admin.html -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<script>
+// ════════════════════════════════════════════════════════════════════════
+// ORDO ADMIN — INTEGRATION PATCH SCRIPT v1.0
+// أضف هذا الـ script بعد الـ script الرئيسي في admin.html
+// ════════════════════════════════════════════════════════════════════════
+
+(function _adminIntegrationPatch() {
+
+  // ── 1) Patch: savePlan — يضيف الـ features الجديدة عند الحفظ ──
+  var _adminPatchInterval = setInterval(function() {
+    if (typeof window.savePlan !== 'function') return;
+    clearInterval(_adminPatchInterval);
+
+    var _origSavePlan = window.savePlan;
+    window.savePlan = function() {
+      // استدعي الأصلي أولاً (يتولى الحفظ الأساسي)
+      _origSavePlan.apply(this, arguments);
+
+      // بعدين: أضف الـ features الجديدة للباقة المحفوظة للتو
+      try {
+        var editId = (document.getElementById('cp-edit-id') || {}).value || '';
+        var PLANS  = window.PLANS || [];
+        var idx    = editId ? PLANS.findIndex(function(p) { return p.id === editId; })
+                            : PLANS.length - 1; // آخر مضاف
+        if (idx < 0) return;
+
+        function _chkNew(id) {
+          var el = document.getElementById(id);
+          return el ? !!el.checked : false;
+        }
+
+        var newFeatures = {
+          mode_freelancer         : _chkNew('feat-mode-freelancer'),
+          mode_company            : _chkNew('feat-mode-company'),
+          external_workflow       : _chkNew('feat-external-workflow'),
+          internal_workflow       : _chkNew('feat-internal-workflow'),
+          internal_tasks          : _chkNew('feat-internal-tasks'),
+          project_linking         : _chkNew('feat-project-linking'),
+          convert_proposal        : _chkNew('feat-convert-proposal'),
+          client_timeline         : _chkNew('feat-client-timeline'),
+          project_finance_summary : _chkNew('feat-project-finance-summary'),
+          advanced_relations      : _chkNew('feat-advanced-relations'),
+          departments_ready       : _chkNew('feat-departments-ready'),
+          role_ready              : _chkNew('feat-role-ready'),
+          advanced_reports_ready  : _chkNew('feat-advanced-reports-ready'),
+          // workspace_mode مشتق
+          workspace_mode          : _chkNew('feat-mode-company') ? 'company' : 'freelancer'
+        };
+
+        // merge مع features الموجودة (لا نحذف القديمة)
+        PLANS[idx].features = Object.assign({}, PLANS[idx].features, newFeatures);
+
+        // حفظ
+        try {
+          var lsSet = window.lsSet || function(k, v) { localStorage.setItem(k, JSON.stringify(v)); };
+          lsSet('plans', PLANS);
+        } catch(e) {}
+
+      } catch(e) {
+        console.error('[AdminPatch] savePlan extra features error:', e);
+      }
+    };
+
+  }, 300);
+  setTimeout(function() { clearInterval(_adminPatchInterval); }, 20000);
+
+  // ── 2) Patch: editPlan — يملأ الـ checkboxes الجديدة عند فتح modal ──
+  var _editPlanInterval = setInterval(function() {
+    if (typeof window.editPlan !== 'function') return;
+    clearInterval(_editPlanInterval);
+
+    var _origEditPlan = window.editPlan;
+    window.editPlan = function(id) {
+      _origEditPlan.apply(this, arguments);
+
+      // بعد fillModal: امتلأ الحقول الجديدة
+      setTimeout(function() {
+        try {
+          var PLANS = window.PLANS || [];
+          var plan  = PLANS.find(function(p) { return p.id === id; });
+          if (!plan) return;
+          var f = plan.features || {};
+
+          function _setChk(elId, val, defaultVal) {
+            var el = document.getElementById(elId);
+            if (!el) return;
+            el.checked = val !== undefined ? !!val : !!defaultVal;
+          }
+
+          // defaults حسب المنطق المعقول
+          _setChk('feat-mode-freelancer',        f.mode_freelancer,        true);
+          _setChk('feat-mode-company',           f.mode_company,           !!(f.corp_mode || f.corporate));
+          _setChk('feat-external-workflow',      f.external_workflow,      true);
+          _setChk('feat-internal-workflow',      f.internal_workflow,      !!(f.corp_mode || f.corporate));
+          _setChk('feat-internal-tasks',         f.internal_tasks,         !!f.team);
+          _setChk('feat-project-linking',        f.project_linking,        true);
+          _setChk('feat-convert-proposal',       f.convert_proposal,       !!f.proposals);
+          _setChk('feat-client-timeline',        f.client_timeline,        true);
+          _setChk('feat-project-finance-summary',f.project_finance_summary,true);
+          _setChk('feat-advanced-relations',     f.advanced_relations,     !!(f.proposals || f.contracts));
+          _setChk('feat-departments-ready',      f.departments_ready,      !!(f.corp_mode || f.corporate));
+          _setChk('feat-role-ready',             f.role_ready,             !!(f.corp_mode || f.corporate));
+          _setChk('feat-advanced-reports-ready', f.advanced_reports_ready, !!f.reports);
+
+        } catch(e) {
+          console.error('[AdminPatch] editPlan fill new features error:', e);
+        }
+      }, 150);
+    };
+
+  }, 300);
+  setTimeout(function() { clearInterval(_editPlanInterval); }, 20000);
+
+  // ── 3) Patch: openCreatePlanModal — defaults للباقة الجديدة ──
+  var _createPlanInterval = setInterval(function() {
+    if (typeof window.openCreatePlanModal !== 'function') return;
+    clearInterval(_createPlanInterval);
+
+    var _origCreate = window.openCreatePlanModal;
+    window.openCreatePlanModal = function() {
+      _origCreate.apply(this, arguments);
+      setTimeout(function() {
+        try {
+          // defaults معقولة للباقة الجديدة
+          function _defChk(id, val) {
+            var el = document.getElementById(id);
+            if (el) el.checked = !!val;
+          }
+          _defChk('feat-mode-freelancer',        true);
+          _defChk('feat-mode-company',           false);
+          _defChk('feat-external-workflow',      true);
+          _defChk('feat-internal-workflow',      false);
+          _defChk('feat-internal-tasks',         false);
+          _defChk('feat-project-linking',        true);
+          _defChk('feat-convert-proposal',       false);
+          _defChk('feat-client-timeline',        true);
+          _defChk('feat-project-finance-summary',true);
+          _defChk('feat-advanced-relations',     false);
+          _defChk('feat-departments-ready',      false);
+          _defChk('feat-role-ready',             false);
+          _defChk('feat-advanced-reports-ready', false);
+        } catch(e) {}
+      }, 150);
+    };
+
+  }, 300);
+  setTimeout(function() { clearInterval(_createPlanInterval); }, 20000);
+
+  // ── 4) Workspace Mode display في user detail modal ──
+  //    نضيف معلومة workspace_mode في تفاصيل المستخدم عند فتح بروفايله
+  var _userDetailInterval = setInterval(function() {
+    if (typeof window.openUserDetail !== 'function') return;
+    clearInterval(_userDetailInterval);
+
+    var _origUDetail = window.openUserDetail;
+    window.openUserDetail = function(uid) {
+      _origUDetail.apply(this, arguments);
+      setTimeout(function() {
+        try {
+          var PLANS = window.PLANS || [];
+          var SERIALS = window.SERIALS || [];
+          var serial = SERIALS.find(function(s) { return s.userId === uid; });
+          if (!serial) return;
+          var plan = PLANS.find(function(p) { return p.id === serial.planId; });
+          if (!plan || !plan.features) return;
+          var f = plan.features;
+          var mode = (f.workspace_mode === 'company' || f.mode_company || f.corp_mode || f.corporate)
+            ? '🏢 شركة / أجنسي'
+            : '👤 فريلانسر';
+
+          // أضف badge في أي container ظاهر في modal
+          var containers = ['udp-plan-info', 'user-detail-info', 'udp-info'];
+          containers.forEach(function(cid) {
+            var el = document.getElementById(cid);
+            if (!el || el.querySelector('[data-ws-mode]')) return;
+            var badge = document.createElement('div');
+            badge.setAttribute('data-ws-mode', '1');
+            badge.style.cssText = 'margin-top:6px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(124,111,247,.12);color:var(--accent);display:inline-block';
+            badge.textContent = 'نمط العمل: ' + mode;
+            el.appendChild(badge);
+          });
+
+        } catch(e) {}
+      }, 300);
+    };
+
+  }, 300);
+  setTimeout(function() { clearInterval(_userDetailInterval); }, 20000);
+
+  // ── 5) Use-case profile في قائمة الباقات ──
+  //    يضيف profile badge (Freelancer Basic / Pro / Studio / Agency)
+  var _planListInterval = setInterval(function() {
+    if (typeof window.renderPlansList !== 'function' && typeof window.renderPlans !== 'function') return;
+    clearInterval(_planListInterval);
+
+    var _profileLabel = {
+      'freelancer_basic' : { l: '👤 Freelancer Basic', c: 'var(--text3)' },
+      'freelancer_pro'   : { l: '🚀 Freelancer Pro',   c: 'var(--accent)' },
+      'studio'           : { l: '🎨 Studio',            c: 'var(--accent3)' },
+      'agency'           : { l: '🏢 Agency / Company',  c: 'var(--accent2)' }
+    };
+
+    // نحقن profile بعد render
+    function _injectProfiles() {
+      try {
+        var PLANS = window.PLANS || [];
+        PLANS.forEach(function(plan) {
+          var profile = typeof window.getPlanUseCaseProfile === 'function'
+            ? window.getPlanUseCaseProfile(plan.features || {})
+            : 'freelancer_basic';
+          var info = _profileLabel[profile] || _profileLabel['freelancer_basic'];
+          // أضف badge في plan card
+          var cards = document.querySelectorAll('[data-plan-id="' + plan.id + '"]');
+          cards.forEach(function(card) {
+            if (card.querySelector('[data-plan-profile]')) return;
+            var badge = document.createElement('span');
+            badge.setAttribute('data-plan-profile', profile);
+            badge.style.cssText = 'font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(124,111,247,.1);color:' + info.c + ';margin-right:4px';
+            badge.textContent = info.l;
+            var nameEl = card.querySelector('.plan-name, [class*="plan-name"]');
+            if (nameEl) nameEl.insertAdjacentElement('afterend', badge);
+            else card.insertAdjacentElement('afterbegin', badge);
+          });
+        });
+      } catch(e) {}
+    }
+
+    // try بعد أي render
+    var _origRenderFn = window.renderPlansList || window.renderPlans;
+    if (_origRenderFn) {
+      var _fnName = window.renderPlansList ? 'renderPlansList' : 'renderPlans';
+      var _origRender = window[_fnName];
+      window[_fnName] = function() {
+        _origRender.apply(this, arguments);
+        setTimeout(_injectProfiles, 200);
+      };
+    }
+
+  }, 500);
+  setTimeout(function() { clearInterval(_planListInterval); }, 20000);
+
+  // ── 6) تزامن corp_mode مع mode_company ──
+  //    عندما يُفعّل feat-corp-mode → يُفعّل feat-mode-company تلقائياً
+  document.addEventListener('change', function(e) {
+    try {
+      if (e.target && e.target.id === 'feat-corp-mode') {
+        var companyChk = document.getElementById('feat-mode-company');
+        if (companyChk && e.target.checked) companyChk.checked = true;
+        var internalWf = document.getElementById('feat-internal-workflow');
+        if (internalWf && e.target.checked) internalWf.checked = true;
+        var internalTasks = document.getElementById('feat-internal-tasks');
+        if (internalTasks && e.target.checked) internalTasks.checked = true;
+        var deptReady = document.getElementById('feat-departments-ready');
+        if (deptReady && e.target.checked) deptReady.checked = true;
+        var roleReady = document.getElementById('feat-role-ready');
+        if (roleReady && e.target.checked) roleReady.checked = true;
+      }
+      if (e.target && e.target.id === 'feat-proposals') {
+        var convertChk = document.getElementById('feat-convert-proposal');
+        if (convertChk) convertChk.checked = e.target.checked;
+        var advChk = document.getElementById('feat-advanced-relations');
+        if (advChk && e.target.checked) advChk.checked = true;
+      }
+    } catch(e2) {}
+  });
+
+  console.log('[AdminPatch] Integration features patch initialized.');
+
+})();
+</script>
+
+<!--
+════════════════════════════════════════════════════════════════════════════
+INTEGRATION LAYER — DEFAULT PLANS UPDATE
+════════════════════════════════════════════════════════════════════════════
+
+استبدل قيمة let PLANS = lsGet('plans', [...]) في admin.html
+بهذا الكود المحسّن الذي يضيف الـ use-case profiles والـ features الجديدة.
+
+تأكد أن هذا يحل محل الـ PLANS الافتراضي الأصلي (السطور 2347-2396)
+فقط إذا أردت تحديث الباقات الافتراضية — البيانات المحفوظة للمستخدمين لن تتأثر.
+
+للتطبيق الفوري: انسخ هذا الكود واستبدل به قسم let PLANS في admin.html
+════════════════════════════════════════════════════════════════════════════
+-->
+<script id="admin-plans-defaults-reference">
+/*
+  هذا reference فقط — لا تضيفه مباشرة.
+  استبدل let PLANS = lsGet('plans', [...]) بهذا الكود.
+*/
+let PLANS = typeof lsGet === 'function' ? lsGet('plans', [
+  {
+    id:'starter', name:'مبتدئ', icon:'🌱', price_monthly:49, price_annual:390,
+    max_clients:5, duration_days:30, desc:'للمستقلين في البداية',
+    features: {
+      tasks:true,         max_tasks:20,
+      clients:true,       max_clients_feat:5,
+      finance:true,       max_transactions:50,
+      invoices:true,      max_invoices:10,
+      schedule:false,     reports:false,
+      team:false,         max_team:0,
+      meetings:false,     learning:false,
+      cloud:true,
+      // Integration Layer features
+      workspace_mode      : 'freelancer',
+      mode_freelancer     : true,
+      mode_company        : false,
+      external_workflow   : true,
+      internal_workflow   : false,
+      internal_tasks      : false,
+      project_linking     : true,
+      convert_proposal    : false,
+      client_timeline     : true,
+      project_finance_summary: true,
+      advanced_relations  : false,
+      departments_ready   : false,
+      role_ready          : false,
+      advanced_reports_ready: false,
+      proposals           : false,
+      contracts           : false,
+      _use_case_profile   : 'freelancer_basic'
+    }
+  },
+  {
+    id:'pro', name:'احترافي', icon:'🚀', price_monthly:99, price_annual:890,
+    max_clients:20, duration_days:30, desc:'للمحترفين والاستوديوهات الصغيرة',
+    features: {
+      tasks:true,         max_tasks:200,
+      clients:true,       max_clients_feat:20,
+      finance:true,       max_transactions:500,
+      invoices:true,      max_invoices:100,
+      schedule:true,      reports:false,
+      team:true,          max_team:3,
+      meetings:true,      learning:true,
+      cloud:true,
+      proposals:true,     contracts:true,
+      // Integration Layer features
+      workspace_mode      : 'freelancer',
+      mode_freelancer     : true,
+      mode_company        : false,
+      external_workflow   : true,
+      internal_workflow   : false,
+      internal_tasks      : true,
+      project_linking     : true,
+      convert_proposal    : true,
+      client_timeline     : true,
+      project_finance_summary: true,
+      advanced_relations  : true,
+      departments_ready   : false,
+      role_ready          : false,
+      advanced_reports_ready: false,
+      _use_case_profile   : 'freelancer_pro'
+    }
+  },
+  {
+    id:'studio', name:'استوديو', icon:'🎨', price_monthly:149, price_annual:1290,
+    max_clients:50, duration_days:30, desc:'للاستوديوهات والفرق الصغيرة',
+    features: {
+      tasks:true,         max_tasks:0,
+      clients:true,       max_clients_feat:50,
+      finance:true,       max_transactions:0,
+      invoices:true,      max_invoices:0,
+      schedule:true,      reports:true,
+      team:true,          max_team:10,
+      meetings:true,      learning:true,
+      cloud:true,
+      proposals:true,     contracts:true,
+      // Integration Layer features
+      workspace_mode      : 'freelancer',
+      mode_freelancer     : true,
+      mode_company        : false,
+      external_workflow   : true,
+      internal_workflow   : true,
+      internal_tasks      : true,
+      project_linking     : true,
+      convert_proposal    : true,
+      client_timeline     : true,
+      project_finance_summary: true,
+      advanced_relations  : true,
+      departments_ready   : false,
+      role_ready          : false,
+      advanced_reports_ready: true,
+      _use_case_profile   : 'studio'
+    }
+  },
+  {
+    id:'agency', name:'أجنسي', icon:'🏢', price_monthly:199, price_annual:1790,
+    max_clients:0, duration_days:365, desc:'للأجنسيات والفرق الكبيرة — غير محدود',
+    features: {
+      tasks:true,         max_tasks:0,
+      clients:true,       max_clients_feat:0,
+      finance:true,       max_transactions:0,
+      invoices:true,      max_invoices:0,
+      schedule:true,      reports:true,
+      team:true,          max_team:0,
+      meetings:true,      learning:true,
+      cloud:true,
+      proposals:true,     contracts:true,
+      corporate:true,     corp_mode:true,
+      corp_emp_others:true, corp_emp_finance:true,
+      corp_emp_clients:true, corp_invite_email:true,
+      // Integration Layer features
+      workspace_mode      : 'company',
+      mode_freelancer     : true,
+      mode_company        : true,
+      external_workflow   : true,
+      internal_workflow   : true,
+      internal_tasks      : true,
+      project_linking     : true,
+      convert_proposal    : true,
+      client_timeline     : true,
+      project_finance_summary: true,
+      advanced_relations  : true,
+      departments_ready   : true,
+      role_ready          : true,
+      advanced_reports_ready: true,
+      _use_case_profile   : 'agency'
+    }
+  }
+]) : [];
+</script>

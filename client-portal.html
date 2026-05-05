@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="ordo_public_core.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--ac:#7c6ff7;--ac2:#a89cff;--bg:#0a0a0f;--s1:#111118;--s2:#16161f;--s3:#1e1e2c;--bd:rgba(255,255,255,.08);--t1:#f0f0f5;--t2:#c0c0d5;--t3:#888899;--g:#4fd1a5;--y:#f7c948;--r:#ff6b6b;--font:'Cairo',sans-serif}
@@ -171,6 +172,13 @@ body.lm .inv-card{background:#f0f1f8;border-color:rgba(0,0,0,.06)}
 body.lm .rev-card{background:#f0f1f8;border-color:rgba(0,0,0,.06)}
 body.lm .ftr{border-color:rgba(0,0,0,.08)}
 </style>
+<script>
+(function(){
+  try{
+    localStorage.removeItem('ordo_identity_backgrounds');
+  }catch(e){}
+})();
+</script>
 </head>
 <body>
 <div id="ls">
@@ -189,17 +197,102 @@ const ORDO_HOME='https://ordo-freelance.github.io/Ordo/';
 const STORE_URL='./store.html';
 
 const db=supabase.createClient(SUPA_URL,SUPA_ANON);
-const xe=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const xe=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');
+
+// xeHtml: يعرض HTML من Quill بشكل آمن — يحتفظ بالصور ويمنع السكريبتات
+function xeHtml(html) {
+  if(!html) return '';
+  if(!html.includes('<')) return xe(html);
+  var safe = html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/\son\w+="[^"]*"/gi, '')
+    .replace(/\son\w+='[^']*'/gi, '')
+    .replace(/javascript:/gi, '');
+  safe = safe.replace(/<img([^>]*)>/gi, function(match, attrs) {
+    var srcMatch = attrs.match(/src=["']([^"']+)["']/);
+    var src = srcMatch ? srcMatch[1] : '';
+    if(!src || (!src.startsWith('data:') && !src.startsWith('http') && !src.startsWith('/'))) {
+      return '<div style="padding:10px;background:var(--s2);border-radius:8px;color:var(--t3);font-size:12px;text-align:center"><i class="fa-solid fa-image"></i> لا توجد صورة</div>';
+    }
+    return '<img src="' + src.replace(/"/g,'&quot;') + '" style="max-width:100%;border-radius:8px;margin:6px 0;display:block" loading="lazy">';
+  });
+  return safe;
+}
 function hideLs(){const l=document.getElementById('ls');l.style.opacity='0';l.style.transition='opacity .4s';setTimeout(()=>{l.style.display='none'},400);document.getElementById('root').style.display='block';}
 function showErr(m){document.getElementById('ls').style.display='none';const er=document.getElementById('er');er.style.display='flex';if(m)document.getElementById('er-msg').textContent=m;}
+function applyPortalIdentityBackground(settings){
+  try{
+    document.body.style.backgroundColor='';
+    document.body.style.backgroundImage='';
+    document.body.style.backgroundSize='';
+    document.body.style.backgroundAttachment='';
+    document.body.style.backgroundPosition='';
+    localStorage.removeItem('ordo_identity_backgrounds');
+  }catch(e){}
+}
 
 const P=new URLSearchParams(location.search);
-const pUid=P.get('uid'),pCid=P.get('cid'),pOrderId=P.get('order'),pTaskId=P.get('taskid'),pName=P.get('name')||'',pPhone=P.get('phone')||'';
+const pUid=P.get('uid'),pCid=P.get('cid'),pOrderId=P.get('order'),pTaskId=P.get('taskid')||P.get('tid'),pName=P.get('name')||'',pPhone=P.get('phone')||'';
+const pPublicToken=P.get('token')||P.get('public_token')||P.get('t')||'';
 const pUsername=P.get('u'), pClientSlug=P.get('p');
 const pTab=P.get('tab')||'', pProjId=P.get('pid')||'';
 let _ud,_settings,_clientName,_clientPhone,_clientId,_clientTasks,_clientProjects,_clientInvoices,_clientOrders;
 
+function _curMeta(value){
+  const defaults={
+    EGP:{code:'EGP',symbol:'ج.م',label:'جنيه مصري'},
+    USD:{code:'USD',symbol:'$',label:'دولار أمريكي'},
+    SAR:{code:'SAR',symbol:'ر.س',label:'ريال سعودي'},
+    AED:{code:'AED',symbol:'AED',label:'درهم إماراتي'},
+    EUR:{code:'EUR',symbol:'€',label:'يورو'},
+    KWD:{code:'KWD',symbol:'د.ك',label:'دينار كويتي'},
+    QAR:{code:'QAR',symbol:'ر.ق',label:'ريال قطري'}
+  };
+  const raw=String(value||'').trim();
+  const list=(_settings&&_settings.enabled_currencies)||[];
+  const found=list.find(c=>[c.code,c.symbol,c.label,c.currency_code].map(x=>String(x||'').trim()).includes(raw));
+  if(found) return {code:found.code||found.currency_code||raw,symbol:found.symbol||found.code||raw,label:found.label||found.code||raw};
+  if(defaults[raw]) return defaults[raw];
+  if(raw==='ج' || raw==='ج.م' || raw==='EGP') return defaults.EGP;
+  return defaults[(_settings&&(_settings.base_currency_code||_settings.base_currency))]||defaults.EGP;
+}
+function _entityCur(entity){
+  return _curMeta(entity&&(entity.currency_code||entity.currency||entity.currency_symbol));
+}
+function _money(amount, entityOrCurrency){
+  const c=typeof entityOrCurrency==='string'?_curMeta(entityOrCurrency):_entityCur(entityOrCurrency);
+  return Number(amount||0).toLocaleString('en-US')+' '+c.symbol;
+}
+function _addCurrencyTotal(map, code, amount){
+  const c=_curMeta(code);
+  map[c.code]=(map[c.code]||0)+(+amount||0);
+}
+function _subtractCurrencyTotal(map, code, amount){
+  const c=_curMeta(code);
+  map[c.code]=(map[c.code]||0)-(+amount||0);
+}
+function _currencyRows(map, color){
+  const codes=Object.keys(map||{}).filter(k=>Math.abs(map[k]||0)>0.0001);
+  if(!codes.length) return '<div style="font-size:13px;color:var(--t3);font-weight:800">0 '+_curMeta().symbol+'</div>';
+  return codes.map(code=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px solid var(--bd)"><span style="font-size:10px;color:var(--t3);font-weight:800">'+_curMeta(code).label+'</span><b style="font-size:14px;color:'+(color||'var(--t1)')+'">'+_money(map[code],code)+'</b></div>').join('');
+}
+function _clientTransactions(){
+  return (_ud&&_ud.transactions||[]).filter(t=>{
+    return String(t.client_id||'')===String(_clientId||'') || t.source===_clientName || t.client===_clientName || t.client_name===_clientName;
+  });
+}
+function _invoicePaid(inv){ return inv.paid||['paid','مدفوعة','مدفوع'].includes(inv.status); }
+
 async function boot(){
+  if(pPublicToken && window.OrdoPublic){
+    const resolved=await OrdoPublic.resolvePublicToken(db,pPublicToken,{uid:pUid,entity_type:'client_portal'});
+    if(!resolved.ok){showErr('رابط البوابة غير صالح أو منتهي');return;}
+    window._ordoPublicToken=resolved.token;
+    window._resolvedUid=resolved.uid;
+    window._resolvedCid=String(resolved.token.client_id||pCid||'');
+    await _bootWithData(resolved.uid, window._resolvedCid, resolved.data);
+    return;
+  }
   // ── دعم الرابط القصير ?u=username&p=client-slug ──
   if(!pUid && pUsername && pClientSlug){
     try{
@@ -265,6 +358,7 @@ async function _bootWithData(userId, clientId, ud){
     } else {
       document.body.classList.remove('lm');
     }
+    applyPortalIdentityBackground(_settings);
     document.documentElement.style.setProperty('--ac',accent);
     document.documentElement.style.setProperty('--ac2',accent2);
     // ── تحديث شاشة اللود بلون ولوجو المستخدم فوراً ──
@@ -318,11 +412,20 @@ async function _bootWithData(userId, clientId, ud){
 
     _clientTasks=(ud.tasks||[]).filter(t=>{
       if(!t)return false;
+      if(t.client_visibility===false||t.is_internal===true)return false;
       return matchClient(t)||(pOrderId&&t.source_order_id===pOrderId);
     });
+    _clientTasks=_clientTasks.concat((ud.project_tasks||[]).filter(t=>t&&t.client_visibility!==false&&t.is_internal!==true&&matchClient(t)));
+    _clientTasks=_clientTasks.concat((ud.team_tasks||[]).filter(t=>t&&t.client_visibility===true&&t.is_internal!==true&&matchClient(t)));
     _clientProjects=(ud.projects||[]).filter(p=>p&&matchClient(p));
     _clientInvoices=(ud.invoices||[]).filter(i=>i&&matchClient(i));
     _clientOrders=(ud.svc_orders||[]).filter(o=>o&&matchClient(o));
+    if(window._ordoPublicToken&&window.OrdoPublic){
+      if(!OrdoPublic.allowed(window._ordoPublicToken,'tasks')) _clientTasks=[];
+      if(!OrdoPublic.allowed(window._ordoPublicToken,'projects')) _clientProjects=[];
+      if(!OrdoPublic.allowed(window._ordoPublicToken,'invoices')) _clientInvoices=[];
+      if(!OrdoPublic.allowed(window._ordoPublicToken,'orders')) _clientOrders=[];
+    }
 
     renderPage();
     hideLs();
@@ -366,33 +469,57 @@ function renderPage(){
   const openingBal=clientObj?.openingBalance||0;
   const openingType=clientObj?.openingBalanceType||'receivable';
   const openingNote=clientObj?.openingBalanceNote||'';
+  const openingCur=_curMeta(clientObj?.openingBalanceCurrency||clientObj?.currency_code||clientObj?.currency);
   // حساب الرصيد الكلي: مدفوع + رصيد افتتاحي (مستحقات)
   const totalReceivable = unpaid + (openingType==='receivable'?openingBal:0);
 
   // ── الخانات المالية الجديدة ──
   // مستحق لحد الآن: قيمة المهام اللي مدفعتش كاملة
   // مهام عادية: مستحق لو pay !== 'full' وعندها value
-  const tasksDue = _clientTasks
+  const dueByCurrency = {};
+  const prepaidByCurrency = {};
+  const chargeByCurrency = {};
+  const paidByCurrency = {};
+  _clientTasks
     .filter(t=>(t.value||0)>0 && t.pay!=='full')
-    .reduce((s,t)=>{
+    .forEach(t=>{
       const val=+t.value||0;
       const dep=(t.pay==='deposit')?+(t.deposit||0):0;
-      return s+(val-dep);
-    },0);
+      const due=Math.max(0,val-dep);
+      _addCurrencyTotal(dueByCurrency,_entityCur(t).code,due);
+      _addCurrencyTotal(chargeByCurrency,_entityCur(t).code,val);
+    });
   // مهام المشاريع: مستحق لو مش collected
-  const projTasksDue = (_ud.project_tasks||[])
+  (_ud.project_tasks||[])
     .filter(t=>_clientProjects.some(p=>String(p.id)===String(t.project_id))&&(t.value||0)>0&&!t.paymentCollected&&t.paymentStatus!=='collected')
-    .reduce((s,t)=>{
+    .forEach(t=>{
       const val=+t.value||0;
       const dep=(t.paymentStatus==='deposit')?+(t.deposit||0):0;
-      return s+(val-dep);
-    },0);
-  const totalDueNow = tasksDue + projTasksDue + (openingType==='receivable'?openingBal:0);
+      const due=Math.max(0,val-dep);
+      _addCurrencyTotal(dueByCurrency,_entityCur(t).code,due);
+      _addCurrencyTotal(chargeByCurrency,_entityCur(t).code,val);
+    });
   // الهواء عليه: المدفوعات الزيادة عن قيمة الخدمات
-  const clientPaidTrans = (_ud.transactions||[]).filter(t=>(t.source===_clientName||t.client===_clientName)&&t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
+  _clientTransactions().forEach(t=>{
+    if(t.type==='income') _addCurrencyTotal(paidByCurrency,_entityCur(t).code,t.amount);
+  });
   const totalTasksValue = _clientTasks.reduce((s,t)=>s+(+t.value||0),0);
   const totalProjTasksValue = (_ud.project_tasks||[]).filter(t=>_clientProjects.some(p=>String(p.id)===String(t.project_id))).reduce((s,t)=>s+(+t.value||0),0);
-  const airOnHim = Math.max(0, clientPaidTrans - (totalTasksValue+totalProjTasksValue) + (openingType==='prepaid'?openingBal:0));
+  _clientInvoices.forEach(inv=>{
+    const amount=+(inv.total||inv.amount||0);
+    if(amount>0 && !_invoicePaid(inv)) _addCurrencyTotal(dueByCurrency,_entityCur(inv).code,amount);
+    if(amount>0) _addCurrencyTotal(chargeByCurrency,_entityCur(inv).code,amount);
+  });
+  if(openingBal>0 && openingType==='receivable') _addCurrencyTotal(dueByCurrency,openingCur.code,openingBal);
+  if(openingBal>0 && openingType==='prepaid') _addCurrencyTotal(prepaidByCurrency,openingCur.code,openingBal);
+  Object.keys(paidByCurrency).forEach(code=>{
+    const extra=(paidByCurrency[code]||0)-(chargeByCurrency[code]||0);
+    if(extra>0) _addCurrencyTotal(prepaidByCurrency,code,extra);
+  });
+  const hasDueMoney = Object.keys(dueByCurrency).some(code=>dueByCurrency[code]>0);
+  const hasPrepaidMoney = Object.keys(prepaidByCurrency).some(code=>prepaidByCurrency[code]>0);
+  const totalDueNow = Object.values(dueByCurrency).reduce((s,v)=>s+(+v||0),0);
+  const airOnHim = Object.values(prepaidByCurrency).reduce((s,v)=>s+(+v||0),0);
 
   // ── بناء رابط المتجر بالـ username لو متاح ──
   const _storeUn=_settings.username;
@@ -429,7 +556,7 @@ function renderPage(){
 
   <div class="wrap">
     <!-- WELCOME -->
-    ${totalReceivable>0?`
+    ${hasDueMoney?`
     <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(255,107,107,.12),rgba(255,107,107,.06));border:1.5px solid rgba(255,107,107,.4);border-radius:16px;padding:16px 18px;margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,107,107,.18);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">💳</div>
@@ -439,11 +566,10 @@ function renderPage(){
         </div>
       </div>
       <div style="text-align:left">
-        <div style="font-size:26px;font-weight:900;color:rgba(255,107,107,.95);line-height:1">${totalReceivable.toLocaleString()}</div>
-        <div style="font-size:11px;color:var(--t3);text-align:center">جنيه</div>
+        <div style="font-size:26px;font-weight:900;color:rgba(255,107,107,.95);line-height:1">${_currencyRows(dueByCurrency,'var(--r)')}</div>
       </div>
     </div>
-    `:(openingBal>0&&openingType==='prepaid')?`
+    `:(hasPrepaidMoney)?`
     <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(79,209,165,.1),rgba(79,209,165,.05));border:1.5px solid rgba(79,209,165,.35);border-radius:16px;padding:16px 18px;margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="width:44px;height:44px;border-radius:12px;background:rgba(79,209,165,.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">✅</div>
@@ -453,8 +579,7 @@ function renderPage(){
         </div>
       </div>
       <div style="text-align:left">
-        <div style="font-size:26px;font-weight:900;color:var(--g);line-height:1">${openingBal.toLocaleString()}</div>
-        <div style="font-size:11px;color:var(--t3);text-align:center">جنيه</div>
+        <div style="font-size:26px;font-weight:900;color:var(--g);line-height:1">${_currencyRows(prepaidByCurrency,'var(--g)')}</div>
       </div>
     </div>
     `:''}
@@ -473,20 +598,20 @@ function renderPage(){
       <div class="stat" style="cursor:pointer" onclick="_openActiveProjectsPopup()"><div class="stat-val" style="color:var(--g)">${doneTasks}</div><div class="stat-lbl">مكتملة <i class="fa-solid fa-arrow-left" style="font-size:8px;opacity:.5"></i></div></div>
       <div class="stat" style="cursor:pointer;${totalDueNow>0?'border:1.5px solid rgba(255,107,107,.35)':''}" onclick="_openDueNowPopup()">
         <div class="stat-val" style="color:${totalDueNow>0?'var(--r)':'var(--g)'}">
-          ${totalDueNow>0?totalDueNow.toLocaleString()+' ج':'✓'}
+          ${totalDueNow>0?_currencyRows(dueByCurrency,'var(--r)'):'✓'}
         </div>
         <div class="stat-lbl">مستحق لحد الآن <i class="fa-solid fa-arrow-left" style="font-size:8px;opacity:.5"></i></div>
       </div>
       <div class="stat" style="cursor:pointer;${airOnHim>0?'border:1.5px solid rgba(79,209,165,.35)':''}" onclick="_openHawaPopup()">
         <div class="stat-val" style="color:${airOnHim>0?'var(--g)':'var(--t3)'}">
-          ${airOnHim>0?airOnHim.toLocaleString()+' ج':'—'}
+          ${airOnHim>0?_currencyRows(prepaidByCurrency,'var(--g)'):'—'}
         </div>
         <div class="stat-lbl">الهواء عليه 🎈 <i class="fa-solid fa-arrow-left" style="font-size:8px;opacity:.5"></i></div>
       </div>
     </div>
 
     ${openingBal>0?`<div style="margin:0 0 14px;padding:10px 14px;background:${openingType==='receivable'?'rgba(247,107,92,.1)':'rgba(79,209,165,.1)'};border-radius:10px;border-right:3px solid ${openingType==='receivable'?'var(--r)':'var(--g)'};font-size:12px">
-      <div style="font-weight:800;margin-bottom:3px">${openingType==='receivable'?'💰 رصيد مستحق ليك من قبل':'✅ رصيد مدفوع مسبقاً'}: ${openingBal.toLocaleString()} ج.م</div>
+      <div style="font-weight:800;margin-bottom:3px">${openingType==='receivable'?'💰 رصيد مستحق ليك من قبل':'✅ رصيد مدفوع مسبقاً'}: ${_money(openingBal,openingCur.code)}</div>
       ${openingNote?`<div style="color:var(--t3)">${xe(openingNote)}</div>`:''}
     </div>`:''}
 
@@ -603,13 +728,13 @@ function renderTasks(){
             </div>
             <span class="badge ${sc}">${xe(lbl)}</span>
           </div>
-          ${t.desc||t.brief?`<div class="card-sub" style="-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden">${xe(t.desc||t.brief)}</div>`:''}
+          ${t.desc||t.brief?`<div class="card-sub" style="-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden">${xe((t.desc||t.brief||"").replace(/<[^>]+>/g,"").slice(0,80))}</div>`:''}
           ${steps.length?`<div class="prog-bar"><div class="prog-fill" style="width:${prog}%;background:${acc}"></div></div>`:''}
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px">
             <div style="display:flex;gap:10px;font-size:11px;color:var(--t3);flex-wrap:wrap">
               ${steps.length?`<span><i class="fa-solid fa-list-check"></i> ${doneSteps}/${steps.length} خطوة</span>`:''}
               ${t.deadline?`<span><i class="fa-solid fa-calendar-days"></i> ${xe(t.deadline)}</span>`:''}
-              ${t.value?`<span style="color:${acc};font-weight:700"><i class="fa-solid fa-coins"></i> ${Number(t.value).toLocaleString()} ج</span>`:''}
+              ${t.value?`<span style="color:${acc};font-weight:700"><i class="fa-solid fa-coins"></i> ${_money(t.value,t)}</span>`:''}
               ${payStatus==='full'?`<span style="color:var(--g);font-weight:700"><i class="fa-solid fa-square-check"></i> مدفوع</span>`:''}
             </div>
             <span style="font-size:11px;color:${acc};font-weight:700">التفاصيل ←</span>
@@ -1124,7 +1249,7 @@ function _openSvcOrder(type, idx){
           <i class="fa-solid fa-paper-plane" style="color:${acc};margin-left:6px"></i>طلب: ${xe(s.name)}
         </div>
         ${price?`<div style="font-size:14px;font-weight:800;color:${acc};margin-top:3px">
-                   ${Number(price).toLocaleString()} ج.م
+                   ${_money(price)}
                  </div>`:''}
       </div>
       <button onclick="document.getElementById('_svc-order-ov').remove()"
@@ -1294,7 +1419,7 @@ function renderProjects(){
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
         ${p.deadline?`<span style="font-size:11px;color:var(--t3)"><i class="fa-solid fa-calendar-days"></i> ${xe(p.deadline)}</span>`:'<span></span>'}
         <div style="display:flex;align-items:center;gap:8px">
-          ${displayCost?`<span style="font-size:12px;font-weight:800;color:${clr}"><i class="fa-solid fa-coins"></i> ${Number(displayCost).toLocaleString()} ج</span>`:''}
+          ${displayCost?`<span style="font-size:12px;font-weight:800;color:${clr}"><i class="fa-solid fa-coins"></i> ${_money(displayCost,p)}</span>`:''}
           <span style="font-size:11px;color:var(--ac);font-weight:700">التفاصيل ←</span>
         </div>
       </div>
@@ -1328,7 +1453,7 @@ function openProjectDetail(projId){
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
           <div style="font-size:13px;font-weight:700;flex:1">${xe(t.title||'')}</div>
           <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
-            ${taskCost?`<span style="font-size:11px;font-weight:800;color:${clr};background:${clr}22;padding:2px 8px;border-radius:10px"><i class="fa-solid fa-coins"></i> ${taskCost.toLocaleString()} ج</span>`:''}
+            ${taskCost?`<span style="font-size:11px;font-weight:800;color:${clr};background:${clr}22;padding:2px 8px;border-radius:10px"><i class="fa-solid fa-coins"></i> ${_money(taskCost,t)}</span>`:''}
             <span style="font-size:10px;font-weight:800;padding:2px 10px;border-radius:20px;background:${tC}22;color:${tC};white-space:nowrap">${tL}</span>
           </div>
         </div>
@@ -1389,11 +1514,11 @@ function openProjectDetail(projId){
       return`<div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin-bottom:16px">
         <div style="font-size:11px;font-weight:800;color:var(--t3);margin-bottom:8px"><i class="fa-solid fa-coins" style="color:${clr}"></i> الملخص المالي</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:6px">
-          ${projBudget?`<div style="text-align:center;padding:8px;background:var(--s3);border-radius:8px"><div style="font-size:14px;font-weight:900;color:${clr}">${projBudget.toLocaleString()} ج</div><div style="font-size:9px;color:var(--t3);margin-top:2px">ميزانية المشروع</div></div>`:''}
-          ${tasksTotalVal&&!projBudget?`<div style="text-align:center;padding:8px;background:var(--s3);border-radius:8px"><div style="font-size:14px;font-weight:900;color:${clr}">${tasksTotalVal.toLocaleString()} ج</div><div style="font-size:9px;color:var(--t3);margin-top:2px">إجمالي المهام</div></div>`:''}
-          ${doneTasksVal?`<div style="text-align:center;padding:8px;background:var(--s3);border-radius:8px"><div style="font-size:14px;font-weight:900;color:var(--g)">${doneTasksVal.toLocaleString()} ج</div><div style="font-size:9px;color:var(--t3);margin-top:2px">مكتملة</div></div>`:''}
-          ${dueVal>0?`<div style="text-align:center;padding:8px;background:rgba(255,107,107,.1);border-radius:8px;border:1px solid rgba(255,107,107,.3)"><div style="font-size:14px;font-weight:900;color:var(--r)">${dueVal.toLocaleString()} ج</div><div style="font-size:9px;color:var(--t3);margin-top:2px">مستحق</div></div>`:''}
-          ${collectedVal?`<div style="text-align:center;padding:8px;background:rgba(79,209,165,.1);border-radius:8px"><div style="font-size:14px;font-weight:900;color:var(--g)">${collectedVal.toLocaleString()} ج</div><div style="font-size:9px;color:var(--t3);margin-top:2px">محصّل</div></div>`:''}
+          ${projBudget?`<div style="text-align:center;padding:8px;background:var(--s3);border-radius:8px"><div style="font-size:14px;font-weight:900;color:${clr}">${_money(projBudget,p)}</div><div style="font-size:9px;color:var(--t3);margin-top:2px">ميزانية المشروع</div></div>`:''}
+          ${tasksTotalVal&&!projBudget?`<div style="text-align:center;padding:8px;background:var(--s3);border-radius:8px"><div style="font-size:14px;font-weight:900;color:${clr}">${_money(tasksTotalVal,p)}</div><div style="font-size:9px;color:var(--t3);margin-top:2px">إجمالي المهام</div></div>`:''}
+          ${doneTasksVal?`<div style="text-align:center;padding:8px;background:var(--s3);border-radius:8px"><div style="font-size:14px;font-weight:900;color:var(--g)">${_money(doneTasksVal,p)}</div><div style="font-size:9px;color:var(--t3);margin-top:2px">مكتملة</div></div>`:''}
+          ${dueVal>0?`<div style="text-align:center;padding:8px;background:rgba(255,107,107,.1);border-radius:8px;border:1px solid rgba(255,107,107,.3)"><div style="font-size:14px;font-weight:900;color:var(--r)">${_money(dueVal,p)}</div><div style="font-size:9px;color:var(--t3);margin-top:2px">مستحق</div></div>`:''}
+          ${collectedVal?`<div style="text-align:center;padding:8px;background:rgba(79,209,165,.1);border-radius:8px"><div style="font-size:14px;font-weight:900;color:var(--g)">${_money(collectedVal,p)}</div><div style="font-size:9px;color:var(--t3);margin-top:2px">محصّل</div></div>`:''}
         </div>
       </div>`;
     })()}
@@ -1406,120 +1531,93 @@ function openProjectDetail(projId){
 
 function renderAccounts(){
   const clientObj=(_ud.clients||[]).find(c=>String(c.id)===String(_clientId));
-  const openingBal=clientObj?.openingBalance||0;
+  const openingBal=+(clientObj?.openingBalance||0);
   const openingType=clientObj?.openingBalanceType||'receivable';
   const openingNote=clientObj?.openingBalanceNote||'';
-  const cur='ج.م';
+  const openingCur=_curMeta(clientObj?.openingBalanceCurrency||clientObj?.currency_code||clientObj?.currency);
 
-  // معاملات العميل من سجل المعاملات
-  const clientName = _clientName;
-  const allTrans = (_ud.transactions||[]).filter(t=>t.source===clientName||t.client===clientName);
-  const totalIncome = allTrans.filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
-  const totalInvAll = _clientInvoices.reduce((s,i)=>s+(+i.total||0),0);
-  const totalPaid = _clientInvoices.filter(i=>i.paid||i.status==='مدفوعة'||i.status==='paid').reduce((s,i)=>s+(+i.total||0),0);
-  const unpaid = Math.max(0, totalInvAll - totalPaid);
-  const openBalReceivable = openingType==='receivable' ? openingBal : 0;
-  const openBalPrepaid = openingType==='prepaid' ? openingBal : 0;
-  const netBalance = openBalReceivable + unpaid - openBalPrepaid;
+  const trans=_clientTransactions();
+  const incomeTotals={};
+  const expenseTotals={};
+  trans.forEach(t=>{
+    const c=_entityCur(t).code;
+    if(t.type==='income') _addCurrencyTotal(incomeTotals,c,t.amount);
+    if(t.type==='expense') _addCurrencyTotal(expenseTotals,c,t.amount);
+  });
 
-  // سجل شهري
+  const invoiceTotals={};
+  const paidTotals={};
+  _clientInvoices.forEach(inv=>{
+    const c=_entityCur(inv).code;
+    _addCurrencyTotal(invoiceTotals,c,inv.total||inv.amount||0);
+    if(_invoicePaid(inv)) _addCurrencyTotal(paidTotals,c,inv.total||inv.amount||0);
+  });
+
+  const unpaidTotals={};
+  Object.keys(invoiceTotals).forEach(code=>{
+    const v=(invoiceTotals[code]||0)-(paidTotals[code]||0);
+    if(v>0) unpaidTotals[code]=v;
+  });
+  if(openingBal>0){
+    if(openingType==='receivable') _addCurrencyTotal(unpaidTotals,openingCur.code,openingBal);
+    if(openingType==='prepaid') _addCurrencyTotal(paidTotals,openingCur.code,openingBal);
+  }
+
+  const rows=[
+    ...trans.map(t=>({date:t.isoDate||t.date||t.createdAt||'',title:t.desc||t.source||'معاملة',type:t.type==='income'?'دخل':'مصروف',amount:+t.amount||0,currency:_entityCur(t).code,positive:t.type==='income'})),
+    ...(openingBal>0?[{date:'',title:openingType==='receivable'?'رصيد افتتاحي مستحق':'رصيد افتتاحي مدفوع مسبقا',type:'رصيد افتتاحي',amount:openingBal,currency:openingCur.code,positive:openingType!=='receivable',opening:true}]:[])
+  ].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+
   const monthlyMap={};
-  allTrans.forEach(t=>{
-    const mk=(t.isoDate||t.date||'').slice(0,7);
+  trans.forEach(t=>{
+    const mk=String(t.isoDate||t.date||'').slice(0,7);
     if(!mk) return;
-    if(!monthlyMap[mk]) monthlyMap[mk]={income:0,expense:0,count:0};
-    if(t.type==='income') monthlyMap[mk].income+=+t.amount||0;
-    else monthlyMap[mk].expense+=+t.amount||0;
-    monthlyMap[mk].count++;
+    const c=_entityCur(t).code;
+    monthlyMap[mk]=monthlyMap[mk]||{};
+    monthlyMap[mk][c]=monthlyMap[mk][c]||{income:0,expense:0,count:0};
+    if(t.type==='income') monthlyMap[mk][c].income += +t.amount||0;
+    if(t.type==='expense') monthlyMap[mk][c].expense += +t.amount||0;
+    monthlyMap[mk][c].count++;
   });
   const monthKeys=Object.keys(monthlyMap).sort((a,b)=>b.localeCompare(a));
-  const arabicMonths=['','يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-  const fmtMK=mk=>{ const [y,m]=mk.split('-'); return (arabicMonths[+m]||m)+' '+y; };
 
-  // سنوي
-  const yearMap={};
-  allTrans.forEach(t=>{
-    const yr=(t.isoDate||t.date||'').slice(0,4);
-    if(!yr) return;
-    if(!yearMap[yr]) yearMap[yr]={income:0};
-    if(t.type==='income') yearMap[yr].income+=+t.amount||0;
-  });
-
-  return`
-  <div style="margin-bottom:14px">
-    <!-- ملخص الحساب -->
+  return `<div style="margin-bottom:14px">
     <div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-scale-balanced" style="color:var(--ac)"></i> ملخص حسابي</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px">
-        <div style="text-align:center;padding:10px;background:var(--s2);border-radius:10px">
-          <div style="font-size:17px;font-weight:900;color:var(--g)">${totalIncome.toLocaleString()} ${cur}</div>
-          <div style="font-size:10px;color:var(--t3);margin-top:3px"><i class="fa-solid fa-coins"></i> إجمالي المدفوع</div>
+      <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-scale-balanced" style="color:var(--ac)"></i> ملخص حسابي حسب العملة</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px">
+        <div style="padding:12px;background:var(--s2);border-radius:12px;border:1px solid var(--bd)">
+          <div style="font-size:11px;color:var(--t3);font-weight:800;margin-bottom:6px"><i class="fa-solid fa-coins"></i> الرصيد المستحق</div>
+          ${_currencyRows(incomeTotals,'var(--g)')}
         </div>
-        <div style="text-align:center;padding:10px;background:var(--s2);border-radius:10px">
-          <div style="font-size:17px;font-weight:900;color:var(--y)">${totalInvAll.toLocaleString()} ${cur}</div>
-          <div style="font-size:10px;color:var(--t3);margin-top:3px"><i class="fa-solid fa-file-invoice"></i> إجمالي الفواتير</div>
+        <div style="padding:12px;background:var(--s2);border-radius:12px;border:1px solid var(--bd)">
+          <div style="font-size:11px;color:var(--t3);font-weight:800;margin-bottom:6px"><i class="fa-solid fa-file-invoice"></i> إجمالي الفواتير</div>
+          ${_currencyRows(invoiceTotals,'var(--y)')}
         </div>
-        <div style="text-align:center;padding:10px;background:var(--s2);border-radius:10px;border:1px solid ${unpaid>0?'rgba(255,107,107,.4)':'rgba(79,209,165,.4)'}">
-          <div style="font-size:17px;font-weight:900;color:${unpaid>0?'var(--r)':'var(--g)'}">${unpaid.toLocaleString()} ${cur}</div>
-          <div style="font-size:10px;color:var(--t3);margin-top:3px">⏳ غير مسدّد</div>
+        <div style="padding:12px;background:var(--s2);border-radius:12px;border:1px solid var(--bd)">
+          <div style="font-size:11px;color:var(--t3);font-weight:800;margin-bottom:6px"><i class="fa-solid fa-triangle-exclamation"></i> الرصيد المستحق</div>
+          ${_currencyRows(unpaidTotals,'var(--r)')}
         </div>
       </div>
-      ${netBalance>0?`<div style="padding:10px 12px;background:rgba(255,107,107,.1);border-radius:10px;border-right:3px solid var(--r);font-size:12px">
-        <strong>📌 الرصيد المستحق: ${netBalance.toLocaleString()} ${cur}</strong>
-        ${openingNote?`<div style="font-size:11px;color:var(--t3);margin-top:2px">${xe(openingNote)}</div>`:''}
-      </div>`:''}
-      ${openingBal>0&&openingType==='prepaid'?`<div style="padding:10px 12px;background:rgba(79,209,165,.1);border-radius:10px;border-right:3px solid var(--g);font-size:12px;margin-top:8px">
-        <strong>✅ رصيد مدفوع مسبقاً: ${openingBal.toLocaleString()} ${cur}</strong>
+      ${openingBal>0?`<div style="padding:10px 12px;background:${openingType==='receivable'?'rgba(255,107,107,.1)':'rgba(79,209,165,.1)'};border-radius:10px;border-right:3px solid ${openingType==='receivable'?'var(--r)':'var(--g)'};font-size:12px">
+        <strong>${openingType==='receivable'?'رصيد سابق مستحق':'رصيد مدفوع مسبقا'}: ${_money(openingBal,openingCur.code)}</strong>
         ${openingNote?`<div style="font-size:11px;color:var(--t3);margin-top:2px">${xe(openingNote)}</div>`:''}
       </div>`:''}
     </div>
 
-    <!-- سجل المعاملات -->
     <div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
       <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-list-timeline" style="color:var(--ac)"></i> سجل المعاملات</div>
-      ${openingBal>0?`<div style="padding:10px 12px;background:${openingType==='receivable'?'rgba(255,107,107,.08)':'rgba(79,209,165,.08)'};border-radius:10px;border:1px solid var(--bd);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div style="font-size:12px;font-weight:800;color:var(--t1)">${openingType==='receivable'?'💰 رصيد افتتاحي — مستحق':'✅ رصيد افتتاحي — مدفوع مسبقاً'}</div>
-          ${openingNote?`<div style="font-size:11px;color:var(--t3)">${xe(openingNote)}</div>`:''}
-        </div>
-        <div style="font-size:14px;font-weight:900;color:${openingType==='receivable'?'var(--r)':'var(--g)'}">
-          ${openingType==='receivable'?'+':'-'}${openingBal.toLocaleString()} ${cur}
-        </div>
-      </div>`:''}
-      ${allTrans.length?[...allTrans].sort((a,b)=>(b.isoDate||b.date||'').localeCompare(a.isoDate||a.date||'')).map(t=>`
-        <div style="padding:10px 12px;background:var(--s2);border-radius:10px;border:1px solid var(--bd);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:12px;font-weight:700;color:var(--t1)">${xe(t.desc||'معاملة')}</div>
-            <div style="font-size:10px;color:var(--t3)">${t.isoDate||t.date||'—'}</div>
-          </div>
-          <div style="font-size:14px;font-weight:900;color:${t.type==='income'?'var(--g)':'var(--r)'}">
-            ${t.type==='income'?'+':'-'}${(+t.amount||0).toLocaleString()} ${cur}
-          </div>
-        </div>`).join('')
-      :'<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px"><i class="fa-solid fa-inbox"></i> لا معاملات مسجلة</div>'}
+      ${rows.length?rows.map(t=>`<div style="padding:10px 12px;background:var(--s2);border-radius:10px;border:1px solid var(--bd);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div><div style="font-size:12px;font-weight:800;color:var(--t1)">${xe(t.title)}</div><div style="font-size:10px;color:var(--t3)">${t.date||t.type}</div></div>
+        <div style="font-size:14px;font-weight:900;color:${t.positive?'var(--g)':'var(--r)'}">${t.positive?'+':'-'}${_money(t.amount,t.currency)}</div>
+      </div>`).join(''):'<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px"><i class="fa-solid fa-inbox"></i> لا توجد معاملات مسجلة</div>'}
     </div>
 
-    <!-- السجل الشهري -->
-    ${monthKeys.length?`<div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-calendar-days" style="color:var(--ac)"></i> السجل الشهري</div>
-      ${monthKeys.map(mk=>`
-        <div style="padding:10px 12px;background:var(--s2);border-radius:10px;border:1px solid var(--bd);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
-          <div style="font-size:12px;font-weight:700;color:var(--t1)">${fmtMK(mk)}</div>
-          <div style="display:flex;gap:10px;font-size:12px">
-            ${monthlyMap[mk].income?`<span style="color:var(--g);font-weight:700">+${monthlyMap[mk].income.toLocaleString()}</span>`:''}
-            <span style="color:var(--t3)">${monthlyMap[mk].count} معاملة</span>
-          </div>
-        </div>`).join('')}
-    </div>`:''}
-
-    <!-- السجل السنوي -->
-    ${Object.keys(yearMap).length>1?`<div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px">
-      <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-chart-bar" style="color:var(--ac)"></i> السجل السنوي</div>
-      ${Object.keys(yearMap).sort((a,b)=>b-a).map(yr=>`
-        <div style="padding:10px 12px;background:var(--s2);border-radius:10px;border:1px solid var(--bd);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
-          <div style="font-size:12px;font-weight:700;color:var(--t1)">سنة ${yr}</div>
-          <div style="font-size:14px;font-weight:900;color:var(--g)">${yearMap[yr].income.toLocaleString()} ${cur}</div>
-        </div>`).join('')}
+    ${monthKeys.length?`<div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-calendar-days" style="color:var(--ac)"></i> السجل الشهري حسب العملة</div>
+      ${monthKeys.map(mk=>`<div style="padding:10px 12px;background:var(--s2);border-radius:10px;border:1px solid var(--bd);margin-bottom:6px">
+        <div style="font-size:12px;font-weight:900;color:var(--t1);margin-bottom:6px">${mk}</div>
+        ${Object.keys(monthlyMap[mk]).map(code=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;border-top:1px solid var(--bd);padding-top:5px;margin-top:5px"><span>${_curMeta(code).label}</span><b style="color:var(--g)">${_money(monthlyMap[mk][code].income,code)}</b></div>`).join('')}
+      </div>`).join('')}
     </div>`:''}
   </div>`;
 }
@@ -1535,14 +1633,15 @@ function renderInvoices(){
         <div class="inv-date">${inv.date||inv.created_at?new Date(inv.date||inv.created_at).toLocaleDateString('ar-EG'):''}</div>
         <span class="badge ${paid?'badge-done':'badge-pend'}" style="margin-top:4px">${paid?'✅ مدفوعة':'⏳ غير مدفوعة'}</span>
       </div>
-      <div class="inv-amount">${inv.total?Number(inv.total).toLocaleString()+' ج':'—'}</div>
+      <div class="inv-amount">${inv.total?_money(inv.total,inv):'—'}</div>
     </div>`;
   }).join('');
 }
 
 // ── TASK DETAIL SHEET ──
 function openTask(taskId, fromUrl){
-  const t=(_ud?.tasks||[]).find(x=>String(x.id)===String(taskId));
+  const _taskPools=[...(_ud?.tasks||[]),...(_ud?.project_tasks||[]),...(_ud?.team_tasks||[])];
+  const t=_taskPools.find(x=>String(x.id)===String(taskId));
   if(!t)return;
   const steps=t.steps||[];
   const doneSteps=steps.filter(s=>s.done).length;
@@ -1584,11 +1683,11 @@ function openTask(taskId, fromUrl){
     <div style="background:var(--s2);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
       ${t.value?`<div style="text-align:center;padding:8px">
         <div style="font-size:11px;color:var(--t3);margin-bottom:4px">قيمة الطلب</div>
-        <div style="font-size:20px;font-weight:900;color:${acc}">${Number(t.value).toLocaleString()} ج</div>
+        <div style="font-size:20px;font-weight:900;color:${acc}">${_money(t.value,t)}</div>
       </div>`:''}
       ${t.deposit&&+t.deposit>0?`<div style="text-align:center;padding:8px;border-right:1px solid var(--bd)">
         <div style="font-size:11px;color:var(--t3);margin-bottom:4px">العربون</div>
-        <div style="font-size:20px;font-weight:900;color:var(--y)">${Number(t.deposit).toLocaleString()} ج</div>
+        <div style="font-size:20px;font-weight:900;color:var(--y)">${_money(t.deposit,t)}</div>
       </div>`:''}
       <div style="text-align:center;padding:8px;border-right:1px solid var(--bd)">
         <div style="font-size:11px;color:var(--t3);margin-bottom:4px">حالة الدفع</div>
@@ -1605,7 +1704,7 @@ function openTask(taskId, fromUrl){
     <!-- تفاصيل / brief -->
     ${t.desc||t.brief?`<div style="margin-bottom:16px">
       <div style="font-size:12px;font-weight:800;color:var(--t3);margin-bottom:8px"><i class="fa-solid fa-file-lines"></i> تفاصيل الطلب</div>
-      <div style="font-size:13px;color:var(--t2);line-height:1.8;padding:14px;background:var(--s2);border-radius:12px;border:1px solid var(--bd)">${xe(t.desc||t.brief)}</div>
+      <div style="font-size:13px;color:var(--t2);line-height:1.8;padding:14px;background:var(--s2);border-radius:12px;border:1px solid var(--bd)" class="_brief-content">${xeHtml(t.desc||t.brief)}</div>
     </div>`:''}
 
     <!-- التقدم والخطوات -->
@@ -2099,14 +2198,22 @@ async function _submitProjTaskNote(taskId){
 function _openHawaPopup(){
   const acc = _settings?.accent||'#7c6ff7';
   // حساب الهواء
-  const clientPaidTrans = (_ud.transactions||[]).filter(t=>(t.source===_clientName||t.client===_clientName)&&t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
-  const totalTasksValue = _clientTasks.reduce((s,t)=>s+(+t.value||0),0);
-  const totalProjTasksValue = (_ud.project_tasks||[]).filter(t=>_clientProjects.some(p=>String(p.id)===String(t.project_id))).reduce((s,t)=>s+(+t.value||0),0);
+  const paidByCurrency = {};
+  const chargeByCurrency = {};
+  _clientTransactions().forEach(t=>{ if(t.type==='income') _addCurrencyTotal(paidByCurrency,_entityCur(t).code,t.amount); });
+  _clientTasks.forEach(t=>_addCurrencyTotal(chargeByCurrency,_entityCur(t).code,t.value||0));
+  (_ud.project_tasks||[]).filter(t=>_clientProjects.some(p=>String(p.id)===String(t.project_id))).forEach(t=>_addCurrencyTotal(chargeByCurrency,_entityCur(t).code,t.value||0));
   const clientObj=(_ud.clients||[]).find(c=>String(c.id)===String(_clientId));
   const openingType=clientObj?.openingBalanceType||'receivable';
   const openingBal=clientObj?.openingBalance||0;
-  const airOnHim = Math.max(0, clientPaidTrans - (totalTasksValue+totalProjTasksValue) + (openingType==='prepaid'?openingBal:0));
-
+  const openingCur=_curMeta(clientObj?.openingBalanceCurrency||clientObj?.currency_code||clientObj?.currency);
+  if(openingBal>0 && openingType==='prepaid') _addCurrencyTotal(paidByCurrency,openingCur.code,openingBal);
+  const prepaidByCurrency = {};
+  Object.keys(paidByCurrency).forEach(code=>{
+    const extra=(paidByCurrency[code]||0)-(chargeByCurrency[code]||0);
+    if(extra>0) _addCurrencyTotal(prepaidByCurrency,code,extra);
+  });
+  const airOnHim = Object.values(prepaidByCurrency).reduce((s,v)=>s+(+v||0),0);
   const ov=document.createElement('div');ov.className='overlay';ov.id='hawa-ov';
   ov.onclick=ev=>{if(ev.target===ov)ov.remove();};
 
@@ -2122,17 +2229,17 @@ function _openHawaPopup(){
     </div>
 
     <div style="background:linear-gradient(135deg,rgba(79,209,165,.15),rgba(79,209,165,.06));border:2px solid rgba(79,209,165,.4);border-radius:16px;padding:20px;text-align:center;margin-bottom:20px">
-      <div style="font-size:36px;font-weight:900;color:var(--g);line-height:1">${airOnHim.toLocaleString()} ج</div>
+      <div style="font-size:24px;font-weight:900;color:var(--g);line-height:1">${_currencyRows(prepaidByCurrency,'var(--g)')}</div>
       <div style="font-size:12px;color:var(--t3);margin-top:6px">رصيد إيجابي لصالحك 💚</div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
       <div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:14px;text-align:center">
-        <div style="font-size:22px;font-weight:900;color:var(--ac)">${clientPaidTrans.toLocaleString()} ج</div>
+        <div style="font-size:18px;font-weight:900;color:var(--ac)">${_currencyRows(paidByCurrency,'var(--ac)')}</div>
         <div style="font-size:10px;color:var(--t3);margin-top:4px"><i class="fa-solid fa-coins"></i> إجمالي ما دفعته</div>
       </div>
       <div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:14px;text-align:center">
-        <div style="font-size:22px;font-weight:900;color:var(--y)">${(totalTasksValue+totalProjTasksValue).toLocaleString()} ج</div>
+        <div style="font-size:18px;font-weight:900;color:var(--y)">${_currencyRows(chargeByCurrency,'var(--y)')}</div>
         <div style="font-size:10px;color:var(--t3);margin-top:4px"><i class="fa-solid fa-file-invoice"></i> قيمة الخدمات</div>
       </div>
     </div>
@@ -2146,7 +2253,7 @@ function _openHawaPopup(){
           <div style="font-size:13px;font-weight:700;color:var(--t1)">${xe(t.title||'مهمة')}</div>
           <span class="badge ${scMap[t.status||'']||'badge-pend'}">${xe(stMap[t.status||'']||t.status||'جديد')}</span>
         </div>
-        ${t.value?`<div style="font-size:13px;font-weight:900;color:var(--ac)">${Number(t.value).toLocaleString()} ج</div>`:''}
+        ${t.value?`<div style="font-size:13px;font-weight:900;color:var(--ac)">${_money(t.value,t)}</div>`:''}
       </div>`).join('')}
     </div>`:''}
 
@@ -2189,7 +2296,7 @@ function _openActiveProjectsPopup(){
           <div style="font-size:12px;font-weight:700;color:var(--t2)">${xe(t.title||'طلب')}</div>
           <span class="badge badge-done">✅ مكتمل</span>
         </div>
-        ${t.value?`<div style="font-size:12px;font-weight:800;color:var(--g)">${Number(t.value).toLocaleString()} ج</div>`:''}
+        ${t.value?`<div style="font-size:12px;font-weight:800;color:var(--g)">${_money(t.value,t)}</div>`:''}
       </div>`).join('')}
       ${doneTasks.length>8?`<div style="text-align:center;font-size:11px;color:var(--t3);padding:8px">+${doneTasks.length-8} أخرى</div>`:''}
     </div>`:''}
@@ -2234,7 +2341,7 @@ function _openDueNowPopup(){
         <div style="font-size:12px;font-weight:800;color:var(--r)">💰 رصيد افتتاحي مستحق</div>
         ${clientObj?.openingBalanceNote?`<div style="font-size:10px;color:var(--t3)">${xe(clientObj.openingBalanceNote)}</div>`:''}
       </div>
-      <div style="font-size:16px;font-weight:900;color:var(--r)">${openingBal.toLocaleString()} ج</div>
+      <div style="font-size:16px;font-weight:900;color:var(--r)">${_money(openingBal,clientObj?.openingBalanceCurrency||clientObj?.currency_code||clientObj?.currency)}</div>
     </div>`:''}
 
     ${tasksDue.length?`
@@ -2250,8 +2357,8 @@ function _openDueNowPopup(){
             <span class="badge ${t.pay==='deposit'?'badge-pend':'badge-stop'}">${t.pay==='deposit'?'عربون جزئي':'غير مدفوع'}</span>
           </div>
           <div style="text-align:left">
-            <div style="font-size:14px;font-weight:900;color:var(--r)">${due.toLocaleString()} ج</div>
-            ${dep?`<div style="font-size:10px;color:var(--t3)">من ${val.toLocaleString()} ج</div>`:''}
+            <div style="font-size:14px;font-weight:900;color:var(--r)">${_money(due,t)}</div>
+            ${dep?`<div style="font-size:10px;color:var(--t3)">من ${_money(val,t)}</div>`:''}
           </div>
         </div>`;
       }).join('')}
@@ -2269,7 +2376,7 @@ function _openDueNowPopup(){
             <div style="font-size:12px;font-weight:700;color:var(--t1)">${xe(t.title||'مهمة')}</div>
             <span class="badge badge-pend">⏳ مستحق</span>
           </div>
-          <div style="font-size:14px;font-weight:900;color:var(--r)">${due.toLocaleString()} ج</div>
+          <div style="font-size:14px;font-weight:900;color:var(--r)">${_money(due,t)}</div>
         </div>`;
       }).join('')}
     </div>`:''}
@@ -2418,7 +2525,16 @@ async function _submitClientBooking(uid){
   }
 }
 
-document.addEventListener('DOMContentLoaded',boot);
+document.addEventListener('DOMContentLoaded',function(){
+  var fallback=setTimeout(function(){
+    var ls=document.getElementById('ls');
+    if(ls && ls.style.display !== 'none') showErr('تعذّر تحميل بوابة العميل. تأكد من الرابط أو جرّب تحديث الصفحة.');
+  },12000);
+  Promise.resolve(boot()).catch(function(e){
+    console.error('client portal boot failed:', e);
+    showErr('حدث خطأ أثناء تحميل بوابة العميل.');
+  }).finally(function(){ clearTimeout(fallback); });
+});
 </script>
 </body>
 </html>

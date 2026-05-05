@@ -13,6 +13,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
     />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="ordo_public_core.js"></script>
     <style>
       * {
         box-sizing: border-box;
@@ -537,7 +538,8 @@
       var db = supabase.createClient(SUPA_URL, SUPA_ANON),
         P = new URLSearchParams(location.search),
         pUid = P.get("uid") || "",
-        pU = P.get("u") || P.get("user") || "";
+        pU = P.get("u") || P.get("user") || "",
+        pToken = P.get("token") || P.get("public_token") || P.get("t") || "";
       var BASE =
         window.location.origin +
         window.location.pathname.replace(/\/[^\/]*$/, "/");
@@ -559,6 +561,23 @@
         $("err-screen").style.display = "flex";
       }
       async function boot() {
+        var tokenResolved = null;
+        if (pToken && window.OrdoPublic) {
+          try {
+            tokenResolved = await window.OrdoPublic.resolvePublicToken(db, pToken, {
+              uid: pUid || "",
+              entity_type: "reviews_public"
+            });
+          } catch (e) {
+            showErr("رابط غير صالح", "token");
+            return;
+          }
+          if (!tokenResolved || !tokenResolved.ok) {
+            showErr("رابط غير صالح", tokenResolved && tokenResolved.reason ? tokenResolved.reason : "token");
+            return;
+          }
+          pUid = tokenResolved.uid || pUid;
+        }
         if (!pUid && !pU) {
           showErr("رابط غير صحيح", "لا يوجد معرف في الرابط");
           return;
@@ -608,6 +627,8 @@
             showErr("لم يتم العثور على الحساب", "تأكد من صحة الرابط");
             return;
           }
+          var ud = tokenResolved && tokenResolved.data ? tokenResolved.data : null;
+          if (!ud) {
           var res = await db
             .from("studio_data")
             .select("data")
@@ -617,12 +638,13 @@
             showErr("خطأ في التحميل", "");
             return;
           }
-          var ud = res.data.data;
+          ud = res.data.data;
           if (typeof ud === "string") ud = JSON.parse(ud);
           if (ud && ud.data && !ud.tasks)
             ud = typeof ud.data === "string" ? JSON.parse(ud.data) : ud.data;
+          }
           var s = ud.settings || {},
-            reviews = (ud.reviews || []).sort(function (a, b) {
+            reviews = (ud.reviews || []).filter(function(r){ return r && r.public_visible !== false; }).sort(function (a, b) {
               return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             }),
             ac = s.accentColor || s.accent || "#7c6ff7",
@@ -639,6 +661,11 @@
           var storeUrl = un
             ? BASE + "store.html?u=" + encodeURIComponent(un)
             : BASE + "store.html?uid=" + encodeURIComponent(uid);
+          var storeToken = (ud.public_tokens || []).find(function(t){ return t && t.entity_type === "store" && !t.revoked; });
+          if (storeToken && storeToken.token) storeUrl += (storeUrl.indexOf("?") >= 0 ? "&" : "?") + "token=" + encodeURIComponent(storeToken.token);
+          var reviewUrl = BASE + "review.html?uid=" + encodeURIComponent(uid);
+          var reviewToken = (ud.public_tokens || []).find(function(t){ return t && t.entity_type === "review" && !t.revoked; });
+          if (reviewToken && reviewToken.token) reviewUrl += "&token=" + encodeURIComponent(reviewToken.token);
           try {
             if (logo) {
               var fav = document.querySelector("link[rel*='icon']");
@@ -686,7 +713,7 @@
               '" target="_blank" class="fla"><i class="fa-brands fa-whatsapp"></i> تواصل معنا</a>';
           fl +=
             '<a href="' +
-            xe(BASE + "review.html?uid=" + encodeURIComponent(uid)) +
+            xe(reviewUrl) +
             '" class="fla"><i class="fa-solid fa-pen-to-square"></i> أضف تقييمك</a>';
           $("fll").innerHTML = fl;
           if (!reviews.length) {

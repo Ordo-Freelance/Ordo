@@ -6,6 +6,7 @@
 <title>تقييم الخدمة</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="ordo_public_core.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -258,7 +259,9 @@ const db=supabase.createClient(SUPA_URL,SUPA_ANON);
 const P=new URLSearchParams(location.search);
 const pUid=P.get('uid');
 const pUsername=P.get('u');
+const pPublicToken=P.get('token')||P.get('public_token')||P.get('t')||'';
 let _resolvedUid=null;
+let _reviewTokenObj=null;
 let _ud=null;
 let _selectedStars=0;
 
@@ -307,6 +310,21 @@ function showErr(msg){
 // ── Boot ──
 async function boot(){
   try{
+    if(pPublicToken&&window.OrdoPublic){
+      const resolved=await OrdoPublic.resolvePublicToken(db,pPublicToken,{uid:pUid,entity_type:'review'});
+      if(!resolved.ok){showErr('رابط التقييم غير صالح أو منتهي');return;}
+      if(resolved.token.used_at&&!resolved.token.allow_multiple){showErr('تم استخدام رابط التقييم من قبل');return;}
+      _resolvedUid=resolved.uid;
+      _reviewTokenObj=resolved.token;
+      _ud=resolved.data;
+      const s=_ud?.settings||{};
+      document.getElementById('studio-name').textContent=s.name||s.studio||'Ordo';
+      document.getElementById('loader').classList.add('hide');
+      document.getElementById('header-card').style.display='';
+      document.getElementById('form-card').style.display='';
+      document.getElementById('page-footer').style.display='';
+      return;
+    }
     let uid=pUid;
 
     // Resolve username → uid
@@ -440,11 +458,17 @@ async function submitReview(){
 
   const review={
     id:'rev_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
-    task_id:null, task_title:'تقييم عام',
-    client_id:null, client_name:name,
-    stars:_selectedStars, comment:comment,
-    created_at:new Date().toISOString(), source:'review_form'
+    task_id:_reviewTokenObj&&_reviewTokenObj.entity_type==='task'?_reviewTokenObj.entity_id:null, task_title:'تقييم عام',
+    client_id:_reviewTokenObj?_reviewTokenObj.client_id:null, client_name:name,
+    project_id:_reviewTokenObj&&_reviewTokenObj.project_id?_reviewTokenObj.project_id:null,
+    stars:_selectedStars, rating:_selectedStars, comment:comment, text:comment,
+    public_visible:true,
+    created_at:new Date().toISOString(), source:'review_form',
+    source_type:_reviewTokenObj?_reviewTokenObj.entity_type:'review_form',
+    source_id:_reviewTokenObj?_reviewTokenObj.entity_id:null,
+    token:_reviewTokenObj?_reviewTokenObj.token:null
   };
+  if(window.OrdoPublic) OrdoPublic.normalizeReview(review,_reviewTokenObj);
 
   let saved=false;
 
@@ -485,9 +509,17 @@ async function submitReview(){
         if(fresh?.data&&!fresh?.tasks) fresh=typeof fresh.data==='string'?JSON.parse(fresh.data):fresh.data;
         if(fresh){
           if(!fresh.reviews) fresh.reviews=[];
-          const dup=fresh.reviews.find(r=>(r.client_name||'').toLowerCase()===name.toLowerCase()&&!r.task_id);
+          const dup=fresh.reviews.find(r=>
+            (_reviewTokenObj&&!_reviewTokenObj.allow_multiple&&r.token===_reviewTokenObj.token) ||
+            (!_reviewTokenObj?.allow_multiple&&(r.client_name||'').toLowerCase()===name.toLowerCase()&&!r.task_id)
+          );
           if(dup){ saved=true; }
           else{
+            if(_reviewTokenObj){
+              fresh.public_tokens=fresh.public_tokens||[];
+              const tk=fresh.public_tokens.find(t=>t.token===_reviewTokenObj.token);
+              if(tk&&!tk.allow_multiple) tk.used_at=new Date().toISOString();
+            }
             fresh.reviews.push(review); fresh._savedAt=new Date().toISOString();
             const pr=await fetch(BASE+'/rest/v1/studio_data?user_id=eq.'+encodeURIComponent(_resolvedUid),
               {method:'PATCH',headers:HDRS,body:JSON.stringify({data:JSON.stringify(fresh),updated_at:new Date().toISOString()})});
@@ -524,6 +556,23 @@ async function submitReview(){
       localStorage.setItem('_ordo_pending_reviews',JSON.stringify(pend));
     }catch(e){}
     console.warn('Review stored locally as pending');
+  }
+
+  if(saved&&_reviewTokenObj){
+    try{
+      const rr=await db.from('studio_data').select('data').eq('user_id',_resolvedUid).maybeSingle();
+      let fresh=rr.data&&rr.data.data;
+      if(typeof fresh==='string') fresh=JSON.parse(fresh);
+      if(fresh?.data&&!fresh?.tasks) fresh=typeof fresh.data==='string'?JSON.parse(fresh.data):fresh.data;
+      if(fresh){
+        fresh.public_tokens=fresh.public_tokens||[];
+        const tk=fresh.public_tokens.find(t=>t.token===_reviewTokenObj.token);
+        if(tk&&!tk.allow_multiple) tk.used_at=tk.used_at||new Date().toISOString();
+        if(!fresh.reviews) fresh.reviews=[];
+        if(!fresh.reviews.find(r=>r.id===review.id || (!_reviewTokenObj.allow_multiple&&r.token===review.token))) fresh.reviews.push(review);
+        await db.from('studio_data').upsert({user_id:_resolvedUid,data:JSON.stringify(fresh),updated_at:new Date().toISOString()},{onConflict:'user_id'});
+      }
+    }catch(e){}
   }
 
   document.getElementById('header-card').style.display='none';

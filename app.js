@@ -1,12 +1,21 @@
-// ============================================================
+﻿// ============================================================
 // CORE STATE
 // ============================================================
 const COLORS=['#7c6ff7','#f7c948','#4fd1a5','#f76f7c','#64b5f6','#ff8a65','#ce93d8','#80cbc4'];
 let S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],teams:[],subscriptions:[],projects:[],project_tasks:[],settings:{name:'',phone:'',email:'',address:'',terms:'',logo:'',taskTypes:['مهمة عامة','مشروع','استشارة','تقرير','متابعة','أخرى'],svc_site_desc:'',svc_orders_open:true,svc_banner_size:'md'},services:[],standalone_packages:[],portfolio_projects:[],svc_orders:[],specializations:[],client_portals:[],loans:[],budgets:[]};
+try{
+  if(!Object.getOwnPropertyDescriptor(window,'S')){
+    Object.defineProperty(window,'S',{
+      configurable:true,
+      get:function(){return S;},
+      set:function(v){S=v||S;}
+    });
+  }
+}catch(e){ window.S=S; }
 
-// ══════════════════════════════════════════════════
-//  SECURITY — XSS Prevention utility
-// ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+//  SECURITY ? XSS Prevention utility
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function escapeHtml(str){
   if(str===null||str===undefined) return '';
   return String(str)
@@ -17,11 +26,11 @@ function escapeHtml(str){
     .replace(/'/g,'&#039;');
 }
 
-// ══════════════════════════════════════════════════
-//  FRIENDLY DATES — show Today, Yesterday, Tomorrow, day name, or raw date
-// ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+//  FRIENDLY DATES ? show Today, Yesterday, Tomorrow, day name, or raw date
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function _friendlyDate(dateStr){
-  if(!dateStr || dateStr==='—') return dateStr||'—';
+  if(!dateStr || dateStr==='?') return dateStr||'?';
   try{
     var today=new Date(); today.setHours(0,0,0,0);
     var d=new Date(dateStr); d.setHours(0,0,0,0);
@@ -41,9 +50,9 @@ function _friendlyDate(dateStr){
   }catch(e){ return dateStr; }
 }
 
-// ══════════════════════════════════════════════════
-//  STATUS COLOR/LABEL UTILITY — respects user overrides
-// ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+//  STATUS COLOR/LABEL UTILITY ? respects user overrides
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function _getStatusColor(statusId){
   var defaults={new:'var(--text3)',progress:'var(--accent2)',review:'var(--accent)',paused:'#64b5f6',done:'var(--accent3)'};
   // Check user overrides first
@@ -65,7 +74,7 @@ function _getStatusLabel(statusId){
   return defaults[statusId]||statusId;
 }
 function _getStatusIcon(statusId){
-  var defaults={new:'<i class="fa-solid fa-clipboard-list"></i>',progress:'<i class="fa-solid fa-bolt"></i>',review:'<i class="fa-solid fa-magnifying-glass"></i>',paused:'⏸',done:'<i class="fa-solid fa-square-check"></i>'};
+  var defaults={new:'<i class="fa-solid fa-clipboard-list"></i>',progress:'<i class="fa-solid fa-bolt"></i>',review:'<i class="fa-solid fa-magnifying-glass"></i>',paused:'âڈ¸',done:'<i class="fa-solid fa-square-check"></i>'};
   var ov=(typeof S!=='undefined'&&S.statusOverrides)?S.statusOverrides[statusId]:null;
   if(ov&&ov.icon) return ov.icon;
   var cs=(typeof S!=='undefined')?(S.customStatuses||[]).find(function(c){return c.id===statusId;}):null;
@@ -73,7 +82,7 @@ function _getStatusIcon(statusId){
   return defaults[statusId]||'';
 }
 
-// ── Update kanban column headers with current colors/labels ──
+// â”€â”€ Update kanban column headers with current colors/labels â”€â”€
 function _updateKanbanHeaders(){
   ['new','progress','review','paused'].forEach(function(st){
     var color = _getStatusColor(st);
@@ -97,9 +106,9 @@ function _updateKanbanHeaders(){
   });
 }
 
-// ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 //  TABLE COLUMN VISIBILITY SETTINGS
-// ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 var _defaultTableCols = [
   {id:'client',   label:'العميل',       visible:true},
   {id:'deadline',  label:'تاريخ التسليم',  visible:true},
@@ -169,35 +178,35 @@ function _openTableColumnsSettings(){
   ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
 }
 
-// ── Time Tracker global state (declared early to avoid TDZ errors) ──
+// â”€â”€ Time Tracker global state (declared early to avoid TDZ errors) â”€â”€
 let _tt={running:false,elapsed:0,startedAt:null,interval:null};
 let _ttFilter='all';
 let _ttRate=+localStorage.getItem('tt_rate')||150;
 let _ttCur=localStorage.getItem('tt_currency')||'EGP';
-// ── Contracts global state ──
+// â”€â”€ Contracts global state â”€â”€
 let _activeContractId=null;
 let _sigCanvas=null,_sigCtx=null,_sigDrawing=false;
 let invItems=[];
 
 function userKey(){const sess=getSession();return 'studioOS_v3_'+(sess?sess.id:'guest');}
 function lsLoad(){
-  // بيانات المستخدم تُحمَّل من السحابة فقط — لا قراءة من localStorage
+  // بيانات المستخدم تُحمَّل من السحابة فقط ? لا قراءة من localStorage
   migrateSFields();
 }
 function tryParseDate(dateStr){
   if(!dateStr) return '';
   // Try ISO format first
   if(/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-  // Try to extract from Arabic locale date (e.g. "١/١/٢٠٢٤")
+  // Try to extract from Arabic locale date (e.g. "ظ،/ظ،/ظ¢ظ ٢٤")
   try {
     const d = new Date(dateStr);
     if(!isNaN(d)) return d.toISOString().split('T')[0];
   } catch(e){}
   return '';
 }
-// ── Currency Helper ──
-function _getCurrency(){ return (S&&S.settings&&S.settings.currency)||'ج.م'; }
-function _fmtPrice(val, svcCurrency){ return Number(val||0).toLocaleString() + ' ' + (svcCurrency||_getCurrency()); }
+// â”€â”€ Currency Helper â”€â”€
+function _getCurrency(){ return (window.OrdoData&&window.OrdoData.resolveCurrency?window.OrdoData.resolveCurrency():(S&&S.settings&&S.settings.currency)||'ج.م'); }
+function _fmtPrice(val, svcCurrency){ return window.OrdoData&&window.OrdoData.formatMoney?window.OrdoData.formatMoney(val,svcCurrency||_getCurrency()):Number(val||0).toLocaleString() + ' ' + (svcCurrency||_getCurrency()); }
 
 // lsLoad يتنادى من loginWithSupaSession فقط - مش هنا
 // (علشان userKey() ما ترجعش 'guest' قبل الـ session)
@@ -207,10 +216,10 @@ try { migrateSFields(); } catch(e) {}
 // NAVIGATION
 // ============================================================
 const BN_MAIN=['dashboard','tasks','invoices','clients'];
-// ── الصفحات المجانية بدون اشتراك ──
+// â”€â”€ الصفحات المجانية بدون اشتراك â”€â”€
 const FREE_PAGES = ['dashboard', 'settings'];
 
-// ══ TRIAL SYSTEM ══
+// â•گâ•گ TRIAL SYSTEM â•گâ•گ
 function _getTrialInfo() {
   if(!_supaUserId) return null;
   const key = '_trial_start_' + _supaUserId;
@@ -246,7 +255,7 @@ function hasActiveSub(){
   if(!_supaUserId) return true;
   if(_isAdminUser) return true;  // المشرف له اشتراك مدى الحياة تلقائياً
   if(_isTrialActive()) return true;  // التجربة المجانية تعادل اشتراكاً نشطاً
-  // لو الاشتراك لسه بيتحمل أو مفيش نظام serial keys — افتح كل الصفحات
+  // لو الاشتراك لسه بيتحمل أو مفيش نظام serial keys ? افتح كل الصفحات
   if(!window._subLoadDone) return true;
   if(!_userSubscription) return false;
   if(_userSubscription.billing==='lifetime') return true;
@@ -254,19 +263,76 @@ function hasActiveSub(){
   return new Date(_userSubscription.expiresAt) > new Date();
 }
 
-// ── feature helpers ──
+// â”€â”€ feature helpers â”€â”€
 function _getPlanFeatures(){
   return _userSubscription?.plan?.features || {};
 }
 
+function _getPlatformUserFeatures(){
+  let out = {};
+  try{
+    const cfg = JSON.parse(localStorage.getItem('platform_config') || '{}');
+    if(cfg.user_features && typeof cfg.user_features === 'object') out = Object.assign(out, cfg.user_features);
+  }catch(e){}
+  try{
+    const direct = JSON.parse(localStorage.getItem('ordo_user_features') || '{}');
+    if(direct && typeof direct === 'object') out = Object.assign(out, direct);
+  }catch(e){}
+  try{
+    if(S && S.admin_feature_overrides && typeof S.admin_feature_overrides === 'object'){
+      out = Object.assign(out, S.admin_feature_overrides);
+    }
+  }catch(e){}
+  return out;
+}
+
+function _platformFeatureState(pageId){
+  const map={
+    invoices:'invoices',
+    contracts:'invoices',
+    proposals:'invoices',
+    services:'services',
+    store:'services',
+    'freelancer-goals':'freelancer-goals',
+    learning:'freelancer-goals',
+    dailylog:'schedule',
+    schedule:'schedule',
+    meetings:'schedule',
+    workspace:'workspace',
+    vault:'vault',
+    reports:'reports',
+    reviews:'reviews',
+    timetracker:'timetracker',
+    support:'support'
+  };
+  const key=map[pageId]||pageId;
+  return _getPlatformUserFeatures()[key] || 'enabled';
+}
+
+function hasPlatformFeature(pageId){
+  return _platformFeatureState(pageId) === 'enabled';
+}
+
+function _getAllowedTeamMode(){
+  try{
+    if(S && S.admin_team_mode && S.admin_team_mode !== 'inherit') return S.admin_team_mode;
+  }catch(e){}
+  try{
+    const cfg = JSON.parse(localStorage.getItem('platform_config') || '{}');
+    return cfg.team_mode || 'both';
+  }catch(e){}
+  return 'both';
+}
+
 // هل الصفحة دي مسموحة في الباقة؟
 function hasPageFeature(pageId){
+  if(!hasPlatformFeature(pageId)) return false;
   if(!_supaUserId || !hasActiveSub()) return false;
   if(_isAdminUser) return true;  // المشرف يوصل لكل الأقسام
-  // لو الباقة مش محملة — افتح كل الصفحات (الاشتراك شغال لكن الباقة مش اتجابت)
+  // لو الباقة مش محملة ? افتح كل الصفحات (الاشتراك شغال لكن الباقة مش اتجابت)
   if(!_userSubscription?.plan) return true;
   const f = _getPlanFeatures();
-  // لو features فاضية — افتح كل الصفحات
+  // لو features فاضية ? افتح كل الصفحات
   if(!f || Object.keys(f).length === 0) return true;
   const map = { tasks:'tasks', projects:'tasks', clients:'clients', finance:'finance',
     invoices:'invoices', schedule:'schedule', team:'team',
@@ -291,13 +357,13 @@ function checkLimit(limitKey, currentCount){
   const limit = getFeatureLimit(limitKey);
   if(limit === 0) return true; // غير محدود
   if(currentCount >= limit){
-    showMiniNotif('<i class="fa-solid fa-ban"></i> وصلت للحد الأقصى في باقتك (' + limit + ') — قم بالترقية');
+    showMiniNotif('<i class="fa-solid fa-ban"></i> وصلت للحد الأقصى في باقتك (' + limit + ') ? قم بالترقية');
     return false;
   }
   return true;
 }
 
-// ── Page Navigation History ──
+// â”€â”€ Page Navigation History â”€â”€
 var _pageHistory = [];
 function _goBackPage(){
   if(_pageHistory.length===0){ showPage("dashboard"); return; }
@@ -329,14 +395,14 @@ function _updateNavBtns(){
 }
 
 
-// ══════════════════════════════════════════════════════
-// URL ROUTING — Hash-based (#dashboard, #tasks, ...)
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// URL ROUTING ? Hash-based (#dashboard, #tasks, ...)
 // أفضل لـ static HTML files - مش محتاج server config
-// ══════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 var _PAGE_SLUGS = {
   'dashboard':'dashboard','tasks':'tasks','projects':'projects',
-  'schedule':'schedule','meetings':'meetings','clients':'clients',
-  'finance':'finance','invoices':'invoices','services':'services',
+  'schedule':'schedule','meetings':'schedule','clients':'clients',
+  'finance':'finance','invoices':'invoices','proposals':'invoices','services':'services',
   'support':'support','team':'team','timetracker':'timetracker',
   'freelancer-goals':'goals','settings':'settings','reports':'reports',
   'vault':'vault'
@@ -351,7 +417,7 @@ function _pushPageUrl(pageId){
   var slug = _getPageSlug(pageId);
   var curHash = window.location.hash.replace('#','');
   if(curHash === slug) {
-    // نفس الصفحة — replace بس
+    // نفس الصفحة ? replace بس
     window.history.replaceState({page: pageId}, '', '#' + slug);
   } else {
     window.history.pushState({page: pageId}, '', '#' + slug);
@@ -404,7 +470,7 @@ function _restorePageFromUrl(){
 }
 
 
-// ── Modal Full-Screen Toggle ──
+// â”€â”€ Modal Full-Screen Toggle â”€â”€
 function toggleModalExpand(overlayId) {
   var overlay = document.getElementById(overlayId);
   if(!overlay) return;
@@ -428,7 +494,7 @@ function _makeExpandBtn(overlayId){
 }
 
 
-// ── تحصيل / تسوية رصيد عميل ──
+// â”€â”€ تحصيل / تسوية رصيد عميل â”€â”€
 function _collectFromClient(clientId, amount){
   var c = (S.clients||[]).find(function(x){ return String(x.id)===String(clientId); });
   if(!c) return;
@@ -504,7 +570,7 @@ function _confirmCollect(clientId, totalOwed){
   };
   S.transactions.push(tx);
 
-  // لو المبلغ المحصّل = الرصيد الكلي → صفّي الرصيد الافتتاحي
+  // لو المبلغ المحصّل = الرصيد الكلي ? صفّي الرصيد الافتتاحي
   var openBal = c.openingBalance || 0;
   var openType = c.openingBalanceType || 'receivable';
   var invUnpaid = (S.invoices||[]).filter(function(i){ return (i.client===c.name||String(i.clientId)===String(c.id)) && !(i.paid||i.status==='مدفوعة'||i.status==='paid'); }).reduce(function(s,i){ return s+(+i.total||0); }, 0);
@@ -519,11 +585,11 @@ function _confirmCollect(clientId, totalOwed){
         i.paid = true; i.status = 'مدفوعة';
       }
     });
-    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم التحصيل وتصفية الرصيد بالكامل ✅');
+    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم التحصيل وتصفية الرصيد بالكامل ?');
   } else if(amount >= openBal && openType==='receivable'){
     // تغطية الرصيد الافتتاحي بس
     c.openingBalance = 0;
-    toast('<i class="fa-solid fa-coins" style="color:var(--accent3)"></i> تم تسجيل التحصيل — لا يزال هناك فواتير معلقة');
+    toast('<i class="fa-solid fa-coins" style="color:var(--accent3)"></i> تم تسجيل التحصيل ? لا يزال هناك فواتير معلقة');
   } else {
     // تخفيض جزئي من الرصيد الافتتاحي
     if(openType==='receivable' && openBal > 0){
@@ -542,9 +608,9 @@ function _confirmCollect(clientId, totalOwed){
   renderAll();
 }
 
-// ══════════════════════════════════════════════════════
-// ── REVIEWS PAGE ──
-// ══════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// â”€â”€ REVIEWS PAGE â”€â”€
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function deleteReview(reviewId) {
   confirmDel('حذف هذا التقييم نهائياً؟', function() {
     S.reviews = (S.reviews||[]).filter(r => String(r.id) !== String(reviewId));
@@ -563,7 +629,7 @@ function renderReviewsPage() {
   const dist = [5,4,3,2,1].map(n => ({ n, count: allReviews.filter(r => +r.stars === n).length }));
   const acc = S.settings?.accent || S.settings?.accentColor || '#7c6ff7';
 
-  // تحديث الـ badge — يظهر فقط للتقييمات الجديدة غير المقروءة
+  // تحديث الـ badge ? يظهر فقط للتقييمات الجديدة غير المقروءة
   const badge = document.getElementById('reviews-badge');
   const _readCount = +(localStorage.getItem('_reviewsReadCount')||0);
   const _unread = Math.max(0, total - _readCount);
@@ -574,7 +640,7 @@ function renderReviewsPage() {
 
   if (!total) {
     cont.innerHTML = `<div style="text-align:center;padding:80px 20px;color:var(--text3)">
-      <div style="font-size:64px;opacity:.25;margin-bottom:16px">⭐</div>
+      <div style="font-size:64px;opacity:.25;margin-bottom:16px">â­گ</div>
       <div style="font-size:18px;font-weight:800;color:var(--text2);margin-bottom:8px">لا توجد تقييمات بعد</div>
       <div style="font-size:13px;line-height:1.8;max-width:340px;margin:0 auto">أرسل رابط بوابة العميل لعملائك وعد بعد اكتمال المهام ستظهر تقييماتهم هنا</div>
       <button onclick="_copyReviewLink()" class="btn btn-primary" style="margin-top:20px"><i class="fa-solid fa-link"></i> انسخ رابط البوابة</button>
@@ -582,7 +648,7 @@ function renderReviewsPage() {
     return;
   }
 
-  // ── فلتر النجوم والتاريخ ──
+  // â”€â”€ فلتر النجوم والتاريخ â”€â”€
   const _rf  = window._reviewsFilter || 'all';
   const _rym = window._reviewsYearMonth || 'all'; // 'YYYY-MM' أو 'all'
 
@@ -619,7 +685,7 @@ function renderReviewsPage() {
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px">
     <div class="card" style="padding:20px;text-align:center;border-right:3px solid #f7c948">
       <div style="font-size:44px;font-weight:900;color:#f7c948;line-height:1">${avg}</div>
-      <div style="font-size:20px;margin:6px 0">${'⭐'.repeat(Math.round(+avg))}</div>
+      <div style="font-size:20px;margin:6px 0">${'â­گ'.repeat(Math.round(+avg))}</div>
       <div style="font-size:12px;color:var(--text3)">${total} تقييم إجمالي</div>
     </div>
     <div class="card" style="padding:20px">
@@ -627,7 +693,7 @@ function renderReviewsPage() {
       ${dist.map(d => `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer" onclick="window._reviewsFilter='${d.n}';renderReviewsPage()">
         <div style="font-size:12px;color:var(--text3);width:14px;text-align:center">${d.n}</div>
-        <div style="font-size:11px">⭐</div>
+        <div style="font-size:11px">â­گ</div>
         <div style="flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden">
           <div style="height:100%;width:${total?Math.round(d.count/total*100):0}%;background:#f7c948;border-radius:4px;transition:width .4s"></div>
         </div>
@@ -641,7 +707,7 @@ function renderReviewsPage() {
         <div style="width:28px;height:28px;border-radius:50%;background:${acc}22;color:${acc};font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(r.client_name||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.client_name||'عميل')}</div>
-          <div style="font-size:10px;color:var(--text3)">${allReviews.filter(x=>x.client_name===r.client_name).length} تقييم · ⭐ ${(allReviews.filter(x=>x.client_name===r.client_name).reduce((s,x)=>s+(+x.stars||0),0)/allReviews.filter(x=>x.client_name===r.client_name).length).toFixed(1)}</div>
+          <div style="font-size:10px;color:var(--text3)">${allReviews.filter(x=>x.client_name===r.client_name).length} تقييم آ· â­گ ${(allReviews.filter(x=>x.client_name===r.client_name).reduce((s,x)=>s+(+x.stars||0),0)/allReviews.filter(x=>x.client_name===r.client_name).length).toFixed(1)}</div>
         </div>
       </div>`).join('')}
     </div>
@@ -650,7 +716,7 @@ function renderReviewsPage() {
   <!-- Filter Bar -->
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
     <span style="font-size:12px;color:var(--text3);font-weight:700;margin-left:4px">التقييم:</span>
-    ${[{v:'all',l:'الكل'},{v:'5',l:'⭐×5'},{v:'4',l:'⭐×4'},{v:'3',l:'⭐×3'},{v:'2',l:'⭐×2'},{v:'1',l:'⭐×1'}].map(f=>`
+    ${[{v:'all',l:'الكل'},{v:'5',l:'â­گأ—5'},{v:'4',l:'â­گأ—4'},{v:'3',l:'â­گأ—3'},{v:'2',l:'â­گأ—2'},{v:'1',l:'â­گأ—1'}].map(f=>`
     <button onclick="window._reviewsFilter='${f.v}';renderReviewsPage()" class="btn btn-sm" style="background:${_rf===f.v?'var(--accent)':'var(--surface2)'};color:${_rf===f.v?'#fff':'var(--text2)'};border:1px solid ${_rf===f.v?'var(--accent)':'var(--border)'}">${f.l}</button>`).join('')}
     <span style="font-size:12px;color:var(--text3);font-weight:700;margin-right:8px;margin-left:4px">الشهر:</span>
     <button onclick="window._reviewsYearMonth='all';renderReviewsPage()" class="btn btn-sm" style="background:${_rym==='all'?'var(--accent)':'var(--surface2)'};color:${_rym==='all'?'#fff':'var(--text2)'};border:1px solid ${_rym==='all'?'var(--accent)':'var(--border)'}">الكل</button>
@@ -688,7 +754,7 @@ function renderReviewsPage() {
             const taskObj = (S.tasks||[]).find(t=>String(t.id)===String(r.task_id));
             const starColor = +r.stars>=4?'#f7c948':+r.stars===3?'var(--accent2)':'var(--accent4)';
             const starBg = +r.stars>=4?'rgba(247,201,72,.1)':+r.stars===3?'rgba(168,156,255,.1)':'rgba(247,111,124,.1)';
-            const starLabel = ['','سيء 😞','مقبول 😐','جيد 🙂','رائع 😊','ممتاز 🤩'][+r.stars]||'';
+            const starLabel = ['','سيء ًںک‍','مقبول ًںکگ','جيد ًں™‚','رائع ًںکٹ','ممتاز ًں¤©'][+r.stars]||'';
             const _rid = r.id||('r'+Math.random());
             return `<div class="card" style="padding:16px;border-right:3px solid ${starColor};position:relative;cursor:pointer" onclick="_openShareReview('${_rid}')">
               <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:${r.comment?'10':'0'}px;flex-wrap:wrap">
@@ -703,7 +769,7 @@ function renderReviewsPage() {
                 </div>
                 <div style="display:flex;align-items:center;gap:8px">
                   <div style="text-align:center">
-                    <div style="font-size:18px;letter-spacing:1px">${'⭐'.repeat(+r.stars||0)}</div>
+                    <div style="font-size:18px;letter-spacing:1px">${'â­گ'.repeat(+r.stars||0)}</div>
                     <span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:8px;background:${starBg};color:${starColor}">${starLabel}</span>
                   </div>
                   <button data-rid="${r.id}" onclick="event.stopPropagation();deleteReview(this.dataset.rid)" class="btn btn-danger btn-sm" style="padding:5px 8px;flex-shrink:0" title="حذف التقييم">
@@ -724,7 +790,7 @@ function renderReviewsPage() {
 }
 
 function _copyReviewLink() {
-  // ✅ استخدم الرابط القصير
+  // ? استخدم الرابط القصير
   var link = (typeof _shortReviewUrl === 'function') ? _shortReviewUrl() : (function(){
     const uid2 = _supaUserId;
     const un2 = S.settings && S.settings.username;
@@ -734,13 +800,13 @@ function _copyReviewLink() {
     var _reviewPage = window.location.origin + _rbase + 'review.html';
     return un2 ? (_reviewPage+'?u='+encodeURIComponent(un2)) : (_reviewPage+'?uid='+uid2);
   })();
-  navigator.clipboard && navigator.clipboard.writeText(link).then(function(){ toast('✅ تم نسخ رابط التقييم'); });
+  navigator.clipboard && navigator.clipboard.writeText(link).then(function(){ toast('? تم نسخ رابط التقييم'); });
 }
 
 function _copyPublicReviewsLink() {
   var link = (typeof _shortPublicReviewsUrl === 'function') ? _shortPublicReviewsUrl() : '';
   if (!link) { toast('حدد اسم المستخدم أولاً من الإعدادات'); return; }
-  navigator.clipboard && navigator.clipboard.writeText(link).then(function(){ toast('✅ تم نسخ رابط صفحة التقييمات العامة'); });
+  navigator.clipboard && navigator.clipboard.writeText(link).then(function(){ toast('? تم نسخ رابط صفحة التقييمات العامة'); });
 }
 
 function _exportReviews() {
@@ -753,7 +819,7 @@ function _exportReviews() {
   a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
   a.download = 'reviews-ordo.csv';
   a.click();
-  toast('✅ تم تصدير التقييمات');
+  toast('? تم تصدير التقييمات');
 }
 
 function _markReviewsRead() {
@@ -767,7 +833,7 @@ function _markReviewsRead() {
   toast('<i class="fa-solid fa-envelope-open" style="color:var(--accent3)"></i> تم تحديد كل التقييمات كمقروءة');
 }
 
-// ── Share Review as Shareable Card ──
+// â”€â”€ Share Review as Shareable Card â”€â”€
 function _openShareReview(rid){
   var r = (S.reviews||[]).find(function(x){return x.id===rid;});
   if(!r) return;
@@ -875,7 +941,7 @@ function _shareReviewCard(clientName, stars, comment, dateStr, taskTitle){
   ov.appendChild(wrap); document.body.appendChild(ov);
 }
 
-// ═══ Pure Canvas download — no external libs needed ═══
+// â•گâ•گâ•گ Pure Canvas download ? no external libs needed â•گâ•گâ•گ
 function _canvasDownloadReview(clientName,stars,comment,dateStr,taskTitle,studioName,ac,starLabel){
   var btn=document.getElementById('_rc-dl-btn');
   if(btn){btn.innerHTML='<i class="fa-solid fa-spinner fa-spin" style="margin-left:6px"></i> جاري...';btn.disabled=true;}
@@ -933,7 +999,7 @@ function _canvasDownloadReview(clientName,stars,comment,dateStr,taskTitle,studio
   c.save(); c.globalAlpha=0.2; c.strokeStyle='#f7c948'; c.lineWidth=1.5; _rrect(c,W/2-lw/2,y-6,lw,42,21); c.stroke(); c.restore();
   c.fillStyle='#f7c948'; c.fillText(starLabel,W/2,y+26); y+=56;
 
-  // 4) STARS (★ filled / ☆ empty)
+  // 4) STARS (âک… filled / âک† empty)
   c.font='52px sans-serif';
   var mixed='';
   for(var sm=0;sm<5;sm++){mixed+=(sm<stars?'\u2605':'\u2606');if(sm<4)mixed+=' ';}
@@ -969,13 +1035,16 @@ function _canvasDownloadReview(clientName,stars,comment,dateStr,taskTitle,studio
     }catch(e){
       console.error(e);
       if(btn){btn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';btn.disabled=false;}
-      toast('\u26A0\uFE0F حدث خطأ — جرب Screenshot');
+      toast('\u26A0\uFE0F حدث خطأ ? جرب Screenshot');
     }
   },100);
 }
 function _rrect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();}
 
 function showPage(id,el){
+  if(!hasPlatformFeature(id)){
+    _showPageLock(id,el,'platform'); return;
+  }
   if(_supaUserId && hasActiveSub() && !FREE_PAGES.includes(id) && !hasPageFeature(id)){
     _showPageLock(id,el,'feature'); return;
   }
@@ -989,7 +1058,7 @@ function showPage(id,el){
     _pageHistory.push(_curId);
     if(_pageHistory.length > 20) _pageHistory.shift();
   }
-  // ── URL Routing: update browser URL ──
+  // â”€â”€ URL Routing: update browser URL â”€â”€
   if(typeof _pushPageUrl === 'function') _pushPageUrl(id);
   _updateNavBtns();
   _hideLock();
@@ -1022,7 +1091,7 @@ function showPage(id,el){
   }
   if(id === 'reviews'){
     setTimeout(renderReviewsPage, 50);
-    // Auto-sync on page open — silently (no button ref)
+    // Auto-sync on page open ? silently (no button ref)
     setTimeout(function(){ if(typeof _syncReviewsNow==='function') _syncReviewsNow(null); }, 300);
   }
   // Refresh team invites immediately when opening team page
@@ -1039,7 +1108,7 @@ function showPage(id,el){
       if(typeof window._updateInboxBadge==='function') window._updateInboxBadge();
     }, 600);
   }
-  // Vault page — init on open
+  // Vault page ? init on open
   if(id === 'vault'){
     setTimeout(function(){
       if(typeof initVaultPage==='function') initVaultPage();
@@ -1077,12 +1146,26 @@ function _showPageLock(id, el, reason){
     if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'"))n.classList.add('active');
   });
   const names={tasks:'المهام والمشاريع',schedule:'تنظيم اليوم',clients:'قاعدة العملاء',
-    finance:'المالية',invoices:'الفواتير والعقود',team:'فريق العمل',
-    learning:'الأهداف والإنجازات',meetings:'الميتنج',settings:'الإعدادات'};
+    finance:'المالية',invoices:'الفواتير والعقود والعروض',team:'فريق العمل',
+    learning:'الأهداف والإنجازات',schedule:'تنظيم اليوم والميتنج',meetings:'تنظيم اليوم والميتنج',settings:'الإعدادات'};
 
   let lock=document.getElementById('_page_lock_el');
   if(!lock){ lock=document.createElement('div'); lock.id='_page_lock_el'; document.body.appendChild(lock); }
   lock.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(7,8,15,.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px';
+
+  if(reason === 'platform'){
+    const coming = _platformFeatureState(id) === 'coming';
+    lock.innerHTML=`
+      <div style="max-width:360px;width:100%;text-align:center;position:relative">
+        <button onclick="_hideLock();showPage('dashboard')" style="position:absolute;top:-40px;left:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--text2);width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-xmark"></i></button>
+        <div style="width:76px;height:76px;background:rgba(247,201,72,.12);border:1.5px solid rgba(247,201,72,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px"><i class="fa-solid ${coming?'fa-hourglass-half':'fa-lock'}"></i></div>
+        <div style="font-size:20px;font-weight:900;margin-bottom:6px">${names[id]||id}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:8px">${coming?'الميزة قادمة قريباً':'القسم غير متاح حالياً'}</div>
+        <div style="font-size:12px;color:var(--text3);line-height:1.7">${coming?'قريبا سيتم اطلاق هذه الميزه':'هذا القسم غير متاح حالياً.'}</div>
+      </div>`;
+    lock.style.display='flex';
+    return;
+  }
 
   if(reason === 'feature'){
     // الصفحة مش في باقته
@@ -1104,7 +1187,7 @@ function _showPageLock(id, el, reason){
         <button onclick="_hideLock();showPage('dashboard')" style="position:absolute;top:-40px;left:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--text2);width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-xmark"></i></button>
         <div style="width:76px;height:76px;background:rgba(108,99,255,.12);border:1.5px solid rgba(108,99,255,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px"><i class="fa-solid fa-lock"></i></div>
         <div style="font-size:20px;font-weight:900;margin-bottom:6px">${names[id]||id}</div>
-        <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px">Premium — مدفوع</div>
+        <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px">Premium ? مدفوع</div>
         <div style="font-size:12px;color:var(--text2);margin-bottom:24px;line-height:1.8">انتهى اشتراكك. يرجى الاشتراك أو تفعيل كود للمتابعة.</div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;text-align:right">
           <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px"><i class="fa-solid fa-key"></i> تفعيل كود الاشتراك</div>
@@ -1130,27 +1213,27 @@ function _showPageLock(id, el, reason){
   window.scrollTo(0,0);
 }
 
-// ── تفعيل السيريال — دالة موحّدة ──
+// â”€â”€ تفعيل السيريال ? دالة موحّدة â”€â”€
 async function _activateCode(inputId, msgId, onSuccess){
   const inp=document.getElementById(inputId), msg=document.getElementById(msgId);
   if(!inp||!msg) return;
   const code=inp.value.trim().toUpperCase();
   if(!code){msg.style.color='var(--accent4)';msg.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> أدخل الكود';return;}
   if(!_supaUserId){msg.style.color='var(--accent4)';msg.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> يجب تسجيل الدخول أولاً';return;}
-  msg.style.color='var(--text2)';msg.textContent='⏳ جاري التحقق من الكود...';
+  msg.style.color='var(--text2)';msg.textContent='âڈ³ جاري التحقق من الكود...';
   const btn=inp.parentElement?.querySelector('button');
   if(btn) btn.disabled=true;
-  // Timeout safety — if hanging > 15s, show error
+  // Timeout safety ? if hanging > 15s, show error
   const _actTimeout = setTimeout(()=>{
     if(msg.textContent.includes('جاري')) {
       msg.style.color='var(--accent4)';
-      msg.innerHTML='<i class="fa-solid fa-ban"></i> انتهت المهلة — تحقق من اتصالك بالإنترنت';
+      msg.innerHTML='<i class="fa-solid fa-ban"></i> انتهت المهلة ? تحقق من اتصالك بالإنترنت';
       if(btn) btn.disabled=false;
     }
   }, 15000);
 
   try{
-    // البحث عن الكود في serial_keys — column اسمه 'code'
+    // البحث عن الكود في serial_keys ? column اسمه 'code'
     let data = null, error = null;
     const r1 = await supa.from('serial_keys').select('*').eq('code', code).maybeSingle();
     if(!r1.error && r1.data) {
@@ -1173,7 +1256,7 @@ async function _activateCode(inputId, msgId, onSuccess){
       if(btn) btn.disabled=false;
       return;
     }
-    // normalize — key_code → code
+    // normalize ? key_code ? code
     if(!data.code && data.key_code) data.code = data.key_code;
     // تحقق من الـ status في الـ JS
     if(data.status !== 'unused'){
@@ -1196,7 +1279,7 @@ async function _activateCode(inputId, msgId, onSuccess){
       return;
     }
 
-    // الكود صحيح وغير مستخدم — جيب الباقة منفصلاً وفعّله
+    // الكود صحيح وغير مستخدم ? جيب الباقة منفصلاً وفعّله
     let plan = null;
     try {
       const {data: planRow, error: planErr} = await supa.from('subscription_plans').select('*').eq('id', data.plan_id).maybeSingle();
@@ -1213,10 +1296,10 @@ async function _activateCode(inputId, msgId, onSuccess){
       // سنة كاملة من تاريخ التفعيل بالكالندر
       const d=new Date(now); d.setFullYear(d.getFullYear()+1); exp=d.toISOString();
     } else {
-      // شهري — شهر واحد من تاريخ التفعيل بالكالندر (30 يوم أو نهاية الشهر)
+      // شهري ? شهر واحد من تاريخ التفعيل بالكالندر (30 يوم أو نهاية الشهر)
       const d=new Date(now); d.setMonth(d.getMonth()+1); exp=d.toISOString();
     }
-    // update بـ id (UUID) — مش بالـ code — علشان يعمل صح
+    // update بـ id (UUID) ? مش بالـ code ? علشان يعمل صح
     const {error:e2}=await supa
       .from('serial_keys')
       .update({
@@ -1230,7 +1313,7 @@ async function _activateCode(inputId, msgId, onSuccess){
     if(e2){
       console.error('Serial update error:', e2);
       msg.style.color='var(--accent4)';
-      msg.innerHTML='<i class="fa-solid fa-ban"></i> خطأ أثناء التفعيل — تأكد من إعدادات قاعدة البيانات';
+      msg.innerHTML='<i class="fa-solid fa-ban"></i> خطأ أثناء التفعيل ? تأكد من إعدادات قاعدة البيانات';
       if(btn) btn.disabled=false;
       return;
     }
@@ -1259,16 +1342,40 @@ async function _activateCode(inputId, msgId, onSuccess){
 function _updateNavLocks(){
   const noSub   = _supaUserId && !hasActiveSub();
   const hasSub  = _supaUserId && hasActiveSub();
+  const mobileIdMap = {'freelancer-goals':'learning'};
+  const setMobileFeatureDisplay = (pageId, displayValue)=>{
+    const ids=[pageId, mobileIdMap[pageId]].filter(Boolean);
+    ids.forEach(id=>{
+      const main = document.getElementById('bn-' + id);
+      const more = document.getElementById('bnm-' + id);
+      if(main) main.style.display = displayValue;
+      if(more) more.style.display = displayValue;
+    });
+  };
   document.querySelectorAll('.nav-item').forEach(el=>{
     el.querySelectorAll('._nl').forEach(i=>i.remove());
+    el.style.display = '';
     const oc = el.getAttribute('onclick')||'';
     if(!oc.includes('showPage')) return;
     if(oc.includes("'dashboard'")||oc.includes("'settings'")) return;
     // استخرج اسم الصفحة
     const match = oc.match(/showPage\(['"]([^'"]+)['"]/);
     const pageId = match ? match[1] : '';
+    if(['proposals','meetings'].includes(pageId)){
+      el.style.display='none';
+      setMobileFeatureDisplay(pageId, 'none');
+      return;
+    }
+    if(pageId) setMobileFeatureDisplay(pageId, '');
+    if(pageId && _platformFeatureState(pageId)==='disabled'){
+      el.style.display = 'none';
+      setMobileFeatureDisplay(pageId, 'none');
+      return;
+    }
     let lockChar = '';
     if(noSub) lockChar = '<i class="fa-solid fa-lock"></i>';
+    else if(pageId && _platformFeatureState(pageId)==='coming') lockChar = '<i class="fa-solid fa-hourglass-half"></i>';
+    else if(pageId && _platformFeatureState(pageId)==='disabled') lockChar = '<i class="fa-solid fa-lock"></i>';
     else if(hasSub && pageId && !hasPageFeature(pageId)) lockChar = '<i class="fa-solid fa-lock"></i>';
     if(lockChar){
       const ic=document.createElement('span');
@@ -1312,7 +1419,7 @@ function confirmDel(msg,cb){
 // ============================================================
 const today=()=>new Date().toISOString().split('T')[0];
 const payBadge={none:'<span class="pay-badge pay-none"><i class="fa-solid fa-circle-xmark"></i> لم يُدفع</span>',deposit:'<span class="pay-badge pay-deposit"><i class="fa-solid fa-heart"></i> عربون</span>',full:'<span class="pay-badge pay-full"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مدفوع</span>'};
-const statusBadge={new:'<span class="badge badge-gray">جديد</span>',progress:'<span class="badge badge-yellow">جاري</span>',review:'<span class="badge badge-purple">مراجعة</span>',paused:'<span class="badge" style="background:rgba(100,181,246,.15);color:#64b5f6">⏸ موقوف</span>',done:'<span class="badge badge-green">مكتمل</span>'};
+const statusBadge={new:'<span class="badge badge-gray">جديد</span>',progress:'<span class="badge badge-yellow">جاري</span>',review:'<span class="badge badge-purple">مراجعة</span>',paused:'<span class="badge" style="background:rgba(100,181,246,.15);color:#64b5f6">âڈ¸ موقوف</span>',done:'<span class="badge badge-green">مكتمل</span>'};
 const prioBadge={high:'<span class="badge badge-red">عالية</span>',med:'<span class="badge badge-yellow">متوسطة</span>',low:'<span class="badge badge-green">منخفضة</span>'};
 const tcol={work:'var(--accent)',meeting:'var(--accent4)',learning:'var(--accent3)',break:'var(--accent2)',admin:'var(--text2)'};
 const tname={work:'شغل تصميم',meeting:'اجتماع',learning:'تعلم',break:'استراحة',admin:'إدارة'};
@@ -1320,7 +1427,7 @@ const tname={work:'شغل تصميم',meeting:'اجتماع',learning:'تعلم'
 function fillDD(selId){
   const sel=document.getElementById(selId);if(!sel)return;
   const cur=sel.value;
-  sel.innerHTML='<option value="">— اختر عميل —</option>';
+  sel.innerHTML='<option value="">? اختر عميل ?</option>';
   S.clients.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=c.name+' ('+c.type+')';sel.appendChild(o);});
   sel.value=cur;
 }
@@ -1353,7 +1460,7 @@ function switchSettingsTab(tab) {
   }
 }
 
-// ── Expense Categories ──
+// â”€â”€ Expense Categories â”€â”€
 function renderExpenseCats() {
   const el = document.getElementById('expense-cats-list');
   if(!el) return;
@@ -1361,7 +1468,7 @@ function renderExpenseCats() {
   el.innerHTML = cats.map((c,i) => `
     <div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px">
       <span>${c.icon||'<i class="fa-solid fa-thumbtack"></i>'}</span><span style="font-weight:600">${c.name}</span>
-      <button onclick="removeExpenseCat(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;line-height:1">×</button>
+      <button onclick="removeExpenseCat(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;line-height:1">أ—</button>
     </div>`).join('');
   // Update the expense dropdown
   const sel = document.getElementById('ex-cat');
@@ -1377,8 +1484,8 @@ function getDefaultExpenseCats() {
     {icon:'<i class="fa-solid fa-laptop"></i>',name:'برامج واشتراكات'},{icon:'<i class="fa-solid fa-desktop"></i>',name:'معدات وأجهزة'},
     {icon:'<i class="fa-solid fa-bullhorn"></i>',name:'تسويق'},{icon:'<i class="fa-solid fa-books"></i>',name:'تعليم وكورسات'},
     {icon:'<i class="fa-solid fa-wrench"></i>',name:'صيانة أجهزة'},{icon:'<i class="fa-solid fa-globe"></i>',name:'إنترنت'},
-    {icon:'<i class="fa-solid fa-dollar-sign"></i>',name:'سحب شخصي'},{icon:'☕',name:'كافيه'},
-    {icon:'🍽',name:'مطاعم'},{icon:'⛽',name:'بنزين'},{icon:'<i class="fa-solid fa-thumbtack"></i>',name:'أخرى'}
+    {icon:'<i class="fa-solid fa-dollar-sign"></i>',name:'سحب شخصي'},{icon:'âک•',name:'كافيه'},
+    {icon:'ًںچ½',name:'مطاعم'},{icon:'â›½',name:'بنزين'},{icon:'<i class="fa-solid fa-thumbtack"></i>',name:'أخرى'}
   ];
 }
 
@@ -1443,8 +1550,8 @@ function loadSettings(){
   const wt = s.waTemplates||{};
   const defaults = {
     invoice: `مرحباً {{اسم_العميل}} <i class="fa-solid fa-hand-wave"></i>\nتم إصدار فاتورة رقم {{رقم_الفاتورة}} بقيمة {{قيمة_الفاتورة}}\nموعد السداد: {{تاريخ_الاستحقاق}}\n\nشكراً لتعاملك مع {{اسم_العمل}} <i class="fa-solid fa-hands"></i>`,
-    task:    `مرحباً {{اسم_العميل}} <i class="fa-solid fa-hand-wave"></i>\nتم استلام طلب «{{اسم_المشروع}}» بنجاح <i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>\nسنبدأ العمل فوراً وسنتواصل معك قريباً.\n\n{{اسم_العمل}}`,
-    done:    `مرحباً {{اسم_العميل}} <i class="fa-solid fa-champagne-glasses"></i>\nتم الانتهاء من «{{اسم_المشروع}}»!\nرابط الاستلام: {{رابط_المشروع}}\n\nفي انتظار ملاحظاتك <i class="fa-solid fa-hands"></i>\n{{اسم_العمل}}`,
+    task:    `مرحباً {{اسم_العميل}} <i class="fa-solid fa-hand-wave"></i>\nتم استلام طلب آ«{{اسم_المشروع}}آ» بنجاح <i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>\nط³ظ†بدأ العمل فوراً وسنتواصل معك قريباً.\n\n{{اسم_العمل}}`,
+    done:    `مرحباً {{اسم_العميل}} <i class="fa-solid fa-champagne-glasses"></i>\nتم الانتهاء من آ«{{اسم_المشروع}}آ»!\nط±ابط الاستلام: {{رابط_المشروع}}\n\nفي انتظار ملاحظاتك <i class="fa-solid fa-hands"></i>\n{{اسم_العمل}}`,
     remind:  `مرحباً {{اسم_العميل}}\nتذكير بفاتورة رقم {{رقم_الفاتورة}} بقيمة {{قيمة_الفاتورة}}\nموعد السداد كان {{تاريخ_الاستحقاق}}\n\nنرجو السداد في أقرب وقت <i class="fa-solid fa-hands"></i>`,
   };
   ['invoice','task','done','remind'].forEach(k=>{
@@ -1461,7 +1568,7 @@ function loadSettings(){
     <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(100,181,246,.12);border:1px solid rgba(100,181,246,.25);color:#64b5f6;border-radius:20px;padding:5px 10px 5px 12px;font-size:12px;font-weight:600">
       ${t}
       <button onclick="removeTaskTypeFromSettings(${i})" style="background:none;border:none;color:rgba(100,181,246,.6);cursor:pointer;font-size:12px;padding:0;line-height:1"><i class="fa-solid fa-xmark"></i></button>
-    </div>`).join('')||'<div style="font-size:12px;color:var(--text3)">لا أنواع محددة — أضف أنواع المهام اللي بتشتغل بيها</div>';
+    </div>`).join('')||'<div style="font-size:12px;color:var(--text3)">لا أنواع محددة ? أضف أنواع المهام اللي بتشتغل بيها</div>';
 }
 function addTaskTypeFromSettings(){
   const inp=document.getElementById('settings-new-task-type');
@@ -1484,7 +1591,7 @@ function saveSettings(){
   S.settings = Object.assign({}, S.settings, {
     name:v('set-name'), phone:v('set-phone'), email:v('set-email'),
     address:v('set-address'), terms:v('set-terms'),
-    currency:(document.getElementById('set-currency')||{}).value||'ج.م',
+    currency:(S.settings && S.settings.base_currency) || (document.getElementById('set-currency')||{}).value || 'ج.م',
     username:(document.getElementById('set-username')||{}).value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'')||'',
     logo:S.settings?.logo||'', policies:S.settings?.policies||[],
     socials:S.settings?.socials||[], waTemplates:S.settings?.waTemplates||{},
@@ -1492,12 +1599,12 @@ function saveSettings(){
     paymentAccounts:S.settings?.paymentAccounts||[],
   });
   _syncStudioLogoToConfig();
-  lsSave(); cloudSaveNow(S); toast('✅ تم حفظ الإعدادات');
+  lsSave(); cloudSaveNow(S); toast('? تم حفظ الإعدادات');
 }
 
 async function forceCloudReload(){
   if(!_supaUserId){ toast('<i class="fa-solid fa-triangle-exclamation"></i> غير مسجل دخول'); return; }
-  showSyncIndicator('<i class="fa-solid fa-cloud"></i>️ جاري التحميل...', 'var(--accent)');
+  showSyncIndicator('<i class="fa-solid fa-cloud"></i>ï¸ڈ جاري التحميل...', 'var(--accent)');
   try {
     const cloudData = await cloudLoad();
     if(cloudData){
@@ -1506,7 +1613,7 @@ async function forceCloudReload(){
       renderAll();
       applyPlatformConfig();
       showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم التحديث من السحابة', '#4fd1a5');
-      toast('✅ تم تحميل البيانات من السحابة');
+      toast('? تم تحميل البيانات من السحابة');
       _updateCloudDiag();
     } else {
       showSyncIndicator('<i class="fa-solid fa-triangle-exclamation"></i> لا بيانات في السحابة', '#f7c948');
@@ -1532,13 +1639,13 @@ async function forcePushToCloud(){
   } else {
     if(!confirm(`رفع البيانات المحلية للسحابة؟\n(${tasks} مهمة، ${clients} عميل، ${invoices} فاتورة)`)) return;
   }
-  showSyncIndicator('⬆ جاري الرفع...', 'var(--accent)');
+  showSyncIndicator('â¬† جاري الرفع...', 'var(--accent)');
   try {
     const payload = { user_id: _supaUserId, data: JSON.stringify(S), updated_at: new Date().toISOString() };
     const { error } = await supa.from('studio_data').upsert(payload, { onConflict: 'user_id' });
     if(error) throw error;
     showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم الرفع', '#4fd1a5');
-    toast('✅ تم رفع البيانات للسحابة بنجاح');
+    toast('? تم رفع البيانات للسحابة بنجاح');
     _updateCloudDiag();
   } catch(e) {
     showSyncIndicator('<i class="fa-solid fa-circle-xmark"></i> فشل الرفع', '#f76f7c');
@@ -1552,7 +1659,7 @@ async function _updateCloudDiag(){
   const uid = _supaUserId || '(غير مسجل)';
   const tasks = S.tasks?.length||0, clients = S.clients?.length||0;
   const invoices = S.invoices?.length||0, trans = S.transactions?.length||0;
-  let cloudInfo = '⏳ جاري الفحص...';
+  let cloudInfo = 'âڈ³ جاري الفحص...';
   try {
     const { data, error } = await supa.from('studio_data')
       .select('updated_at, data')
@@ -1563,16 +1670,16 @@ async function _updateCloudDiag(){
     else {
       const size = (JSON.stringify(data.data).length/1024).toFixed(1);
       const updated = new Date(data.updated_at).toLocaleString('ar-EG');
-      cloudInfo = `<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> موجود في السحابة — ${size} KB — آخر تحديث: ${updated}`;
+      cloudInfo = `<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> موجود في السحابة ? ${size} KB ? آخر تحديث: ${updated}`;
     }
   } catch(e) { cloudInfo = '<i class="fa-solid fa-circle-xmark"></i> ' + e.message; }
 
   el.innerHTML = `
-    <div>🆔 <b>User ID:</b> <span style="font-family:monospace;font-size:11px;color:var(--accent)">${uid}</span></div>
-    <div><i class="fa-solid fa-cloud"></i>️ <b>السحابة:</b> ${cloudInfo}</div>
-    <div><i class="fa-solid fa-floppy-disk"></i> <b>محلياً:</b> ${tasks} مهمة · ${clients} عميل · ${invoices} فاتورة · ${trans} معاملة</div>
+    <div>ًں†” <b>User ID:</b> <span style="font-family:monospace;font-size:11px;color:var(--accent)">${uid}</span></div>
+    <div><i class="fa-solid fa-cloud"></i>ï¸ڈ <b>السحابة:</b> ${cloudInfo}</div>
+    <div><i class="fa-solid fa-floppy-disk"></i> <b>محلياً:</b> ${tasks} مهمة آ· ${clients} عميل آ· ${invoices} فاتورة آ· ${trans} معاملة</div>
     <div style="margin-top:8px;font-size:11px;color:var(--text3)">
-      إذا كانت البيانات موجودة محلياً وفارغة في السحابة → اضغط ⬆ رفع للسحابة
+      إذا كانت البيانات موجودة محلياً وفارغة في السحابة ? اضغط â¬† رفع للسحابة
     </div>`;
 }
 
@@ -1584,7 +1691,7 @@ loadSettings = function(){
   if(_supaUserId) setTimeout(_updateCloudDiag, 500);
 };
 
-/* ── WhatsApp Templates ── */
+/* â”€â”€ WhatsApp Templates â”€â”€ */
 let waActiveTpl = 'wa-tpl-invoice';
 
 function insertWaVar(txt){
@@ -1608,7 +1715,7 @@ function saveWaTemplates(){
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ قوالب واتساب');
 }
 
-/* ── WhatsApp Modal ── */
+/* â”€â”€ WhatsApp Modal â”€â”€ */
 // waCtx: بيانات السياق الحالي (فاتورة أو مهمة)
 let waCtx = {};
 
@@ -1654,8 +1761,8 @@ function openWaModal(tplType, invIdOrNull, taskIdOrNull){
   };
 
   // عرض المستلم
-  document.getElementById('wa-recip-name').textContent     = clientName||'—';
-  document.getElementById('wa-recip-phone-disp').innerHTML = clientPhone ? '<i class="fa-solid fa-phone"></i> '+clientPhone : 'لا يوجد رقم — أدخله يدوياً';
+  document.getElementById('wa-recip-name').textContent     = clientName||'?';
+  document.getElementById('wa-recip-phone-disp').innerHTML = clientPhone ? '<i class="fa-solid fa-phone"></i> '+clientPhone : 'لا يوجد رقم ? أدخله يدوياً';
   // تنظيف الرقم (أرقام فقط)
   document.getElementById('wa-phone-input').value = clientPhone.replace(/[^\d]/g,'');
 
@@ -1675,8 +1782,8 @@ function loadWaTpl(key){
   const wt = S.settings?.waTemplates||{};
   const defaults = {
     invoice: `مرحباً {{اسم_العميل}} <i class="fa-solid fa-hand-wave"></i>\nتم إصدار فاتورة رقم {{رقم_الفاتورة}} بقيمة {{قيمة_الفاتورة}}\nموعد السداد: {{تاريخ_الاستحقاق}}\n\nشكراً لتعاملك مع {{اسم_العمل}} <i class="fa-solid fa-hands"></i>`,
-    task:    `مرحباً {{اسم_العميل}} <i class="fa-solid fa-hand-wave"></i>\nتم استلام طلب «{{اسم_المشروع}}» بنجاح <i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>\nسنبدأ العمل فوراً وسنتواصل معك قريباً.\n\n{{اسم_العمل}}`,
-    done:    `مرحباً {{اسم_العميل}} <i class="fa-solid fa-champagne-glasses"></i>\nتم الانتهاء من «{{اسم_المشروع}}»!\nرابط الاستلام: {{رابط_المشروع}}\n\nفي انتظار ملاحظاتك <i class="fa-solid fa-hands"></i>\n{{اسم_العمل}}`,
+    task:    `مرحباً {{اسم_العميل}} <i class="fa-solid fa-hand-wave"></i>\nتم استلام طلب آ«{{اسم_المشروع}}آ» بنجاح <i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>\nط³ظ†بدأ العمل فوراً وسنتواصل معك قريباً.\n\n{{اسم_العمل}}`,
+    done:    `مرحباً {{اسم_العميل}} <i class="fa-solid fa-champagne-glasses"></i>\nتم الانتهاء من آ«{{اسم_المشروع}}آ»!\nط±ابط الاستلام: {{رابط_المشروع}}\n\nفي انتظار ملاحظاتك <i class="fa-solid fa-hands"></i>\n{{اسم_العمل}}`,
     remind:  `مرحباً {{اسم_العميل}}\nتذكير بفاتورة رقم {{رقم_الفاتورة}} بقيمة {{قيمة_الفاتورة}}\nموعد السداد كان {{تاريخ_الاستحقاق}}\n\nنرجو السداد في أقرب وقت <i class="fa-solid fa-hands"></i>`,
   };
   const raw = wt[key] || defaults[key] || '';
@@ -1696,7 +1803,7 @@ function loadWaTpl(key){
 
 function fillWaVars(template, vars){
   let out = template;
-  Object.entries(vars).forEach(([k,v])=>{ out = out.split(k).join(v||'—'); });
+  Object.entries(vars).forEach(([k,v])=>{ out = out.split(k).join(v||'?'); });
   return out;
 }
 
@@ -1733,7 +1840,7 @@ function uploadLogo(input){
   reader.readAsDataURL(f);
 }
 
-// ── مزامنة لوجو الستوديو مع platform_config ── (معطّلة - اللوجو للمتجر والفاتورة فقط)
+// â”€â”€ مزامنة لوجو الستوديو مع platform_config â”€â”€ (معطّلة - اللوجو للمتجر والفاتورة فقط)
 function _syncStudioLogoToConfig(){
   // لا نحدّث السايدبار ولا platform_config من لوجو المستخدم
   // اللوجو في S.settings.logo للفاتورة فقط
@@ -1742,7 +1849,7 @@ function _syncStudioLogoToConfig(){
 function removeLogo(){S.settings.logo='';lsSave();cloudSaveNow(S);const lp=document.getElementById('logo-preview');if(lp)lp.innerHTML='<span style="color:var(--text3);font-size:13px">لا يوجد لوجو</span>';}
 function clearAll(){if(confirm('سيتم مسح جميع البيانات! هل أنت متأكد؟')){const s=S.settings;S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],settings:s};lsSave();renderAll();}}
 
-// ═══ استعادة البيانات من النسخة الاحتياطية ═══
+// â•گâ•گâ•گ استعادة البيانات من النسخة الاحتياطية â•گâ•گâ•گ
 async function recoverDataFromBackup() {
   const uid = _supaUserId;
   if(!uid) { showMiniNotif('<i class="fa-solid fa-triangle-exclamation"></i> يجب تسجيل الدخول أولاً'); return; }
@@ -1781,13 +1888,13 @@ async function recoverDataFromBackup() {
 
   const confirm_msg = `تم إيجاد بيانات في "${bestLabel}":
 ` +
-    `• ${bestData.tasks?.length||0} مهمة
+    `? ${bestData.tasks?.length||0} مهمة
 ` +
-    `• ${bestData.clients?.length||0} عميل
+    `? ${bestData.clients?.length||0} عميل
 ` +
-    `• ${bestData.invoices?.length||0} فاتورة
+    `? ${bestData.invoices?.length||0} فاتورة
 ` +
-    `• ${bestData.transactions?.length||0} معاملة مالية
+    `? ${bestData.transactions?.length||0} معاملة مالية
 
 ` +
     `هل تريد استعادة هذه البيانات؟`;
@@ -1806,7 +1913,7 @@ async function recoverDataFromBackup() {
 // ============================================================
 function toggleDeposit(){document.getElementById('deposit-row').style.display=document.getElementById('t-pay').value==='deposit'?'block':'none';}
 
-/* ── نوع العمل في المهمة (فقط يخفي/يظهر قيمة المشروع) ── */
+/* â”€â”€ نوع العمل في المهمة (فقط يخفي/يظهر قيمة المشروع) â”€â”€ */
 // ============================================================
 // THEME / LANGUAGE / DARK MODE
 // ============================================================
@@ -1823,7 +1930,7 @@ function setDisplayMode(mode) {
   document.documentElement.classList.toggle('light-mode', mode === 'light');
   localStorage.setItem('studioDisplayMode', mode);
 
-  // ── Fix: Update inline CSS variables + background that anti-flash script sets ──
+  // â”€â”€ Fix: Update inline CSS variables + background that anti-flash script sets â”€â”€
   if(mode === 'light') {
     document.documentElement.style.setProperty('--bg',      '#f0f2f8');
     document.documentElement.style.setProperty('--surface', '#ffffff');
@@ -1890,7 +1997,7 @@ function setThemeColor(color) {
   }
 }
 
-// ═══ TRANSLATION SYSTEM (disabled) ═══
+// â•گâ•گâ•گ TRANSLATION SYSTEM (disabled) â•گâ•گâ•گ
 let _currentLang = 'ar';
 function t(arabicText) { return arabicText; }
 
@@ -1924,13 +2031,13 @@ function onTaskClientChange(clientName) {
 }
 
 // ============================================================
-// INCOME MODAL - CLIENT → PROJECT FILTER
+// INCOME MODAL - CLIENT ? PROJECT FILTER
 // ============================================================
 function onIncomeClientChange(clientName) {
   // Fill tasks dropdown
   const taskSel = document.getElementById('in-linked-task');
   if(taskSel) {
-    taskSel.innerHTML = '<option value="">— لا ربط —</option>';
+    taskSel.innerHTML = '<option value="">? لا ربط ?</option>';
     if(clientName) {
       const clientTasks = S.tasks.filter(t => t.client === clientName);
       const statusLabel = {new:'جديد', progress:'جاري', review:'مراجعة', done:'مكتمل'};
@@ -1945,7 +2052,7 @@ function onIncomeClientChange(clientName) {
   // Fill projects dropdown
   const projSel = document.getElementById('in-linked-project');
   if(projSel) {
-    projSel.innerHTML = '<option value="">— لا يوجد مشروع —</option>';
+    projSel.innerHTML = '<option value="">? لا يوجد مشروع ?</option>';
     if(clientName) {
       const client = (S.clients||[]).find(c => c.name === clientName);
       const clientProjects = (S.projects||[]).filter(p =>
@@ -1955,7 +2062,7 @@ function onIncomeClientChange(clientName) {
       clientProjects.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id;
-        opt.textContent = p.name + (p.status ? ' · ' + ({active:'نشط',hold:'معلق',review:'مراجعة',done:'مكتمل'}[p.status]||p.status) : '');
+        opt.textContent = p.name + (p.status ? ' آ· ' + ({active:'نشط',hold:'معلق',review:'مراجعة',done:'مكتمل'}[p.status]||p.status) : '');
         projSel.appendChild(opt);
       });
       // Also add all projects as fallback
@@ -1983,7 +2090,7 @@ function onIncomeClientChange(clientName) {
 function fillIncomeClientDropdown() {
   const sel = document.getElementById('in-source');
   if(!sel) return;
-  sel.innerHTML = '<option value="">— اختر عميل أو اكتب المصدر —</option>';
+  sel.innerHTML = '<option value="">? اختر عميل أو اكتب المصدر ?</option>';
   S.clients.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.name;
@@ -2006,7 +2113,7 @@ function toggleJobType(){
   }
 }
 
-/* ── Salary reminders on dashboard ── */
+/* â”€â”€ Salary reminders on dashboard â”€â”€ */
 function renderSalaryReminders(){
   const wrap = document.getElementById('dash-salary-reminders');
   if(!wrap) return;
@@ -2034,14 +2141,14 @@ function renderSalaryReminders(){
       <div style="flex:1">
         <div style="font-weight:700;font-size:14px">${c.name}</div>
         <div style="font-size:12px;color:var(--text2);margin-top:2px">
-          ${wtLabel} · راتب <b style="color:var(--accent3)">${c.salary.toLocaleString()} ج</b>
+          ${wtLabel} آ· راتب <b style="color:var(--accent3)">${c.salary.toLocaleString()} ج</b>
           ${isOverdue
-            ? `<span style="color:#ff6b6b;font-weight:700;margin-right:8px"><i class="fa-solid fa-circle-exclamation"></i> موعد الراتب يوم ${salDay}${curD>salDay?' — تجاوز الموعد!':' — اليوم!'}</span>`
+            ? `<span style="color:#ff6b6b;font-weight:700;margin-right:8px"><i class="fa-solid fa-circle-exclamation"></i> موعد الراتب يوم ${salDay}${curD>salDay?' ? تجاوز الموعد!':' ? اليوم!'}</span>`
             : `<span style="color:var(--accent2);margin-right:8px"><i class="fa-solid fa-clock"></i> ينزل بعد ${daysLeft} يوم (يوم ${salDay})</span>`
           }
         </div>
         ${c.salaryLastPaidDate
-          ? `<div style="font-size:10px;color:var(--text3);margin-top:3px"><i class="fa-solid fa-calendar-check" style="color:var(--accent3)"></i> آخر قبض: ${c.salaryLastPaidDate}${c.salaryHistory?` · ${c.salaryHistory.length} مرة إجمالي`:''}</div>`
+          ? `<div style="font-size:10px;color:var(--text3);margin-top:3px"><i class="fa-solid fa-calendar-check" style="color:var(--accent3)"></i> آخر قبض: ${c.salaryLastPaidDate}${c.salaryHistory?` آ· ${c.salaryHistory.length} مرة إجمالي`:''}</div>`
           : `<div style="font-size:10px;color:var(--accent4);margin-top:3px"><i class="fa-solid fa-circle-info"></i> لم يتم القبض بعد</div>`
         }
       </div>
@@ -2065,7 +2172,7 @@ function markClientSalaryPaid(clientId){
   c.salaryLastPaid = yearMonth;
   c.salaryLastPaidDate = now.toISOString().split('T')[0];
   // Record salary as income transaction
-  const income = { id:Date.now(), type:'income', desc:`راتب — ${c.name}`, source:c.name, client:c.name, amount:c.salary||0, date:now.toISOString().split('T')[0], category:'salary', isSalary:true };
+  const income = { id:Date.now(), type:'income', desc:`راتب ? ${c.name}`, source:c.name, client:c.name, amount:c.salary||0, date:now.toISOString().split('T')[0], category:'salary', isSalary:true };
   S.transactions.push(income);
   // Track salary history on client record
   if(!c.salaryHistory) c.salaryHistory = [];
@@ -2082,7 +2189,7 @@ function snoozeClientSalary(clientId){
   showMiniNotif(`<i class="fa-solid fa-alarm-clock"></i> تم تأجيل موعد الراتب ليوم ${c.salaryDay}`);
 }
 
-/* ── Task Filters ── */
+/* â”€â”€ Task Filters â”€â”€ */
 let taskFilterState = {status:'',priority:'',jobtype:'',client:'',month:'',year:'',search:''};
 
 function populateTaskFilterDropdowns(){
@@ -2149,7 +2256,7 @@ function filterTasks(tasks){
   });
 }
 
-/* ── Client Filters ── */
+/* â”€â”€ Client Filters â”€â”€ */
 function setCFType(val, btn){
   document.querySelectorAll('.cf-type-btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -2189,13 +2296,13 @@ function filterClientProfileTasks(clientName){
   });
 }
 
-/* ── Quill editor instance ── */
+/* â”€â”€ Quill editor instance â”€â”€ */
 let taskQuill = null;
 function initTaskQuill(){
   if(taskQuill) return; // already initialized
   taskQuill = new Quill('#t-brief-editor', {
     theme: 'snow',
-    placeholder: 'اكتب تفاصيل المهمة هنا — يمكنك إضافة روابط، قوائم، وتنسيق النص...',
+    placeholder: 'اكتب تفاصيل المهمة هنا ? يمكنك إضافة روابء قوائم، وتنسيق النص...',
     modules: {
       toolbar: [
         ['bold','italic','underline'],
@@ -2208,7 +2315,7 @@ function initTaskQuill(){
   });
 }
 
-/* ── Task Detail Modal ── */
+/* â”€â”€ Task Detail Modal â”€â”€ */
 function openTaskDetail(id){
   const t = S.tasks.find(x => x.id === id);
   if(!t) return;
@@ -2260,7 +2367,7 @@ function openTaskDetail(id){
       <div>
         <div class="td-title">${t.title}</div>
         <div class="td-meta">
-          <span style="color:${statusColor[t.status]};font-weight:700;font-size:12px">● ${statusLabel[t.status]||t.status}</span>
+          <span style="color:${statusColor[t.status]};font-weight:700;font-size:12px">â—ڈ ${statusLabel[t.status]||t.status}</span>
           ${t.client?`<span style="background:rgba(124,111,247,.15);color:var(--accent);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">${t.client}</span>`:''}
           <span style="background:var(--surface2);border:1px solid var(--border);padding:2px 10px;border-radius:20px;font-size:11px">${prioLabel[t.priority]||t.priority}</span>
           ${t.taskType?`<span class="task-type-pill">${t.taskType}</span>`:''}
@@ -2275,7 +2382,7 @@ function openTaskDetail(id){
       ${t.workerType==='team'&&t.workerMember?`<div class="td-info-cell"><div class="lbl"><i class="fa-solid fa-user"></i> المنفذ</div><div class="val" style="color:#64b5f6">${t.workerMember}</div></div>`:''}
       ${t.workerType==='team'&&t.workerAmount?`<div class="td-info-cell"><div class="lbl"><i class="fa-solid fa-coins"></i> مستحق المنفذ</div><div class="val" style="color:var(--accent2)">${t.workerAmount.toLocaleString()} ج</div></div>`:''}
       ${t.workerType==='team'&&t.value&&t.workerAmount?`<div class="td-info-cell"><div class="lbl"><i class="fa-solid fa-trophy"></i> ربحي الصافي</div><div class="val" style="color:var(--accent3)">${(t.value-t.workerAmount).toLocaleString()} ج</div></div>`:''}
-      ${t.paymentCollected?`<div class="td-info-cell"><div class="lbl">تحصيل المبلغ</div><div class="val" style="color:var(--accent3)"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم التحصيل</div></div>`:(t.done&&t.value?`<div class="td-info-cell"><div class="lbl">تحصيل المبلغ</div><div class="val" style="color:var(--accent4)">⏳ لم يتم بعد</div></div>`:'')}
+      ${t.paymentCollected?`<div class="td-info-cell"><div class="lbl">تحصيل المبلغ</div><div class="val" style="color:var(--accent3)"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم التحصيل</div></div>`:(t.done&&t.value?`<div class="td-info-cell"><div class="lbl">تحصيل المبلغ</div><div class="val" style="color:var(--accent4)">âڈ³ لم يتم بعد</div></div>`:'')}
       <div class="td-info-cell"><div class="lbl">حالة الدفع</div><div class="val" style="font-size:12px">${payLabel[t.pay||'none']}</div></div>
       ${t.orderDate?`<div class="td-info-cell"><div class="lbl">تاريخ الطلب</div><div class="val" style="font-family:var(--mono)">${_friendlyDate(t.orderDate)}</div></div>`:''}
       ${t.deadline?`<div class="td-info-cell"><div class="lbl">تاريخ التسليم</div><div class="val" style="font-family:var(--mono);color:var(--accent4)">${_friendlyDate(t.deadline)}</div></div>`:''}
@@ -2286,7 +2393,7 @@ function openTaskDetail(id){
     ${notesHTML}
     ${invHTML}
 
-    <!-- ✅ رابط تسليم المشروع — قابل للتعديل -->
+    <!-- ? رابط تسليم المشروع ? قابل للتعديل -->
     <div style="margin:0 0 16px;padding:14px 16px;background:var(--surface2);border-radius:var(--r2);border:1px solid var(--border)">
       <div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px">
         <i class="fa-solid fa-link" style="color:var(--accent3)"></i> رابط تسليم المشروع
@@ -2328,7 +2435,7 @@ function openTaskDetail(id){
     <div style="display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);flex-wrap:wrap">
       ${!t.done
         ? `<button class="btn btn-success" onclick="closeM('modal-task-detail');completeTask(${t.id})"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> إكمال المشروع</button>`
-        : `<button class="btn btn-ghost btn-sm" onclick="closeM('modal-task-detail');completeTask(${t.id})">↩ إلغاء الإكمال</button>`
+        : `<button class="btn btn-ghost btn-sm" onclick="closeM('modal-task-detail');completeTask(${t.id})">â†© إلغاء الإكمال</button>`
       }
       ${!t.done ? `
       <select id="td-status-sel" onchange="if(this.value){changeTaskStatus(${t.id},this.value);closeM('modal-task-detail')}" style="height:36px;padding:0 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:12px;cursor:pointer" title="تغيير الحالة">
@@ -2338,17 +2445,17 @@ function openTaskDetail(id){
           const custom=S.customStatuses||[];
           const defaults=[
             {id:'new',label:'<i class="fa-solid fa-clipboard-list"></i> جديد'},{id:'progress',label:'<i class="fa-solid fa-bolt"></i> قيد التنفيذ'},
-            {id:'review',label:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة'},{id:'paused',label:'⏸ موقوف مؤقتاً'}
+            {id:'review',label:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة'},{id:'paused',label:'âڈ¸ موقوف مؤقتاً'}
           ];
           const defOpts=defaults.filter(x=>!hidden.includes(x.id)&&x.id!==t.status).map(x=>`<option value="${x.id}">${x.label}</option>`).join('');
           const cusOpts=custom.filter(x=>x.id!==t.status).map(x=>`<option value="${x.id}">${x.icon||''} ${x.label}</option>`).join('');
           return defOpts+cusOpts+'<option value="done"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تحديد كمكتملة</option>';
         })()}
       </select>` : `
-      <button onclick="changeTaskStatus(${t.id},'progress');closeM('modal-task-detail')" class="btn btn-ghost btn-sm">↺ إعادة فتح المهمة</button>`}
+      <button onclick="changeTaskStatus(${t.id},'progress');closeM('modal-task-detail')" class="btn btn-ghost btn-sm">â†؛ إعادة فتح المهمة</button>`}
       <button class="btn btn-ghost" onclick="closeM('modal-task-detail');openInvoiceFromTask(${JSON.stringify(t).replace(/"/g,'&quot;')})"><i class="fa-solid fa-square"></i> إصدار فاتورة</button>
       ${(()=>{
-        // زرار لينك متابعة التاسك — بس لو في عميل مرتبط بيه
+        // زرار لينك متابعة التاسك ? بس لو في عميل مرتبط بيه
         var cl = (S.clients||[]).find(function(c){ return c.name===t.client; });
         if(!cl) return '';
         var _portal = (S.client_portals||[]).find(function(p){ return String(p.task_id)===String(t.id); });
@@ -2448,7 +2555,7 @@ function saveTask(){
   // تجاوز validation العميل لو المهمة شخصية
   var _isPersonalTask = (typeof _currentTaskKind !== 'undefined' && _currentTaskKind === 'personal');
   if(!client && !_isPersonalTask)return alert('يجب اختيار عميل\n\nلو مش موجود، استخدم زر + بجانب القائمة لإضافة عميل جديد');
-  // لو شخصية وما فيش عميل — نحط عميل وهمي
+  // لو شخصية وما فيش عميل ? نحط عميل وهمي
   if(_isPersonalTask && !client){
     if(typeof S !== 'undefined'){
       if(!S.clients) S.clients = [];
@@ -2470,6 +2577,11 @@ function saveTask(){
   const jobType = v('t-jobtype')||'freelance';
   const isFulltime = jobType==='fulltime';
   const taskType = document.getElementById('t-tasktype')?.value||'';
+  const _taskCurrencyEl = document.getElementById('t-currency');
+  const _taskCurrencyCode = _taskCurrencyEl?.value || S.settings?.base_currency_code || S.settings?.currency || 'EGP';
+  const _taskCurrencyMeta = (window.OrdoData && OrdoData.getCurrencyMeta)
+    ? OrdoData.getCurrencyMeta(_taskCurrencyCode)
+    : {code:_taskCurrencyCode, symbol:S.settings?.base_currency || S.settings?.currency || 'ج.م'};
   // collect steps from DOM
   const steps = collectTaskSteps();
   const workerType = document.getElementById('t-worker-type')?.value||'me';
@@ -2482,6 +2594,9 @@ function saveTask(){
     pay: isFulltime ? 'none' : v('t-pay'),
     deposit:+v('t-deposit')||0,
     notes:v('t-notes'), brief:briefContent, done:false,
+    currency_code: _taskCurrencyMeta.code || _taskCurrencyCode,
+    currency_symbol: _taskCurrencyMeta.symbol || S.settings?.currency || 'ج.م',
+    currency: _taskCurrencyMeta.code || _taskCurrencyCode,
     jobType, taskType, steps,
     workerType,
     workerMember: isTeam ? (document.getElementById('t-worker-member')?.value||null) : null,
@@ -2529,7 +2644,7 @@ function saveTask(){
         const ownerName = (S.settings&&S.settings.name)||'مشرف';
         ud._pending_notifications.push({
           id: Date.now(), title: '<i class="fa-solid fa-clipboard-list"></i> تم تعيين مهمة لك!',
-          body: '"'+d.title+'" — من '+ownerName+(d.deadline?' · الموعد: '+d.deadline:''),
+          body: '"'+d.title+'" ? من '+ownerName+(d.deadline?' آ· الموعد: '+d.deadline:''),
           type: 'task', created_at: new Date().toISOString(), read: false
         });
         await supa.from('studio_data').update({data:JSON.stringify(ud),updated_at:new Date().toISOString()}).eq('user_id',targetUserId);
@@ -2589,14 +2704,14 @@ function saveTask(){
   }
 }
 
-// ── موديال تسجيل الدفعة كدخل ──
+// â”€â”€ موديال تسجيل الدفعة كدخل â”€â”€
 function _showPaymentIncomePrompt(opts){
   var ex=document.getElementById('_pay-income-modal'); if(ex) ex.remove();
   var ov=document.createElement('div');
   ov.id='_pay-income-modal';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px';
   ov.innerHTML='<div style="background:var(--surface,#1e1e2e);color:var(--text1,#fff);width:min(400px,92vw);border-radius:20px;padding:28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)">'
-    +'<div style="font-size:40px;margin-bottom:12px">💰</div>'
+    +'<div style="font-size:40px;margin-bottom:12px">ًں’°</div>'
     +'<div style="font-size:17px;font-weight:900;margin-bottom:6px">تسجيل '+escapeHtml(opts.label)+' كدخل؟</div>'
     +'<div style="font-size:13px;color:var(--text3,#888);margin-bottom:6px">'+escapeHtml(opts.desc)+'</div>'
     +'<div style="font-size:28px;font-weight:900;color:var(--accent3,#4fd1a5);margin:14px 0">'+Number(opts.amount).toLocaleString()+' ج</div>'
@@ -2624,7 +2739,7 @@ function _showPaymentIncomePrompt(opts){
     if(!S.transactions) S.transactions=[];
     S.transactions.push(tx);
     lsSave(); cloudSave(S);
-    toast('<i class="fa-solid fa-coins" style="color:var(--accent3)"></i> تم تسجيل '+opts.label+' كدخل — '+Number(opts.amount).toLocaleString()+' ج');
+    toast('<i class="fa-solid fa-coins" style="color:var(--accent3)"></i> تم تسجيل '+opts.label+' كدخل ? '+Number(opts.amount).toLocaleString()+' ج');
     if(typeof renderFinance==='function') renderFinance();
     if(opts.onSkip) opts.onSkip();
   };
@@ -2637,7 +2752,7 @@ function _showPaymentIncomePrompt(opts){
 /* فتح فاتورة جديدة مبنية على مهمة */
 function openInvoiceFromTask(task){
   fillDD('inv-client');
-  document.getElementById('inv-modal-ttl').innerHTML='<i class="fa-solid fa-square"></i> فاتورة — '+task.title;
+  document.getElementById('inv-modal-ttl').innerHTML='<i class="fa-solid fa-square"></i> فاتورة ? '+task.title;
   document.getElementById('inv-eid').value='';
   document.getElementById('inv-client').value=task.client;
   document.getElementById('inv-num').value='INV-'+(S.invoices.length+1).toString().padStart(3,'0');
@@ -2647,7 +2762,7 @@ function openInvoiceFromTask(task){
   document.getElementById('inv-notes').value=S.settings?.terms||'';
   document.getElementById('inv-deposit').value=task.deposit||0;
   // بيانات المهمة كبند وحيد
-  invItems=[{desc:task.title+(task.notes?' — '+task.notes.slice(0,60):''),qty:1,price:task.value||0}];
+  invItems=[{desc:task.title+(task.notes?' ? '+task.notes.slice(0,60):''),qty:1,price:task.value||0}];
   invPolicies=(S.settings?.policies||[]).map(p=>({...p}));
   const puEl=document.getElementById('inv-project-url');if(puEl)puEl.value='';
   setTimeout(()=>{
@@ -2675,7 +2790,7 @@ function completeTask(id){
 
   // use custom modal
   document.getElementById('complete-task-name').textContent = t.title;
-  document.getElementById('complete-client-name').textContent = t.client||'—';
+  document.getElementById('complete-client-name').textContent = t.client||'?';
   document.getElementById('complete-value').textContent = t.value ? t.value.toLocaleString()+' '+_getCurrency() : 'غير محدد';
 
   const depositInfo = document.getElementById('complete-deposit-info');
@@ -2727,7 +2842,7 @@ function confirmComplete(){
     }
   }
 
-  // مزامنة مع الجدول اليومي — لو فيه وقت مربوط بالمهمة دي، اكمله
+  // مزامنة مع الجدول اليومي ? لو فيه وقت مربوط بالمهمة دي، اكمله
   S.schedule.forEach(s=>{
     if(s.linkedTaskId===id && !s.done){ s.done=true; }
   });
@@ -2736,7 +2851,7 @@ function confirmComplete(){
   // اطلب رابط التسليم بعد إغلاق المودال
   setTimeout(function(){ _askRegularTaskProjectLink(id); }, 300);
   if(!payCollected && t.value>0){
-    showToast('<i class="fa-solid fa-champagne-glasses"></i> تم إنجاز المشروع: '+t.title+' — تذكير: المبلغ لم يتم تحصيله بعد!');
+    showToast('<i class="fa-solid fa-champagne-glasses"></i> تم إنجاز المشروع: '+t.title+' ? تذكير: المبلغ لم يتم تحصيله بعد!');
     // Schedule reminder notification
     setTimeout(()=>{
       showToast('<i class="fa-solid fa-coins"></i> تذكير: فيه مبلغ '+t.value.toLocaleString()+' ج لم يتم تحصيله من مشروع: '+t.title);
@@ -2773,9 +2888,9 @@ function _saveTaskDeliveryLink(taskId){
 }
 
 
-// ══════════════════════════════════════════════════════════════════
-// TASK COMMENTS SYSTEM — ملاحظات وتعليقات على المهام والخطوات
-// ══════════════════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// TASK COMMENTS SYSTEM ? ملاحظات وتعليقات على المهام والخطوات
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 
 // Add a comment to a local task (owner's own tasks)
 
@@ -2796,7 +2911,7 @@ window._submitProjComment = function(projId) {
   lsSave(); cloudSave(S);
   // Re-render project detail to show new comment
   if(typeof renderProjectDetail==='function') renderProjectDetail();
-  if(typeof showMiniNotif==='function') showMiniNotif('✅ تمت إضافة الملاحظة');
+  if(typeof showMiniNotif==='function') showMiniNotif('? تمت إضافة الملاحظة');
 };
 
 function addTaskComment(taskId, text, stepIdx) {
@@ -2905,7 +3020,7 @@ window._submitLocalComment = function(taskId, textarea, stepIdx) {
   // Re-open task detail to refresh
   var t = (S.tasks||[]).find(function(x){ return String(x.id)===String(taskId); });
   if(t) openTaskDetail(t.id);
-  if(typeof showMiniNotif==='function') showMiniNotif('✅ تمت إضافة الملاحظة');
+  if(typeof showMiniNotif==='function') showMiniNotif('? تمت إضافة الملاحظة');
 };
 
 // Submit comment on member task
@@ -2917,7 +3032,7 @@ window._submitMemberComment = async function(ownerId, taskId, textarea, stepIdx,
   textarea.value = '';
   textarea.disabled = false;
   textarea.style.height = 'auto';
-  if(typeof showMiniNotif==='function') showMiniNotif('✅ تمت إضافة الملاحظة');
+  if(typeof showMiniNotif==='function') showMiniNotif('? تمت إضافة الملاحظة');
   // Refresh the modal
   if(typeof openMyMemberTeamProfile==='function') openMyMemberTeamProfile(ownerId);
 };
@@ -2941,7 +3056,7 @@ function changeTaskStatus(id, newStatus){
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تغيير حالة المهمة إلى: '+{new:'جديد',progress:'قيد التنفيذ',review:'مراجعة',paused:'موقوف مؤقتاً',done:'مكتمل',revision:'تعديلات'}[newStatus]);
 }
 
-// ── اطلب رابط التسليم للمهام العادية ──
+// â”€â”€ اطلب رابط التسليم للمهام العادية â”€â”€
 function _askRegularTaskProjectLink(taskId){
   var t = S.tasks.find(function(x){ return x.id===taskId; });
   if(!t) return;
@@ -2949,7 +3064,7 @@ function _askRegularTaskProjectLink(taskId){
   ov.className='modal-overlay';
   ov.style.cssText='display:flex;align-items:center;justify-content:center;z-index:10000';
   ov.innerHTML='<div class="modal" style="width:min(420px,92vw);border-radius:18px;padding:28px">'
-    +'<div style="font-size:36px;text-align:center;margin-bottom:10px">🔗</div>'
+    +'<div style="font-size:36px;text-align:center;margin-bottom:10px">ًں”—</div>'
     +'<div style="font-size:16px;font-weight:900;text-align:center;margin-bottom:6px">رابط تسليم المشروع</div>'
     +'<div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:18px">المهمة: <strong>'+escapeHtml(t.title)+'</strong></div>'
     +'<input id="_rtask-link-input" class="form-input" placeholder="https://drive.google.com/... أو أي رابط للتسليم" value="'+escapeHtml(t.projectLink||t.driveLink||'')+'"/>'
@@ -2973,9 +3088,9 @@ function _saveRegularTaskLink(taskId){
   toast('<i class="fa-solid fa-link" style="color:var(--accent3)"></i> تم حفظ رابط المشروع');
 }
 
-// ═══════════════════════════════════════════════════════
-// MEMBER TASKS SECTION — مهام العضو من الفرق في صفحة المهام
-// ═══════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// MEMBER TASKS SECTION ? مهام العضو من الفرق في صفحة المهام
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function _renderMemberTasksSection(){
   var section = document.getElementById('member-tasks-section');
   var listEl  = document.getElementById('member-tasks-list');
@@ -2998,7 +3113,7 @@ function _renderMemberTasksSection(){
   section.style.display = '';
 
   var stColors = {new:_getStatusColor('new'),progress:_getStatusColor('progress'),review:_getStatusColor('review'),paused:_getStatusColor('paused'),done:_getStatusColor('done')};
-  var stLabels = {new:'🆕 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف',done:'✅ مكتمل'};
+  var stLabels = {new:'ًں†• جديد',progress:'âڑ، جاري',review:'ًں”چ مراجعة',paused:'âڈ¸ موقوف',done:'? مكتمل'};
 
   listEl.innerHTML = allTasks.map(function(entry){
     var t   = entry.task;
@@ -3014,13 +3129,13 @@ function _renderMemberTasksSection(){
       +'onmouseenter="this.style.transform=&apos;translateY(-2px)&apos;;this.style.boxShadow=&apos;0 4px 16px rgba(0,0,0,.12)&apos;" '
       +'onmouseleave="this.style.transform=&apos;&apos;;this.style.boxShadow=&apos;&apos;" '
       +'data-oid="'+mem.ownerId+'" onclick="openMyMemberTeamProfile(this.dataset.oid)">'  
-      +'<div style="font-size:10px;color:var(--accent3);font-weight:700;margin-bottom:6px"><i class="fa-solid fa-users"></i> '+escapeHtml(mem.ownerName)+' — '+escapeHtml(mem.teamName)+'</div>'
+      +'<div style="font-size:10px;color:var(--accent3);font-weight:700;margin-bottom:6px"><i class="fa-solid fa-users"></i> '+escapeHtml(mem.ownerName)+' ? '+escapeHtml(mem.teamName)+'</div>'
       +(t.isProjectTask?'<div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:5px;display:inline-flex;align-items:center;gap:4px;background:rgba(124,111,247,.1);padding:2px 8px;border-radius:6px"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(t.projectName||'مشروع')+'</div><br>':'')
       +'<div style="font-size:14px;font-weight:700;margin-bottom:6px">'+escapeHtml(t.title)+'</div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;margin-bottom:8px">'
         +'<span style="color:'+stColors[curSt]+'">'+stLabels[curSt]+'</span>'
-        +(t.deadline?'<span style="color:'+(isLate?'var(--accent4)':(daysLeft<=2?'var(--accent2)':'var(--text3)'))+'">'+(isLate?'⚠️ متأخرة':daysLeft+' يوم')+'</span>':'')
-        +(t.workerAmount?'<span style="color:var(--accent2);font-weight:700">💰 '+Number(t.workerAmount).toLocaleString()+' ج</span>':'')
+        +(t.deadline?'<span style="color:'+(isLate?'var(--accent4)':(daysLeft<=2?'var(--accent2)':'var(--text3)'))+'">'+(isLate?'âڑ ï¸ڈ متأخرة':daysLeft+' يوم')+'</span>':'')
+        +(t.workerAmount?'<span style="color:var(--accent2);font-weight:700">ًں’° '+Number(t.workerAmount).toLocaleString()+' ج</span>':'')
       +'</div>'
       +(stepsTotal?'<div style="height:4px;background:var(--surface2);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--accent),var(--accent3));transition:.3s"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">'+stepsDone+'/'+stepsTotal+' خطوات</div>':'')
       +'<div style="font-size:10px;color:var(--accent);margin-top:8px"><i class="fa-solid fa-arrow-left"></i> اضغط لعرض التفاصيل وتحديث الحالة</div>'
@@ -3035,13 +3150,13 @@ async function _refreshMemberTasks(){
   if(myEmail && typeof window._checkTeamMembership==='function'){
     await window._checkTeamMembership(myEmail);
     _renderMemberTasksSection();
-    if(typeof showMiniNotif==='function') showMiniNotif('✅ تم تحديث مهام الفرق');
+    if(typeof showMiniNotif==='function') showMiniNotif('? تم تحديث مهام الفرق');
   }
 }
 
-// ══════════════════════════════════════════════════════
-// ── TASK SCOPE TABS: My Tasks / Project Tasks / All ──
-// ══════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// â”€â”€ TASK SCOPE TABS: My Tasks / Project Tasks / All â”€â”€
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 var _taskScope = 'my'; // 'my' | 'project' | 'all'
 
 function _switchTaskScope(scope){
@@ -3125,7 +3240,7 @@ function _renderProjectTasksList(){
   var empty='<div style="text-align:center;padding:50px 20px;color:var(--text3)"><i class="fa-solid fa-diagram-project" style="font-size:40px;opacity:.35;display:block;margin-bottom:12px"></i><div style="font-size:14px;font-weight:700;color:var(--text2);margin-bottom:5px">لا توجد مهام مشاريع</div></div>';
   var k=document.getElementById('project-tasks-kanban'); if(k) k.innerHTML=tasks.length?tasks.map(_card).join(''):empty;
 
-  // ── List view مع drag + done section ──
+  // â”€â”€ List view مع drag + done section â”€â”€
   var l=document.getElementById('project-tasks-list');
   if(l){
     if(!tasks.length){ l.innerHTML=empty; return; }
@@ -3171,17 +3286,17 @@ function _renderProjectTasksList(){
               : '<span style="color:var(--accent3);font-size:16px;flex-shrink:0"><i class="fa-solid fa-square-check"></i></span>')
             +'<div>'
               +'<div style="font-weight:700;'+(isDone2?'text-decoration:line-through;color:var(--text2)':'')+'">'+escapeHtml(t.title||t.name||'مهمة')+'</div>'
-              +'<div style="font-size:10px;color:var(--accent);margin-top:2px"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(proj2.name||'—')+'</div>'
+              +'<div style="font-size:10px;color:var(--accent);margin-top:2px"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(proj2.name||'?')+'</div>'
               +(hasSteps2?'<div style="font-size:10px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-list-check"></i> '+stepsDone2+'/'+t.steps.length+' خطوة</div>':'')
             +'</div>'
           +'</div></td>';
-      if(_ptVis.client!==false) ptR+='<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client_name||proj2.client_name||'—')+'</td>';
-      if(_ptVis.deadline!==false) ptR+='<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate2?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(t.deadline||'—')+'</td>';
+      if(_ptVis.client!==false) ptR+='<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client_name||proj2.client_name||'?')+'</td>';
+      if(_ptVis.deadline!==false) ptR+='<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate2?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(t.deadline||'?')+'</td>';
       if(_ptVis.priority!==false) ptR+='<td style="padding:10px 8px;text-align:center" class="hide-mobile">'+(prio2[t.priority]||prio2.med)+'</td>';
-      if(_ptVis.orderDate) ptR+='<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+_friendlyDate(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>';
+      if(_ptVis.orderDate) ptR+='<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+_friendlyDate(t.orderDate||t.created_at?.split('T')[0]||'?')+'</td>';
       if(_ptVis.pay!==false) ptR+='<td style="padding:10px 8px;text-align:center">'+pay2+'</td>';
       if(_ptVis.status!==false) ptR+='<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+stColor2+'22;color:'+stColor2+'">'+stLabel2+'</span></td>';
-      if(_ptVis.value) ptR+='<td style="padding:10px 8px;text-align:center">'+(t.value?'<div style="font-weight:900;color:#f7c948;font-size:12px">'+Number(t.value).toLocaleString()+' ج</div>':'—')+'</td>';
+      if(_ptVis.value) ptR+='<td style="padding:10px 8px;text-align:center">'+(t.value?'<div style="font-weight:900;color:#f7c948;font-size:12px">'+Number(t.value).toLocaleString()+' ج</div>':'?')+'</td>';
       if(_ptVis.actions!==false) ptR+='<td style="padding:10px 8px;text-align:center" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:center">'
         +'<button data-tid="'+t.id+'" data-pid="'+String(t.project_id)+'" onclick="event.stopPropagation();openProjTaskDetail(this.dataset.tid,this.dataset.pid)" class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:11px" title="تفاصيل"><i class="fa-solid fa-eye"></i></button>'
         +'<button data-tid="'+t.id+'" data-pid="'+String(t.project_id)+'" onclick="event.stopPropagation();openProjTaskModal(this.dataset.pid,this.dataset.tid)" class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:11px" title="تعديل"><i class="fa-solid fa-pen"></i></button>'
@@ -3235,7 +3350,7 @@ function _renderProjectTasksList(){
       +'</tr></thead><tbody>'+activeRows+doneSec+'</tbody></table></div></div>';
   }
 
-  // ── Proj Tasks Table: نفس نظام مهامي ──
+  // â”€â”€ Proj Tasks Table: نفس نظام مهامي â”€â”€
   var tb=document.getElementById('proj-tasks-table-body');
   if(tb){
     if(!tasks.length){
@@ -3294,11 +3409,11 @@ function _renderProjectTasksList(){
               +(hasSteps?'<button onclick="event.stopPropagation();_ptblToggleSteps(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;padding:2px 4px;flex-shrink:0;transition:transform .2s" id="ptbl-arrow-'+t.id+'"><i class="fa-solid fa-chevron-down"></i></button>':'<span style="width:22px;display:inline-block"></span>')
               +'<div style="'+(isDone3?'text-decoration:line-through;color:var(--text3)':'')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escapeHtml(t.title||t.name||'مهمة')+'</div>'
             +'</div>'
-            +'<div style="font-size:10px;color:var(--accent);margin-top:2px;margin-right:28px"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(proj3.name||'—')+'</div>'
+            +'<div style="font-size:10px;color:var(--accent);margin-top:2px;margin-right:28px"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(proj3.name||'?')+'</div>'
             +(hasSteps?'<div style="font-size:10px;color:var(--text3);margin-top:2px;margin-right:28px"><i class="fa-solid fa-list-check"></i> '+t.steps.filter(function(s){return s.done;}).length+'/'+t.steps.length+' خطوة</div>':'')
           +'</td>'
           // client
-          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">'+escapeHtml(t.client_name||proj3.client_name||'—')+'</td>'
+          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">'+escapeHtml(t.client_name||proj3.client_name||'?')+'</td>'
           // status (dropdown)
           +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'
             +'<div style="position:relative;display:inline-block">'
@@ -3310,13 +3425,13 @@ function _renderProjectTasksList(){
                 +'<option value="paused"'+(t.status==='paused'?' selected':'')+'>موقوف</option>'
                 +'<option value="done"'+(isDone3?' selected':'')+'>مكتمل</option>'
               +'</select>'
-              +'<span style="position:absolute;left:5px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:8px;color:'+stColor3+'">▾</span>'
+              +'<span style="position:absolute;left:5px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:8px;color:'+stColor3+'">?</span>'
             +'</div>'
           +'</td>'
           // order date
-          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px;font-family:var(--mono)" class="hide-mobile">'+escapeHtml(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>'
+          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px;font-family:var(--mono)" class="hide-mobile">'+escapeHtml(t.orderDate||t.created_at?.split('T')[0]||'?')+'</td>'
           // deadline
-          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:'+(isLate3?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(t.deadline||'—')+'</td>'
+          +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:'+(isLate3?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(t.deadline||'?')+'</td>'
           // pay
           +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">'+pay3+'</td>'
           // actions
@@ -3351,7 +3466,7 @@ function _renderProjectTasksList(){
   var cnt=document.getElementById('proj-tasks-table-count'); if(cnt) cnt.textContent=tasks.length+' مهمة';
 }
 
-// ── Proj Table: status change ──
+// â”€â”€ Proj Table: status change â”€â”€
 function _ptblChangeStatus(taskId, newStatus){
   var t=(S.project_tasks||[]).find(function(x){return String(x.id)===String(taskId);});
   if(!t) return;
@@ -3361,7 +3476,7 @@ function _ptblChangeStatus(taskId, newStatus){
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تغيير الحالة');
 }
 
-// ── Proj Table: toggle steps ──
+// â”€â”€ Proj Table: toggle steps â”€â”€
 function _ptblToggleSteps(tid){
   var row=document.getElementById('ptbl-steps-row-'+tid);
   var arrow=document.getElementById('ptbl-arrow-'+tid);
@@ -3371,14 +3486,14 @@ function _ptblToggleSteps(tid){
   if(arrow) arrow.style.transform=open?'':'rotate(180deg)';
 }
 
-// ── Proj Table: toggle done section ──
+// â”€â”€ Proj Table: toggle done section â”€â”€
 function _ptblToggleDone(){
   var c=localStorage.getItem('_ptbl_done_collapsed')==='1';
   localStorage.setItem('_ptbl_done_collapsed',c?'0':'1');
   _renderProjectTasksList();
 }
 
-// ── Proj Table: drag helpers ──
+// â”€â”€ Proj Table: drag helpers â”€â”€
 var _ptblDragId=null;
 function _ptblDragStart(e,id){ _ptblDragId=id; e.currentTarget.style.opacity='.45'; e.dataTransfer.effectAllowed='move'; }
 function _ptblDragEnd(e){ e.currentTarget.style.opacity=''; document.querySelectorAll('.ptbl-row').forEach(function(r){r.style.boxShadow='';}); }
@@ -3397,7 +3512,7 @@ function _ptblDrop(e,targetId){
   _ptblDragId=null;
 }
 
-// ── Project tasks drag helpers ──
+// â”€â”€ Project tasks drag helpers â”€â”€
 var _ptDragId=null;
 // إكمال مهمة مشروع من قائمة مهام المشاريع
 function _completeProjTask(taskId){
@@ -3478,7 +3593,7 @@ function _renderAllTasksList(){
       +'</div></div>';
   }
 
-  // ── helper لصف قابل للسحب — نفس ديزاين "مهامي" ──
+  // â”€â”€ helper لصف قابل للسحب ? نفس ديزاين "مهامي" â”€â”€
   function _dragRow(item, isList){
     var t=item.task; var si=_stInfo(t);
     var isLate=t.deadline&&new Date(t.deadline)<new Date()&&!si.isDone;
@@ -3537,19 +3652,19 @@ function _renderAllTasksList(){
               +(hasStepsAl?'<div style="font-size:10px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-list-check"></i> '+stepsDoneAl+'/'+t.steps.length+' خطوة</div>':'')
             +'</div>'
           +'</div></td>';
-      if(_alVis.client!==false) alRow+='<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client||t.client_name||'—')+'</td>';
-      if(_alVis.deadline!==false) alRow+='<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(t.deadline||'—')+'</td>';
-      if(_alVis.priority!==false) alRow+='<td style="padding:10px 8px;text-align:center" class="hide-mobile">'+(prio2[t.priority]||'—')+'</td>';
-      if(_alVis.orderDate) alRow+='<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+_friendlyDate(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>';
+      if(_alVis.client!==false) alRow+='<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client||t.client_name||'?')+'</td>';
+      if(_alVis.deadline!==false) alRow+='<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(t.deadline||'?')+'</td>';
+      if(_alVis.priority!==false) alRow+='<td style="padding:10px 8px;text-align:center" class="hide-mobile">'+(prio2[t.priority]||'?')+'</td>';
+      if(_alVis.orderDate) alRow+='<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+_friendlyDate(t.orderDate||t.created_at?.split('T')[0]||'?')+'</td>';
       if(_alVis.pay!==false) alRow+='<td style="padding:10px 8px;text-align:center">'+payBadge+'</td>';
       if(_alVis.status!==false) alRow+='<td style="padding:10px 8px;text-align:center"><span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:'+si.color+'22;color:'+si.color+'">'+si.label+'</span></td>';
-      if(_alVis.value) alRow+='<td style="padding:10px 8px;text-align:center">'+(t.value?'<div style="font-weight:900;color:#f7c948;font-size:12px">'+Number(t.value).toLocaleString()+' ج</div>':'—')+'</td>';
+      if(_alVis.value) alRow+='<td style="padding:10px 8px;text-align:center">'+(t.value?'<div style="font-weight:900;color:#f7c948;font-size:12px">'+Number(t.value).toLocaleString()+' ج</div>':'?')+'</td>';
       if(_alVis.actions!==false) alRow+='<td style="padding:10px 8px;text-align:center" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:center">'+editBtn+delBtn+'</div></td>';
       alRow+='</tr>'+stepsSubRowAl;
       return alRow;
 
     } else {
-      // ── table view ──
+      // â”€â”€ table view â”€â”€
       var hasSteps=t.steps&&t.steps.length>0;
       var stepsHtml='';
       if(hasSteps){
@@ -3591,13 +3706,13 @@ function _renderAllTasksList(){
           +'</div>'
         +'</td>'
         // client
-        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client||t.client_name||'—')+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3)">'+escapeHtml(t.client||t.client_name||'?')+'</td>'
         // priority
-        +'<td style="padding:10px 8px;text-align:center" class="hide-mobile">'+(prio2[t.priority]||'—')+'</td>'
+        +'<td style="padding:10px 8px;text-align:center" class="hide-mobile">'+(prio2[t.priority]||'?')+'</td>'
         // order date
-        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+_friendlyDate(t.orderDate||t.created_at?.split('T')[0]||'—')+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;color:var(--text3);font-family:var(--mono)" class="hide-mobile">'+_friendlyDate(t.orderDate||t.created_at?.split('T')[0]||'?')+'</td>'
         // deadline
-        +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(t.deadline||'—')+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+_friendlyDate(t.deadline||'?')+'</td>'
         // pay
         +'<td style="padding:10px 8px;text-align:center">'+payBadge+'</td>'
         // status
@@ -3629,7 +3744,7 @@ function _renderAllTasksList(){
   // Kanban
   var k=document.getElementById('all-tasks-kanban'); if(k) k.innerHTML=allItems.length?allItems.map(_card).join(''):empty;
 
-  // ── List view مع drag + done ──
+  // â”€â”€ List view مع drag + done â”€â”€
   var l=document.getElementById('all-tasks-list');
   if(l){
     if(!allItems.length){ l.innerHTML=empty; }
@@ -3669,7 +3784,7 @@ function _renderAllTasksList(){
     }
   }
 
-  // ── Table view مع drag + done ──
+  // â”€â”€ Table view مع drag + done â”€â”€
   var tb=document.getElementById('all-tasks-table-body');
   if(tb){
     if(!allItems.length){ tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text3)">لا توجد مهام</td></tr>'; }
@@ -3694,7 +3809,7 @@ function _toggleAllStepsRow(tid,prefix){
   if(arrow) arrow.style.transform=isOpen?'':'rotate(180deg)';
 }
 
-// ── All-tasks list drag helpers ──
+// â”€â”€ All-tasks list drag helpers â”€â”€
 var _alDragId=null,_alDragType=null;
 function _alDragStart(e,id,type){ _alDragId=id;_alDragType=type; e.currentTarget.classList.add('tt-dragging'); e.dataTransfer.effectAllowed='move'; }
 function _alDragEnd(e){ e.currentTarget.classList.remove('tt-dragging'); document.querySelectorAll('.al-row').forEach(function(r){r.style.boxShadow='';}); }
@@ -3722,7 +3837,7 @@ function _alToggleStepsRow(tid){
   if(arrow) arrow.style.transform=isOpen?'':'rotate(180deg)';
 }
 
-// ── All-tasks table drag helpers ──
+// â”€â”€ All-tasks table drag helpers â”€â”€
 var _atDragId=null,_atDragType=null;
 function _atDragStart(e,id,type){ _atDragId=id;_atDragType=type; e.currentTarget.classList.add('tt-dragging'); e.dataTransfer.effectAllowed='move'; }
 function _atDragEnd(e){ e.currentTarget.classList.remove('tt-dragging'); document.querySelectorAll('.at-row').forEach(function(r){r.style.boxShadow='';}); }
@@ -3798,7 +3913,7 @@ function renderTasks(){
               ${t.value?`<span style="font-size:10px;color:var(--accent3);font-weight:700">${t.value.toLocaleString()} ج</span>`:''}
             </div>
           </div>
-          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();kbShowMoveMenu(event,${t.id})" style="flex-shrink:0;padding:3px 7px;color:var(--accent)" title="نقل">▾</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();kbShowMoveMenu(event,${t.id})" style="flex-shrink:0;padding:3px 7px;color:var(--accent)" title="نقل">?</button>
           <button class="btn btn-success btn-sm" onclick="event.stopPropagation();completeTask(${t.id})" title="مكتمل" style="flex-shrink:0;padding:3px 7px"><i class="fa-solid fa-check"></i></button>
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openTaskModal(${t.id})" style="flex-shrink:0;padding:3px 7px"><i class="fa-solid fa-pen"></i></button>
         </div>
@@ -3849,7 +3964,7 @@ function renderTasks(){
         </div>`:''}
         <div style="font-size:10px;color:var(--text3);margin-top:5px;display:flex;justify-content:space-between;align-items:center">
           <button onclick="event.stopPropagation();openCardStatusRename('${st}',this)" style="background:rgba(255,255,255,.06);border:none;border-radius:6px;color:var(--text3);font-size:11px;padding:2px 7px;cursor:pointer" title="تعديل اسم الحالة"><i class="fa-solid fa-gear"></i></button>
-          <button onclick="event.stopPropagation();kbShowMoveMenu(event,${t.id})" style="background:rgba(124,111,247,.15);border:none;border-radius:6px;color:var(--accent);font-size:10px;padding:2px 7px;cursor:pointer;font-weight:700">نقل ▾</button>
+          <button onclick="event.stopPropagation();kbShowMoveMenu(event,${t.id})" style="background:rgba(124,111,247,.15);border:none;border-radius:6px;color:var(--accent);font-size:10px;padding:2px 7px;cursor:pointer;font-weight:700">نقل ?</button>
         </div>
       </div>`;
     }).join('');
@@ -3919,7 +4034,7 @@ function renderTasks(){
           <div style="font-size:13px;font-weight:600;text-decoration:line-through;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
           <div style="display:flex;gap:5px;margin-top:2px">${t._isPersonal?'<span style="font-size:10px;background:rgba(124,111,247,.12);color:var(--accent);padding:2px 8px;border-radius:20px;font-weight:700"><i class=\"fa-solid fa-person\"></i> شخصية</span>':(t.client?`<span style="font-size:11px;color:var(--text3)">${t.client}</span>`:'')}${jtBadge(t.jobType,t)}</div>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();completeTask(${t.id})" title="إلغاء الإكمال" style="flex-shrink:0;font-size:10px">↩</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();completeTask(${t.id})" title="إلغاء الإكمال" style="flex-shrink:0;font-size:10px">â†©</button>
         <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();delTask(${t.id})" style="flex-shrink:0"><i class="fa-solid fa-trash"></i></button>
       </div>`).join('') : '<div class="empty" style="padding:16px 0;font-size:12px;color:var(--accent3)">لا مشاريع مكتملة</div>';
   }
@@ -3946,7 +4061,7 @@ function renderTasks(){
   }
   let _lvColCount=2;_lvCols.forEach(c=>{if(c.visible)_lvColCount++;});
 
-  // ── فصل المهام: نشطة / مكتملة ──
+  // â”€â”€ فصل المهام: نشطة / مكتملة â”€â”€
   const activeTasks = filtered.filter(t=>!t.done && t.status!=='done');
   const doneTasks   = filtered.filter(t=> t.done || t.status==='done');
 
@@ -3995,19 +4110,19 @@ function renderTasks(){
     if(_lvV.client!==false){
       var _clientDisplay = t._isPersonal
         ? '<span style="font-size:10px;background:rgba(124,111,247,.12);color:var(--accent);padding:2px 8px;border-radius:20px;font-weight:700"><i class="fa-solid fa-person"></i> شخصية</span>'
-        : (t.client||'—');
+        : (t.client||'?');
       row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">${_clientDisplay}</td>`;
     }
-    if(_lvV.deadline!==false) row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:${isLate?'#f76f7c':'var(--text3)'}">${_friendlyDate(t.deadline)||'—'}</td>`;
+    if(_lvV.deadline!==false) row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:${isLate?'#f76f7c':'var(--text3)'}">${_friendlyDate(t.deadline)||'?'}</td>`;
     if(_lvV.priority!==false) row+=`<td class="hide-mobile" style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">${prioBadge[t.priority]}</td>`;
-    if(_lvV.orderDate) row+=`<td class="hide-mobile" style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:var(--text3)">${_friendlyDate(t.orderDate)||'—'}</td>`;
+    if(_lvV.orderDate) row+=`<td class="hide-mobile" style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:var(--text3)">${_friendlyDate(t.orderDate)||'?'}</td>`;
     if(_lvV.pay!==false) row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">
         ${(t.jobType==='fulltime'||t.jobType==='parttime')&&t.salary
           ? `<span style="color:var(--accent3);font-weight:700;font-size:12px">${t.salary.toLocaleString()} ج/شهر</span>`
           : `${payBadge[t.pay||'none']}${t.pay==='deposit'&&t.deposit?`<div style="font-size:11px;color:var(--accent2)">${t.deposit.toLocaleString()} ج</div>`:''}`}
       </td>`;
     if(_lvV.status!==false) row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">${isDone?'<span class="badge badge-green"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل</span>':statusBadge[t.status]}</td>`;
-    if(_lvV.value) row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">${t.value>0?`<div style="font-weight:900;color:#f7c948;font-size:12px">${t.value.toLocaleString()} ج</div>`:'<span style="color:var(--text3)">—</span>'}</td>`;
+    if(_lvV.value) row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">${t.value>0?`<div style="font-weight:900;color:#f7c948;font-size:12px">${t.value.toLocaleString()} ج</div>`:'<span style="color:var(--text3)">?</span>'}</td>`;
     if(_lvV.actions!==false) row+=`<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)"><div style="display:flex;gap:4px;justify-content:center" onclick="event.stopPropagation()">
         <button class="btn btn-ghost btn-sm" onclick="openTaskModal(${t.id})"><i class="fa-solid fa-pen"></i></button>
         <button class="btn btn-danger btn-sm" onclick="delTask(${t.id})"><i class="fa-solid fa-trash"></i></button>
@@ -4045,7 +4160,7 @@ function renderTasks(){
   if(document.getElementById('table-view')?.style.display!=='none') _renderTasksTable();
 }
 
-// ── Toggle steps in list view ──
+// â”€â”€ Toggle steps in list view â”€â”€
 function _tlToggleSteps(taskId){
   var row=document.getElementById('tl-steps-row-'+taskId);
   var arrow=document.getElementById('tl-steps-arrow-'+taskId);
@@ -4055,14 +4170,14 @@ function _tlToggleSteps(taskId){
   if(arrow) arrow.style.transform=isOpen?'':'rotate(180deg)';
 }
 
-// ── Toggle مكتملة section في list view ──
+// â”€â”€ Toggle مكتملة section في list view â”€â”€
 function _tlToggleDone(){
   const cur = localStorage.getItem('_tl_done_collapsed')==='1';
   localStorage.setItem('_tl_done_collapsed', cur?'0':'1');
   renderTasks();
 }
 
-// ── Drag to reorder في list view ──
+// â”€â”€ Drag to reorder في list view â”€â”€
 var _tlDragId = null;
 function _tlDragStart(e, tid){
   _tlDragId = tid;
@@ -4112,7 +4227,7 @@ function _fillParentClientsDD(){
     .filter(c => c.workType !== 'sub' && String(c.id) !== String(curId))
     .map(c => `<option value="${c.id}">${c.name}</option>`)
     .join('');
-  sel.innerHTML = '<option value="">— اختر العميل الرئيسي —</option>' + opts;
+  sel.innerHTML = '<option value="">? اختر العميل الرئيسي ?</option>' + opts;
 }
 
 function openClientModal(id){
@@ -4201,7 +4316,7 @@ function saveClient(){
   else{ if(!checkLimit('max_clients_feat', S.clients.length)) return; d.id=Date.now();S.clients.push(d);}
   lsSave();closeM('modal-client');renderAll();fillDD('t-client');fillDD('inv-client');
 }
-// ── Active profile client id (for tab switching) ──
+// â”€â”€ Active profile client id (for tab switching) â”€â”€
 let _profileClientId = null;
 
 function openClientProfile(id){
@@ -4220,13 +4335,13 @@ function openClientProfile(id){
     `<span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:${c.color};color:#fff;font-weight:800;font-size:14px;margin-left:8px">${c.name[0]}</span>`+
     `${c.name}`+
     (isParent?` <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:2px 8px;border-radius:8px;margin-right:6px"><i class="fa-solid fa-building"></i> ${subClients.length} فرع</span>`:'')+
-    (parentClient?` <span style="font-size:10px;background:rgba(79,209,165,.12);color:var(--accent3);padding:2px 8px;border-radius:8px;margin-right:6px;cursor:pointer" onclick="closeM('modal-client-profile');setTimeout(()=>openClientProfile(${parentClient.id}),120)"><i class="fa-solid fa-link"></i> تابع لـ ${parentClient.name} ←</span>`:'');
+    (parentClient?` <span style="font-size:10px;background:rgba(79,209,165,.12);color:var(--accent3);padding:2px 8px;border-radius:8px;margin-right:6px;cursor:pointer" onclick="closeM('modal-client-profile');setTimeout(()=>openClientProfile(${parentClient.id}),120)"><i class="fa-solid fa-link"></i> تابع لـ ${parentClient.name} â†گ</span>`:'');
 
   // Header action buttons
   const hdr = document.getElementById('profile-header-actions');
   if(hdr) hdr.innerHTML=
     (c.phone?`<a href="https://wa.me/${c.phone.replace(/[^\d]/g,'')}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;border:none;border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;text-decoration:none;cursor:pointer"><i class="fa-solid fa-comments"></i> واتساب</a>`:'') +
-    `<button class="btn btn-ghost btn-sm" title="إعدادات التذكير" onclick="openClientModal(${c.id});closeM('modal-client-profile')"><i class="fa-solid fa-gear"></i>️</button>`+
+    `<button class="btn btn-ghost btn-sm" title="إعدادات التذكير" onclick="openClientModal(${c.id});closeM('modal-client-profile')"><i class="fa-solid fa-gear"></i>ï¸ڈ</button>`+
     `<button class="btn btn-ghost btn-sm" title="بوابة العميل" onclick="openClientPortal(${c.id})"><i class="fa-solid fa-link"></i> بوابة</button>`+
     `<button class="btn btn-primary btn-sm" onclick="_showClientPortalLink(${c.id})"><i class="fa-solid fa-id-card"></i> رابط البوابة الكاملة</button>`+
     `<button class="btn btn-ghost btn-sm" onclick="_profileShowStatement(${c.id})"><i class="fa-solid fa-file-lines"></i> كشف حساب</button>`;
@@ -4251,10 +4366,16 @@ function _renderProfileTab(tab, id){
   const subClients = S.clients.filter(sc=>String(sc.parentClientId)===String(c.id));
   const isParent = subClients.length>0;
   const allClientNames = isParent?[c.name,...subClients.map(sc=>sc.name)]:[c.name];
-  const cTasks = S.tasks.filter(t=>allClientNames.includes(t.client));
-  const cInvs  = S.invoices.filter(i=>allClientNames.includes(i.client));
-  const cContracts = (S.contracts||[]).filter(ct=>allClientNames.includes(ct.client_name||''));
-  const cTrans = S.transactions.filter(t=>allClientNames.includes(t.source));
+  const _clientIds = isParent?[String(c.id),...subClients.map(sc=>String(sc.id))]:[String(c.id)];
+  const _matchClientEntity = e => e && (
+    _clientIds.includes(String(e.client_id||e.clientId||'')) ||
+    allClientNames.includes(e.client||e.client_name||e.clientName||e.source||'')
+  );
+  const cSummary = window.OrdoReports ? window.OrdoReports.getClientSummary(c.id) : null;
+  const cTasks = cSummary ? cSummary.tasks : S.tasks.filter(_matchClientEntity);
+  const cInvs  = cSummary ? cSummary.invoices : S.invoices.filter(_matchClientEntity);
+  const cContracts = cSummary ? cSummary.contracts : (S.contracts||[]).filter(_matchClientEntity);
+  const cTrans = cSummary ? cSummary.transactions : S.transactions.filter(_matchClientEntity);
 
   const now=new Date(); const curY=now.getFullYear(); const curM=now.getMonth()+1;
   const monthStr=`${curY}-${String(curM).padStart(2,'0')}`;
@@ -4265,6 +4386,9 @@ function _renderProfileTab(tab, id){
   const totalInc=cTrans.filter(t=>t.type==='income'&&!t.isLoan).reduce((s,t)=>s+t.amount,0);
 
   const statusBadge={new:'<span class="badge badge-gray">جديد</span>',progress:'<span class="badge badge-yellow">جاري</span>',review:'<span class="badge badge-purple">مراجعة</span>',done:'<span class="badge badge-green">مكتمل</span>'};
+  const _profileTaskOpen = t => t && t.project_id
+    ? `closeM('modal-client-profile');showPage('projects');setTimeout(function(){openProjectDetail('${String(t.project_id).replace(/'/g,"\\'")}')},200)`
+    : `closeM('modal-client-profile');openTaskDetail('${String(t.id).replace(/'/g,"\\'")}')`;
   const body=document.getElementById('profile-body');
 
   if(tab==='overview'){
@@ -4285,14 +4409,14 @@ function _renderProfileTab(tab, id){
                 <div style="width:26px;height:26px;border-radius:50%;background:${sc.color||'var(--accent)'};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff">${sc.name[0]}</div>
                 <div style="font-weight:700;font-size:12px">${sc.name}</div>
               </div>
-              <div style="font-size:11px;color:var(--text3)"><i class="fa-solid fa-clipboard-list"></i> ${st} مهمة${sp?` · <span style="color:var(--accent2)">${sp.toLocaleString()} ج معلق</span>`:''}</div>
+              <div style="font-size:11px;color:var(--text3)"><i class="fa-solid fa-clipboard-list"></i> ${st} مهمة${sp?` آ· <span style="color:var(--accent2)">${sp.toLocaleString()} ج معلق</span>`:''}</div>
             </div>`;
           }).join('')}
         </div>
       </div>` : '';
 
     
-    // ── حساب الرصيد المستحق للـ overview ──
+    // â”€â”€ حساب الرصيد المستحق للـ overview â”€â”€
     const _ovOpenBal = c.openingBalance || 0;
     const _ovOpenType = c.openingBalanceType || 'receivable';
     const _ovOpenNote = c.openingBalanceNote || '';
@@ -4307,10 +4431,10 @@ function _renderProfileTab(tab, id){
       ${_ovOwed > 0 ? `
       <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(255,107,107,.12),rgba(255,107,107,.06));border:1.5px solid rgba(255,107,107,.4);border-radius:14px;padding:14px 16px;margin-bottom:14px;cursor:pointer" onclick="switchProfileTab('accounts',document.querySelector('[data-tab=accounts]'))">
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:40px;height:40px;border-radius:11px;background:rgba(255,107,107,.18);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💰</div>
+          <div style="width:40px;height:40px;border-radius:11px;background:rgba(255,107,107,.18);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">ًں’°</div>
           <div>
             <div style="font-size:12px;font-weight:800;color:rgba(255,107,107,.9)">مبالغ مستحقة على العميل</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">${_ovUnpaid>0&&_ovOpenBal>0&&_ovOpenType==='receivable'?'فواتير + مبالغ قديمة':_ovUnpaid>0?'فواتير غير مسددة':'مبالغ مستحقة من قبل'}${_ovOpenNote?' · '+_ovOpenNote:''}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">${_ovUnpaid>0&&_ovOpenBal>0&&_ovOpenType==='receivable'?'فواتير + مبالغ قديمة':_ovUnpaid>0?'فواتير غير مسددة':'مبالغ مستحقة من قبل'}${_ovOpenNote?' آ· '+_ovOpenNote:''}</div>
           </div>
         </div>
         <div style="text-align:left">
@@ -4323,7 +4447,7 @@ function _renderProfileTab(tab, id){
       </div>` : _ovOpenBal>0&&_ovOpenType==='prepaid' ? `
       <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(79,209,165,.08);border:1.5px solid rgba(79,209,165,.3);border-radius:14px;padding:14px 16px;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:40px;height:40px;border-radius:11px;background:rgba(79,209,165,.15);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">✅</div>
+          <div style="width:40px;height:40px;border-radius:11px;background:rgba(79,209,165,.15);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">?</div>
           <div>
             <div style="font-size:12px;font-weight:800;color:var(--accent3)">رصيد لديه مسبقاً</div>
             <div style="font-size:10px;color:var(--text3);margin-top:2px">${_ovOpenNote||'دفع مقدماً'}</div>
@@ -4344,7 +4468,7 @@ function _renderProfileTab(tab, id){
         </div>
         <div class="card" style="padding:12px;text-align:center">
           <div style="font-size:20px;font-weight:900;color:var(--accent2)">${pendingInv.reduce((s,i)=>s+i.total,0).toLocaleString()}</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:2px">⏳ معلق ج</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">âڈ³ معلق ج</div>
         </div>
         <div class="card" style="padding:12px;text-align:center">
           <div style="font-size:20px;font-weight:900;color:var(--text2)">${cTasks.length}</div>
@@ -4367,10 +4491,10 @@ function _renderProfileTab(tab, id){
       <div>
         <div class="section-title" style="margin-bottom:8px"><i class="fa-solid fa-clipboard-list"></i> آخر الطلبات</div>
         ${cTasks.length?[...cTasks].sort((a,b)=>_taskDate(b).localeCompare(_taskDate(a))).slice(0,5).map(t=>`
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeM('modal-client-profile');openTaskDetail(${t.id})">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="${_profileTaskOpen(t)}">
             <div>
               <div style="font-size:13px;font-weight:600">${t.title}</div>
-              <div style="font-size:10px;color:var(--text3)">${_taskDate(t).slice(0,10)||''}${isParent&&t.client!==c.name?' · <i class="fa-solid fa-link"></i> '+t.client:''}</div>
+              <div style="font-size:10px;color:var(--text3)">${_taskDate(t).slice(0,10)||''}${isParent&&t.client!==c.name?' آ· <i class="fa-solid fa-link"></i> '+t.client:''}</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               ${t.value?`<span style="font-size:12px;font-weight:700;color:var(--accent3)">${Number(t.value).toLocaleString()} ج</span>`:''}
@@ -4421,7 +4545,7 @@ function _renderProfileTab(tab, id){
             <div style="font-weight:700;font-size:13px"><i class="fa-solid fa-calendar-days"></i> ${fmtMonth(mk)} <span style="font-size:11px;color:var(--text3);font-weight:400">(${tasks.length} طلب)</span></div>
             <div style="display:flex;gap:10px;align-items:center;font-size:12px">
               ${monthInc?`<span style="color:var(--accent3);font-weight:700">${monthInc.toLocaleString()} ج</span>`:''}
-              <span style="color:var(--text3)">▼</span>
+              <span style="color:var(--text3)">â–¼</span>
             </div>
           </div>
           <div id="${uid}" style="display:none;margin-top:6px;padding:0 4px">
@@ -4430,15 +4554,15 @@ function _renderProfileTab(tab, id){
               const tContr=(S.contracts||[]).filter(ct=>(ct.client_name||'')===t.client&&ct.title===t.title);
               return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);border-radius:6px;margin-bottom:2px">
                 <div style="flex:1;min-width:0">
-                  <div style="font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px" onclick="closeM('modal-client-profile');openTaskDetail(${t.id})">
-                    🔹 ${t.title}
+                  <div style="font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px" onclick="${_profileTaskOpen(t)}">
+                    ًں”¹ ${t.title}
                   </div>
-                  <div style="font-size:10px;color:var(--text3);margin-top:2px">${_taskDate(t).slice(0,10)||''}${tInvs.length?` · <i class="fa-solid fa-receipt"></i> ${tInvs.length} فاتورة`:''}</div>
+                  <div style="font-size:10px;color:var(--text3);margin-top:2px">${_taskDate(t).slice(0,10)||''}${tInvs.length?` آ· <i class="fa-solid fa-receipt"></i> ${tInvs.length} فاتورة`:''}</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
                   ${t.value?`<span style="font-size:12px;font-weight:700;color:var(--accent3)">${Number(t.value).toLocaleString()} ج</span>`:''}
                   ${statusBadge[t.status]||''}
-                  <button class="btn btn-ghost btn-sm" onclick="closeM('modal-client-profile');openTaskDetail(${t.id})" title="تفاصيل"><i class="fa-solid fa-eye"></i></button>
+                   <button class="btn btn-ghost btn-sm" onclick="${_profileTaskOpen(t)}" title="تفاصيل"><i class="fa-solid fa-eye"></i></button>
                 </div>
               </div>`;
             }).join('')}
@@ -4454,22 +4578,22 @@ function _renderProfileTab(tab, id){
 
   else if(tab==='invoices'){
     const sm={
-      pending:'<span style="font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(247,201,72,.15);color:var(--accent2)">⏳ معلق</span>',
+      pending:'<span style="font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(247,201,72,.15);color:var(--accent2)">âڈ³ معلق</span>',
       paid:'<span style="font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(79,209,165,.15);color:var(--accent3)"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مدفوع</span>',
-      cancelled:'<span style="font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(247,111,124,.15);color:var(--accent4)">🚫 ملغية</span>'
+      cancelled:'<span style="font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(247,111,124,.15);color:var(--accent4)">ًںڑ« ملغية</span>'
     };
     const totalPaid=cInvs.filter(i=>i.status==='paid').reduce((s,i)=>s+i.total,0);
     const totalPend=cInvs.filter(i=>i.status==='pending').reduce((s,i)=>s+i.total,0);
     body.innerHTML=`
       <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
         <div class="card" style="padding:10px 16px;flex:1;min-width:120px"><div style="font-size:18px;font-weight:900;color:var(--accent3)">${totalPaid.toLocaleString()} ج</div><div style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محصّل</div></div>
-        <div class="card" style="padding:10px 16px;flex:1;min-width:120px"><div style="font-size:18px;font-weight:900;color:var(--accent2)">${totalPend.toLocaleString()} ج</div><div style="font-size:10px;color:var(--text3)">⏳ معلق</div></div>
+        <div class="card" style="padding:10px 16px;flex:1;min-width:120px"><div style="font-size:18px;font-weight:900;color:var(--accent2)">${totalPend.toLocaleString()} ج</div><div style="font-size:10px;color:var(--text3)">âڈ³ معلق</div></div>
         <button class="btn btn-primary btn-sm" style="align-self:center" onclick="openInvoiceModal();document.getElementById('inv-client').value='${c.name.replace(/'/g,"\\'")}'" ><i class="fa-solid fa-file-plus" style="margin-left:5px"></i> فاتورة جديدة</button>
       </div>
       ${cInvs.length?cInvs.map(i=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)">
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700">#${i.num||'—'} <span style="font-size:11px;color:var(--text3)">${i.date||''}</span></div>
+            <div style="font-size:13px;font-weight:700">#${i.num||'?'} <span style="font-size:11px;color:var(--text3)">${i.date||''}</span></div>
             ${isParent&&i.client!==c.name?`<div style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-link"></i> ${i.client}</div>`:''}
             <div style="font-size:12px;font-weight:700;color:${i.status==='paid'?'var(--accent3)':'var(--accent2)'};margin-top:2px">${i.total.toLocaleString()} ج &nbsp;${sm[i.status]||''}</div>
           </div>
@@ -4512,7 +4636,7 @@ function _renderProfileTab(tab, id){
   }
 
   else if(tab==='projects'){
-    var cProjects = (S.projects||[]).filter(function(p){ return allClientNames.includes(p.client); });
+    var cProjects = (S.projects||[]).filter(function(p){ return _matchClientEntity(p); });
     var statusColors = {active:'var(--accent)',done:'var(--accent3)',paused:'var(--accent4)',planning:'#aaa'};
     var statusLabels = {active:'نشط',done:'مكتمل',paused:'موقوف',planning:'تخطيط'};
     var safeClientName = c.name.replace(/'/g,"\\'");
@@ -4525,12 +4649,12 @@ function _renderProfileTab(tab, id){
       var done=tasks.filter(function(t){return t.status==='done';}).length;
       var pct=tasks.length?Math.round(done/tasks.length*100):0;
       var sc=statusColors[p.status]||'var(--accent)';
-      var sl=statusLabels[p.status]||p.status||'—';
+      var sl=statusLabels[p.status]||p.status||'?';
       return '<div style="padding:14px;background:var(--surface2);border-radius:12px;margin-bottom:10px;border:1px solid var(--border);cursor:pointer" onclick="closeM(\'modal-client-profile\');showPage(\'projects\');setTimeout(function(){openProjectDetail('+p.id+')},200)">'+
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
           '<div>'+
-            '<div style="font-size:13px;font-weight:800">'+(p.name||'—')+'</div>'+
-            (p.desc?'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+p.desc.slice(0,60)+(p.desc.length>60?'…':'')+'</div>':'')+
+            '<div style="font-size:13px;font-weight:800">'+(p.name||'?')+'</div>'+
+            (p.desc?'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+p.desc.slice(0,60)+(p.desc.length>60?'â€¦':'')+'</div>':'')+
           '</div>'+
           '<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+sc+'22;color:'+sc+'">'+sl+'</span>'+
         '</div>'+
@@ -4548,7 +4672,7 @@ function _renderProfileTab(tab, id){
   }
 
   else if(tab==='accounts'){
-    // ════ تاب الحسابات المالية للعميل ════
+    // â•گâ•گâ•گâ•گ تاب الحسابات المالية للعميل â•گâ•گâ•گâ•گ
     const cur = _getCurrency();
     const openBal = c.openingBalance || 0;
     const openType = c.openingBalanceType || 'receivable';
@@ -4591,17 +4715,17 @@ function _renderProfileTab(tab, id){
           </div>
           <div class="card" style="padding:12px;text-align:center;border-right:2px solid ${unpaid>0?'var(--accent4)':'var(--accent3)'}">
             <div style="font-size:18px;font-weight:900;color:${unpaid>0?'var(--accent4)':'var(--accent3)'}">${unpaid.toLocaleString()} ${cur}</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:3px">⏳ غير مسدّد</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:3px">âڈ³ غير مسدّد</div>
           </div>
           ${openBal>0?`<div class="card" style="padding:12px;text-align:center;border-right:2px solid ${openType==='receivable'?'var(--accent4)':'var(--accent3)'}">
             <div style="font-size:18px;font-weight:900;color:${openType==='receivable'?'var(--accent4)':'var(--accent3)'}">${openBal.toLocaleString()} ${cur}</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:3px">${openType==='receivable'?'💰 مبالغ مستحقة عليه':'✅ رصيد لديه مسبقاً'}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:3px">${openType==='receivable'?'ًں’° مبالغ مستحقة عليه':'✅ رصيد لديه مسبقاً'}</div>
           </div>`:''}
         </div>
         ${netBalance>0?`<div style="padding:12px 14px;background:rgba(255,107,107,.1);border-radius:12px;border-right:3px solid var(--accent4);margin-bottom:12px">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
             <div>
-              <div style="font-size:13px;font-weight:800">📌 صافي المستحق على العميل: ${netBalance.toLocaleString()} ${cur}</div>
+              <div style="font-size:13px;font-weight:800">ًں“Œ صافي المستحق على العميل: ${netBalance.toLocaleString()} ${cur}</div>
               ${openNote?`<div style="font-size:11px;color:var(--text3);margin-top:3px">${escapeHtml(openNote)}</div>`:''}
             </div>
             <button class="btn btn-primary btn-sm" style="flex-shrink:0;white-space:nowrap" onclick="_collectFromClient(${c.id},${netBalance})">
@@ -4616,7 +4740,7 @@ function _renderProfileTab(tab, id){
         <div class="section-title" style="margin-bottom:10px"><i class="fa-solid fa-list-timeline"></i> سجل المعاملات الكاملة</div>
         ${openBal>0?`<div style="padding:10px 14px;background:${openType==='receivable'?'rgba(255,107,107,.08)':'rgba(79,209,165,.08)'};border-radius:10px;border:1px solid var(--border);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div style="font-size:12px;font-weight:800">${openType==='receivable'?'💰 مبالغ مستحقة من قبل بدء التعامل':'✅ رصيد دفعه مسبقاً قبل بدء التعامل'}</div>
+            <div style="font-size:12px;font-weight:800">${openType==='receivable'?'ًں’° مبالغ مستحقة من قبل بدء التعامل':'✅ رصيد دفعه مسبقاً قبل بدء التعامل'}</div>
             ${openNote?`<div style="font-size:11px;color:var(--text3)">${escapeHtml(openNote)}</div>`:''}
           </div>
           <div style="font-size:14px;font-weight:900;color:${openType==='receivable'?'var(--accent4)':'var(--accent3)'}">
@@ -4627,7 +4751,7 @@ function _renderProfileTab(tab, id){
           <div style="padding:10px 14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
             <div>
               <div style="font-size:12px;font-weight:700">${escapeHtml(t.desc||'معاملة')}</div>
-              <div style="font-size:10px;color:var(--text3)">${t.isoDate||t.date||'—'}${t.payMethod?' · '+t.payMethod:''}</div>
+              <div style="font-size:10px;color:var(--text3)">${t.isoDate||t.date||'?'}${t.payMethod?' آ· '+t.payMethod:''}</div>
             </div>
             <div style="font-size:14px;font-weight:900;color:${t.type==='income'?'var(--accent3)':'var(--accent4)'}">${t.type==='income'?'+':'-'}${t.amount.toLocaleString()} ${cur}</div>
           </div>`).join('')
@@ -4659,20 +4783,20 @@ function _renderProfileTab(tab, id){
         ${clientRevs.length?`
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;text-align:center">
           <div style="font-size:42px;font-weight:900;color:#f7c948;line-height:1">${avg}</div>
-          <div style="font-size:20px;margin:6px 0">${'⭐'.repeat(Math.round(+avg))}</div>
+          <div style="font-size:20px;margin:6px 0">${'â­گ'.repeat(Math.round(+avg))}</div>
           <div style="font-size:12px;color:var(--text3)">${clientRevs.length} تقييم من العميل</div>
         </div>
         ${clientRevs.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).map(r=>`
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div style="font-size:13px;font-weight:800;color:var(--text)">${escapeHtml(r.task_title||'طلب')}</div>
-            <div style="font-size:18px;letter-spacing:2px">${'⭐'.repeat(+r.stars||0)}</div>
+            <div style="font-size:18px;letter-spacing:2px">${'â­گ'.repeat(+r.stars||0)}</div>
           </div>
           ${r.comment?`<div style="font-size:13px;color:var(--text2);line-height:1.7;padding:10px 12px;background:var(--surface);border-radius:10px;border-right:3px solid #f7c948;font-style:italic">"${escapeHtml(r.comment)}"</div>`:''}
           <div style="font-size:10px;color:var(--text3);margin-top:8px"><i class="fa-solid fa-calendar"></i> ${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):''}</div>
         </div>`).join('')}
         `:`<div style="text-align:center;padding:40px 20px;color:var(--text3)">
-          <div style="font-size:40px;opacity:.3;margin-bottom:10px">⭐</div>
+          <div style="font-size:40px;opacity:.3;margin-bottom:10px">â­گ</div>
           <div style="font-size:14px;font-weight:700;color:var(--text2);margin-bottom:5px">لا توجد تقييمات بعد</div>
           <div style="font-size:12px">سيظهر التقييم هنا بعد اكتمال طلب وتقييم العميل له</div>
         </div>`}
@@ -4691,7 +4815,7 @@ function _renderProfileTab(tab, id){
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
             <div>
               <div style="font-size:12px;font-weight:800;color:var(--accent)">${s.num}</div>
-              <div style="font-size:11px;color:var(--text3)"><i class="fa-solid fa-calendar-days"></i> ${s.from||'—'} → ${s.to||'—'} · ${s.tasks_count||0} طلب</div>
+              <div style="font-size:11px;color:var(--text3)"><i class="fa-solid fa-calendar-days"></i> ${s.from||'?'} ? ${s.to||'?'} آ· ${s.tasks_count||0} طلب</div>
             </div>
             <div style="text-align:left">
               <div style="font-size:14px;font-weight:700;color:var(--accent3)">${(s.total||0).toLocaleString()} ج</div>
@@ -4706,6 +4830,13 @@ function _renderProfileTab(tab, id){
         </div>`).join('')
       :'<div class="empty"><div class="empty-icon"><i class="fa-solid fa-file-lines"></i></div>لا كشوفات بعد<br><button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="_stmtNewDialog(\''+c.name.replace(/'/g,"\\'")+'\')" >+ كشف جديد</button></div>'}`;
   }
+
+  else if(tab==='timeline'){
+    body.innerHTML = '<div style="padding:4px 0">'
+      + '<div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:14px"><i class="fa-solid fa-clock-rotate-left" style="color:var(--accent)"></i> السجل الزمني الكامل</div>'
+      + (typeof renderClientTimelineHTML === 'function' ? renderClientTimelineHTML(c.id) : '<div style="color:var(--text3);font-size:13px">جارٍ التحميل...</div>')
+      + '</div>';
+  }
 }
 
 function _profileShowStatement(id){
@@ -4716,7 +4847,7 @@ function _profileShowStatement(id){
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:5000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)';
   overlay.innerHTML=`<div style="background:var(--surface);border-radius:16px;padding:24px;width:420px;max-width:96vw;box-shadow:0 24px 60px rgba(0,0,0,.5)">
-    <div style="font-size:16px;font-weight:800;margin-bottom:16px"><i class="fa-solid fa-file-lines"></i> كشف حساب — ${c.name}</div>
+    <div style="font-size:16px;font-weight:800;margin-bottom:16px"><i class="fa-solid fa-file-lines"></i> كشف حساب ? ${c.name}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
       <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">من تاريخ</label><input type="date" id="_stmt-from" value="${defFrom}" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px;color:var(--text);font-family:var(--font);font-size:13px"></div>
       <div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">إلى تاريخ</label><input type="date" id="_stmt-to" value="${defTo}" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px;color:var(--text);font-family:var(--font);font-size:13px"></div>
@@ -4746,7 +4877,7 @@ function _genStatement(id){
   const studio=S.settings?.name||'Ordo';
   const arabicMonths=['','يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
-  const html=`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف حساب — ${c.name}</title>
+  const html=`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف حساب ? ${c.name}</title>
   <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Cairo',Arial,sans-serif;background:#f5f6fa;color:#1a1a2e;padding:30px}
   .page{background:#fff;max-width:800px;margin:0 auto;border-radius:16px;padding:40px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
   h1{font-size:22px;font-weight:900;color:#7c6ff7;margin-bottom:4px}.sub{font-size:12px;color:#888;margin-bottom:24px}
@@ -4766,25 +4897,25 @@ function _genStatement(id){
   @media print{body{padding:0;background:#fff}.page{box-shadow:none;border-radius:0}}
   </style></head><body><div class="page">
   <h1><i class="fa-solid fa-file-lines"></i> كشف حساب</h1>
-  <div class="sub">${studio} · صادر بتاريخ ${new Date().toLocaleDateString('ar-EG')}</div>
+  <div class="sub">${studio} آ· صادر بتاريخ ${new Date().toLocaleDateString('ar-EG')}</div>
   <div class="meta">
     <div><b>العميل:</b> ${c.name}</div>
     ${c.phone?`<div><b>الهاتف:</b> ${c.phone}</div>`:''}
     ${c.email?`<div><b>البريد:</b> ${c.email}</div>`:''}
-    <div><b>الفترة:</b> ${from||'البداية'} — ${to||'الآن'}</div>
+    <div><b>الفترة:</b> ${from||'البداية'} ? ${to||'الآن'}</div>
   </div>
   <div class="summary">
     <div class="sum-card"><div class="val">${tasks.length}</div><div class="lbl">إجمالي الطلبات</div></div>
     <div class="sum-card"><div class="val" style="color:#2db87c">${totalInvPaid.toLocaleString()} ج</div><div class="lbl"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محصّل</div></div>
-    <div class="sum-card"><div class="val" style="color:#d49e00">${totalInvPend.toLocaleString()} ج</div><div class="lbl">⏳ معلق</div></div>
+    <div class="sum-card"><div class="val" style="color:#d49e00">${totalInvPend.toLocaleString()} ج</div><div class="lbl">âڈ³ معلق</div></div>
   </div>
   ${tasks.length?`<div class="section-title"><i class="fa-solid fa-clipboard-list"></i> الطلبات والمشاريع</div>
   <table><thead><tr><th>الطلب</th><th>التاريخ</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>
-  ${tasks.map(t=>{const st={new:'جديد',progress:'جاري',review:'مراجعة',done:'مكتمل'};return`<tr><td>${t.title}</td><td>${(t.isoDate||t.createdAt||'').slice(0,10)||'—'}</td><td>${t.value?t.value.toLocaleString()+' '+_getCurrency():'—'}</td><td>${st[t.status]||t.status||'—'}</td></tr>`}).join('')}
+  ${tasks.map(t=>{const st={new:'جديد',progress:'جاري',review:'مراجعة',done:'مكتمل'};return`<tr><td>${t.title}</td><td>${(t.isoDate||t.createdAt||'').slice(0,10)||'?'}</td><td>${t.value?t.value.toLocaleString()+' '+_getCurrency():'?'}</td><td>${st[t.status]||t.status||'?'}</td></tr>`}).join('')}
   </tbody></table>`:''}
   ${invs.length?`<div class="section-title"><i class="fa-solid fa-receipt"></i> الفواتير</div>
   <table><thead><tr><th>رقم</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th></tr></thead><tbody>
-  ${invs.map(i=>`<tr><td>#${i.num||'—'}</td><td>${i.date||'—'}</td><td>${i.total.toLocaleString()} ج</td><td><span class="badge ${i.status==='paid'?'paid':'pend'}">${i.status==='paid'?'مدفوع':'معلق'}</span></td></tr>`).join('')}
+  ${invs.map(i=>`<tr><td>#${i.num||'?'}</td><td>${i.date||'?'}</td><td>${i.total.toLocaleString()} ج</td><td><span class="badge ${i.status==='paid'?'paid':'pend'}">${i.status==='paid'?'مدفوع':'معلق'}</span></td></tr>`).join('')}
   </tbody></table>`:''}
   <div style="margin-top:30px;padding-top:16px;border-top:2px solid #e8eaf0;display:flex;justify-content:space-between;font-size:11px;color:#aaa">
     <span>${studio}</span><span>كشف حساب صادر تلقائياً من Ordo</span>
@@ -4802,9 +4933,9 @@ function _genStatement(id){
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 }
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // STATEMENTS SYSTEM (كشوفات الحساب)
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function _stmtsData(){ return S.statements || []; }
 function _stmtsSave(arr){ S.statements=arr; lsSave(); cloudSave(S); }
 function _nextStmtNum(){
@@ -4818,7 +4949,7 @@ function _initStatementsPanel(){
   // fill client selector
   const sel=document.getElementById('stmt-client-sel'); if(!sel)return;
   const cur=sel.value;
-  sel.innerHTML='<option value="">— اختر عميل —</option>'+
+  sel.innerHTML='<option value="">? اختر عميل ?</option>'+
     S.clients.map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
   if(cur) sel.value=cur;
   renderStatementsList();
@@ -4841,7 +4972,7 @@ function renderStatementsList(){
         <div>
           <div style="font-size:12px;font-weight:800;color:var(--accent)">${s.num}</div>
           <div style="font-size:13px;font-weight:600">${s.client}</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:2px">${s.from||''} → ${s.to||''}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">${s.from||''} ? ${s.to||''}</div>
         </div>
         <div style="text-align:left">
           <div style="font-size:13px;font-weight:700;color:var(--accent3)">${(s.total||0).toLocaleString()} ج</div>
@@ -4864,7 +4995,7 @@ function _stmtNewDialog(prefillClient){
     <div style="margin-bottom:12px">
       <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">العميل *</label>
       <select id="_stmt-client" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:9px;color:var(--text);font-family:var(--font);font-size:13px">
-        <option value="">— اختر عميل —</option>${clientOpts}
+        <option value="">? اختر عميل ?</option>${clientOpts}
       </select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
@@ -4924,7 +5055,7 @@ function _showStmtDetail(id){
       <div>
         <div style="font-size:18px;font-weight:900;color:var(--accent)">${s.num}</div>
         <div style="font-size:14px;font-weight:700">${s.client}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-calendar-days"></i> ${s.from||'—'} → ${s.to||'—'}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-calendar-days"></i> ${s.from||'?'} ? ${s.to||'?'}</div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn btn-primary btn-sm" onclick="_printStmt('${s.id}')"><i class="fa-solid fa-print"></i> طباعة PDF</button>
@@ -4935,7 +5066,7 @@ function _showStmtDetail(id){
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
       <div class="card" style="padding:10px;text-align:center"><div style="font-size:16px;font-weight:900;color:var(--accent)">${s.tasks_count}</div><div style="font-size:10px;color:var(--text3)">طلبات</div></div>
       <div class="card" style="padding:10px;text-align:center"><div style="font-size:16px;font-weight:900;color:var(--accent3)">${s.paid.toLocaleString()} ج</div><div style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محصّل</div></div>
-      <div class="card" style="padding:10px;text-align:center"><div style="font-size:16px;font-weight:900;color:var(--accent2)">${s.pending.toLocaleString()} ج</div><div style="font-size:10px;color:var(--text3)">⏳ معلق</div></div>
+      <div class="card" style="padding:10px;text-align:center"><div style="font-size:16px;font-weight:900;color:var(--accent2)">${s.pending.toLocaleString()} ج</div><div style="font-size:10px;color:var(--text3)">âڈ³ معلق</div></div>
     </div>
     ${s.tasks&&s.tasks.length?`<div class="section-title" style="margin-bottom:8px"><i class="fa-solid fa-clipboard-list"></i> الطلبات (${s.tasks.length})</div>
     ${s.tasks.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
@@ -4948,7 +5079,7 @@ function _showStmtDetail(id){
     </div>`).join('')}`:''}
     ${s.invoices&&s.invoices.length?`<div class="section-title" style="margin:14px 0 8px"><i class="fa-solid fa-receipt"></i> الفواتير (${s.invoices.length})</div>
     ${s.invoices.map(i=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
-      <div style="font-size:12px;font-weight:600">#${i.num||'—'} <span style="color:var(--text3)">${i.date||''}</span></div>
+      <div style="font-size:12px;font-weight:600">#${i.num||'?'} <span style="color:var(--text3)">${i.date||''}</span></div>
       <div style="display:flex;gap:8px;align-items:center">
         <span style="font-size:12px;font-weight:700;color:${i.status==='paid'?'var(--accent3)':'var(--accent2)'}">${i.total.toLocaleString()} ج</span>
         <span style="font-size:10px;padding:1px 7px;border-radius:8px;background:${i.status==='paid'?'rgba(79,209,165,.15)':'rgba(247,201,72,.15)'};color:${i.status==='paid'?'var(--accent3)':'var(--accent2)'}">${i.status==='paid'?'مدفوع':'معلق'}</span>
@@ -4970,7 +5101,7 @@ function _printStmt(id){
   const s=_stmtsData().find(x=>x.id===id); if(!s)return;
   const studio=S.settings?.name||'Ordo';
   const stFmt={new:'جديد',progress:'جاري',review:'مراجعة',done:'مكتمل'};
-  const html=`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف حساب ${s.num} — ${s.client}</title>
+  const html=`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف حساب ${s.num} ? ${s.client}</title>
   <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Cairo',Arial,sans-serif;background:#f5f6fa;color:#1a1a2e;padding:30px}
   .page{background:#fff;max-width:800px;margin:0 auto;border-radius:16px;padding:40px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
   h1{font-size:22px;font-weight:900;color:#7c6ff7}h2{font-size:12px;color:#888;margin-top:2px;margin-bottom:20px}
@@ -4984,21 +5115,21 @@ function _printStmt(id){
   footer{margin-top:28px;padding-top:14px;border-top:2px solid #e8eaf0;display:flex;justify-content:space-between;font-size:10px;color:#aaa}
   @media print{body{padding:0;background:#fff}.page{box-shadow:none;border-radius:0}}</style></head>
   <body><div class="page">
-  <h1><i class="fa-solid fa-file-lines"></i> كشف حساب — ${s.num}</h1><h2>${studio} · صادر ${new Date(s.created_at).toLocaleDateString('ar-EG')}</h2>
+  <h1><i class="fa-solid fa-file-lines"></i> كشف حساب ? ${s.num}</h1><h2>${studio} آ· صادر ${new Date(s.created_at).toLocaleDateString('ar-EG')}</h2>
   <div class="meta">
     <div><b>العميل:</b> ${s.client}</div>
-    <div><b>الفترة:</b> ${s.from||'—'} → ${s.to||'—'}</div>
+    <div><b>الفترة:</b> ${s.from||'?'} ? ${s.to||'?'}</div>
   </div>
   <div class="cards">
     <div class="card"><div class="v">${s.tasks_count}</div><div class="l">طلبات</div></div>
     <div class="card"><div class="v" style="color:#2db87c">${s.paid.toLocaleString()} ج</div><div class="l"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محصّل</div></div>
-    <div class="card"><div class="v" style="color:#d49e00">${s.pending.toLocaleString()} ج</div><div class="l">⏳ معلق</div></div>
+    <div class="card"><div class="v" style="color:#d49e00">${s.pending.toLocaleString()} ج</div><div class="l">âڈ³ معلق</div></div>
   </div>
   ${s.tasks&&s.tasks.length?`<div class="sec"><i class="fa-solid fa-clipboard-list"></i> الطلبات</div><table><thead><tr><th>الطلب</th><th>التاريخ</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>
-  ${s.tasks.map(t=>`<tr><td>${t.title}</td><td>${t.date||'—'}</td><td>${t.value?t.value.toLocaleString()+' '+_getCurrency():'—'}</td><td>${stFmt[t.status]||'—'}</td></tr>`).join('')}
+  ${s.tasks.map(t=>`<tr><td>${t.title}</td><td>${t.date||'?'}</td><td>${t.value?t.value.toLocaleString()+' '+_getCurrency():'?'}</td><td>${stFmt[t.status]||'?'}</td></tr>`).join('')}
   </tbody></table>`:''}
   ${s.invoices&&s.invoices.length?`<div class="sec"><i class="fa-solid fa-receipt"></i> الفواتير</div><table><thead><tr><th>رقم</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th></tr></thead><tbody>
-  ${s.invoices.map(i=>`<tr><td>#${i.num||'—'}</td><td>${i.date||'—'}</td><td>${i.total.toLocaleString()} ج</td><td><span class="badge ${i.status==='paid'?'paid':'pend'}">${i.status==='paid'?'مدفوع':'معلق'}</span></td></tr>`).join('')}
+  ${s.invoices.map(i=>`<tr><td>#${i.num||'?'}</td><td>${i.date||'?'}</td><td>${i.total.toLocaleString()} ج</td><td><span class="badge ${i.status==='paid'?'paid':'pend'}">${i.status==='paid'?'مدفوع':'معلق'}</span></td></tr>`).join('')}
   </tbody></table>`:''}
   <footer><span>${studio}</span><span>كشف حساب رقم ${s.num}</span></footer>
   </div><${'script'}>window.onload=()=>setTimeout(()=>window.print(),400)</${'script'}></body></html>`;
@@ -5010,7 +5141,7 @@ function _waStmt(id){
   const studio=S.settings?.name||'Ordo';
   const c=S.clients.find(x=>x.name===s.client);
   const phone=(c?.phone||'').replace(/[^\d]/g,'');
-  const msg=`مرحباً ${s.client} <i class="fa-solid fa-hand-wave"></i>\n\nنرفق لك كشف حساب رقم ${s.num}\nالفترة: ${s.from||'—'} → ${s.to||'—'}\nإجمالي الطلبات: ${s.tasks_count} طلب\nالمحصّل: ${s.paid.toLocaleString()} ج\nالمعلق: ${s.pending.toLocaleString()} ج\n\n${studio}`;
+  const msg=`مرحباً ${s.client} <i class="fa-solid fa-hand-wave"></i>\n\nنرفق لك كشف حساب رقم ${s.num}\nالفترة: ${s.from||'?'} ? ${s.to||'?'}\nإجمالي الطلبات: ${s.tasks_count} طلب\nالمحصّل: ${s.paid.toLocaleString()} ج\nالمعلق: ${s.pending.toLocaleString()} ج\n\n${studio}`;
   const url=`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   window.open(url,'_blank');
 }
@@ -5018,9 +5149,9 @@ function _waStmt(id){
   
 function delClient(id){confirmDel('هل تريد حذف هذا العميل؟',()=>{S.clients=S.clients.filter(c=>c.id!==id);lsSave();cloudSaveNow(S);renderAll();});}
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // <i class="fa-solid fa-rocket"></i> FEATURES & UPDATES SYSTEM
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 
 // Static updates log shown in Settings > التحديثات
 const _ALL_UPDATES = [
@@ -5123,7 +5254,7 @@ function _renderFeaturesPanel(){
         ${c.checkId?`<div style="margin-bottom:8px"><label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="${c.checkId}" style="accent-color:var(--accent)" onchange="${c.save}"> ${c.checkLabel}</label>${c.checkId2?`<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;margin-top:4px"><input type="checkbox" id="${c.checkId2}" style="accent-color:var(--accent2)" onchange="${c.save}"> ${c.checkLabel2}</label>`:''}</div>`:''}
         <div style="display:flex;gap:5px;flex-wrap:wrap">
           ${c.save?`<button class="btn btn-primary btn-sm" onclick="${c.save}" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>`:''}
-          <button class="btn btn-ghost btn-sm" onclick="${c.go}">${c.goLabel} →</button>
+          <button class="btn btn-ghost btn-sm" onclick="${c.go}">${c.goLabel} ?</button>
         </div>
       </div>`).join('');
     // Re-apply saved values after rendering
@@ -5137,7 +5268,7 @@ function _renderFeaturesPanel(){
     el=document.getElementById('feat-capacity');if(el)el.value=S.settings?.monthlyCapacity||10;
   }
 
-  // ── Admin Updates (dynamic from Supabase/studio_data platform) ──
+  // â”€â”€ Admin Updates (dynamic from Supabase/studio_data platform) â”€â”€
   var adminUpdatesEl = document.getElementById('admin-updates-list');
   if(adminUpdatesEl) _renderAdminUpdates(adminUpdatesEl);
 
@@ -5160,7 +5291,7 @@ function _renderFeaturesPanel(){
         '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'+
           '<div style="font-size:13px;font-weight:800">'+u.title+'</div>'+
           '<span style="font-size:9px;background:var(--surface2);padding:2px 7px;border-radius:8px;color:var(--text3)">'+u.version+'</span>'+
-          (isNew?'<span style="font-size:9px;background:var(--accent4);color:#fff;padding:2px 7px;border-radius:8px;font-weight:700">🆕 جديد</span>':'')+
+          (isNew?'<span style="font-size:9px;background:var(--accent4);color:#fff;padding:2px 7px;border-radius:8px;font-weight:700">ًں†• جديد</span>':'')+
         '</div>'+
         '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.6">'+u.desc+'</div>'+
         '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
@@ -5182,13 +5313,13 @@ function _renderFeaturesPanel(){
       if(badge)badge.style.display='inline-block';
       var newCount=lastSeen===''?_ALL_UPDATES.length:Math.max(0,_ALL_UPDATES.findIndex(u=>u.id===lastSeen));
       if(newCount>0&&typeof addNotification==='function'){
-        addNotification('<i class="fa-solid fa-rocket"></i> '+newCount+' ميزة جديدة في السيستم — اضغط على الإعدادات > التحديثات','info');
+        addNotification('<i class="fa-solid fa-rocket"></i> '+newCount+' ميزة جديدة في السيستم ? اضغط على الإعدادات > التحديثات','info');
       }
     }
   },2000);
 })();
 
-// ─── Admin-sent Updates Renderer ───
+// â”€â”€â”€ Admin-sent Updates Renderer â”€â”€â”€
 function _renderAdminUpdates(container){
   // Admin updates stored in S._platform_updates (array injected by admin into studio_data)
   var updates = (typeof S !== 'undefined' && S._platform_updates) ? S._platform_updates : [];
@@ -5287,24 +5418,24 @@ function renderClients(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div class="client-avatar" style="background:${c.color}22;color:${c.color}">${c.name[0]}</div>
         <div style="display:flex;gap:4px" onclick="event.stopPropagation()">
-          <button class="btn btn-ghost btn-sm" title="إعدادات / تعديل" onclick="openClientModal(${c.id})"><i class="fa-solid fa-gear"></i>️</button>
+          <button class="btn btn-ghost btn-sm" title="إعدادات / تعديل" onclick="openClientModal(${c.id})"><i class="fa-solid fa-gear"></i>ï¸ڈ</button>
           <button class="btn btn-ghost btn-sm" title="بوابة العميل" onclick="openClientPortal(${c.id})"><i class="fa-solid fa-link"></i></button>
           <button class="btn btn-danger btn-sm" onclick="delClient(${c.id})"><i class="fa-solid fa-trash"></i></button>
         </div>
       </div>
       <div style="font-size:15px;font-weight:700">${c.name}${(()=>{const subs=S.clients.filter(sc=>String(sc.parentClientId)===String(c.id));return subs.length?` <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:1px 7px;border-radius:8px;font-weight:600"><i class="fa-solid fa-building"></i> ${subs.length} فرع</span>`:'';})()}</div>
       <div style="font-size:12px;color:var(--text2);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-        <span>${c.type} · ${c.channel}${c.field?' · '+c.field:''}</span>
+        <span>${c.type} آ· ${c.channel}${c.field?' آ· '+c.field:''}</span>
         ${c.workType==='fulltime'?'<span class="jtype-badge jtype-fulltime"><i class="fa-solid fa-building"></i> دوام</span>':c.workType==='parttime'?'<span class="jtype-badge jtype-parttime"><i class="fa-solid fa-alarm-clock"></i> بارت تايم</span>':c.workType==='sub'?(()=>{const par=S.clients.find(p=>String(p.id)===String(c.parentClientId));return `<span class="jtype-badge" style="background:rgba(79,209,165,.12);color:var(--accent3)"><i class="fa-solid fa-link"></i> تابع${par?' لـ '+par.name:''}</span>`;})():'<span class="jtype-badge jtype-freelance"><i class="fa-solid fa-bullseye"></i> فري لانس</span>'}
       </div>
-      ${c.salary?`<div style="font-size:12px;color:var(--accent3);margin-top:4px;font-weight:700"><i class="fa-solid fa-coins"></i> ${c.salary.toLocaleString()} ج/شهر · يوم ${c.salaryDay}</div>`:''}
+      ${c.salary?`<div style="font-size:12px;color:var(--accent3);margin-top:4px;font-weight:700"><i class="fa-solid fa-coins"></i> ${c.salary.toLocaleString()} ج/شهر آ· يوم ${c.salaryDay}</div>`:''}
       ${c.phone?`<div style="font-size:12px;color:var(--text3);margin-top:6px;display:flex;align-items:center;gap:8px"><i class="fa-solid fa-phone"></i> ${c.phone}<a href="https://wa.me/${c.phone.replace(/[^\d]/g,'')}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;text-decoration:none"><i class="fa-solid fa-comments"></i> واتساب</a></div>`:''}
       ${c.email?`<div style="font-size:12px;color:var(--text3)"><i class="fa-solid fa-envelope"></i> ${c.email}</div>`:''}
       ${c.notes?`<div style="font-size:12px;color:var(--text3);margin-top:6px;font-style:italic">${c.notes.slice(0,60)}${c.notes.length>60?'...':''}</div>`:''}
       <div style="display:flex;gap:16px;margin-top:12px">
         <div><div style="font-size:16px;font-weight:700;color:${c.color}">${cTasks(c.name)}</div><div style="font-size:11px;color:var(--text3)">مشاريع</div></div>
         <div><div style="font-size:16px;font-weight:700;color:var(--accent2)">${cThisMonth(c.name)}</div><div style="font-size:11px;color:var(--text3)">هذا الشهر</div></div>
-        ${(()=>{const revs=(S.reviews||[]).filter(r=>String(r.client_id)===String(c.id)||r.client_name===c.name);if(!revs.length)return'';const avg=(revs.reduce((s,r)=>s+(+r.stars||0),0)/revs.length).toFixed(1);return`<div><div style="font-size:16px;font-weight:700;color:#f7c948">⭐ ${avg}</div><div style="font-size:11px;color:var(--text3)">${revs.length} تقييم</div></div>`;})()}
+        ${(()=>{const revs=(S.reviews||[]).filter(r=>String(r.client_id)===String(c.id)||r.client_name===c.name);if(!revs.length)return'';const avg=(revs.reduce((s,r)=>s+(+r.stars||0),0)/revs.length).toFixed(1);return`<div><div style="font-size:16px;font-weight:700;color:#f7c948">â­گ ${avg}</div><div style="font-size:11px;color:var(--text3)">${revs.length} تقييم</div></div>`;})()}
       </div>
     </div>`).join('');
 
@@ -5321,7 +5452,7 @@ function renderClients(){
           +'<div style="width:40px;height:40px;border-radius:50%;background:'+acc2+'22;color:'+acc2+';font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+c.name[0]+'</div>'
           +'<div style="flex:1;min-width:0">'
             +'<div style="font-size:14px;font-weight:800">'+escapeHtml(c.name)+'</div>'
-            +'<div style="font-size:11px;color:var(--text3)">'+(c.type||'')+' · '+(c.channel||'')+(c.phone?' · '+c.phone:'')+'</div>'
+            +'<div style="font-size:11px;color:var(--text3)">'+(c.type||'')+' آ· '+(c.channel||'')+(c.phone?' آ· '+c.phone:'')+'</div>'
           +'</div>'
           +'<div style="display:flex;gap:12px;align-items:center;font-size:12px;color:var(--text3)">'
             +'<span><strong style="color:'+acc2+'">'+cTasks(c.name)+'</strong> مشروع</span>'
@@ -5345,7 +5476,7 @@ function renderClients(){
               +(t.value?'<span style="font-size:10px;color:var(--accent3);font-weight:700">'+t.value.toLocaleString()+' ج</span>':'')
             +'</div>';
           }).join('')
-          +(clientTasks.length>10?'<div style="font-size:11px;color:var(--accent);text-align:center;padding:8px;font-weight:700;cursor:pointer" onclick="event.stopPropagation();openClientProfile('+c.id+')">+ '+String(clientTasks.length-10)+' مشروع آخر ←</div>':'')
+          +(clientTasks.length>10?'<div style="font-size:11px;color:var(--accent);text-align:center;padding:8px;font-weight:700;cursor:pointer" onclick="event.stopPropagation();openClientProfile('+c.id+')">+ '+String(clientTasks.length-10)+' مشروع آخر â†گ</div>':'')
         +'</div>':'')
       +'</div>';
     }).join('')+'</div>';
@@ -5358,9 +5489,9 @@ function renderClients(){
       var bg=idx%2===0?'var(--surface)':'var(--surface2)';
       return '<tr style="background:'+bg+';cursor:pointer" onclick="openClientProfile('+c.id+')">'
         +'<td style="padding:10px 14px;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;gap:8px"><div style="width:30px;height:30px;border-radius:50%;background:'+(c.color||'var(--accent)')+'22;color:'+(c.color||'var(--accent)')+';font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+c.name[0]+'</div><div style="font-weight:700">'+escapeHtml(c.name)+'</div></div></td>'
-        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+(c.type||'—')+'</td>'
-        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+(c.channel||'—')+'</td>'
-        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+(c.phone||'—')+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+(c.type||'?')+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+(c.channel||'?')+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">'+(c.phone||'?')+'</td>'
         +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-weight:700;color:'+(c.color||'var(--accent)')+'">'+cTasks(c.name)+'</td>'
         +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-weight:700;color:var(--accent2)">'+cThisMonth(c.name)+'</td>'
         +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()"><div style="display:flex;gap:4px;justify-content:center"><button class="btn btn-ghost btn-sm" style="padding:3px 7px" onclick="openClientModal('+c.id+')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-ghost btn-sm" style="padding:3px 7px" onclick="openClientPortal('+c.id+')"><i class="fa-solid fa-link"></i></button><button class="btn btn-danger btn-sm" style="padding:3px 7px" onclick="delClient('+c.id+')"><i class="fa-solid fa-trash"></i></button></div></td>'
@@ -5432,7 +5563,7 @@ function _fillOpenIncomeProject(projId) {
   const projSel = document.getElementById('in-linked-project');
   if(!projSel) return;
   // Make sure all projects are loaded
-  projSel.innerHTML = '<option value="">— لا يوجد مشروع —</option>';
+  projSel.innerHTML = '<option value="">? لا يوجد مشروع ?</option>';
   (S.projects||[]).forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.id;
@@ -5556,7 +5687,7 @@ function saveTrans(type){
         date:isoDate,due:document.getElementById('in-loan-due')?.value||'',
         notes:'',status:'pending',settledAmount:0,
         createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
-      toast('🤝 تم تسجيل القرض في صفحة القروض');
+      toast('ًں¤‌ تم تسجيل القرض في صفحة القروض');
     }
   }
   if(!isInc && expCat==='سلفة للغير'){
@@ -5568,7 +5699,7 @@ function saveTrans(type){
         date:isoDate,due:document.getElementById('ex-loan-due')?.value||'',
         notes:'',status:'pending',settledAmount:0,
         createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
-      toast('🤝 تم تسجيل السلفة في صفحة القروض');
+      toast('ًں¤‌ تم تسجيل السلفة في صفحة القروض');
     }
   }
   lsSave();closeM(isInc?'modal-income':'modal-expense');renderAll();
@@ -5659,7 +5790,7 @@ function filterTransactions(transactions){
 }
 
 
-// ── Sync project task income to S.transactions (auto-record) ──
+// â”€â”€ Sync project task income to S.transactions (auto-record) â”€â”€
 // ملحوظة: لو المستخدم حذف المعاملة يدوياً، مش بنرجعها تاني
 function _syncProjTaskTransactions(){
   if(!S.project_tasks) return;
@@ -5677,7 +5808,7 @@ function _syncProjTaskTransactions(){
         type:'income',
         amount:t.value,
         currency:t.currency||'ج.م',
-        desc:'مهمة مشروع: '+(t.title||'')+(proj?' — '+proj.name:''),
+        desc:'مهمة مشروع: '+(t.title||'')+(proj?' ? '+proj.name:''),
         date:t.createdAt?t.createdAt.slice(0,10):new Date().toISOString().slice(0,10),
         isoDate:t.createdAt?t.createdAt.slice(0,10):new Date().toISOString().slice(0,10),
         linkedProjTaskId:t.id,
@@ -5738,7 +5869,7 @@ function renderFinance(){
   set('fin-in-sub', f.month||f.year ? `(${(f.month?'الشهر':'')+(f.year?' '+f.year:'')})` : '');
   set('fin-out',exp.toLocaleString()+' '+_getCurrency());
   set('fin-net',net.toLocaleString()+' '+_getCurrency());
-  set('fin-margin',inc?margin+'%':'—');
+  set('fin-margin',inc?margin+'%':'?');
   set('fin-pending',pendingRev.toLocaleString()+' '+_getCurrency());
   set('fin-deposits',depositsPending.toLocaleString()+' '+_getCurrency());
   
@@ -5751,10 +5882,10 @@ function renderFinance(){
   const rows = [...filtered].sort((a,b)=>(b.isoDate||'').localeCompare(a.isoDate||'')).map(t=>{
     const projBadge = t.project_id ? (()=>{const pj=(S.projects||[]).find(p=>String(p.id)===String(t.project_id));return pj?` <span style="font-size:10px;background:rgba(79,209,165,.12);color:#4fd1a5;padding:1px 7px;border-radius:8px;cursor:pointer" onclick="showPage('projects');setTimeout(()=>openProjectDetail('${pj.id}'),200)"><i class="fa-solid fa-diagram-project"></i> ${pj.name.slice(0,18)}</span>`:''})() : '';
     return `<tr>
-    <td>${t.desc||'—'}${projBadge}${t.linkedTaskId?(()=>{const lt=S.tasks.find(x=>x.id===t.linkedTaskId);return lt?` <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:1px 6px;border-radius:8px;cursor:pointer" onclick="openTaskDetail(${t.linkedTaskId})"><i class="fa-solid fa-link"></i> ${lt.title.slice(0,20)}</span>`:''})():''}</td><td class="hide-mobile">${t.source||'—'}${t.paymentType&&t.paymentType!=='full'?` <span style="font-size:10px;color:var(--accent2)">(${t.paymentType==='deposit'?'عربون':'جزئي'})</span>`:''}</td>
+    <td>${t.desc||'?'}${projBadge}${t.linkedTaskId?(()=>{const lt=S.tasks.find(x=>x.id===t.linkedTaskId);return lt?` <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:1px 6px;border-radius:8px;cursor:pointer" onclick="openTaskDetail(${t.linkedTaskId})"><i class="fa-solid fa-link"></i> ${lt.title.slice(0,20)}</span>`:''})():''}</td><td class="hide-mobile">${t.source||'?'}${t.paymentType&&t.paymentType!=='full'?` <span style="font-size:10px;color:var(--accent2)">(${t.paymentType==='deposit'?'عربون':'جزئي'})</span>`:''}</td>
     <td><span class="badge ${t.type==='income'?'badge-green':'badge-red'}">${t.type==='income'?'<i class="fa-solid fa-coins"></i> دخل':'<i class="fa-solid fa-money-bill-wave"></i> مصروف'}</span></td>
     <td style="font-weight:700;color:${t.type==='income'?'var(--accent3)':'var(--accent4)'}">${t.amount.toLocaleString()} ج</td>
-    <td class="hide-mobile" style="font-family:var(--mono);font-size:11px">${t.isoDate||t.date||'—'}</td>
+    <td class="hide-mobile" style="font-family:var(--mono);font-size:11px">${t.isoDate||t.date||'?'}</td>
     <td><div style="display:flex;gap:4px">
       <button class="btn btn-ghost btn-sm" onclick="${t.type==='income'?'openIncomeModal':'openExpenseModal'}(${t.id})"><i class="fa-solid fa-pen"></i></button>
       ${t.type==='income'?`<button class="btn btn-ghost btn-sm" onclick="exportReceipt(${t.id})" title="إيصال PDF" style="color:var(--accent3)"><i class="fa-solid fa-receipt"></i></button>`:''}
@@ -5769,7 +5900,7 @@ function renderUnpaidReminders(){
   // Find completed tasks whose payment was not collected
   const _projUncollected=(S.project_tasks||[]).filter(t=>t.status==='done'&&!t.paymentCollected&&t.value>0).map(t=>{
     var proj=_getProjById&&_getProjById(t.project_id);
-    return Object.assign({},t,{title:(proj?proj.name+' — ':'')+t.title,_isProjTask:true});
+    return Object.assign({},t,{title:(proj?proj.name+' ? ':'')+t.title,_isProjTask:true});
   });
   const uncollected = [...S.tasks.filter(t=>t.done && !t.paymentCollected && t.value>0), ..._projUncollected];
 
@@ -5801,7 +5932,7 @@ function renderUnpaidReminders(){
         <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(42,42,58,.4)">
           <div style="flex:1">
             <div style="font-size:13px;font-weight:600">${t.title}</div>
-            <div style="font-size:11px;color:var(--text3)">${t.client||'—'}</div>
+            <div style="font-size:11px;color:var(--text3)">${t.client||'?'}</div>
           </div>
           <div style="font-weight:700;color:var(--accent2)">${t.value.toLocaleString()} ${cur}</div>
           <button class="btn btn-success btn-sm" onclick="markTaskPaymentCollected(${t.id})"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم التحصيل</button>
@@ -5815,8 +5946,8 @@ function renderUnpaidReminders(){
       ${overdueLoans.map(l=>`
         <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(42,42,58,.4)">
           <div style="flex:1">
-            <div style="font-size:13px;font-weight:600">${l.direction==='lent'?'💰 سلّفت لـ ':'↩ استلفت من '}${escapeHtml(l.person)}</div>
-            <div style="font-size:11px;color:var(--accent4)">⚠️ استحق: ${l.due}</div>
+            <div style="font-size:13px;font-weight:600">${l.direction==='lent'?'ًں’° سلّفت لـ ':'â†© استلفت من '}${escapeHtml(l.person)}</div>
+            <div style="font-size:11px;color:var(--accent4)">âڑ ï¸ڈ استحق: ${l.due}</div>
           </div>
           <div style="font-weight:700;color:var(--accent4)">${(l.amount-(l.settledAmount||0)).toLocaleString()} ${cur}</div>
           <button class="btn btn-ghost btn-sm" onclick="switchFinTab('loans');showPage('finance')"><i class="fa-solid fa-handshake"></i> عرض</button>
@@ -5831,8 +5962,8 @@ function renderUnpaidReminders(){
         const daysLeft = Math.round((new Date(l.due)-today)/(1000*60*60*24));
         return `<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(42,42,58,.4)">
           <div style="flex:1">
-            <div style="font-size:13px;font-weight:600">${l.direction==='lent'?'💰 سلّفت لـ ':'↩ استلفت من '}${escapeHtml(l.person)}</div>
-            <div style="font-size:11px;color:var(--accent2)">📅 الموعد: ${l.due} (${daysLeft===0?'اليوم!':daysLeft+' أيام'})</div>
+            <div style="font-size:13px;font-weight:600">${l.direction==='lent'?'ًں’° سلّفت لـ ':'â†© استلفت من '}${escapeHtml(l.person)}</div>
+            <div style="font-size:11px;color:var(--accent2)">ًں“… الموعد: ${l.due} (${daysLeft===0?'اليوم!':daysLeft+' أيام'})</div>
           </div>
           <div style="font-weight:700;color:var(--accent2)">${(l.amount-(l.settledAmount||0)).toLocaleString()} ${cur}</div>
         </div>`;
@@ -5843,7 +5974,7 @@ function renderUnpaidReminders(){
   if(clientsOwing.length){
     const totalOwing = clientsOwing.reduce(function(s,c){ return s+(+c.openingBalance||0); },0);
     html += `<div class="card" style="border-color:rgba(168,156,255,.4);margin-bottom:10px">
-      <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:10px"><i class="fa-solid fa-users"></i> عملاء عندهم رصيد مستحق — إجمالي: ${totalOwing.toLocaleString()} ${cur}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:10px"><i class="fa-solid fa-users"></i> عملاء عندهم رصيد مستحق ? إجمالي: ${totalOwing.toLocaleString()} ${cur}</div>
       ${clientsOwing.map(c=>`
         <div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid rgba(42,42,58,.4)">
           <div style="flex:1;font-size:12px;font-weight:700">${escapeHtml(c.name)}</div>
@@ -5866,7 +5997,7 @@ function markTaskPaymentCollected(taskId){
       var proj=typeof _getProjById==='function'?_getProjById(ptask.project_id):null;
       S.transactions.push({id:Date.now()+Math.random(),type:'income',amount:ptask.value,
         currency:ptask.currency||'ج.م',
-        desc:'تحصيل: '+(ptask.title||'')+(proj?' — '+proj.name:''),
+        desc:'تحصيل: '+(ptask.title||'')+(proj?' ? '+proj.name:''),
         date:new Date().toISOString().slice(0,10),
         linkedProjTaskId:ptask.id,source:'project_task',createdAt:new Date().toISOString()});
     }
@@ -5895,7 +6026,7 @@ function markTaskPaymentCollected(taskId){
 // ============================================================
 // INVOICES
 // ============================================================
-/* ── عرض مهام العميل في مودال الفاتورة ── */
+/* â”€â”€ عرض مهام العميل في مودال الفاتورة â”€â”€ */
 function onInvClientChange(clientName){
   const name = clientName || document.getElementById('inv-client')?.value || '';
   const panel = document.getElementById('inv-tasks-panel');
@@ -5903,7 +6034,7 @@ function onInvClientChange(clientName){
   if(!panel||!list) return;
   if(!name){ panel.style.display='none'; return; }
 
-  // كل تاسكات العميل — مش بس الجاري، كمان المكتملة والمدفوعة
+  // كل تاسكات العميل ? مش بس الجاري، كمان المكتملة والمدفوعة
   const tasks = S.tasks.filter(t => t.client === name);
   if(!tasks.length){ panel.style.display='none'; return; }
 
@@ -5939,7 +6070,7 @@ function onInvClientChange(clientName){
     // لون الكارد
     const cardBg     = already ? 'rgba(124,111,247,.16)' : isPaidFull ? 'rgba(79,209,165,.05)' : 'var(--surface2)';
     const cardBorder = already ? 'var(--accent)' : isPaidFull ? 'rgba(79,209,165,.3)' : 'var(--border)';
-    const icon       = already ? '<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>' : hasInvoice ? '<i class="fa-solid fa-repeat"></i>' : '➕';
+    const icon       = already ? '<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>' : hasInvoice ? '<i class="fa-solid fa-repeat"></i>' : 'â‍•';
 
     return `<div id="task-chip-${t.id}" onclick="toggleTaskAsItem(${t.id})"
       style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;
@@ -5947,14 +6078,14 @@ function onInvClientChange(clientName){
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
         <div style="font-size:11px;margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-          <span style="color:${statusColor[t.status]||'var(--text3)'}">● ${statusLabel[t.status]||t.status}</span>
+          <span style="color:${statusColor[t.status]||'var(--text3)'}">â—ڈ ${statusLabel[t.status]||t.status}</span>
           ${t.deadline ? `<span style="color:var(--text3)"><i class="fa-solid fa-calendar-days"></i> ${t.deadline}</span>` : ''}
           ${t.value    ? `<span style="color:var(--accent3);font-weight:700">${t.value.toLocaleString()} ج</span>` : ''}
           ${payBadge}
           ${invBadge}
         </div>
-        ${isPaidFull && t.value ? `<div style="font-size:10px;color:var(--accent3);margin-top:4px">↪ سيُضاف ${t.value.toLocaleString()} ج كمدفوع مسبقاً في الفاتورة</div>` : ''}
-        ${isPaidDeposit && t.deposit ? `<div style="font-size:10px;color:var(--accent2);margin-top:4px">↪ سيُضاف العربون ${t.deposit.toLocaleString()} ج كمدفوع مسبقاً في الفاتورة</div>` : ''}
+        ${isPaidFull && t.value ? `<div style="font-size:10px;color:var(--accent3);margin-top:4px">â†ھ سيُضاف ${t.value.toLocaleString()} ج كمدفوع مسبقاً في الفاتورة</div>` : ''}
+        ${isPaidDeposit && t.deposit ? `<div style="font-size:10px;color:var(--accent2);margin-top:4px">â†ھ سيُضاف العربون ${t.deposit.toLocaleString()} ج كمدفوع مسبقاً في الفاتورة</div>` : ''}
       </div>
       <div style="font-size:18px;flex-shrink:0">${icon}</div>
     </div>`;
@@ -5963,7 +6094,7 @@ function onInvClientChange(clientName){
   panel.style.display = 'block';
 }
 
-/* إضافة / إزالة مهمة كبند — مع منطق الدفع المسبق */
+/* إضافة / إزالة مهمة كبند ? مع منطق الدفع المسبق */
 function toggleTaskAsItem(taskId){
   const t = S.tasks.find(x => x.id === taskId);
   if(!t) return;
@@ -5973,7 +6104,7 @@ function toggleTaskAsItem(taskId){
   if(idx > -1){
     // إزالة البند
     invItems.splice(idx, 1);
-    // إعادة حساب العربون — اطرح ما أضفناه
+    // إعادة حساب العربون ? اطرح ما أضفناه
     _recalcDepositFromItems();
   } else {
     // إضافة البند
@@ -5982,7 +6113,7 @@ function toggleTaskAsItem(taskId){
 
     invItems.push({
       _taskId: taskId,
-      desc:  t.title + (t.notes ? ' — ' + t.notes.slice(0, 60) : ''),
+      desc:  t.title + (t.notes ? ' ? ' + t.notes.slice(0, 60) : ''),
       qty:   1,
       price: t.value || 0
     });
@@ -6121,7 +6252,7 @@ function markPaid(id){const inv=S.invoices.find(i=>i.id===id);if(inv){inv.status
 function markUncollected(id){const inv=S.invoices.find(i=>i.id===id);if(inv){inv.status='pending';inv.collectedAt=null;lsSave();renderAll();previewInv(id);}}
 
 // ============================================================
-// RECEIPT PDF — إيصال استلام مبلغ
+// RECEIPT PDF ? إيصال استلام مبلغ
 // ============================================================
 function exportReceipt(transId){
   const t = S.transactions.find(x=>x.id===transId);
@@ -6150,13 +6281,13 @@ function exportReceipt(transId){
     <div style="font-size:36px;font-weight:900;color:#4fd1a5">${t.amount.toLocaleString()} <span style="font-size:18px">ج.م</span></div>
     <div style="margin-top:8px;display:inline-block;background:rgba(79,209,165,.2);color:#4fd1a5;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700">${payTypeAr}</div>
   </div>
-  <div style="text-align:left"><div style="font-size:11px;color:#b0a8ff;margin-bottom:3px">من</div><div style="font-size:15px;font-weight:700;color:#fff">${t.source||'—'}</div></div>
+  <div style="text-align:left"><div style="font-size:11px;color:#b0a8ff;margin-bottom:3px">من</div><div style="font-size:15px;font-weight:700;color:#fff">${t.source||'?'}</div></div>
 </div>
 <div style="margin:0 28px 24px;border:1px solid #e8e8f0;border-radius:10px;overflow:hidden">
   <div style="padding:10px 16px;background:#f8f8fc;font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.5px">تفاصيل الإيصال</div>
   <table style="width:100%;border-collapse:collapse">
-    <tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5;width:38%">الوصف</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5">${t.desc||'—'}</td></tr>
-    ${linkedTask ? `<tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5">المشروع</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5"><i class="fa-solid fa-clipboard-list"></i> ${linkedTask.title}</td></tr><tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5">العميل</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5">${linkedTask.client||'—'}</td></tr>` : ''}
+    <tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5;width:38%">الوصف</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5">${t.desc||'?'}</td></tr>
+    ${linkedTask ? `<tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5">المشروع</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5"><i class="fa-solid fa-clipboard-list"></i> ${linkedTask.title}</td></tr><tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5">العميل</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5">${linkedTask.client||'?'}</td></tr>` : ''}
     <tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5">نوع الدفعة</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5">${payTypeAr}</td></tr>
     <tr><td style="padding:11px 16px;font-size:12px;color:#888">تاريخ الاستلام</td><td style="padding:11px 16px;font-size:13px;font-weight:600">${dateStr}</td></tr>
   </table>
@@ -6185,12 +6316,57 @@ ${s.terms?`<div style="margin:12px 28px;padding:12px;background:#fafafe;border-r
   };
 }
 
+function _invLinkToProject(invId) {
+  var projects = S.projects || [];
+  if (!projects.length) { toast('âڑ ï¸ڈ لا توجد مشاريع ? أنشئ مشروعاً أولاً'); return; }
+  var inv = S.invoices.find(function(i){ return i.id===invId; });
+  if (!inv) return;
+
+  var clientId = inv.clientId || inv.client_id || '';
+  var sorted = projects.slice().sort(function(a,b) {
+    var aM = clientId && String(a.client_id||'')===clientId ? 0 : 1;
+    var bM = clientId && String(b.client_id||'')===clientId ? 0 : 1;
+    return aM - bM;
+  });
+
+  var opts = sorted.map(function(p) {
+    var sel = (inv.project_id||inv.projectId) && String(p.id)===String(inv.project_id||inv.projectId) ? ' selected' : '';
+    var mark = (clientId && String(p.client_id||'')===clientId) ? ' âک…' : '';
+    return '<option value="'+p.id+'"'+sel+'>'+escapeHtml(p.name)+mark+'</option>';
+  }).join('');
+
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px';
+  ov.innerHTML = '<div style="background:var(--surface);border-radius:16px;padding:24px;width:min(380px,95vw);box-shadow:0 24px 60px rgba(0,0,0,.5)">'
+    + '<div style="font-size:15px;font-weight:900;margin-bottom:4px"><i class="fa-solid fa-diagram-project" style="color:var(--accent3)"></i> ربط الفاتورة بمشروع</div>'
+    + '<div style="font-size:12px;color:var(--text3);margin-bottom:16px">'+escapeHtml(inv.num||'فاتورة')+' ? '+escapeHtml(inv.client||'')+'</div>'
+    + '<select id="_inv-proj-sel" class="form-select" style="width:100%;margin-bottom:16px">'
+    + '<option value="">? اختر مشروعاً ?</option>' + opts
+    + '</select>'
+    + '<div style="display:flex;gap:8px">'
+    + '<button id="_inv-link-ok" class="btn btn-primary" style="flex:1"><i class="fa-solid fa-check"></i> ربط</button>'
+    + '<button class="btn btn-ghost" style="flex:1" onclick="this.closest(\'[style*=fixed]\').remove()">إلغاء</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+
+  document.getElementById('_inv-link-ok').onclick = function() {
+    var projId = document.getElementById('_inv-proj-sel').value;
+    if (!projId) { toast('âڑ ï¸ڈ اختر مشروعاً'); return; }
+    if (typeof attachInvoiceToProject === 'function') {
+      attachInvoiceToProject(invId, projId);
+    }
+    ov.remove();
+    renderInvoices();
+  };
+}
+
 function renderInvoices(){
   const tbody=document.getElementById('inv-tbody');if(!tbody)return;
   const sm={
-    pending:'<span class="inv-status-badge inv-uncollected">⏳ لم يتم التحصيل</span>',
+    pending:'<span class="inv-status-badge inv-uncollected">âڈ³ لم يتم التحصيل</span>',
     paid:'<span class="inv-status-badge inv-collected"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم التحصيل</span>',
-    cancelled:'<span class="inv-status-badge inv-cancelled">🚫 ملغية</span>'
+    cancelled:'<span class="inv-status-badge inv-cancelled">ًںڑ« ملغية</span>'
   };
   tbody.innerHTML=S.invoices.map(inv=>`<tr>
     <td style="font-family:var(--mono);color:var(--accent);font-size:12px">${inv.num}</td>
@@ -6205,7 +6381,8 @@ function renderInvoices(){
         <svg width="13" height="13" viewBox="0 0 24 24" fill="white" style="vertical-align:middle"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
       </button>
       ${inv.status==='pending'?`<button class="btn btn-success btn-sm" onclick="markPaid(${inv.id})" title="تم التحصيل" style="font-size:10px"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تحصيل</button>`:''}
-      ${inv.status==='paid'?`<button class="btn btn-ghost btn-sm" onclick="markUncollected(${inv.id})" title="إلغاء التحصيل" style="font-size:10px">↩</button>`:''}
+      ${inv.status==='paid'?`<button class="btn btn-ghost btn-sm" onclick="markUncollected(${inv.id})" title="إلغاء التحصيل" style="font-size:10px">â†©</button>`:''}
+      <button class="btn btn-ghost btn-sm" style="color:var(--accent3)" onclick="_invLinkToProject(${inv.id})" title="ربط بمشروع"><i class="fa-solid fa-diagram-project"></i>${inv.project_id||inv.projectId ? '<span style="font-size:9px;margin-right:2px">â—ڈ</span>' : ''}</button>
       <button class="btn btn-danger btn-sm" onclick="delInvoice(${inv.id})" title="حذف"><i class="fa-solid fa-trash"></i></button>
     </div></td>
   </tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">لا فواتير</td></tr>';
@@ -6224,12 +6401,12 @@ function previewInv(id){
           <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style="vertical-align:middle"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
           واتساب
         </button>
-        <button class="btn btn-warn btn-sm" onclick="exportPDF(${inv.id})">⬇ PDF</button>
+        <button class="btn btn-warn btn-sm" onclick="exportPDF(${inv.id})">â¬‡ PDF</button>
       </div>
     </div>
     <div class="invoice-print">
       <div style="display:flex;justify-content:space-between;margin-bottom:24px;align-items:flex-start">
-        <div>${logo}<div style="font-size:26px;font-weight:900;color:var(--accent)">فاتورة</div><div style="font-size:11px;color:var(--text3);margin-top:4px">${inv.num} · ${inv.date||''}</div>
+        <div>${logo}<div style="font-size:26px;font-weight:900;color:var(--accent)">فاتورة</div><div style="font-size:11px;color:var(--text3);margin-top:4px">${inv.num} آ· ${inv.date||''}</div>
           <div style="margin-top:10px;font-size:12px"><strong style="display:block;font-size:14px">${inv.from||s.name||'العمل'}</strong>${s.phone?`<i class="fa-solid fa-phone"></i> ${s.phone} `:''}${s.email?`<i class="fa-solid fa-envelope"></i> ${s.email}`:''}${s.address?`<br>${s.address}`:''}</div>
         </div>
         <div style="text-align:left">
@@ -6257,7 +6434,7 @@ function previewInv(id){
 }
 
 // ============================================================
-// PDF EXPORT — print-based (full Arabic support)
+// PDF EXPORT ? print-based (full Arabic support)
 // ============================================================
 function exportPDF(id){
   const inv=S.invoices.find(i=>i.id===id);if(!inv)return;
@@ -6359,7 +6536,7 @@ function exportPDF(id){
       <!-- FOOTER -->
       <div style="background:#f5f3ff;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;position:absolute;bottom:0;width:100%">
         <div style="font-size:11px;color:#9090b0">شكراً لتعاملكم معنا <i class="fa-solid fa-hands"></i></div>
-        <div style="font-size:11px;color:#9090b0">${s.name||'العمل'}${s.phone?' · '+s.phone:''}</div>
+        <div style="font-size:11px;color:#9090b0">${s.name||'العمل'}${s.phone?' آ· '+s.phone:''}</div>
       </div>
     </div>
     </body></html>`;
@@ -6413,7 +6590,7 @@ function saveGoalProgress(id){
 }
 const catIcon={'مهارة تقنية':'<i class="fa-solid fa-screwdriver-wrench"></i>','برنامج جديد':'<i class="fa-solid fa-laptop"></i>','مجال جديد':'<i class="fa-solid fa-rocket"></i>','كورس':'<i class="fa-solid fa-books"></i>','هدف مالي':'<i class="fa-solid fa-coins"></i>','هدف مهني':'<i class="fa-solid fa-bullseye"></i>'};
 function renderGoals(){
-  // ── إضافة الميزانيات كأهداف مالية ──
+  // â”€â”€ إضافة الميزانيات كأهداف مالية â”€â”€
   _renderBudgetsAsGoals();
   // stats
   const total=S.goals.length;
@@ -6434,7 +6611,7 @@ function renderGoals(){
 
   let html='';
   if(active.length){
-    html+=`<div class="section-title" style="margin-bottom:12px">🔥 أهداف جارية</div>
+    html+=`<div class="section-title" style="margin-bottom:12px">ًں”¥ أهداف جارية</div>
     <div class="grid grid-2" style="margin-bottom:24px">
     ${active.map(g=>`
       <div class="card" style="border-color:rgba(124,111,247,.25)">
@@ -6443,7 +6620,7 @@ function renderGoals(){
             <div style="font-size:24px">${catIcon[g.cat]||'<i class="fa-solid fa-diamond"></i>'}</div>
             <div>
               <div style="font-size:14px;font-weight:700">${g.title}</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:2px">${g.cat||''}${g.deadline?' · <i class="fa-solid fa-calendar"></i> '+g.deadline:''}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">${g.cat||''}${g.deadline?' آ· <i class="fa-solid fa-calendar"></i> '+g.deadline:''}</div>
             </div>
           </div>
           <div style="display:flex;gap:4px;flex-shrink:0">
@@ -6484,7 +6661,7 @@ function renderGoals(){
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <span style="color:var(--accent3);font-size:18px"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i></span>
-            <button class="btn btn-ghost btn-sm" onclick="toggleGoalDone(${g.id})" title="إلغاء الإكمال" style="font-size:10px">↩</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleGoalDone(${g.id})" title="إلغاء الإكمال" style="font-size:10px">â†©</button>
             <button class="btn btn-danger btn-sm" onclick="delGoal(${g.id})"><i class="fa-solid fa-trash"></i></button>
           </div>
         </div>
@@ -6498,9 +6675,9 @@ function renderGoals(){
 // ============================================================
 // SCHEDULE
 // ============================================================
-// ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // الميزانيات تظهر في صفحة الأهداف
-// ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function _renderBudgetsAsGoals(){
   var container = document.getElementById('goals-budgets-section');
   if(!container){
@@ -6527,7 +6704,7 @@ function _renderBudgetsAsGoals(){
       return '<div class="card" style="border-right:3px solid '+barColor+'">'
         +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'
           +'<div><div style="font-size:14px;font-weight:800">'+escapeHtml(b.name)+'</div>'
-          +'<div style="font-size:11px;color:var(--text3)">💰 هدف ادخار'+(b.deadline?' · ⏰ '+b.deadline:'')+'</div></div>'
+          +'<div style="font-size:11px;color:var(--text3)">ًں’° هدف ادخار'+(b.deadline?' آ· âڈ° '+b.deadline:'')+'</div></div>'
           +'<button class="btn btn-ghost btn-sm" onclick="switchFinTab(&apos;budgets&apos;);showPage(&apos;finance&apos;)" title="اذهب للميزانية"><i class="fa-solid fa-arrow-left"></i></button>'
         +'</div>'
         +'<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">'
@@ -6562,7 +6739,7 @@ function openSchedModal(id){
   // ملأ قائمة المهام
   const sel=document.getElementById('s-linked-task');
   if(sel){
-    sel.innerHTML='<option value="">— بدون ربط —</option>';
+    sel.innerHTML='<option value="">? بدون ربط ?</option>';
     S.tasks.filter(t=>!t.done).forEach(t=>{
       sel.innerHTML+=`<option value="${t.id}">${t.title}${t.client?' ('+t.client+')':''}</option>`;
     });
@@ -6598,7 +6775,7 @@ function delSched(id){confirmDel('هل تريد حذف هذا الوقت؟',()=>
 function toggleSchedDone(id){
   const s=S.schedule.find(x=>x.id===id);if(!s)return;
   s.done=!s.done;
-  // إذا اكتمل الوقت وفيه مهمة مربوطة → اكمل المهمة
+  // إذا اكتمل الوقت وفيه مهمة مربوطة ? اكمل المهمة
   if(s.done && s.linkedTaskId){
     const t=S.tasks.find(x=>x.id===s.linkedTaskId);
     if(t&&!t.done){
@@ -6615,7 +6792,7 @@ function renderSchedule(){
     const taskDone=linkedTask?.done||false;
     const isDone=s.done||taskDone;
     return `<div class="schedule-item" style="${isDone?'opacity:.6':''}">
-      <div class="schedule-time" style="${isDone?'text-decoration:line-through':''}">${s.time||'—'}</div>
+      <div class="schedule-time" style="${isDone?'text-decoration:line-through':''}">${s.time||'?'}</div>
       <div class="schedule-dot" style="background:${isDone?'var(--accent3)':tcol[s.type]}"></div>
       <div style="flex:1">
         <div style="font-size:13.5px;font-weight:600;${isDone?'text-decoration:line-through;color:var(--text3)':''}">${s.title}</div>
@@ -6623,7 +6800,7 @@ function renderSchedule(){
         ${linkedTask?`<div class="sched-linked ${isDone?'done':''}"><i class="fa-solid fa-link"></i> ${linkedTask.title}${isDone?' <i class="fa-solid fa-check"></i>':''}</div>`:''}
       </div>
       <div style="display:flex;gap:4px;align-items:center">
-        <button class="btn btn-sm" style="background:${isDone?'rgba(79,209,165,.15)':'rgba(124,111,247,.15)'};color:${isDone?'var(--accent3)':'var(--accent)'};border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer" onclick="toggleSchedDone(${s.id})" title="${isDone?'إلغاء الاكتمال':'تأشير كمكتمل'}">${isDone?'↩ رجوع':'<i class="fa-solid fa-check"></i> تم'}</button>
+        <button class="btn btn-sm" style="background:${isDone?'rgba(79,209,165,.15)':'rgba(124,111,247,.15)'};color:${isDone?'var(--accent3)':'var(--accent)'};border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer" onclick="toggleSchedDone(${s.id})" title="${isDone?'إلغاء الاكتمال':'تأشير كمكتمل'}">${isDone?'â†© رجوع':'<i class="fa-solid fa-check"></i> تم'}</button>
         <button class="btn btn-ghost btn-sm" onclick="openSchedModal(${s.id})"><i class="fa-solid fa-pen"></i></button>
         <button class="btn btn-danger btn-sm" onclick="delSched(${s.id})"><i class="fa-solid fa-trash"></i></button>
       </div>
@@ -6637,7 +6814,7 @@ function renderSchedule(){
 function fillTaskTypesDD(){
   const sel=document.getElementById('t-tasktype');if(!sel)return;
   const types=S.settings?.taskTypes||[];
-  sel.innerHTML='<option value="">— اختر النوع —</option>';
+  sel.innerHTML='<option value="">? اختر النوع ?</option>';
   types.forEach(tt=>sel.innerHTML+=`<option value="${tt}">${tt}</option>`);
 }
 function openTaskTypesSettings(){
@@ -6659,7 +6836,7 @@ function renderTaskTypesList(){
     <div style="display:inline-flex;align-items:center;gap:6px;background:var(--surface3);border-radius:20px;padding:5px 10px 5px 12px;font-size:12px">
       ${t}
       <button onclick="removeTaskType(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;line-height:1;padding:0"><i class="fa-solid fa-xmark"></i></button>
-    </div>`).join('')||'<div style="font-size:12px;color:var(--text3)">لا أنواع — أضف نوع أدناه</div>';
+    </div>`).join('')||'<div style="font-size:12px;color:var(--text3)">لا أنواع ? أضف نوع أدناه</div>';
 }
 function addTaskTypeFromModal(){
   const inp=document.getElementById('new-task-type-input');
@@ -6685,7 +6862,7 @@ function renderTaskStepsForm(steps){
 }
 function _renderStepsFormUI(){
   const el=document.getElementById('t-steps-list');if(!el)return;
-  if(!_editingSteps.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">لا خطوات — اضغط + خطوة لإضافة</div>';return;}
+  if(!_editingSteps.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">لا خطوات ? اضغط + خطوة لإضافة</div>';return;}
   el.innerHTML=_editingSteps.map((s,i)=>`
     <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
       <div class="step-num ${s.done?'done':''}" onclick="toggleEditStep(${i})">${s.done?'<i class="fa-solid fa-check"></i>':i+1}</div>
@@ -6714,7 +6891,7 @@ function mergeSteps(oldSteps,newSteps){
 function toggleTaskStep(taskId,stepIdx){
   const t=S.tasks.find(x=>x.id===taskId);if(!t||!t.steps)return;
   t.steps[stepIdx].done=!t.steps[stepIdx].done;
-  // لو كل الخطوات اتنفذت → إكمال المهمة تلقائياً
+  // لو كل الخطوات اتنفذت ? إكمال المهمة تلقائياً
   if(t.steps.every(s=>s.done)&&!t.done){
     showToast('<i class="fa-solid fa-champagne-glasses"></i> تم إنجاز كل الخطوات! المهمة جاهزة للإكمال.');
   }
@@ -6733,7 +6910,7 @@ function renderStepsInDetail(task, isMemberTask, ownerId, authorName){
   var html = '<div style="margin:14px 0;padding:14px;background:var(--surface2);border-radius:var(--r2);border:1px solid var(--border)">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
       +'<div style="font-size:13px;font-weight:700"><i class="fa-solid fa-clipboard-list"></i> خطوات التنفيذ</div>'
-      +'<div style="font-size:12px;font-weight:700;color:var(--accent)">'+done+'/'+total+' — '+pct+'%</div>'
+      +'<div style="font-size:12px;font-weight:700;color:var(--accent)">'+done+'/'+total+' ? '+pct+'%</div>'
     +'</div>'
     +'<div class="steps-progress"><div class="steps-progress-fill" style="width:'+pct+'%"></div></div>'
     +(currentStep
@@ -6790,7 +6967,7 @@ function renderFollowupReminders(){
     // آخر طلب = آخر مهمة
     const cTasks=S.tasks.filter(t=>t.client===c.name&&t.orderDate).sort((a,b)=>b.orderDate.localeCompare(a.orderDate));
     const lastOrderDate=cTasks[0]?.orderDate||null;
-    if(!lastOrderDate)return; // مفيش طلبات أصلاً — مش هنبعت تنبيه
+    if(!lastOrderDate)return; // مفيش طلبات أصلاً ? مش هنبعت تنبيه
     const last=new Date(lastOrderDate);
     const diffMonths=(now-last)/(1000*60*60*24*30.44);
     if(diffMonths>=months){
@@ -6807,7 +6984,7 @@ function renderFollowupReminders(){
           <div class="followup-dot"></div>
           <div style="flex:1">
             <div style="font-size:13px;font-weight:700">${c.name}</div>
-            <div style="font-size:11px;color:var(--text3)">آخر طلب: ${lastOrderDate} — منذ ${diffMonths} شهر تقريباً</div>
+            <div style="font-size:11px;color:var(--text3)">آخر طلب: ${lastOrderDate} ? منذ ${diffMonths} شهر تقريباً</div>
           </div>
           ${c.phone?`<button class="btn btn-sm" style="background:#25D366;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;cursor:pointer;font-weight:700" onclick="sendFollowupWA(${c.id})"><i class="fa-solid fa-mobile-screen"></i> واتساب</button>`:''}
         </div>`).join('')}
@@ -6815,7 +6992,7 @@ function renderFollowupReminders(){
 }
 function sendFollowupWA(clientId){
   const c=S.clients.find(x=>x.id===clientId);if(!c)return;
-  const msg=c.followupMsg||`أهلاً ${c.name}، اتمنى تكون بخير <i class="fa-solid fa-hands"></i> عايز أطمن عليك وأعرف لو محتاج حاجة من ناحيتنا ✨`;
+  const msg=c.followupMsg||`أهلاً ${c.name}، اتمنى تكون بخير <i class="fa-solid fa-hands"></i> عايز أطمن عليك وأعرف لو محتاج حاجة من ناحيتنا âœ¨`;
   const phone=c.phone?.replace(/\D/g,'');
   if(!phone){alert('مفيش رقم واتساب محفوظ للعميل ده');return;}
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,'_blank');
@@ -6869,13 +7046,32 @@ function _saveDashLayout(layout){ localStorage.setItem('_dLayout_v5',JSON.string
 
 function _getDef(id){ return _WIDGET_DEFS.find(function(w){ return w.id===id; })||{id:id,label:id,full:false}; }
 
+function _ordoAllDashboardTasks(){
+  if(window.OrdoReports && typeof window.OrdoReports.getDashboardSummary === 'function'){
+    try { return window.OrdoReports.getDashboardSummary().tasks || []; } catch(e) {}
+  }
+  return [].concat(S.tasks || [], S.project_tasks || [], S.team_tasks || []);
+}
+
+function _openDashboardTask(id, kind){
+  var regular = (S.tasks || []).find(function(t){ return String(t.id) === String(id); });
+  if(regular){ openTaskDetail(regular.id); return; }
+  if(kind === 'team_task' || (S.team_tasks || []).some(function(t){ return String(t.id) === String(id); })){
+    showPage('team');
+    return;
+  }
+  var pt = (S.project_tasks || []).find(function(t){ return String(t.id) === String(id); });
+  if(pt && pt.project_id && typeof openProjectDetail === 'function') openProjectDetail(pt.project_id);
+}
+
 function updateDash(){
   // Ensure dashboard grid is initialized
   const grid = document.getElementById('_dash-grid');
   if(grid && !grid.querySelector('[data-widget-card]')) _renderDashGrid();
 
   const inc=S.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const done=S.tasks.filter(t=>t.done).length, pending=S.tasks.filter(t=>!t.done).length;
+  const dashTasks=_ordoAllDashboardTasks();
+  const done=dashTasks.filter(t=>t.done||t.status==='done').length, pending=dashTasks.filter(t=>!t.done&&t.status!=='done').length;
 
   // Animated number counter with counting effect
   function setAnim(id, val, suffix){
@@ -6919,15 +7115,19 @@ function updateDash(){
   _updatePerfCard(done, pending, inc);
 
   const dtl=document.getElementById('dash-tasks-list');
-  if(dtl)dtl.innerHTML=S.tasks.slice(0,5).map(t=>`
-    <div class="task-clickable" onclick="openTaskDetail(${t.id})" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,42,58,.3)">
+  if(dtl)dtl.innerHTML=dashTasks.slice(0,5).map(t=>{
+    const kind=(t.source_type==='team_task'||t.team_id)?'team_task':(t.project_id?'project_task':'task');
+    const tid=String(t.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `
+    <div class="task-clickable" onclick="_openDashboardTask('${tid}','${kind}')" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,42,58,.3)">
       <div class="task-priority priority-${t.priority}"></div>
       <div style="flex:1;font-size:13px;${t.done?'text-decoration:line-through;color:var(--text3)':''}">
-        ${t.title}
+        ${t.title||t.name||'Task'}
+        ${kind==='team_task'?'<span style="font-size:10px;color:var(--accent3);margin-right:6px"><i class="fa-solid fa-users"></i></span>':''}
         ${t.brief?'<span style="font-size:10px;color:var(--accent);margin-right:4px"><i class="fa-solid fa-file-lines"></i></span>':''}
       </div>
       ${payBadge[t.pay||'none']}
-    </div>`).join('')||'<div class="empty"><div class="empty-icon"><i class="fa-solid fa-star-of-life"></i></div>لا مهام</div>';
+    </div>`;}).join('')||'<div class="empty"><div class="empty-icon"><i class="fa-solid fa-star-of-life"></i></div>لا مهام</div>';
   const dsl=document.getElementById('dash-sched-list');
   if(dsl)dsl.innerHTML=S.schedule.slice(0,5).map(s=>`
     <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(42,42,58,.3)">
@@ -6956,7 +7156,7 @@ function updateDash(){
   if(document.getElementById('_dash-chart-canvas')) setTimeout(_renderDashCharts, 100);
 }
 
-// ─── Performance Ring Card ───────────────────────
+// â”€â”€â”€ Performance Ring Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _updatePerfCard(done, pending, inc){
   const total = done + pending;
   const invTotal = S.invoices.length;
@@ -6967,7 +7167,7 @@ function _updatePerfCard(done, pending, inc){
     (S.clients.length > 0 ? 20 : 0)
   ));
   const color = score>=80 ? 'var(--accent3)' : score>=55 ? 'var(--accent2)' : 'var(--accent4)';
-  const emoji = score>=80 ? '🏆' : score>=55 ? '💪' : '⚡';
+  const emoji = score>=80 ? 'ًںڈ†' : score>=55 ? 'ًں’ھ' : 'âڑ،';
   const title = score>=80 ? 'أداؤك ممتاز!' : score>=55 ? 'أداؤك جيد' : 'يمكنك التحسين';
 
   const fill    = document.getElementById('_perf-ring-fill');
@@ -6990,8 +7190,8 @@ function _updatePerfCard(done, pending, inc){
   if(emojiEl) emojiEl.textContent = emoji;
 
   const pendingInv = S.invoices.filter(i=>i.status==='pending').length;
-  const lateTasks  = S.tasks.filter(t=>!t.done&&t.deadline&&new Date(t.deadline)<new Date()).length;
-  if(subEl) subEl.textContent = `أنهيت ${done} من ${total} مهمة · ${pending} نشطة · ${pendingInv} فاتورة معلقة`;
+  const lateTasks  = _ordoAllDashboardTasks().filter(t=>!t.done&&t.status!=='done'&&t.deadline&&new Date(t.deadline)<new Date()).length;
+  if(subEl) subEl.textContent = `أنهيت ${done} من ${total} مهمة آ· ${pending} نشطة آ· ${pendingInv} فاتورة معلقة`;
 
   if(chipsEl){
     const chips = [];
@@ -7033,7 +7233,7 @@ function renderAll(){
   // تحديث badge العروض
   const _pb = document.getElementById('proposals-nav-badge');
   if(_pb){ const _pc=(S.proposals||[]).filter(p=>p.status==='pending').length; _pb.textContent=_pc; _pb.style.display=_pc?'inline-flex':'none'; }
-  // تحديث badge التقييمات — يظهر فقط للجديدة غير المقروءة
+  // تحديث badge التقييمات ? يظهر فقط للجديدة غير المقروءة
   const _rb = document.getElementById('reviews-badge');
   if(_rb){ const _rc=(S.reviews||[]).length; const _rread=+(localStorage.getItem('_reviewsReadCount')||0); const _runread=Math.max(0,_rc-_rread); _rb.textContent=_runread; _rb.style.display=_runread?'inline-flex':'none'; }
 }
@@ -7109,7 +7309,7 @@ function closeSidebar(){
     ov.style.pointerEvents = '';
   }, 300);
   const ti = document.getElementById('toggle-icon');
-  if(ti) ti.textContent = '☰';
+  if(ti) ti.textContent = 'âک°';
   localStorage.setItem('_sidebarOpen','0');
 }
 function toggleSidebar(){
@@ -7128,7 +7328,7 @@ function toggleSidebar(){
     if(saved === '0'){
       document.body.classList.add('sidebar-collapsed');
       var ti=document.getElementById('toggle-icon');
-      if(ti) ti.textContent='☰';
+      if(ti) ti.textContent='âک°';
     }
   }
 })();
@@ -7147,12 +7347,12 @@ function updateHeader(pageId){
 
 
 // ============================================================
-// AUTH SYSTEM — Supabase Cloud
+// AUTH SYSTEM ? Supabase Cloud
 // ============================================================
 const AUTH_KEY  = 'studioOS_auth_v1';
 const USERS_KEY = 'studioOS_users_v1';
 
-// ── local compat shims (kept for backup/restore) ──
+// â”€â”€ local compat shims (kept for backup/restore) â”€â”€
 function getUsers(){ try{ return JSON.parse(localStorage.getItem(USERS_KEY)||'[]'); }catch(e){return [];} }
 function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
 async function _trackLoginEvent(uid) {
@@ -7183,7 +7383,7 @@ async function _trackLoginEvent(uid) {
   }, 6000); // 6 ثواني - كافية لـ cloudLoad يكمل
 }
 
-// ─── Check if account is banned ───
+// â”€â”€â”€ Check if account is banned â”€â”€â”€
 async function _checkAccountBanned(uid) {
   try {
     const { data: sd } = await supa.from('studio_data').select('data').eq('user_id', uid).maybeSingle();
@@ -7247,7 +7447,7 @@ async function doRegister(){
 
   const btns = document.querySelectorAll('#panel-register .auth-btn');
   btns.forEach(b=>{ b.disabled=true; });
-  showAuthMsg('register-success','⏳ جاري إنشاء الحساب...');
+  showAuthMsg('register-success','âڈ³ جاري إنشاء الحساب...');
 
   const { data, error } = await supa.auth.signUp({
     email,
@@ -7259,14 +7459,14 @@ async function doRegister(){
 
   if(error){
     let msg = error.message;
-    if(msg.includes('already')) msg = 'البريد الإلكتروني مسجل مسبقاً — جرب تسجيل الدخول';
+    if(msg.includes('already')) msg = 'البريد الإلكتروني مسجل مسبقاً ? جرب تسجيل الدخول';
     if(msg.includes('invalid')) msg = 'البريد الإلكتروني غير صحيح';
     if(msg.includes('weak'))    msg = 'كلمة المرور ضعيفة جداً';
     showAuthMsg('register-error','<i class="fa-solid fa-triangle-exclamation"></i> ' + msg);
     return;
   }
 
-  // Supabase بيبعت confirmation email — لو email confirmation مفعّل
+  // Supabase بيبعت confirmation email ? لو email confirmation مفعّل
   if(data.user && !data.session){
     showAuthMsg('register-success','<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إنشاء الحساب! تحقق من بريدك الإلكتروني لتأكيد الحساب، ثم سجّل الدخول.');
     setTimeout(()=>{ switchAuthTab('login'); document.getElementById('login-email').value=email; }, 3000);
@@ -7312,7 +7512,7 @@ async function doLogin(){
   loginWithSupaSession(data.user, data.session, userObj);
 }
 
-// loginUser – local compat (used by backup restore)
+// loginUser ? local compat (used by backup restore)
 function loginUser(user){
   _supaUserId = user.supaId || user.id;
   saveSession(user);
@@ -7330,10 +7530,10 @@ function loginUser(user){
   setTimeout(()=>{ screen.classList.add('hidden'); screen.style.opacity=''; }, 400);
 }
 
-// loginWithSupaSession – Supabase login (cloud sync)
+// loginWithSupaSession ? Supabase login (cloud sync)
 async function loginWithSupaSession(supaUser, session, userMeta){
   _supaUserId = supaUser.id;
-  // ── منع أي حفظ حتى يكتمل تحميل البيانات من السحابة ──
+  // â”€â”€ منع أي حفظ حتى يكتمل تحميل البيانات من السحابة â”€â”€
   window._appReady = false;
   window._cloudLoadDone = false;
 
@@ -7349,13 +7549,13 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   };
   saveSession(userObj);
 
-  // ── تسجيل حدث الدخول في studio_data ──
+  // â”€â”€ تسجيل حدث الدخول في studio_data â”€â”€
   _trackLoginEvent(supaUser.id);
 
-  // ── حمّل من السحابة مباشرة ──
-  showSyncIndicator('<i class="fa-solid fa-cloud"></i>️ جاري تحميل بياناتك...', 'var(--accent)');
+  // â”€â”€ حمّل من السحابة مباشرة â”€â”€
+  showSyncIndicator('<i class="fa-solid fa-cloud"></i>ï¸ڈ جاري تحميل بياناتك...', 'var(--accent)');
 
-  // ── اقرأ الـ cache المحلي للمقارنة ──
+  // â”€â”€ اقرأ الـ cache المحلي للمقارنة â”€â”€
   let _cachedData = null;
   try {
     const _cacheRaw = localStorage.getItem('_ordo_cache_' + supaUser.id);
@@ -7364,25 +7564,23 @@ async function loginWithSupaSession(supaUser, session, userMeta){
 
   let cloudData = await cloudLoad();
 
-  // ── لو السحابة رجعت فاضية وعندنا cache — استخدم الـ cache فوراً ──
+  // â”€â”€ لو السحابة رجعت فاضية وعندنا cache ? استخدم الـ cache فوراً â”€â”€
   const _cloudScore = (cloudData?.tasks?.length||0) + (cloudData?.clients?.length||0) + (cloudData?.invoices?.length||0);
   const _cacheScore = (_cachedData?.tasks?.length||0) + (_cachedData?.clients?.length||0) + (_cachedData?.invoices?.length||0);
 
   if(_cloudScore === 0 && _cacheScore > 0) {
-    // السحابة فاضية والـ cache فيها بيانات — ممكن network delay، انتظر وحاول مرة تانية
-    console.log('⚠️ Cloud empty but cache has data (' + _cacheScore + '), retrying cloud in 1.5s...');
-    await new Promise(r => setTimeout(r, 1500));
-    const _retryCloud = await cloudLoad();
-    const _retryScore = (_retryCloud?.tasks?.length||0) + (_retryCloud?.clients?.length||0) + (_retryCloud?.invoices?.length||0);
-    if(_retryScore > 0) {
-      cloudData = _retryCloud;
-      console.log('✅ Cloud retry succeeded, score:', _retryScore);
-    } else {
-      console.log('⚡ Cloud still empty after retry — using cache and re-syncing to cloud');
-    }
+    // استخدم الـ cache فوراً ? retry في الخلفية
+    console.log('âڑ، Cloud empty ? using cache immediately, background retry...');
+    setTimeout(async () => {
+      try {
+        const _rc = await cloudLoad();
+        const _rs = (_rc?.tasks?.length||0)+(_rc?.clients?.length||0)+(_rc?.invoices?.length||0);
+        if(_rs > _cacheScore) { S = _rc; migrateSFields(); if(typeof renderAll==='function') renderAll(); }
+      } catch(e) {}
+    }, 3000);
   }
 
-  // ── اختار أحدث بيانات بين السحابة والـ cache ──
+  // â”€â”€ اختار أحدث بيانات بين السحابة والـ cache â”€â”€
   let _bestData = cloudData;
   if(_cachedData) {
     const cloudTime = cloudData?._savedAt ? new Date(cloudData._savedAt).getTime() : 0;
@@ -7391,9 +7589,9 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     const cacheScore = (_cachedData.tasks?.length||0) + (_cachedData.clients?.length||0) + (_cachedData.invoices?.length||0);
 
     if(cacheScore > cloudScore || (cacheScore === cloudScore && cacheTime > cloudTime)) {
-      console.log('⚡ Cache is newer than cloud | cache:', cacheScore, 'cloud:', cloudScore, '— using cache and re-saving');
+      console.log('âڑ، Cache is newer than cloud | cache:', cacheScore, 'cloud:', cloudScore, '? using cache and re-saving');
       _bestData = _cachedData;
-      // أعد الحفظ للسحابة فوراً لمزامنتها — لكن فقط لو السحابة فعلاً فاضية (مش مجرد connection error)
+      // أعد الحفظ للسحابة فوراً لمزامنتها ? لكن فقط لو السحابة فعلاً فاضية (مش مجرد connection error)
       if (_cloudScore === 0) {
         setTimeout(async () => {
           // تحقق مجدداً إن السحابة فاضية فعلاً قبل الكتابة
@@ -7405,9 +7603,9 @@ async function loginWithSupaSession(supaUser, session, userMeta){
             if (_cloudUpdated <= _cacheUpdated) {
               const _rp = { user_id: supaUser.id, data: JSON.stringify(_cachedData), updated_at: _cachedData._savedAt || new Date().toISOString() };
               await supa.from('studio_data').upsert(_rp, { onConflict: 'user_id' });
-              console.log('✅ Re-synced cache to cloud');
+              console.log('? Re-synced cache to cloud');
             } else {
-              console.log('⚠️ Cloud is newer — skipping re-sync to avoid overwrite');
+              console.log('âڑ ï¸ڈ Cloud is newer ? skipping re-sync to avoid overwrite');
             }
           } catch(e) { console.warn('Re-sync check failed:', e); }
         }, 500);
@@ -7420,9 +7618,9 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     window._cloudLoadDone = true;
     window._appReady = true;
     migrateSFields();
-    // ── Migration للجداول الجديدة (في الخلفية، مش بيعلق) ──
+    // â”€â”€ Migration للجداول الجديدة (في الخلفية، مش بيعلق) â”€â”€
     setTimeout(() => _migrateToNewTables(_supaUserId, S), 2000);
-    // ── أخفي مؤشر التحميل فوراً ──
+    // â”€â”€ أخفي مؤشر التحميل فوراً â”€â”€
     var _si = document.getElementById('sync-indicator');
     if(_si) { clearTimeout(_si._t); _si.style.opacity = '0'; }
     if(S._admin_updated && S._admin_name) {
@@ -7439,34 +7637,27 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     applyPlatformConfig();
     applyPlatformConfig();
   } else {
-    // Cloud returned null — retry once before falling back to localStorage
-    let _retryData = null;
-    try {
-      await new Promise(r => setTimeout(r, 1500));
-      const _retry = await supa.from('studio_data').select('data').eq('user_id', supaUser.id).maybeSingle();
-      if(_retry.data?.data) {
-        _retryData = typeof _retry.data.data === 'string' ? JSON.parse(_retry.data.data) : _retry.data.data;
-      }
-    } catch(e) {}
-
-    if(_retryData && (typeof _retryData === 'object') && Object.keys(_retryData).length > 2) {
-      // نجح الـ retry
-      S = _retryData;
-      window._appReady = true;
-      window._cloudLoadDone = true;
-      migrateSFields();
-      _syncStudioLogoToConfig();
-      showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تحميل البيانات', '#4fd1a5');
-    } else {
-      // السحابة فارغة أو مش متاحة — مستخدم جديد أو مشكلة شبكة
-      migrateSFields(); // تأكد إن S فيها المصفوفات الأساسية
-      window._appReady = true; // ✅ آمن للحفظ (S موجودة وجاهزة)
-      window._cloudLoadDone = true;
-      console.log('Cloud load failed or empty — treating as new user');
-    }
+    // Cloud returned null ? استخدم localStorage فوراً، retry في الخلفية
+    migrateSFields();
+    window._appReady = true;
+    window._cloudLoadDone = true;
+    console.log('Cloud null ? using localStorage, background retry...');
+    setTimeout(async () => {
+      try {
+        const _r = await supa.from('studio_data').select('data').eq('user_id', supaUser.id).maybeSingle();
+        if(_r.data?.data) {
+          const _d = typeof _r.data.data==='string' ? JSON.parse(_r.data.data) : _r.data.data;
+          if(_d && Object.keys(_d).length > 2) {
+            const _rs = (_d.tasks?.length||0)+(_d.clients?.length||0)+(_d.invoices?.length||0);
+            const _ls = (S.tasks?.length||0)+(S.clients?.length||0)+(S.invoices?.length||0);
+            if(_rs > _ls) { S = _d; migrateSFields(); if(typeof renderAll==='function') renderAll(); }
+          }
+        }
+      } catch(e) {}
+    }, 3000);
   }
 
-  // ─── تحديث إعدادات المستخدم بحذر ───
+  // â”€â”€â”€ تحديث إعدادات المستخدم بحذر â”€â”€â”€
   // نحدث الاسم فقط لو مش موجود، مع ضمان عدم الكتابة على بيانات موجودة
   let _needsSave = false;
   if(!S.settings.name && userObj.name){
@@ -7501,7 +7692,7 @@ async function loginWithSupaSession(supaUser, session, userMeta){
         }
         // لو الـ row موجودة - ما نكتبش عليها (ممكن تحتوي بيانات)
       } else {
-        // مستخدم قديم - استخدم cloudSave العادية — بس بعد تأكيد إن _cloudLoadDone شغّال
+        // مستخدم قديم - استخدم cloudSave العادية ? بس بعد تأكيد إن _cloudLoadDone شغّال
         cloudSave(S);
       }
     } catch(e) { console.warn('Initial save error:', e.message); }
@@ -7509,70 +7700,69 @@ async function loginWithSupaSession(supaUser, session, userMeta){
 
   updateUserBadge(userObj);
 
-  // ── فحص صلاحية Admin (app_metadata أو user_metadata) ──
+  // â”€â”€ فحص صلاحية Admin (app_metadata أو user_metadata) â”€â”€
   const appMeta2 = supaUser.app_metadata || {};
   const isAdmin  = appMeta2.role === 'admin' || appMeta2.is_admin === true || appMeta2.is_admin === 'true' ||
                    meta.role === 'admin' || meta.is_admin === true;
   const isViewer = meta.role === 'viewer';
   _isAdminUser = isAdmin || isViewer;
 
-  // ── تحقق من الحظر والاشتراك بشكل متوازي (أسرع) ──
-  const [isBanned] = await Promise.all([
-    _checkAccountBanned(supaUser.id),
-    loadUserSubscription(supaUser.id)
-  ]);
-  if(isBanned) {
-    await supa.auth.signOut();
-    const screen = document.getElementById('auth-screen');
-    if(screen) { screen.classList.remove('hidden'); screen.style.display=''; }
-    setTimeout(() => {
-      alert('هذا الحساب موقوف. تواصل مع الإدارة للمساعدة.');
-    }, 300);
-    return;
-  }
-
-  // ── استرجع أو فعّل التجربة المجانية ──
+  // â”€â”€ اعرض التطبيق فوراً بعد تحميل البيانات ? قبل الاشتراك â”€â”€
   const _trialKey = '_trial_start_' + supaUser.id;
   if(S && S._trial_start && !localStorage.getItem(_trialKey)){
     localStorage.setItem(_trialKey, S._trial_start);
-  } else if(!localStorage.getItem(_trialKey) && !_userSubscription){
-    // مستخدم جديد — فعّل التجربة وانتظر تنتهي قبل الـ welcome popup
-    await _activateTrial(supaUser.id);
   }
 
-  // ── حمّل الثيم من السحابة ──
   _loadThemeFromCloud();
   _updateHeaderAvatar();
-  // ── حمّل اسم المنصة من قاعدة البيانات ──
   setTimeout(_loadPlatformNameFromCloud, 1000);
-
-  // ── render بعد ما الاشتراك اتحمل ──
   renderAll();
   updateHeader('dashboard');
-  // تحديث الـ subscription bar و nav locks بعد التحميل
-  setTimeout(()=>{
+
+  // أظهر التطبيق واخبي اللوجين
+  window._loginDone = true;
+  if(window._showApp) window._showApp();
+  document.body.style.visibility = 'visible';
+  document.body.style.opacity = '1';
+  const _authScreenEl = document.getElementById('auth-screen');
+  if(_authScreenEl){ _authScreenEl.style.transition='opacity .4s ease'; _authScreenEl.style.opacity='0'; setTimeout(()=>{ _authScreenEl.classList.add('hidden'); _authScreenEl.style.opacity=''; }, 400); }
+  const _shellEl = document.getElementById('app-body') || document.querySelector('.app-shell');
+  if(_shellEl && _shellEl.style.display === 'none') _shellEl.style.display = '';
+
+  // â”€â”€ فحص الحظر والاشتراك في الخلفية (لا يعلّق الـ UI) â”€â”€
+  Promise.all([
+    _checkAccountBanned(supaUser.id),
+    loadUserSubscription(supaUser.id)
+  ]).then(([isBanned]) => {
+    if(isBanned){
+      supa.auth.signOut();
+      const _bs = document.getElementById('auth-screen');
+      if(_bs){ _bs.classList.remove('hidden'); _bs.style.display=''; _bs.style.opacity='1'; }
+      setTimeout(()=>{ alert('هذا الحساب موقوف. تواصل مع الإدارة للمساعدة.'); }, 300);
+      return;
+    }
     updateSubscriptionBar && updateSubscriptionBar();
     _updateNavLocks && _updateNavLocks();
     updateDash();
     _renderDashGrid && _renderDashGrid();
-  }, 800);
-  // شغّل مراقب حماية البيانات بعد تحميل كامل
+    if(!localStorage.getItem(_trialKey) && !_userSubscription) _activateTrial(supaUser.id);
+  }).catch(e=>{ console.warn('[auth] background check error:', e); });
+
   setTimeout(_startDataWatchdog, 5000);
-  // ── شغّل الحفظ التلقائي كل 5 ثواني ──
   setTimeout(_startAutoSave, 3000);
 
-  // ── فحص عضوية الفريق: هل هذا المستخدم مضاف كعضو في فريق شخص آخر؟ ──
+  // â”€â”€ فحص عضوية الفريق: هل هذا المستخدم مضاف كعضو في فريق شخص آخر؟ â”€â”€
   // Store email in S for team membership search by others
   if(supaUser.email && typeof S !== 'undefined'){
     S._user_email = supaUser.email.toLowerCase().trim();
     // تأكد إن S فيها بيانات حقيقية قبل الحفظ
     var _emailSaveScore = (S.tasks?.length||0) + (S.clients?.length||0) + (S.invoices?.length||0) + (S.settings?.name ? 1 : 0);
-    // FIX: لا تحفظ S فاضية — اشترط وجود بيانات حقيقية (ليس مجرد email)
+    // FIX: لا تحفظ S فاضية ? اشترط وجود بيانات حقيقية (ليس مجرد email)
     if(_emailSaveScore > 0) cloudSave(S);
   }
   _checkTeamMembership(supaUser.email || userObj.email);
 
-  // ── فحص دعوات الفريق فوراً بعد الـ login ──
+  // â”€â”€ فحص دعوات الفريق فوراً بعد الـ login â”€â”€
   (async function(){
     try {
       var myEmail = (supaUser.email || userObj.email || '').toLowerCase().trim();
@@ -7610,32 +7800,19 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     }catch(e){ console.warn('[invites]', e.message||e); }
   })();
 
-  // إخفاء اللوجين وإظهار التطبيق
-  if(window._showApp) window._showApp();
-  // تأكد إن body مش hidden
-  document.body.style.visibility = 'visible';
-  document.body.style.opacity = '1';
-  // ── إظهار App Shell لو كان مخفياً (بعد logout) ──
-  const shell = document.getElementById('app-body') || document.querySelector('.app-shell');
-  if(shell && shell.style.display === 'none') shell.style.display = '';
-  const screen = document.getElementById('auth-screen');
-  screen.style.transition='opacity .4s ease';
-  screen.style.opacity='0';
-  setTimeout(()=>{ screen.classList.add('hidden'); screen.style.opacity=''; }, 400);
-
   if(isAdmin || isViewer) {
     showAdminChoiceOverlay(userObj, isAdmin);
     showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> أهلاً ' + (userObj.name||''), '#4fd1a5');
     return;
   }
 
-  // ── استعادة الصفحة من الـ URL أو الداش بورد ──
+  // â”€â”€ استعادة الصفحة من الـ URL أو الداش بورد â”€â”€
   var _savedPage = (typeof _restorePageFromUrl === 'function') ? _restorePageFromUrl() : null;
   var _startPage = _savedPage || 'dashboard';
   showPage(_startPage);
   showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> أهلاً ' + (userObj.name||''), '#4fd1a5');
 
-  // ── فحص لو في دعوة فريق شركة معلقة من URL ──
+  // â”€â”€ فحص لو في دعوة فريق شركة معلقة من URL â”€â”€
   (function _checkPendingTeamInviteFromUrl(){
     var urlParams = new URLSearchParams(window.location.search);
     var urlInvite = urlParams.get('teamInvite');
@@ -7653,7 +7830,7 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     }
   })();
 
-  // ── بوبأب ترحيب للمستخدم الجديد ──
+  // â”€â”€ بوبأب ترحيب للمستخدم الجديد â”€â”€
   var _newUserKey = 'ordo_welcome_shown_' + supaUser.id;
   if(!localStorage.getItem(_newUserKey)){
     localStorage.setItem(_newUserKey, '1');
@@ -7662,13 +7839,13 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   }
 }
 
-// ══ SUBSCRIPTION SYSTEM ══
+// â•گâ•گ SUBSCRIPTION SYSTEM â•گâ•گ
 
-// ── نافذة الانضمام لفريق شركة من داخل index.html ──
+// â”€â”€ نافذة الانضمام لفريق شركة من داخل index.html â”€â”€
 function _showInlineTeamInviteModal(teamId, tdEncoded){
   // ابحث عن بيانات الفريق
   var teamName = 'الفريق';
-  var teamEmoji = '🏢';
+  var teamEmoji = 'ًںڈ¢';
   var teamColor = 'var(--accent2)';
 
   // جرّب تفكّ بيانات الفريق من الـ td param
@@ -7683,14 +7860,14 @@ function _showInlineTeamInviteModal(teamId, tdEncoded){
     }catch(e){}
   }
 
-  // لو ما فيش td — ابحث في localStorage
+  // لو ما فيش td ? ابحث في localStorage
   if(teamName==='الفريق'){
     try {
       var raw = localStorage.getItem('ordo_teams_v2');
       if(raw){
         var tsData = JSON.parse(raw);
         var found = (tsData.teams||[]).find(function(t){ return t.id===teamId; });
-        if(found){ teamName=found.name; teamEmoji=found.emoji||'🏢'; teamColor=found.color||'var(--accent2)'; }
+        if(found){ teamName=found.name; teamEmoji=found.emoji||'ًںڈ¢'; teamColor=found.color||'var(--accent2)'; }
       }
     }catch(e){}
   }
@@ -7738,16 +7915,16 @@ function _showInlineTeamInviteModal(teamId, tdEncoded){
 }
 let _userSubscription = null;
 
-// ══ WELCOME POPUP ══
+// â•گâ•گ WELCOME POPUP â•گâ•گ
 function _showWelcomePopup(uid, userObj) {
   const cfg = JSON.parse(localStorage.getItem('platform_config') || '{}');
   const trial = _getTrialInfo();
   const name  = (userObj && userObj.name) ? userObj.name.split(' ')[0] : '';
 
-  const title = cfg.welcome_title || ('أهلاً بك في ' + (cfg.name || 'Ordo') + '! 🎉');
-  const body  = cfg.welcome_body  || 'نظام متكامل لإدارة أعمالك كفريلانسر — مهام، فواتير، عملاء، تتبع وقت، وأكثر.';
+  const title = cfg.welcome_title || ('أهلاً بك في ' + (cfg.name || 'Ordo') + '! ًںژ‰');
+  const body  = cfg.welcome_body  || 'نظام متكامل لإدارة أعمالك كفريلانسر ? مهام، فواتير، عملاء، تتبع وقت، وأكثر.';
   const note  = cfg.welcome_note  || (trial && trial.active
-    ? 'لديك <strong>' + trial.daysLeft + ' أيام تجريبية مجانية</strong> بكل المميزات — استمتع!'
+    ? 'لديك <strong>' + trial.daysLeft + ' أيام تجريبية مجانية</strong> بكل المميزات ? استمتع!'
     : '');
 
   // Remove any existing popup
@@ -7760,14 +7937,14 @@ function _showWelcomePopup(uid, userObj) {
   overlay.innerHTML = `
     <style>@keyframes _fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}</style>
     <div style="max-width:420px;width:100%;background:var(--surface,#12131a);border:1px solid rgba(108,99,255,.25);border-radius:22px;padding:36px 28px;text-align:center;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.6)">
-      <div style="width:80px;height:80px;background:linear-gradient(135deg,rgba(108,99,255,.2),rgba(79,209,165,.15));border:1.5px solid rgba(108,99,255,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 18px">🎉</div>
+      <div style="width:80px;height:80px;background:linear-gradient(135deg,rgba(108,99,255,.2),rgba(79,209,165,.15));border:1.5px solid rgba(108,99,255,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 18px">ًںژ‰</div>
       <div style="font-size:22px;font-weight:900;margin-bottom:10px;line-height:1.4">${name ? 'مرحباً ' + name + '،' : ''}<br>${title}</div>
       <div style="font-size:14px;color:var(--text2,#a0a6b8);line-height:1.8;margin-bottom:${note ? '14px' : '28px'}">${body}</div>
       ${note ? `<div style="background:rgba(108,99,255,.1);border:1px solid rgba(108,99,255,.2);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text,#e8eaf0);margin-bottom:28px;line-height:1.7">${note}</div>` : ''}
       <button onclick="document.getElementById('_welcome_popup_overlay').remove()"
         style="width:100%;background:var(--accent,#6c63ff);color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s"
         onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
-        🚀 ابدأ الآن
+        ًںڑ€ ابدأ الآن
       </button>
     </div>`;
   document.body.appendChild(overlay);
@@ -7777,7 +7954,7 @@ function _showWelcomePopup(uid, userObj) {
 
 async function loadUserSubscription(uid) {
   try {
-    // جيب السيريال — يعمل مع أي column name
+    // جيب السيريال ? يعمل مع أي column name
     let serialData = null;
     const { data: sd1, error: se1 } = await supa
       .from('serial_keys').select('*').eq('user_id', uid).eq('status','active').maybeSingle();
@@ -7822,29 +7999,19 @@ async function loadUserSubscription(uid) {
     _userSubscription = null;
   }
 
-  // Fallback: check admin_subscription stored in studio_data
+  // Fallback: admin_subscription من S مباشرة بدون DB call إضافي
   if(!_userSubscription) {
     try {
-      const { data: sd } = await supa.from('studio_data').select('data').eq('user_id', uid).maybeSingle();
-      if(sd?.data) {
-        const parsed = typeof sd.data === 'string' ? JSON.parse(sd.data) : sd.data;
-        if(parsed?.admin_subscription) {
-          const as = typeof parsed.admin_subscription === 'string'
-            ? JSON.parse(parsed.admin_subscription) : parsed.admin_subscription;
-          if(as?.status === 'active') {
-            // حاول تجيب الباقة من Supabase أولاً، ثم localStorage
-            let plan = null;
-            try {
-              const { data: planRow } = await supa.from('subscription_plans').select('*').eq('id', as.planId).maybeSingle();
-              if(planRow) plan = planRow;
-            } catch(pe) {}
-            if(!plan) {
-              const lsPlans = JSON.parse(localStorage.getItem('admin_plans') || localStorage.getItem('plans') || '[]');
-              plan = lsPlans.find(p => p.id === as.planId) || null;
-            }
-            _userSubscription = { ...as, plan, _fromAdminOverride: true };
-          }
+      const _asSrc = (typeof S !== 'undefined' && S?.admin_subscription)
+        ? (typeof S.admin_subscription==='string' ? JSON.parse(S.admin_subscription) : S.admin_subscription)
+        : null;
+      if(_asSrc?.status === 'active') {
+        const lsPlans = JSON.parse(localStorage.getItem('admin_plans') || localStorage.getItem('plans') || '[]');
+        let plan = lsPlans.find(p => p.id === _asSrc.planId) || null;
+        if(!plan) {
+          try { const {data:pr} = await supa.from('subscription_plans').select('*').eq('id',_asSrc.planId).maybeSingle(); if(pr) plan=pr; } catch(e){}
         }
+        _userSubscription = { ..._asSrc, plan, _fromAdminOverride: true };
       }
     } catch(fe) { console.warn('fallback sub check:', fe); }
   }
@@ -7861,12 +8028,21 @@ function updateSubscriptionBar() {
   const dotEl   = document.getElementById('sub-dot');
   if(!bar) return;
 
+  // لو الاشتراك لسه بيتحمل ? اعرض loading بدل "تجربة مجانية"
+  if(!window._subLoadDone) {
+    bar.className = 'sub-status-bar active';
+    if(planEl)  planEl.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="font-size:11px;opacity:.6"></i> جارٍ التحقق...';
+    if(detailEl) detailEl.textContent = '';
+    if(dotEl) dotEl.style.background = 'var(--text3)';
+    return;
+  }
+
   if(!_userSubscription) {
-    // فحص التجربة المجانية
+    // فحص التجربة المجانية ? بعد ما _subLoadDone = true
     const trial = _getTrialInfo();
     if(trial && trial.active) {
       bar.className = 'sub-status-bar active';
-      if(planEl)  planEl.innerHTML = '🚀 تجربة مجانية';
+      if(planEl)  planEl.innerHTML = 'ًںڑ€ تجربة مجانية';
       if(detailEl) detailEl.innerHTML = '<i class="fa-solid fa-alarm-clock"></i> متبقي ' + trial.daysLeft + ' يوم';
       if(dotEl) dotEl.style.background = 'var(--accent3)';
     } else {
@@ -7887,15 +8063,15 @@ function updateSubscriptionBar() {
 
   if(isExpired) {
     bar.className = 'sub-status-bar expired';
-    if(planEl) planEl.textContent = (plan?.name||'الاشتراك') + ' — منتهي';
-    if(detailEl) detailEl.textContent = 'الاشتراك انتهى — تواصل للتجديد';
+    if(planEl) planEl.textContent = (plan?.name||'الاشتراك') + ' ? منتهي';
+    if(detailEl) detailEl.textContent = 'الاشتراك انتهى ? تواصل للتجديد';
     if(dotEl) dotEl.style.background = 'var(--accent4)';
   } else {
     bar.className = 'sub-status-bar active';
     if(planEl) planEl.innerHTML = (plan?.icon||'<i class="fa-solid fa-box"></i>') + ' ' + (plan?.name||sub.planId);
     if(detailEl) {
       if(sub.billing === 'lifetime'){
-        detailEl.textContent = '♾️ مدى الحياة';
+        detailEl.textContent = 'â™¾ï¸ڈ مدى الحياة';
       } else if(daysLeft !== null) {
         detailEl.innerHTML = '<i class="fa-solid fa-alarm-clock"></i> متبقي ' + daysLeft + ' يوم';
       } else {
@@ -7906,7 +8082,7 @@ function updateSubscriptionBar() {
   }
 }
 
-// ── Sub Modal Tabs ──
+// â”€â”€ Sub Modal Tabs â”€â”€
 function switchSubTab(tab) {
   ['current','plans'].forEach(t => {
     document.getElementById('subtab-' + t)?.classList.toggle('active', t === tab);
@@ -7916,7 +8092,7 @@ function switchSubTab(tab) {
   if(tab === 'plans') renderPlansListing();
 }
 
-// ── Plans Listing ──
+// â”€â”€ Plans Listing â”€â”€
 async function renderPlansListing() {
   const el = document.getElementById('plans-listing-body');
   if(!el) return;
@@ -7950,7 +8126,7 @@ async function renderPlansListing() {
   const appName = cfg.name || 'Ordo';
   const currentPlanId = _userSubscription?.planId || _userSubscription?.plan_id;
 
-  let html = '<div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-align:center">اختر الباقة المناسبة — تواصل معنا للحصول على كود التفعيل</div>'
+  let html = '<div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-align:center">اختر الباقة المناسبة ? تواصل معنا للحصول على كود التفعيل</div>'
            + '<div style="display:flex;flex-direction:column;gap:12px">';
 
   plans.forEach(function(plan) {
@@ -7968,17 +8144,17 @@ async function renderPlansListing() {
       f.invoices !== false  ? '<i class="fa-solid fa-receipt"></i> الفواتير' : '',
       f.schedule            ? '<i class="fa-solid fa-calendar-days"></i> الجدولة' : '',
       f.reports             ? '<i class="fa-solid fa-chart-bar"></i> التقارير' : '',
-      f.team                ? '👨‍<i class="fa-solid fa-briefcase"></i> الفريق' : '',
-      f.cloud !== false     ? '<i class="fa-solid fa-cloud"></i>️ السحابة' : '',
+      f.team                ? 'ًں‘¨â€چ<i class="fa-solid fa-briefcase"></i> الفريق' : '',
+      f.cloud !== false     ? '<i class="fa-solid fa-cloud"></i>ï¸ڈ السحابة' : '',
     ].filter(Boolean);
 
     const limitsArr = [
-      f.max_tasks        ? 'حد المهام: ' + f.max_tasks       : 'مهام ∞',
-      f.max_clients_feat ? 'حد العملاء: ' + f.max_clients_feat : 'عملاء ∞',
-      f.max_invoices     ? 'حد الفواتير: ' + f.max_invoices   : 'فواتير ∞',
+      f.max_tasks        ? 'حد المهام: ' + f.max_tasks       : 'مهام âˆ‍',
+      f.max_clients_feat ? 'حد العملاء: ' + f.max_clients_feat : 'عملاء âˆ‍',
+      f.max_invoices     ? 'حد الفواتير: ' + f.max_invoices   : 'فواتير âˆ‍',
     ];
 
-    const waMsg = encodeURIComponent('مرحباً، أريد الاشتراك في ' + appName + ' — باقة ' + plan.name);
+    const waMsg = encodeURIComponent('مرحباً، أريد الاشتراك في ' + appName + ' ? باقة ' + plan.name);
 
     let featHTML = '';
     featKeys.forEach(function(fk) {
@@ -8087,7 +8263,7 @@ function openSubscriptionInfo() {
     const daysLeft  = sub.expiresAt && sub.billing !== 'lifetime'
       ? Math.max(0, Math.ceil((new Date(sub.expiresAt)-Date.now())/86400000)) : null;
     const feats = Object.entries(plan?.features||{}).filter(([,v])=>v)
-      .map(([k])=>({'tasks':'<i class="fa-solid fa-star-of-life"></i> المهام','clients':'<i class="fa-solid fa-users"></i> العملاء','finance':'<i class="fa-solid fa-coins"></i> المالية','invoices':'<i class="fa-solid fa-receipt"></i> الفواتير','schedule':'<i class="fa-solid fa-calendar-days"></i> الجدولة','reports':'<i class="fa-solid fa-chart-bar"></i> التقارير','cloud':'<i class="fa-solid fa-cloud"></i>️ السحابة'}[k]||k));
+      .map(([k])=>({'tasks':'<i class="fa-solid fa-star-of-life"></i> المهام','clients':'<i class="fa-solid fa-users"></i> العملاء','finance':'<i class="fa-solid fa-coins"></i> المالية','invoices':'<i class="fa-solid fa-receipt"></i> الفواتير','schedule':'<i class="fa-solid fa-calendar-days"></i> الجدولة','reports':'<i class="fa-solid fa-chart-bar"></i> التقارير','cloud':'<i class="fa-solid fa-cloud"></i>ï¸ڈ السحابة'}[k]||k));
 
     body.innerHTML = `
       <div style="text-align:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
@@ -8099,8 +8275,8 @@ function openSubscriptionInfo() {
         }</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">نوع الاشتراك</span><span style="font-weight:700">${{'monthly':'<i class="fa-solid fa-calendar-days"></i> شهري','annual':'<i class="fa-solid fa-calendar-days"></i> سنوي','lifetime':'♾️ مدى الحياة'}[sub.billing]||sub.billing}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">الحد الأقصى للعملاء</span><span style="font-weight:700;color:var(--accent)">${plan?.max_clients||'∞'}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">نوع الاشتراك</span><span style="font-weight:700">${{'monthly':'<i class="fa-solid fa-calendar-days"></i> شهري','annual':'<i class="fa-solid fa-calendar-days"></i> سنوي','lifetime':'â™¾ï¸ڈ مدى الحياة'}[sub.billing]||sub.billing}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">الحد الأقصى للعملاء</span><span style="font-weight:700;color:var(--accent)">${plan?.max_clients||'âˆ‍'}</span></div>
         ${daysLeft !== null ? `<div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">المتبقي</span><span style="font-weight:700;color:${daysLeft<7?'var(--accent4)':'var(--text)'}">${daysLeft} يوم</span></div>` : ''}
         ${sub.expiresAt && sub.billing!=='lifetime' ? `<div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text2)">ينتهي في</span><span>${new Date(sub.expiresAt).toLocaleDateString('ar-EG')}</span></div>` : ''}
       </div>
@@ -8108,7 +8284,7 @@ function openSubscriptionInfo() {
       ${isExpired || daysLeft !== null && daysLeft <= 7 ? `
         <div style="background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);border-radius:10px;padding:14px;text-align:center">
           <div style="font-size:13px;font-weight:700;margin-bottom:8px">${isExpired?'<i class="fa-solid fa-ban"></i> اشتراكك انتهى':'<i class="fa-solid fa-triangle-exclamation"></i> اشتراكك ينتهي قريباً'}</div>
-          <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد تجديد اشتراكي في Ordo — باقة '+(plan?.name||''))}"
+          <a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد تجديد اشتراكي في Ordo ? باقة '+(plan?.name||''))}"
             target="_blank"
             style="display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;padding:10px 20px;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px">
             تجديد عبر واتساب
@@ -8133,12 +8309,12 @@ function openSubscriptionInfo() {
   switchSubTab('current');
 }
 
-// ══ إلغاء اشتراك المستخدم بنفسه ══
+// â•گâ•گ إلغاء اشتراك المستخدم بنفسه â•گâ•گ
 async function cancelMySubscription() {
   if(!_userSubscription) return;
   if(!confirm('هل أنت متأكد من إلغاء اشتراكك؟\nستفقد الوصول للميزات المدفوعة فوراً.')) return;
   const uid = _supaUserId;
-  if(!uid) { showToast('⚠ خطأ: لم يتم التعرف على المستخدم'); return; }
+  if(!uid) { showToast('âڑ  خطأ: لم يتم التعرف على المستخدم'); return; }
   try {
     // مسح admin_subscription من studio_data
     const { data: sd } = await supa.from('studio_data').select('data').eq('user_id', uid).maybeSingle();
@@ -8164,11 +8340,11 @@ async function cancelMySubscription() {
     showToast('تم إلغاء الاشتراك');
   } catch(e) {
     console.error('cancelMySubscription:', e);
-    showToast('⚠ حدث خطأ أثناء الإلغاء، حاول مجدداً');
+    showToast('âڑ  حدث خطأ أثناء الإلغاء، حاول مجدداً');
   }
 }
 
-// ══ ADMIN CHOICE OVERLAY ══
+// â•گâ•گ ADMIN CHOICE OVERLAY â•گâ•گ
 function showAdminChoiceOverlay(user, isAdmin) {
   let overlay = document.getElementById('admin-choice-overlay');
   if(!overlay){
@@ -8265,6 +8441,7 @@ function migrateSFields(){
     if(!S.svc_orders) S.svc_orders=[];
     if(!S.support_msgs) S.support_msgs=[];
     if(!S.client_portals) S.client_portals=[];
+    try{ if(window.OrdoData) window.OrdoData.normalizeAll({mark:false}); }catch(e){}
   }catch(e){}
 }
 
@@ -8291,7 +8468,7 @@ async function doLogout(){
     requestAnimationFrame(()=>{ screen.style.opacity='1'; });
   }
   switchAuthTab('login');
-  // Don't reload — session already cleared by Supabase
+  // Don't reload ? session already cleared by Supabase
 }
 
 function updateUserBadge(user){
@@ -8346,7 +8523,7 @@ async function doGoogleLogin(){
     showAuthMsg('login-error','<i class="fa-solid fa-triangle-exclamation"></i> فشل تسجيل الدخول بـ Google: ' + error.message);
     showAuthMsg('register-error','<i class="fa-solid fa-triangle-exclamation"></i> فشل تسجيل الدخول بـ Google: ' + error.message);
   }
-  // If no error, browser will redirect to Google — no need to re-enable buttons
+  // If no error, browser will redirect to Google ? no need to re-enable buttons
 }
 
 // ============================================================
@@ -8376,7 +8553,7 @@ async function doForgotPassword(){
   if(!email || !email.includes('@')) return showAuthMsg('forgot-error','<i class="fa-solid fa-triangle-exclamation"></i> يرجى إدخال بريد إلكتروني صحيح');
 
   const btn = document.querySelector('#panel-forgot .auth-btn');
-  if(btn){ btn.disabled=true; btn.textContent='⏳ جاري الإرسال...'; }
+  if(btn){ btn.disabled=true; btn.textContent='âڈ³ جاري الإرسال...'; }
 
   const { error } = await supa.auth.resetPasswordForEmail(email, {
     redirectTo: window.location.origin + window.location.pathname
@@ -8467,7 +8644,7 @@ async function doEmailReset(){
 async function uploadAvatarPhoto(input){
   const file = input.files[0];
   if(!file) return;
-  if(file.size > 5 * 1024 * 1024){ toast('<i class="fa-solid fa-triangle-exclamation"></i> حجم الصورة كبير — الحد الأقصى 5MB'); return; }
+  if(file.size > 5 * 1024 * 1024){ toast('<i class="fa-solid fa-triangle-exclamation"></i> حجم الصورة كبير ? الحد الأقصى 5MB'); return; }
   toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع صورة البروفايل...');
   uploadToStorage(file, 'avatars', async function(url){
     await supa.auth.updateUser({ data: { avatarUrl: url } });
@@ -8607,7 +8784,7 @@ function renderProfileBody(user, users, tab='profile'){
       const pct = daysLeft !== null ? Math.min(100, Math.max(0, (daysLeft/dur)*100)) : 100;
       const barColor = daysLeft === null ? 'var(--accent3)' : daysLeft<7 ? 'var(--accent4)' : daysLeft<14 ? 'var(--accent2)' : 'var(--accent3)';
       const feats = Object.entries(plan?.features||{}).filter(([,v])=>v)
-        .map(([k])=>({'tasks':'<i class="fa-solid fa-star-of-life"></i> المهام','clients':'<i class="fa-solid fa-users"></i> العملاء','finance':'<i class="fa-solid fa-coins"></i> المالية','invoices':'<i class="fa-solid fa-receipt"></i> الفواتير','schedule':'<i class="fa-solid fa-calendar-days"></i> الجدولة','reports':'<i class="fa-solid fa-chart-bar"></i> التقارير','cloud':'<i class="fa-solid fa-cloud"></i>️ السحابة'}[k]||k));
+        .map(([k])=>({'tasks':'<i class="fa-solid fa-star-of-life"></i> المهام','clients':'<i class="fa-solid fa-users"></i> العملاء','finance':'<i class="fa-solid fa-coins"></i> المالية','invoices':'<i class="fa-solid fa-receipt"></i> الفواتير','schedule':'<i class="fa-solid fa-calendar-days"></i> الجدولة','reports':'<i class="fa-solid fa-chart-bar"></i> التقارير','cloud':'<i class="fa-solid fa-cloud"></i>ï¸ڈ السحابة'}[k]||k));
       html += `
         <div class="profile-section" style="border-top:none;padding-top:0">
           <div style="text-align:center;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px">
@@ -8621,7 +8798,7 @@ function renderProfileBody(user, users, tab='profile'){
           <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:14px">
             <div style="display:flex;justify-content:space-between;font-size:13px;align-items:center">
               <span style="color:var(--text2)">نوع الاشتراك</span>
-              <span style="font-weight:700">${{'monthly':'<i class="fa-solid fa-calendar-days"></i> شهري','annual':'<i class="fa-solid fa-calendar-days"></i> سنوي','lifetime':'♾️ مدى الحياة'}[sub.billing]||sub.billing||'—'}</span>
+              <span style="font-weight:700">${{'monthly':'<i class="fa-solid fa-calendar-days"></i> شهري','annual':'<i class="fa-solid fa-calendar-days"></i> سنوي','lifetime':'â™¾ï¸ڈ مدى الحياة'}[sub.billing]||sub.billing||'?'}</span>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:13px;align-items:center">
               <span style="color:var(--text2)">حد العملاء</span>
@@ -8631,7 +8808,7 @@ function renderProfileBody(user, users, tab='profile'){
             <div style="display:flex;justify-content:space-between;font-size:13px;align-items:center">
               <span style="color:var(--text2)">الأيام المتبقية</span>
               <span style="font-weight:700;color:${daysLeft<7?'var(--accent4)':'var(--text)'}">${daysLeft} يوم</span>
-            </div>` : '<div style="font-size:13px;text-align:center;color:var(--accent3);padding:4px 0">♾️ مدى الحياة</div>'}
+            </div>` : '<div style="font-size:13px;text-align:center;color:var(--accent3);padding:4px 0">â™¾ï¸ڈ مدى الحياة</div>'}
             ${sub.activatedAt ? `
             <div style="display:flex;justify-content:space-between;font-size:13px;align-items:center">
               <span style="color:var(--text2)">تاريخ التفعيل</span>
@@ -8656,8 +8833,8 @@ function renderProfileBody(user, users, tab='profile'){
             <div style="display:flex;flex-wrap:wrap;gap:5px">${feats.map(f=>`<span style="background:rgba(124,111,247,.12);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:12px">${f}</span>`).join('')}</div>
           </div>` : ''}
           ${isExpired
-            ? `<a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد تجديد اشتراكي — باقة '+(plan?.name||''))}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;font-size:13px"><i class="fa-solid fa-rotate"></i> تجديد عبر واتساب</a>`
-            : `<a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد ترقية اشتراكي — الباقة الحالية: '+(plan?.name||''))}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:#fff;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;font-size:13px"><i class="fa-solid fa-rocket"></i> ترقية الباقة</a>`}
+            ? `<a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد تجديد اشتراكي ? باقة '+(plan?.name||''))}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;font-size:13px"><i class="fa-solid fa-rotate"></i> تجديد عبر واتساب</a>`
+            : `<a href="https://wa.me/201090412218?text=${encodeURIComponent('مرحباً، أريد ترقية اشتراكي ? الباقة الحالية: '+(plan?.name||''))}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:#fff;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;font-size:13px"><i class="fa-solid fa-rocket"></i> ترقية الباقة</a>`}
         </div>`;
     }
   } else if(tab==='accounts'){
@@ -8673,11 +8850,11 @@ function renderProfileBody(user, users, tab='profile'){
                 <div class="account-item-name">${u.name}</div>
                 <div class="account-item-phone">${u.phone}</div>
               </div>
-              ${u.id===user.id?'<span class="account-item-badge">الحساب الحالي</span>':'<span style="font-size:18px;color:var(--text3)">←</span>'}
+              ${u.id===user.id?'<span class="account-item-badge">الحساب الحالي</span>':'<span style="font-size:18px;color:var(--text3)">â†گ</span>'}
             </div>`).join('')}
         </div>
         <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:12px" onclick="closeM('modal-profile');doLogout()">
-          ➕ إضافة حساب جديد
+          â‍• إضافة حساب جديد
         </button>
       </div>`;
   } else if(tab==='reset'){
@@ -8726,7 +8903,7 @@ function renderProfileBody(user, users, tab='profile'){
           onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'">
           <div style="width:36px;height:36px;background:rgba(108,99,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0"><i class="fa-solid fa-chart-bar"></i></div>
           <div style="text-align:right;flex:1"><div>فتح لوحة الإدارة</div><div style="font-size:11px;font-weight:400;color:var(--text2);margin-top:2px">إدارة المستخدمين والاشتراكات</div></div>
-          <span style="color:var(--text3);font-size:16px">↗</span>
+          <span style="color:var(--text3);font-size:16px">â†—</span>
         </button>
         <button onclick="closeM('modal-profile')" style="width:100%;background:rgba(108,99,255,.08);border:1.5px solid rgba(108,99,255,.25);border-radius:12px;padding:13px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;color:var(--accent);display:flex;align-items:center;justify-content:center;gap:8px">
           <span><i class="fa-solid fa-palette"></i></span> البقاء في موقع المستخدم
@@ -8877,7 +9054,7 @@ function saveBackupSettingsData(obj){
   localStorage.setItem(BACKUP_SETTINGS_KEY, JSON.stringify(obj));
 }
 
-/* ── Open Modal ── */
+/* â”€â”€ Open Modal â”€â”€ */
 function openBackupModal(){
   const bs = getBackupSettings();
   // Populate path
@@ -8900,7 +9077,7 @@ function openBackupModal(){
   openM('modal-backup');
 }
 
-/* ── Save path ── */
+/* â”€â”€ Save path â”€â”€ */
 function saveBackupPath(){
   const val = (document.getElementById('backup-path-input')?.value||'').trim();
   const bs  = getBackupSettings();
@@ -8914,7 +9091,7 @@ function saveBackupPath(){
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ مسار النسخ الاحتياطي');
 }
 
-/* ── Save reminder checkboxes ── */
+/* â”€â”€ Save reminder checkboxes â”€â”€ */
 function saveBackupSettings(){
   const bs  = getBackupSettings();
   const cb3h    = document.getElementById('remind-3h');
@@ -8926,7 +9103,7 @@ function saveBackupSettings(){
   updateNextReminderDisplay();
 }
 
-/* ── Do backup ── */
+/* â”€â”€ Do backup â”€â”€ */
 function doBackupNow(){
   // دمج إعدادات الثيم قبل الحفظ
   _mergeUiSettingsIntoS();
@@ -8953,7 +9130,7 @@ function doBackupNow(){
     }
   }catch(e){}
 
-  // ── نسخة شاملة من كل حاجة في S ──
+  // â”€â”€ نسخة شاملة من كل حاجة في S â”€â”€
   const fullData = Object.assign({}, S, {
     settings          : Object.assign({}, S.settings||{}),
     tasks             : S.tasks||[],
@@ -8986,9 +9163,9 @@ function doBackupNow(){
     version     : 'studioOS_v4_full',
     userId      : user ? user.id : 'guest',
     userName    : user ? user.name : 'guest',
-    // ── البيانات الكاملة ──
+    // â”€â”€ البيانات الكاملة â”€â”€
     data        : fullData,
-    // ── إعدادات الواجهة والثيم والألوان واللوجو ──
+    // â”€â”€ إعدادات الواجهة والثيم والألوان واللوجو â”€â”€
     uiConfig    : uiConfig,
     backupPath  : bs.path || '',
     // Full auth backup
@@ -9014,12 +9191,12 @@ function doBackupNow(){
   updateNextReminderDisplay();
   // Reset 3h timer
   if(getBackupSettings().remind3h) initBackupTimers();
-  // ── رفع على السحابة فوراً مع الحفظ ──
+  // â”€â”€ رفع على السحابة فوراً مع الحفظ â”€â”€
   cloudSave(S);
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم النسخ الاحتياطي الكامل (البيانات + الإعدادات + المتاجر + اللوجو) وحفظ على السحابة!');
 }
 
-/* ── Import backup ── */
+/* â”€â”€ Import backup â”€â”€ */
 function doImportBackup(){
   document.getElementById('backup-file-input')?.click();
 }
@@ -9034,12 +9211,12 @@ function readBackupFile(input){
       const confirmed = confirm(`هل تريد استعادة البيانات من نسخة:\n${obj.exportedAt ? new Date(obj.exportedAt).toLocaleString('ar-EG') : 'غير معروف'}\n${obj.userName||'غير معروف'}\n\nسيتم استبدال بياناتك الحالية!\n${obj.authUsers?'تشمل النسخة بيانات الحسابات':''}` );
       if(!confirmed) return;
 
-      // ── استعادة بيانات التطبيق الرئيسية ──
+      // â”€â”€ استعادة بيانات التطبيق الرئيسية â”€â”€
       const session = getSession();
       const key = session ? 'studioOS_v3_'+session.id : userKey();
       localStorage.setItem(key, JSON.stringify(obj.data));
 
-      // ── استعادة إعدادات الواجهة والثيم والألوان ──
+      // â”€â”€ استعادة إعدادات الواجهة والثيم والألوان â”€â”€
       if(obj.uiConfig){
         try{
           if(obj.uiConfig.displayMode) localStorage.setItem('studioDisplayMode', obj.uiConfig.displayMode);
@@ -9062,9 +9239,9 @@ function readBackupFile(input){
         }catch(e2){ console.warn('uiConfig restore error:', e2); }
       }
 
-      // ── ملاحظة: لوجو المستخدم (logo/store_logo) للفاتورة والمتجر فقط، مش platform_config ──
+      // â”€â”€ ملاحظة: لوجو المستخدم (logo/store_logo) للفاتورة والمتجر فقء مش platform_config â”€â”€
 
-      // ── استعادة الحسابات ──
+      // â”€â”€ استعادة الحسابات â”€â”€
       if(obj.authUsers && Array.isArray(obj.authUsers) && obj.authUsers.length>0){
         const existingUsers = getUsers();
         let merged = [...existingUsers];
@@ -9080,7 +9257,7 @@ function readBackupFile(input){
       S = obj.data; // تأكيد تحميل البيانات في S
       migrateSFields && migrateSFields();
 
-      // ── رفع النسخة المستعادة على السحابة فوراً ──
+      // â”€â”€ رفع النسخة المستعادة على السحابة فوراً â”€â”€
       if(_supaUserId){
         cloudSave(S);
         showMiniNotif('<i class="fa-solid fa-cloud-arrow-up"></i> جاري رفع النسخة الاحتياطية على السحابة...');
@@ -9098,7 +9275,7 @@ function readBackupFile(input){
   input.value='';
 }
 
-/* ── Update last backup display ── */
+/* â”€â”€ Update last backup display â”€â”€ */
 function updateBackupLastDisplay(){
   const last   = localStorage.getItem(BACKUP_LAST_KEY);
   const el     = document.getElementById('backup-last-time');
@@ -9113,7 +9290,7 @@ function updateBackupLastDisplay(){
   }
 }
 
-/* ── Next reminder display ── */
+/* â”€â”€ Next reminder display â”€â”€ */
 function updateNextReminderDisplay(){
   const el  = document.getElementById('backup-next-reminder');
   if(!el) return;
@@ -9131,12 +9308,12 @@ function updateNextReminderDisplay(){
   }
 }
 
-/* ── Toast notification ── */
+/* â”€â”€ Toast notification â”€â”€ */
 function showBackupToast(msg){
   const toast = document.getElementById('backup-toast');
   const msgEl = document.getElementById('backup-toast-msg');
   if(!toast) return;
-  if(msgEl) msgEl.textContent = msg || 'مرت 3 ساعات — لا تنسَ النسخ الاحتياطي!';
+  if(msgEl) msgEl.textContent = msg || 'مرت 3 ساعات ? لا تنسَ النسخ الاحتياطي!';
   toast.style.display='block';
   // pulse the backup dot
   const dot = document.getElementById('backup-reminder-dot');
@@ -9147,7 +9324,7 @@ function dismissBackupToast(){
   if(toast) toast.style.display='none';
 }
 
-/* ── Mini notification ── */
+/* â”€â”€ Mini notification â”€â”€ */
 function showMiniNotif(msg){
   let n = document.getElementById('mini-notif');
   if(!n){
@@ -9162,7 +9339,7 @@ function showMiniNotif(msg){
   n._t=setTimeout(()=>{n.style.opacity='0';},3500);
 }
 
-/* ── Init timers ── */
+/* â”€â”€ Init timers â”€â”€ */
 function initBackupTimers(){
   // Clear existing
   if(backupReminderTimer){ clearInterval(backupReminderTimer); backupReminderTimer=null; }
@@ -9175,7 +9352,7 @@ function initBackupTimers(){
       const now  = Date.now();
       if(!last || (now - new Date(last).getTime()) >= INTERVAL_MS){
         const alreadyShown = document.getElementById('backup-toast')?.style.display === 'block';
-        if(!alreadyShown) showBackupToast('مرت 3 ساعات — لا تنسَ النسخ الاحتياطي!');
+        if(!alreadyShown) showBackupToast('مرت 3 ساعات ? لا تنسَ النسخ الاحتياطي!');
       }
     }, 60 * 1000); // check every minute
     // Also check immediately on load
@@ -9183,7 +9360,7 @@ function initBackupTimers(){
       const last = localStorage.getItem(BACKUP_LAST_KEY);
       const now  = Date.now();
       if(!last || (now - new Date(last).getTime()) >= INTERVAL_MS){
-        showBackupToast('لم تقم بنسخ احتياطي منذ فترة — احفظ بياناتك الآن!');
+        showBackupToast('لم تقم بنسخ احتياطي منذ فترة ? احفظ بياناتك الآن!');
       }
     }, 5000);
   }
@@ -9221,7 +9398,7 @@ function renderPoliciesList(containerId, arr, removeFunc){
     </div>`).join('');
 }
 
-// ── Policy Icon Picker ──
+// â”€â”€ Policy Icon Picker â”€â”€
 function togglePolicyIconDD(ddId, inputId, btnId){
   const dd = document.getElementById(ddId);
   if(!dd) return;
@@ -9317,12 +9494,12 @@ function getSocialIconHTML(platform, size=16) {
   return `<span style="display:inline-flex;width:${size}px;height:${size}px;color:${meta.color};flex-shrink:0">${meta.svg}</span>`;
 }
 
-/* Live QR preview while typing — delegated to the wrapper defined in <head> */
+/* Live QR preview while typing ? delegated to the wrapper defined in <head> */
 // liveQR() is already defined above in the QR wrapper script block
 
 /* Social links in settings */
 
-// ════ Custom Social Media Dropdown ════
+// â•گâ•گâ•گâ•گ Custom Social Media Dropdown â•گâ•گâ•گâ•گ
 const _SOCIAL_OPTS = [
   { value:'instagram', label:'انستقرام',  color:'#E1306C', svg:'instagram' },
   { value:'facebook',  label:'فيسبوك',    color:'#1877F2', svg:'facebook' },
@@ -9462,7 +9639,7 @@ function openSocialIconEditor(idx){
         <div style="font-size:10px;color:var(--text3);margin-top:4px">الصق كود SVG أو رابط صورة PNG/SVG من الإنترنت</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:4px">
-        <button onclick="_resetSocialIcon(${idx})" class="btn btn-ghost" style="flex:1">↺ إعادة الافتراضي</button>
+        <button onclick="_resetSocialIcon(${idx})" class="btn btn-ghost" style="flex:1">â†؛ إعادة الافتراضي</button>
         <button onclick="_saveSocialIcon(${idx})" class="btn btn-primary" style="flex:1" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
       </div>
     </div>`;
@@ -9546,7 +9723,7 @@ function buildQRSectionHTML(inv, forPDF){
       <div class="inv-qr-block" style="text-align:center">
         <img src="${du}" width="${sz}" height="${sz}" style="border-radius:6px;border:1px solid #e0e0f0;display:block">
         <div style="font-size:10px;font-weight:700;color:#7c6ff7;margin-top:5px;text-transform:uppercase;letter-spacing:.5px"><i class="fa-solid fa-link"></i> استلام المشروع</div>
-        <div style="font-size:9px;color:#888;max-width:${sz+10}px;word-break:break-all;margin-top:2px">${projectUrl.length>38?projectUrl.slice(0,38)+'…':projectUrl}</div>
+        <div style="font-size:9px;color:#888;max-width:${sz+10}px;word-break:break-all;margin-top:2px">${projectUrl.length>38?projectUrl.slice(0,38)+'â€¦':projectUrl}</div>
       </div>`;
   }
 
@@ -9565,7 +9742,7 @@ function buildQRSectionHTML(inv, forPDF){
   if(!blocks) return '';
 
   return `<div style="${bgStyle}">
-    <div style="font-size:11px;font-weight:700;color:#7c6ff7;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px"><i class="fa-solid fa-mobile-screen"></i> QR كودات — امسحها بكاميرتك</div>
+    <div style="font-size:11px;font-weight:700;color:#7c6ff7;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px"><i class="fa-solid fa-mobile-screen"></i> QR كودات ? امسحها بكاميرتك</div>
     <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">${blocks}</div>
   </div>`;
 }
@@ -9592,7 +9769,7 @@ function doAuthBackupImport(input){
         `<i class="fa-solid fa-calendar-days"></i> التاريخ: ${obj.exportedAt ? new Date(obj.exportedAt).toLocaleString('ar-EG') : 'غير معروف'}\n` +
         `<i class="fa-solid fa-user"></i> المستخدم: ${obj.userName||'غير معروف'}\n` +
         `${obj.authUsers?'<i class="fa-solid fa-users"></i> الحسابات: '+obj.authUsers.length+' حساب':''}\n\n` +
-        `<i class="fa-solid fa-triangle-exclamation"></i> سيتم استيراد البيانات والحسابات — تأكيد؟`
+        `<i class="fa-solid fa-triangle-exclamation"></i> سيتم استيراد البيانات والحسابات ? تأكيد؟`
       );
       if(!confirmed){ input.value=''; return; }
 
@@ -9717,7 +9894,7 @@ function onWorkerMemberChange(){
 function fillWorkerMembersDD(){
   const sel = document.getElementById('t-worker-member'); if(!sel) return;
   const cur = sel.value;
-  sel.innerHTML = '<option value="">— اختر عضو —</option>';
+  sel.innerHTML = '<option value="">? اختر عضو ?</option>';
   let totalMembers = 0;
   S.teams.forEach(team=>{
     if(team.members.length){
@@ -9726,7 +9903,7 @@ function fillWorkerMembersDD(){
       team.members.forEach(m=>{
         const o = document.createElement('option');
         o.value = m.name;
-        o.textContent = m.name + ' ('+(m.role||'عضو')+')' + (m.rate?' — '+m.rate+'%':'');
+        o.textContent = m.name + ' ('+(m.role||'عضو')+')' + (m.rate?' ? '+m.rate+'%':'');
         grp.appendChild(o);
         totalMembers++;
       });
@@ -9744,9 +9921,18 @@ function fillWorkerMembersDD(){
 // ============================================================
 let teamMembersForm = []; // members being added in form
 
-// ── اختيار نوع الفريق (فريق عمل / شركة) ──
+// â”€â”€ اختيار نوع الفريق (فريق عمل / شركة) â”€â”€
 function _openNewTeamChooser(){
+  var mode = (typeof _getAllowedTeamMode === 'function' ? _getAllowedTeamMode() : 'both') || 'both';
+  if(mode === 'regular') { openTeamModal(); return; }
+  if(mode === 'company') { _openCreateCompanyModal(); return; }
   openM('modal-team-type-chooser');
+  setTimeout(function(){
+    var regular = document.getElementById('_tc-regular-card');
+    var company = document.getElementById('_tc-company-card');
+    if(regular) regular.style.display = mode === 'company' ? 'none' : '';
+    if(company) company.style.display = mode === 'regular' ? 'none' : '';
+  }, 30);
 }
 
 function _chooseTeamType(type){
@@ -9754,7 +9940,7 @@ function _chooseTeamType(type){
   if(type === 'regular'){
     openTeamModal();
   } else {
-    // شركة — modal مخصص لإنشاء الشركة
+    // شركة ? modal مخصص لإنشاء الشركة
     _openCreateCompanyModal();
   }
 }
@@ -9770,7 +9956,7 @@ function _openCreateCompanyModal(){
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
       <div class="modal-title"><i class="fa-solid fa-building" style="color:var(--accent2)"></i> شركة جديدة</div>
-      <button class="close-btn" onclick="document.getElementById('_modal-create-company').remove()">✕</button>
+      <button class="close-btn" onclick="document.getElementById('_modal-create-company').remove()">âœ•</button>
     </div>
     <div class="form-group">
       <label class="form-label">اسم الشركة *</label>
@@ -9782,7 +9968,7 @@ function _openCreateCompanyModal(){
     </div>
     <div style="background:rgba(247,201,72,.07);border:1px solid rgba(247,201,72,.2);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--text2);line-height:1.7">
       <i class="fa-solid fa-building" style="color:var(--accent2)"></i>
-      بعد الإنشاء ستفتح صفحة الشركة المتكاملة — يمكنك إضافة الأعضاء والمهام من هناك
+      بعد الإنشاء ستفتح صفحة الشركة المتكاملة ? يمكنك إضافة الأعضاء والمهام من هناك
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="document.getElementById('_modal-create-company').remove()">إلغاء</button>
@@ -9801,7 +9987,7 @@ function _openCreateCompanyModal(){
 
 function _saveNewCompany(){
   var name = (document.getElementById('_cc-name')?.value||'').trim();
-  if(!name){ toast('⚠ أدخل اسم الشركة'); return; }
+  if(!name){ toast('âڑ  أدخل اسم الشركة'); return; }
   var desc = (document.getElementById('_cc-desc')?.value||'').trim();
   try {
     var raw = localStorage.getItem('ordo_teams_v2')||'{}';
@@ -9811,7 +9997,7 @@ function _saveNewCompany(){
       id: 'co_'+Date.now(),
       name, desc,
       type: 'company',
-      emoji: '🏢',
+      emoji: 'ًںڈ¢',
       color: 'var(--accent2)',
       members: [],
       tasks: [],
@@ -9825,7 +10011,7 @@ function _saveNewCompany(){
     };
     tsData.teams.push(newCompany);
     localStorage.setItem('ordo_teams_v2', JSON.stringify(tsData));
-  } catch(e){ toast('⚠ خطأ في الحفظ'); return; }
+  } catch(e){ toast('âڑ  خطأ في الحفظ'); return; }
   document.getElementById('_modal-create-company')?.remove();
   renderTeams();
   showMiniNotif('<i class="fa-solid fa-building" style="color:var(--accent2)"></i> تم إنشاء الشركة: '+name);
@@ -9853,7 +10039,7 @@ function openTeamModal(id){
 function renderTeamMembersForm(){
   const el = document.getElementById('team-members-list'); if(!el) return;
   if(!teamMembersForm.length){
-    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px;text-align:center;background:var(--surface2);border-radius:8px">لا أعضاء بعد — أضف أعضاء من الأسفل</div>';
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px;text-align:center;background:var(--surface2);border-radius:8px">لا أعضاء بعد ? أضف أعضاء من الأسفل</div>';
     return;
   }
   const roleIcon = {'كونتنت كريتور':'<i class="fa-solid fa-pen-nib"></i>','مستقل':'<i class="fa-solid fa-user"></i>','فيديو إديتور':'<i class="fa-solid fa-clapperboard"></i>','مودريتور':'<i class="fa-solid fa-comments"></i>','أخرى':'<i class="fa-solid fa-thumbtack"></i>'};
@@ -9866,7 +10052,7 @@ function renderTeamMembersForm(){
           ${(m.email && !m.linked) ? '' : ''}
         </div>
         <div style="font-size:11px;color:var(--text3);margin-top:2px">
-          ${escapeHtml(m.role)}${m.phone ? ' · <i class="fa-solid fa-phone"></i>' + escapeHtml(m.phone) : ''}${m.email ? ' · <i class="fa-solid fa-envelope"></i> ' + escapeHtml(m.email) : ''}${m.rate ? ' · نسبة ' + m.rate + '%' : ''}
+          ${escapeHtml(m.role)}${m.phone ? ' آ· <i class="fa-solid fa-phone"></i>' + escapeHtml(m.phone) : ''}${m.email ? ' آ· <i class="fa-solid fa-envelope"></i> ' + escapeHtml(m.email) : ''}${m.rate ? ' آ· نسبة ' + m.rate + '%' : ''}
         </div>
       </div>
       <button class="btn btn-danger btn-sm" onclick="removeTeamMember(${i})"><i class="fa-solid fa-xmark"></i></button>
@@ -9940,8 +10126,8 @@ async function addMemberToForm(){
   if(addBtn){ addBtn.innerHTML='+ إضافة'; addBtn.disabled=false; }
   renderTeamMembersForm();
 
-  if(linked)        showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> '+name+' — حساب موجود، سيتم ربطه تلقائياً');
-  else if(email)    showMiniNotif('⏳ '+name+' — لا يوجد حساب بعد، دعوة معلقة');
+  if(linked)        showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> '+name+' ? حساب موجود، سيتم ربطه تلقائياً');
+  else if(email)    showMiniNotif('âڈ³ '+name+' ? لا يوجد حساب بعد، دعوة معلقة');
 }
 
 function removeTeamMember(i){
@@ -9969,7 +10155,7 @@ async function saveTeam(){
     d.id = Date.now();
     S.teams.push(d);
   }
-  // ✅ FIX: force save regardless of _appReady state
+  // ? FIX: force save regardless of _appReady state
   if(window._appReady && window._cloudLoadDone){ lsSave(); cloudSave(S); }
   else { try{ if(typeof _doCloudSave==='function') _doCloudSave(S,true); else { window._appReady=true;window._cloudLoadDone=true;lsSave(); } }catch(e){ window._appReady=true;window._cloudLoadDone=true;lsSave(); } }
   closeM('modal-team'); renderTeams();
@@ -9988,7 +10174,7 @@ async function saveTeam(){
       const email = (m.email||'').toLowerCase().trim();
       if(!email) continue;
 
-      // Find target user_id — Method 1: RPC by email
+      // Find target user_id ? Method 1: RPC by email
       let targetUserId = m.linkedUserId || null;
       if(!targetUserId){
         try{
@@ -9997,7 +10183,7 @@ async function saveTeam(){
         }catch(e){}
       }
 
-      // Method 2: scan auth_users via admin (may not work with anon key — fallback only)
+      // Method 2: scan auth_users via admin (may not work with anon key ? fallback only)
       if(!targetUserId){
         try{
           const { data: pr } = await supa.from('profiles').select('id').eq('email', email).maybeSingle().catch(()=>({data:null}));
@@ -10006,11 +10192,11 @@ async function saveTeam(){
       }
 
       if(!targetUserId){
-        showMiniNotif('⚠️ '+m.name+' — لم يُعثر على حساب بهذا الإيميل');
+        showMiniNotif('âڑ ï¸ڈ '+m.name+' ? لم يُعثر على حساب بهذا الإيميل');
         continue;
       }
 
-      // ── Deliver notification via user_notifications table (no RLS problem) ──
+      // â”€â”€ Deliver notification via user_notifications table (no RLS problem) â”€â”€
       const notifRow = {
         user_id    : targetUserId,
         title      : 'تمت إضافتك لفريق!',
@@ -10025,7 +10211,7 @@ async function saveTeam(){
 
       if(notifErr){
         // Fallback: write to studio_data if we somehow have access
-        console.warn('user_notifications insert failed:', notifErr.message, '— trying studio_data fallback');
+        console.warn('user_notifications insert failed:', notifErr.message, '? trying studio_data fallback');
         try{
           const { data: tgtRow } = await supa.from('studio_data').select('data').eq('user_id',targetUserId).maybeSingle().catch(()=>({data:null}));
           if(tgtRow && tgtRow.data){
@@ -10038,9 +10224,9 @@ async function saveTeam(){
             }
           }
         }catch(e2){}
-        showMiniNotif('⚠️ تم الحفظ لكن قد لا يصل إشعار لـ '+m.name);
+        showMiniNotif('âڑ ï¸ڈ تم الحفظ لكن قد لا يصل إشعار لـ '+m.name);
       } else {
-        showMiniNotif('✅ تمت إضافة '+m.name+' وسيصله إشعار');
+        showMiniNotif('? تمت إضافة '+m.name+' وسيصله إشعار');
       }
     } catch(e){ console.warn('Team notify err:', m.name, e); }
   }
@@ -10064,8 +10250,8 @@ function delCompanyTeam(teamId){
     if(String(tsData.currentTeamId) === String(teamId)) tsData.currentTeamId = null;
     localStorage.setItem('ordo_teams_v2', JSON.stringify(tsData));
     renderTeams();
-    showMiniNotif('🗑 تم حذف الشركة بنجاح');
-  } catch(e){ showMiniNotif('⚠ خطأ أثناء الحذف'); }
+    showMiniNotif('ًں—‘ تم حذف الشركة بنجاح');
+  } catch(e){ showMiniNotif('âڑ  خطأ أثناء الحذف'); }
 }
 
 function _editCompanyTeam(teamId){
@@ -10086,7 +10272,7 @@ function _editCompanyTeam(teamId){
   <div class="modal" style="max-width:420px">
     <div class="modal-header">
       <div class="modal-title"><i class="fa-solid fa-pen" style="color:var(--accent2)"></i> تعديل الشركة</div>
-      <button class="close-btn" onclick="document.getElementById('_modal-edit-company').remove()">✕</button>
+      <button class="close-btn" onclick="document.getElementById('_modal-edit-company').remove()">âœ•</button>
     </div>
     <div class="form-group">
       <label class="form-label">اسم الشركة *</label>
@@ -10110,24 +10296,24 @@ function _editCompanyTeam(teamId){
 
 function _saveEditCompany(teamId){
   var name = (document.getElementById('_ec-name')?.value||'').trim();
-  if(!name){ showMiniNotif('⚠ أدخل اسم الشركة'); return; }
+  if(!name){ showMiniNotif('âڑ  أدخل اسم الشركة'); return; }
   var desc = (document.getElementById('_ec-desc')?.value||'').trim();
   try {
     var raw = localStorage.getItem('ordo_teams_v2');
     if(!raw) return;
     var tsData = JSON.parse(raw);
     var team = (tsData.teams||[]).find(function(t){ return String(t.id)===String(teamId); });
-    if(!team){ showMiniNotif('⚠ لم يُعثر على الشركة'); return; }
+    if(!team){ showMiniNotif('âڑ  لم يُعثر على الشركة'); return; }
     team.name = name;
     team.desc = desc;
     localStorage.setItem('ordo_teams_v2', JSON.stringify(tsData));
     document.getElementById('_modal-edit-company')?.remove();
     renderTeams();
     showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ التعديلات: '+name);
-  } catch(e){ showMiniNotif('⚠ خطأ في الحفظ'); }
+  } catch(e){ showMiniNotif('âڑ  خطأ في الحفظ'); }
 }
 
-// ── عرض دعوات الفريق مباشرة في صفحة الفريق ──
+// â”€â”€ عرض دعوات الفريق مباشرة في صفحة الفريق â”€â”€
 async function _renderPendingInvitesSection(){
   var el = document.getElementById('_pending-invites-section');
   if(!el || typeof supa==='undefined' || !_supaUserId) return;
@@ -10159,9 +10345,9 @@ async function _renderPendingInvitesSection(){
         var tid=escapeHtml(inv.team_id||'');
         var oid=escapeHtml(pl.ownerUserId||'');
         return '<div class="_inv-card" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
-          +'<div style="width:40px;height:40px;border-radius:10px;background:'+(isComp?'var(--accent2)':'var(--accent)')+';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+(isComp?'🏢':'👥')+'</div>'
+          +'<div style="width:40px;height:40px;border-radius:10px;background:'+(isComp?'var(--accent2)':'var(--accent)')+';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+(isComp?'ًںڈ¢':'ًں‘¥')+'</div>'
           +'<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800">'+tname+'</div>'
-          +'<div style="font-size:12px;color:var(--text3)">من: '+oname+' · دورك: '+mrole+'</div></div>'
+          +'<div style="font-size:12px;color:var(--text3)">من: '+oname+' آ· دورك: '+mrole+'</div></div>'
           +'<div style="display:flex;gap:8px;flex-shrink:0">'
             +'<button class="btn btn-ghost btn-sm" onclick="_directRejectInvite(\''+eid+'\',this.closest(\'._inv-card\'))" style="color:var(--accent4)"><i class="fa-solid fa-xmark"></i> رفض</button>'
             +'<button class="btn btn-primary btn-sm" onclick="_directAcceptInvite(\''+eid+'\',\''+tname+'\',\''+oname+'\',\''+mrole+'\',\''+tid+'\','+(isComp?'true':'false')+',\''+oid+'\',this.closest(\'._inv-card\'))"><i class="fa-solid fa-check"></i> قبول</button>'
@@ -10189,7 +10375,7 @@ async function _directAcceptInvite(invId,teamName,ownerName,memberRole,teamId,is
     window._myTeamMemberships.push({ownerId:ownerUserId||'',ownerName:ownerName||'مشرف',ownerLogo:'',teamId:teamId||'',teamName:teamName||'الفريق',memberName:'',role:memberRole||'عضو',isCompany,type:isCompany?'company':'team',tasks:[],doneTasks:[]});
   }
   if(cardEl) cardEl.remove();
-  showMiniNotif('🎉 انضممت لفريق "'+teamName+'"!');
+  showMiniNotif('ًںژ‰ انضممت لفريق "'+teamName+'"!');
   if(typeof renderMyMemberTeams==='function') renderMyMemberTeams();
   if(typeof renderTeams==='function') renderTeams();
   _renderPendingInvitesSection();
@@ -10197,7 +10383,7 @@ async function _directAcceptInvite(invId,teamName,ownerName,memberRole,teamId,is
     var base=window.location.href.replace(/[^/]*(\?.*)?$/,'');
     var banner=document.createElement('div');
     banner.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:99999;background:var(--surface);border:1.5px solid var(--accent2);border-radius:16px;padding:16px 24px;box-shadow:0 20px 60px rgba(0,0,0,.5);font-family:Cairo,sans-serif;direction:rtl;display:flex;align-items:center;gap:14px;max-width:420px;width:90%';
-    banner.innerHTML='<div style="font-size:24px">🏢</div><div style="flex:1"><div style="font-weight:800;margin-bottom:4px">انضممت لشركة "'+escapeHtml(teamName)+'"!</div><div style="font-size:12px;color:var(--text3)">اضغط لفتح صفحة الشركة</div></div><a href="'+base+'team.html" target="_blank" style="background:var(--accent2);color:#1a1a2e;padding:10px 18px;border-radius:10px;font-weight:800;text-decoration:none;font-size:13px">فتح الشركة ←</a><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px">✕</button>';
+    banner.innerHTML='<div style="font-size:24px">ًںڈ¢</div><div style="flex:1"><div style="font-weight:800;margin-bottom:4px">انضممت لشركة "'+escapeHtml(teamName)+'"!</div><div style="font-size:12px;color:var(--text3)">اضغط لفتح صفحة الشركة</div></div><a href="'+base+'team.html" target="_blank" style="background:var(--accent2);color:#1a1a2e;padding:10px 18px;border-radius:10px;font-weight:800;text-decoration:none;font-size:13px">فتح الشركة â†گ</a><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px">âœ•</button>';
     document.body.appendChild(banner);
     setTimeout(function(){if(banner.parentNode)banner.remove();},20000);
   }
@@ -10216,12 +10402,12 @@ function _directRejectInvite(invId,cardEl){
 
 function renderTeams(){
   const grid = document.getElementById('teams-grid'); if(!grid) return;
-  // ── فحص إذا في فرق شركات محفوظة ──
+  // â”€â”€ فحص إذا في فرق شركات محفوظة â”€â”€
   var _hasCompanyTeams = false;
   try { var _ct=JSON.parse(localStorage.getItem('ordo_teams_v2')||'{}'); _hasCompanyTeams=(_ct.teams||[]).some(t=>t.type==='company'); } catch(e){}
 
   if(!S.teams.length && !_hasCompanyTeams){
-    grid.innerHTML = '<div class="empty card" style="grid-column:span 3"><div class="empty-icon"><i class="fa-solid fa-people-group"></i></div>لا فرق بعد — أضف فريق عمل<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="_openNewTeamChooser()" data-i18n="btn_new_team"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فريق جديد</button></div></div>';
+    grid.innerHTML = '<div class="empty card" style="grid-column:span 3"><div class="empty-icon"><i class="fa-solid fa-people-group"></i></div>لا فرق بعد ? أضف فريق عمل<br><div style="margin-top:12px"><button class="btn btn-primary" onclick="_openNewTeamChooser()" data-i18n="btn_new_team"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فريق جديد</button></div></div>';
     // Update badge
     const badge = document.getElementById('team-badge'); if(badge) badge.style.display='none';
     renderMyMemberTeams();
@@ -10236,7 +10422,7 @@ function renderTeams(){
   // Also render "teams I'm a member of"
   renderMyMemberTeams();
 
-  // ── فرق الشركات من نظام team.html ──
+  // â”€â”€ فرق الشركات من نظام team.html â”€â”€
   var _companyTeams = [];
   try {
     var _tsRaw = localStorage.getItem('ordo_teams_v2');
@@ -10244,16 +10430,16 @@ function renderTeams(){
   } catch(e){}
 
   grid.innerHTML = [
-    // ── فرق الشركات ──
+    // â”€â”€ فرق الشركات â”€â”€
     ..._companyTeams.map(team=>`
     <div class="card" style="border-color:rgba(247,201,72,.25);position:relative;overflow:hidden">
       <div style="position:absolute;top:0;right:0;width:3px;height:100%;background:var(--accent2)"></div>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:38px;height:38px;border-radius:10px;background:${team.color||'var(--accent2)'};color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${team.emoji||'🏢'}</div>
+          <div style="width:38px;height:38px;border-radius:10px;background:${team.color||'var(--accent2)'};color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${team.emoji||'ًںڈ¢'}</div>
           <div>
             <div style="font-size:15px;font-weight:800">${team.name}</div>
-            <span style="font-size:10px;background:rgba(247,201,72,.12);color:var(--accent2);padding:2px 8px;border-radius:10px;font-weight:800">🏢 شركة</span>
+            <span style="font-size:10px;background:rgba(247,201,72,.12);color:var(--accent2);padding:2px 8px;border-radius:10px;font-weight:800">ًںڈ¢ شركة</span>
           </div>
         </div>
         <div style="display:flex;gap:4px;align-items:center">
@@ -10271,7 +10457,7 @@ function renderTeams(){
         <i class="fa-solid fa-table-columns"></i> فتح البورد والمهام
       </a>
     </div>`),
-    // ── فرق العمل العادية ──
+    // â”€â”€ فرق العمل العادية â”€â”€
     ...S.teams.map(team=>`
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
@@ -10296,11 +10482,11 @@ function renderTeams(){
                 ${escapeHtml(m.name)}
                 ${m.linked ? '<span style="font-size:9px;background:rgba(79,209,165,.15);color:var(--accent3);padding:1px 5px;border-radius:5px;font-weight:700"><i class="fa-solid fa-check"></i> مرتبط</span>' : ''}
               </div>
-              <div style="font-size:11px;color:var(--text3)">${escapeHtml(m.role)}${m.rate?' · '+m.rate+'%':''}</div>
+              <div style="font-size:11px;color:var(--text3)">${escapeHtml(m.role)}${m.rate?' آ· '+m.rate+'%':''}</div>
             </div>
             ${mTasks?`<span style="font-size:10px;background:rgba(247,201,72,.2);color:var(--accent2);padding:2px 7px;border-radius:10px;font-weight:700">${mTasks} مهام</span>`:''}
             ${m.phone?`<a href="https://wa.me/${escapeHtml(m.phone.replace(/[^\d]/g,''))}" target="_blank" onclick="event.stopPropagation()" style="font-size:16px;text-decoration:none" title="واتساب"><i class="fa-solid fa-comments"></i></a>`:''}
-            <span style="font-size:11px;color:var(--text3)">←</span>
+            <span style="font-size:11px;color:var(--text3)">â†گ</span>
           </div>`;
         }).join('')}
       </div>
@@ -10406,7 +10592,7 @@ function switchTaskView(mode){
   else renderTasks();
 }
 
-// ── جدول المهام الكامل مع تغيير الحالة inline ──
+// â”€â”€ جدول المهام الكامل مع تغيير الحالة inline â”€â”€
 function _renderTasksTable(){
   var tbody = document.getElementById('tasks-table-body');
   var countEl = document.getElementById('tasks-table-count');
@@ -10439,14 +10625,14 @@ function _renderTasksTable(){
         +'style="appearance:none;-webkit-appearance:none;font-size:10px;font-weight:800;padding:3px 24px 3px 10px;border-radius:20px;background:'+cur.color+'22;color:'+cur.color+';border:1.5px solid '+cur.color+'55;cursor:pointer;outline:none;font-family:var(--font)">'
         +opts
       +'</select>'
-      +'<span style="position:absolute;left:7px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:8px;color:'+cur.color+'">▾</span>'
+      +'<span style="position:absolute;left:7px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:8px;color:'+cur.color+'">?</span>'
     +'</div>';
   }
 
   var payBadgeTbl = {
     none:    '<span style="font-size:10px;color:#f76f7c;font-weight:700">غير مدفوع</span>',
     deposit: '<span style="font-size:10px;color:#a78bfa;font-weight:700">عربون</span>',
-    full:    '<span style="font-size:10px;color:#4fd1a5;font-weight:700">✓ مدفوع</span>'
+    full:    '<span style="font-size:10px;color:#4fd1a5;font-weight:700">âœ“ مدفوع</span>'
   };
 
   // Column visibility
@@ -10479,7 +10665,7 @@ function _renderTasksTable(){
     return;
   }
 
-  // ── فصل نشطة / مكتملة ──
+  // â”€â”€ فصل نشطة / مكتملة â”€â”€
   var activeTbl = filtered.filter(function(t){ return !(t.done||t.status==='done'); });
   var doneTbl   = filtered.filter(function(t){ return  t.done||t.status==='done'; });
 
@@ -10531,26 +10717,26 @@ function _renderTasksTable(){
         +(projLink&&isDone?'<div style="font-size:9px;color:var(--accent3);margin-top:2px;margin-right:28px"><i class="fa-solid fa-link"></i> رابط التسليم</div>':'')
       +'</td>';
     // client
-    if(colVisible.client!==false) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">'+(escapeHtml(t.client||'—'))+'</td>';
+    if(colVisible.client!==false) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">'+(escapeHtml(t.client||'?'))+'</td>';
     // deadline
-    if(colVisible.deadline!==false) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'"><span title="'+(isLate?'متأخرة':'')+'">'+_friendlyDate(t.deadline||'—')+'</span></td>';
+    if(colVisible.deadline!==false) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'"><span title="'+(isLate?'متأخرة':'')+'">'+_friendlyDate(t.deadline||'?')+'</span></td>';
     // priority
     if(colVisible.priority!==false){
       var prioBadgeT = {high:'<span class="badge badge-red">عالية</span>',med:'<span class="badge badge-yellow">متوسطة</span>',low:'<span class="badge badge-green">منخفضة</span>'};
-      row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" class="hide-mobile">'+(prioBadgeT[t.priority]||'—')+'</td>';
+      row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" class="hide-mobile">'+(prioBadgeT[t.priority]||'?')+'</td>';
     }
     // orderDate
-    if(colVisible.orderDate) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px;font-family:var(--mono)" class="hide-mobile">'+_friendlyDate(t.orderDate||'—')+'</td>';
+    if(colVisible.orderDate) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px;font-family:var(--mono)" class="hide-mobile">'+_friendlyDate(t.orderDate||'?')+'</td>';
     // pay
     if(colVisible.pay!==false) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">'
-      +(t.value>0?'<div>'+(payBadgeTbl[t.pay||'none']||'')+'</div>':'<span style="color:var(--text3)">—</span>')
+      +(t.value>0?'<div>'+(payBadgeTbl[t.pay||'none']||'')+'</div>':'<span style="color:var(--text3)">?</span>')
       +(t.pay==='deposit'&&t.deposit?'<div style="font-size:10px;color:#a78bfa">'+t.deposit.toLocaleString()+' ج</div>':'')
       +'</td>';
     // status
     if(colVisible.status!==false) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'+stSelect(t)+'</td>';
     // value
     if(colVisible.value) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">'
-      +(t.value>0?'<div style="font-weight:900;color:#f7c948;font-size:12px">'+t.value.toLocaleString()+' ج</div>':'<span style="color:var(--text3)">—</span>')
+      +(t.value>0?'<div style="font-weight:900;color:#f7c948;font-size:12px">'+t.value.toLocaleString()+' ج</div>':'<span style="color:var(--text3)">?</span>')
       +'</td>';
     // actions
     if(colVisible.actions!==false) row += '<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'
@@ -10653,7 +10839,7 @@ function _changeRegTaskStatusFromTable(taskId, newStatus){
 }
 
 // ============================================================
-// BULK SELECTION — Tasks
+// BULK SELECTION ? Tasks
 // ============================================================
 function _bulkTasksUpdateCount(){
   var cbs = document.querySelectorAll('.bulk-task-cb:checked');
@@ -10722,7 +10908,7 @@ function _bulkTasksAction(action){
 }
 
 // ============================================================
-// BULK SELECTION — Reviews
+// BULK SELECTION ? Reviews
 // ============================================================
 function _bulkReviewsUpdateCount(){
   var cbs = document.querySelectorAll('.bulk-review-cb:checked');
@@ -10819,7 +11005,7 @@ function renderMonthlyTimeline(){
     const isFuture = +selYear>now.getFullYear() || (+selYear===now.getFullYear() && i>now.getMonth());
     if(isFuture && !mTrans.length) return '';
     return `<div onclick="jumpToMonth('${String(i+1)}','${selYear}')" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;transition:.15s;${isCurrent?'background:rgba(124,111,247,.1);border:1px solid rgba(124,111,247,.3)':'border:1px solid transparent'};margin-bottom:4px" class="task-clickable">
-      <div style="font-size:12px;font-weight:700;color:${isCurrent?'var(--accent)':'var(--text2)'};width:60px">${mName}${isCurrent?' ◀':''}</div>
+      <div style="font-size:12px;font-weight:700;color:${isCurrent?'var(--accent)':'var(--text2)'};width:60px">${mName}${isCurrent?' â—€':''}</div>
       <div style="flex:1;height:6px;background:var(--surface3);border-radius:4px;overflow:hidden;position:relative">
         ${inc?`<div style="position:absolute;right:0;top:0;height:100%;width:${Math.min(100,Math.round(inc/(Math.max(inc,exp)||1)*100))}%;background:var(--accent3);border-radius:4px;opacity:.7"></div>`:''}
         ${exp?`<div style="position:absolute;right:0;top:0;height:100%;width:${Math.min(100,Math.round(exp/(Math.max(inc,exp)||1)*100))}%;background:var(--accent4);border-radius:4px;opacity:.5"></div>`:''}
@@ -10911,14 +11097,14 @@ function openMemberProfile(memberName){
   // Active tasks list
   const el1 = document.getElementById('mp-tasks-list');
   if(el1) el1.innerHTML = activeTasks.length ? activeTasks.map(t=>{
-    const stMap={new:'<i class="fa-solid fa-clipboard-list"></i> جديد',progress:'<i class="fa-solid fa-bolt"></i> جاري',review:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة',paused:'⏸ موقوف',done:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل'};
+    const stMap={new:'<i class="fa-solid fa-clipboard-list"></i> جديد',progress:'<i class="fa-solid fa-bolt"></i> جاري',review:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة',paused:'âڈ¸ موقوف',done:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل'};
     const stepsTotal=t.steps?t.steps.length:0;
     const stepsDone=t.steps?t.steps.filter(s=>s.done).length:0;
     const pct=stepsTotal?Math.round(stepsDone/stepsTotal*100):0;
     return `<div onclick="openTaskDetail(${t.id})" class="task-clickable" style="padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer">
       <div style="font-size:13px;font-weight:700;margin-bottom:4px">${t.title}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text3)">
-        <span>${t.client||'—'}</span>
+        <span>${t.client||'?'}</span>
         <span style="color:var(--accent2)">${stMap[t.status||'new']}</span>
         ${t.workerAmount?`<span style="color:var(--accent4);font-weight:700">مستحق: ${t.workerAmount.toLocaleString()} ج</span>`:''}
       </div>
@@ -10948,7 +11134,7 @@ function openMemberProfile(memberName){
     <div onclick="openTaskDetail(${t.id})" class="task-clickable" style="padding:9px;background:var(--surface2);border:1px solid rgba(79,209,165,.2);border-radius:8px;margin-bottom:7px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
       <div>
         <div style="font-size:12px;font-weight:700;color:var(--text2);text-decoration:line-through">${t.title}</div>
-        <div style="font-size:11px;color:var(--text3)">${t.client||'—'}</div>
+        <div style="font-size:11px;color:var(--text3)">${t.client||'?'}</div>
       </div>
       ${t.workerAmount?`<span style="font-size:12px;font-weight:700;color:var(--accent3)">${t.workerAmount.toLocaleString()} ج</span>`:''}
     </div>`).join('') : '<div class="empty" style="padding:16px 0;font-size:12px">لا مهام مكتملة</div>';
@@ -11015,7 +11201,7 @@ function mpPrintStmt(){
     '<style>body{font-family:Cairo,sans-serif;padding:30px;color:#1a1a2e}table{width:100%;border-collapse:collapse}'+
     'th{background:#f5f5f5;padding:10px;text-align:right;font-size:12px}td{padding:9px 10px;border-bottom:1px solid #eee;font-size:13px}'+
     'h2{font-size:20px}h3{font-size:16px;color:#7c6ff7}</style></head><body>'+
-    '<h2>'+studio+' — كشف حساب</h2><h3>العضو: '+memberName+'</h3>'+
+    '<h2>'+studio+' ? كشف حساب</h2><h3>العضو: '+memberName+'</h3>'+
     '<p style="color:#888;font-size:12px">تاريخ الكشف: '+new Date().toLocaleDateString('ar-EG')+'</p>'+
     el.innerHTML+'</body></html>');
   w.document.close(); w.print();
@@ -11035,15 +11221,15 @@ function sendMemberWA(msgType){
   var activeTasks = (S.tasks||[]).filter(function(t){return t.workerMember===memberName && !t.done;});
   var text = '';
   if(msgType==='project'){
-    var taskList = activeTasks.slice(0,5).map(function(t){return '• '+t.title+(t.deadline?' (موعد: '+t.deadline+')':'');}).join('\n');
+    var taskList = activeTasks.slice(0,5).map(function(t){return '? '+t.title+(t.deadline?' (موعد: '+t.deadline+')':'');}).join('\n');
     text = 'مرحباً ' + memberName + ' <i class="fa-solid fa-hand-wave"></i>\n\n' +
       'هذه مهامك الحالية لدى ' + studio + ':\n' + (taskList||'لا توجد مهام نشطة') +
-      '\n\nللاستفسار تواصل معنا <i class="fa-solid fa-hands"></i>';
+      '\n\nظ„لاستفسار تواصل معنا <i class="fa-solid fa-hands"></i>';
   } else {
     var lateTasks = activeTasks.filter(function(t){return t.deadline && t.deadline < new Date().toISOString().split('T')[0];});
-    var taskList = lateTasks.slice(0,3).map(function(t){return '• '+t.title+' (كان المفترض: '+t.deadline+')';}).join('\n');
+    var taskList = lateTasks.slice(0,3).map(function(t){return '? '+t.title+' (كان المفترض: '+t.deadline+')';}).join('\n');
     text = 'تنبيه هام <i class="fa-solid fa-triangle-exclamation"></i>\n\nعزيزي ' + memberName + '،\n' +
-      'يرجى الانتباه للمهام التالية المتأخرة:\n' + (taskList||activeTasks.slice(0,3).map(function(t){return '• '+t.title;}).join('\n')) +
+      'يرجى الانتباه للمهام التالية المتأخرة:\n' + (taskList||activeTasks.slice(0,3).map(function(t){return '? '+t.title;}).join('\n')) +
       '\n\nنرجو التواصل معنا في أقرب وقت. ' + studio;
   }
   var url = phone
@@ -11057,7 +11243,7 @@ function closeMemberProfile(){
   document.getElementById('member-profile-view').style.display='none';
 }
 
-// ── Send message to team member ──
+// â”€â”€ Send message to team member â”€â”€
 function openMemberMessageModal(){
   var memberName = window._mpCurrentMember;
   if(!memberName){ toast('لم يُحدد عضو'); return; }
@@ -11132,7 +11318,7 @@ async function _sendMemberMessage(memberName){
 
 
 // ============================================================
-// SUBSCRIPTIONS — Remaining days + custom categories
+// SUBSCRIPTIONS ? Remaining days + custom categories
 // ============================================================
 function renderSubsWithReminder(){
   const el = document.getElementById('subs-list'); if(!el) return;
@@ -11149,7 +11335,7 @@ function renderSubsWithReminder(){
     return `<div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid ${urgent?'rgba(247,111,124,.4)':'var(--border)'};border-radius:8px;padding:10px 14px;margin-bottom:8px">
       <div style="flex:1">
         <div style="font-weight:700;font-size:13px"><i class="fa-solid fa-laptop"></i> ${s.name}</div>
-        <div style="font-size:11px;color:var(--text3)">${s.cat||'اشتراكات'} · ${s.amount.toLocaleString()} ج/شهر · يتجدد يوم ${s.day}</div>
+        <div style="font-size:11px;color:var(--text3)">${s.cat||'اشتراكات'} آ· ${s.amount.toLocaleString()} ج/شهر آ· يتجدد يوم ${s.day}</div>
         <div style="font-size:11px;margin-top:3px;font-weight:700;color:${urgent?'var(--accent4)':'var(--accent3)'}">${urgent?'<i class="fa-solid fa-triangle-exclamation"></i> ':'<i class="fa-solid fa-alarm-clock"></i> '}يتجدد خلال ${diffDays} يوم (${nextDate.toLocaleDateString('ar-EG')})</div>
       </div>
       <button class="btn btn-success btn-sm" onclick="renewSubscription(${i})" title="تجديد الآن"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تجديد</button>
@@ -11188,7 +11374,7 @@ function renderDashTeamTasks(){
     return;
   }
 
-  const stMap={new:'<i class="fa-solid fa-clipboard-list"></i> جديد',progress:'<i class="fa-solid fa-bolt"></i> جاري',review:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة',paused:'⏸ موقوف'};
+  const stMap={new:'<i class="fa-solid fa-clipboard-list"></i> جديد',progress:'<i class="fa-solid fa-bolt"></i> جاري',review:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة',paused:'âڈ¸ موقوف'};
   var stColor={new:_getStatusColor('new'),progress:_getStatusColor('progress'),review:_getStatusColor('review'),paused:_getStatusColor('paused')};
 
   container.innerHTML = memberData.map(m=>{
@@ -11214,7 +11400,7 @@ function renderDashTeamTasks(){
       </div>`;
     }).join('');
     return `<div style="margin-bottom:14px">
-      <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:6px"><i class="fa-solid fa-user"></i> ${m.name} — ${m.tasks.length} مهمة</div>
+      <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:6px"><i class="fa-solid fa-user"></i> ${m.name} ? ${m.tasks.length} مهمة</div>
       ${rows}
     </div>`;
   }).join('');
@@ -11222,11 +11408,11 @@ function renderDashTeamTasks(){
 
 
 // ============================================================
-// DASHBOARD — Subscriptions & Uncollected alerts
+// DASHBOARD ? Subscriptions & Uncollected alerts
 // ============================================================
 
 // ============================================================
-// TASKS LOG — Daily / Monthly / Annual
+// TASKS LOG ? Daily / Monthly / Annual
 // ============================================================
 let currentTasksTab = 'active';
 
@@ -11282,7 +11468,7 @@ function _taskLogCard(t){
     <div class="task-priority priority-${t.priority||'low'}"></div>
     <div style="flex:1;min-width:0">
       <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:2px">${t.client||'—'}${t.value?' · '+t.value.toLocaleString()+' ج':''}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">${t.client||'?'}${t.value?' آ· '+t.value.toLocaleString()+' ج':''}</div>
     </div>
     <span style="font-size:10px;background:rgba(79,209,165,.15);color:var(--accent3);padding:2px 8px;border-radius:10px;font-weight:700"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل</span>
     <span style="font-size:10px;color:var(--text3)">${t.doneAt||''}</span>
@@ -11374,11 +11560,11 @@ function renderTaskStatusesSettings(){
     {id:'new',      label:'<i class="fa-solid fa-clipboard-list"></i> جديد',       color:'var(--text3)'},
     {id:'progress', label:'<i class="fa-solid fa-bolt"></i> قيد التنفيذ', color:'var(--accent2)'},
     {id:'review',   label:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة',     color:'var(--accent)'},
-    {id:'paused',   label:'⏸ موقوف',       color:'#64b5f6'},
+    {id:'paused',   label:'âڈ¸ موقوف',       color:'#64b5f6'},
   ];
   const defaultHTML = defaultItems.map(s=>{
     const isHidden = hidden.includes(s.id);
-    if(isHidden) return `<span style="display:inline-flex;align-items:center;gap:6px;background:rgba(42,42,58,.5);color:var(--text3);border:1px dashed var(--border);padding:4px 12px;border-radius:20px;font-size:12px;opacity:.5">${s.label} <button onclick="restoreStatus('${s.id}')" style="background:none;border:none;cursor:pointer;color:var(--accent3);font-size:11px;padding:0" title="إعادة تفعيل">↩</button></span>`;
+    if(isHidden) return `<span style="display:inline-flex;align-items:center;gap:6px;background:rgba(42,42,58,.5);color:var(--text3);border:1px dashed var(--border);padding:4px 12px;border-radius:20px;font-size:12px;opacity:.5">${s.label} <button onclick="restoreStatus('${s.id}')" style="background:none;border:none;cursor:pointer;color:var(--accent3);font-size:11px;padding:0" title="إعادة تفعيل">â†©</button></span>`;
     return `<span style="display:inline-flex;align-items:center;gap:6px;background:${s.color}18;color:${s.color};border:1px solid ${s.color}44;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">${s.label} <button onclick="hideStatus('${s.id}')" style="background:none;border:none;cursor:pointer;color:${s.color};font-size:12px;padding:0;line-height:1" title="إخفاء"><i class="fa-solid fa-xmark"></i></button></span>`;
   }).join('');
   const customHTML = custom.map((s,i)=>
@@ -11436,7 +11622,7 @@ function buildDynamicStatusDropdowns(){
     new:      (overrides.new?.label      || '<i class="fa-solid fa-clipboard-list"></i> جديد'),
     progress: (overrides.progress?.label || '<i class="fa-solid fa-bolt"></i> قيد التنفيذ'),
     review:   (overrides.review?.label   || '<i class="fa-solid fa-magnifying-glass"></i> مراجعة'),
-    paused:   (overrides.paused?.label   || '⏸ موقوف'),
+    paused:   (overrides.paused?.label   || 'âڈ¸ موقوف'),
   };
   // Build options strings
   const defaultOpts = Object.entries(defaultMap)
@@ -11494,9 +11680,9 @@ function switchFinTab(tab) {
   if(tab==='stats') { if(typeof renderFinStats==='function') renderFinStats(); }
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // ملخص القروض والمستحقات في أول صفحة المالية
-// ═══════════════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function renderFinLoansSummary(){
   var el = document.getElementById('fin-loans-summary');
   if(!el) return;
@@ -11547,7 +11733,7 @@ function renderFinLoansSummary(){
     html += '<div style="margin-top:10px;padding:10px 14px;background:rgba(255,107,107,.1);border-radius:10px;border-right:3px solid var(--accent4)">'
       +'<div style="font-size:12px;font-weight:800;color:var(--accent4);margin-bottom:6px"><i class="fa-solid fa-bell"></i> تذكير: '+overdueLoans.length+' قرض متأخر السداد</div>'
       +overdueLoans.map(function(l){
-        return '<div style="font-size:11px;color:var(--text2);margin-bottom:3px">• '+(l.direction==='lent'?'سلّفت لـ ':'استلفت من ')+escapeHtml(l.person)+': '+(l.amount-(l.settledAmount||0)).toLocaleString()+' '+cur+' · استحق: '+l.due+'</div>';
+        return '<div style="font-size:11px;color:var(--text2);margin-bottom:3px">? '+(l.direction==='lent'?'سلّفت لـ ':'استلفت من ')+escapeHtml(l.person)+': '+(l.amount-(l.settledAmount||0)).toLocaleString()+' '+cur+' آ· استحق: '+l.due+'</div>';
       }).join('')
       +'</div>';
   }
@@ -11585,8 +11771,8 @@ function renderWalletsTab() {
       '</div>'+
       '<div style="font-size:20px;font-weight:900;color:'+(balance>=0?'var(--accent3)':'var(--accent4)')+'">'+balance.toLocaleString('ar-EG')+' ج</div>'+
       '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:6px">'+
-        '<span style="color:var(--accent3)">↑ '+income.toLocaleString('ar-EG')+'</span>'+
-        '<span style="color:var(--accent4)">↓ '+expense.toLocaleString('ar-EG')+'</span>'+
+        '<span style="color:var(--accent3)">â†‘ '+income.toLocaleString('ar-EG')+'</span>'+
+        '<span style="color:var(--accent4)">â†“ '+expense.toLocaleString('ar-EG')+'</span>'+
       '</div>'+
       '<div style="margin-top:8px;height:4px;background:var(--surface2);border-radius:4px;overflow:hidden">'+
         '<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:4px;transition:width .5s"></div>'+
@@ -11595,11 +11781,11 @@ function renderWalletsTab() {
   }).join('');
 }
 
-// ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // BUDGETS
-// ══════════════════════════════════════════════════
-var _budgetCatLabel = {equipment:'💻 معدات وأجهزة',software:'🔧 برامج واشتراكات',setup:'🏠 تطوير السيت آب',marketing:'📢 تسويق',education:'📚 تعليم وكورسات',emergency:'🛡 طوارئ',other:'📦 أخرى'};
-var _budgetPriLabel = {high:'🔴 عالية',medium:'🟡 متوسطة',low:'🟢 منخفضة'};
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+var _budgetCatLabel = {equipment:'ًں’» معدات وأجهزة',software:'ًں”§ برامج واشتراكات',setup:'ًںڈ  تطوير السيت آب',marketing:'ًں“¢ تسويق',education:'ًں“ڑ تعليم وكورسات',emergency:'ًں›، طوارئ',other:'ًں“¦ أخرى'};
+var _budgetPriLabel = {high:'ًں”´ عالية',medium:'ًںں، متوسطة',low:'ًںں¢ منخفضة'};
 
 function openBudgetModal(id){
   document.getElementById('budget-modal-ttl').innerHTML = id ? '<i class="fa-solid fa-bullseye-arrow"></i> تعديل الميزانية' : '<i class="fa-solid fa-bullseye-arrow"></i> ميزانية جديدة';
@@ -11661,7 +11847,7 @@ function renderBudgets(){
   var el=document.getElementById('budgets-grid'); if(!el) return;
   if(!S.budgets) S.budgets=[];
   if(!S.budgets.length){
-    el.innerHTML='<div class="card" style="grid-column:span 3;text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:12px">🎯</div><div style="font-size:16px;font-weight:800;margin-bottom:8px">لا توجد ميزانيات بعد</div><div style="font-size:13px;color:var(--text3);margin-bottom:16px">ابدأ بتحديد ميزانية لأي هدف — جهاز، كورس، تسويق...</div><button class="btn btn-primary" onclick="openBudgetModal()"><i class="fa-solid fa-plus" style="margin-left:4px"></i> ميزانية جديدة</button></div>';
+    el.innerHTML='<div class="card" style="grid-column:span 3;text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:12px">ًںژ¯</div><div style="font-size:16px;font-weight:800;margin-bottom:8px">لا توجد ميزانيات بعد</div><div style="font-size:13px;color:var(--text3);margin-bottom:16px">ابدأ بتحديد ميزانية لأي هدف ? جهاز، كورس، تسويق...</div><button class="btn btn-primary" onclick="openBudgetModal()"><i class="fa-solid fa-plus" style="margin-left:4px"></i> ميزانية جديدة</button></div>';
     return;
   }
   var priColor={high:'var(--accent4)',medium:'var(--accent2)',low:'var(--accent3)'};
@@ -11674,7 +11860,7 @@ function renderBudgets(){
       +'<div style="position:absolute;top:12px;left:12px;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;background:'+priColor[b.priority||'medium']+'22;color:'+priColor[b.priority||'medium']+'">'+(_budgetPriLabel[b.priority||'medium']||'')+'</div>'
       +'<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;padding-left:60px">'
         +'<div><div style="font-size:14px;font-weight:800">'+escapeHtml(b.name)+'</div>'
-        +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+(_budgetCatLabel[b.cat||'other']||'')+(b.deadline?' · ⏰ '+b.deadline:'')+'</div></div>'
+        +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+(_budgetCatLabel[b.cat||'other']||'')+(b.deadline?' آ· âڈ° '+b.deadline:'')+'</div></div>'
         +'<div style="display:flex;gap:4px">'
           +'<button onclick="openBudgetModal(\''+b.id+'\')" class="btn btn-ghost btn-sm" style="padding:4px 8px"><i class="fa-solid fa-pen"></i></button>'
           +'<button onclick="delBudget(\''+b.id+'\')" class="btn btn-ghost btn-sm" style="padding:4px 8px;color:var(--accent4)"><i class="fa-solid fa-trash"></i></button>'
@@ -11696,9 +11882,9 @@ function renderBudgets(){
   }).join('');
 }
 
-// ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // LOANS
-// ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function updateLoanDirection(){
   var dir=document.getElementById('loan-direction')?.value||'lent';
   var lbl=document.getElementById('loan-person-label');
@@ -11757,7 +11943,7 @@ function saveLoan(){
   else{d.id='ln_'+Date.now();d.createdAt=d.updatedAt;S.loans.push(d);}
   lsSave();cloudSave(S);closeM('modal-loan');renderLoans();
   toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ القرض');
-  // ── سؤال تسجيل القرض كمعاملة مالية (للقروض الجديدة فقط) ──
+  // â”€â”€ سؤال تسجيل القرض كمعاملة مالية (للقروض الجديدة فقط) â”€â”€
   if(isNew){
     // ننتظر إن modal-loan يتغلق كامل قبل ما نظهر الـ prompt
     var _loanForPrompt=Object.assign({},d);
@@ -11770,13 +11956,13 @@ function saveLoan(){
   }
 }
 
-// ── موديال تسجيل القرض كمعاملة مالية ──
+// â”€â”€ موديال تسجيل القرض كمعاملة مالية â”€â”€
 function _showLoanTransactionPrompt(loan){
   var ex=document.getElementById('_loan-tx-modal'); if(ex) ex.remove();
   var isLent=loan.direction==='lent';
-  // لو سلّفت فلوس → خرج منك (مصروف)، لو استلفت → دخل عندك
+  // لو سلّفت فلوس ? خرج منك (مصروف)، لو استلفت ? دخل عندك
   var txType=isLent?'expense':'income';
-  var icon=isLent?'📤':'📥';
+  var icon=isLent?'ًں“¤':'ًں“¥';
   var label=isLent?'مصروف (فلوس طلعت منك)':'دخل (فلوس دخلت عندك)';
   var desc=(isLent?'سلفة لـ ':'قرض من ')+loan.person;
   var ov=document.createElement('div');
@@ -11844,10 +12030,10 @@ function renderLoans(){
   if(lentEl) lentEl.textContent=lentTotal.toLocaleString()+' ج.م';
   if(borEl) borEl.textContent=borrowedTotal.toLocaleString()+' ج.م';
   if(!S.loans.length){
-    el.innerHTML='<div class="card" style="text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:12px">🤝</div><div style="font-size:16px;font-weight:800;margin-bottom:8px">لا توجد قروض مسجّلة</div><div style="font-size:13px;color:var(--text3);margin-bottom:16px">سجّل فلوسك المسلّفة أو اللي عليك تردها</div><button class="btn btn-primary" onclick="openLoanModal()"><i class="fa-solid fa-plus" style="margin-left:4px"></i> قرض / دين جديد</button></div>';
+    el.innerHTML='<div class="card" style="text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:12px">ًں¤‌</div><div style="font-size:16px;font-weight:800;margin-bottom:8px">لا توجد قروض مسجّلة</div><div style="font-size:13px;color:var(--text3);margin-bottom:16px">سجّل فلوسك المسلّفة أو اللي عليك تردها</div><button class="btn btn-primary" onclick="openLoanModal()"><i class="fa-solid fa-plus" style="margin-left:4px"></i> قرض / دين جديد</button></div>';
     return;
   }
-  var stLabel={pending:'⏳ لسه',partial:'🟡 جزء',settled:'✅ اترد'};
+  var stLabel={pending:'âڈ³ لسه',partial:'ًںں، جزء',settled:'? اترد'};
   var stColor={pending:'var(--accent4)',partial:'var(--accent2)',settled:'var(--accent3)'};
   el.innerHTML='<div style="display:flex;flex-direction:column;gap:10px">'+S.loans.map(function(l){
     var isLent=l.direction==='lent';
@@ -11857,11 +12043,11 @@ function renderLoans(){
     return '<div class="card" style="border-right:4px solid '+(isLent?'var(--accent3)':'var(--accent4)')+(isDone?';opacity:.7':'')+';">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'
         +'<div>'
-          +'<div style="font-size:13px;font-weight:800">'+(isLent?'💰 سلّفت لـ ':'↩ استلفت من ')+escapeHtml(l.person)+'</div>'
+          +'<div style="font-size:13px;font-weight:800">'+(isLent?'ًں’° سلّفت لـ ':'â†© استلفت من ')+escapeHtml(l.person)+'</div>'
           +'<div style="font-size:12px;color:var(--text3);margin-top:3px">'
             +l.amount.toLocaleString()+' ج.م'
-            +(l.date?' · '+l.date:'')
-            +(l.due?'<span style="color:'+(overdue?'var(--accent4)':'var(--text3)')+'"> · سداد: '+l.due+(overdue?' ⚠️':'')+'</span>':'')
+            +(l.date?' آ· '+l.date:'')
+            +(l.due?'<span style="color:'+(overdue?'var(--accent4)':'var(--text3)')+'"> آ· سداد: '+l.due+(overdue?' âڑ ï¸ڈ':'')+'</span>':'')
           +'</div>'
           +(l.notes?'<div style="font-size:11px;color:var(--text3);margin-top:3px">'+escapeHtml(l.notes)+'</div>':'')
         +'</div>'
@@ -11899,10 +12085,10 @@ function showWalletDetail(methodId) {
   var rows = [...mTrans].sort(function(a,b){ return (b.isoDate||'').localeCompare(a.isoDate||''); });
   tbody.innerHTML = rows.map(function(t) {
     return '<tr>'+
-      '<td>'+( t.desc||'—' )+'</td>'+
+      '<td>'+( t.desc||'?' )+'</td>'+
       '<td><span class="badge '+(t.type==='income'?'badge-green':'badge-red')+'">'+(t.type==='income'?'دخل':'مصروف')+'</span></td>'+
       '<td style="font-weight:700;color:'+(t.type==='income'?'var(--accent3)':'var(--accent4)')+'">'+t.amount.toLocaleString('ar-EG')+' ج</td>'+
-      '<td class="hide-mobile" style="font-size:11px;color:var(--text3)">'+(t.isoDate||t.date||'—')+'</td>'+
+      '<td class="hide-mobile" style="font-size:11px;color:var(--text3)">'+(t.isoDate||t.date||'?')+'</td>'+
     '</tr>';
   }).join('') || '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text3)">لا معاملات لهذه المحفظة</td></tr>';
 }
@@ -11972,7 +12158,7 @@ function renderPaymentAccountsSettings(){
   // عرض الافتراضية مع زر حذف
   const defaultHTML = DEFAULT_PAY_METHODS.map(m=>{
     const isHidden = hidden.includes(m.id);
-    if(isHidden) return `<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(42,42,58,.5);color:var(--text3);border:1px dashed var(--border);padding:4px 12px;border-radius:20px;font-size:12px;opacity:.5">${m.icon} ${m.label} <button onclick="restorePayMethod('${m.id}')" style="background:none;border:none;cursor:pointer;color:var(--accent3);font-size:11px;padding:0" title="إعادة تفعيل">↩</button></span>`;
+    if(isHidden) return `<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(42,42,58,.5);color:var(--text3);border:1px dashed var(--border);padding:4px 12px;border-radius:20px;font-size:12px;opacity:.5">${m.icon} ${m.label} <button onclick="restorePayMethod('${m.id}')" style="background:none;border:none;cursor:pointer;color:var(--accent3);font-size:11px;padding:0" title="إعادة تفعيل">â†©</button></span>`;
     return `<span style="display:inline-flex;align-items:center;gap:5px;background:${m.color}18;color:${m.color};border:1px solid ${m.color}44;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">${m.icon} ${m.label} <button onclick="hidePayMethod('${m.id}')" style="background:none;border:none;cursor:pointer;color:${m.color};font-size:12px;padding:0;line-height:1" title="إخفاء"><i class="fa-solid fa-xmark"></i></button></span>`;
   }).join('');
   const customHTML = custom.map((a,i)=>
@@ -12030,7 +12216,7 @@ function renderDashOverdue(){
     list.innerHTML='<div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i></div><div style="font-size:12px">لا مهام متأخرة</div></div>';
     return;
   }
-  const stLabel={new:'<i class="fa-solid fa-clipboard-list"></i> جديد',progress:'<i class="fa-solid fa-bolt"></i> جاري',review:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة',paused:'⏸ موقوف'};
+  const stLabel={new:'<i class="fa-solid fa-clipboard-list"></i> جديد',progress:'<i class="fa-solid fa-bolt"></i> جاري',review:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة',paused:'âڈ¸ موقوف'};
   list.innerHTML = overdue.slice(0,5).map(t=>{
     const hrs  = Math.floor((now - +t.id)/(1000*60*60));
     const days = Math.floor(hrs/24);
@@ -12038,7 +12224,7 @@ function renderDashOverdue(){
     return `<div onclick="openTaskDetail(${t.id})" class="task-clickable" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(42,42,58,.25);cursor:pointer">
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
-        <div style="font-size:11px;color:var(--text3)">${t.client||'—'} · ${stLabel[t.status||'new']||t.status||''}</div>
+        <div style="font-size:11px;color:var(--text3)">${t.client||'?'} آ· ${stLabel[t.status||'new']||t.status||''}</div>
       </div>
       <span style="font-size:11px;font-weight:700;color:var(--accent4);white-space:nowrap;background:rgba(247,111,124,.12);padding:2px 7px;border-radius:10px">منذ ${timeStr}</span>
     </div>`;
@@ -12047,12 +12233,12 @@ function renderDashOverdue(){
 }
 
 // ============================================================
-// renderDashAlerts — يحدّث كل خانات التنبيه
+// renderDashAlerts ? يحدّث كل خانات التنبيه
 // ============================================================
 function renderDashAlerts(){
   renderDashOverdue();
 
-  // ── اشتراكات قريبة التجديد ──
+  // â”€â”€ اشتراكات قريبة التجديد â”€â”€
   const subsList = document.getElementById('dash-subs-list');
   if(subsList){
     const today = new Date();
@@ -12076,14 +12262,14 @@ function renderDashAlerts(){
     }
   }
 
-  // ── مبالغ لم تُحصَّل ──
+  // â”€â”€ مبالغ لم تُحصَّل â”€â”€
   const uncList = document.getElementById('dash-uncollected-list');
   if(uncList){
     const uncollected = S.tasks.filter(t=>t.done && !t.paymentCollected && t.value>0);
     if(uncollected.length){
       uncList.innerHTML = uncollected.slice(0,5).map(t=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(42,42,58,.25)">
-          <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div><div style="font-size:11px;color:var(--text3)">${t.client||'—'}</div></div>
+          <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div><div style="font-size:11px;color:var(--text3)">${t.client||'?'}</div></div>
           <div style="text-align:left;flex-shrink:0">
             <div style="font-size:13px;font-weight:800;color:var(--accent4)">${t.value.toLocaleString()} ج</div>
             <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 8px;margin-top:2px" onclick="markTaskPaymentCollected(${t.id})">تحصيل</button>
@@ -12102,12 +12288,12 @@ function renderDashAlerts(){
 
 
 // ============================================================
-// <i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> NEW FEATURES BLOCK — v3
+// <i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> NEW FEATURES BLOCK ? v3
 // ============================================================
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // <i class="fa-solid fa-repeat"></i> RECURRING TASKS
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function toggleRecurring(){
   const cb=document.getElementById('t-recurring');
   const opts=document.getElementById('t-recurring-opts');
@@ -12131,9 +12317,9 @@ function _createRecurringInstances(baseTask, interval, count){
   return instances;
 }
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // <i class="fa-solid fa-alarm-clock"></i> DEADLINE PROMISE LOG
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let _origDeadline='';
 
 function _onDeadlineChanged(newVal){
@@ -12155,14 +12341,14 @@ function _showDeadlineLog(){
   if(!t||!t.deadlineLog||!t.deadlineLog.length){alert('لا يوجد سجل تغييرات للموعد بعد');return;}
   let msg='<i class="fa-solid fa-clipboard-list"></i> سجل تغييرات موعد التسليم:\n\n';
   t.deadlineLog.forEach((l,i)=>{
-    msg+=`${i+1}. ${l.changedAt?.slice(0,10)||'—'}\n   من: ${l.from||'غير محدد'} → إلى: ${l.to}\n   السبب: ${l.reason||'لم يذكر'}\n\n`;
+    msg+=`${i+1}. ${l.changedAt?.slice(0,10)||'?'}\n   من: ${l.from||'غير محدد'} ? إلى: ${l.to}\n   السبب: ${l.reason||'لم يذكر'}\n\n`;
   });
   alert(msg);
 }
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // <i class="fa-solid fa-flag-checkered"></i> MILESTONES
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function addMilestone(){
   const list=document.getElementById('t-milestones-list');if(!list)return;
   const idx=list.children.length;
@@ -12172,7 +12358,7 @@ function addMilestone(){
   row.innerHTML=`<input class="form-input" style="flex:2;font-size:12px" placeholder="اسم المرحلة" data-ml-title>
     <input class="form-input" type="date" style="flex:1;font-size:12px" data-ml-date>
     <select class="form-select" style="flex:0 0 80px;font-size:11px" data-ml-status>
-      <option value="pending">⏳ معلقة</option><option value="done"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> منتهية</option>
+      <option value="pending">âڈ³ معلقة</option><option value="done"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> منتهية</option>
     </select>
     <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()"><i class="fa-solid fa-trash"></i></button>`;
   list.appendChild(row);
@@ -12196,7 +12382,7 @@ function renderMilestonesForm(milestones=[]){
     row.innerHTML=`<input class="form-input" style="flex:2;font-size:12px" placeholder="اسم المرحلة" data-ml-title value="${m.title||''}">
       <input class="form-input" type="date" style="flex:1;font-size:12px" data-ml-date value="${m.date||''}">
       <select class="form-select" style="flex:0 0 80px;font-size:11px" data-ml-status>
-        <option value="pending" ${m.status!=='done'?'selected':''}>⏳ معلقة</option>
+        <option value="pending" ${m.status!=='done'?'selected':''}>âڈ³ معلقة</option>
         <option value="done" ${m.status==='done'?'selected':''}><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> منتهية</option>
       </select>
       <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()"><i class="fa-solid fa-trash"></i></button>`;
@@ -12279,9 +12465,9 @@ function renderMilestonesForm(milestones=[]){
   };
 })();
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // <i class="fa-solid fa-bullseye"></i> COMMITMENT % (مؤشر الالتزام)
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _calcCommitmentPct(){
   const now=new Date();
   const curM=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -12299,7 +12485,7 @@ function renderCommitmentWidget(){
   const pct=_calcCommitmentPct();
   if(pct===null){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">لا مهام مكتملة هذا الشهر بعد</div>';return;}
   const color=pct>=90?'var(--accent3)':pct>=70?'var(--accent2)':'var(--accent4)';
-  const msg=pct>=90?'<i class="fa-solid fa-trophy"></i> ممتاز! أنت تلتزم بمواعيدك بشكل رائع':pct>=70?'👍 جيد — حاول تحسين الالتزام أكثر':'<i class="fa-solid fa-triangle-exclamation"></i> انتبه! الالتزام منخفض — راجع أولوياتك';
+  const msg=pct>=90?'<i class="fa-solid fa-trophy"></i> ممتاز! أنت تلتزم بمواعيدك بشكل رائع':pct>=70?'ًں‘چ جيد ? حاول تحسين الالتزام أكثر':'<i class="fa-solid fa-triangle-exclamation"></i> انتبه! الالتزام منخفض ? راجع أولوياتك';
   el.innerHTML=`
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
       <div style="font-size:32px;font-weight:900;color:${color}">${pct}%</div>
@@ -12313,9 +12499,9 @@ function renderCommitmentWidget(){
     <div style="font-size:11px;padding:6px 10px;border-radius:8px;background:${pct<70?'rgba(247,111,124,.1)':'rgba(79,209,165,.08)'};color:${color}">${msg}</div>`;
 }
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // <i class="fa-solid fa-bolt"></i> MOMENTUM METER (مقياس الزخم)
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _calcMomentum(){
   const now=new Date();
   const week=7*24*60*60*1000;
@@ -12330,8 +12516,8 @@ function renderMomentumWidget(){
   const el=document.getElementById('dash-momentum-inner');if(!el)return;
   const {score,done,newTasks,income}=_calcMomentum();
   const color=score>=70?'var(--accent3)':score>=40?'var(--accent)':'var(--accent4)';
-  const emoji=score>=80?'🔥':score>=50?'<i class="fa-solid fa-bolt"></i>':score>=25?'<i class="fa-solid fa-seedling"></i>':'😴';
-  const label=score>=80?'زخم عالي!':score>=50?'نشاط جيد':score>=25?'بداية جيدة':'نشاطك منخفض — ابدأ مهمة جديدة!';
+  const emoji=score>=80?'ًں”¥':score>=50?'<i class="fa-solid fa-bolt"></i>':score>=25?'<i class="fa-solid fa-seedling"></i>':'ًںک´';
+  const label=score>=80?'زخم عالي!':score>=50?'نشاط جيد':score>=25?'بداية جيدة':'نشاطك منخفض ? ابدأ مهمة جديدة!';
   el.innerHTML=`
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
       <div style="font-size:28px">${emoji}</div>
@@ -12347,13 +12533,13 @@ function renderMomentumWidget(){
     </div>
     <div style="display:flex;gap:10px;font-size:10px;color:var(--text3)">
       <span><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> ${done} مكتملة</span><span><i class="fa-solid fa-clipboard-list"></i> ${newTasks} جديدة</span><span><i class="fa-solid fa-coins"></i> ${income} إيراد</span>
-      <span style="color:var(--text3)">— آخر 7 أيام</span>
+      <span style="color:var(--text3)">? آخر 7 أيام</span>
     </div>`;
 }
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // <i class="fa-solid fa-coins"></i> EXPECTED INCOME (الدخل المتوقع)
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _calcExpectedIncome(){
   const now=new Date();
   const curM=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -12390,8 +12576,8 @@ function _calcExpectedIncome(){
   const capacity=S.settings?.monthlyCapacity||10;
   const canAccept=activeCount<capacity;
   const recommendation=canAccept?
-    (activeCount<capacity*0.5?'<i class="fa-solid fa-circle"></i> عندك وقت — مناسب تقبل أوردرات جديدة':'<i class="fa-solid fa-circle"></i> محمّل نسبياً — ممكن تقبل أوردر أو اتنين'):
-    '<i class="fa-solid fa-circle"></i> مشغول — مش مناسب تقبل أوردرات جديدة دلوقتي';
+    (activeCount<capacity*0.5?'<i class="fa-solid fa-circle"></i> عندك وقت ? مناسب تقبل أوردرات جديدة':'<i class="fa-solid fa-circle"></i> محمّل نسبياً ? ممكن تقبل أوردر أو اتنين'):
+    '<i class="fa-solid fa-circle"></i> مشغول ? مش مناسب تقبل أوردرات جديدة دلوقتي';
 
   return {activeVal,pendInv,recurVal,avg3,activeCount,capacity,canAccept,recommendation,monthOrders};
 }
@@ -12420,13 +12606,13 @@ function renderExpectedWidget(){
         <div style="font-size:9px;color:var(--text3)"><i class="fa-solid fa-folder-open"></i> أوردرات هذا الشهر</div>
       </div>
     </div>
-    ${isWeak?`<div style="background:rgba(247,111,124,.1);border:1px solid rgba(247,111,124,.2);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--accent4);margin-bottom:7px"><i class="fa-solid fa-triangle-exclamation"></i> الشهر ده هيكون ضعيف — فكر تقبل أوردرات جديدة</div>`:''}
+    ${isWeak?`<div style="background:rgba(247,111,124,.1);border:1px solid rgba(247,111,124,.2);border-radius:8px;padding:7px 10px;font-size:11px;color:var(--accent4);margin-bottom:7px"><i class="fa-solid fa-triangle-exclamation"></i> الشهر ده هيكون ضعيف ? فكر تقبل أوردرات جديدة</div>`:''}
     <div style="background:${activeCount<capacity*0.5?'rgba(79,209,165,.08)':activeCount<capacity?'rgba(247,201,72,.08)':'rgba(247,111,124,.08)'};border-radius:8px;padding:7px 10px;font-size:11px">${recommendation}</div>`;
 }
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // <i class="fa-solid fa-alarm-clock"></i> UPCOMING DEADLINES (24/48h)
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderUpcomingWidget(){
   const el=document.getElementById('dash-upcoming-inner');if(!el)return;
   const now=new Date();
@@ -12447,16 +12633,16 @@ function renderUpcomingWidget(){
     return `<div onclick="openTaskDetail(${t.id})" class="task-clickable" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(42,42,58,.25);cursor:pointer">
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.title}</div>
-        <div style="font-size:10px;color:var(--text3)">${t.client||'—'}</div>
+        <div style="font-size:10px;color:var(--text3)">${t.client||'?'}</div>
       </div>
       <span style="font-size:11px;font-weight:800;white-space:nowrap;padding:2px 8px;border-radius:10px;background:${urgent?'rgba(247,111,124,.15)':'rgba(247,201,72,.12)'};color:${urgent?'var(--accent4)':'var(--accent2)'}"><i class="fa-solid fa-alarm-clock"></i> ${hrs}س</span>
     </div>`;
   }).join('');
 }
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // <i class="fa-solid fa-dna"></i> VALUE SCORE (تقييم العميل)
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _calcClientScore(c){
   const cTasks=S.tasks.filter(t=>t.client===c.name);
   const cInvs=S.invoices.filter(i=>i.client===c.name);
@@ -12465,10 +12651,10 @@ function _calcClientScore(c){
   score+=Math.min(40, cTasks.length*4);
   // الانتظام في الدفع (30 نقطة)
   const payMap={instant:30,normal:20,late:5,very_late:0,undefined:15};
-  score+=payMap[c.dnaPayment]??15;
+  score+=(payMap[c.dnaPayment] ?? 15);
   // سهولة التعامل (30 نقطة)
   const styleMap={easy:30,detail:22,reviews:15,quick:25,vague:10,demanding:5};
-  score+=styleMap[c.dnaStyle]??20;
+  score+=(styleMap[c.dnaStyle] ?? 20);
   return Math.min(100,score);
 }
 
@@ -12479,9 +12665,9 @@ function _clientScoreBadge(score){
   return '<span style="font-size:10px;padding:1px 7px;border-radius:8px;background:rgba(247,111,124,.12);color:var(--accent4);font-weight:700"><i class="fa-solid fa-triangle-exclamation"></i> منخفض</span>';
 }
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // <i class="fa-solid fa-bell-slash"></i> SILENT CLIENT ALERT (العميل الهادي)
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _checkSilentClients(){
   const now=new Date();
   const alerts=[];
@@ -12497,9 +12683,9 @@ function _checkSilentClients(){
   return alerts.sort((a,b)=>b.days-a.days);
 }
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // <i class="fa-solid fa-trophy"></i> WEEKLY CHALLENGE (تحدي الأسبوع)
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _getWeekKey(){
   const d=new Date();
   const start=new Date(d); start.setDate(d.getDate()-d.getDay());
@@ -12509,7 +12695,7 @@ function _getWeekKey(){
 function _getWeeklyChallenge(){
   const weekKey=_getWeekKey();
 
-  // ① تحدي الأدمن — له الأولوية إذا كان لنفس الأسبوع
+  // â‘  تحدي الأدمن ? له الأولوية إذا كان لنفس الأسبوع
   const adminCh = S._adminChallenge;
   if(adminCh && adminCh.weekKey === weekKey){
     // استرجع حالة التقدم المحفوظة محلياً لهذا التحدي
@@ -12524,18 +12710,18 @@ function _getWeeklyChallenge(){
     };
   }
 
-  // ② تحدي تلقائي محلي (fallback)
+  // â‘، تحدي تلقائي محلي (fallback)
   const saved=JSON.parse(localStorage.getItem('_weekChallenge')||'{}');
   if(saved.week===weekKey) return saved;
 
   const now=new Date();
   const avg=_calcExpectedIncome().avg3||1000;
   const challenges=[
-    {title:'سلّم 3 مهام في موعدها هذا الأسبوع',type:'on_time',target:3,unit:'مهمة',reward:'أنجزت التزاماتك في الموعد! 🏆⏰'},
-    {title:`وصّل دخلك لـ ${Math.round(avg*0.3).toLocaleString()} ج هذا الأسبوع`,type:'income',target:Math.round(avg*0.3),unit:'ج.م',reward:'رائع! حققت هدفك المالي هذا الأسبوع 💰🎉'},
-    {title:'أنهِ 5 مهام نشطة هذا الأسبوع',type:'complete',target:5,unit:'مهمة',reward:'عمل رائع! أنجزت 5 مهام هذا الأسبوع 🎯✅'},
-    {title:'لا تقبل أوردر جديد دون تسليم مهمة قديمة أولاً',type:'discipline',target:1,unit:'يوم',reward:'انضباط تام! أنت تتحكم في وقتك 💪'},
-    {title:'تواصل مع 2 من عملائك القدامى هذا الأسبوع',type:'contact',target:2,unit:'عميل',reward:'علاقات قوية = عمل مستدام 🤝✨'},
+    {title:'سلّم 3 مهام في موعدها هذا الأسبوع',type:'on_time',target:3,unit:'مهمة',reward:'أنجزت التزاماتك في الموعد! ًںڈ†âڈ°'},
+    {title:`وصّل دخلك لـ ${Math.round(avg*0.3).toLocaleString()} ج هذا الأسبوع`,type:'income',target:Math.round(avg*0.3),unit:'ج.م',reward:'رائع! حققت هدفك المالي هذا الأسبوع ًں’°ًںژ‰'},
+    {title:'أنهِ 5 مهام نشطة هذا الأسبوع',type:'complete',target:5,unit:'مهمة',reward:'عمل رائع! أنجزت 5 مهام هذا الأسبوع ًںژ¯?'},
+    {title:'لا تقبل أوردر جديد دون تسليم مهمة قديمة أولاً',type:'discipline',target:1,unit:'يوم',reward:'انضباط تام! أنت تتحكم في وقتك ًں’ھ'},
+    {title:'تواصل مع 2 من عملائك القدامى هذا الأسبوع',type:'contact',target:2,unit:'عميل',reward:'علاقات قوية = عمل مستدام ًں¤‌âœ¨'},
   ];
   const ch=challenges[now.getDay()%challenges.length];
   const challenge={...ch, week:weekKey, done:false, progress:0, badge:'<i class="fa-solid fa-medal"></i>'};
@@ -12543,7 +12729,7 @@ function _getWeeklyChallenge(){
   return challenge;
 }
 
-// ── احتفال إتمام التحدي ──
+// â”€â”€ احتفال إتمام التحدي â”€â”€
 function _fireChallengeConfetti(){
   if(typeof document === 'undefined') return;
   const canvas = document.createElement('canvas');
@@ -12583,14 +12769,14 @@ function _fireChallengeConfetti(){
 function _showChallengeDoneModal(ch){
   // إزالة أي modal قديم
   document.getElementById('_ch-done-modal')?.remove();
-  const reward = ch.reward || 'أحسنت! أتممت تحدي الأسبوع! 🏆';
+  const reward = ch.reward || 'أحسنت! أتممت تحدي الأسبوع! ًںڈ†';
   const m = document.createElement('div');
   m.id = '_ch-done-modal';
   m.style.cssText='position:fixed;inset:0;z-index:99998;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(4px)';
   m.innerHTML=`
     <div style="background:var(--surface);border-radius:24px;padding:36px 28px;max-width:360px;width:90%;text-align:center;border:2px solid rgba(247,201,72,.4);box-shadow:0 20px 60px rgba(0,0,0,.5);animation:_chPop .45s cubic-bezier(.34,1.56,.64,1)">
       <style>@keyframes _chPop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}</style>
-      <div style="font-size:64px;margin-bottom:8px">${ch.emoji||'🏆'}</div>
+      <div style="font-size:64px;margin-bottom:8px">${ch.emoji||'ًںڈ†'}</div>
       <div style="font-size:22px;font-weight:900;margin-bottom:8px;color:var(--accent2)">تحدي مكتمل!</div>
       <div style="font-size:15px;font-weight:700;margin-bottom:6px">${ch.title}</div>
       <div style="font-size:13px;color:var(--text3);margin-bottom:20px;line-height:1.6">${reward}</div>
@@ -12598,7 +12784,7 @@ function _showChallengeDoneModal(ch){
         <i class="fa-solid fa-circle-check"></i> ${ch.progress} / ${ch.target} ${ch.unit||''}
       </div>
       <button onclick="document.getElementById('_ch-done-modal').remove()" style="background:var(--accent);color:#fff;border:none;border-radius:14px;padding:13px 32px;font-family:Cairo,Tajawal,sans-serif;font-size:15px;font-weight:800;cursor:pointer;width:100%">
-        رائع! متابعة 🎯
+        رائع! متابعة ًںژ¯
       </button>
     </div>`;
   document.body.appendChild(m);
@@ -12652,7 +12838,7 @@ function renderWeeklyChallengeWidget(){
       <div style="font-size:22px">${ch.done?'<i class="fa-solid fa-trophy" style="color:var(--accent2)"></i>':'<i class="fa-solid fa-bullseye"></i>'}</div>
       <div style="flex:1">
         <div style="font-size:12px;font-weight:700;line-height:1.5">${ch.title}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:2px">${isAdmin}تحدي هذا الأسبوع · ${ch.done?'<span style="color:var(--accent3)"><i class="fa-solid fa-square-check"></i> مكتمل! 🎉</span>':'جارٍ'}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${isAdmin}تحدي هذا الأسبوع آ· ${ch.done?'<span style="color:var(--accent3)"><i class="fa-solid fa-square-check"></i> مكتمل! ًںژ‰</span>':'جارٍ'}</div>
       </div>
     </div>
     <div style="height:7px;background:var(--surface2);border-radius:8px;overflow:hidden;margin-bottom:5px">
@@ -12664,9 +12850,9 @@ function renderWeeklyChallengeWidget(){
     </div>`;
 }
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // RENDER ALL NEW WIDGETS
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderNewWidgets(){
   renderCommitmentWidget();
   renderMomentumWidget();
@@ -12699,10 +12885,10 @@ function _renderSilentClientsWidget(){
   };
 })();
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // <i class="fa-solid fa-dna"></i> DNA DISPLAY IN CLIENT PROFILE OVERVIEW
-// ────────────────────────────────
-const _dnaStyleMap={easy:'😊 سهل ومريح',detail:'<i class="fa-solid fa-magnifying-glass"></i> يهتم بالتفاصيل',reviews:'<i class="fa-solid fa-rotate"></i> يطلب ريفيوز كتير',quick:'<i class="fa-solid fa-bolt"></i> يريد تسليم سريع',vague:'🌫 تعليماته مش واضحة',demanding:'😤 مطالب'};
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const _dnaStyleMap={easy:'ًںکٹ سهل ومريح',detail:'<i class="fa-solid fa-magnifying-glass"></i> يهتم بالتفاصيل',reviews:'<i class="fa-solid fa-rotate"></i> يطلب ريفيوز كتير',quick:'<i class="fa-solid fa-bolt"></i> يريد تسليم سريع',vague:'ًںŒ« تعليماته مش واضحة',demanding:'ًںک¤ مطالب'};
 const _dnaPayMap={instant:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> يدفع فوري',normal:'<i class="fa-solid fa-clock"></i> يدفع في وقته',late:'<i class="fa-solid fa-triangle-exclamation"></i> بيتأخر أحياناً',very_late:'<i class="fa-solid fa-siren-on"></i> بيتأخر كتير'};
 
 // Patch _renderProfileTab overview to show DNA + score
@@ -12729,19 +12915,19 @@ const _dnaPayMap={instant:'<i class="fa-solid fa-square-check" style="color:var(
             ${c.dnaPayment?`<span style="background:var(--surface2);padding:3px 10px;border-radius:20px">${_dnaPayMap[c.dnaPayment]||c.dnaPayment}</span>`:''}
           </div>
           ${c.dnaNotes?`<div style="font-size:12px;color:var(--text2);font-style:italic;border-top:1px solid var(--border);padding-top:7px;margin-top:4px">${c.dnaNotes}</div>`:''}
-          ${(!c.dnaStyle&&!c.dnaPayment&&!c.dnaNotes)?`<div style="font-size:11px;color:var(--text3)">لم تضف بيانات DNA بعد — <span style="color:var(--accent);cursor:pointer" onclick="closeM('modal-client-profile');openClientModal(${id})">أضفها الآن</span></div>`:''}
+          ${(!c.dnaStyle&&!c.dnaPayment&&!c.dnaNotes)?`<div style="font-size:11px;color:var(--text3)">لم تضف بيانات DNA بعد ? <span style="color:var(--accent);cursor:pointer" onclick="closeM('modal-client-profile');openClientModal(${id})">أضفها الآن</span></div>`:''}
         </div>`;
       body.insertAdjacentHTML('beforeend', dnaHtml);
 
       // Payment warning if bad payer
       if(c.dnaPayment==='very_late'){
-        body.insertAdjacentHTML('beforeend',`<div style="background:rgba(247,111,124,.1);border:1px solid rgba(247,111,124,.3);border-radius:8px;padding:9px 12px;margin-top:8px;font-size:12px;color:var(--accent4)"><i class="fa-solid fa-siren-on"></i> تحذير: هذا العميل لديه سجل دفع سيء — ضع في حسبانك طلب عربون مقدماً</div>`);
+        body.insertAdjacentHTML('beforeend',`<div style="background:rgba(247,111,124,.1);border:1px solid rgba(247,111,124,.3);border-radius:8px;padding:9px 12px;margin-top:8px;font-size:12px;color:var(--accent4)"><i class="fa-solid fa-siren-on"></i> تحذير: هذا العميل لديه سجل دفع سيء ? ضع في حسبانك طلب عربون مقدماً</div>`);
       }
 
       // Silent client warning
       const silent=_checkSilentClients().find(x=>x.client.id===id);
       if(silent){
-        body.insertAdjacentHTML('beforeend',`<div style="background:rgba(247,201,72,.08);border:1px solid rgba(247,201,72,.2);border-radius:8px;padding:9px 12px;margin-top:8px;font-size:12px;color:var(--accent2)"><i class="fa-solid fa-bell-slash"></i> عميل هادي — آخر تواصل منذ ${silent.days} يوم · <a href="https://wa.me/${(c.phone||'').replace(/\D/g,'')}" target="_blank" style="color:var(--accent3)">تواصل الآن <i class="fa-solid fa-comments"></i></a></div>`);
+        body.insertAdjacentHTML('beforeend',`<div style="background:rgba(247,201,72,.08);border:1px solid rgba(247,201,72,.2);border-radius:8px;padding:9px 12px;margin-top:8px;font-size:12px;color:var(--accent2)"><i class="fa-solid fa-bell-slash"></i> عميل هادي ? آخر تواصل منذ ${silent.days} يوم آ· <a href="https://wa.me/${(c.phone||'').replace(/\D/g,'')}" target="_blank" style="color:var(--accent3)">تواصل الآن <i class="fa-solid fa-comments"></i></a></div>`);
       }
 
       // Monthly orders + capacity recommendation
@@ -12764,9 +12950,9 @@ const _dnaPayMap={instant:'<i class="fa-solid fa-square-check" style="color:var(
   };
 })();
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // <i class="fa-solid fa-chart-bar"></i> CLIENT REPORT (تقرير العميل)
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function openClientReport(id){
   const c=S.clients.find(x=>x.id===id);if(!c)return;
   const overlay=document.createElement('div');
@@ -12777,7 +12963,7 @@ function openClientReport(id){
   const defTo=now.toISOString().split('T')[0];
   overlay.innerHTML=`<div style="background:var(--surface);border-radius:16px;padding:24px;width:480px;max-width:96vw;box-shadow:0 24px 60px rgba(0,0,0,.5)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <div style="font-size:16px;font-weight:800"><i class="fa-solid fa-chart-bar"></i> تقرير العميل — ${c.name}</div>
+      <div style="font-size:16px;font-weight:800"><i class="fa-solid fa-chart-bar"></i> تقرير العميل ? ${c.name}</div>
       <button onclick="document.getElementById('_client-report-overlay').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2)"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
@@ -12831,40 +13017,40 @@ function _printClientReport(id){
   footer{margin-top:28px;padding-top:14px;border-top:2px solid #e8eaf0;display:flex;justify-content:space-between;font-size:10px;color:#aaa}
   @media print{body{padding:0;background:#fff}.page{box-shadow:none;border-radius:0}}</style></head>
   <body><div class="page">
-  <h1><i class="fa-solid fa-chart-bar"></i> تقرير العميل — ${c.name}</h1>
-  <h2>${studio} · ${from||'—'} → ${to||'—'} · صادر ${new Date().toLocaleDateString('ar-EG')}</h2>
+  <h1><i class="fa-solid fa-chart-bar"></i> تقرير العميل ? ${c.name}</h1>
+  <h2>${studio} آ· ${from||'?'} ? ${to||'?'} آ· صادر ${new Date().toLocaleDateString('ar-EG')}</h2>
   <div class="dna">
     <b style="color:#b8860b"><i class="fa-solid fa-dna"></i> DNA العميل</b> &nbsp;
     ${c.dnaStyle?`أسلوبه: ${_dnaStyleMap[c.dnaStyle]||c.dnaStyle}`:''} 
-    ${c.dnaPayment?`· الدفع: ${_dnaPayMap[c.dnaPayment]||c.dnaPayment}`:''}
-    · <b>Value Score: ${score}/100</b> ${score>=80?'<i class="fa-solid fa-star"></i> ذهبي':score>=60?'<i class="fa-solid fa-gem"></i> ممتاز':score>=40?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> جيد':'<i class="fa-solid fa-triangle-exclamation"></i> منخفض'}
+    ${c.dnaPayment?`آ· الدفع: ${_dnaPayMap[c.dnaPayment]||c.dnaPayment}`:''}
+    آ· <b>Value Score: ${score}/100</b> ${score>=80?'<i class="fa-solid fa-star"></i> ذهبي':score>=60?'<i class="fa-solid fa-gem"></i> ممتاز':score>=40?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> جيد':'<i class="fa-solid fa-triangle-exclamation"></i> منخفض'}
     ${c.dnaNotes?`<br><i style="color:#888">${c.dnaNotes}</i>`:''}
   </div>
   <div class="cards">
     <div class="card"><div class="v">${tasks.length}</div><div class="l">مشاريع</div></div>
     <div class="card"><div class="v" style="color:#2db87c">${totalVal.toLocaleString()} ج</div><div class="l">إجمالي قيمة</div></div>
     <div class="card"><div class="v" style="color:#2db87c">${totalPaid.toLocaleString()} ج</div><div class="l"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محصّل</div></div>
-    <div class="card"><div class="v" style="color:#d49e00">${totalPend.toLocaleString()} ج</div><div class="l">⏳ معلق</div></div>
+    <div class="card"><div class="v" style="color:#d49e00">${totalPend.toLocaleString()} ج</div><div class="l">âڈ³ معلق</div></div>
   </div>
   <div class="sec"><i class="fa-solid fa-clipboard-list"></i> تفاصيل المشاريع حسب الشهر</div>
   <table><thead><tr><th>المشروع</th><th>التاريخ</th><th>التسليم</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>
   ${Object.keys(byMonth).sort().reverse().map(mk=>`
     <tr><td class="month-header" colspan="5"><i class="fa-solid fa-calendar-days"></i> ${mk}</td></tr>
-    ${byMonth[mk].map(t=>`<tr><td>${t.title}</td><td>${t.orderDate||'—'}</td><td>${t.deadline||'—'}</td><td>${t.value?(t.value.toLocaleString()+' ج'):'—'}</td><td><span class="badge ${t.done?'done':''}">${t.done?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل':t.status||'—'}</span></td></tr>`).join('')}
+    ${byMonth[mk].map(t=>`<tr><td>${t.title}</td><td>${t.orderDate||'?'}</td><td>${t.deadline||'?'}</td><td>${t.value?(t.value.toLocaleString()+' ج'):'?'}</td><td><span class="badge ${t.done?'done':''}">${t.done?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل':t.status||'—'}</span></td></tr>`).join('')}
   `).join('')}
   </tbody></table>
   ${invs.length?`<div class="sec"><i class="fa-solid fa-receipt"></i> الفواتير</div>
   <table><thead><tr><th>رقم</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th></tr></thead><tbody>
-  ${invs.map(i=>`<tr><td>#${i.num||'—'}</td><td>${i.date||'—'}</td><td>${i.total.toLocaleString()} ج</td><td><span class="badge ${i.status==='paid'?'paid':'pend'}">${i.status==='paid'?'مدفوع':'معلق'}</span></td></tr>`).join('')}
+  ${invs.map(i=>`<tr><td>#${i.num||'?'}</td><td>${i.date||'?'}</td><td>${i.total.toLocaleString()} ج</td><td><span class="badge ${i.status==='paid'?'paid':'pend'}">${i.status==='paid'?'مدفوع':'معلق'}</span></td></tr>`).join('')}
   </tbody></table>`:''}
   <footer><span>${studio}</span><span>تقرير العميل: ${c.name}</span></footer>
   </div><${'script'}>window.onload=()=>setTimeout(()=>window.print(),400)</${'script'}></body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();
 }
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // PATCH openClientProfile: add Report button
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 (function(){
   const _orig=window.openClientProfile;
   window.openClientProfile=function(id){
@@ -12885,9 +13071,9 @@ function _printClientReport(id){
   };
 })();
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // WIDGET HTML for new widgets
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 (function(){
   const _orig=window._widgetInnerHTML;
   window._widgetInnerHTML=function(id){
@@ -12913,9 +13099,9 @@ function _printClientReport(id){
   };
 })();
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // UPCOMING DEADLINE BANNER on Tasks page
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function _renderTasksUpcomingBanner(){
   let banner=document.getElementById('_tasks-deadline-banner');
   const now=new Date();
@@ -12937,7 +13123,7 @@ function _renderTasksUpcomingBanner(){
   }
   banner.innerHTML=`<div style="background:rgba(247,111,124,.1);border:1.5px solid rgba(247,111,124,.3);border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <span style="font-size:15px"><i class="fa-solid fa-alarm-clock"></i></span>
-    <span style="font-size:12px;font-weight:700;color:var(--accent4)">تحذير مواعيد: ${urgent.length} مهمة موعدها خلال 48 ساعة —</span>
+    <span style="font-size:12px;font-weight:700;color:var(--accent4)">تحذير مواعيد: ${urgent.length} مهمة موعدها خلال 48 ساعة ?</span>
     ${urgent.slice(0,3).map(t=>`<span onclick="openTaskDetail(${t.id})" style="font-size:11px;background:rgba(247,111,124,.15);padding:2px 10px;border-radius:20px;cursor:pointer;color:var(--accent4)">${t.title.slice(0,25)}</span>`).join('')}
   </div>`;
 }
@@ -12952,9 +13138,9 @@ function _renderTasksUpcomingBanner(){
   };
 })();
 
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // CAPACITY SETTINGS MODAL (mini)
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 (function(){
   const modal=document.createElement('div');
   modal.id='_capacity-modal';
@@ -12983,9 +13169,9 @@ function _saveCapacity(){
   if(typeof showMiniNotif==='function') showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ طاقة العمل: '+v+' مهمة');
 }
 
-// ────────────────────────────────
-// AUTO NOTIFICATIONS — patch existing checker
-// ────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// AUTO NOTIFICATIONS ? patch existing checker
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 (function(){
   const _origCheck=window._autoCheckNotifications||window.checkAutoNotifs;
   // Also add a new interval check for upcoming deadlines
@@ -13059,7 +13245,7 @@ function kbDrop(ev){
   task.doneAt = null;
   lsSave();
   renderAll();
-  const statusLabels = {'new':'<i class="fa-solid fa-clipboard-list"></i> جديد','progress':'<i class="fa-solid fa-bolt"></i> قيد التنفيذ','review':'<i class="fa-solid fa-magnifying-glass"></i> مراجعة','paused':'⏸ موقوف'};
+  const statusLabels = {'new':'<i class="fa-solid fa-clipboard-list"></i> جديد','progress':'<i class="fa-solid fa-bolt"></i> قيد التنفيذ','review':'<i class="fa-solid fa-magnifying-glass"></i> مراجعة','paused':'âڈ¸ موقوف'};
   const customLabel = (S.customStatuses||[]).find(c=>c.id===newStatus)?.label||newStatus;
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> '+(statusLabels[newStatus]||customLabel));
   _kbDragId = null;
@@ -13110,7 +13296,7 @@ function kbShowMoveMenu(ev, taskId){
   const existing = document.getElementById('_kb_menu');
   if(existing) existing.remove();
   const task = S.tasks.find(t=>t.id===taskId);
-  const statuses = [{id:'new',label:'<i class="fa-solid fa-clipboard-list"></i> جديد'},{id:'progress',label:'<i class="fa-solid fa-bolt"></i> قيد التنفيذ'},{id:'review',label:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة'},{id:'paused',label:'⏸ موقوف'},{id:'done',label:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل'}];
+  const statuses = [{id:'new',label:'<i class="fa-solid fa-clipboard-list"></i> جديد'},{id:'progress',label:'<i class="fa-solid fa-bolt"></i> قيد التنفيذ'},{id:'review',label:'<i class="fa-solid fa-magnifying-glass"></i> مراجعة'},{id:'paused',label:'âڈ¸ موقوف'},{id:'done',label:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل'}];
   const priorities = [{id:'high',label:'<i class="fa-solid fa-circle"></i> عاجل'},{id:'med',label:'<i class="fa-solid fa-circle"></i> متوسط'},{id:'low',label:'<i class="fa-solid fa-circle"></i> عادي'}];
   const menu = document.createElement('div');
   menu.id = '_kb_menu';
@@ -13148,7 +13334,7 @@ function renderClientSocials(socials){
     <span class="social-tag" data-platform="${s.platform}" data-icon="${s.platform}" data-url="${s.url||''}"
       style="display:inline-flex;align-items:center;gap:5px;background:rgba(124,111,247,.15);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;margin:2px">
       ${getSocialIconHTML(s.platform,14)} <span>${(SOCIAL_META[s.platform]||SOCIAL_META.other).label}</span>
-      <a href="${s.url}" target="_blank" style="color:var(--accent3);font-size:10px" onclick="event.stopPropagation()">↗</a>
+      <a href="${s.url}" target="_blank" style="color:var(--accent3);font-size:10px" onclick="event.stopPropagation()">â†—</a>
       <button onclick="removeClientSocial(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:0;line-height:1"><i class="fa-solid fa-xmark"></i></button>
     </span>`).join('');
 }
@@ -13171,13 +13357,13 @@ function removeClientSocial(idx){
 }
 
 // ============================================================
-// MEETINGS — CRUD + Render
+// MEETINGS ? CRUD + Render
 // ============================================================
 function openMeetingModal(id){
   document.getElementById('mtg-modal-title').innerHTML = id ? '<i class="fa-solid fa-pen"></i> تعديل ميتنج' : '<i class="fa-solid fa-calendar-days"></i> ميتنج جديد';
   document.getElementById('mtg-eid').value = id||'';
   // Fill client dropdown
-  const sel=document.getElementById('mtg-client'); if(sel){ sel.innerHTML='<option value="">— اختر عميل —</option>'; S.clients.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=c.name;sel.appendChild(o);}); }
+  const sel=document.getElementById('mtg-client'); if(sel){ sel.innerHTML='<option value="">? اختر عميل ?</option>'; S.clients.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=c.name;sel.appendChild(o);}); }
   if(id){
     const m=S.meetings.find(x=>x.id===id); if(!m) return;
     document.getElementById('mtg-title').value=m.title||'';
@@ -13224,7 +13410,7 @@ function saveMeeting(){
 function delMeeting(id){ confirmDel('حذف هذا الميتنج؟',()=>{ S.meetings=S.meetings.filter(m=>m.id!==id); lsSave(); renderMeetings(); }); }
 function toggleMeetingDone(id){ const m=S.meetings.find(x=>x.id===id); if(m){m.done=!m.done;lsSave();renderMeetings();} }
 
-// ── Meeting Slot Settings ──
+// â”€â”€ Meeting Slot Settings â”€â”€
 function openMeetingSlotSettings(){
   if(!S.settings) S.settings={};
   if(!S.settings.meeting_slots) S.settings.meeting_slots=[];
@@ -13234,12 +13420,12 @@ function openMeetingSlotSettings(){
 function renderMeetingSlotsList(){
   const el=document.getElementById('meeting-slots-list'); if(!el) return;
   const slots=S.settings.meeting_slots||[];
-  if(!slots.length){ el.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">لا أوقات متاحة بعد — أضف وقتاً أدناه</div>'; return; }
+  if(!slots.length){ el.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">لا أوقات متاحة بعد ? أضف وقتاً أدناه</div>'; return; }
   el.innerHTML=slots.map((s,i)=>`
     <div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
       <div style="flex:1">
         <span style="font-weight:700;color:var(--accent)">${s.day}</span>
-        <span style="font-size:12px;color:var(--text2);margin-right:8px">${s.from} — ${s.to}</span>
+        <span style="font-size:12px;color:var(--text2);margin-right:8px">${s.from} ? ${s.to}</span>
       </div>
       <button onclick="removeMeetingSlot(${i})" class="btn btn-danger btn-sm" style="padding:3px 8px"><i class="fa-solid fa-xmark"></i></button>
     </div>`).join('');
@@ -13265,7 +13451,7 @@ function saveMeetingSlots(){
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الأوقات المتاحة');
 }
 
-// ── Contact form submission (internal) ──
+// â”€â”€ Contact form submission (internal) â”€â”€
 function submitPubContactForm(){
   const name=(document.getElementById('pub-contact-name')||{}).value||'';
   const phone=(document.getElementById('pub-contact-phone')||{}).value||'';
@@ -13280,11 +13466,11 @@ function submitPubContactForm(){
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إرسال الرسالة');
 }
 
-// ── Convert Order to Task ──
+// â”€â”€ Convert Order to Task â”€â”€
 function openOrderToTask(orderId){
   const order=(S.svc_orders||[]).find(o=>String(o.id)===String(orderId)); if(!order) return;
   document.getElementById('ott-order-id').value=orderId;
-  document.getElementById('ott-title').value=order.service_name+(order.pkg_name?' — '+order.pkg_name:'');
+  document.getElementById('ott-title').value=order.service_name+(order.pkg_name?' ? '+order.pkg_name:'');
   document.getElementById('ott-client').value=order.client_name||'';
   document.getElementById('ott-amount').value=order.price||'';
   document.getElementById('ott-notes').value=order.desc||'';
@@ -13374,7 +13560,7 @@ function renderMeetings(){
   function meetingCard(m){
     const tp = m.type||'online';
     const monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-    const day = m.date?m.date.slice(8):'—';
+    const day = m.date?m.date.slice(8):'?';
     const mon = m.date?monthNames[+m.date.slice(5,7)-1]||'':'';
     const isToday = m.date === new Date().toISOString().split('T')[0];
     const isPast = m.date && new Date(m.date)<new Date() && !m.done;
@@ -13456,7 +13642,7 @@ function openMeetingDetail(id){
   body.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:14px">
       <div><div style="font-size:15px;font-weight:800">${m.title}</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:3px">${typeLabel[m.type]||''} · ${m.date||''} ${m.time?'<i class="fa-solid fa-alarm-clock"></i> '+m.time:''}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px">${typeLabel[m.type]||''} آ· ${m.date||''} ${m.time?'<i class="fa-solid fa-alarm-clock"></i> '+m.time:''}</div>
         ${m.client?`<div style="font-size:12px;color:var(--accent);margin-top:2px"><i class="fa-solid fa-user"></i> ${m.client}</div>`:''}
       </div>
       <button onclick="openMeetingModal(${m.id})" class="btn btn-ghost btn-sm"><i class="fa-solid fa-pen"></i> تعديل</button>
@@ -13467,7 +13653,7 @@ function openMeetingDetail(id){
 }
 
 // ============================================================
-// COURSES — CRUD + Render
+// COURSES ? CRUD + Render
 // ============================================================
 function previewCourseEmbed(){
   const url=document.getElementById('course-url')?.value||'';
@@ -13486,7 +13672,7 @@ function previewCourseEmbed(){
 
 function delCourse(id){ confirmDel('حذف هذا الكورس؟',()=>{ S.courses=S.courses.filter(c=>c.id!==id); lsSave(); renderCourses(); }); }
 
-// ── Render courses grid (max 2 steps preview in card) ──
+// â”€â”€ Render courses grid (max 2 steps preview in card) â”€â”€
 function renderCourses(){
   const el = document.getElementById('courses-grid'); if(!el) return;
   if(!S.courses||!S.courses.length){
@@ -13525,7 +13711,7 @@ function renderCourses(){
           </div>
           <span style="flex:1;font-size:12px;${s.done?'text-decoration:line-through;color:var(--text3)':'color:var(--text)'}">${s.title||'خطوة '+(i+1)}</span>
         </div>`).join('')}
-        ${steps.length>2?`<div style="font-size:11px;color:var(--accent);text-align:center;padding:4px;cursor:pointer;font-weight:700" onclick="openCourseDetailPage(${c.id})">+ ${steps.length-2} خطوات أخرى ←</div>`:''}
+        ${steps.length>2?`<div style="font-size:11px;color:var(--accent);text-align:center;padding:4px;cursor:pointer;font-weight:700" onclick="openCourseDetailPage(${c.id})">+ ${steps.length-2} خطوات أخرى â†گ</div>`:''}
       </div>` : '';
 
     return `<div class="card" style="position:relative">
@@ -13550,7 +13736,7 @@ function renderCourses(){
       </div>
       ${stepsPreviewHtml}
       <button onclick="openCourseDetailPage(${c.id})" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:.18s;margin-bottom:${ytMatch?'6px':'0'}" onmouseover="this.style.background='rgba(124,111,247,.12)'" onmouseout="this.style.background='var(--surface2)'">
-        📖 عرض تفاصيل الكورس ${steps.length?'('+steps.length+' خطوة)':''}
+        ًں“– عرض تفاصيل الكورس ${steps.length?'('+steps.length+' خطوة)':''}
       </button>
       ${ytMatch?`<button onclick="toggleCourseEmbed(${c.id})" class="btn btn-ghost btn-sm" style="width:100%;font-size:11px"><i class="fa-solid fa-play"></i> معاينة يوتيوب</button><div id="cembed-${c.id}" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="width:100%;height:180px;border:none;border-radius:8px" allowfullscreen></iframe></div>`:''}
     </div>`;
@@ -13572,7 +13758,7 @@ function quickToggleStep(courseId, stepIdx){
   lsSave(); renderCourses();
 }
 
-// ── Course Detail Full Page ──
+// â”€â”€ Course Detail Full Page â”€â”€
 function openCourseDetailPage(courseId){
   const c = S.courses.find(x=>x.id===courseId); if(!c) return;
   const steps = c.steps||[];
@@ -13600,17 +13786,17 @@ function openCourseDetailPage(courseId){
         ${s.notes&&s.notes!=='<p><br></p>'?`<div style="font-size:11px;color:var(--text2);margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical">${s.notes.replace(/<[^>]*>/g,'')}</div>`:''}
       </div>
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        ${s.url?`<a href="${s.url}" target="_blank" onclick="event.stopPropagation()" style="color:var(--accent3);font-size:14px" title="فتح الرابط">↗</a>`:''}
+        ${s.url?`<a href="${s.url}" target="_blank" onclick="event.stopPropagation()" style="color:var(--accent3);font-size:14px" title="فتح الرابط">â†—</a>`:''}
         <span style="font-size:11px;color:var(--text3)"><i class="fa-solid fa-pen-to-square"></i> فتح</span>
       </div>
     </div>`).join('');
 
   ov.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0">
-      <button onclick="document.getElementById('_course-detail-overlay').remove()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--text2);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">← رجوع</button>
+      <button onclick="document.getElementById('_course-detail-overlay').remove()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--text2);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">â†گ رجوع</button>
       <div style="flex:1">
         <div style="font-size:16px;font-weight:900;color:var(--text)">${c.title}</div>
-        <div style="font-size:11px;color:var(--text3)">${c.platform||''} · <span style="color:${stColor[c.status]}">${stLabel[c.status]}</span></div>
+        <div style="font-size:11px;color:var(--text3)">${c.platform||''} آ· <span style="color:${stColor[c.status]}">${stLabel[c.status]}</span></div>
       </div>
       <div style="display:flex;gap:8px">
         <button onclick="openCourseModal(${courseId})" class="btn btn-ghost btn-sm"><i class="fa-solid fa-pen"></i> تعديل</button>
@@ -13620,14 +13806,14 @@ function openCourseDetailPage(courseId){
       <!-- Progress -->
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:16px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
         <div style="flex:1">
-          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">التقدم الكلي · ${doneCount} من ${steps.length} خطوة مكتملة</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">التقدم الكلي آ· ${doneCount} من ${steps.length} خطوة مكتملة</div>
           <div style="height:10px;background:var(--surface3);border-radius:5px;overflow:hidden">
             <div style="height:100%;width:${progress}%;background:${progress>=100?'var(--accent3)':'var(--accent)'};border-radius:5px;transition:.4s"></div>
           </div>
         </div>
         <div style="font-size:28px;font-weight:900;color:${progress>=100?'var(--accent3)':'var(--accent)'};min-width:56px;text-align:center">${progress}%</div>
       </div>
-      ${c.url&&!ytMatch?`<a href="${c.url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(79,209,165,.08);border:1px solid rgba(79,209,165,.2);border-radius:10px;color:var(--accent3);font-size:13px;font-weight:700;text-decoration:none;margin-bottom:16px">↗ فتح الكورس الرئيسي</a>`:''}
+      ${c.url&&!ytMatch?`<a href="${c.url}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(79,209,165,.08);border:1px solid rgba(79,209,165,.2);border-radius:10px;color:var(--accent3);font-size:13px;font-weight:700;text-decoration:none;margin-bottom:16px">â†— فتح الكورس الرئيسي</a>`:''}
       ${ytMatch?`<div style="border-radius:10px;overflow:hidden;margin-bottom:16px"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="width:100%;height:220px;border:none" allowfullscreen></iframe></div>`:''}
       ${c.notes?`<div style="padding:12px 16px;background:var(--surface2);border-radius:10px;font-size:13px;line-height:1.7;color:var(--text2);margin-bottom:16px">${c.notes}</div>`:''}
       <!-- Steps list -->
@@ -13670,7 +13856,7 @@ function _openStepEditorInDetail(courseId, stepIdx){
 
   panel.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0">
-      <button onclick="document.getElementById('_cd-step-editor').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);color:var(--text2)">← رجوع</button>
+      <button onclick="document.getElementById('_cd-step-editor').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);color:var(--text2)">â†گ رجوع</button>
       <div style="flex:1">
         <input id="_se-title" value="${(s.title||'').replace(/"/g,'&quot;')}" style="background:transparent;border:none;font-size:15px;font-weight:800;color:var(--text);font-family:var(--font);width:100%;outline:none" placeholder="عنوان الخطوة">
       </div>
@@ -13686,7 +13872,7 @@ function _openStepEditorInDetail(courseId, stepIdx){
       </div>
     </div>
     <div style="padding:12px 18px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0">
-      <input id="_se-url" value="${(s.url||'').replace(/"/g,'&quot;')}" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--accent3);font-family:var(--mono);width:100%;outline:none;box-sizing:border-box" placeholder="🔗 رابط الخطوة (اختياري)">
+      <input id="_se-url" value="${(s.url||'').replace(/"/g,'&quot;')}" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--accent3);font-family:var(--mono);width:100%;outline:none;box-sizing:border-box" placeholder="ًں”— رابط الخطوة (اختياري)">
     </div>
     <!-- Quill Editor -->
     <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column">
@@ -13743,7 +13929,7 @@ function _saveStepFromDetail(courseId, stepIdx){
   renderCourses();
 }
 
-// ── Step editor from modal (uses Quill) ──
+// â”€â”€ Step editor from modal (uses Quill) â”€â”€
 var _editingCourseSteps = [];
 var _stepDetailCourseId = null;
 var _stepDetailStepIdx  = null;
@@ -13779,12 +13965,12 @@ function _renderModalSteps(){
   const steps=_editingCourseSteps;
   const info=document.getElementById('course-steps-progress-info');
   if(!steps.length){
-    el.innerHTML='<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px;border:1.5px dashed var(--border);border-radius:10px">لا خطوات — اضغط "خطوة جديدة"</div>';
+    el.innerHTML='<div style="text-align:center;padding:14px;color:var(--text3);font-size:12px;border:1.5px dashed var(--border);border-radius:10px">لا خطوات ? اضغط "خطوة جديدة"</div>';
     if(info) info.textContent=''; return;
   }
   const dc=steps.filter(s=>s.done).length;
   const pct=Math.round((dc/steps.length)*100);
-  if(info) info.innerHTML=`<span style="color:var(--accent3);font-weight:700">${dc}</span>/${steps.length} مكتملة · <span style="color:var(--accent);font-weight:700">${pct}%</span>`;
+  if(info) info.innerHTML=`<span style="color:var(--accent3);font-weight:700">${dc}</span>/${steps.length} مكتملة آ· <span style="color:var(--accent);font-weight:700">${pct}%</span>`;
   el.innerHTML=steps.map((s,i)=>`
     <div class="_cs-item${s.done?' done':''}" style="border-color:${s.done?'rgba(79,209,165,.3)':'var(--border)'}">
       <div class="_cs-item-check${s.done?' checked':''}" onclick="_toggleModalStep(${i})" style="cursor:pointer"></div>
@@ -13794,8 +13980,8 @@ function _renderModalSteps(){
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0">
         <button onclick="editCourseStepFromModal(${i})" style="background:var(--surface3);border:1px solid var(--border);border-radius:7px;padding:4px 9px;font-size:11px;color:var(--text2);cursor:pointer;font-family:var(--font)"><i class="fa-solid fa-pen"></i></button>
-        <button onclick="_moveStep(${i},-1)" style="background:var(--surface3);border:1px solid var(--border);border-radius:7px;padding:4px 7px;font-size:11px;color:var(--text2);cursor:pointer">${i===0?'':' ↑'}</button>
-        <button onclick="_moveStep(${i},1)" style="background:var(--surface3);border:1px solid var(--border);border-radius:7px;padding:4px 7px;font-size:11px;color:var(--text2);cursor:pointer">${i===steps.length-1?'':'↓'}</button>
+        <button onclick="_moveStep(${i},-1)" style="background:var(--surface3);border:1px solid var(--border);border-radius:7px;padding:4px 7px;font-size:11px;color:var(--text2);cursor:pointer">${i===0?'':' â†‘'}</button>
+        <button onclick="_moveStep(${i},1)" style="background:var(--surface3);border:1px solid var(--border);border-radius:7px;padding:4px 7px;font-size:11px;color:var(--text2);cursor:pointer">${i===steps.length-1?'':'â†“'}</button>
         <button onclick="_removeModalStep(${i})" style="background:transparent;border:none;color:var(--accent4);font-size:13px;cursor:pointer;padding:4px 6px"><i class="fa-solid fa-xmark"></i></button>
       </div>
     </div>`).join('');
@@ -13865,14 +14051,14 @@ function renderDashKanbanMini(){
   const active=S.tasks.filter(t=>!t.done).slice(0,6);
   if(!active.length){ el.innerHTML='<div class="empty" style="padding:8px 0"><div class="empty-icon"><i class="fa-solid fa-star-of-life"></i></div><div style="font-size:12px">لا مهام نشطة</div></div>'; return; }
   var stColor={new:_getStatusColor('new'),progress:_getStatusColor('progress'),review:_getStatusColor('review'),paused:_getStatusColor('paused')};
-  const stLabel={new:'<i class="fa-solid fa-clipboard-list"></i>',progress:'<i class="fa-solid fa-bolt"></i>',review:'<i class="fa-solid fa-magnifying-glass"></i>',paused:'⏸'};
+  const stLabel={new:'<i class="fa-solid fa-clipboard-list"></i>',progress:'<i class="fa-solid fa-bolt"></i>',review:'<i class="fa-solid fa-magnifying-glass"></i>',paused:'âڈ¸'};
   el.innerHTML=active.map(t=>`
     <div onclick="openTaskDetail(${t.id})" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(42,42,58,.2);cursor:pointer">
       <div class="task-priority priority-${t.priority||'low'}" style="flex-shrink:0"></div>
       <div style="flex:1;min-width:0;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div>
       <span style="font-size:10px;color:${stColor[t.status||'new']};flex-shrink:0">${stLabel[t.status||'new']||''}</span>
     </div>`).join('');
-  if(S.tasks.filter(t=>!t.done).length>6) el.innerHTML+=`<div onclick="showPage('tasks')" style="font-size:11px;color:var(--accent);padding:5px 0;text-align:center;cursor:pointer">عرض الكل ←</div>`;
+  if(S.tasks.filter(t=>!t.done).length>6) el.innerHTML+=`<div onclick="showPage('tasks')" style="font-size:11px;color:var(--accent);padding:5px 0;text-align:center;cursor:pointer">عرض الكل â†گ</div>`;
 }
 
 // ============================================================
@@ -13891,32 +14077,32 @@ function renderDashMeetings(){
   el.innerHTML=upcoming.map(m=>`
     <div onclick="showPage('meetings')" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(42,42,58,.25);cursor:pointer">
       <div style="background:rgba(124,111,247,.15);border-radius:8px;padding:6px 8px;text-align:center;flex-shrink:0;min-width:42px">
-        <div style="font-size:11px;font-weight:800;color:var(--accent)">${m.date?m.date.slice(8):'—'}</div>
+        <div style="font-size:11px;font-weight:800;color:var(--accent)">${m.date?m.date.slice(8):'?'}</div>
         <div style="font-size:9px;color:var(--text3)">${m.date?['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'][+m.date.slice(5,7)-1]?.slice(0,3)||'':''}</div>
       </div>
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.title}</div>
-        <div style="font-size:11px;color:var(--text3)">${m.client?m.client+' · ':''} ${typeIcon[m.type]||'<i class="fa-solid fa-calendar-days"></i>'} ${m.time||''}</div>
+        <div style="font-size:11px;color:var(--text3)">${m.client?m.client+' آ· ':''} ${typeIcon[m.type]||'<i class="fa-solid fa-calendar-days"></i>'} ${m.time||''}</div>
       </div>
     </div>`).join('');
 }
 
-// ══════════════════════════════════════════════════
-// AUTH STATE — Single source of truth
-// ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// AUTH STATE ? Single source of truth
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 let _authInitialized = false;
 // PHASE 2 FIX: Debounce auth state changes to prevent login loops
 let _authDebounceTimer = null;
 let _authProcessingUserId = null;
 
 supa.auth.onAuthStateChange(async (event, session) => {
-  // ── Public service/portal pages: skip all auth handling ──
+  // â”€â”€ Public service/portal pages: skip all auth handling â”€â”€
   var _pup = new URLSearchParams(window.location.search);
   if(_pup.get('svcorder') || (_pup.get('portal') && _pup.get('uid')) || (_pup.get('clientportal') && _pup.get('cid'))){ if(window._showApp) window._showApp(); return; }
 
   console.log('Auth event:', event, session?.user?.email);
 
-  // TOKEN_REFRESHED = الـ session اتجدد — كل حاجة تمام
+  // TOKEN_REFRESHED = الـ session اتجدد ? كل حاجة تمام
   if(event === 'TOKEN_REFRESHED' && session && session.user){
     _supaUserId = session.user.id;
     const existing = getSession();
@@ -13924,12 +14110,12 @@ supa.auth.onAuthStateChange(async (event, session) => {
     return;
   }
 
-  // SIGNED_IN أو INITIAL_SESSION — نفس المعاملة
+  // SIGNED_IN أو INITIAL_SESSION ? نفس المعاملة
   if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && session.user){
     // PHASE 2 FIX: Prevent duplicate processing for same user
     if(_authProcessingUserId === session.user.id) return;
 
-    // ── إصلاح: لو نفس المستخدم والبيانات محملة — تجاهل تماماً ──
+    // â”€â”€ إصلاح: لو نفس المستخدم والبيانات محملة ? تجاهل تماماً â”€â”€
     // ده بيمنع الـ lock timeout من إعادة تحميل البيانات
     if(_supaUserId === session.user.id && _authInitialized && window._cloudLoadDone) {
       // بس حدّث الـ session في localStorage
@@ -13938,7 +14124,7 @@ supa.auth.onAuthStateChange(async (event, session) => {
       return;
     }
 
-    // لو فيه مستخدم تاني logged in في tab تاني — ignore
+    // لو فيه مستخدم تاني logged in في tab تاني ? ignore
     const existingSession = getSession();
     if(existingSession && existingSession.id && existingSession.id !== session.user.id && _authInitialized){
       console.warn('Session conflict: ignoring auth change for different user');
@@ -13982,27 +14168,27 @@ supa.auth.onAuthStateChange(async (event, session) => {
   }
 
   if(event === 'SIGNED_OUT'){
-    // ── لا تمسح فوراً — الـ lock timeout ممكن يسبب SIGNED_OUT وهمي ──
+    // â”€â”€ لا تمسح فوراً ? الـ lock timeout ممكن يسبب SIGNED_OUT وهمي â”€â”€
     // تحقق: هل الـ session لسه في localStorage؟
     try {
       var _stored = localStorage.getItem('sb-mpfmcjgigpvdxbhgzufo-auth-token');
       if(_stored){
         var _p = JSON.parse(_stored);
         if(_p && _p.refresh_token && _p.user && _p.user.id){
-          // الـ session لسه موجودة — ده SIGNED_OUT وهمي من lock timeout
-          console.warn('SIGNED_OUT received but session still in storage — ignoring (lock timeout artifact)');
+          // الـ session لسه موجودة ? ده SIGNED_OUT وهمي من lock timeout
+          console.warn('SIGNED_OUT received but session still in storage ? ignoring (lock timeout artifact)');
           _supaUserId = _p.user.id; // رجّع الـ userId
           return;
         }
       }
     } catch(e) {}
-    // فعلاً مفيش session — ده logout حقيقي
+    // فعلاً مفيش session ? ده logout حقيقي
     _supaUserId = null;
     _authInitialized = false;
     _authProcessingUserId = null;
   }
 
-  // لو مفيش session — اعرض شاشة اللوجين
+  // لو مفيش session ? اعرض شاشة اللوجين
   if(!session && !_supaUserId && !_authInitialized){
     const authScreen = document.getElementById('auth-screen');
     if(authScreen) authScreen.classList.remove('hidden');
@@ -14010,23 +14196,20 @@ supa.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
-// initAuth — render UI and set fallback timeout
+// initAuth ? render UI and set fallback timeout
 async function initAuthFallback(){
-  // ── Public pages: skip all auth/dashboard init entirely ──
   var _pu = new URLSearchParams(window.location.search);
   if(_pu.get('svcorder') || (_pu.get('portal') && _pu.get('uid')) || (_pu.get('clientportal') && _pu.get('cid'))){ return; }
 
   loadThemePreferences();
-  renderAll();
-  updateHeader('dashboard');
+  // لا نعمل renderAll هنا ? نستنى onAuthStateChange يعرف حالة الـ session أولاً
   checkPasswordResetFlow();
 
   if(window.location.hash === '#' || window.location.hash === ''){
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
-  // Fallback: show auth screen if no session after 5 seconds
-  // (onAuthStateChange handles INITIAL_SESSION — this is just a safety net)
+  // Fallback: لو بعد 6 ثواني مفيش session ? اعرض اللوجين
   setTimeout(()=>{
     if(!_authInitialized){
       const authScreen = document.getElementById('auth-screen');
@@ -14034,7 +14217,7 @@ async function initAuthFallback(){
       if(window._showApp) window._showApp();
       _authInitialized = true;
     }
-  }, 5000);
+  }, 6000);
 }
 
 initAuthFallback();
@@ -14045,9 +14228,9 @@ window.addEventListener('resize',()=>{
 // Init backup system after auth
 setTimeout(()=>{ initBackupTimers(); }, 1500);
 
-// ╔══════════════════════════════════════════════════════════════════╗
-// ║  TIME TRACKER                                                    ║
-// ╚══════════════════════════════════════════════════════════════════╝
+// â•”â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•—
+// â•‘  TIME TRACKER                                                    â•‘
+// â•ڑâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•‌
 // [vars moved early]
 
 function ttSym(){return{EGP:'ج',USD:'$',SAR:'ر.س'}[_ttCur]||'ج';}
@@ -14094,7 +14277,7 @@ function ttStart(){
   _tt.running=true;_tt.startedAt=_tt.startedAt||Date.now();
   clearInterval(_tt.interval);_tt.interval=setInterval(ttTick,1000);
   const btn=document.getElementById('tt-btn-main');
-  if(btn){btn.textContent='⏸';btn.style.background='var(--accent2)';}
+  if(btn){btn.textContent='âڈ¸';btn.style.background='var(--accent2)';}
   const disp=document.getElementById('tt-display');if(disp)disp.style.color='var(--accent3)';
   const st=document.getElementById('tt-status');if(st)st.innerHTML='<i class="fa-solid fa-stopwatch"></i> يعمل الآن...';
 }
@@ -14103,7 +14286,7 @@ function ttPause(){
   clearInterval(_tt.interval);
   const btn=document.getElementById('tt-btn-main');if(btn){btn.innerHTML='<i class="fa-solid fa-play"></i>';btn.style.background='var(--accent)';}
   const disp=document.getElementById('tt-display');if(disp)disp.style.color='var(--accent2)';
-  const st=document.getElementById('tt-status');if(st)st.textContent='⏸ مؤقت';
+  const st=document.getElementById('tt-status');if(st)st.textContent='âڈ¸ مؤقت';
 }
 function ttReset(){
   if((_tt.running||_tt.elapsed>0)&&!confirm('إعادة تعيين المؤقت؟'))return;
@@ -14198,7 +14381,7 @@ function ttRenderEntries(){
   Object.entries(groups).forEach(([date,items])=>{
     const dayS=items.reduce((s,e)=>s+(e.duration_seconds||0),0);
     html+=`<div style="font-size:11px;font-weight:700;color:var(--text3);padding:10px 0 5px;display:flex;justify-content:space-between">
-      <span>${date}</span><span style="color:var(--accent3)">${ttFmt(dayS,1)} · ${((dayS/3600)*_ttRate).toFixed(0)} ${ttSym()}</span></div>`;
+      <span>${date}</span><span style="color:var(--accent3)">${ttFmt(dayS,1)} آ· ${((dayS/3600)*_ttRate).toFixed(0)} ${ttSym()}</span></div>`;
     items.forEach(e=>{
       const col=TTC[ttHash(e.client_name||e.task_title)%TTC.length];
       const earn=((e.duration_seconds||0)/3600*_ttRate).toFixed(2);
@@ -14207,8 +14390,8 @@ function ttRenderEntries(){
       html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;background:var(--surface2);border-radius:8px;margin-bottom:5px;border:1px solid var(--border)">
         <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.task_title||'—'}</div>
-          <div style="font-size:11px;color:var(--text3)">${e.client_name?'<i class="fa-solid fa-user"></i> '+e.client_name+' · ':''}${sT} → ${eT}</div>
+          <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.task_title||'?'}</div>
+          <div style="font-size:11px;color:var(--text3)">${e.client_name?'<i class="fa-solid fa-user"></i> '+e.client_name+' آ· ':''}${sT} ? ${eT}</div>
         </div>
         <div style="text-align:left;flex-shrink:0">
           <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent)">${ttFmt(e.duration_seconds||0)}</div>
@@ -14357,9 +14540,9 @@ function saveRateSettings(){
 }
 function ttQuickRate(r){_ttRate=r;localStorage.setItem('tt_rate',r);renderTimeTracker();toast('<i class="fa-solid fa-bolt"></i> معدل: '+r+' '+ttSym());}
 
-// ╔══════════════════════════════════════════════════════════════════╗
-// ║  DIGITAL CONTRACTS                                               ║
-// ╚══════════════════════════════════════════════════════════════════╝
+// â•”â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•—
+// â•‘  DIGITAL CONTRACTS                                               â•‘
+// â•ڑâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•‌
 // [contract vars moved early]
 
 const CT_TEMPLATES={
@@ -14370,10 +14553,10 @@ const CT_TEMPLATES={
 - تسليم الملفات بصيغ AI, PDF, PNG
 
 2. المستحقات المالية:
-- 50% عند البدء · 50% عند التسليم النهائي
+- 50% عند البدء آ· 50% عند التسليم النهائي
 
 3. التعديلات:
-- 3 تعديلات مجانية · كل تعديل إضافي بسعر يُتفق عليه
+- 3 تعديلات مجانية آ· كل تعديل إضافي بسعر يُتفق عليه
 
 4. حقوق الملكية:
 - تنتقل للعميل بعد سداد كامل المبلغ
@@ -14396,7 +14579,7 @@ const CT_TEMPLATES={
 1. نطاق العمل: تصميم الواجهة + برمجة + ربط قاعدة بيانات
 2. التسليم: على استضافة العميل أو كود مباشر
 3. يشمل: تدريب ساعة + صيانة شهر مجاناً
-4. الدفع: 40% موافقة تصميم · 60% عند التسليم`,
+4. الدفع: 40% موافقة تصميم آ· 60% عند التسليم`,
   content:`خدمات كتابة المحتوى:
 
 1. كتابة محتوى إبداعي وتسويقي
@@ -14416,7 +14599,7 @@ function renderContractsList(){
   if(!contracts.length){el.innerHTML='<div class="empty" style="padding:28px 16px"><div class="empty-icon"><i class="fa-solid fa-pen-to-square"></i></div>لا عقود بعد</div>';return;}
   const stM={
     draft:{l:'مسودة',c:'var(--text3)',bg:'rgba(90,90,112,.25)'},
-    sent:{l:'أُرسل ⏳',c:'#64b5f6',bg:'rgba(100,181,246,.15)'},
+    sent:{l:'أُرسل âڈ³',c:'#64b5f6',bg:'rgba(100,181,246,.15)'},
     signed:{l:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> موقّع',c:'var(--accent3)',bg:'rgba(79,209,165,.15)'},
     rejected:{l:'مرفوض',c:'var(--accent4)',bg:'rgba(247,111,124,.15)'}
   };
@@ -14428,7 +14611,7 @@ function renderContractsList(){
       onmouseenter="if('${c.id}'!=='${_activeContractId||''}')this.style.background='rgba(255,255,255,.03)'"
       onmouseleave="if('${c.id}'!=='${_activeContractId||''}')this.style.background=''">
       <div style="font-size:13px;font-weight:700">${c.title}</div>
-      <div style="font-size:11px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-user"></i> ${c.client_name||'—'} ${c.value?'· '+Number(c.value).toLocaleString()+' '+_getCurrency():''}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-user"></i> ${c.client_name||'?'} ${c.value?'آ· '+Number(c.value).toLocaleString()+' '+_getCurrency():''}</div>
       <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:${st.bg};color:${st.c};margin-top:4px;display:inline-block">${st.l}</span>
     </div>`;
   }).join('');
@@ -14439,14 +14622,14 @@ function showContractDetail(id){
   const c=ctContracts().find(x=>x.id===id);if(!c)return;
   renderContractsList();
   const da=document.getElementById('contract-detail-area');if(!da)return;
-  const stM={draft:'مسودة',sent:'أُرسل ⏳',signed:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> موقّع',rejected:'مرفوض'};
+  const stM={draft:'مسودة',sent:'أُرسل âڈ³',signed:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> موقّع',rejected:'مرفوض'};
   const stC={draft:'var(--text3)',sent:'#64b5f6',signed:'var(--accent3)',rejected:'var(--accent4)'};
   da.innerHTML=`
     <div class="card" style="padding:0;overflow:hidden">
       <div style="padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
         <div>
           <div style="font-size:17px;font-weight:900">${c.title}</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-user"></i> ${c.client_name||'—'} ${c.value?'· '+Number(c.value).toLocaleString()+' '+_getCurrency():''}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px"><i class="fa-solid fa-user"></i> ${c.client_name||'?'} ${c.value?'آ· '+Number(c.value).toLocaleString()+' '+_getCurrency():''}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <span style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;background:rgba(90,90,112,.2);color:${stC[c.status]||'var(--text3)'}">
@@ -14457,6 +14640,7 @@ function showContractDetail(id){
           ${c.status!=='signed'?`<button class="btn btn-ghost btn-sm" onclick="ctSignSelf('${c.id}')"><i class="fa-solid fa-pen-nib"></i> توقيعي</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="ctResetClientSign('${c.id}')" title="إعادة فتح التوقيع للعميل" style="color:var(--accent2);border-color:var(--accent2)"><i class="fa-solid fa-rotate-right"></i> إعادة توقيع</button>
           <button class="btn btn-ghost btn-sm" onclick="ctPrint('${c.id}')"><i class="fa-solid fa-print"></i></button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--accent3)" onclick="_ctLinkToProject('${c.id}')" title="ربط بمشروع"><i class="fa-solid fa-diagram-project"></i>${c.project_id ? ' <span style="font-size:10px">مرتبط</span>' : ''}</button>
           <button class="btn btn-danger btn-sm" onclick="ctDelete('${c.id}')"><i class="fa-solid fa-trash"></i></button>
         </div>
       </div>
@@ -14466,8 +14650,55 @@ function showContractDetail(id){
     </div>`;
 }
 
+function _ctLinkToProject(contractId) {
+  var projects = S.projects || [];
+  if (!projects.length) { toast('âڑ ï¸ڈ لا توجد مشاريع ? أنشئ مشروعاً أولاً'); return; }
+  var ct = (S.contracts||[]).find(function(x){ return x.id===contractId; });
+  if (!ct) return;
+
+  // بناء select options ? افلتر مشاريع العميل أولاً لو ممكن
+  var clientId = ct.client_id || '';
+  var sorted = projects.slice().sort(function(a,b) {
+    // مشاريع نفس العميل تظهر أولاً
+    var aMatch = clientId && String(a.client_id||'')===clientId ? 0 : 1;
+    var bMatch = clientId && String(b.client_id||'')===clientId ? 0 : 1;
+    return aMatch - bMatch;
+  });
+
+  var opts = sorted.map(function(p) {
+    var selected = ct.project_id && String(p.id)===String(ct.project_id) ? ' selected' : '';
+    var clientMark = (clientId && String(p.client_id||'')===clientId) ? ' âک…' : '';
+    return '<option value="'+p.id+'"'+selected+'>'+escapeHtml(p.name)+clientMark+'</option>';
+  }).join('');
+
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px';
+  ov.innerHTML = '<div style="background:var(--surface);border-radius:16px;padding:24px;width:min(380px,95vw);box-shadow:0 24px 60px rgba(0,0,0,.5)">'
+    + '<div style="font-size:15px;font-weight:900;margin-bottom:4px"><i class="fa-solid fa-diagram-project" style="color:var(--accent3)"></i> ربط العقد بمشروع</div>'
+    + '<div style="font-size:12px;color:var(--text3);margin-bottom:16px">'+escapeHtml(ct.title||'عقد')+'</div>'
+    + '<select id="_ct-proj-sel" class="form-select" style="width:100%;margin-bottom:16px">'
+    + '<option value="">? اختر مشروعاً ?</option>' + opts
+    + '</select>'
+    + '<div style="display:flex;gap:8px">'
+    + '<button id="_ct-link-ok" class="btn btn-primary" style="flex:1"><i class="fa-solid fa-check"></i> ربط</button>'
+    + '<button class="btn btn-ghost" style="flex:1" onclick="this.closest(\'[style*=fixed]\').remove()">إلغاء</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+
+  document.getElementById('_ct-link-ok').onclick = function() {
+    var projId = document.getElementById('_ct-proj-sel').value;
+    if (!projId) { toast('âڑ ï¸ڈ اختر مشروعاً'); return; }
+    if (typeof attachContractToProject === 'function') {
+      attachContractToProject(contractId, projId);
+    }
+    ov.remove();
+    if (_activeContractId) showContractDetail(_activeContractId);
+  };
+}
+
 function buildContractHTML(c){
-  const created=c.created_at?new Date(c.created_at).toLocaleDateString('ar-EG'):'—';
+  const created=c.created_at?new Date(c.created_at).toLocaleDateString('ar-EG'):'?';
   const signed=c.signed_at?new Date(c.signed_at).toLocaleDateString('ar-EG'):'';
   const me=S.settings?.name||'الفريلانسر';
   return `<div style="text-align:center;padding-bottom:20px;margin-bottom:20px;border-bottom:2px solid var(--border)">
@@ -14477,9 +14708,9 @@ function buildContractHTML(c){
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:20px">
       <div><div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px">مقدم الخدمة</div><div style="font-size:13px;font-weight:700">${me}</div></div>
-      <div><div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px">العميل</div><div style="font-size:13px;font-weight:700">${c.client_name||'—'}</div></div>
+      <div><div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px">العميل</div><div style="font-size:13px;font-weight:700">${c.client_name||'?'}</div></div>
       <div><div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px">قيمة العقد</div><div style="font-size:13px;font-weight:700;color:var(--accent3)">${c.value?Number(c.value).toLocaleString()+' '+_getCurrency():'غير محدد'}</div></div>
-      <div><div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px">مدة التنفيذ</div><div style="font-size:13px;font-weight:700">${c.start_date||'—'} → ${c.end_date||'—'}</div></div>
+      <div><div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:3px">مدة التنفيذ</div><div style="font-size:13px;font-weight:700">${c.start_date||'?'} ? ${c.end_date||'?'}</div></div>
     </div>
     <div style="font-size:14px;line-height:1.9;color:var(--text2);margin-bottom:24px;white-space:pre-wrap">${c.content||''}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px;padding-top:20px;border-top:2px solid var(--border)">
@@ -14557,12 +14788,35 @@ function ctShare(id){
   const base=window.location.origin+(_p.length?'/'+_p.join('/')+'/':'/')+'contract.html';
   // Generate token if not exists
   if(!c.token){ c.token = 'ct_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
-  const url=base+'?ctsign='+encodeURIComponent(c.token);
+  var publicToken = '';
+  try {
+    if (typeof _ensurePublicLinkToken === 'function') {
+      publicToken = _ensurePublicLinkToken('contract', c.id || c.token, {
+        entity: c,
+        fallbackToken: c.public_token || c.token,
+        client_id: c.client_id || null,
+        project_id: c.project_id || null,
+        allowed_sections: ['contract','client','project']
+      });
+    } else if (window.OrdoData && typeof window.OrdoData.createPublicToken === 'function') {
+      var _ctPublic = window.OrdoData.createPublicToken('contract', c.id || c.token, {
+        client_id: c.client_id || null,
+        project_id: c.project_id || null,
+        allowed_sections: ['contract','client','project']
+      });
+      if (_ctPublic && _ctPublic.token) {
+        publicToken = _ctPublic.token;
+        c.public_token = publicToken;
+      }
+    }
+  } catch(e) { console.warn('[Ordo] contract public token fallback', e); }
+  const shareToken = publicToken || c.public_token || c.token;
+  const url=base+'?ctsign='+encodeURIComponent(shareToken);
   document.getElementById('ct-share-url').textContent=url;
   // Find client phone for WA
   const clientObj = (S.clients||[]).find(cl=>(cl.name||'').toLowerCase()===(c.client_name||'').toLowerCase());
   const clientPhone = (c.client_phone||clientObj?.phone||'').replace(/\D/g,'');
-  const waText = 'مرحباً '+(c.client_name||'')+'،\n\nيرجى مراجعة وتوقيع العقد الخاص بك:\n\n'+url+'\n\nللاستفسار تواصل معنا.';
+  const waText = 'مرحباً '+(c.client_name||'')+'،\n\nيرجى مراجعة وتوقيع العقد الخاص بك:\n\n'+url+'\n\nظ„لاستفسار تواصل معنا.';
   const wa = clientPhone
     ? 'https://wa.me/'+clientPhone+'?text='+encodeURIComponent(waText)
     : 'https://wa.me/?text='+encodeURIComponent(waText);
@@ -14570,18 +14824,18 @@ function ctShare(id){
   document.getElementById('ct-wa-link').href=wa;
   document.getElementById('ct-mail-link').href=mail;
   // Save contract data to localStorage with token key so signing works even without login
-  try{ localStorage.setItem('ct_sign_'+c.token, JSON.stringify(c)); }catch(e){}
+  try{ localStorage.setItem('ct_sign_'+c.token, JSON.stringify(c)); localStorage.setItem('ct_sign_'+shareToken, JSON.stringify(c)); }catch(e){}
   // Also save to Supabase if available
   if(typeof supa !== 'undefined' && _supaUserId){
-    (async()=>{try{await supa.from('shared_contracts').upsert([{token:c.token,data:JSON.stringify(c),user_id:_supaUserId,updated_at:new Date().toISOString()}]);}catch(e){}})();
+    (async()=>{try{await supa.from('shared_contracts').upsert([{token:shareToken,data:JSON.stringify(c),user_id:_supaUserId,updated_at:new Date().toISOString()}]);}catch(e){}})();
   }
   const arr=ctContracts();const i=arr.findIndex(x=>x.id===id);
-  if(i>-1){arr[i].token=c.token;if(arr[i].status==='draft'){arr[i].status='sent';}ctSave(arr);renderContractsList();}
+  if(i>-1){arr[i].token=c.token;arr[i].public_token=c.public_token||shareToken;arr[i].updatedAt=new Date().toISOString();arr[i]._dirty=true;if(arr[i].status==='draft'){arr[i].status='sent';}if(window.OrdoData)window.OrdoData.markDirty('contracts',arr[i].id);ctSave(arr);renderContractsList();}
   openM('modal-contract-share');
 }
 function ctCopyLink(){const text=document.getElementById('ct-share-url').textContent;navigator.clipboard.writeText(text).then(()=>toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم نسخ الرابط'));}
 
-// ── إعادة فتح التوقيع للعميل ──
+// â”€â”€ إعادة فتح التوقيع للعميل â”€â”€
 function ctResetClientSign(id){
   if(!confirm('هل تريد إعادة فتح التوقيع لهذا العقد؟\nسيتمكن العميل من التوقيع مرة أخرى.')) return;
   var arr=ctContracts();
@@ -14606,7 +14860,7 @@ function ctResetClientSign(id){
     })();
   }
   showContractDetail(id);
-  toast('<i class="fa-solid fa-rotate-right" style="color:var(--accent2)"></i> تم إعادة فتح التوقيع — يمكن للعميل التوقيع مجدداً');
+  toast('<i class="fa-solid fa-rotate-right" style="color:var(--accent2)"></i> تم إعادة فتح التوقيع ? يمكن للعميل التوقيع مجدداً');
 }
 
 function ctPrint(id){
@@ -14687,7 +14941,7 @@ function buildClientSignOverlay(c,token){
     ${c.status!=='signed'?`<div class="card" style="padding:24px;margin-bottom:20px">
       <div style="font-size:14px;font-weight:800;margin-bottom:12px"><i class="fa-solid fa-pen-nib"></i> توقيعك هنا</div>
       <canvas id="sig-cv-client" style="width:100%;height:140px;background:#fff;border-radius:8px;cursor:crosshair;touch-action:none;border:1.5px solid var(--border);display:block"></canvas>
-      <button class="btn btn-ghost btn-sm" style="margin-top:8px;margin-bottom:14px" onclick="clearCSig()">مسح ↺</button>
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px;margin-bottom:14px" onclick="clearCSig()">مسح â†؛</button>
       <div class="form-group">
         <label class="form-label">اسمك الكامل للتأكيد</label>
         <input class="form-input" id="client-sig-name" placeholder="اسمك كما في الهوية">
@@ -14831,7 +15085,7 @@ function buildPortalHTML(d){
     '<h1>\ud83c\udfe0 بوابة العميل الشاملة</h1>'+
     '<div style="font-size:13px;opacity:.9">'+d.studio+'</div>'+
     '<div style="margin-top:10px;font-size:20px;font-weight:900">'+d.client+'</div>'+
-    ((d.email||d.phone)?'<div style="margin-top:5px;font-size:11px;opacity:.8">'+(d.email?'\u2709 '+d.email:'')+(d.email&&d.phone?' · ':'')+(d.phone?'\ud83d\udcf1 '+d.phone:'')+'</div>':'')+
+    ((d.email||d.phone)?'<div style="margin-top:5px;font-size:11px;opacity:.8">'+(d.email?'\u2709 '+d.email:'')+(d.email&&d.phone?' آ· ':'')+(d.phone?'\ud83d\udcf1 '+d.phone:'')+'</div>':'')+
     '</div>'+
     '<div class="tabs">'+
     '<div class="tab active" onclick="sw(\'ov\')"><i class="fa-solid fa-chart-bar"></i> نظرة عامة</div>'+
@@ -14872,7 +15126,7 @@ function buildPortalHTML(d){
     '</div></div></div>'+
     // CONTRACTS
     (hasCt?'<div class="tab-panel" id="tab-ct"><div class="con"><div class="card"><div class="ct"><i class="fa-solid fa-pen-to-square"></i> العقود</div><table><thead><tr><th>العقد</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>'+ctRows+'</tbody></table></div></div></div>':'')+
-    '<div class="ftr">'+d.studio+' · آخر تحديث: '+d.generated+'</div>'+
+    '<div class="ftr">'+d.studio+' آ· آخر تحديث: '+d.generated+'</div>'+
     '<scr'+'ipt>'+
     'function sw(n){'+
     'document.querySelectorAll(".tab").forEach(function(t,i){var ns=["ov","tk","fn","ct"];t.classList.toggle("active",ns[i]===n);});'+
@@ -14886,9 +15140,9 @@ function buildPortalHTML(d){
 // Check sign URL on page load
 window.addEventListener('load',()=>setTimeout(checkContractSignUrl,800));
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // RECEIPT IMAGE HELPERS
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 window._invReceiptData = null;
 window._incReceiptData = null;
 
@@ -14942,11 +15196,11 @@ function incReceiptPreview(inp){
   });
 }
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // TEAM INVITE INBOX + MEMBER PROFILE ENHANCED
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 
-// ─── Inbox: show pending invites in a modal ───
+// â”€â”€â”€ Inbox: show pending invites in a modal â”€â”€â”€
 window.openTeamInviteInbox = function(){
   // Trigger immediate poll to get latest invites before opening
   if(typeof window._teamPollNow === 'function') window._teamPollNow();
@@ -14965,7 +15219,7 @@ window.openTeamInviteInbox = function(){
   var pendingHtml = invites.length ? invites.map(function(inv,i){
     var roleMatch = inv.body && inv.body.match(/كـ (.+?) في فريق/);
     var roleText = roleMatch ? roleMatch[1] : (inv.memberRole||'عضو');
-    var specsText = inv.extraSpecs && inv.extraSpecs.length ? ' · ' + inv.extraSpecs.join('، ') : '';
+    var specsText = inv.extraSpecs && inv.extraSpecs.length ? ' آ· ' + inv.extraSpecs.join('، ') : '';
     return '<div style="background:var(--surface2);border:1.5px solid rgba(124,111,247,.25);border-radius:14px;padding:16px;margin-bottom:10px">'
       +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'
         +'<div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0"><i class="fa-solid fa-building"></i></div>'
@@ -14988,7 +15242,7 @@ window.openTeamInviteInbox = function(){
       var tc = m.tasks ? m.tasks.length : 0;
       return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(79,209,165,.06);border:1px solid rgba(79,209,165,.2);border-radius:10px;margin-bottom:6px">'
         +'<span style="font-size:18px"><i class="fa-solid fa-building"></i></span>'
-        +'<div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--accent3)">'+escapeHtml(m.ownerName)+'</div><div style="font-size:11px;color:var(--text3)">'+escapeHtml(m.teamName)+' · '+escapeHtml(m.role||'عضو')+'</div></div>'
+        +'<div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--accent3)">'+escapeHtml(m.ownerName)+'</div><div style="font-size:11px;color:var(--text3)">'+escapeHtml(m.teamName)+' آ· '+escapeHtml(m.role||'عضو')+'</div></div>'
         +(tc ? '<span style="font-size:10px;background:rgba(247,201,72,.2);color:var(--accent2);padding:2px 8px;border-radius:8px;font-weight:700">'+tc+' مهام</span>' : '<span style="font-size:10px;color:var(--accent3)"><i class="fa-solid fa-check"></i> محدث</span>')
       +'</div>';
     }).join('')
@@ -15063,7 +15317,7 @@ function _updateInboxBadge(){
   }
 }
 
-// ─── Render member teams in team page ───
+// â”€â”€â”€ Render member teams in team page â”€â”€â”€
 function renderMyMemberTeams(){
   var section = document.getElementById('my-member-teams-section');
   var grid    = document.getElementById('my-member-teams-grid');
@@ -15086,7 +15340,7 @@ function renderMyMemberTeams(){
     var lateTasks = tasks.filter(function(t){ return t.deadline && new Date(t.deadline) < new Date(); });
     var isCompany = m.isCompany || m.type==='company';
 
-    // ── بطاقة الشركة ──
+    // â”€â”€ بطاقة الشركة â”€â”€
     if(isCompany){
       var teamUrl = m.teamUrl || (function(){
         var base = window.location.href.replace(/[^/]*(\?.*)?$/,'');
@@ -15095,10 +15349,10 @@ function renderMyMemberTeams(){
       return '<div class="card" style="cursor:pointer;border-color:rgba(247,201,72,.2);transition:border-color .15s,transform .15s;position:relative;overflow:hidden" onclick="window.open(\''+teamUrl+'\',\'_blank\')" onmouseenter="this.style.borderColor=\'var(--accent2)\';this.style.transform=\'translateY(-2px)\'" onmouseleave="this.style.borderColor=\'rgba(247,201,72,.2)\';this.style.transform=\'\'">'
         +'<div style="position:absolute;top:0;right:0;width:3px;height:100%;background:var(--accent2)"></div>'
         +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
-          +'<div style="width:44px;height:44px;border-radius:12px;background:'+(m.teamColor||'var(--accent2)')+';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+(m.teamEmoji||'🏢')+'</div>'
+          +'<div style="width:44px;height:44px;border-radius:12px;background:'+(m.teamColor||'var(--accent2)')+';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+(m.teamEmoji||'ًںڈ¢')+'</div>'
           +'<div style="flex:1;min-width:0">'
             +'<div style="font-size:15px;font-weight:800">'+escapeHtml(m.teamName)+'</div>'
-            +'<span style="font-size:10px;background:rgba(247,201,72,.12);color:var(--accent2);padding:2px 8px;border-radius:10px;font-weight:800">🏢 شركة · '+escapeHtml(m.role||'عضو')+'</span>'
+            +'<span style="font-size:10px;background:rgba(247,201,72,.12);color:var(--accent2);padding:2px 8px;border-radius:10px;font-weight:800">ًںڈ¢ شركة آ· '+escapeHtml(m.role||'عضو')+'</span>'
           +'</div>'
         +'</div>'
         +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">'
@@ -15121,7 +15375,7 @@ function renderMyMemberTeams(){
       +'</div>';
     }
 
-    // ── بطاقة الفريق العادي ──
+    // â”€â”€ بطاقة الفريق العادي â”€â”€
     return '<div class="card" style="cursor:pointer;transition:border-color .15s,transform .15s" data-oid="'+m.ownerId+'" onclick="openMyMemberTeamProfile(this.dataset.oid)" onmouseenter="this.style.borderColor=\'var(--accent3)\';this.style.transform=\'translateY(-2px)\'" onmouseleave="this.style.borderColor=\'\';this.style.transform=\'\'">'
       +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
         +(m.ownerLogo ? '<img src="'+escapeHtml(m.ownerLogo)+'" style="width:44px;height:44px;border-radius:12px;object-fit:cover;flex-shrink:0" onerror=\'this.style.display="none"\'">'
@@ -15146,12 +15400,12 @@ function renderMyMemberTeams(){
           +'<div style="font-size:10px;color:var(--text3)">متأخرة</div>'
         +'</div>'
       +'</div>'
-      +(tasks.length ? '<div style="font-size:11px;color:var(--text3);border-top:1px solid var(--border);padding-top:10px">👆 اضغط لعرض مهامك التفصيلية</div>' : '<div style="font-size:11px;color:var(--accent3);border-top:1px solid var(--border);padding-top:10px"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> لا مهام نشطة حاليًا</div>')
+      +(tasks.length ? '<div style="font-size:11px;color:var(--text3);border-top:1px solid var(--border);padding-top:10px">ًں‘† اضغط لعرض مهامك التفصيلية</div>' : '<div style="font-size:11px;color:var(--accent3);border-top:1px solid var(--border);padding-top:10px"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> لا مهام نشطة حاليًا</div>')
     +'</div>';
   }).join('');
 }
 
-// ─── Full profile modal for "teams I'm a member of" ───
+// â”€â”€â”€ Full profile modal for "teams I'm a member of" â”€â”€â”€
 window.openMyMemberTeamProfile = function(ownerId){
   var membership = (window._myTeamMemberships||[]).find(function(m){ return m.ownerId===ownerId; });
   if(!membership) return;
@@ -15168,7 +15422,7 @@ window.openMyMemberTeamProfile = function(ownerId){
     var tasks = membership.tasks || [];
     var doneTasks = membership.doneTasks || [];
 
-    // ── Update task status in owner's studio_data ──
+    // â”€â”€ Update task status in owner's studio_data â”€â”€
     window._memberUpdateTaskStatus = async function(taskId, newStatus){
       var isDone = (newStatus === 'done');
       // Update locally first
@@ -15195,11 +15449,11 @@ window.openMyMemberTeamProfile = function(ownerId){
         var opt = (od.project_tasks||[]).find(function(t){ return String(t.id)===String(taskId); });
         if(opt){ opt.status=newStatus; if(isDone){ opt.done=true; } else { opt.done=false; } }
         await supa.from('studio_data').update({data:JSON.stringify(od),updated_at:new Date().toISOString()}).eq('user_id',ownerId);
-        if(typeof showMiniNotif==='function') showMiniNotif('✅ تم تحديث حالة المهمة');
+        if(typeof showMiniNotif==='function') showMiniNotif('? تم تحديث حالة المهمة');
       } catch(e){ console.warn('task update err:', e); }
     };
 
-    // ── Update step done status ──
+    // â”€â”€ Update step done status â”€â”€
     window._memberToggleStep = async function(taskId, stepIdx, isDone){
       var task = (membership.tasks||[]).concat(membership.doneTasks||[]).find(function(t){ return String(t.id)===String(taskId); });
       if(!task || !task.steps || !task.steps[stepIdx]) return;
@@ -15221,7 +15475,7 @@ window.openMyMemberTeamProfile = function(ownerId){
       } catch(e){ console.warn('step update err:', e); }
     };
 
-    // ── Open full task detail overlay for member ──
+    // â”€â”€ Open full task detail overlay for member â”€â”€
     window._openMemberTaskDetail = function(taskId){
       var allTasks = (membership.tasks||[]).concat(membership.doneTasks||[]);
       var t = allTasks.find(function(x){ return String(x.id)===String(taskId); });
@@ -15235,7 +15489,7 @@ window.openMyMemberTeamProfile = function(ownerId){
       ov.style.zIndex = '10001';
       var authorName = membership.memberName || (S.settings&&S.settings.name) || 'عضو';
       var stColors = {new:'var(--text3)',progress:'var(--accent2)',review:'#f7c948',paused:'#64b5f6',done:'var(--accent3)'};
-      var stLabels = {new:'🆕 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف',done:'✅ مكتمل'};
+      var stLabels = {new:'ًں†• جديد',progress:'âڑ، جاري',review:'ًں”چ مراجعة',paused:'âڈ¸ موقوف',done:'? مكتمل'};
       var curSt = t.status||'new';
       var isLate = t.deadline && new Date(t.deadline)<new Date() && !t.done;
       var daysLeft = t.deadline ? Math.ceil((new Date(t.deadline)-new Date())/864e5) : null;
@@ -15253,7 +15507,7 @@ window.openMyMemberTeamProfile = function(ownerId){
           stepsHTML = '<div style="margin:14px 0;padding:14px;background:var(--surface2);border-radius:12px;border:1px solid var(--border)">'
             +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
               +'<div style="font-size:13px;font-weight:700"><i class="fa-solid fa-clipboard-list"></i> خطوات التنفيذ</div>'
-              +'<div style="font-size:12px;font-weight:700;color:var(--accent)">'+stepsDone+'/'+stepsTotal+' — '+pct+'%</div>'
+              +'<div style="font-size:12px;font-weight:700;color:var(--accent)">'+stepsDone+'/'+stepsTotal+' ? '+pct+'%</div>'
             +'</div>'
             +'<div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:12px">'
               +'<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:3px;transition:.4s"></div>'
@@ -15265,7 +15519,7 @@ window.openMyMemberTeamProfile = function(ownerId){
               +'<div style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 0" data-step-toggle="'+tid+'-'+si+'">'
                 +'<div style="width:24px;height:24px;border-radius:6px;border:2px solid '+(s.done?'var(--accent3)':'var(--border)')+';background:'+(s.done?'var(--accent3)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;color:#fff;transition:.2s">'+(s.done?'<i class="fa-solid fa-check"></i>':String(si+1))+'</div>'
                 +'<div style="flex:1;font-size:13px;font-weight:600;'+(s.done?'text-decoration:line-through;opacity:.5':'')+'" data-step-text="'+si+'">'+escapeHtml(s.title||s.text||s.name||'خطوة')+'</div>'
-                +'<div style="font-size:10px;font-weight:700;color:'+(s.done?'var(--accent3)':'var(--text3)'+';opacity:.7')+'">'+( s.done?'✅ مكتمل':'◯ معلق')+'</div>'
+                +'<div style="font-size:10px;font-weight:700;color:'+(s.done?'var(--accent3)':'var(--text3)'+';opacity:.7')+'">'+( s.done?'? مكتمل':'◯ معلق')+'</div>'
               +'</div>'
               // Step comments
               +(stepComments.length ? '<div style="padding-right:34px;margin-bottom:6px">'+stepComments.map(function(c){
@@ -15312,24 +15566,24 @@ window.openMyMemberTeamProfile = function(ownerId){
           ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">'
               +'<span style="font-size:12px;color:var(--text3);align-self:center">تغيير الحالة:</span>'
               +(curSt!=='done'?'<button data-st-action="done" style="padding:7px 14px;background:var(--accent3);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700"><i class="fa-solid fa-check"></i> مكتمل</button>':'')
-              +(curSt!=='progress'?'<button data-st-action="progress" style="padding:7px 14px;background:var(--accent2)22;color:var(--accent2);border:1px solid var(--accent2)44;border-radius:8px;cursor:pointer;font-size:12px">⚡ جاري</button>':'')
-              +(curSt!=='paused'?'<button data-st-action="paused" style="padding:7px 14px;background:rgba(100,100,100,.2);color:var(--text2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px">⏸ موقوف</button>':'')
-              +(curSt!=='review'?'<button data-st-action="review" style="padding:7px 14px;background:rgba(247,201,72,.15);color:#f7c948;border:1px solid rgba(247,201,72,.3);border-radius:8px;cursor:pointer;font-size:12px">🔍 مراجعة</button>':'')
+              +(curSt!=='progress'?'<button data-st-action="progress" style="padding:7px 14px;background:var(--accent2)22;color:var(--accent2);border:1px solid var(--accent2)44;border-radius:8px;cursor:pointer;font-size:12px">âڑ، جاري</button>':'')
+              +(curSt!=='paused'?'<button data-st-action="paused" style="padding:7px 14px;background:rgba(100,100,100,.2);color:var(--text2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px">âڈ¸ موقوف</button>':'')
+              +(curSt!=='review'?'<button data-st-action="review" style="padding:7px 14px;background:rgba(247,201,72,.15);color:#f7c948;border:1px solid rgba(247,201,72,.3);border-radius:8px;cursor:pointer;font-size:12px">ًں”چ مراجعة</button>':'')
             +'</div>'
-          : '<div style="margin-top:14px"><button data-st-action="progress" style="padding:7px 14px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px">↩ إعادة فتح</button></div>';
+          : '<div style="margin-top:14px"><button data-st-action="progress" style="padding:7px 14px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px">â†© إعادة فتح</button></div>';
 
         return '<div class="modal" style="max-width:580px;max-height:92vh;overflow-y:auto;padding:0">'
           // Header
           +'<div style="background:linear-gradient(135deg,rgba(124,111,247,.15),rgba(79,209,165,.08));padding:18px 20px;border-radius:12px 12px 0 0;position:sticky;top:0;backdrop-filter:blur(8px);z-index:2">'
             +'<div style="display:flex;align-items:flex-start;gap:12px">'
               +'<div style="flex:1">'
-                +'<div style="font-size:10px;font-weight:700;color:var(--accent3);margin-bottom:4px"><i class="fa-solid fa-users"></i> '+escapeHtml(membership.ownerName)+' — '+escapeHtml(membership.teamName)+'</div>'
+                +'<div style="font-size:10px;font-weight:700;color:var(--accent3);margin-bottom:4px"><i class="fa-solid fa-users"></i> '+escapeHtml(membership.ownerName)+' ? '+escapeHtml(membership.teamName)+'</div>'
                 +'<div style="font-size:18px;font-weight:900;line-height:1.3">'+escapeHtml(t.title)+'</div>'
                 +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:11px">'
                   +'<span style="color:'+stColors[curSt]+'">'+stLabels[curSt]+'</span>'
                   +(t.client?'<span style="color:var(--text3)"><i class="fa-solid fa-user"></i> '+escapeHtml(t.client)+'</span>':'')
-                  +(t.deadline?'<span style="color:'+(isLate?'var(--accent4)':(daysLeft<=2?'var(--accent2)':'var(--text3)'))+'">'+(isLate?'⚠️ متأخرة':(t.done?'✅ منجزة':daysLeft+' يوم'))+'</span>':'')
-                  +(t.workerAmount?'<span style="color:var(--accent2);font-weight:700">💰 '+Number(t.workerAmount).toLocaleString()+' ج</span>':'')
+                  +(t.deadline?'<span style="color:'+(isLate?'var(--accent4)':(daysLeft<=2?'var(--accent2)':'var(--text3)'))+'">'+(isLate?'âڑ ï¸ڈ متأخرة':(t.done?'? منجزة':daysLeft+' يوم'))+'</span>':'')
+                  +(t.workerAmount?'<span style="color:var(--accent2);font-weight:700">ًں’° '+Number(t.workerAmount).toLocaleString()+' ج</span>':'')
                 +'</div>'
               +'</div>'
               +'<button id="_mtd-close" style="width:32px;height:32px;border-radius:8px;background:rgba(0,0,0,.2);border:none;color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fa-solid fa-xmark"></i></button>'
@@ -15370,15 +15624,15 @@ window.openMyMemberTeamProfile = function(ownerId){
               if(ot){ot.status=st;ot.done=(st==='done');}
               // Add notification for owner about status change
               if(!od._pending_notifications) od._pending_notifications = [];
-              var stN={done:'✅ مكتمل',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف',new:'🆕 جديد'};
+              var stN={done:'? مكتمل',progress:'âڑ، جاري',review:'ًں”چ مراجعة',paused:'âڈ¸ موقوف',new:'ًں†• جديد'};
               od._pending_notifications.push({
                 id:Date.now(), type:'task_status',
                 title:'<i class="fa-solid fa-bolt" style="color:var(--accent2)"></i> تحديث حالة مهمة',
-                body: '"'+t.title+'" — '+authorName+' غيّر الحالة إلى: '+(stN[st]||st),
+                body: '"'+t.title+'" ? '+authorName+' غيّر الحالة إلى: '+(stN[st]||st),
                 read:false, created_at:new Date().toISOString()
               });
               await supa.from('studio_data').update({data:JSON.stringify(od),updated_at:new Date().toISOString()}).eq('user_id',oid);
-              if(typeof showMiniNotif==='function') showMiniNotif('✅ تم تحديث حالة المهمة');
+              if(typeof showMiniNotif==='function') showMiniNotif('? تم تحديث حالة المهمة');
               // Also refresh team modal behind
               if(typeof _renderMemberTasksSection==='function') _renderMemberTasksSection();
             } catch(e){ console.warn('status sync:', e); }
@@ -15429,7 +15683,7 @@ window.openMyMemberTeamProfile = function(ownerId){
               var ot = (od.tasks||[]).find(function(x){return String(x.id)===tid;});
               if(ot){ if(!ot.comments) ot.comments=[]; ot.comments.push(comment); }
               await supa.from('studio_data').update({data:JSON.stringify(od),updated_at:new Date().toISOString()}).eq('user_id',oid);
-              if(typeof showMiniNotif==='function') showMiniNotif('✅ تمت إضافة الملاحظة');
+              if(typeof showMiniNotif==='function') showMiniNotif('? تمت إضافة الملاحظة');
             } catch(e){ console.warn('step comment sync:',e); }
           };
         });
@@ -15455,7 +15709,7 @@ window.openMyMemberTeamProfile = function(ownerId){
             var ot = (od.tasks||[]).find(function(x){return String(x.id)===tid;});
             if(ot){ if(!ot.comments) ot.comments=[]; ot.comments.push(comment); }
             await supa.from('studio_data').update({data:JSON.stringify(od),updated_at:new Date().toISOString()}).eq('user_id',oid);
-            if(typeof showMiniNotif==='function') showMiniNotif('✅ تمت إضافة الملاحظة');
+            if(typeof showMiniNotif==='function') showMiniNotif('? تمت إضافة الملاحظة');
           } catch(e){ console.warn('main comment sync:',e); }
         };
       }
@@ -15465,7 +15719,7 @@ window.openMyMemberTeamProfile = function(ownerId){
       _bindDetailEvents();
     };
 
-    // ── Simple task card (click → open full detail) ──
+    // â”€â”€ Simple task card (click ? open full detail) â”€â”€
     function _renderTaskCard(t, isActive){
       var isLate = t.deadline && new Date(t.deadline) < new Date() && !t.done;
       var daysLeft = t.deadline ? Math.ceil((new Date(t.deadline) - new Date()) / 864e5) : null;
@@ -15473,7 +15727,7 @@ window.openMyMemberTeamProfile = function(ownerId){
       var stepsDone  = (t.steps||[]).filter(function(s){ return s.done; }).length;
       var pct = stepsTotal ? Math.round(stepsDone/stepsTotal*100) : (t.done?100:0);
       var stColors = {new:'var(--accent2)',progress:'var(--accent)',review:'#f7c948',paused:'var(--text3)',done:'var(--accent3)'};
-      var stLabels = {new:'🆕 جديد',progress:'⚡ جاري',review:'🔍 مراجعة',paused:'⏸ موقوف',done:'✅ مكتمل'};
+      var stLabels = {new:'ًں†• جديد',progress:'âڑ، جاري',review:'ًں”چ مراجعة',paused:'âڈ¸ موقوف',done:'? مكتمل'};
       var curSt = t.status||'new';
       var commentsCount = (t.comments||[]).length;
 
@@ -15484,11 +15738,11 @@ window.openMyMemberTeamProfile = function(ownerId){
             +'<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text3)">'
               +(t.client?'<span><i class="fa-solid fa-user"></i> '+escapeHtml(t.client)+'</span>':'')
               +'<span style="color:'+stColors[curSt]+'">'+stLabels[curSt]+'</span>'
-              +(t.workerAmount?'<span style="color:var(--accent2);font-weight:700">💰 '+Number(t.workerAmount).toLocaleString()+' ج</span>':'')
+              +(t.workerAmount?'<span style="color:var(--accent2);font-weight:700">ًں’° '+Number(t.workerAmount).toLocaleString()+' ج</span>':'')
               +(commentsCount?'<span style="color:var(--accent)"><i class="fa-solid fa-comment"></i> '+commentsCount+'</span>':'')
             +'</div>'
           +'</div>'
-          +(t.deadline?'<div style="font-size:10px;font-weight:700;color:'+(isLate?'var(--accent4)':(daysLeft<=2?'var(--accent2)':'var(--accent3)'))+';flex-shrink:0;text-align:left;padding-right:6px">'+(isLate?'⚠️ متأخرة':(t.done?'✅ منجزة':daysLeft+' يوم'))+'</div>':'')
+          +(t.deadline?'<div style="font-size:10px;font-weight:700;color:'+(isLate?'var(--accent4)':(daysLeft<=2?'var(--accent2)':'var(--accent3)'))+';flex-shrink:0;text-align:left;padding-right:6px">'+(isLate?'âڑ ï¸ڈ متأخرة':(t.done?'? منجزة':daysLeft+' يوم'))+'</div>':'')
         +'</div>'
         +(stepsTotal?'<div style="margin-top:8px"><div style="height:3px;background:var(--surface3);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--accent),var(--accent3))"></div></div><div style="font-size:10px;color:var(--text3);margin-top:2px">'+stepsDone+'/'+stepsTotal+' خطوات</div></div>':'')
         +'<div style="font-size:10px;color:var(--accent);margin-top:8px"><i class="fa-solid fa-arrow-left"></i> اضغط لفتح التفاصيل وتعديل الحالة</div>'
@@ -15503,7 +15757,7 @@ window.openMyMemberTeamProfile = function(ownerId){
             +(membership.ownerLogo&&typeof _validImgSrc==="function"&&_validImgSrc(membership.ownerLogo)?'<img src="'+escapeHtml(membership.ownerLogo)+'" style="width:52px;height:52px;border-radius:14px;object-fit:cover">':'<div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:24px"><i class="fa-solid fa-building"></i></div>')
             +'<div style="flex:1">'
               +'<div style="font-size:17px;font-weight:900">'+escapeHtml(membership.ownerName)+'</div>'
-              +'<div style="font-size:12px;color:var(--text3)">'+escapeHtml(membership.teamName)+' · دورك: <strong style="color:var(--accent)">'+escapeHtml(membership.role||'عضو')+'</strong></div>'
+              +'<div style="font-size:12px;color:var(--text3)">'+escapeHtml(membership.teamName)+' آ· دورك: <strong style="color:var(--accent)">'+escapeHtml(membership.role||'عضو')+'</strong></div>'
             +'</div>'
             +'<button class="close-btn" id="_mmt-close"><i class="fa-solid fa-xmark"></i></button>'
           +'</div>'
@@ -15537,9 +15791,9 @@ window.openMyMemberTeamProfile = function(ownerId){
 };
 
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // TEAM MEMBERSHIP SYSTEM
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 (function(){
 
   window._myTeamMemberships = [];
@@ -15551,7 +15805,7 @@ window.openMyMemberTeamProfile = function(ownerId){
       if(!_supaUserId) return;
       var memberships = [];
 
-      // ── Source 1: team_invites accepted ──
+      // â”€â”€ Source 1: team_invites accepted â”€â”€
       try {
         var invRes = await supa.from('team_invites').select('*')
           .eq('to_email', myEmail).eq('status','accepted');
@@ -15569,7 +15823,7 @@ window.openMyMemberTeamProfile = function(ownerId){
         });
       }catch(e){ console.warn('team_invites check:', e.message||e); }
 
-      // ── Source 2: user_notifications type=team_added ──
+      // â”€â”€ Source 2: user_notifications type=team_added â”€â”€
       try {
         var notifRes = await supa.from('user_notifications').select('*')
           .eq('user_id',_supaUserId).eq('type','team_added');
@@ -15589,7 +15843,7 @@ window.openMyMemberTeamProfile = function(ownerId){
         });
       }catch(e){}
 
-      // ── Source 3: scan studio_data (owner's data) ──
+      // â”€â”€ Source 3: scan studio_data (owner's data) â”€â”€
       try {
         var sdRes = await supa.from('studio_data').select('user_id,data');
         var sdRows = sdRes.data || [];
@@ -15625,7 +15879,7 @@ window.openMyMemberTeamProfile = function(ownerId){
         var knownList = JSON.parse(localStorage.getItem(knownKey)||'[]');
         var newTeams  = memberships.filter(function(m){ return !knownList.includes(m.ownerName+'_'+m.teamName); });
         if(newTeams.length){
-          newTeams.forEach(function(m){ showMiniNotif('<i class="fa-solid fa-users" style="color:var(--accent3)"></i> انضممت لفريق "'+m.teamName+'" — '+m.ownerName); });
+          newTeams.forEach(function(m){ showMiniNotif('<i class="fa-solid fa-users" style="color:var(--accent3)"></i> انضممت لفريق "'+m.teamName+'" ? '+m.ownerName); });
           localStorage.setItem(knownKey, JSON.stringify(memberships.map(function(m){ return m.ownerName+'_'+m.teamName; })));
         }
       }
@@ -15691,15 +15945,15 @@ window.openMyMemberTeamProfile = function(ownerId){
   // Also poll every 30 seconds for new invites
   setInterval(_checkPendingTeamInvitesImpl, 30000);
 
-  // ══════════════════════════════════════════════════════
-  //  BRIDGE: نظام الشركات ↔ index.html
+  // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+  //  BRIDGE: نظام الشركات â†” index.html
   //  ١. يعرض فرق الشركات في صفحة الفريق بالـ index
   //  ٢. يجيب إشعارات نظام الشركات على الهوم
   //  ٣. لو في membership في فرق شركات تظهر في my-member-teams
-  // ══════════════════════════════════════════════════════
+  // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
   (function _initCompanyBridge(){
 
-    // ── أ. مراقبة إشعارات الشركات من localStorage + Supabase ──
+    // â”€â”€ أ. مراقبة إشعارات الشركات من localStorage + Supabase â”€â”€
     async function _syncCompanyNotifications(){
       try {
         var myEmail = '';
@@ -15709,7 +15963,7 @@ window.openMyMemberTeamProfile = function(ownerId){
 
         var allTeamsToCheck = [];
 
-        // ── ١. من localStorage (نفس الجهاز / المالك) ──
+        // â”€â”€ ١. من localStorage (نفس الجهاز / المالك) â”€â”€
         var raw = localStorage.getItem('ordo_teams_v2');
         if(raw){
           try {
@@ -15718,7 +15972,7 @@ window.openMyMemberTeamProfile = function(ownerId){
           }catch(e){}
         }
 
-        // ── ٢. من Supabase (أجهزة مختلفة / مستخدمون آخرون) ──
+        // â”€â”€ ٢. من Supabase (أجهزة مختلفة / مستخدمون آخرون) â”€â”€
         if(_supaUserId && typeof supa!=='undefined'){
           try {
             var {data:rows} = await supa.from('studio_data').select('user_id,data');
@@ -15744,7 +15998,7 @@ window.openMyMemberTeamProfile = function(ownerId){
           }catch(e){ console.warn('Supabase team scan:', e); }
         }
 
-        // ── فحص العضوية في كل الفرق ──
+        // â”€â”€ فحص العضوية في كل الفرق â”€â”€
         var companyMemberships = [];
         allTeamsToCheck.forEach(function(item){
           var team = item.team;
@@ -15787,7 +16041,7 @@ window.openMyMemberTeamProfile = function(ownerId){
                         teamId:    nd.teamId,
                         teamName:  nd.teamName||n.body||'شركة',
                         teamColor: 'var(--accent2)',
-                        teamEmoji: '🏢',
+                        teamEmoji: 'ًںڈ¢',
                         role:      nd.memberRole||'عضو',
                         source:    'notification',
                         ownerUserId: nd.ownerUserId||null,
@@ -15802,7 +16056,7 @@ window.openMyMemberTeamProfile = function(ownerId){
           }catch(e){}
         }
 
-        // ── إظهار فرق الشركات في قسم "الفرق التي أنا عضو فيها" ──
+        // â”€â”€ إظهار فرق الشركات في قسم "الفرق التي أنا عضو فيها" â”€â”€
         if(companyMemberships.length){
           var knownKey  = '_known_company_memberships_'+(_supaUserId||'g');
           var knownList = JSON.parse(localStorage.getItem(knownKey)||'[]');
@@ -15839,7 +16093,7 @@ window.openMyMemberTeamProfile = function(ownerId){
           if(typeof renderMyMemberTeams==='function') renderMyMemberTeams();
         }
 
-        // ── إشعارات موجهة من نظام الشركات (localStorage) ──
+        // â”€â”€ إشعارات موجهة من نظام الشركات (localStorage) â”€â”€
         if(raw){
           try {
             var tsData2 = JSON.parse(raw);
@@ -15940,7 +16194,7 @@ window.openMyMemberTeamProfile = function(ownerId){
           });
           if(newCount>0){ if(typeof _saveNotifications==='function') _saveNotifications(); if(typeof _updateNotifBell==='function') _updateNotifBell(); showMiniNotif('<i class="fa-solid fa-bell"></i> لديك '+newCount+' إشعار جديد'); }
 
-          // ── Sync _inbox from server (revision requests from client portal) ──
+          // â”€â”€ Sync _inbox from server (revision requests from client portal) â”€â”€
           if(ud._inbox && ud._inbox.length){
             S._inbox = S._inbox||[];
             var inboxChanged=false;
@@ -15956,7 +16210,7 @@ window.openMyMemberTeamProfile = function(ownerId){
             });
             if(inboxChanged){ lsSave(); if(typeof _updateInboxBadge==='function') _updateInboxBadge(); }
           }
-          // ❗ لا نكتب ud القديمة كلها - بس نمسح الـ notifications من S الحالي
+          // â‌— لا نكتب ud القديمة كلها - بس نمسح الـ notifications من S الحالي
           // ده يمنع الـ poll من overwrite البيانات الجديدة في S
           if(!S._pending_notifications) S._pending_notifications = [];
           S._pending_notifications = [];
@@ -15980,7 +16234,7 @@ window.openMyMemberTeamProfile = function(ownerId){
     window._teamPollNow = _poll;
     setInterval(_poll, 60000);
 
-    // ━━ Supabase Realtime — instant notifications ━━
+    // â”پâ”پ Supabase Realtime ? instant notifications â”پâ”پ
     try {
       var _rtChannel = supa.channel('studio-realtime-' + _supaUserId)
         .on('postgres_changes', {
@@ -16014,7 +16268,7 @@ window.openMyMemberTeamProfile = function(ownerId){
         .subscribe();
     } catch(e) { console.warn('[Realtime] Review subscription failed:', e); }
 
-    // ━━ Realtime listener for team_invites — instant invite notification ━━
+    // â”پâ”پ Realtime listener for team_invites ? instant invite notification â”پâ”پ
     try {
       var myEmail2 = '';
       try{ var _as2=JSON.parse(localStorage.getItem('studioOS_auth_v1')||'{}'); myEmail2=(_as2.email||'').toLowerCase().trim(); }catch(e){}
@@ -16128,7 +16382,7 @@ window.openMyMemberTeamProfile = function(ownerId){
     var remaining = overlay._remainingInvites || [];
     overlay.remove();
     if(accepted){
-      showMiniNotif('🎉 انضممت لفريق "'+invite.teamName+'" — '+invite.ownerName);
+      showMiniNotif('ًںژ‰ انضممت لفريق "'+invite.teamName+'" ? '+invite.ownerName);
       // Update team_invites table
       if(typeof supa!=='undefined' && invite.id){
         (async()=>{try{await supa.from('team_invites').update({status:'accepted'}).eq('id',invite.id.replace('pn_',''));}catch(e){}})();
@@ -16171,7 +16425,7 @@ window.openMyMemberTeamProfile = function(ownerId){
       +memberships.map(function(m){
         var tc = m.tasks?m.tasks.length:0;
         var isCompany = m.isCompany || m.type==='company';
-        var icon = isCompany ? '🏢' : '<i class="fa-solid fa-users"></i>';
+        var icon = isCompany ? 'ًںڈ¢' : '<i class="fa-solid fa-users"></i>';
         var color = isCompany ? 'var(--accent2)' : 'var(--accent3)';
         var teamColor = m.teamColor || color;
         var onclick = isCompany
@@ -16185,8 +16439,8 @@ window.openMyMemberTeamProfile = function(ownerId){
                  : '<span style="background:'+color+';color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px"><i class="fa-solid fa-check"></i></span>')
           +'</div>'
           +'<div style="font-size:11px;color:var(--text3);padding-right:22px">'
-            +escapeHtml(m.ownerName)+' · '+escapeHtml(m.role||'عضو')
-            +(isCompany ? ' · <span style="color:var(--accent2)">فتح البورد ↗</span>' : '')
+            +escapeHtml(m.ownerName)+' آ· '+escapeHtml(m.role||'عضو')
+            +(isCompany ? ' آ· <span style="color:var(--accent2)">فتح البورد â†—</span>' : '')
           +'</div>'
         +'</div>';
       }).join('')
@@ -16204,7 +16458,7 @@ window.openMyMemberTeamProfile = function(ownerId){
             : '<div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:22px"><i class="fa-solid fa-building"></i></div>'),
           '<div>',
             '<div style="font-size:16px;font-weight:900">'+escapeHtml(membership.ownerName)+'</div>',
-            '<div style="font-size:12px;color:var(--text3)">'+escapeHtml(membership.teamName)+' · '+escapeHtml(membership.role||'عضو')+'</div>',
+            '<div style="font-size:12px;color:var(--text3)">'+escapeHtml(membership.teamName)+' آ· '+escapeHtml(membership.role||'عضو')+'</div>',
           '</div>',
         '</div>',
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">',
@@ -16249,7 +16503,7 @@ window.openMyMemberTeamProfile = function(ownerId){
       document.getElementById('_tmm-close').onclick = function(){ overlay.style.display='none'; };
       overlay.onclick = function(e){ if(e.target===overlay) overlay.style.display='none'; };
     }
-    document.getElementById('_tmm-title').innerHTML='<i class="fa-solid fa-clipboard-list"></i> فريق — '+membership.ownerName;
+    document.getElementById('_tmm-title').innerHTML='<i class="fa-solid fa-clipboard-list"></i> فريق ? '+membership.ownerName;
     document.getElementById('_tmm-body').innerHTML = html;
     overlay.style.display = 'flex';
   };
@@ -16258,10 +16512,10 @@ window.openMyMemberTeamProfile = function(ownerId){
 
 
 
-// ═══════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // SPECIALIZATIONS SYSTEM
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function openAddSpecModal(){ document.getElementById('add-spec-form').style.display=''; document.getElementById('spec-name').focus(); }
 
 function saveSpecialization(){
@@ -16292,7 +16546,7 @@ function deleteSpecialization(id){
 function renderSpecializations(){
   const el = document.getElementById('specializations-list'); if(!el) return;
   const specs = S.specializations||[];
-  if(!specs.length){ el.innerHTML='<div style="font-size:12px;color:var(--text3)">لا توجد تخصصات — أضف أول تخصص</div>'; return; }
+  if(!specs.length){ el.innerHTML='<div style="font-size:12px;color:var(--text3)">لا توجد تخصصات ? أضف أول تخصص</div>'; return; }
   el.innerHTML = specs.map(s=>`
     <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:1.5px solid ${s.color}20;background:${s.color}15;font-size:12px;font-weight:700">
       <span style="color:${s.color}">${s.icon} ${s.name}</span>
@@ -16310,12 +16564,12 @@ function updateSpecDropdown(){
     {value:'مودريتور',label:'<i class="fa-solid fa-comments"></i> مودريتور'},{value:'مستقل',label:'<i class="fa-solid fa-user"></i> مستقل / عام'},{value:'أخرى',label:'<i class="fa-solid fa-thumbtack"></i> أخرى'}
   ];
   const customOpts = specs.map(s=>`<option value="${escapeHtml(s.name)}">${s.icon} ${escapeHtml(s.name)}</option>`).join('');
-  sel.innerHTML = defaults.map(d=>`<option value="${d.value}">${d.label}</option>`).join('') + (customOpts ? '<option disabled>── تخصصات مخصصة ──</option>'+customOpts : '');
+  sel.innerHTML = defaults.map(d=>`<option value="${d.value}">${d.label}</option>`).join('') + (customOpts ? '<option disabled>â”€â”€ تخصصات مخصصة â”€â”€</option>'+customOpts : '');
 }
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // CORPORATE SETTINGS
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function initCorpSettings(){
   const feat = window._planFeatures||{};
   const badge = document.getElementById('corp-plan-badge');
@@ -16347,33 +16601,33 @@ function renderCorpEmployees(){
   const el = document.getElementById('corp-employees-list'); if(!el) return;
   const employees = (S.teams||[]).flatMap(t=>(t.members||[]).filter(m=>m.corpEmployee));
   const cnt = document.getElementById('corp-emp-count'); if(cnt) cnt.textContent=employees.length+' موظف';
-  if(!employees.length){ el.innerHTML='<div style="font-size:12px;color:var(--text3)">لا يوجد موظفون — أضف أعضاء الفريق وسيظهرون هنا</div>'; return; }
+  if(!employees.length){ el.innerHTML='<div style="font-size:12px;color:var(--text3)">لا يوجد موظفون ? أضف أعضاء الفريق وسيظهرون هنا</div>'; return; }
   el.innerHTML = employees.map(m=>`
     <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface3);border-radius:8px">
-      <span style="font-size:16px">👔</span>
-      <div style="flex:1"><div style="font-size:12px;font-weight:700">${escapeHtml(m.name)}</div><div style="font-size:11px;color:var(--text3)">${escapeHtml(m.role)} · ${m.email||'—'}</div></div>
+      <span style="font-size:16px">ًں‘”</span>
+      <div style="flex:1"><div style="font-size:12px;font-weight:700">${escapeHtml(m.name)}</div><div style="font-size:11px;color:var(--text3)">${escapeHtml(m.role)} آ· ${m.email||'?'}</div></div>
       <span style="font-size:10px;background:rgba(79,209,165,.12);color:var(--accent3);padding:2px 8px;border-radius:8px">موظف</span>
     </div>`).join('');
 }
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // SERVICE PORTFOLIO SYSTEM  
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 
 
-// ═══════════════════════════════════════════════════════════════
-// <i class="fa-solid fa-bag-shopping"></i>  SERVICES SYSTEM — Full Implementation
-// ═══════════════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// <i class="fa-solid fa-bag-shopping"></i>  SERVICES SYSTEM ? Full Implementation
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 
-// ── Helpers ──
-// ═══ Open My Store ═══
+// â”€â”€ Helpers â”€â”€
+// â•گâ•گâ•گ Open My Store â•گâ•گâ•گ
 function _openMyStore(){
   var link = (typeof getSvcLink === 'function') ? getSvcLink(null) : '#';
   window.open(link, '_blank');
 }
 
 function getSvcLink(storeId){
-  // ✅ دائماً ابنِ رابط store.html مباشر — الروابط القصيرة بتديك 404 على GitHub Pages
+  // ? دائماً ابنِ رابط store.html مباشر ? الروابط القصيرة بتديك 404 على GitHub Pages
   var uid = (typeof _supaUserId!=='undefined' && _supaUserId) ? _supaUserId : '';
   var _spp=window.location.pathname,_sps=_spp.split('/').filter(function(x){return x!=='';});
   if(_sps.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_sps[_sps.length-1])>=0)_sps.pop();
@@ -16391,7 +16645,7 @@ function getSvcLink(storeId){
   return link;
 }
 
-// ══ USERNAME / CUSTOM LINK FUNCTIONS ══
+// â•گâ•گ USERNAME / CUSTOM LINK FUNCTIONS â•گâ•گ
 function _updateUsernamePreview(un){
   var base=window.location.origin+window.location.pathname;
   var linkEl=document.getElementById('username-link-preview');
@@ -16418,7 +16672,7 @@ async function checkAndSaveUsername(){
     // Check via username_index column (more reliable)
     var res=await supa.from('studio_data').select('user_id').eq('username_index', un).neq('user_id',_supaUserId).maybeSingle();
     if(res.data){
-      if(statusEl) statusEl.innerHTML='<span style="color:var(--accent4)">❌ الاسم محجوز، جرب اسماً آخر</span>';
+      if(statusEl) statusEl.innerHTML='<span style="color:var(--accent4)">â‌Œ الاسم محجوز، جرب اسماً آخر</span>';
       return;
     }
     // Save to S.settings.username
@@ -16433,25 +16687,25 @@ async function checkAndSaveUsername(){
     }catch(e2){}
     lsSave();
     _updateUsernamePreview(un);
-    if(statusEl) statusEl.innerHTML='✅ تم الحفظ — رابط متجرك: <span id="username-link-preview" style="color:var(--accent);cursor:pointer" onclick="window.open(window.location.origin+window.location.pathname+\'?u='+un+'\')">'+(window.location.origin+window.location.pathname)+'?u='+un+'</span>';
-    toast('✅ تم حفظ الاسم: @'+un);
+    if(statusEl) statusEl.innerHTML='? تم الحفظ ? رابط متجرك: <span id="username-link-preview" style="color:var(--accent);cursor:pointer" onclick="window.open(window.location.origin+window.location.pathname+\'?u='+un+'\')">'+(window.location.origin+window.location.pathname)+'?u='+un+'</span>';
+    toast('? تم حفظ الاسم: @'+un);
   } catch(e){
     if(!S.settings) S.settings={};
     S.settings.username=un;
     if(inp) inp.value=un;
     lsSave(); cloudSave(S);
     _updateUsernamePreview(un);
-    if(statusEl) statusEl.innerHTML='✅ رابط متجرك: <span style="color:var(--accent)">'+(window.location.origin+window.location.pathname)+'?u='+un+'</span>';
+    if(statusEl) statusEl.innerHTML='? رابط متجرك: <span style="color:var(--accent)">'+(window.location.origin+window.location.pathname)+'?u='+un+'</span>';
   }
 }
-// ══ MULTI-STORE FUNCTIONS ══
+// â•گâ•گ MULTI-STORE FUNCTIONS â•گâ•گ
 function _getStores(){ return S.stores||[]; }
 
 
-// ── Current active store context ──
+// â”€â”€ Current active store context â”€â”€
 var _currentStoreIdx = null;
 
-// ── Get current store's ID (null = main store) ──
+// â”€â”€ Get current store's ID (null = main store) â”€â”€
 function _getCurrentStoreId(){
   if(_currentStoreIdx === null) return null;
   var stores = _getStores();
@@ -16585,7 +16839,7 @@ function renderStoresTab(){
   if(badge){badge.textContent=stores.length;badge.style.display=stores.length?'inline':'none';}
   el.innerHTML='<div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">'+
     '<div><div style="font-size:15px;font-weight:900"><i class="fa-solid fa-store" style="color:var(--accent2)"></i> المتاجر المتعددة</div>'+
-    '<div style="font-size:11px;color:var(--text3)">كل متجر برابط مستقل — لعملاء أو خدمات مختلفة</div></div>'+
+    '<div style="font-size:11px;color:var(--text3)">كل متجر برابط مستقل ? لعملاء أو خدمات مختلفة</div></div>'+
     '<button class="btn btn-primary" onclick="openNewStoreModal()"><i class="fa-solid fa-plus" style="margin-left:5px"></i> متجر جديد</button>'+
   '</div>'+
   // Main store card
@@ -16621,7 +16875,7 @@ function renderStoresTab(){
     }).join('')
   :
     '<div style="text-align:center;padding:40px 20px;color:var(--text3)">'+
-      '<div style="font-size:36px;margin-bottom:12px">🏪</div>'+
+      '<div style="font-size:36px;margin-bottom:12px">ًںڈھ</div>'+
       '<div style="font-size:14px;font-weight:700;margin-bottom:6px">لا توجد متاجر إضافية</div>'+
       '<div style="font-size:12px;margin-bottom:16px">أنشئ متجرًا منفصلًا لكل عميل أو نوع خدمة</div>'+
       '<button class="btn btn-primary" onclick="openNewStoreModal()"><i class="fa-solid fa-plus"></i> متجر جديد</button>'+
@@ -16633,7 +16887,7 @@ function renderMultiStoresList(){
   var el=document.getElementById('multi-stores-list'); if(!el) return;
   var stores=_getStores();
   if(!stores.length){
-    el.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px">لا يوجد متاجر إضافية — المتجر الرئيسي فعّال دائماً</div>';
+    el.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:16px">لا يوجد متاجر إضافية ? المتجر الرئيسي فعّال دائماً</div>';
     return;
   }
   el.innerHTML=stores.map(function(st,i){
@@ -16670,7 +16924,7 @@ function openNewStoreModal(editIdx){
     '<div class="form-group"><label class="form-label">وصف مختصر</label>'+
     '<input class="form-input" id="_store-desc" placeholder="اختياري" value="'+(st?escapeHtml(st.desc||''):'')+'"></div>'+
     '<div class="form-group">'+
-      '<label class="form-label"><i class="fa-solid fa-at" style="color:var(--accent)"></i> يوزرنيم المتجر <span style="font-size:10px;color:var(--text3)">(اختياري — للرابط المخصص)</span></label>'+
+      '<label class="form-label"><i class="fa-solid fa-at" style="color:var(--accent)"></i> يوزرنيم المتجر <span style="font-size:10px;color:var(--text3)">(اختياري ? للرابط المخصص)</span></label>'+
       '<div style="display:flex;align-items:center;border:1.5px solid var(--border);border-radius:10px;overflow:hidden">'+
         '<span style="padding:0 10px;font-size:12px;color:var(--text3);border-left:1.5px solid var(--border);background:var(--surface2);height:40px;display:flex;align-items:center;flex-shrink:0">@</span>'+
         '<input class="form-input" id="_store-username" placeholder="my-store" value="'+(st?escapeHtml(st.username||''):'')+'" style="border:none;border-radius:0;background:transparent;direction:ltr" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_-]/g,\'\')">'+
@@ -16772,9 +17026,9 @@ function switchSvcTab(tab){
   if(tab==='stores') renderStoresTab();
 }
 
-// ══════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // WEBSITE TAB
-// ══════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function initWebsiteTab(){
   renderMultiStoresList();
   var _stIdx = _currentStoreIdx;
@@ -16817,7 +17071,7 @@ function initWebsiteTab(){
       if(logoCl) logoCl.style.display='none';
     }
   }
-  // banner — per store
+  // banner ? per store
   var stBanner = _curSt ? (_curSt.banner||'') : (S.settings&&S.settings.svc_banner||'');
   var sz = _curSt ? (_curSt.banner_size||'md') : ((S.settings&&S.settings.svc_banner_size)||'md');
   ['sm','md','lg','custom'].forEach(function(s){ var b=document.getElementById('banner-size-'+s); if(b){ b.classList.toggle('active',s===sz); } });
@@ -16838,22 +17092,22 @@ function _setOrdersOpenUI(isOpen){
   var sub=document.getElementById('orders-status-sub');
   if(tog) tog.style.background=isOpen?'var(--accent3)':'var(--border)';
   if(knob) knob.style.right=isOpen?'3px':'calc(100% - 25px)';
-  if(lbl) lbl.innerHTML=isOpen?'<i class="fa-solid fa-circle-check" style="color:var(--accent3);margin-left:5px"></i> متاح لاستقبال الطلبات':'<i class="fa-solid fa-circle-xmark" style="color:var(--accent4);margin-left:5px"></i> مغلق — لا يستقبل طلبات';
+  if(lbl) lbl.innerHTML=isOpen?'<i class="fa-solid fa-circle-check" style="color:var(--accent3);margin-left:5px"></i> متاح لاستقبال الطلبات':'<i class="fa-solid fa-circle-xmark" style="color:var(--accent4);margin-left:5px"></i> مغلق ? لا يستقبل طلبات';
   if(sub) sub.textContent=isOpen?'العملاء يمكنهم إرسال طلبات الآن':'الموقع لا يستقبل طلبات جديدة حالياً';
 }
 function toggleOrdersOpen(){
   if(!S.settings) S.settings={};
   S.settings.svc_orders_open=!(S.settings.svc_orders_open!==false);
   _setOrdersOpenUI(S.settings.svc_orders_open);
-  lsSave(); cloudSaveNow(S); toast(S.settings.svc_orders_open?'✅ فُتح الاستقبال':'⏸ أُغلق الاستقبال');
+  lsSave(); cloudSaveNow(S); toast(S.settings.svc_orders_open?'? فُتح الاستقبال':'⏸ أُغلق الاستقبال');
 }
 function saveSiteDesc(){
   if(!S.settings) S.settings={};
   S.settings.svc_site_desc=(document.getElementById('svc-site-desc')||{}).value||'';
-  lsSave(); cloudSaveNow(S); toast('✅ تم حفظ الوصف');
+  lsSave(); cloudSaveNow(S); toast('? تم حفظ الوصف');
 }
 
-// ── لوجو الموقع الرئيسي ──
+// â”€â”€ لوجو الموقع الرئيسي â”€â”€
 var _svcLogoData='';
 function handleSvcLogo(input){
   var file=input.files[0]; if(!file) return;
@@ -16864,7 +17118,7 @@ function handleSvcLogo(input){
     var pv=document.getElementById('svc-logo-preview');
     if(pv) pv.innerHTML='<img src="'+url+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px">';
     var cl=document.getElementById('svc-logo-clear-btn'); if(cl) cl.style.display='';
-    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع اللوجو — اضغط "حفظ اللوجو" لتأكيد الحفظ');
+    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع اللوجو ? اضغط "حفظ اللوجو" لتأكيد الحفظ');
   },function(){ toast('<i class="fa-solid fa-triangle-exclamation"></i> فشل رفع اللوجو'); });
 }
 function clearSvcLogo(){
@@ -16881,13 +17135,13 @@ function saveSvcLogo(){
   if(!S.settings) S.settings={};
   var logo=_svcLogoData||S.settings.store_logo||'';
   if(!logo){toast('<i class="fa-solid fa-triangle-exclamation"></i> ارفع لوجو أولاً');return;}
-  // حفظ في store_logo فقط — للمتجر والتاب فقط، مش السايدبار
+  // حفظ في store_logo فقط ? للمتجر والتاب فقء مش السايدبار
   S.settings.store_logo=logo; _svcLogoData='';
   lsSave(); cloudSaveNow(S);
-  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ لوجو المتجر — سيظهر في المتجر وتاب المتجر');
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ لوجو المتجر ? سيظهر في المتجر وتاب المتجر');
 }
 
-// ── يوزرنيم الموقع ──
+// â”€â”€ يوزرنيم الموقع â”€â”€
 async function saveSvcUsername(){
   var inp=document.getElementById('svc-main-username'); if(!inp) return;
   var un=inp.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
@@ -16916,7 +17170,7 @@ async function saveSvcUsername(){
   try{ var lnk=document.getElementById('svc-inner-store-link'); if(lnk) lnk.textContent=getSvcLink(_getCurrentStoreId()); }catch(e){}
 }
 
-// ── حفظ البانر ──
+// â”€â”€ حفظ البانر â”€â”€
 function saveSvcBannerNow(){
   var banner=(_currentStoreIdx!=null&&_getStores()[_currentStoreIdx]&&_getStores()[_currentStoreIdx].banner)||S.settings&&S.settings.svc_banner||'';
   if(!banner){toast('<i class="fa-solid fa-triangle-exclamation"></i> ارفع بانر أولاً');return;}
@@ -16955,9 +17209,9 @@ function saveBannerCustomPx(){
   lsSave(); cloudSaveNow(S);
 }
 
-// ══════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // STANDALONE PACKAGES
-// ══════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 var _pkgStActive=true;
 function openPkgStandaloneModal(id){
   _pkgStActive=true; _pkgStThumbData='';
@@ -16974,7 +17228,7 @@ function openPkgStandaloneModal(id){
   var pfCatSel=document.getElementById('pkg-st-portfolio-cat');
   if(pfCatSel){
     var cats=_getPfCats();
-    pfCatSel.innerHTML='<option value="">— ربط بتصنيف بورتفوليو —</option>'+cats.map(function(c){ return '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>'; }).join('');
+    pfCatSel.innerHTML='<option value="">? ربط بتصنيف بورتفوليو ?</option>'+cats.map(function(c){ return '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>'; }).join('');
   }
   if(id){
     var pkg=(S.standalone_packages||[]).find(function(p){return String(p.id)===String(id);});
@@ -17058,10 +17312,10 @@ function savePkgStandalone(){
   if(eid){ var i=S.standalone_packages.findIndex(function(p){return String(p.id)===String(eid);}); if(i>-1){d.id=+eid;d.createdAt=S.standalone_packages[i].createdAt||d.updatedAt;S.standalone_packages[i]=d;} }
   else { d.id=Date.now(); d.createdAt=d.updatedAt; S.standalone_packages.push(d); }
   lsSave(); 
-  showUploadProgress('📦 جاري رفع الباقة...');
+  showUploadProgress('ًں“¦ جاري رفع الباقة...');
   setTimeout(async function(){
-    try { await _doCloudSave(S); hideUploadProgress('✅ تم رفع الباقة بنجاح!'); }
-    catch(e) { hideUploadProgress('⚠️ تم الحفظ محلياً'); }
+    try { await _doCloudSave(S); hideUploadProgress('? تم رفع الباقة بنجاح!'); }
+    catch(e) { hideUploadProgress('âڑ ï¸ڈ تم الحفظ محلياً'); }
   }, 100);
   closeM('modal-pkg-standalone'); renderStandalonePackages(); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الباقة');
 }
@@ -17091,7 +17345,7 @@ function renderStandalonePackages(){
       '<div style="padding:14px;display:flex;flex-direction:column;gap:8px;flex:1">'+
         '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px">'+
           '<div style="font-size:14px;font-weight:900">'+escapeHtml(pkg.name)+'</div>'+
-          '<span style="font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;white-space:nowrap;flex-shrink:0;background:'+(isActive?'rgba(79,209,165,.12)':'rgba(255,107,107,.1)')+';color:'+(isActive?'var(--accent3)':'var(--accent4)')+'">'+(isActive?'● نشطة':'○ موقوفة')+'</span>'+
+          '<span style="font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;white-space:nowrap;flex-shrink:0;background:'+(isActive?'rgba(79,209,165,.12)':'rgba(255,107,107,.1)')+';color:'+(isActive?'var(--accent3)':'var(--accent4)')+'">'+(isActive?'â—ڈ نشطة':'○ موقوفة')+'</span>'+
         '</div>'+
         (pkg.desc?'<div style="font-size:11px;color:var(--text3)">'+escapeHtml(pkg.desc)+'</div>':'')+
         (pkg.items&&pkg.items.length?'<div style="display:flex;flex-direction:column;gap:4px">'+pkg.items.slice(0,3).map(function(it){return '<div style="font-size:11px;display:flex;align-items:center;gap:5px"><i class="fa-solid fa-check" style="color:var(--accent3);font-size:10px"></i>'+escapeHtml(it)+'</div>';}).join('')+(pkg.items.length>3?'<div style="font-size:10px;color:var(--text3)">+ '+(pkg.items.length-3)+' بنود أخرى</div>':'')+'</div>':'')+
@@ -17108,9 +17362,9 @@ function renderStandalonePackages(){
   }).join('');
 }
 
-// ══════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // PORTFOLIO PROJECTS
-// ══════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 var _DEFAULT_PF_CATS=['سوشيال ميديا','تصميم جرافيك','برمجة وتطوير','فيديو وموشن','كتابة ومحتوى','هوية بصرية','أخرى'];
 function _getPfCats(){
   try{ var c=JSON.parse(localStorage.getItem('_pfCats')||'null'); if(Array.isArray(c)) return c; }catch(e){}
@@ -17131,7 +17385,7 @@ function openPortfolioProjectModal(id){
   var catSel=document.getElementById('pf-proj-cat');
   if(catSel){
     var cats=_getPfCats();
-    catSel.innerHTML='<option value="">— اختر —</option>'+cats.map(function(c){return '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>';}).join('');
+    catSel.innerHTML='<option value="">? اختر ?</option>'+cats.map(function(c){return '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>';}).join('');
   }
   if(id){
     var proj=(S.portfolio_projects||[]).find(function(p){return String(p.id)===String(id);});
@@ -17166,7 +17420,7 @@ function handlePfProjThumb(input){
     }).catch(function(){ _handlePfProjThumbBase64(file); });
 }
 function _handlePfProjThumbBase64(file){
-  toast('<i class="fa-solid fa-triangle-exclamation"></i> Storage غير متاح — تأكد من إنشاء bucket اسمه "media" في Supabase');
+  toast('<i class="fa-solid fa-triangle-exclamation"></i> Storage غير متاح ? تأكد من إنشاء bucket اسمه "media" في Supabase');
 }
 function clearPfProjThumb(){
   _pfThumbData='';
@@ -17187,10 +17441,10 @@ function savePortfolioProject(){
   if(eid){ var i=S.portfolio_projects.findIndex(function(p){return String(p.id)===String(eid);}); if(i>-1){d.id=+eid;d.createdAt=S.portfolio_projects[i].createdAt||d.createdAt;S.portfolio_projects[i]=d;} }
   else { d.id=Date.now(); S.portfolio_projects.push(d); }
   lsSave(); 
-  showUploadProgress('🖼 جاري رفع المشروع...');
+  showUploadProgress('ًں–¼ جاري رفع المشروع...');
   setTimeout(async function(){
-    try { await _doCloudSave(S); hideUploadProgress('✅ تم رفع المشروع بنجاح!'); }
-    catch(e) { hideUploadProgress('⚠️ تم الحفظ محلياً'); }
+    try { await _doCloudSave(S); hideUploadProgress('? تم رفع المشروع بنجاح!'); }
+    catch(e) { hideUploadProgress('âڑ ï¸ڈ تم الحفظ محلياً'); }
   }, 100);
   closeM('modal-portfolio-project'); renderPortfolioProjects(); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ المشروع');
 }
@@ -17222,7 +17476,7 @@ function renderPortfolioProjects(){
         '<div style="font-size:13px;font-weight:800">'+escapeHtml(proj.name)+'</div>'+
         (proj.desc?'<div style="font-size:11px;color:var(--text3);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+escapeHtml(proj.desc)+'</div>':'')+
         '<div style="display:flex;gap:6px;margin-top:auto;padding-top:8px;border-top:1px solid var(--border)">'+
-          (proj.url?'<a href="'+escapeHtml(proj.url)+'" target="_blank" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center">↗ عرض</a>':'')+
+          (proj.url?'<a href="'+escapeHtml(proj.url)+'" target="_blank" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center">â†— عرض</a>':'')+
           '<button data-pid="'+proj.id+'" onclick="openPortfolioProjectModal(+this.dataset.pid)" class="btn btn-ghost btn-sm"><i class="fa-solid fa-pen"></i></button>'+
           '<button data-pid="'+proj.id+'" onclick="duplicatePortfolioProject(+this.dataset.pid)" class="btn btn-ghost btn-sm" title="تكرار المشروع" style="color:var(--accent)"><i class="fa-solid fa-copy"></i></button>'+
           '<button data-pid="'+proj.id+'" onclick="delPortfolioProject(+this.dataset.pid)" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>'+
@@ -17252,9 +17506,9 @@ function addPfCat(){
 }
 function _delPfCat(i){ var cats=_getPfCats(); cats.splice(i,1); _savePfCats(cats); openPortfolioCatsSettings(); renderPortfolioProjects(); }
 
-// ══════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // Active Toggle on Services
-// ══════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function toggleSvcActive(id,event){
   event.stopPropagation();
   var svc=(S.services||[]).find(function(x){return String(x.id)===String(id);}); if(!svc) return;
@@ -17262,7 +17516,7 @@ function toggleSvcActive(id,event){
   lsSave(); cloudSave(S); renderServices(); toast(svc.active?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> الخدمة نشطة':'○ الخدمة موقوفة');
 }
 
-// ── Banner ──
+// â”€â”€ Banner â”€â”€
 function handleSvcBanner(input){
   var file=input.files[0]; if(!file) return;
   if(file.size>5*1024*1024){ toast('<i class="fa-solid fa-triangle-exclamation"></i> حجم البانر أكبر من 5 ميجا'); input.value=''; return; }
@@ -17287,7 +17541,7 @@ function clearSvcBanner(){
   lsSave(); cloudSave(S); toast('<i class="fa-solid fa-trash"></i> تم حذف البانر');
 }
 
-// ── Service Image Clear ──
+// â”€â”€ Service Image Clear â”€â”€
 function _clearSvcImg(){
   _svcImgData='';
   var pv=document.getElementById('svc-img-preview'); if(pv){ pv.src=''; pv.style.display='none'; }
@@ -17296,7 +17550,7 @@ function _clearSvcImg(){
   var inp=document.getElementById('svc-img-input'); if(inp) inp.value='';
 }
 
-// ── Custom Service Categories ──
+// â”€â”€ Custom Service Categories â”€â”€
 var _DEFAULT_SVC_CATS=['تصميم جرافيك','برمجة وتطوير','كتابة ومحتوى','تسويق رقمي','فيديو وموشن','ترجمة','أخرى'];
 function _getSvcCats(){
   try{ var c=JSON.parse(localStorage.getItem('_svcCats')||'null'); if(Array.isArray(c)) return c; }catch(e){}
@@ -17306,7 +17560,7 @@ function _saveSvcCats(arr){ localStorage.setItem('_svcCats',JSON.stringify(arr))
 function _populateSvcCatSelect(currentVal){
   var sel=document.getElementById('svc-cat'); if(!sel) return;
   var cats=_getSvcCats();
-  sel.innerHTML='<option value="">— اختر —</option>'+cats.map(function(c){
+  sel.innerHTML='<option value="">? اختر ?</option>'+cats.map(function(c){
     return '<option value="'+escapeHtml(c)+'"'+(c===currentVal?' selected':'')+'>'+escapeHtml(c)+'</option>';
   }).join('');
 }
@@ -17334,7 +17588,7 @@ function _delSvcCat(i){
   var cats=_getSvcCats(); cats.splice(i,1); _saveSvcCats(cats); openSvcCatsSettings();
 }
 
-// ── Service Modal ──
+// â”€â”€ Service Modal â”€â”€
 var _svcImgData = '';
 var _svcModalActive = true;
 function toggleSvcModalActive(){
@@ -17345,7 +17599,7 @@ function toggleSvcModalActive(){
   var flag=document.getElementById('svc-active-flag');
   if(tog) tog.style.background=_svcModalActive?'var(--accent3)':'var(--border)';
   if(knob) knob.style.right=_svcModalActive?'2px':'calc(100% - 20px)';
-  if(lbl) lbl.textContent=_svcModalActive?'● نشطة':'○ موقوفة';
+  if(lbl) lbl.textContent=_svcModalActive?'â—ڈ نشطة':'○ موقوفة';
   if(flag) flag.value=_svcModalActive?'1':'0';
 }
 function openSvcModal(id){
@@ -17366,13 +17620,13 @@ function openSvcModal(id){
   _populateSvcCatSelect('');
   // populate portfolio cat select for new service
   var pfSelNew=document.getElementById('svc-portfolio-cat-link');
-  if(pfSelNew){ var pfCatsNew=_getPfCats(); pfSelNew.innerHTML='<option value="">— اختر تصنيف —</option>'+pfCatsNew.map(function(c){return '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>';}).join(''); }
+  if(pfSelNew){ var pfCatsNew=_getPfCats(); pfSelNew.innerHTML='<option value="">? اختر تصنيف ?</option>'+pfCatsNew.map(function(c){return '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>';}).join(''); }
   // reset active toggle
   _svcModalActive=true;
   var tog0=document.getElementById('svc-modal-active-toggle'); var knob0=document.getElementById('svc-modal-active-knob'); var lbl0=document.getElementById('svc-modal-active-label'); var flag0=document.getElementById('svc-active-flag');
   if(tog0) tog0.style.background='var(--accent3)';
   if(knob0) knob0.style.right='2px';
-  if(lbl0) lbl0.textContent='● نشطة';
+  if(lbl0) lbl0.textContent='â—ڈ نشطة';
   if(flag0) flag0.value='1';
   if(id){
     var svc = (S.services||[]).find(function(x){ return String(x.id)===String(id); });
@@ -17393,13 +17647,13 @@ function openSvcModal(id){
       var termsEl=document.getElementById('svc-terms'); if(termsEl) termsEl.value=(svc.terms||[]).join('\n');
       // portfolio cat link
       var pfSel=document.getElementById('svc-portfolio-cat-link');
-      if(pfSel){ var pfCats=_getPfCats(); pfSel.innerHTML='<option value="">— اختر تصنيف —</option>'+pfCats.map(function(c){return '<option value="'+escapeHtml(c)+'"'+(c===(svc.portfolio_cat||'')?'selected':'')+'>'+escapeHtml(c)+'</option>';}).join(''); }
+      if(pfSel){ var pfCats=_getPfCats(); pfSel.innerHTML='<option value="">? اختر تصنيف ?</option>'+pfCats.map(function(c){return '<option value="'+escapeHtml(c)+'"'+(c===(svc.portfolio_cat||'')?'selected':'')+'>'+escapeHtml(c)+'</option>';}).join(''); }
       // active
       _svcModalActive=svc.active!==false;
       var tog=document.getElementById('svc-modal-active-toggle'); var knob=document.getElementById('svc-modal-active-knob'); var lbl=document.getElementById('svc-modal-active-label'); var flag=document.getElementById('svc-active-flag');
       if(tog) tog.style.background=_svcModalActive?'var(--accent3)':'var(--border)';
       if(knob) knob.style.right=_svcModalActive?'2px':'calc(100% - 20px)';
-      if(lbl) lbl.textContent=_svcModalActive?'● نشطة':'○ موقوفة';
+      if(lbl) lbl.textContent=_svcModalActive?'â—ڈ نشطة':'○ موقوفة';
       if(flag) flag.value=_svcModalActive?'1':'0';
       // load currency
       var curSel=document.getElementById('svc-currency'); if(curSel) curSel.value=svc.currency||'ج.م';
@@ -17419,15 +17673,15 @@ function handleSvcImg(input){
   if(file.size>5*1024*1024){ toast('<i class="fa-solid fa-triangle-exclamation"></i> الصورة أكبر من 5 ميجا'); input.value=''; return; }
   toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع الصورة...');
 
-  // ── رفع مباشر لـ Supabase Storage ──
+  // â”€â”€ رفع مباشر لـ Supabase Storage â”€â”€
   var ext = file.name.split('.').pop() || 'jpg';
   var path = 'svc_images/' + (_supaUserId||'anon') + '_' + Date.now() + '.' + ext;
 
   supa.storage.from('media').upload(path, file, { upsert: true, contentType: file.type })
     .then(function(res){
       if(res.error){
-        // Storage مش متاح أو مش موجود — fallback لـ Base64
-        console.warn('Storage upload failed:', res.error.message, '— falling back to base64');
+        // Storage مش متاح أو مش موجود ? fallback لـ Base64
+        console.warn('Storage upload failed:', res.error.message, '? falling back to base64');
         _handleSvcImgBase64(file, input);
         return;
       }
@@ -17465,7 +17719,7 @@ function _handleSvcImgBase64(file, input){
   reader.readAsDataURL(file);
 }
 
-// ── Packages ──
+// â”€â”€ Packages â”€â”€
 function addPkgRow(pkg){
   pkg = pkg || {};
   var id = 'pkg_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);
@@ -17535,7 +17789,7 @@ function collectPackages(){
   return pkgs.filter(function(p){ return p.name; });
 }
 
-// ── Portfolio (inline rows) ──
+// â”€â”€ Portfolio (inline rows) â”€â”€
 function addPortfolioRow(type){
   var list = document.getElementById('svc-portfolio-list');
   var empty = document.getElementById('svc-portfolio-empty');
@@ -17594,7 +17848,7 @@ function _pfThumbUpload(input, rowId){
     }).catch(function(){ _pfThumbUploadBase64(file, rowId); });
 }
 function _pfThumbUploadBase64(file, rowId){
-  toast('<i class="fa-solid fa-triangle-exclamation"></i> Storage غير متاح — تأكد من إنشاء bucket اسمه "media" في Supabase');
+  toast('<i class="fa-solid fa-triangle-exclamation"></i> Storage غير متاح ? تأكد من إنشاء bucket اسمه "media" في Supabase');
 }
 function collectPortfolio(){
   var rows = document.querySelectorAll('#svc-portfolio-list > div[data-pftype]');
@@ -17610,7 +17864,7 @@ function collectPortfolio(){
   return items;
 }
 function _renderPortfolioRow(item){
-  // Used when editing an existing service — recreate inline rows
+  // Used when editing an existing service ? recreate inline rows
   var list=document.getElementById('svc-portfolio-list');
   var empty=document.getElementById('svc-portfolio-empty');
   if(empty) empty.style.display='none';
@@ -17641,7 +17895,7 @@ function _renderPortfolioRow(item){
 // Keep old addPortfolioItem as alias
 function addPortfolioItem(type){ addPortfolioRow(type); }
 
-// ── Save Service ──
+// â”€â”€ Save Service â”€â”€
 function saveSvc(){
   var eid = document.getElementById('svc-eid').value;
   var name = document.getElementById('svc-name').value.trim();
@@ -17677,8 +17931,8 @@ function saveSvc(){
   } else {
     d.id=Date.now(); S.services.push(d);
   }
-  // ── حفظ مع تأكيد حقيقي من Supabase — المودال لا يتقفل غير بعد النجاح ──
-  cloudSaveWithConfirm('🛍 جاري رفع الخدمة...', function(){
+  // â”€â”€ حفظ مع تأكيد حقيقي من Supabase ? المودال لا يتقفل غير بعد النجاح â”€â”€
+  cloudSaveWithConfirm('ًں›چ جاري رفع الخدمة...', function(){
     closeM('modal-svc');
     renderServices();
     toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الخدمة في قاعدة البيانات');
@@ -17724,7 +17978,7 @@ function duplicatePortfolioProject(id){
   lsSave(); cloudSave(S); renderPortfolioProjects(); toast('<i class="fa-solid fa-copy"></i> تم تكرار المشروع');
 }
 
-// ── Render Services ──
+// â”€â”€ Render Services â”€â”€
 function renderServices(){
   try {
     var pg = document.getElementById('page-services'); if(!pg) return;
@@ -17745,9 +17999,9 @@ function renderServices(){
 
     // Link
     var linkEl=document.getElementById('svc-link-text');
-    if(linkEl){ try{ linkEl.textContent=getSvcLink(_getCurrentStoreId()); }catch(e){ linkEl.textContent='—'; } }
+    if(linkEl){ try{ linkEl.textContent=getSvcLink(_getCurrentStoreId()); }catch(e){ linkEl.textContent='?'; } }
 
-    // Banner — use current store's banner or main settings banner
+    // Banner ? use current store's banner or main settings banner
     var _activeSt = _getCurrentStoreId();
     var _activeStObj = _activeSt ? (_getStores()||[]).find(function(s){return s.id===_activeSt;}) : null;
     var banner = (_activeStObj && _activeStObj.banner) ? _activeStObj.banner : (S.settings&&S.settings.svc_banner);
@@ -17773,7 +18027,7 @@ function renderServices(){
         (pending.length>1?'<div style="text-align:center;margin-top:6px"><button class="btn btn-ghost btn-sm" onclick="switchSvcTab(\'orders\')" style="font-size:11px;color:var(--accent)"><i class="fa-solid fa-list"></i> المزيد (+'+(pending.length-1)+' طلب)</button></div>':'');
     }
 
-    // Services grid — filter by current store
+    // Services grid ? filter by current store
     var grid=document.getElementById('svc-grid'); if(!grid) return;
     var _activeStoreId = _getCurrentStoreId();
     var storeServices = (S.services||[]).filter(function(svc){
@@ -17813,7 +18067,7 @@ function renderServices(){
           '<div style="display:flex;gap:6px;border-top:1px solid var(--border);padding-top:12px" onclick="event.stopPropagation()">'+
             '<button data-sid="'+svc.id+'" onclick="openSvcModal(+this.dataset.sid)" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center"><i class="fa-solid fa-pen"></i> تعديل</button>'+
             '<button data-sid="'+svc.id+'" onclick="duplicateSvc(+this.dataset.sid)" class="btn btn-ghost btn-sm" title="تكرار الخدمة" style="color:var(--accent)"><i class="fa-solid fa-copy"></i></button>'+
-            '<button data-sid="'+svc.id+'" data-active="'+(isActive?'1':'0')+'" onclick="toggleSvcActive(+this.dataset.sid,event)" class="btn btn-ghost btn-sm" style="color:'+(isActive?'var(--accent3)':'var(--text3)')+'" title="'+(isActive?'موقف الخدمة':'تفعيل الخدمة')+'">'+(isActive?'● نشطة':'○ موقوفة')+'</button>'+
+            '<button data-sid="'+svc.id+'" data-active="'+(isActive?'1':'0')+'" onclick="toggleSvcActive(+this.dataset.sid,event)" class="btn btn-ghost btn-sm" style="color:'+(isActive?'var(--accent3)':'var(--text3)')+'" title="'+(isActive?'موقف الخدمة':'تفعيل الخدمة')+'">'+(isActive?'â—ڈ نشطة':'○ موقوفة')+'</button>'+
             '<button data-sid="'+svc.id+'" onclick="delSvc(+this.dataset.sid)" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>'+
           '</div>'+
         '</div></div>';
@@ -17821,7 +18075,7 @@ function renderServices(){
   } catch(e){ console.error('renderServices:',e); }
 }
 
-// ── Service Detail (public-like inner view) ──
+// â”€â”€ Service Detail (public-like inner view) â”€â”€
 function openSvcDetail(id){
   var svc=(S.services||[]).find(function(x){return String(x.id)===String(id);}); if(!svc) return;
   var ex=document.getElementById('_svc-detail-overlay'); if(ex) ex.remove();
@@ -17850,7 +18104,7 @@ function openSvcDetail(id){
         return '<div class="portfolio-item">'+
           (p.thumb?'<img src="'+escapeHtml(p.thumb)+'" class="portfolio-thumb" onerror="this.style.display=\'none\'">':'<div class="portfolio-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px">'+(p.type==='behance'?'<i class="fa-solid fa-palette"></i>':'<i class="fa-solid fa-folder"></i>')+'</div>')+
           '<div style="flex:1"><div style="font-size:12px;font-weight:700">'+(p.label||p.type)+'</div><div style="font-size:11px;color:var(--text3)">'+escapeHtml(p.url)+'</div></div>'+
-          '<a href="'+escapeHtml(p.url)+'" target="_blank" class="btn btn-ghost btn-sm">↗ عرض</a></div>';
+          '<a href="'+escapeHtml(p.url)+'" target="_blank" class="btn btn-ghost btn-sm">â†— عرض</a></div>';
       }).join('')+
       '</div></div>';
   }
@@ -17875,7 +18129,7 @@ function openSvcDetail(id){
   document.body.appendChild(overlay);
 }
 
-// ── Orders ──
+// â”€â”€ Orders â”€â”€
 function openOrderAccept(orderId){
   window._currentOrderId = orderId;
   var order=(S.svc_orders||[]).find(function(o){return String(o.id)===String(orderId);}); if(!order) return;
@@ -17893,11 +18147,11 @@ function openOrderAccept(orderId){
   var preview=document.getElementById('oa-order-preview');
   if(preview){
     var statusColor={pending:'var(--accent2)',accepted:'var(--accent3)',rejected:'var(--accent4)'}[order.status]||'var(--text3)';
-    var statusLabel={pending:'⏳ معلق',accepted:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مقبول',rejected:'<i class="fa-solid fa-xmark"></i> مرفوض'}[order.status]||order.status;
+    var statusLabel={pending:'âڈ³ معلق',accepted:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مقبول',rejected:'<i class="fa-solid fa-xmark"></i> مرفوض'}[order.status]||order.status;
     preview.innerHTML=
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">'+
         '<div><div style="color:var(--text3);font-size:10px">العميل</div><div style="font-weight:800">'+escapeHtml(order.client_name)+'</div></div>'+
-        '<div><div style="color:var(--text3);font-size:10px">الخدمة</div><div style="font-weight:700">'+escapeHtml(order.service_name)+(order.pkg_name?' — '+escapeHtml(order.pkg_name):'')+'</div></div>'+
+        '<div><div style="color:var(--text3);font-size:10px">الخدمة</div><div style="font-weight:700">'+escapeHtml(order.service_name)+(order.pkg_name?' ? '+escapeHtml(order.pkg_name):'')+'</div></div>'+
         (order.client_phone?'<div><div style="color:var(--text3);font-size:10px">واتساب</div><div style="font-weight:700">'+escapeHtml(order.client_phone)+'</div></div>':'')+
         (order.price?'<div><div style="color:var(--text3);font-size:10px">السعر</div><div style="font-weight:800;color:var(--accent)">'+Number(order.price).toLocaleString()+' ج</div></div>':'')+
         '<div style="grid-column:span 2"><div style="color:var(--text3);font-size:10px">الحالة</div><div style="font-weight:700;color:'+statusColor+'">'+statusLabel+'</div></div>'+
@@ -17919,7 +18173,7 @@ function openOrderAccept(orderId){
     if(acceptBtn){ acceptBtn.style.display=''; acceptBtn.innerHTML='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> قبول وإنشاء مهمة'; }
     if(rejectBtn) rejectBtn.style.display='';
     // Prefill task form
-    var titleF=document.getElementById('oa-title'); if(titleF) titleF.value=order.service_name+(order.pkg_name?' — '+order.pkg_name:'');
+    var titleF=document.getElementById('oa-title'); if(titleF) titleF.value=order.service_name+(order.pkg_name?' ? '+order.pkg_name:'');
     var amtF=document.getElementById('oa-amount'); if(amtF) amtF.value=order.price||'';
     var depF=document.getElementById('oa-deposit'); if(depF) depF.value='';
     var dlF=document.getElementById('oa-deadline'); if(dlF) dlF.value='';
@@ -17958,7 +18212,7 @@ function openOrderAccept(orderId){
           var tid2=linkedTask.id;
           actionBtns.innerHTML=
             '<button class="btn btn-ghost" onclick="closeM(\'modal-order-accept\')">إغلاق</button>'+
-            '<button class="btn btn-primary" style="flex:1;justify-content:center" onclick="closeM(\'modal-order-accept\');showPage(\'tasks\');setTimeout(function(){openTask('+tid2+')},300)">↗ فتح المهمة الكاملة</button>';
+            '<button class="btn btn-primary" style="flex:1;justify-content:center" onclick="closeM(\'modal-order-accept\');showPage(\'tasks\');setTimeout(function(){openTask('+tid2+')},300)">â†— فتح المهمة الكاملة</button>';
         }
       }
     }
@@ -17990,7 +18244,7 @@ function acceptSvcOrder(orderId){
   order.status='accepted';
   order.accepted_at=new Date().toISOString();
 
-  // ── Add/update client ──
+  // â”€â”€ Add/update client â”€â”€
   if(!S.clients) S.clients=[];
   var existing=S.clients.find(function(c){ return (c.phone&&c.phone===order.client_phone)||(c.email&&c.email===order.client_email); });
   if(existing){
@@ -17999,13 +18253,13 @@ function acceptSvcOrder(orderId){
     S.clients.push({ id:Date.now(), name:order.client_name, phone:order.client_phone||'', email:order.client_email||'', channel:'خدمة', addedAt:new Date().toISOString() });
   }
 
-  // ── Create Task (appears in kanban as جديد) ──
-  var title = order.service_name + (order.pkg_name?' — '+order.pkg_name:'');
+  // â”€â”€ Create Task (appears in kanban as جديد) â”€â”€
+  var title = order.service_name + (order.pkg_name?' ? '+order.pkg_name:'');
   var task = {
     id: Date.now(),
     title: title,
     desc: order.desc||'',
-    status: 'جديد',           // ← shows in kanban New column
+    status: 'جديد',           // â†گ shows in kanban New column
     kanbanCol: 'new',
     client: order.client_name,
     clientPhone: order.client_phone||'',
@@ -18024,7 +18278,7 @@ function acceptSvcOrder(orderId){
   if(!S.tasks) S.tasks=[];
   S.tasks.push(task);
 
-  // ── Create client portal ──
+  // â”€â”€ Create client portal â”€â”€
   if(!S.client_portals) S.client_portals=[];
   var portal={
     id: 'cp_'+Date.now(),
@@ -18042,10 +18296,10 @@ function acceptSvcOrder(orderId){
   lsSave(); cloudSave(S);
   closeM('modal-order-accept');
   renderAll();
-  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم القبول — ظهرت مهمة جديدة في الكانبان!');
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم القبول ? ظهرت مهمة جديدة في الكانبان!');
   addNotification('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> طلب جديد من '+order.client_name+' تحوّل لمهمة', 'success');
   
-  // ── Auto-navigate hint ──
+  // â”€â”€ Auto-navigate hint â”€â”€
   setTimeout(function(){
     if(confirm('تم إنشاء المهمة! هل تريد الذهاب لصفحة المهام الآن؟')){
       showPage('tasks');
@@ -18082,7 +18336,7 @@ function acceptOrderAsTask(){
     S.clients.push({id:Date.now(),name:order.client_name,phone:order.client_phone||'',email:order.client_email||'',channel:'خدمة',addedAt:new Date().toISOString()});
   }
 
-  // Create task — appears in kanban as جديد
+  // Create task ? appears in kanban as جديد
   var task={
     id: Date.now(),
     title: titleVal.trim(),
@@ -18122,7 +18376,7 @@ function acceptOrderAsTask(){
   closeM('modal-order-accept');
   renderAll();
   addNotification('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> طلب '+order.client_name+' تحوّل لمهمة جديدة في الكانبان!','success');
-  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم القبول — المهمة ظهرت في الكانبان!');
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم القبول ? المهمة ظهرت في الكانبان!');
 
   setTimeout(function(){
     if(confirm('تم إنشاء المهمة في الكانبان! هل تريد الذهاب لصفحة المهام؟')){
@@ -18136,7 +18390,7 @@ function renderSvcOrdersTable(){
   if(!orders.length){ el.innerHTML='<div class="empty card" style="text-align:center;padding:40px"><div style="font-size:36px;margin-bottom:12px"><i class="fa-solid fa-clipboard-list"></i></div><div>لا توجد طلبات بعد</div></div>'; return; }
   el.innerHTML=orders.map(function(o){
     var statusColor={pending:'var(--accent2)',accepted:'var(--accent3)',rejected:'var(--accent4)'}[o.status]||'var(--text3)';
-    var statusLabel={pending:'⏳ معلق',accepted:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مقبول',rejected:'<i class="fa-solid fa-xmark"></i> مرفوض'}[o.status]||o.status;
+    var statusLabel={pending:'âڈ³ معلق',accepted:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مقبول',rejected:'<i class="fa-solid fa-xmark"></i> مرفوض'}[o.status]||o.status;
     // Find linked task
     var linkedTask=o.status==='accepted'?(S.tasks||[]).find(function(t){return t.source_order_id===o.id;}):null;
     var progress=linkedTask&&linkedTask.steps&&linkedTask.steps.length?Math.round(linkedTask.steps.filter(function(s){return s.done;}).length/linkedTask.steps.length*100):(linkedTask&&linkedTask.done?100:0);
@@ -18144,7 +18398,7 @@ function renderSvcOrdersTable(){
       '<div style="display:flex;align-items:center;gap:12px">'+
         '<div style="flex:1;min-width:0">'+
           '<div style="font-size:13px;font-weight:800">'+escapeHtml(o.client_name)+'</div>'+
-          '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+escapeHtml(o.service_name)+(o.pkg_name?' — <span style="color:var(--accent)">'+escapeHtml(o.pkg_name)+'</span>':'')+'</div>'+
+          '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+escapeHtml(o.service_name)+(o.pkg_name?' ? <span style="color:var(--accent)">'+escapeHtml(o.pkg_name)+'</span>':'')+'</div>'+
           (o.client_phone?'<div style="font-size:11px;color:var(--text3)"><i class="fa-solid fa-mobile-screen"></i> '+escapeHtml(o.client_phone)+'</div>':'')+
           (o.price?'<div style="font-size:12px;font-weight:700;color:var(--accent);margin-top:3px">'+Number(o.price).toLocaleString()+' ج</div>':'')+
         '</div>'+
@@ -18157,7 +18411,7 @@ function renderSvcOrdersTable(){
             '</div>':
             (o.status==='accepted'&&!linkedTask?
               '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openOrderToTask(\''+o.id+'\')" style="font-size:11px;color:var(--accent3)"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تحويل لمهمة</button>':
-              '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openOrderFullDetail(\''+o.id+'\')" style="font-size:11px">عرض التفاصيل ↗</button>'
+              '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openOrderFullDetail(\''+o.id+'\')" style="font-size:11px">عرض التفاصيل â†—</button>'
             )
           )+
         '</div>'+
@@ -18182,14 +18436,14 @@ function openOrderFullDetail(orderId){
   var overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px';
   var statusColor={pending:'var(--accent2)',accepted:'var(--accent3)',rejected:'var(--accent4)'}[order.status]||'var(--text3)';
-  var statusLabel={pending:'⏳ معلق',accepted:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مقبول',rejected:'<i class="fa-solid fa-xmark"></i> مرفوض'}[order.status]||order.status;
+  var statusLabel={pending:'âڈ³ معلق',accepted:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مقبول',rejected:'<i class="fa-solid fa-xmark"></i> مرفوض'}[order.status]||order.status;
   var progress=linkedTask&&linkedTask.steps&&linkedTask.steps.length?Math.round(linkedTask.steps.filter(function(s){return s.done;}).length/linkedTask.steps.length*100):(linkedTask&&linkedTask.done?100:0);
   var stepsHtml=linkedTask&&linkedTask.steps&&linkedTask.steps.length?
     '<div style="margin-top:14px"><div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:8px">خطوات المهمة</div>'+
     '<div style="display:flex;flex-direction:column;gap:6px">'+
     linkedTask.steps.map(function(s){
       return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface2);border-radius:10px;font-size:12px">'+
-        '<span style="font-size:15px">'+(s.done?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>':'⏳')+'</span>'+
+        '<span style="font-size:15px">'+(s.done?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>':'âڈ³')+'</span>'+
         '<span style="flex:1;'+(s.done?'text-decoration:line-through;color:var(--text3)':'')+'">'+escapeHtml(s.text)+'</span>'+
       '</div>';
     }).join('')+'</div>':'';
@@ -18198,7 +18452,7 @@ function openOrderFullDetail(orderId){
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'+
       '<div>'+
         '<div style="font-size:16px;font-weight:900">'+escapeHtml(order.client_name)+'</div>'+
-        '<div style="font-size:12px;color:var(--text3);margin-top:3px">'+escapeHtml(order.service_name)+(order.pkg_name?' — '+escapeHtml(order.pkg_name):'')+'</div>'+
+        '<div style="font-size:12px;color:var(--text3);margin-top:3px">'+escapeHtml(order.service_name)+(order.pkg_name?' ? '+escapeHtml(order.pkg_name):'')+'</div>'+
       '</div>'+
       '<button onclick="this.closest(\'[style*=fixed]\').remove()" class="close-btn"><i class="fa-solid fa-xmark"></i></button>'+
     '</div>'+
@@ -18206,7 +18460,7 @@ function openOrderFullDetail(orderId){
       (order.client_phone?'<div><div style="color:var(--text3)"><i class="fa-solid fa-mobile-screen"></i> واتساب</div><div style="font-weight:700">'+escapeHtml(order.client_phone)+'</div></div>':'')+
       (order.client_email?'<div><div style="color:var(--text3)"><i class="fa-solid fa-envelope"></i> إيميل</div><div style="font-weight:700">'+escapeHtml(order.client_email)+'</div></div>':'')+
       (order.price?'<div><div style="color:var(--text3)"><i class="fa-solid fa-coins"></i> السعر</div><div style="font-weight:700;color:var(--accent)">'+Number(order.price).toLocaleString()+' ج</div></div>':'')+
-      '<div><div style="color:var(--text3)"><i class="fa-solid fa-calendar-days"></i> تاريخ الطلب</div><div style="font-weight:700">'+(order.created_at?new Date(order.created_at).toLocaleDateString('ar-EG'):'—')+'</div></div>'+
+      '<div><div style="color:var(--text3)"><i class="fa-solid fa-calendar-days"></i> تاريخ الطلب</div><div style="font-weight:700">'+(order.created_at?new Date(order.created_at).toLocaleDateString('ar-EG'):'?')+'</div></div>'+
       '<div style="grid-column:span 2"><div style="color:var(--text3)">الحالة</div><div style="font-weight:700;color:'+statusColor+'">'+statusLabel+'</div></div>'+
     '</div>'+
     (order.desc?'<div style="font-size:12px;color:var(--text3);margin-bottom:14px"><div style="font-weight:700;margin-bottom:5px">وصف المشروع</div><div style="padding:10px;background:var(--surface2);border-radius:10px;line-height:1.7">'+escapeHtml(order.desc)+'</div></div>':'')+
@@ -18218,7 +18472,7 @@ function openOrderFullDetail(orderId){
         '</div>'+
         '<div style="height:8px;background:var(--border);border-radius:4px;margin-bottom:12px"><div style="height:100%;background:var(--accent3);border-radius:4px;width:'+progress+'%"></div></div>'+
         stepsHtml+
-        '<button onclick="this.closest(\'[style*=fixed]\').remove();showPage(\'tasks\');setTimeout(function(){openTask('+linkedTask.id+')},300)" class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%;justify-content:center">↗ فتح المهمة الكاملة</button>'+
+        '<button onclick="this.closest(\'[style*=fixed]\').remove();showPage(\'tasks\');setTimeout(function(){openTask('+linkedTask.id+')},300)" class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%;justify-content:center">â†— فتح المهمة الكاملة</button>'+
       '</div>':
       (order.status==='pending'?
         '<div style="display:flex;gap:8px;margin-bottom:14px">'+
@@ -18235,7 +18489,7 @@ function openOrderFullDetail(orderId){
   document.body.appendChild(overlay);
 }
 
-// ── Client Portals ──
+// â”€â”€ Client Portals â”€â”€
 function renderClientPortals(){
   var el=document.getElementById('svc-portals-grid'); if(!el) return;
   var portals=S.client_portals||[];
@@ -18254,7 +18508,35 @@ function renderClientPortals(){
     '</div>';
   }).join('');
 }
-// ── رابط بوابة العميل الكاملة ──
+// â”€â”€ رابط بوابة العميل الكاملة â”€â”€
+function _ordoAttachPublicToken(link, token) {
+  if (!link || !token || /[?&]token=/.test(link)) return link;
+  return link + (link.indexOf('?') >= 0 ? '&' : '?') + 'token=' + encodeURIComponent(token);
+}
+
+function _ordoClientPortalToken(clientId, taskId, portal) {
+  try {
+    if (typeof _publicPortalToken === 'function') return _publicPortalToken(clientId, taskId, portal);
+    if (window.OrdoData && portal && portal.id) {
+      var t = window.OrdoData.createPublicToken('client_portal', portal.id, {
+        client_id: clientId || portal.client_id || null,
+        project_id: portal.project_id || null,
+        allowed_sections: ['client','projects','tasks','invoices','contracts','proposals','reviews','orders']
+      });
+      if (t && t.token) {
+        portal.public_token = t.token;
+        portal.updatedAt = new Date().toISOString();
+        portal._dirty = true;
+        try { setTimeout(function(){ window.OrdoData.save({now:true}); }, 120); } catch(e1) {}
+        return t.token;
+      }
+    }
+  } catch (e) {
+    console.warn('[Ordo] portal token fallback', e);
+  }
+  return portal && (portal.public_token || portal.token) || '';
+}
+
 function _showClientPortalLink(clientId){
   var c=(S.clients||[]).find(function(x){return String(x.id)===String(clientId);}); if(!c) return;
   var uid=(typeof _supaUserId!=='undefined'&&_supaUserId)?_supaUserId:'';
@@ -18263,6 +18545,7 @@ function _showClientPortalLink(clientId){
   if(_ps2.length&&_ps2[_ps2.length-1].endsWith('.html'))_ps2.pop();
   var base=window.location.origin+(_ps2.length?'/'+_ps2.join('/')+'/' :'/') +'client-portal.html';
   var link=base+'?uid='+uid+'&cid='+clientId;
+  link = _ordoAttachPublicToken(link, _ordoClientPortalToken(clientId));
   var over=document.createElement('div');
   over.className='modal-overlay'; over.style.display='flex';
   over.innerHTML=`<div class="modal" style="max-width:500px">
@@ -18277,7 +18560,7 @@ function _showClientPortalLink(clientId){
     </div>
     <div style="font-size:12px;color:var(--text2);margin-bottom:10px">العميل يشوف في البوابة:</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-      ${[['📁 مشاريعه ومهامهم',''],['📦 طلباته',''],['📄 فواتيره',''],['📋 عقوده','']].map(function(x){
+      ${[['ًں“پ مشاريعه ومهامهم',''],['ًں“¦ طلباته',''],['ًں“„ فواتيره',''],['ًں“‹ عقوده','']].map(function(x){
         return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600">'+x[0]+'</div>';
       }).join('')}
     </div>
@@ -18288,7 +18571,7 @@ function _showClientPortalLink(clientId){
       </button>
       <button class="btn btn-ghost" onclick="window.open('${link}','_blank')"><i class="fa-solid fa-eye"></i> معاينة</button>
     </div>
-    <div style="font-size=11px;color:var(--text3);text-align:center;margin-top:10px"><i class="fa-solid fa-lock" style="margin-left:4px"></i> العميل يرى بياناته فقط — لا صلاحية تعديل</div>
+    <div style="font-size=11px;color:var(--text3);text-align:center;margin-top:10px"><i class="fa-solid fa-lock" style="margin-left:4px"></i> العميل يرى بياناته فقط ? لا صلاحية تعديل</div>
   </div>`;
   document.body.appendChild(over);
   over.onclick=e=>{if(e.target===over)over.remove();};
@@ -18305,13 +18588,18 @@ function openClientPortal(portalId){
   if(_cppPath.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_cppPath[_cppPath.length-1])>=0)_cppPath.pop();
   if(_cppPath.length&&_cppPath[_cppPath.length-1].endsWith('.html'))_cppPath.pop();
   var _cpBase=window.location.origin+(_cppPath.length?'/'+_cppPath.join('/')+'/' :'/')+'client-portal.html';
-  // ✅ استخدم الرابط القصير
+  // ? استخدم الرابط القصير
   var link = (typeof _shortPortalUrl==='function')
     ? (client ? _shortPortalUrl(client.id) : _buildPortalLink(portal.client_name, portal.id))
     : (client ? (_cpBase+'?uid='+uid+'&cid='+client.id) : _buildPortalLink(portal.client_name, portal.id));
   var taskLink = (client && portal.task_id)
     ? ((typeof _shortPortalUrl==='function') ? _shortPortalUrl(client.id, portal.task_id) : (_cpBase+'?uid='+uid+'&cid='+client.id+'&taskid='+portal.task_id))
     : link;
+  var _portalToken = client ? _ordoClientPortalToken(client.id, null, portal) : _ordoClientPortalToken(portal.client_id, null, portal);
+  link = _ordoAttachPublicToken(link, _portalToken);
+  if(client && portal.task_id){
+    taskLink = _ordoAttachPublicToken(taskLink, _ordoClientPortalToken(client.id, portal.task_id, portal));
+  }
 
   var task=(S.tasks||[]).find(function(t){return String(t.id)===String(portal.task_id);});
   var body=document.getElementById('portal-body'); if(!body) return;
@@ -18336,26 +18624,26 @@ function openClientPortal(portalId){
         '<div style="font-size:13px;font-weight:800;margin-bottom:8px"><i class="fa-solid fa-clipboard-list"></i> المهمة: '+escapeHtml(task.title)+'</div>'+
         '<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>التقدم</span><span>'+progress+'%</span></div>'+
         '<div style="height:8px;background:var(--border);border-radius:4px"><div style="height:100%;background:var(--accent3);border-radius:4px;width:'+progress+'%"></div></div></div>'+
-        '<div style="font-size:12px;color:var(--text3)">الحالة: <strong style="color:var(--accent)">'+escapeHtml(task.status||'—')+'</strong></div>'+
+        '<div style="font-size:12px;color:var(--text3)">الحالة: <strong style="color:var(--accent)">'+escapeHtml(task.status||'?')+'</strong></div>'+
       '</div>'
     : '<div style="background:rgba(247,201,72,.1);border-radius:12px;padding:14px;font-size:12px;color:var(--text3);margin-bottom:12px">لا توجد مهمة مرتبطة بعد</div>')+
     '<div style="background:rgba(79,209,165,.07);border:1.5px solid rgba(79,209,165,.3);border-radius:12px;padding:14px">'+
       '<div style="font-size:12px;font-weight:800;color:var(--accent3);margin-bottom:10px"><i class="fa-solid fa-link"></i> روابط البوابة</div>'+
       (task?
         '<div style="margin-bottom:10px">'+
-          '<div style="font-size:11px;color:var(--text3);margin-bottom:5px">🔗 رابط المهمة (يفتح البوابة على المهمة):</div>'+
+          '<div style="font-size:11px;color:var(--text3);margin-bottom:5px">ًں”— رابط المهمة (يفتح البوابة على المهمة):</div>'+
           '<div style="font-size:10px;color:var(--accent3);font-family:var(--mono);word-break:break-all;padding:6px 8px;background:var(--surface3);border-radius:6px;margin-bottom:6px;user-select:all">'+escapeHtml(taskLink)+'</div>'+
           '<div style="display:flex;gap:6px">'+
-            '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;font-size:11px" onclick="navigator.clipboard.writeText(window._cpTaskLink).then(function(){toast(\'✅ تم نسخ رابط المهمة\')})"><i class="fa-solid fa-copy"></i> نسخ</button>'+
+            '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;font-size:11px" onclick="navigator.clipboard.writeText(window._cpTaskLink).then(function(){toast(\'? تم نسخ رابط المهمة\')})"><i class="fa-solid fa-copy"></i> نسخ</button>'+
             '<button class="btn btn-primary btn-sm" style="font-size:11px" onclick="window.open(window._cpTaskLink,\'_blank\')"><i class="fa-solid fa-eye"></i> فتح</button>'+
           '</div>'+
         '</div>'
       : '')+
       '<div>'+
-        '<div style="font-size:11px;color:var(--text3);margin-bottom:5px">🏠 بوابة العميل الكاملة:</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-bottom:5px">ًںڈ  بوابة العميل الكاملة:</div>'+
         '<div style="font-size:10px;color:var(--accent3);font-family:var(--mono);word-break:break-all;padding:6px 8px;background:var(--surface3);border-radius:6px;margin-bottom:6px;user-select:all">'+escapeHtml(link)+'</div>'+
         '<div style="display:flex;gap:6px">'+
-          '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;font-size:11px" onclick="navigator.clipboard.writeText(window._cpLink).then(function(){toast(\'✅ تم نسخ رابط البوابة\')})"><i class="fa-solid fa-copy"></i> نسخ</button>'+
+          '<button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;font-size:11px" onclick="navigator.clipboard.writeText(window._cpLink).then(function(){toast(\'? تم نسخ رابط البوابة\')})"><i class="fa-solid fa-copy"></i> نسخ</button>'+
           '<button class="btn btn-success btn-sm" style="font-size:11px" onclick="window.open(window._cpLink,\'_blank\')"><i class="fa-solid fa-eye"></i> فتح البوابة</button>'+
         '</div>'+
       '</div>'+
@@ -18363,7 +18651,7 @@ function openClientPortal(portalId){
   openM('modal-portal');
 }
 
-// ── showPage hook for services ──
+// â”€â”€ showPage hook for services â”€â”€
 (function(){
   var _origShowPage = window.showPage;
   window.showPage = function(id, el){
@@ -18376,13 +18664,13 @@ function openClientPortal(portalId){
   };
 })();
 
-// ── Public Order Page (client-facing) ──
+// â”€â”€ Public Order Page (client-facing) â”€â”€
 function _checkSvcOrderUrl(){
   var params=new URLSearchParams(window.location.search);
   var uid=params.get('svcorder');
   // Handle username-based URL: ?u=username
   var _uname=params.get('u');
-  // Inject scroll-unlock CSS immediately at start — before any DOM changes
+  // Inject scroll-unlock CSS immediately at start ? before any DOM changes
   if(uid || _uname || params.get('portal') || params.get('clientportal')){
     var _earlyStyle = document.getElementById('_pub-early-style') || document.createElement('style');
     _earlyStyle.id = '_pub-early-style';
@@ -18390,7 +18678,7 @@ function _checkSvcOrderUrl(){
     if(!document.getElementById('_pub-early-style')) document.head.insertBefore(_earlyStyle, document.head.firstChild);
   }
   if(!uid && _uname){
-    // ── لو في ?p=client-slug → بوابة العميل ──
+    // â”€â”€ لو في ?p=client-slug ? بوابة العميل â”€â”€
     var _cslug = params.get('p');
     if(_cslug){
       if(window._showApp) window._showApp();
@@ -18402,7 +18690,7 @@ function _checkSvcOrderUrl(){
       document.body.style.cssText = 'margin:0;padding:0;overflow:auto;font-family:Cairo,Tajawal,sans-serif;direction:rtl';
       var ld2 = document.createElement('div');
       ld2.style.cssText = 'position:fixed;inset:0;background:#0a0a0f;display:flex;align-items:center;justify-content:center;font-family:Cairo,Tajawal,sans-serif;direction:rtl';
-      ld2.innerHTML = '<div style="text-align:center"><div style="font-size:36px;margin-bottom:12px">⏳</div><div style="font-size:14px;color:#aaa">جاري تحميل بوابة العميل...</div></div>';
+      ld2.innerHTML = '<div style="text-align:center"><div style="font-size:36px;margin-bottom:12px">âڈ³</div><div style="font-size:14px;color:#aaa">جاري تحميل بوابة العميل...</div></div>';
       document.body.appendChild(ld2);
       if(typeof supa !== 'undefined'){
         // جيب الـ userId من الـ username
@@ -18435,7 +18723,7 @@ function _checkSvcOrderUrl(){
     document.documentElement.classList.add('pub-page');
     document.body.classList.add('pub-page');
 
-    // Force scroll on html — do NOT use cssText= as it gets wiped by innerHTML=
+    // Force scroll on html ? do NOT use cssText= as it gets wiped by innerHTML=
     document.documentElement.style.overflow = 'auto';
     document.documentElement.style.overflowY = 'scroll';
     document.documentElement.style.height = 'auto';
@@ -18453,11 +18741,11 @@ function _checkSvcOrderUrl(){
 
     var loadDiv = document.createElement('div');
     loadDiv.style.cssText = 'position:fixed;inset:0;background:#0a0a0f;display:flex;align-items:center;justify-content:center;font-family:Cairo,Tajawal,sans-serif;direction:rtl';
-    loadDiv.innerHTML = '<div style="text-align:center"><div style="font-size:36px;margin-bottom:12px">⏳</div><div style="font-size:14px;color:#aaa">جاري تحميل المتجر...</div></div>';
+    loadDiv.innerHTML = '<div style="text-align:center"><div style="font-size:36px;margin-bottom:12px">âڈ³</div><div style="font-size:14px;color:#aaa">جاري تحميل المتجر...</div></div>';
     document.body.appendChild(loadDiv);
     // Lookup UID from username stored in studio_data JSON
     if(typeof supa!=='undefined'){
-      // Use Supabase JSON path filter — efficient, no full scan
+      // Use Supabase JSON path filter ? efficient, no full scan
       supa.from('studio_data')
         .select('user_id')
         .ilike('data->>username_index', _uname)
@@ -18493,23 +18781,23 @@ function _checkSvcOrderUrl(){
   }
   var portalId=params.get('portal');
   if(portalId && params.get('uid')) { _buildClientPortalPage(params.get('uid'), portalId); return; }
-  // ── Full Client Portal (by client ID) ──
+  // â”€â”€ Full Client Portal (by client ID) â”€â”€
   var cpUid=params.get('clientportal'); var cpCid=params.get('cid');
   if(cpUid && cpCid) { window._fullCPBuilt=true; _buildFullClientPortal(cpUid, cpCid); return; }
   if(!uid) return;
   // Show body (was hidden) then replace content
   if(window._showApp) window._showApp();
-  document.body.innerHTML='<div style="position:fixed;inset:0;background:#f0f0f8;display:flex;align-items:center;justify-content:center;font-family:Cairo,Tajawal,sans-serif;direction:rtl"><div style="text-align:center"><div style="font-size:36px;margin-bottom:12px">⏳</div><div style="font-size:14px;color:#666">جاري تحميل الصفحة...</div></div></div>';
+  document.body.innerHTML='<div style="position:fixed;inset:0;background:#f0f0f8;display:flex;align-items:center;justify-content:center;font-family:Cairo,Tajawal,sans-serif;direction:rtl"><div style="text-align:center"><div style="font-size:36px;margin-bottom:12px">âڈ³</div><div style="font-size:14px;color:#666">جاري تحميل الصفحة...</div></div></div>';
   document.body.style.cssText='margin:0;padding:0;background:#f0f0f8;font-family:Cairo,Tajawal,sans-serif;direction:rtl';
   _buildSvcOrderPage(uid);
 }
-// Run ASAP — before DOMContentLoaded if possible
+// Run ASAP ? before DOMContentLoaded if possible
 (function(){
   var p=new URLSearchParams(window.location.search);
   if(p.get('svcorder')||( p.get('portal')&&p.get('uid') )||p.get('u')||( p.get('clientportal')&&p.get('cid') )){
-    // Mark as public page — auth functions check this flag
+    // Mark as public page ? auth functions check this flag
     window._isPublicPage = true;
-    // Inject scroll-unlock style as FIRST child of head — overrides everything
+    // Inject scroll-unlock style as FIRST child of head ? overrides everything
     var earlyStyle = document.createElement('style');
     earlyStyle.id = '_pub-early-style';
     earlyStyle.textContent = 'html,body{overflow:auto!important;overflow-y:scroll!important;height:auto!important;min-height:100vh!important;position:static!important;max-height:none!important;}';
@@ -18547,7 +18835,7 @@ function _buildSvcOrderPage(userId){
     if(!ud){ _svcOrderFallback(); return; }
     console.log('[Ordo Public] ud keys:', Object.keys(ud), '| services:', (ud.services||[]).length, '| standalone_packages:', (ud.standalone_packages||[]).length);
 
-    // ── Force scroll unlock immediately ──
+    // â”€â”€ Force scroll unlock immediately â”€â”€
     document.documentElement.classList.add('pub-page');
     document.body.classList.add('pub-page');
     document.documentElement.style.overflow = 'auto';
@@ -18558,7 +18846,7 @@ function _buildSvcOrderPage(userId){
     document.body.style.height = 'auto';
     document.body.style.position = 'static';
 
-    // ── Data ──
+    // â”€â”€ Data â”€â”€
     // Check if specific store is requested
     var _storeId = params.get('store');
     var _storeObj = _storeId ? (ud.stores||[]).find(function(s){return s.id===_storeId;}) : null;
@@ -18573,7 +18861,7 @@ function _buildSvcOrderPage(userId){
     if(!services.length && !_storeId){
       services=(ud.services||[]).filter(function(s){ return s.active!==false; });
     }
-    // Filter packages by store_id — support legacy 'packages' key too
+    // Filter packages by store_id ? support legacy 'packages' key too
     var _allPkgs = ud.standalone_packages || ud.packages || [];
     var standalonePkgs=_allPkgs.filter(function(p){
       if(p.active === false) return false;
@@ -18603,7 +18891,7 @@ function _buildSvcOrderPage(userId){
     var _dm = settings.displayMode||settings.display_mode||localStorage.getItem('studioDisplayMode')||'dark';
     var isLight=_dm==='light';
 
-    // ── Colors ──
+    // â”€â”€ Colors â”€â”€
     var bg      =isLight?'#f4f5fb':'#0a0a0f';
     var surface =isLight?'#ffffff':'#111118';
     var surface2=isLight?'#f0f1f8':'#16161f';
@@ -18617,13 +18905,13 @@ function _buildSvcOrderPage(userId){
     var navBg   =isLight?'rgba(255,255,255,.92)':'rgba(10,10,15,.92)';
     var sheetBg =isLight?'#ffffff':'#1a1a28';
 
-    // ── Store globally ──
+    // â”€â”€ Store globally â”€â”€
     window._pubUd=ud; window._pubUserId=userId; window._pubAccent=accent;
     window._pubSettings=settings;
     window._pubStoreId=_storeId;  // save store filter for detail pages
     window._pubColors={bg,surface,surface2,surface3,textMain,textSub,textMuted,borderC,cardBg,cardBorder,sheetBg,isLight};
 
-    // ── Inject CSS ──
+    // â”€â”€ Inject CSS â”€â”€
     var styleEl=document.createElement('style');
     styleEl.textContent=
       '@import url(\'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap\');'+
@@ -18637,7 +18925,7 @@ function _buildSvcOrderPage(userId){
         'background:radial-gradient(ellipse 80% 60% at 15% 5%,'+accent+'1e 0%,transparent 60%),'+
         'radial-gradient(ellipse 60% 50% at 85% 90%,'+accent+'12 0%,transparent 60%)}'+
 
-      // ── Navbar ──
+      // â”€â”€ Navbar â”€â”€
       '._nav{position:sticky;top:0;z-index:1000;background:'+navBg+';backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid '+borderC+';padding:0 20px}'+
       '._nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:60px;gap:16px}'+
       '._nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0}'+
@@ -18658,11 +18946,11 @@ function _buildSvcOrderPage(userId){
       '._mob-link{padding:11px 14px;border-radius:10px;font-size:14px;font-weight:700;color:'+textSub+';cursor:pointer;border:none;background:none;font-family:\'Cairo\',sans-serif;text-align:right;width:100%}'+
       '._mob-link:hover{background:'+cardBg+';color:'+textMain+'}'+
 
-      // ── Main wrap ──
+      // â”€â”€ Main wrap â”€â”€
       '._pub-main{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 20px 80px;overflow:visible}'+
       '@media(max-width:640px){._pub-main{padding:0 12px 60px}}'+
 
-      // ── Hero/Banner ──
+      // â”€â”€ Hero/Banner â”€â”€
       '._hero{border-radius:20px;overflow:hidden;margin:24px 0 40px;box-shadow:0 8px 40px rgba(0,0,0,.3);position:relative;background:'+surface2+';min-height:'+bannerH+'}'+
       '._hero img{width:100%;height:'+bannerH+';object-fit:cover;display:block;position:relative;z-index:1}'+
       '._hero-ph{height:'+bannerH+';background:linear-gradient(135deg,'+accent+'33 0%,'+accent+'11 50%,transparent 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}'+
@@ -18670,14 +18958,14 @@ function _buildSvcOrderPage(userId){
       '._hero-ph-sub{font-size:clamp(12px,2vw,16px);color:'+textSub+';max-width:500px;line-height:1.7}'+
       '._hero-badge{position:absolute;top:16px;right:16px;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700}'+
 
-      // ── Section ──
+      // â”€â”€ Section â”€â”€
       '._sec{margin-bottom:56px}'+
       '._sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}'+
       '._sec-title{font-size:20px;font-weight:900;color:'+textMain+';display:flex;align-items:center;gap:8px}'+
       '._sec-more{font-size:13px;font-weight:700;color:'+accent+';cursor:pointer;background:none;border:1px solid '+accent+'44;border-radius:8px;padding:5px 14px;font-family:\'Cairo\',sans-serif;transition:.15s}'+
       '._sec-more:hover{background:'+accent+'15}'+
 
-      // ── Service cards ──
+      // â”€â”€ Service cards â”€â”€
       '._svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}'+
       '@media(max-width:480px){._svc-grid{grid-template-columns:1fr 1fr;gap:10px}}'+
       '._svc-card{background:'+surface+';border:1px solid '+cardBorder+';border-radius:16px;overflow:hidden;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;position:relative}'+
@@ -18693,7 +18981,7 @@ function _buildSvcOrderPage(userId){
       '._svc-btn{background:'+accent+';color:#fff;border:none;border-radius:8px;padding:7px 13px;font-size:10px;font-weight:800;cursor:pointer;font-family:\'Cairo\',sans-serif;white-space:nowrap;transition:.15s}'+
       '._svc-btn:hover{opacity:.85}'+
 
-      // ── Package cards ──
+      // â”€â”€ Package cards â”€â”€
       '._pkg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}'+
       '@media(max-width:480px){._pkg-grid{grid-template-columns:1fr 1fr;gap:10px}}'+
       '._pkg-card{background:'+surface+';border:1px solid '+cardBorder+';border-radius:16px;overflow:hidden;cursor:pointer;transition:.2s;display:flex;flex-direction:column}'+
@@ -18710,7 +18998,7 @@ function _buildSvcOrderPage(userId){
       '._pkg-order-btn-sm{background:'+accent+';color:#fff;border:none;border-radius:8px;padding:7px 13px;font-size:10px;font-weight:800;cursor:pointer;font-family:\'Cairo\',sans-serif;transition:.15s}'+
       '._pkg-order-btn-sm:hover{opacity:.85}'+
 
-      // ── Portfolio ──
+      // â”€â”€ Portfolio â”€â”€
       '._pf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}'+
       '@media(max-width:480px){._pf-grid{grid-template-columns:1fr 1fr 1fr;gap:7px}}'+
       '._pf-card{border-radius:12px;overflow:hidden;aspect-ratio:1;background:'+surface3+';border:1px solid '+cardBorder+';position:relative;cursor:pointer;transition:.2s}'+
@@ -18718,7 +19006,7 @@ function _buildSvcOrderPage(userId){
       '._pf-card img{width:100%;height:100%;object-fit:cover;display:block}'+
       '._pf-card-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;text-align:center}'+
 
-      // ── Full service page overlay ──
+      // â”€â”€ Full service page overlay â”€â”€
       '._svc-page{position:fixed;inset:0;z-index:9990;background:'+bg+';overflow-y:auto;animation:_spIn .3s ease}'+
       '@keyframes _spIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}'+
       '._svc-page-inner{max-width:760px;margin:0 auto;padding:0 16px 80px}'+
@@ -18739,7 +19027,7 @@ function _buildSvcOrderPage(userId){
       '._order-big-btn{width:100%;background:linear-gradient(135deg,'+accent+','+accent+'bb);color:#fff;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:900;cursor:pointer;font-family:\'Cairo\',sans-serif;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;box-shadow:0 6px 24px '+accent+'44}'+
       '._order-big-btn:hover{opacity:.88;transform:translateY(-2px)}'+
 
-      // ── Order bottom sheet ──
+      // â”€â”€ Order bottom sheet â”€â”€
       '._ord-overlay{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;animation:_pubFadeIn .22s ease}'+
       '._ord-sheet{background:'+sheetBg+';border-radius:22px 22px 0 0;max-width:640px;width:100%;padding:24px 22px 40px;max-height:92vh;overflow-y:auto;animation:_pubSlideUp .3s cubic-bezier(.25,1.2,.5,1)}'+
       '@keyframes _pubFadeIn{from{opacity:0}to{opacity:1}}'+
@@ -18752,7 +19040,7 @@ function _buildSvcOrderPage(userId){
       '._ord-submit:hover{opacity:.88}'+
       '._ord-submit:disabled{opacity:.45;cursor:not-allowed}'+
 
-      // ── Footer ──
+      // â”€â”€ Footer â”€â”€
       '._footer{background:'+surface2+';border-top:1px solid '+borderC+';padding:36px 20px 24px;margin-top:60px}'+
       '._footer-inner{max-width:1100px;margin:0 auto}'+
       '._footer-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px}'+
@@ -18764,9 +19052,9 @@ function _buildSvcOrderPage(userId){
     document.head.appendChild(styleEl);
 
     // CSS إضافي لضمان السكرول - يتغلب على أي CSS موروث من الـ app
-    // scrollFixStyle removed — handled by pub-page class CSS
+    // scrollFixStyle removed ? handled by pub-page class CSS
 
-    // ── SOCIALS map ──
+    // â”€â”€ SOCIALS map â”€â”€
     var SICONS={instagram:'<i class="fa-brands fa-instagram" style="color:#E1306C"></i>',facebook:'<i class="fa-brands fa-facebook" style="color:#1877F2"></i>',tiktok:'<i class="fa-brands fa-tiktok"></i>',youtube:'<i class="fa-brands fa-youtube" style="color:#FF0000"></i>',twitter:'<i class="fa-brands fa-x-twitter"></i>',whatsapp:'<i class="fa-brands fa-whatsapp" style="color:#25D366"></i>',website:'<i class="fa-solid fa-globe" style="color:#7c6ff7"></i>',behance:'<i class="fa-brands fa-behance" style="color:#1769FF"></i>',snapchat:'<i class="fa-brands fa-snapchat" style="color:#FFFC00"></i>',linkedin:'<i class="fa-brands fa-linkedin" style="color:#0077B5"></i>'};
     var SURLS={whatsapp:function(v){return 'https://wa.me/'+v.replace(/\D/g,'');},instagram:function(v){return v.startsWith('http')?v:'https://instagram.com/'+v;},facebook:function(v){return v.startsWith('http')?v:'https://facebook.com/'+v;},tiktok:function(v){return v.startsWith('http')?v:'https://tiktok.com/@'+v;}};
     function socialUrl(platform,val){ return (SURLS[platform]?SURLS[platform](val):val.startsWith('http')?val:'https://'+val); }
@@ -18775,13 +19063,13 @@ function _buildSvcOrderPage(userId){
     if(phone) footerSocialsHtml+='<a href="https://wa.me/'+phone.replace(/\D/g,'')+'" target="_blank" class="_footer-soc" title="واتساب"><i class="fa-solid fa-comments"></i></a>';
     socials.forEach(function(sc){ footerSocialsHtml+='<a href="'+escapeHtml(socialUrl(sc.platform,sc.url||sc.value||''))+'" target="_blank" class="_footer-soc" title="'+(sc.label||sc.platform||'')+'">'+((SICONS[sc.platform])||'<i class="fa-solid fa-link"></i>')+'</a>'; });
 
-    // ── Use store name/desc override if specific store requested ──
+    // â”€â”€ Use store name/desc override if specific store requested â”€â”€
     if(_storeObj){
       studioName = _storeObj.name || studioName;
       siteDesc = _storeObj.desc || siteDesc;
     }
 
-    // ── NAVBAR ──
+    // â”€â”€ NAVBAR â”€â”€
     function scrollToId(id){ var el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
     var navHtml='<nav class="_nav" id="_pub-nav">'+
       '<div class="_nav-inner">'+
@@ -18798,7 +19086,7 @@ function _buildSvcOrderPage(userId){
         '</div>'+
         (phone||socials.length?'<button class="_nav-book-btn" onclick="_openBookingForm()"><i class="fa-solid fa-calendar-days"></i> حجز موعد</button>':'')+
         '<button class="_nav-book-btn" onclick="_openPublicContactForm()" style="background:transparent;border:1.5px solid '+accent+'55;color:'+textMain+'"><i class="fa-solid fa-envelope-open-text"></i> تواصل معنا</button>'+
-        '<button class="_mob-menu-btn" onclick="_toggleMobMenu()" aria-label="قائمة">☰</button>'+
+        '<button class="_mob-menu-btn" onclick="_toggleMobMenu()" aria-label="قائمة">âک°</button>'+
       '</div>'+
     '</nav>'+
     '<div class="_mob-menu" id="_pub-mob-menu">'+
@@ -18811,7 +19099,7 @@ function _buildSvcOrderPage(userId){
       '<button class="_mob-link" style="font-weight:800" onclick="_openPublicContactForm();_toggleMobMenu()"><i class="fa-solid fa-envelope-open-text"></i> تواصل معنا</button>'+
     '</div>';
 
-    // ── HERO/BANNER ──
+    // â”€â”€ HERO/BANNER â”€â”€
     var heroHtml='<div id="_sec-hero" style="scroll-margin-top:70px">'+
       '<div class="_hero">'+
         (banner
@@ -18821,12 +19109,12 @@ function _buildSvcOrderPage(userId){
               (siteDesc?'<div class="_hero-ph-sub">'+escapeHtml(siteDesc)+'</div>':'')+
            '</div>')+
         '<div class="_hero-badge" style="background:'+(isOrdersOpen?'rgba(79,209,165,.9)':'rgba(255,80,80,.9)')+';color:#fff">'+
-          (isOrdersOpen?'✅ متاح للطلب':'⏸ مغلق مؤقتاً')+
+          (isOrdersOpen?'? متاح للطلب':'⏸ مغلق مؤقتاً')+
         '</div>'+
       '</div>'+
     '</div>';
 
-    // ── SERVICES section ──
+    // â”€â”€ SERVICES section â”€â”€
     var svcsHtml=services.slice(0,6).map(function(svc,idx){
       var priceDisplay=svc.price&&+svc.price?Number(svc.price).toLocaleString()+' '+(svc.currency||'ج.م'):'عند الطلب';
       return '<div class="_svc-card">'+
@@ -18839,7 +19127,7 @@ function _buildSvcOrderPage(userId){
             '<div class="_svc-price">'+priceDisplay+'</div>'+
             '<div style="display:flex;gap:5px">'+
               (svc.payment_link?'<a href="'+escapeHtml(svc.payment_link)+'" target="_blank" class="_svc-btn" style="text-decoration:none;background:linear-gradient(135deg,#4fd1a5,#38b28a);color:#fff;display:flex;align-items:center;justify-content:center;gap:4px" onclick="event.stopPropagation()"><i class="fa-solid fa-credit-card" style="font-size:11px"></i> ادفع</a>':'') +
-              '<button class="_svc-btn" onclick="event.stopPropagation();_openOrderFormNew(\''+encodeURIComponent(svc.name)+'\',\'\','+(svc.price||0)+',\''+encodeURIComponent(svc.payment_link||'')+'\')">اطلب ←</button>'+
+              '<button class="_svc-btn" onclick="event.stopPropagation();_openOrderFormNew(\''+encodeURIComponent(svc.name)+'\',\'\','+(svc.price||0)+',\''+encodeURIComponent(svc.payment_link||'')+'\')">اطلب â†گ</button>'+
             '</div>'+
           '</div>'+
         '</div>'+
@@ -18854,13 +19142,13 @@ function _buildSvcOrderPage(userId){
       (services.length
         ?'<div class="_svc-grid" id="_svc-grid-main">'+svcsHtml+'</div>'
         :'<div style="text-align:center;padding:50px 20px">'+
-            '<div style="font-size:48px;margin-bottom:12px">🛍️</div>'+
+            '<div style="font-size:48px;margin-bottom:12px">ًں›چï¸ڈ</div>'+
             '<div style="font-size:15px;font-weight:700;color:'+textMain+';margin-bottom:6px">لا توجد خدمات متاحة حالياً</div>'+
             '<div style="font-size:12px;color:'+textMuted+'">سيتم إضافة الخدمات قريباً</div>'+
           '</div>')+
     '</div>';
 
-    // ── PACKAGES section ──
+    // â”€â”€ PACKAGES section â”€â”€
     var pkgsSection='';
     console.log('[Ordo Public] standalone_packages in ud:', (ud.standalone_packages||[]).length, '| filtered standalonePkgs:', standalonePkgs.length, '| _storeId:', _storeId);
     if(standalonePkgs.length){
@@ -18876,7 +19164,7 @@ function _buildSvcOrderPage(userId){
               '<div style="display:flex;gap:4px;flex-wrap:wrap">'+
                 '<button class="_pkg-order-btn-sm" onclick="event.stopPropagation();_openPkgPage('+idx+')" style="background:transparent;border:1.5px solid '+accent+'55;color:'+accent+'">تفاصيل</button>'+
                 (p.payment_link?'<a href="'+escapeHtml(p.payment_link)+'" target="_blank" class="_pkg-order-btn-sm" style="text-decoration:none;background:linear-gradient(135deg,#4fd1a5,#38b28a);color:#fff;display:inline-flex;align-items:center;gap:3px" onclick="event.stopPropagation()"><i class="fa-solid fa-credit-card" style="font-size:10px"></i> ادفع</a>':'')+
-                '<button class="_pkg-order-btn-sm" onclick="event.stopPropagation();_openOrderFormNew(\'\',\''+encodeURIComponent(p.name)+'\','+(p.price||0)+',\''+encodeURIComponent(p.payment_link||'')+'\')">اطلب ←</button>'+
+                '<button class="_pkg-order-btn-sm" onclick="event.stopPropagation();_openOrderFormNew(\'\',\''+encodeURIComponent(p.name)+'\','+(p.price||0)+',\''+encodeURIComponent(p.payment_link||'')+'\')">اطلب â†گ</button>'+
               '</div>'+
             '</div>'+
           '</div>'+
@@ -18891,7 +19179,7 @@ function _buildSvcOrderPage(userId){
       '</div>';
     }
 
-    // ── PORTFOLIO section ──
+    // â”€â”€ PORTFOLIO section â”€â”€
     var pfSection='';
     if(pfProjects.length){
       var pfCards=pfProjects.slice(0,9).map(function(p){
@@ -18914,7 +19202,7 @@ function _buildSvcOrderPage(userId){
       '</div>';
     }
 
-    // ── CONTACT section ──
+    // â”€â”€ CONTACT section â”€â”€
     var contactHtml='<div id="_sec-contact" class="_sec" style="scroll-margin-top:70px">'+
       '<div class="_sec-head"><div class="_sec-title"><i class="fa-solid fa-phone"></i> تواصل معنا</div></div>'+
       '<div style="display:flex;flex-direction:column;gap:10px">'+
@@ -18933,7 +19221,7 @@ function _buildSvcOrderPage(userId){
       '</div>'+
     '</div>';
 
-    // ── FOOTER ──
+    // â”€â”€ FOOTER â”€â”€
     var footerHtml='<footer class="_footer">'+
       '<div class="_footer-inner">'+
         '<div class="_footer-top">'+
@@ -18944,17 +19232,17 @@ function _buildSvcOrderPage(userId){
           '<div class="_footer-socials">'+footerSocialsHtml+'</div>'+
         '</div>'+
         '<div class="_footer-bottom">'+
-          '<span>© '+new Date().getFullYear()+' '+escapeHtml(studioName)+'</span>'+
+          '<span>آ© '+new Date().getFullYear()+' '+escapeHtml(studioName)+'</span>'+
           (phone?'<a href="https://wa.me/'+phone.replace(/\D/g,'')+'" target="_blank" style="background:'+accent+';color:#fff;text-decoration:none;padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700"><i class="fa-solid fa-calendar-days"></i> احجز موعد</a>':'')+
         '</div>'+
       '</div>'+
     '</footer>';
 
-    // ── Assemble page ──
+    // â”€â”€ Assemble page â”€â”€
     // Clear body without using innerHTML= to preserve inline styles on html/body
     while(document.body.firstChild) document.body.removeChild(document.body.firstChild);
 
-    // ═══ CSS override to force scroll ═══
+    // â•گâ•گâ•گ CSS override to force scroll â•گâ•گâ•گ
     var oldOv = document.getElementById('_pub-override'); if(oldOv) oldOv.remove();
     var pubOverride = document.createElement('style');
     pubOverride.id = '_pub-override';
@@ -18989,7 +19277,7 @@ function _buildSvcOrderPage(userId){
     window._publicUd=ud; window._publicUserId=userId; window._publicAccent=accent;
     window._publicSettings=settings;
 
-    // ── Re-apply scroll after all DOM mutations ──
+    // â”€â”€ Re-apply scroll after all DOM mutations â”€â”€
     requestAnimationFrame(function(){
       document.documentElement.style.overflow = 'auto';
       document.documentElement.style.overflowY = 'scroll';
@@ -19000,7 +19288,7 @@ function _buildSvcOrderPage(userId){
       document.body.style.position = 'static';
     });
 
-    // ── Navbar scroll active ──
+    // â”€â”€ Navbar scroll active â”€â”€
     window.addEventListener('scroll', function(){
       var sections=['_sec-hero','_sec-svcs','_sec-pkgs','_sec-pf','_sec-contact'];
       var links=document.querySelectorAll('._nav-link');
@@ -19012,12 +19300,12 @@ function _buildSvcOrderPage(userId){
   }).catch(function(){ _svcOrderFallback(); });
 }
 
-// ── Mobile menu toggle ──
+// â”€â”€ Mobile menu toggle â”€â”€
 window._toggleMobMenu=function(){
   var m=document.getElementById('_pub-mob-menu'); if(m) m.classList.toggle('open');
 };
 
-// ── Show all services ──
+// â”€â”€ Show all services â”€â”€
 window._showAllSvcs=function(){
   var ud=window._pubUd; if(!ud) return;
   var C=window._pubColors; var accent=window._pubAccent;
@@ -19039,7 +19327,7 @@ window._showAllSvcs=function(){
         '<div class="_svc-foot"><div class="_svc-price">'+priceDisplay+'</div>'+
           '<div style="display:flex;gap:5px">'+
             (svc.payment_link?'<a href="'+escapeHtml(svc.payment_link)+'" target="_blank" class="_svc-btn" style="text-decoration:none;background:linear-gradient(135deg,#4fd1a5,#38b28a);color:#fff;display:flex;align-items:center;gap:3px" onclick="event.stopPropagation()"><i class="fa-solid fa-credit-card" style="font-size:10px"></i> ادفع</a>':'')+
-            '<button class="_svc-btn" onclick="event.stopPropagation();_openOrderFormNew(\''+encodeURIComponent(svc.name)+'\',\'\','+(svc.price||0)+',\''+encodeURIComponent(svc.payment_link||'')+'\')">اطلب ←</button>'+
+            '<button class="_svc-btn" onclick="event.stopPropagation();_openOrderFormNew(\''+encodeURIComponent(svc.name)+'\',\'\','+(svc.price||0)+',\''+encodeURIComponent(svc.payment_link||'')+'\')">اطلب â†گ</button>'+
           '</div>'+
         '</div>'+
       '</div></div>';
@@ -19047,7 +19335,7 @@ window._showAllSvcs=function(){
   var btn=document.querySelector('[onclick="_showAllSvcs()"]'); if(btn) btn.remove();
 };
 
-// ── Show all packages ──
+// â”€â”€ Show all packages â”€â”€
 window._showAllPkgs=function(){
   var ud=window._pubUd; if(!ud) return;
   var accent=window._pubAccent;
@@ -19068,7 +19356,7 @@ window._showAllPkgs=function(){
         '<div class="_pkg-foot"><div class="_pkg-price">'+(p.price?Number(p.price).toLocaleString()+' ج':'عند الطلب')+'</div>'+
           '<div style="display:flex;gap:4px">'+
             '<button class="_pkg-order-btn-sm" onclick="event.stopPropagation();_openPkgPage('+idx+')" style="background:transparent;border:1.5px solid '+accent+'55;color:'+accent+'">تفاصيل</button>'+
-            '<button class="_pkg-order-btn-sm" onclick="event.stopPropagation();_openOrderFormNew(\'\',\''+encodeURIComponent(p.name)+'\','+(p.price||0)+')">اطلب ←</button>'+
+            '<button class="_pkg-order-btn-sm" onclick="event.stopPropagation();_openOrderFormNew(\'\',\''+encodeURIComponent(p.name)+'\','+(p.price||0)+')">اطلب â†گ</button>'+
           '</div>'+
         '</div>'+
       '</div></div>';
@@ -19076,7 +19364,7 @@ window._showAllPkgs=function(){
   var btn=document.querySelector('[onclick="_showAllPkgs()"]'); if(btn) btn.remove();
 };
 
-// ── Open full service page ──
+// â”€â”€ Open full service page â”€â”€
 window._openSvcPage=function(idx){
   var ud=window._pubUd; var accent=window._pubAccent; var C=window._pubColors;
   if(!ud) return;
@@ -19120,7 +19408,7 @@ window._openSvcPage=function(idx){
   page.id='_svc-full-page'; page.className='_svc-page';
   page.innerHTML=
     '<div class="_svc-page-inner">'+
-      '<button class="_svc-page-back" onclick="document.getElementById(\'_svc-full-page\').remove()">← رجوع</button>'+
+      '<button class="_svc-page-back" onclick="document.getElementById(\'_svc-full-page\').remove()">â†گ رجوع</button>'+
       (svc.image?'<div class="_svc-page-hero"><img src="'+escapeHtml(svc.image)+'"></div>':'<div class="_svc-page-hero-ph">'+(svc.icon||'<i class="fa-solid fa-bag-shopping"></i>')+'</div>')+
       (svc.cat?'<div class="_svc-page-cat">'+escapeHtml(svc.cat)+'</div>':'')+
       '<div class="_svc-page-title">'+escapeHtml(svc.name)+'</div>'+
@@ -19137,7 +19425,7 @@ window._openSvcPage=function(idx){
   page.scrollTo({top:0}); window.scrollTo({top:0,behavior:'smooth'});
 };
 
-// ── Order Form (Service / Package) ──
+// â”€â”€ Order Form (Service / Package) â”€â”€
 window._openOrderFormNew=function(svcName, pkgName, price, paymentLink){
   var accent=window._pubAccent||'#7c6ff7';
   var userId=window._pubUserId;
@@ -19196,7 +19484,7 @@ window._submitOrderForm=function(userId,svcName,pkgName,price,paymentLink){
     if(!ud) return;
     ud.svc_orders=ud.svc_orders||[]; ud.svc_orders.push(order);
     ud._pending_notifications=ud._pending_notifications||[];
-    ud._pending_notifications.push({id:order.id+'_n',title:'<i class="fa-solid fa-inbox"></i> طلب خدمة جديد!',body:name+' — '+(decodedSvc||decodedPkg),type:'svc_order',created_at:new Date().toISOString(),read:false});
+    ud._pending_notifications.push({id:order.id+'_n',title:'<i class="fa-solid fa-inbox"></i> طلب خدمة جديد!',body:name+' ? '+(decodedSvc||decodedPkg),type:'svc_order',created_at:new Date().toISOString(),read:false});
     return supa.from('studio_data').update({data:JSON.stringify(ud),updated_at:new Date().toISOString()}).eq('user_id',userId);
   }).then(function(){
     document.getElementById('_order-overlay')&&document.getElementById('_order-overlay').remove();
@@ -19222,7 +19510,7 @@ window._submitOrderForm=function(userId,svcName,pkgName,price,paymentLink){
   }).catch(function(e){if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> إرسال الطلب';}});
 };
 
-// ── Package Detail Page ──
+// â”€â”€ Package Detail Page â”€â”€
 window._openPkgPage=function(idx){
   var ud=window._pubUd; var accent=window._pubAccent; var C=window._pubColors;
   if(!ud) return;
@@ -19238,7 +19526,7 @@ window._openPkgPage=function(idx){
   page.id='_pkg-full-page'; page.className='_svc-page';
   page.innerHTML=
     '<div class="_svc-page-inner">'+
-      '<button class="_svc-page-back" onclick="document.getElementById(\'_pkg-full-page\').remove()">← رجوع</button>'+
+      '<button class="_svc-page-back" onclick="document.getElementById(\'_pkg-full-page\').remove()">â†گ رجوع</button>'+
       (p.thumb?'<div class="_svc-page-hero"><img src="'+escapeHtml(p.thumb)+'"></div>':'<div class="_svc-page-hero-ph"><i class="fa-solid fa-box"></i></div>')+
       '<div class="_svc-page-title">'+escapeHtml(p.name)+'</div>'+
       '<div class="_svc-page-price-row">'+
@@ -19258,7 +19546,7 @@ window._openPkgPage=function(idx){
   page.scrollTo({top:0}); window.scrollTo({top:0,behavior:'smooth'});
 };
 
-// ── Booking form ──
+// â”€â”€ Booking form â”€â”€
 window._openBookingForm=function(){
   var accent=window._pubAccent||'#7c6ff7';
   var userId=window._pubUserId;
@@ -19279,7 +19567,7 @@ window._openBookingForm=function(){
         return '<button onclick="_selectBookSlot(this,\''+s.day+' '+s.from+' - '+s.to+'\')" '+
           'style="padding:7px 12px;border-radius:8px;border:1.5px solid '+accent+'44;background:transparent;color:'+C.textMain+';font-family:Cairo,sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:.15s" '+
           'onmouseover="this.style.background=\''+accent+'22\'" onmouseout="if(!this.dataset.sel)this.style.background=\'transparent\'" '+
-          '>'+s.day+' · '+s.from+' - '+s.to+'</button>';
+          '>'+s.day+' آ· '+s.from+' - '+s.to+'</button>';
       }).join('')+
       '</div></div>';
   }
@@ -19322,7 +19610,7 @@ window._submitBooking=function(userId){
   var msg=(document.getElementById('_book-msg')||{}).value||'';
   if(!name||!phone){alert('الاسم ورقم الواتساب مطلوبان');return;}
   var btn=document.querySelector('._ord-submit[onclick*="_submitBooking"]');
-  if(btn){btn.disabled=true;btn.textContent='⏳ جاري الإرسال...';}
+  if(btn){btn.disabled=true;btn.textContent='âڈ³ جاري الإرسال...';}
   var meeting={id:Date.now()+'_m',type:'meeting_request',client_name:name,client_phone:phone,preferred_time:time,message:msg,created_at:new Date().toISOString(),read:false};
   supa.from('studio_data').select('data').eq('user_id',userId).maybeSingle().then(function(res){
     if(!res||!res.data) return;
@@ -19338,7 +19626,7 @@ window._submitBooking=function(userId){
   }).catch(function(){if(btn){btn.disabled=false;btn.innerHTML='إرسال طلب الموعد <i class="fa-solid fa-calendar-days"></i>';}});
 };
 
-// ── Public Contact Form ──
+// â”€â”€ Public Contact Form â”€â”€
 window._openPublicContactForm=function(){
   var accent=window._pubAccent||'#7c6ff7';
   var userId=window._pubUserId;
@@ -19372,7 +19660,7 @@ window._submitPublicContact=function(userId){
   var msg=(document.getElementById('_cnt-msg')||{}).value||'';
   if(!name||!phone||!subject){alert('الاسم والهاتف والموضوع مطلوبة');return;}
   var btn=document.querySelector('._ord-submit[onclick*="_submitPublicContact"]');
-  if(btn){btn.disabled=true;btn.textContent='⏳ جاري الإرسال...';}
+  if(btn){btn.disabled=true;btn.textContent='âڈ³ جاري الإرسال...';}
   var contact={id:Date.now()+'_c',type:'contact',client_name:name,client_phone:phone,client_email:email,subject:subject,message:msg,created_at:new Date().toISOString(),read:false};
   supa.from('studio_data').select('data').eq('user_id',userId).maybeSingle().then(function(res){
     if(!res||!res.data) return;
@@ -19380,7 +19668,7 @@ window._submitPublicContact=function(userId){
     if(!ud) return;
     ud.support_msgs=ud.support_msgs||[]; ud.support_msgs.push(contact);
     ud._pending_notifications=ud._pending_notifications||[];
-    ud._pending_notifications.push({id:contact.id+'_n',title:'<i class="fa-solid fa-envelope-open-text"></i> رسالة جديدة!',body:'رسالة من '+name+' — '+subject,type:'contact',created_at:new Date().toISOString(),read:false});
+    ud._pending_notifications.push({id:contact.id+'_n',title:'<i class="fa-solid fa-envelope-open-text"></i> رسالة جديدة!',body:'رسالة من '+name+' ? '+subject,type:'contact',created_at:new Date().toISOString(),read:false});
     return supa.from('studio_data').update({data:JSON.stringify(ud),updated_at:new Date().toISOString()}).eq('user_id',userId);
   }).then(function(){
     document.getElementById('_contact-overlay')&&document.getElementById('_contact-overlay').remove();
@@ -19441,7 +19729,7 @@ function _buildNewOrderPortalPage(userId, portalId){
     var statusColor={'جاري':accent,'مكتملة':'#4fd1a5','معلقة':'#f7c948','ملغي':'#f76f7c'};
 
     pg.innerHTML=
-      // ── Top header ──
+      // â”€â”€ Top header â”€â”€
       '<div style="display:flex;align-items:center;gap:12px;padding:14px 0 20px">'+
         (logo?'<img src="'+escapeHtml(logo)+'" style="width:42px;height:42px;border-radius:12px;object-fit:cover;border:2px solid '+accent+'55">':
           '<div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,'+accent+','+accent+'99);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;font-weight:900">'+
@@ -19453,22 +19741,22 @@ function _buildNewOrderPortalPage(userId, portalId){
         '</div>'+
       '</div>'+
 
-      // ── Welcome card ──
+      // â”€â”€ Welcome card â”€â”€
       '<div class="_cp-card" style="border-right:4px solid '+accent+'">'+
         '<div style="font-size:20px;font-weight:900;color:'+textMain+';margin-bottom:4px">مرحباً، '+escapeHtml(portal.client_name)+' <i class="fa-solid fa-hand-wave"></i></div>'+
-        '<div style="font-size:13px;color:'+textSub+'">'+escapeHtml(portal.service_name)+(portal.pkg_name?' — '+escapeHtml(portal.pkg_name):'')+'</div>'+
+        '<div style="font-size:13px;color:'+textSub+'">'+escapeHtml(portal.service_name)+(portal.pkg_name?' ? '+escapeHtml(portal.pkg_name):'')+'</div>'+
         '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">'+
           '<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:'+textMuted+'"><i class="fa-solid fa-calendar-days"></i> '+new Date(portal.created_at).toLocaleDateString('ar-EG')+'</div>'+
-          '<div class="_cp-badge" style="background:'+accent+'22;color:'+accent+'">● '+escapeHtml(portal.status||'نشط')+'</div>'+
+          '<div class="_cp-badge" style="background:'+accent+'22;color:'+accent+'">â—ڈ '+escapeHtml(portal.status||'نشط')+'</div>'+
         '</div>'+
       '</div>'+
 
-      // ── Progress card ──
+      // â”€â”€ Progress card â”€â”€
       (task?
         '<div class="_cp-card">'+
           '<div class="_cp-section-title"><i class="fa-solid fa-chart-bar"></i> تقدم مشروعك</div>'+
           '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
-            '<span style="font-size:13px;color:'+textSub+'">الحالة: <strong style="color:'+(statusColor[task.status]||accent)+'">'+escapeHtml(task.status||'—')+'</strong></span>'+
+            '<span style="font-size:13px;color:'+textSub+'">الحالة: <strong style="color:'+(statusColor[task.status]||accent)+'">'+escapeHtml(task.status||'?')+'</strong></span>'+
             '<span style="font-size:22px;font-weight:900;color:'+accent+'">'+progress+'%</span>'+
           '</div>'+
           '<div style="height:12px;background:'+cardBg+';border-radius:8px;overflow:hidden;border:1px solid '+cardBorder+'">'+
@@ -19479,14 +19767,14 @@ function _buildNewOrderPortalPage(userId, portalId){
               '<div class="_cp-section-title" style="margin-bottom:8px">خطوات التنفيذ</div>'+
               task.steps.map(function(s){
                 return '<div class="_cp-step">'+
-                  '<span style="font-size:18px;flex-shrink:0">'+(s.done?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>':'⏳')+'</span>'+
+                  '<span style="font-size:18px;flex-shrink:0">'+(s.done?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>':'âڈ³')+'</span>'+
                   '<span style="color:'+(s.done?accent:textSub)+';font-weight:'+(s.done?'700':'400')+';text-decoration:'+(s.done?'none':'none')+'">'+escapeHtml(s.text)+'</span>'+
                 '</div>';
               }).join('')+
             '</div>':'') +
         '</div>':'') +
 
-      // ── Active tasks ──
+      // â”€â”€ Active tasks â”€â”€
       (relatedTasks.length?
         '<div class="_cp-card">'+
           '<div class="_cp-section-title"><i class="fa-solid fa-clipboard-list"></i> المهام والمشاريع ('+relatedTasks.length+')</div>'+
@@ -19497,12 +19785,12 @@ function _buildNewOrderPortalPage(userId, portalId){
                 '<div style="font-size:13px;font-weight:700;color:'+textMain+'">'+escapeHtml(t.title||t.name||'مهمة')+'</div>'+
                 (t.dueDate?'<div style="font-size:11px;color:'+textMuted+'"><i class="fa-solid fa-calendar-days"></i> '+escapeHtml(t.dueDate)+'</div>':'')+
               '</div>'+
-              '<div class="_cp-badge" style="background:'+sc+'22;color:'+sc+'">'+escapeHtml(t.status||'—')+'</div>'+
+              '<div class="_cp-badge" style="background:'+sc+'22;color:'+sc+'">'+escapeHtml(t.status||'?')+'</div>'+
             '</div>';
           }).join('')+
         '</div>':'') +
 
-      // ── Invoices ──
+      // â”€â”€ Invoices â”€â”€
       (relatedInvoices.length?
         '<div class="_cp-card">'+
           '<div class="_cp-section-title"><i class="fa-solid fa-receipt"></i> الفواتير ('+relatedInvoices.length+')</div>'+
@@ -19525,9 +19813,9 @@ function _buildNewOrderPortalPage(userId, portalId){
           }).join('')+
         '</div>':'') +
 
-      // ── Footer ──
+      // â”€â”€ Footer â”€â”€
       '<div style="text-align:center;padding:20px 0;font-size:12px;color:'+textMuted+'">'+
-        escapeHtml(studioName)+' — '+new Date().getFullYear()+
+        escapeHtml(studioName)+' ? '+new Date().getFullYear()+
       '</div>';
 
     document.body.appendChild(pg);
@@ -19584,7 +19872,7 @@ function _buildClientPortalPage(userId, portalId){
     if(phone) footerSocialsHtml+='<a href="https://wa.me/'+phone.replace(/\D/g,'')+'" target="_blank" style="width:38px;height:38px;border-radius:10px;background:'+cardBg+';border:1px solid '+cardBorder+';display:flex;align-items:center;justify-content:center;font-size:16px;text-decoration:none"><i class="fa-solid fa-comments"></i></a>';
     socials.forEach(function(sc){ footerSocialsHtml+='<a href="'+(sc.url||'#')+'" target="_blank" style="width:38px;height:38px;border-radius:10px;background:'+cardBg+';border:1px solid '+cardBorder+';display:flex;align-items:center;justify-content:center;font-size:16px;text-decoration:none">'+(SICONS[sc.platform]||'<i class="fa-solid fa-link"></i>')+'</a>'; });
 
-    // ── CSS ──
+    // â”€â”€ CSS â”€â”€
     document.body.innerHTML='';
     document.body.style.cssText='margin:0;padding:0;background:'+bg+';font-family:Cairo,Tajawal,sans-serif;direction:rtl;color:'+textMain;
     var st=document.createElement('style');
@@ -19613,7 +19901,7 @@ function _buildClientPortalPage(userId, portalId){
       '._cp-footer-inner{max-width:760px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}';
     document.head.appendChild(st);
 
-    // ── NAV ──
+    // â”€â”€ NAV â”€â”€
     var navEl=document.createElement('nav');
     navEl.className='_cp-nav';
     navEl.innerHTML='<div class="_cp-nav-inner">'+
@@ -19628,17 +19916,17 @@ function _buildClientPortalPage(userId, portalId){
     '</div>';
     document.body.appendChild(navEl);
 
-    // ── MAIN WRAP ──
+    // â”€â”€ MAIN WRAP â”€â”€
     var wrap=document.createElement('div'); wrap.className='_cp-wrap';
 
     // Welcome card
     var statusColors={'جديد':accent,'قيد التنفيذ':'#f7c948','مراجعة':'#a78bfa','موقوفة':'#888','مكتملة':'#4fd1a5'};
     var welcomeHtml='<div class="_cp-card" style="border-right:4px solid '+accent+';margin-bottom:20px">'+
       '<div style="font-size:22px;font-weight:900;color:'+textMain+';margin-bottom:6px">مرحباً، '+escapeHtml(portal.client_name)+' <i class="fa-solid fa-hand-wave"></i></div>'+
-      '<div style="font-size:13px;color:'+textSub+'">'+escapeHtml(portal.service_name)+(portal.pkg_name?' — <span style="color:'+accent+'">'+escapeHtml(portal.pkg_name)+'</span>':'')+'</div>'+
+      '<div style="font-size:13px;color:'+textSub+'">'+escapeHtml(portal.service_name)+(portal.pkg_name?' ? <span style="color:'+accent+'">'+escapeHtml(portal.pkg_name)+'</span>':'')+'</div>'+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+
         '<div style="font-size:11px;color:'+textMuted+'"><i class="fa-solid fa-calendar-days"></i> '+new Date(portal.created_at||Date.now()).toLocaleDateString('ar-EG')+'</div>'+
-        '<div class="_badge" style="background:'+accent+'22;color:'+accent+'">● '+escapeHtml(portal.status||'نشط')+'</div>'+
+        '<div class="_badge" style="background:'+accent+'22;color:'+accent+'">â—ڈ '+escapeHtml(portal.status||'نشط')+'</div>'+
       '</div>'+
     '</div>';
 
@@ -19651,8 +19939,8 @@ function _buildClientPortalPage(userId, portalId){
       [
         {l:'مشاريع نشطة',v:activeProjects,c:accent},
         {l:'مكتملة',v:doneProjects,c:'#4fd1a5'},
-        {l:'إجمالي الفواتير',v:(totalInvoiced?totalInvoiced.toLocaleString()+' '+_getCurrency():'—'),c:'#f7c948'},
-        {l:'المدفوع',v:(totalPaid?totalPaid.toLocaleString()+' '+_getCurrency():'—'),c:'#4fd1a5'}
+        {l:'إجمالي الفواتير',v:(totalInvoiced?totalInvoiced.toLocaleString()+' '+_getCurrency():'?'),c:'#f7c948'},
+        {l:'المدفوع',v:(totalPaid?totalPaid.toLocaleString()+' '+_getCurrency():'?'),c:'#4fd1a5'}
       ].map(function(s){
         return '<div style="background:'+surface2+';border:1px solid '+cardBorder+';border-radius:14px;padding:14px;text-align:center">'+
           '<div style="font-size:20px;font-weight:900;color:'+s.c+'">'+s.v+'</div>'+
@@ -19682,14 +19970,14 @@ function _buildClientPortalPage(userId, portalId){
         return '<div class="_proj-card" onclick="_openProjDetail(\''+t.id+'\')">'+
           '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
             '<div style="font-size:14px;font-weight:800;color:'+textMain+'">'+escapeHtml(t.title||t.name||'مشروع')+'</div>'+
-            '<div class="_badge" style="background:'+sc+'22;color:'+sc+'">'+escapeHtml(t.status||'—')+'</div>'+
+            '<div class="_badge" style="background:'+sc+'22;color:'+sc+'">'+escapeHtml(t.status||'?')+'</div>'+
           '</div>'+
           (t.desc?'<div style="font-size:12px;color:'+textSub+';margin-bottom:10px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+escapeHtml(t.desc)+'</div>':'')+
           '<div style="height:6px;background:'+cardBg+';border-radius:3px;margin-bottom:6px"><div style="height:100%;background:'+accent+';border-radius:3px;width:'+prog+'%;transition:.5s"></div></div>'+
           '<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:'+textMuted+'">'+
             '<span>'+prog+'% مكتمل</span>'+
             (t.deadline?'<span><i class="fa-solid fa-calendar-days"></i> '+escapeHtml(t.deadline)+'</span>':'')+
-            '<span style="color:'+accent+';font-weight:700">عرض التفاصيل ↗</span>'+
+            '<span style="color:'+accent+';font-weight:700">عرض التفاصيل â†—</span>'+
           '</div>'+
         '</div>';
       }).join('');
@@ -19705,7 +19993,7 @@ function _buildClientPortalPage(userId, portalId){
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">'+
           '<div>'+
             '<div style="font-size:18px;font-weight:900;color:'+textMain+'">'+escapeHtml(t.title||'مشروع')+'</div>'+
-            '<div class="_badge" style="background:'+sc+'22;color:'+sc+';margin-top:5px">'+escapeHtml(t.status||'—')+'</div>'+
+            '<div class="_badge" style="background:'+sc+'22;color:'+sc+';margin-top:5px">'+escapeHtml(t.status||'?')+'</div>'+
           '</div>'+
           '<button onclick="document.getElementById(\'_proj-detail-overlay\').remove()" style="background:'+cardBg+';border:1px solid '+borderC+';width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;color:'+textMain+'"><i class="fa-solid fa-xmark"></i></button>'+
         '</div>'+
@@ -19721,7 +20009,7 @@ function _buildClientPortalPage(userId, portalId){
           '<div style="font-size:12px;font-weight:800;color:'+textMuted+';margin-bottom:12px"><i class="fa-solid fa-clipboard-list"></i> خطوات التنفيذ</div>'+
           '<div>'+t.steps.map(function(s,i){
             return '<div class="_step-row">'+
-              '<span style="font-size:20px;flex-shrink:0">'+(s.done?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>':'⏳')+'</span>'+
+              '<span style="font-size:20px;flex-shrink:0">'+(s.done?'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>':'âڈ³')+'</span>'+
               '<div style="flex:1">'+
                 '<div style="font-size:13px;color:'+(s.done?accent:textSub)+';font-weight:'+(s.done?'700':'400')+(s.done?';text-decoration:line-through':'')+'">'+escapeHtml(s.text)+'</div>'+
               '</div>'+
@@ -19795,9 +20083,9 @@ function _buildClientPortalPage(userId, portalId){
   });
 }
 
-// ════════════════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // <i class="fa-solid fa-comments"></i>  SUPPORT SYSTEM
-// ════════════════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function renderSupport(){
   var el=document.getElementById('support-grid'); if(!el) return;
   if(typeof S==='undefined') return;
@@ -19810,7 +20098,7 @@ function renderSupport(){
     return;
   }
   el.innerHTML=msgs.map(function(m){
-    var typeIcon={meeting:'<i class="fa-solid fa-calendar-days"></i>',support:'🆘',message:'<i class="fa-solid fa-comments"></i>',svc_order:'<i class="fa-solid fa-inbox"></i>',contact:'<i class="fa-solid fa-envelope-open-text"></i>',meeting_request:'<i class="fa-solid fa-calendar-days"></i>',direct_message:'<i class="fa-solid fa-envelope" style="color:var(--accent)"></i>'}[m.type]||'<i class="fa-solid fa-comments"></i>';
+    var typeIcon={meeting:'<i class="fa-solid fa-calendar-days"></i>',support:'ًں†ک',message:'<i class="fa-solid fa-comments"></i>',svc_order:'<i class="fa-solid fa-inbox"></i>',contact:'<i class="fa-solid fa-envelope-open-text"></i>',meeting_request:'<i class="fa-solid fa-calendar-days"></i>',direct_message:'<i class="fa-solid fa-envelope" style="color:var(--accent)"></i>'}[m.type]||'<i class="fa-solid fa-comments"></i>';
     var typeLabel={meeting:'طلب اجتماع',support:'طلب دعم',message:'رسالة',svc_order:'طلب خدمة',meeting_request:'طلب اجتماع',contact:'رسالة تواصل',direct_message:'رسالة داخلية'}[m.type]||m.type||'رسالة';
     var senderName = m.client_name || m.from || 'عضو';
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
@@ -19825,7 +20113,7 @@ function renderSupport(){
       (m.preferred_time?'<div style="font-size:11px;color:var(--text3)"><i class="fa-solid fa-alarm-clock"></i> '+escapeHtml(m.preferred_time)+'</div>':'')+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">'+
         '<div style="font-size:10px;color:var(--text3)">'+(m.created_at?new Date(m.created_at).toLocaleDateString('ar-EG'):'')+'</div>'+
-        '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openSupportReply(\''+m.id+'\')">↩ رد</button>'+
+        '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openSupportReply(\''+m.id+'\')">â†© رد</button>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -19901,9 +20189,9 @@ window.addEventListener('load', function(){
 })();
 
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // INJECT CSS ANIMATIONS
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 (function(){
   const s = document.createElement('style');
   s.textContent = `
@@ -19914,12 +20202,13 @@ window.addEventListener('load', function(){
   document.head.appendChild(s);
 })();
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // 1. INVOICE TAB SWITCHER
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function switchInvTab(tab){
-  const panels = {invoices:'inv-panel-invoices', contracts:'inv-panel-contracts', statements:'inv-panel-statements'};
-  const btns   = {invoices:'inv-tab-inv', contracts:'inv-tab-ct', statements:'inv-tab-stmt'};
+  _mergeStandalonePagesIntoTabs();
+  const panels = {invoices:'inv-panel-invoices', contracts:'inv-panel-contracts', proposals:'inv-panel-proposals', statements:'inv-panel-statements'};
+  const btns   = {invoices:'inv-tab-inv', contracts:'inv-tab-ct', proposals:'inv-tab-proposals', statements:'inv-tab-stmt'};
   Object.keys(panels).forEach(k=>{
     const p = document.getElementById(panels[k]);
     const b = document.getElementById(btns[k]);
@@ -19929,17 +20218,56 @@ function switchInvTab(tab){
   const addBtn = document.getElementById('inv-add-btn');
   if(addBtn){
     if(tab==='contracts'){ addBtn.textContent='+ عقد جديد'; addBtn.onclick=()=>openContractModal(); }
+    else if(tab==='proposals'){ addBtn.textContent='+ عرض جديد'; addBtn.onclick=()=>openProposalModal(); }
     else if(tab==='statements'){ addBtn.textContent='+ كشف حساب'; addBtn.onclick=()=>_stmtNewDialog(); }
     else { addBtn.textContent='+ فاتورة جديدة'; addBtn.onclick=()=>openInvoiceModal(); }
   }
   if(tab==='contracts') renderContractsList();
+  if(tab==='proposals' && typeof renderProposals==='function') renderProposals();
   if(tab==='statements') _initStatementsPanel();
 }
 
-// ═══════════════════════════════════════════════════
-// 2. PATCH showPage — contracts -> invoices tab
+function switchScheduleTab(tab){
+  _mergeStandalonePagesIntoTabs();
+  const panels={day:'schedule-panel-day', meetings:'schedule-panel-meetings'};
+  const btns={day:'schedule-tab-day', meetings:'schedule-tab-meetings'};
+  Object.keys(panels).forEach(k=>{
+    const p=document.getElementById(panels[k]);
+    const b=document.getElementById(btns[k]);
+    if(p) p.style.display = k===tab ? '' : 'none';
+    if(b) b.classList.toggle('active', k===tab);
+  });
+  const headerBtn=document.querySelector('#page-schedule .page-header .btn-primary');
+  if(headerBtn){
+    if(tab==='meetings'){ headerBtn.innerHTML='<i class="fa-solid fa-plus" style="margin-left:4px"></i> ميتنج جديد'; headerBtn.onclick=()=>openMeetingModal(); }
+    else { headerBtn.innerHTML='<i class="fa-solid fa-plus" style="margin-left:4px"></i> إضافة وقت'; headerBtn.onclick=()=>openSchedModal(); }
+  }
+  if(tab==='meetings' && typeof renderMeetings==='function') renderMeetings();
+}
+
+function _mergeStandalonePagesIntoTabs(){
+  const propPage=document.getElementById('page-proposals');
+  const propPanel=document.getElementById('inv-panel-proposals');
+  if(propPage && propPanel && !propPanel.dataset.merged){
+    while(propPage.firstChild) propPanel.appendChild(propPage.firstChild);
+    propPanel.dataset.merged='1';
+    propPage.style.display='none';
+    propPage.classList.remove('active');
+  }
+  const meetingsPage=document.getElementById('page-meetings');
+  const meetingsPanel=document.getElementById('schedule-panel-meetings');
+  if(meetingsPage && meetingsPanel && !meetingsPanel.dataset.merged){
+    while(meetingsPage.firstChild) meetingsPanel.appendChild(meetingsPage.firstChild);
+    meetingsPanel.dataset.merged='1';
+    meetingsPage.style.display='none';
+    meetingsPage.classList.remove('active');
+  }
+}
+
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// 2. PATCH showPage ? contracts -> invoices tab
 //    (safe: no recursive override)
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 document.addEventListener('click', function(e){
   // intercept any nav click to 'contracts' before showPage fires
 }, true);
@@ -19954,16 +20282,27 @@ if(!window._showPagePatched){
       setTimeout(()=>switchInvTab('contracts'), 40);
       return;
     }
+    if(id === 'proposals'){
+      _spOrig('invoices', el);
+      setTimeout(()=>switchInvTab('proposals'), 40);
+      return;
+    }
+    if(id === 'meetings'){
+      _spOrig('schedule', el);
+      setTimeout(()=>switchScheduleTab('meetings'), 40);
+      return;
+    }
     _spOrig(id, el);
     if(id === 'invoices')  setTimeout(()=>switchInvTab('invoices'), 20);
+    if(id === 'schedule')  setTimeout(()=>switchScheduleTab('day'), 20);
     if(id === 'learning'){ showPage('freelancer-goals'); switchFgTab('courses'); return; }
   if(id === 'freelancer-goals') setTimeout(renderFreelancerGoalsPage, 40);
   };
 }
 
-// ═══════════════════════════════════════════════════
-// 3. TIME TRACKER — task dropdown
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// 3. TIME TRACKER ? task dropdown
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function ttBuildActiveTasks(){
   return (S.tasks||[]).filter(t=>!t.done && t.status!=='done');
 }
@@ -20022,18 +20361,18 @@ window.addEventListener('load', function(){
   }, 1200);
 });
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // 4. DASHBOARD WIDGETS
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function renderDashWidgets(){
   _renderDashGoals();
   _renderDashTimer();
   _renderDashCharts();
 }
 
-// ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // DASH CHARTS WIDGET
-// ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 var _dashChartInstance = null;
 var _dashChartTab = 'perf'; // 'perf' | 'orders'
 
@@ -20064,6 +20403,16 @@ function _renderDashCharts(){
   var daysInMonth = new Date(year, month+1, 0).getDate();
   var todayDay = now.getDate();
   var cur = _getCurrency ? _getCurrency() : 'ج';
+  function _dashTxCurrency(t){
+    return String((t && (t.currency_code || t.currency)) || (S.settings && (S.settings.base_currency_code || S.settings.base_currency || S.settings.currency)) || 'EGP').trim() || 'EGP';
+  }
+  function _dashFmtMoney(amount, code){
+    if(window.OrdoData && typeof window.OrdoData.formatMoney === 'function'){
+      return window.OrdoData.formatMoney(amount || 0, code);
+    }
+    var symbols = {EGP:'ج.م',USD:'$',SAR:'ر.س',AED:'AED',EUR:'€',KWD:'د.ك',QAR:'ر.ق'};
+    return Number(amount || 0).toLocaleString('en-US') + ' ' + (symbols[code] || code || cur);
+  }
 
   // Build daily arrays
   var incomeByDay  = new Array(daysInMonth).fill(0);
@@ -20071,12 +20420,15 @@ function _renderDashCharts(){
   var ordersNewByDay   = new Array(daysInMonth).fill(0);
 
   // Income per day from transactions
+  var incomeByCurrency = {};
   (S.transactions||[]).forEach(function(t){
     if(t.type !== 'income') return;
     var d = new Date(t.isoDate || t.date || '');
     if(d.getFullYear()===year && d.getMonth()===month){
       var day = d.getDate()-1;
       incomeByDay[day] += (t.amount||0);
+      var code = _dashTxCurrency(t);
+      incomeByCurrency[code] = (incomeByCurrency[code] || 0) + (+t.amount || 0);
     }
   });
 
@@ -20113,9 +20465,18 @@ function _renderDashCharts(){
   var ordersEl  = document.getElementById('_chart-stat-orders');
   var bestEl    = document.getElementById('_chart-stat-best-day');
   var rateEl    = document.getElementById('_chart-stat-rate');
-  if(incomeEl)  incomeEl.textContent  = totalIncome.toLocaleString() + ' ' + cur;
+  if(incomeEl){
+    var incomeCodes = Object.keys(incomeByCurrency).filter(function(code){ return incomeByCurrency[code] !== 0; });
+    if(!incomeCodes.length){
+      incomeEl.textContent = _dashFmtMoney(0, _dashTxCurrency({}));
+    } else {
+      incomeEl.innerHTML = '<div class="ordo-chart-currency-lines">'+incomeCodes.map(function(code){
+        return '<div><span>'+code+'</span><b>'+_dashFmtMoney(incomeByCurrency[code], code)+'</b></div>';
+      }).join('')+'</div>';
+    }
+  }
   if(ordersEl)  ordersEl.textContent  = totalCompl;
-  if(bestEl)    bestEl.textContent    = incomeByDay[bestDayIdx] > 0 ? ('يوم '+(bestDayIdx+1)) : '—';
+  if(bestEl)    bestEl.textContent    = incomeByDay[bestDayIdx] > 0 ? ('يوم '+(bestDayIdx+1)) : '?';
   if(rateEl)    rateEl.textContent    = completionRate + '%';
 
   // Detect dark/light mode for chart colors
@@ -20271,7 +20632,7 @@ function _renderDashGoals(){
   if(lt>0){
     rows+=`<div style="font-size:12px;color:var(--text2)"><i class="fa-solid fa-diamond"></i> التعليمية: <span style="font-weight:700;color:var(--accent2)">${ld}/${lt}</span> مكتمل</div>`;
   }
-  if(!rows) rows = `<div style="font-size:12px;color:var(--text3)"><span style="color:var(--accent);cursor:pointer" onclick="showPage('freelancer-goals')">← حدد أهدافك</span></div>`;
+  if(!rows) rows = `<div style="font-size:12px;color:var(--text3)"><span style="color:var(--accent);cursor:pointer" onclick="showPage('freelancer-goals')">â†گ حدد أهدافك</span></div>`;
   dgl.innerHTML = rows;
 }
 
@@ -20285,7 +20646,7 @@ function _renderDashTimer(){
   el.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <div class="section-title" style="margin:0;color:var(--accent3)"><i class="fa-solid fa-stopwatch"></i> تتبع الوقت السريع</div>
-      <button onclick="showPage('timetracker')" class="btn btn-ghost btn-sm" style="font-size:11px">فتح كامل ←</button>
+      <button onclick="showPage('timetracker')" class="btn btn-ghost btn-sm" style="font-size:11px">فتح كامل â†گ</button>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <div style="position:relative;flex:1">
@@ -20294,8 +20655,8 @@ function _renderDashTimer(){
         <div id="_dtt-dd" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;z-index:9001;max-height:160px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,.3)"></div>
       </div>
       <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent3);min-width:68px;text-align:center">${ttFmt(elaps,1)||'00:00'}</div>
-      <button onclick="_dttToggle()" style="width:40px;height:40px;border-radius:50%;background:${running?'var(--accent2)':'var(--accent)'};border:none;color:#fff;font-size:16px;cursor:pointer">${running?'⏸':'<i class="fa-solid fa-play"></i>'}</button>
-      <button onclick="_dttStop()" style="width:36px;height:36px;border-radius:50%;background:rgba(247,111,124,.15);border:1.5px solid rgba(247,111,124,.3);color:var(--accent4);font-size:14px;cursor:pointer">■</button>
+      <button onclick="_dttToggle()" style="width:40px;height:40px;border-radius:50%;background:${running?'var(--accent2)':'var(--accent)'};border:none;color:#fff;font-size:16px;cursor:pointer">${running?'âڈ¸':'<i class="fa-solid fa-play"></i>'}</button>
+      <button onclick="_dttStop()" style="width:36px;height:36px;border-radius:50%;background:rgba(247,111,124,.15);border:1.5px solid rgba(247,111,124,.3);color:var(--accent4);font-size:14px;cursor:pointer">â– </button>
     </div>`;
 }
 
@@ -20333,9 +20694,9 @@ window.addEventListener('load', function(){
   };
 });
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // 5. FREELANCER GOALS PAGE
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function switchFgTab(tab){
   const tabMap = {financial:'fin', tasks:'tasks', learning:'learn', custom:'custom', courses:'courses'};
   Object.keys(tabMap).forEach(k => {
@@ -20418,7 +20779,7 @@ function renderFgFinancial(){
     <div class="card" style="margin-bottom:16px;padding:24px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
         <div>
-          <div style="font-size:12px;color:var(--text3)">الهدف المالي — ${new Date(year,month-1).toLocaleString('ar-EG',{month:'long',year:'numeric'})}</div>
+          <div style="font-size:12px;color:var(--text3)">الهدف المالي ? ${new Date(year,month-1).toLocaleString('ar-EG',{month:'long',year:'numeric'})}</div>
           <div style="font-size:34px;font-weight:900;color:${col}">${pct}%</div>
           <div style="font-size:13px;color:var(--text2)">${actual.toLocaleString()} من ${target.toLocaleString()} ج</div>
         </div>
@@ -20455,7 +20816,7 @@ function renderFgTasks(){
     <div class="card" style="margin-bottom:16px;padding:24px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
         <div>
-          <div style="font-size:12px;color:var(--text3)">هدف الأوردرات (${startDate} ← ${endDate})</div>
+          <div style="font-size:12px;color:var(--text3)">هدف الأوردرات (${startDate} â†گ ${endDate})</div>
           <div style="font-size:34px;font-weight:900;color:${col}">${done.length} / ${target}</div>
           <div style="font-size:13px;color:var(--text2)">${pct}% من الهدف</div>
         </div>
@@ -20514,7 +20875,7 @@ function markGoalDoneNow(id){
   celebrateCompletion('<i class="fa-solid fa-graduation-cap"></i> أكملت الهدف: '+(g.title||''));
 }
 
-// ═══ Courses Tab ═══
+// â•گâ•گâ•گ Courses Tab â•گâ•گâ•گ
 function renderFgCourses(){
   const el = document.getElementById('fg-panel-courses'); if(!el) return;
   if(!S.courses || !S.courses.length){
@@ -20526,7 +20887,7 @@ function renderFgCourses(){
   renderCourses();
 }
 
-// ═══ Custom Goals Tab ═══
+// â•گâ•گâ•گ Custom Goals Tab â•گâ•گâ•گ
 function renderFgCustomGoals(){
   const el = document.getElementById('fg-panel-custom'); if(!el) return;
   const customs = (S.freelancerGoals && S.freelancerGoals.custom) || [];
@@ -20583,7 +20944,7 @@ function renderFgCustomGoals(){
   };
 
   if(!customs.length){
-    el.innerHTML = `<div class="empty card" style="padding:40px;text-align:center"><div class="empty-icon"><i class="fa-solid fa-star"></i></div><div style="margin-bottom:16px">أضف أهدافك الخاصة — صحة، مهارات، مشاريع...</div><button class="btn btn-primary" onclick="openCustomGoalModal()"><i class="fa-solid fa-bullseye" style="margin-left:5px"></i> هدف جديد</button></div>`;
+    el.innerHTML = `<div class="empty card" style="padding:40px;text-align:center"><div class="empty-icon"><i class="fa-solid fa-star"></i></div><div style="margin-bottom:16px">أضف أهدافك الخاصة ? صحة، مهارات، مشاريع...</div><button class="btn btn-primary" onclick="openCustomGoalModal()"><i class="fa-solid fa-bullseye" style="margin-left:5px"></i> هدف جديد</button></div>`;
     return;
   }
 
@@ -20632,7 +20993,7 @@ function delCustomGoal(id){
   });
 }
 
-// ══ Custom Goal Modal ══
+// â•گâ•گ Custom Goal Modal â•گâ•گ
 function openCustomGoalModal(id, presetCat){
   if(!S.freelancerGoals) S.freelancerGoals = {};
   if(!S.freelancerGoals.custom) S.freelancerGoals.custom = [];
@@ -20697,7 +21058,7 @@ function _renderCustomGoalSteps(){
   const el = document.getElementById('_cg-steps-list'); if(!el) return;
   const steps = window._editCustomGoalSteps || [];
   if(!steps.length){
-    el.innerHTML='<div style="text-align:center;padding:12px;color:var(--text3);font-size:12px;border:1.5px dashed var(--border);border-radius:8px">لا خطوات — اضغط + خطوة</div>';
+    el.innerHTML='<div style="text-align:center;padding:12px;color:var(--text3);font-size:12px;border:1.5px dashed var(--border);border-radius:8px">لا خطوات ? اضغط + خطوة</div>';
     return;
   }
   el.innerHTML = steps.map((s,i)=>`
@@ -20841,9 +21202,9 @@ function showMotivationalNotif(msg, color){
   setTimeout(()=>{ try{el.remove();}catch(e){} },6000);
 }
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // 6. CELEBRATION ON TASK COMPLETION
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function celebrateCompletion(msg){
   msg=msg||'<i class="fa-solid fa-champagne-glasses"></i> تم إنجاز المهمة!';
   const cols=['#7c6ff7','#f7c948','#4fd1a5','#f76f7c','#64b5f6','#fff','#ff9f43'];
@@ -20888,19 +21249,19 @@ window.addEventListener('load', function(){
   }
 });
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // DASHBOARD PRESET LAYOUTS
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 var _DASH_PRESETS_MAP = {
   default: [
     {id:'stats',       visible:true,  row:0, full:true},
-    {id:'commitment',  visible:true,  row:1, full:false},
-    {id:'momentum',    visible:true,  row:1, full:false},
-    {id:'charts',      visible:true,  row:2, full:true},
-    {id:'challenge',   visible:true,  row:3, full:true},
-    {id:'tasks',       visible:true,  row:4, full:false},
-    {id:'expected',    visible:true,  row:4, full:false},
-    {id:'kanban',      visible:true,  row:5, full:true},
+    {id:'tasks',       visible:true,  row:1, full:false},
+    {id:'charts',      visible:true,  row:1, full:false},
+    {id:'expected',    visible:true,  row:2, full:false},
+    {id:'challenge',   visible:true,  row:2, full:false},
+    {id:'commitment',  visible:false, row:9, full:false},
+    {id:'momentum',    visible:false, row:9, full:false},
+    {id:'kanban',      visible:false, row:9, full:true},
     {id:'upcoming',    visible:false, row:9, full:false},
     {id:'overdue',     visible:false, row:9, full:false},
     {id:'subs',        visible:false, row:9, full:false},
@@ -20996,9 +21357,16 @@ function _applyDashPreset(name) {
   if(typeof toast === 'function') toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تطبيق القالب');
 }
 
-// ═══════════════════════════════════════════════════
+try{
+  if(localStorage.getItem('_ordo_home_layout_20260504') !== '1'){
+    _saveDashLayout(_DASH_PRESETS_MAP.default.map(function(w){ return {id:w.id,visible:w.visible,row:w.row,full:w.full}; }));
+    localStorage.setItem('_ordo_home_layout_20260504', '1');
+  }
+}catch(e){}
+
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // ADMIN: Create user account from admin dashboard
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function openAdminCreateUser(){
   var modal = document.getElementById('_modal-admin-create-user');
   if(!modal){
@@ -21037,7 +21405,7 @@ async function _adminCreateUser(){
   if(!name||!email||!pass){ if(msg){msg.style.display='block';msg.style.background='rgba(247,111,124,.15)';msg.style.color='var(--accent4)';msg.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> يرجى ملء جميع الحقول المطلوبة';} return; }
   if(pass.length < 6){ if(msg){msg.style.display='block';msg.style.background='rgba(247,111,124,.15)';msg.style.color='var(--accent4)';msg.innerHTML='<i class="fa-solid fa-triangle-exclamation"></i> كلمة المرور يجب أن تكون 6 أحرف على الأقل';} return; }
 
-  if(msg){msg.style.display='block';msg.style.background='rgba(124,111,247,.15)';msg.style.color='var(--accent)';msg.textContent='⏳ جاري إنشاء الحساب...';}
+  if(msg){msg.style.display='block';msg.style.background='rgba(124,111,247,.15)';msg.style.color='var(--accent)';msg.textContent='âڈ³ جاري إنشاء الحساب...';}
 
   try {
     // Use admin API if available, otherwise use regular signup
@@ -21068,9 +21436,9 @@ async function _adminCreateUser(){
   }
 }
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // ADMIN: Send message to user
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function openAdminSendMessage(userId, userName){
   var modal = document.getElementById('_modal-admin-msg');
   if(!modal){
@@ -21091,7 +21459,7 @@ function openAdminSendMessage(userId, userName){
     '<textarea id="_amsg-body" class="form-input" rows="4" placeholder="اكتب رسالتك هنا..."></textarea></div>' +
     '<div class="form-group"><label class="form-label">النوع</label>' +
     '<select id="_amsg-type" class="form-select">' +
-    '<option value="info">ℹ معلومة</option>' +
+    '<option value="info">â„¹ معلومة</option>' +
     '<option value="success"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> إيجابي</option>' +
     '<option value="warning"><i class="fa-solid fa-triangle-exclamation"></i> تحذير</option>' +
     '<option value="message"><i class="fa-solid fa-comments"></i> رسالة</option>' +
@@ -21147,11 +21515,11 @@ async function _adminSendMessage(userId){
 // Load notifications from Supabase (admin messages)
 var _notifTableExists = null; // null=unknown, true=exists, false=missing
 
-// Check if user_notifications table exists (silent — no console errors)
+// Check if user_notifications table exists (silent ? no console errors)
 async function _checkNotifTableExists(){
   if(_notifTableExists !== null) return _notifTableExists;
   try {
-    // Try fetching just 1 row with limit — if table missing, error.code = 42P01
+    // Try fetching just 1 row with limit ? if table missing, error.code = 42P01
     const { error } = await supa.from('user_notifications').select('id').limit(1);
     _notifTableExists = !(error && (error.code === '42P01' || error.message?.includes('does not exist')));
   } catch(e) { _notifTableExists = false; }
@@ -21161,10 +21529,16 @@ async function _checkNotifTableExists(){
 async function _loadServerNotifications(){
   if(!_supaUserId || typeof supa === 'undefined') return;
   
-  // METHOD 1: Check _pending_notifications in S (injected by admin into studio_data)
-  if(typeof S !== 'undefined' && S._pending_notifications && S._pending_notifications.length){
+  // METHOD 1: Check notifications injected by admin into studio_data
+  var injectedNotifs = [];
+  if(typeof S !== 'undefined') {
+    injectedNotifs = injectedNotifs
+      .concat(Array.isArray(S._pending_notifications) ? S._pending_notifications : [])
+      .concat(Array.isArray(S._notifications) ? S._notifications : []);
+  }
+  if(injectedNotifs.length){
     var newCount = 0;
-    S._pending_notifications.forEach(function(n){
+    injectedNotifs.forEach(function(n){
       var exists = _notifications.find(function(x){ return x.id === 'pn_'+n.id; });
       if(!exists){
         _notifications.unshift({
@@ -21177,8 +21551,9 @@ async function _loadServerNotifications(){
         if(!n.read) newCount++;
       }
     });
-    // Clear pending after loading
+    // Clear after loading to avoid repeated imports on refresh
     S._pending_notifications = [];
+    S._notifications = [];
     _queueCloudSave();
     if(newCount > 0){
       _saveNotifications(); _updateNotifBell();
@@ -21250,7 +21625,7 @@ async function _markServerNotifsRead(){
   } catch(e){}
 }
 
-// Poll for new server notifications every 30s — retry after login
+// Poll for new server notifications every 30s ? retry after login
 window.addEventListener('load', function(){
   setTimeout(_loadServerNotifications, 2000);
   setTimeout(_loadServerNotifications, 6000);
@@ -21260,7 +21635,7 @@ window.addEventListener('load', function(){
 async function _pollReviews(){
   if(!_supaUserId||!supa)return;
   try{
-    // ── Sync any locally-stored pending reviews first ──
+    // â”€â”€ Sync any locally-stored pending reviews first â”€â”€
     try{
       const pend=JSON.parse(localStorage.getItem('_ordo_pending_reviews')||'[]');
       const mine=pend.filter(p=>p.uid===_supaUserId);
@@ -21276,7 +21651,7 @@ async function _pollReviews(){
       }
     }catch(e){}
 
-    // ── Check review_queue table ──
+    // â”€â”€ Check review_queue table â”€â”€
     const {data:qRows, error:qErr} = await supa.from('review_queue')
       .select('id, review_json, created_at')
       .eq('target_user_id', _supaUserId)
@@ -21303,11 +21678,11 @@ async function _pollReviews(){
         const _rb=document.getElementById('reviews-badge');
         if(_rb){_rb.textContent=S.reviews.length;_rb.style.display=S.reviews.length?'inline-flex':'none';}
         if(document.getElementById('page-reviews')?.classList.contains('active')) renderReviewsPage();
-        toast('⭐ وصل تقييم جديد!');
+        toast('â­گ وصل تقييم جديد!');
       }
     }
 
-    // ── Also poll studio_data directly (original logic) ──
+    // â”€â”€ Also poll studio_data directly (original logic) â”€â”€
     const {data:row}=await supa.from('studio_data').select('data').eq('user_id',_supaUserId).maybeSingle();
     if(!row?.data)return;
     let fresh=row.data; if(typeof fresh==='string')fresh=JSON.parse(fresh);
@@ -21318,7 +21693,7 @@ async function _pollReviews(){
       const _rb=document.getElementById('reviews-badge');
       if(_rb){_rb.textContent=newRevs.length;_rb.style.display=newRevs.length?'inline-flex':'none';}
       if(document.getElementById('page-reviews')?.classList.contains('active'))renderReviewsPage();
-      toast('⭐ وصل تقييم جديد!');
+      toast('â­گ وصل تقييم جديد!');
     }
   }catch(e){}
 }
@@ -21373,7 +21748,7 @@ async function _syncReviewsNow(btn){
       renderReviewsPage();
       const _rb=document.getElementById('reviews-badge');
       if(_rb){const _rc=S.reviews.length,_rread=+(localStorage.getItem('_reviewsReadCount')||0),_runread=Math.max(0,_rc-_rread);_rb.textContent=_runread;_rb.style.display=_runread?'inline-flex':'none';}
-      toast('⭐ تم إضافة '+found+' تقييم جديد!');
+      toast('â­گ تم إضافة '+found+' تقييم جديد!');
     } else {
       toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> لا توجد تقييمات جديدة');
     }
@@ -21386,12 +21761,12 @@ async function _syncReviewsNow(btn){
 document.addEventListener('visibilitychange', function(){
   if(!document.hidden) {
     _loadServerNotifications();
-    // ── Fix #4: Refresh data from server when tab becomes visible (catches new orders, reviews, meetings) ──
+    // â”€â”€ Fix #4: Refresh data from server when tab becomes visible (catches new orders, reviews, meetings) â”€â”€
     if(_supaUserId && S && window._cloudLoadDone){
       _refreshFromServer();
     }
   } else {
-    // المستخدم غادر التاب — احفظ فوراً للسحابة
+    // المستخدم غادر التاب ? احفظ فوراً للسحابة
     if(_supaUserId && S) {
       clearTimeout(_syncTimer);
       _doCloudSave(S);
@@ -21399,7 +21774,7 @@ document.addEventListener('visibilitychange', function(){
   }
 });
 
-// ── Fix #4: Pull fresh data from server to detect new orders/reviews/meetings ──
+// â”€â”€ Fix #4: Pull fresh data from server to detect new orders/reviews/meetings â”€â”€
 var _lastServerRefresh = 0;
 async function _refreshFromServer(){
   if(!_supaUserId || !S) return;
@@ -21456,14 +21831,14 @@ async function _refreshFromServer(){
   }catch(e){ console.warn('_refreshFromServer error',e); }
 }
 
-// ── Fix #4: Poll for new data every 20 seconds (real-time-like) ──
+// â”€â”€ Fix #4: Poll for new data every 20 seconds (real-time-like) â”€â”€
 setInterval(function(){
   if(!document.hidden && _supaUserId && S && window._cloudLoadDone){
     _refreshFromServer();
   }
 }, 20000);
 
-// ── Fix #5: Increase auto-save frequency to prevent data loss after idle ──
+// â”€â”€ Fix #5: Increase auto-save frequency to prevent data loss after idle â”€â”€
 // The existing _startAutoSave uses 15s which should be fine, but add a keepalive ping
 var _keepAliveTimer = setInterval(function(){
   if(!_supaUserId || !S || !window._cloudLoadDone || !window._appReady) return;
@@ -21475,7 +21850,7 @@ var _keepAliveTimer = setInterval(function(){
   } catch(e) {}
 }, 30000);
 
-// ── Fix #6: Enhanced offline → online reconnection with data sync ──
+// â”€â”€ Fix #6: Enhanced offline ? online reconnection with data sync â”€â”€
 (function(){
   var _wasOffline = false;
   window.addEventListener('offline', function(){
@@ -21487,7 +21862,7 @@ var _keepAliveTimer = setInterval(function(){
       // Save any pending data to cloud
       setTimeout(function(){
         _doCloudSave(S, true);
-        toast('<i class="fa-solid fa-wifi" style="color:var(--accent3)"></i> عاد الاتصال — جاري حفظ البيانات...');
+        toast('<i class="fa-solid fa-wifi" style="color:var(--accent3)"></i> عاد الاتصال ? جاري حفظ البيانات...');
       }, 1500);
       // Also refresh from server to get any updates that happened while offline
       setTimeout(function(){
@@ -21515,7 +21890,7 @@ function _toggleDashEdit(){
 }
 
 function _hideWidget(id){
-  // تحدي الأسبوع لا يمكن إخفاؤه — يثبت دائماً في الصفحة الرئيسية
+  // تحدي الأسبوع لا يمكن إخفاؤه لأنه يثبت دائماً في الصفحة الرئيسية
   if(id === 'challenge') return;
   var layout = _getDashLayout();
   var w = layout.find(function(x){ return x.id===id; });
@@ -21532,25 +21907,11 @@ function _showWidget(id){
 function _widgetInnerHTML(id){
   if(id==='stats'){
     return '<div>' +
-      '<div class="card ordo-score-card" id="_dash-perf-card" style="margin-bottom:12px">' +
-        '<div class="ordo-score-info">' +
-          '<div class="ordo-score-title"><span id="_perf-emoji">💪</span> <span id="_perf-title">أداؤك جيد</span></div>' +
-          '<div class="ordo-score-sub" id="_perf-sub">جارٍ الحساب...</div>' +
-          '<div class="ordo-score-chips" id="_perf-chips"></div>' +
-        '</div>' +
-        '<div class="ordo-ring-wrap">' +
-          '<svg width="78" height="78" viewBox="0 0 78 78">' +
-            '<circle class="ordo-ring-track" cx="39" cy="39" r="30"/>' +
-            '<circle class="ordo-ring-fill" id="_perf-ring-fill" cx="39" cy="39" r="30" stroke="var(--accent4)"/>' +
-          '</svg>' +
-          '<span class="ordo-ring-num" id="_perf-ring-num" style="color:var(--accent4)">0</span>' +
-        '</div>' +
-      '</div>' +
-      '<div class="grid grid-4 ordo-stagger" id="_dash-stats-inner">' +
-        '<div class="card"><div class="stat-label"><i class="fa-solid fa-coins" style="color:var(--accent3)"></i> إيرادات مسجلة</div><div class="stat-value green" id="dash-income">0 ج</div><div class="stat-change">إجمالي الدخل</div></div>' +
-        '<div class="card"><div class="stat-label"><i class="fa-solid fa-clipboard-list" style="color:var(--accent)"></i> مشاريع نشطة</div><div class="stat-value purple" id="dash-projects">0</div><div class="stat-change">غير مكتملة</div></div>' +
-        '<div class="card"><div class="stat-label">✅ مهام مكتملة</div><div class="stat-value yellow" id="dash-done">0</div><div class="stat-change" id="dash-pending-txt">0 معلقة</div></div>' +
-        '<div class="card"><div class="stat-label">👥 العملاء</div><div class="stat-value" id="dash-clients">0</div><div class="stat-change">في قاعدة البيانات</div></div>' +
+      '<div class="grid grid-4 ordo-stagger ordo-home-stats" id="_dash-stats-inner">' +
+        '<div class="card ordo-home-stat-card orange"><div class="ordo-home-stat-icon"><i class="fa-solid fa-clipboard-list"></i></div><div class="stat-label">المهام النشطة</div><div class="stat-value" id="dash-projects">0</div><div class="stat-change">قيد التنفيذ حالياً</div></div>' +
+        '<div class="card ordo-home-stat-card green"><div class="ordo-home-stat-icon"><i class="fa-solid fa-circle-check"></i></div><div class="stat-label">المهام المكتملة هذا الشهر</div><div class="stat-value" id="dash-done">0</div><div class="stat-change" id="dash-pending-txt">0 معلقة</div></div>' +
+        '<div class="card ordo-home-stat-card purple"><div class="ordo-home-stat-icon"><i class="fa-solid fa-users"></i></div><div class="stat-label">العملاء الحاليون</div><div class="stat-value" id="dash-clients">0</div><div class="stat-change">عميل لديهم مشاريع أو خدمات نشطة</div></div>' +
+        '<div class="card ordo-home-stat-card income"><div class="ordo-home-stat-icon"><i class="fa-solid fa-sack-dollar"></i></div><div class="stat-label"><i class="fa-solid fa-wallet" style="color:var(--accent3)"></i> آخر دخل</div><div class="stat-value green" id="dash-income">0 ج</div><div class="stat-change">آخر 3 محافظ حسب الحركة</div></div>' +
       '</div>' +
     '</div>';
   }
@@ -21610,7 +21971,7 @@ function _widgetInnerHTML(id){
       var pct=tasks.length?Math.round(done/tasks.length*100):0;
       return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="showPage(\'projects\');setTimeout(function(){openProjectDetail('+p.id+')},150)">'+
         '<div style="flex:1;min-width:0">'+
-          '<div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(p.name||'—')+'</div>'+
+          '<div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(p.name||'?')+'</div>'+
           (p.client?'<div style="font-size:10px;color:var(--text3)">'+p.client+'</div>':'')+
           (tasks.length?'<div style="height:3px;background:var(--surface3);border-radius:2px;margin-top:5px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:var(--accent);border-radius:2px"></div></div>':'')+
         '</div>'+
@@ -21619,7 +21980,7 @@ function _widgetInnerHTML(id){
     }).join('') : '<div class="empty" style="padding:8px 0"><div style="font-size:12px">لا مشاريع نشطة</div></div>';
     return '<div class="card" style="height:100%"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
       '<div class="section-title" style="margin:0"><i class="fa-solid fa-diagram-project" style="color:var(--accent)"></i> المشاريع النشطة</div>'+
-      '<button onclick="showPage(\'projects\')" class="btn btn-ghost btn-sm" style="font-size:10px">كل المشاريع ←</button></div>'+
+      '<button onclick="showPage(\'projects\')" class="btn btn-ghost btn-sm" style="font-size:10px">كل المشاريع â†گ</button></div>'+
       projHtml+'</div>';
   }
   if(id==='meetings'){
@@ -21643,7 +22004,7 @@ function _widgetInnerHTML(id){
       '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">' +
         '<div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border)">' +
-          '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">إجمالي الدخل هذا الشهر</div>' +
+          '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">إجمالي الدخل حسب العملات</div>' +
           '<div style="font-size:22px;font-weight:900;color:var(--accent3)" id="_chart-stat-income">0 ج</div>' +
         '</div>' +
         '<div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border)">' +
@@ -21652,7 +22013,7 @@ function _widgetInnerHTML(id){
         '</div>' +
         '<div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border)">' +
           '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">أفضل يوم دخل</div>' +
-          '<div style="font-size:18px;font-weight:900;color:var(--accent)" id="_chart-stat-best-day">—</div>' +
+          '<div style="font-size:18px;font-weight:900;color:var(--accent)" id="_chart-stat-best-day">?</div>' +
         '</div>' +
         '<div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;border:1px solid var(--border)">' +
           '<div style="font-size:9px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">معدل الإنجاز</div>' +
@@ -21672,14 +22033,14 @@ function _renderDashGrid(){
   if(!grid) return;
 
   var layout = _getDashLayout().sort(function(a,b){ return a.row - b.row; });
-  // تحدي الأسبوع دائماً مرئي — لا يمكن إخفاؤه
+  // تحدي الأسبوع دائماً مرئي ولا يمكن إخفاؤه
   layout.forEach(function(w){ if(w.id==='challenge') w.visible=true; });
   var visible = layout.filter(function(w){ return w.visible; });
   var hidden  = layout.filter(function(w){ return !w.visible; });
 
   var html = '';
 
-  // Render by rows — group consecutive non-full widgets into 2-col rows
+  // Render by rows ? group consecutive non-full widgets into 2-col rows
   var i = 0;
   while(i < visible.length){
     var w = visible[i];
@@ -21724,7 +22085,7 @@ function _renderDashGrid(){
       hidBtns += '<button onclick="_showWidget(\'' + hw.id + '\')" style="padding:5px 12px;background:var(--surface3);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text2);cursor:pointer;font-family:var(--font)">' + hd.label + '</button>';
     }
     html += '<div style="background:var(--surface2);border:1.5px dashed var(--border);border-radius:12px;padding:12px 14px">' +
-      '<div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:700">ودجتس مخفية — اضغط لإظهارها</div>' +
+      '<div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-weight:700">ويدجت مخفية - اضغط لإظهارها</div>' +
       '<div style="display:flex;flex-wrap:wrap;gap:8px">' + hidBtns + '</div></div>';
   }
 
@@ -21818,9 +22179,9 @@ function _toggleWidgetFull(id){
 // updateDash calls _renderDashGrid if grid is empty (see updateDash function above)
 window.addEventListener('load', function(){ setTimeout(_renderDashGrid, 400); });
 
-// ══════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 //  CLIENT FILTER PANEL TOGGLE
-// ══════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function _toggleClientFilter(){
   var panel = document.getElementById('_cf-filter-panel');
   var btn   = document.getElementById('_cf-filter-toggle');
@@ -21861,9 +22222,9 @@ if(_origResetCF)      resetClientFilters = function(){
   if(btn){ btn.style.background='var(--surface2)'; btn.style.borderColor='var(--border)'; btn.style.color='var(--text2)'; }
 };
 
-// ══════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 //  SCROLL-REVEAL + PAGE-LOAD ANIMATIONS
-// ══════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 (function(){
   // Page load: fade-up the sidebar, header, grid
   function _animatePageLoad(){
@@ -21919,9 +22280,9 @@ if(_origResetCF)      resetClientFilters = function(){
   }
 })();
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // TIME LOG EDIT/DELETE in task detail
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function deleteTimeLog(taskId, dateKey){
   confirmDel('هل تريد حذف هذا السجل الزمني؟', function(){
     var t = S.tasks.find(function(x){ return x.id===taskId; });
@@ -22046,9 +22407,9 @@ function clearAllTimeLogs(taskId){
   });
 }
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // HEADER PROFILE MENU
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function _updateHeaderAvatar(){
   var session = typeof getSession === 'function' ? getSession() : null;
   var _rawAvatar = (session && session.avatarUrl) ? session.avatarUrl : ((typeof S !== 'undefined' && S.settings && (S.settings._avatarUrl || S.settings.logo)) ? (S.settings._avatarUrl || S.settings.logo) : '');
@@ -22103,7 +22464,7 @@ function _toggleProfileMenu(triggerEl){
     '<div style="background:var(--surface3);border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid var(--border)">' +
     '<div style="display:flex;justify-content:space-between;align-items:center">' +
     '<div><div style="font-size:10px;color:var(--text3);font-weight:700">الباقة الحالية</div>' +
-    '<div style="font-size:13px;font-weight:800;color:var(--accent);margin-top:2px">✨ ' + planName + '</div></div>' +
+    '<div style="font-size:13px;font-weight:800;color:var(--accent);margin-top:2px">âœ¨ ' + planName + '</div></div>' +
     expHtml + '</div></div>' +
     '<button onclick="document.getElementById(\'_profile-menu-pop\').remove();openProfileModal()" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;background:none;border:none;color:var(--text);font-size:13px;font-family:var(--font);font-weight:600;cursor:pointer;border-radius:9px;text-align:right" onmouseover="this.style.background=\'var(--surface3)\'" onmouseout="this.style.background=\'none\'">' +
     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>الملف الشخصي</button>' +
@@ -22131,9 +22492,9 @@ window.addEventListener('load', function(){
   setTimeout(_initNotifications, 1500);
 });
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // NOTIFICATIONS SYSTEM
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 var _notifications = [];
 
 function _loadNotifications(){
@@ -22146,7 +22507,7 @@ function _saveNotifications(){
 
 function addNotification(msg, type, link){
   _loadNotifications();
-  // ── منع الإشعارات المكررة: إذا نفس الرسالة موجودة في آخر 10 إشعارات تجاهلها ──
+  // â”€â”€ منع الإشعارات المكررة: إذا نفس الرسالة موجودة في آخر 10 إشعارات تجاهلها â”€â”€
   var msgText = (msg||'').replace(/<[^>]*>/g,'').trim().slice(0,80);
   var isDup = _notifications.slice(0,10).some(function(n){
     var nText = (n.msg||'').replace(/<[^>]*>/g,'').trim().slice(0,80);
@@ -22192,7 +22553,7 @@ function _checkAutoNotifications(){
   if(expiring.length > 0){
     addNotification('<i class="fa-solid fa-bell"></i> ' + expiring.length + ' اشتراك قريب من التجديد', 'info');
   }
-  // ─── تذكير يومي بالتحصيل المتأخر ───
+  // â”€â”€â”€ تذكير يومي بالتحصيل المتأخر â”€â”€â”€
   var pendingInvs = (S.invoices||[]).filter(function(i){
     if(i.status==='paid'||i.status==='cancelled') return false;
     if(!i.date) return false;
@@ -22218,9 +22579,9 @@ function _toggleNotifPanel(triggerEl){
   var existing = document.getElementById('_notif-panel');
   if(existing){ existing.remove(); return; }
   _loadNotifications();
-  // DON'T auto-mark all as read — user chooses when
+  // DON'T auto-mark all as read ? user chooses when
 
-  var ICONS  = {info:'ℹ', success:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>', warning:'<i class="fa-solid fa-triangle-exclamation"></i>', error:'<i class="fa-solid fa-circle-xmark"></i>', message:'<i class="fa-solid fa-comments"></i>', broadcast:'<i class="fa-solid fa-bullhorn"></i>', order:'<i class="fa-solid fa-bag-shopping"></i>'};
+  var ICONS  = {info:'â„¹', success:'<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i>', warning:'<i class="fa-solid fa-triangle-exclamation"></i>', error:'<i class="fa-solid fa-circle-xmark"></i>', message:'<i class="fa-solid fa-comments"></i>', broadcast:'<i class="fa-solid fa-bullhorn"></i>', order:'<i class="fa-solid fa-bag-shopping"></i>'};
   var COLORS = {info:'var(--accent)', success:'var(--accent3)', warning:'var(--accent2)', error:'var(--accent4)', message:'#64b5f6', broadcast:'#f7c948', order:'var(--accent2)'};
 
   var panel = document.createElement('div');
@@ -22236,7 +22597,7 @@ function _toggleNotifPanel(triggerEl){
     ? '<div style="text-align:center;padding:48px 20px;color:var(--text3)"><div style="font-size:36px;margin-bottom:12px;opacity:.4"><i class="fa-solid fa-bell"></i></div><div style="font-size:13px">لا إشعارات</div></div>'
     : _notifications.slice(0,30).map(function(n){
         var ago      = _timeAgo(n.time);
-        var icon     = ICONS[n.type]  || 'ℹ';
+        var icon     = ICONS[n.type]  || 'â„¹';
         var color    = COLORS[n.type] || 'var(--accent)';
         var msgHtml  = (n.msg||'').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
         var isAdminMsg  = !!n.supaId;
@@ -22277,7 +22638,7 @@ function _toggleNotifPanel(triggerEl){
               '<div style="font-size:10px;color:var(--text3)">'+ago+'</div>'+
             '</div>'+
           '</div>'+
-          (navAction?'<div style="font-size:11px;color:var(--accent);flex-shrink:0;margin-top:2px;font-weight:700">←</div>':'')+
+          (navAction?'<div style="font-size:11px;color:var(--accent);flex-shrink:0;margin-top:2px;font-weight:700">â†گ</div>':'')+
         '</div>';
       }).join('');
 
@@ -22349,7 +22710,7 @@ function _clearAllNotifications(){
   ov.id='_notif-confirm-del';
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:99999;padding:16px';
   ov.innerHTML='<div style="background:var(--surface);width:min(360px,90vw);border-radius:18px;padding:28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)">'
-    +'<div style="font-size:36px;margin-bottom:10px">🗑️</div>'
+    +'<div style="font-size:36px;margin-bottom:10px">ًں—‘ï¸ڈ</div>'
     +'<div style="font-size:16px;font-weight:900;color:var(--text);margin-bottom:8px">مسح جميع الإشعارات؟</div>'
     +'<div style="font-size:13px;color:var(--text3);margin-bottom:20px">سيتم حذف كل الإشعارات نهائياً ولن تتمكن من استرجاعها</div>'
     +'<div style="display:flex;gap:10px">'
@@ -22392,9 +22753,9 @@ function _markSingleNotifRead(notifId){
   _updateNotifBell();
 }
 
-// ══════════════════════════════════════════════════════
-// 📥 INBOX SYSTEM — طلبات التعديل والملاحظات من العملاء
-// ══════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// ًں“¥ INBOX SYSTEM ? طلبات التعديل والملاحظات من العملاء
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function _getInbox(){ return S._inbox||[]; }
 
 function _updateInboxBadge(){
@@ -22447,7 +22808,7 @@ function _toggleInboxPanel(triggerEl){
           '<div style="display:flex;align-items:flex-start;gap:10px">'+
             '<div style="width:34px;height:34px;border-radius:50%;background:'+(isNote?'rgba(100,181,246,.15)':'rgba(249,115,22,.15)')+';border:1.5px solid '+(isNote?'#64b5f655':'#f9731655')+';display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">'+(isNote?'<i class="fa-solid fa-comment-dots" style="color:#64b5f6"></i>':'<i class="fa-solid fa-rotate-left" style="color:#f97316"></i>')+'</div>'+
             '<div style="flex:1;min-width:0">'+
-              '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px">'+(isNote?'ملاحظة':'طلب تعديل')+' — '+escapeHtml(item.clientName||'عميل')+'</div>'+
+              '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px">'+(isNote?'ملاحظة':'طلب تعديل')+' ? '+escapeHtml(item.clientName||'عميل')+'</div>'+
               '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">'+escapeHtml(item.taskTitle||'مهمة')+'</div>'+
               (item.note?'<div style="font-size:11px;color:var(--text2);background:var(--surface2);border-radius:7px;padding:6px 9px;border-right:2px solid '+(isNote?'#64b5f6':'#f97316')+'">'+escapeHtml(item.note)+'</div>':'')+
               '<div style="font-size:10px;color:var(--text3);margin-top:4px">'+age+'</div>'+
@@ -22476,7 +22837,7 @@ function _toggleInboxPanel(triggerEl){
           '<div style="display:flex;align-items:flex-start;gap:10px">'+
             '<div style="width:34px;height:34px;border-radius:50%;background:rgba(247,201,72,.12);border:1.5px solid rgba(247,201,72,.35);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0"><i class="fa-solid fa-bag-shopping" style="color:var(--accent2)"></i></div>'+
             '<div style="flex:1;min-width:0">'+
-              '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px">طلب جديد — '+cName+'</div>'+
+              '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px">طلب جديد ? '+cName+'</div>'+
               '<div style="font-size:11px;color:var(--text3);margin-bottom:3px">'+svcName+'</div>'+
               (o.total?'<div style="font-size:12px;font-weight:800;color:var(--accent3)">'+Number(o.total).toLocaleString()+' ج</div>':'')+
               '<div style="font-size:10px;color:var(--text3);margin-top:3px">'+age+'</div>'+
@@ -22495,7 +22856,7 @@ function _toggleInboxPanel(triggerEl){
         '<i class="fa-solid fa-inbox" style="color:var(--accent)"></i> صندوق الوارد'+
         (pendingRevs.length?'<span style="font-size:10px;padding:1px 7px;border-radius:10px;background:#f97316;color:#fff;font-weight:700">'+pendingRevs.length+'</span>':'')+
       '</div>'+
-      '<button onclick="document.getElementById(\'_inbox-panel\').remove()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:2px 6px">✕</button>'+
+      '<button onclick="document.getElementById(\'_inbox-panel\').remove()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:2px 6px">âœ•</button>'+
     '</div>'+
     '<div id="_inbox-tabs" style="display:flex;border-bottom:1px solid var(--border)">'+
       '<button id="_itab-revisions" onclick="_switchInboxTab(\'revisions\')" style="flex:1;padding:10px;font-family:var(--font);font-size:12px;font-weight:700;border:none;cursor:pointer;border-bottom:2px solid '+((_activeTab==='revisions')?'var(--accent)':'transparent')+';background:transparent;color:'+((_activeTab==='revisions')?'var(--accent)':'var(--text3)')+'"><i class="fa-solid fa-rotate-left"></i> تعديلات ('+revisions.length+')</button>'+
@@ -22543,13 +22904,13 @@ function _acceptRevision(inboxId, taskId){
 
   // Show status picker modal
   var statuses=[
-    {id:'progress',label:'قيد التنفيذ',icon:'⚡',color:'var(--accent2)'},
-    {id:'review',label:'مراجعة',icon:'🔍',color:'var(--accent)'},
-    {id:'new',label:'جديد',icon:'📋',color:'var(--text3)'},
-    {id:'revision',label:'تعديلات',icon:'✏️',color:'#f97316'}
+    {id:'progress',label:'قيد التنفيذ',icon:'âڑ،',color:'var(--accent2)'},
+    {id:'review',label:'مراجعة',icon:'ًں”چ',color:'var(--accent)'},
+    {id:'new',label:'جديد',icon:'ًں“‹',color:'var(--text3)'},
+    {id:'revision',label:'تعديلات',icon:'âœڈï¸ڈ',color:'#f97316'}
   ];
   var customStatuses=(S.customStatuses||[]).map(function(cs){
-    return {id:cs.id,label:cs.label,icon:cs.icon||'🔹',color:'var(--accent)'};
+    return {id:cs.id,label:cs.label,icon:cs.icon||'ًں”¹',color:'var(--accent)'};
   });
   var allStatuses=statuses.concat(customStatuses);
 
@@ -22561,7 +22922,7 @@ function _acceptRevision(inboxId, taskId){
   ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
   ov.innerHTML='<div class="modal" style="width:min(400px,95vw);max-height:90vh;overflow-y:auto;border-radius:16px;padding:24px">'+
     '<div style="text-align:center;margin-bottom:20px">'+
-      '<div style="font-size:40px;margin-bottom:8px">✅</div>'+
+      '<div style="font-size:40px;margin-bottom:8px">?</div>'+
       '<div style="font-size:16px;font-weight:900;margin-bottom:6px">قبول طلب التعديل</div>'+
       '<div style="font-size:12px;color:var(--text3)">اختر الحالة الجديدة للمهمة: '+escapeHtml((t&&t.title)||'المهمة')+'</div>'+
     '</div>'+
@@ -22596,7 +22957,7 @@ function _confirmAcceptRevision(inboxId, taskId, newStatus){
     // If team member assigned, re-notify them
     var memberName=t.workerMember||t.assignee_name||'';
     if(memberName){
-      addNotification('<i class="fa-solid fa-user" style="color:#64b5f6"></i> تم إعادة مهمة <strong>'+escapeHtml(t.title)+'</strong> إلى '+escapeHtml(memberName)+' — تعديل من العميل','message');
+      addNotification('<i class="fa-solid fa-user" style="color:#64b5f6"></i> تم إعادة مهمة <strong>'+escapeHtml(t.title)+'</strong> إلى '+escapeHtml(memberName)+' ? تعديل من العميل','message');
     }
   }
 
@@ -22627,7 +22988,7 @@ function _timeAgo(isoStr){
   return 'منذ ' + days + ' يوم';
 }
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 (function(){
   const s = document.createElement('style');
   s.textContent = `
@@ -22650,9 +23011,9 @@ function _timeAgo(isoStr){
   document.head.appendChild(s);
 })();
 
-// ═══════════════════════════════════════════════════
-// CLOUD THEME SYNC — saves theme to S.settings + cloud
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// CLOUD THEME SYNC ? saves theme to S.settings + cloud
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 let _themeSyncTimer = null;
 function _syncThemeToCloud(){
   clearTimeout(_themeSyncTimer);
@@ -22683,32 +23044,33 @@ function _loadThemeFromCloud(){
   }
 }
 
-// ═══════════════════════════════════════════════════
-// PLATFORM NAME — load from Supabase platform config
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// PLATFORM NAME ? load from Supabase platform config
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 async function _loadPlatformNameFromCloud(){
   try{
     if(typeof supa === 'undefined') return;
-    // Load from platform_settings table (admin saves here — global config for all users)
+    // Load from platform_settings table (admin saves here ? global config for all users)
     const { data, error } = await supa
       .from('platform_settings').select('config').eq('id', 1).maybeSingle();
     if(!error && data?.config){
       const cfg = typeof data.config === 'string' ? JSON.parse(data.config) : data.config;
       localStorage.setItem('platform_config', JSON.stringify(cfg));
+      if(cfg && cfg.user_features) localStorage.setItem('ordo_user_features', JSON.stringify(cfg.user_features));
       applyPlatformConfig();
       return;
     }
     // Fallback: use localStorage (same-browser admin)
     applyPlatformConfig();
   } catch(e){
-    // Table doesn't exist yet — use localStorage only
+    // Table doesn't exist yet ? use localStorage only
     applyPlatformConfig();
   }
 }
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // ESC TO CLOSE + ENTER TO SUBMIT
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 document.addEventListener('keydown', function(e){
   if(e.key === 'Escape'){
     // Close topmost open modal
@@ -22807,13 +23169,13 @@ window.addEventListener('load', function(){
   };
 });
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 
-// ════════════════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // PROJECT MANAGEMENT SYSTEM
-// ════════════════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 
-// ── CSS ──
+// â”€â”€ CSS â”€â”€
 (function(){
   const s=document.createElement('style');
   s.textContent=`
@@ -22850,7 +23212,7 @@ window.addEventListener('load', function(){
   document.head.appendChild(s);
 })();
 
-// ── Helpers ──
+// â”€â”€ Helpers â”€â”€
 function _getProjects(){ return S.projects||[]; }
 function _getProjById(id){ return _getProjects().find(p=>String(p.id)===String(id)); }
 function _getProjTasks(projId){ return (S.project_tasks||[]).filter(t=>String(t.project_id)===String(projId)); }
@@ -22880,7 +23242,7 @@ function _getPriorityInfo(p){
   return {high:{label:'عالية',cls:'priority-high'},normal:{label:'عادية',cls:'priority-normal'},low:{label:'منخفضة',cls:'priority-low'}}[p]||{label:p,cls:'priority-normal'};
 }
 
-// ── Task Detail View (popup overlay) ──
+// â”€â”€ Task Detail View (popup overlay) â”€â”€
 function openProjTaskDetail(taskId, projId){
   var t=(S.project_tasks||[]).find(function(x){return String(x.id)===String(taskId);});
   var proj=_getProjById(projId);
@@ -22901,7 +23263,7 @@ function openProjTaskDetail(taskId, projId){
     {id:'hold',label:'موقوف',color:'#888888'},
     {id:'done',label:'مكتمل',color:'#4fd1a5'},
   ];
-  var stInfo=allProjStatuses.find(function(s){return s.id===t.status;})||{label:t.status||'—',color:'#888'};
+  var stInfo=allProjStatuses.find(function(s){return s.id===t.status;})||{label:t.status||'?',color:'#888'};
   var priInfo={high:{label:'عالية',color:'#f76f7c'},normal:{label:'متوسطة',color:'#f7c948'},low:{label:'منخفضة',color:'#4fd1a5'}};
   var pri=priInfo[t.priority||'normal']||priInfo.normal;
   var isLate=t.deadline&&new Date(t.deadline)<new Date()&&t.status!=='done';
@@ -22917,7 +23279,7 @@ function openProjTaskDetail(taskId, projId){
   over.innerHTML=
   '<div class="modal" id="_ptd-modal-'+t.id+'" style="width:min(680px,97vw);max-height:92vh;overflow-y:auto;border-radius:20px;padding:0">'+
 
-  // ── Header ──
+  // â”€â”€ Header â”€â”€
   '<div style="background:'+clr+'18;border-bottom:1px solid var(--border);padding:20px 22px;border-radius:20px 20px 0 0;position:sticky;top:0;z-index:10">'+
     '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">'+
       '<div style="flex:1;min-width:0">'+
@@ -22925,19 +23287,19 @@ function openProjTaskDetail(taskId, projId){
         '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+
           '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+stInfo.color+'22;color:'+stInfo.color+'">'+stInfo.label+'</span>'+
           '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+pri.color+'22;color:'+pri.color+'">'+pri.label+'</span>'+
-          (t.deadline?'<span style="font-size:11px;color:'+(isLate?'#f76f7c':'var(--text3)')+'"><i class="fa-solid fa-calendar"></i> '+t.deadline+(isLate?' ⚠️متأخرة':'')+'</span>':'')+
+          (t.deadline?'<span style="font-size:11px;color:'+(isLate?'#f76f7c':'var(--text3)')+'"><i class="fa-solid fa-calendar"></i> '+t.deadline+(isLate?' âڑ ï¸ڈمتأخرة':'')+'</span>':'')+
           (proj?'<span style="font-size:11px;color:var(--accent);background:'+clr+'15;padding:3px 10px;border-radius:20px;font-weight:700"><i class="fa-solid fa-folder-open"></i> '+escapeHtml(proj.name)+'</span>':'')+
         '</div>'+
       '</div>'+
       '<div style="display:flex;gap:6px;flex-shrink:0">'+
         '<button onclick="this.closest(\'.modal-overlay\').remove();openProjTaskModal(\''+projId+'\',\''+taskId+'\')" class="btn btn-ghost btn-sm" title="تعديل"><i class="fa-solid fa-pen"></i></button>'+
         '<button onclick="if(confirm(\'حذف المهمة؟\')){this.closest(\'.modal-overlay\').remove();deleteProjTask(\''+taskId+'\',\''+projId+'\')}" class="btn btn-danger btn-sm" title="حذف"><i class="fa-solid fa-trash"></i></button>'+
-        '<button onclick="this.closest(\'.modal-overlay\').remove()" style="background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text);font-size:16px;flex-shrink:0">✕</button>'+
+        '<button onclick="this.closest(\'.modal-overlay\').remove()" style="background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text);font-size:16px;flex-shrink:0">âœ•</button>'+
       '</div>'+
     '</div>'+
   '</div>'+
 
-  // ── Body ──
+  // â”€â”€ Body â”€â”€
   '<div style="padding:20px 22px;display:flex;flex-direction:column;gap:16px">'+
 
   // تغيير الحالة inline
@@ -22972,7 +23334,7 @@ function openProjTaskDetail(taskId, projId){
         '<div style="font-size:17px;font-weight:900;color:#f7c948">'+t.value.toLocaleString()+'</div>'+
         '<div style="font-size:10px;color:var(--text3)">'+cur+'</div>'+
         '<div style="margin-top:6px;font-size:10px;font-weight:800;color:'+(t.paymentCollected?'#4fd1a5':'#f97316')+'">'+
-          (t.paymentCollected?'✅ محصّل':'⏳ معلق')+
+          (t.paymentCollected?'? محصّل':'⏳ معلق')+
         '</div>'+
       '</div>':'')  +
     (t.orderDate?
@@ -23084,7 +23446,7 @@ function setProjView(v){
   renderProjects();
 }
 
-// ── Render Projects List ──
+// â”€â”€ Render Projects List â”€â”€
 function renderProjects(){
   var container=document.getElementById('projects-container'); if(!container) return;
   var filter=(document.getElementById('proj-filter-status')||{}).value||'';
@@ -23100,7 +23462,7 @@ function renderProjects(){
 
   if(!projs.length){
     container.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text3)">
-      <div style="font-size:48px;margin-bottom:12px">📁</div>
+      <div style="font-size:48px;margin-bottom:12px">ًں“پ</div>
       <div style="font-size:16px;font-weight:700;margin-bottom:6px">لا توجد مشاريع بعد</div>
       <div style="font-size:13px;margin-bottom:16px">ابدأ بإنشاء مشروعك الأول</div>
       <button class="btn btn-primary" onclick="openProjectModal()"><i class="fa-solid fa-plus"></i> مشروع جديد</button>
@@ -23125,7 +23487,7 @@ function renderProjCard(p){
   var clr=p.color||'var(--accent)';
   var deadline=p.deadline?new Date(p.deadline):null;
   var isOverdue=deadline&&deadline<new Date()&&p.status!=='done';
-  var typeLabel=p.projectType==='team'?'👥 فريق':'💼 تاسكات';
+  var typeLabel=p.projectType==='team'?'ًں‘¥ فريق':'💼 تاسكات';
   var typeClr=p.projectType==='team'?'var(--accent2)':'var(--accent)';
   var totalVal=tasks.reduce(function(s,t){return s+(t.value||0);},0);
   var collectedVal=tasks.filter(function(t){return t.paymentCollected||t.paymentStatus==='collected';}).reduce(function(s,t){return s+(t.value||0);},0);
@@ -23138,10 +23500,10 @@ function renderProjCard(p){
       </div>
       <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:10px;background:${typeClr}18;color:${typeClr};border:1px solid ${typeClr}33;margin-bottom:6px;display:inline-block">${typeLabel}</span>
       <div class="proj-card-client">${client?'<i class="fa-solid fa-user"></i> '+escapeHtml(client.name):'<i class="fa-solid fa-circle-minus"></i> بدون عميل'}</div>
-      ${totalVal>0?`<div style="font-size:10px;color:var(--text3);margin-top:4px;display:flex;gap:10px"><span><i class="fa-solid fa-coins" style="color:#f7c948"></i> <span style="color:#f7c948;font-weight:700">${totalVal.toLocaleString()}</span></span><span style="color:#4fd1a5">✅ ${collectedVal.toLocaleString()} محصّل</span></div>`:''}
+      ${totalVal>0?`<div style="font-size:10px;color:var(--text3);margin-top:4px;display:flex;gap:10px"><span><i class="fa-solid fa-coins" style="color:#f7c948"></i> <span style="color:#f7c948;font-weight:700">${totalVal.toLocaleString()}</span></span><span style="color:#4fd1a5">? ${collectedVal.toLocaleString()} محصّل</span></div>`:''}
       <div class="proj-progress-bar" style="margin-top:8px"><div class="proj-progress-fill" style="width:${prog}%;background:${clr}"></div></div>
       <div class="proj-progress-label"><span>${prog}% مكتمل</span><span>${tasks.filter(t=>t.status==='done').length}/${tasks.length} مهمة</span></div>
-      ${p.deadline?`<div style="font-size:10px;margin-top:6px;color:${isOverdue?'var(--accent4)':'var(--text3)'}"><i class="fa-solid fa-calendar${isOverdue?' fa-shake':''}"></i> ${p.deadline}${isOverdue?' — متأخر!':''}</div>`:''}
+      ${p.deadline?`<div style="font-size:10px;margin-top:6px;color:${isOverdue?'var(--accent4)':'var(--text3)'}"><i class="fa-solid fa-calendar${isOverdue?' fa-shake':''}"></i> ${p.deadline}${isOverdue?' ? متأخر!':''}</div>`:''}
     </div>
     <div class="proj-card-footer">
       <div style="display:flex;gap:-6px">${(p.members||[]).slice(0,4).map(m=>`<div style="width:26px;height:26px;border-radius:50%;background:${p.color||'var(--accent)'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;border:2px solid var(--surface);margin-left:-6px">${(m.name||'?').charAt(0).toUpperCase()}</div>`).join('')}</div>
@@ -23167,7 +23529,7 @@ function renderProjListItem(p){
           <span style="font-size:14px;font-weight:800">${escapeHtml(p.name)}</span>
           <span class="proj-status-badge" style="color:${st.color};background:${st.bg}">${st.label}</span>
         </div>
-        <div style="font-size:11px;color:var(--text3)">${client?escapeHtml(client.name):'بدون عميل'} · ${tasks.length} مهمة</div>
+        <div style="font-size:11px;color:var(--text3)">${client?escapeHtml(client.name):'بدون عميل'} آ· ${tasks.length} مهمة</div>
       </div>
       <div style="width:120px;flex-shrink:0">
         <div class="proj-progress-bar"><div class="proj-progress-fill" style="width:${prog}%;background:${clr}"></div></div>
@@ -23181,7 +23543,7 @@ function renderProjListItem(p){
   </div>`;
 }
 
-// ── Project Modal ──
+// â”€â”€ Project Modal â”€â”€
 var _projColorPicked='#7c6ff7';
 function pickProjColor(c){
   _projColorPicked=c;
@@ -23218,12 +23580,12 @@ function openProjectModal(id){
   if(budType) budType.value=proj?proj.pricingType||'fixed':'fixed';
   // Client select
   var csel=document.getElementById('proj-client');
-  csel.innerHTML='<option value="">— بدون عميل —</option>'+(S.clients||[]).map(c=>`<option value="${c.id}"${proj&&String(proj.client_id)===String(c.id)?' selected':''}>${escapeHtml(c.name)}</option>`).join('');
+  csel.innerHTML='<option value="">? بدون عميل ?</option>'+(S.clients||[]).map(c=>`<option value="${c.id}"${proj&&String(proj.client_id)===String(c.id)?' selected':''}>${escapeHtml(c.name)}</option>`).join('');
   // Team select dropdown
   var tsel=document.getElementById('proj-team-select');
   if(tsel){
     var teamGroups=_getTeamGroups();
-    tsel.innerHTML='<option value="">— اختر فريق (اختياري) —</option>'+teamGroups.map(function(g){
+    tsel.innerHTML='<option value="">? اختر فريق (اختياري) ?</option>'+teamGroups.map(function(g){
       return '<option value="'+g.id+'"'+(proj&&proj.team_group_id===g.id?' selected':'')+'>'+escapeHtml(g.name)+'</option>';
     }).join('');
   }
@@ -23271,7 +23633,7 @@ function onProjTeamChange(teamGroupId){
   }
 }
 
-// ── فلتر الفريق في modal مهمة المشروع ──
+// â”€â”€ فلتر الفريق في modal مهمة المشروع â”€â”€
 function onPtaskTeamChange(teamGroupId){
   var projId = document.getElementById('ptask-proj-id')?.value;
   var proj = projId ? _getProjById(projId) : null;
@@ -23305,7 +23667,7 @@ function onPtaskTeamChange(teamGroupId){
   var asel = document.getElementById('ptask-assignee');
   if(!asel) return;
   var curVal = asel.value;
-  asel.innerHTML = '<option value="">— اختر من '+(teamGroupId?'الفريق':'الأعضاء')+' —</option>' +
+  asel.innerHTML = '<option value="">? اختر من '+(teamGroupId?'الفريق':'الأعضاء')+' ?</option>' +
     members.map(function(m){
       var n = escapeHtml(m.name||m.email||'?');
       var sel = curVal===String(m.id) ? 'selected' : '';
@@ -23342,7 +23704,7 @@ function saveProject(){
     if(!name){ toast('<i class="fa-solid fa-triangle-exclamation"></i> اسم المشروع مطلوب'); return; }
     if(!S.projects) S.projects = [];
 
-    // ── Collect selected members safely ──
+    // â”€â”€ Collect selected members safely â”€â”€
     var members = [];
     try {
       var selEls = document.querySelectorAll('#proj-members-select .selected');
@@ -23381,7 +23743,7 @@ function saveProject(){
       d.id = Date.now(); S.projects.push(d);
     }
 
-    // ── Force save regardless of _appReady state ──
+    // â”€â”€ Force save regardless of _appReady state â”€â”€
     window._appReady = true;
     window._cloudLoadDone = true;
     try { lsSave(); } catch(e){}
@@ -23408,9 +23770,9 @@ function deleteProject(id){
   });
 }
 
-// ════════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // PROJECT DETAIL PAGE
-// ════════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 var _currentProjId=null;
 var _currentProjTab='overview';
 
@@ -23436,7 +23798,7 @@ function renderProjectDetail(){
   var client=(S.clients||[]).find(c=>String(c.id)===String(proj.client_id));
   var clr=proj.color||'var(--accent)';
 
-  var tabs={overview:'نظرة عامة',tasks:'المهام',kanban:'كانبان',table:'<i class="fa-solid fa-table"></i> جدول',finance:'💰 المالية',team:'الفريق',files:'الملفات'};
+  var tabs={overview:'نظرة عامة',tasks:'المهام',kanban:'كانبان',table:'<i class="fa-solid fa-table"></i> جدول',finance:'ًں’° المالية',team:'الفريق',files:'الملفات'};
   var tabsHtml=Object.keys(tabs).map(k=>`<button class="proj-tab${_currentProjTab===k?' active':''}" onclick="switchProjTab('${k}')">${tabs[k]}</button>`).join('');
 
   var inner=document.getElementById('proj-detail-inner'); if(!inner) return;
@@ -23448,7 +23810,7 @@ function renderProjectDetail(){
         <div style="width:12px;height:12px;border-radius:50%;background:${clr};flex-shrink:0"></div>
         <div style="flex:1">
           <div style="font-size:16px;font-weight:900">${escapeHtml(proj.name)}</div>
-          <div style="font-size:11px;color:var(--text3)">${client?escapeHtml(client.name)+' · ':''}<span style="color:${st.color}">${st.label}</span></div>
+          <div style="font-size:11px;color:var(--text3)">${client?escapeHtml(client.name)+' آ· ':''}<span style="color:${st.color}">${st.label}</span></div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="openProjSharePortal('${id}')"><i class="fa-solid fa-share-nodes"></i> مشاركة مع العميل</button>
         <button class="btn btn-ghost btn-sm" onclick="openProjectModal('${id}')"><i class="fa-solid fa-pen"></i></button>
@@ -23457,7 +23819,7 @@ function renderProjectDetail(){
       <div style="margin-top:10px">
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:4px">
           <span>تقدم المشروع</span>
-          <span>${tasks.filter(t=>t.status==='done').length}/${tasks.length} مهمة · ${prog}%</span>
+          <span>${tasks.filter(t=>t.status==='done').length}/${tasks.length} مهمة آ· ${prog}%</span>
         </div>
         <div style="height:8px;background:var(--surface3);border-radius:4px;overflow:hidden">
           <div style="height:100%;width:${prog}%;background:${clr};border-radius:4px;transition:.4s"></div>
@@ -23490,7 +23852,7 @@ function renderProjTabContent(tab, proj, tasks, client, clr){
   return '';
 }
 
-// ── جدول المهام الكامل للمشروع مع تغيير الحالة inline ──
+// â”€â”€ جدول المهام الكامل للمشروع مع تغيير الحالة inline â”€â”€
 function renderProjTasksFullTable(proj, tasks, clr){
   var customStatuses = S.customStatuses || [];
   var baseStatuses = [
@@ -23507,7 +23869,7 @@ function renderProjTasksFullTable(proj, tasks, clr){
   var collectedVal = tasks.filter(function(t){return t.paymentCollected||t.paymentStatus==='collected';}).reduce(function(s,t){return s+(t.value||0);},0);
 
   function stSelect(t){
-    var info = allStatuses.find(function(s){return s.id===t.status;})||{label:t.status||'—',color:'#888'};
+    var info = allStatuses.find(function(s){return s.id===t.status;})||{label:t.status||'?',color:'#888'};
     var opts = allStatuses.map(function(s){
       return '<option value="'+s.id+'"'+(t.status===s.id?' selected':'')+'>'+s.label+'</option>';
     }).join('');
@@ -23519,7 +23881,7 @@ function renderProjTasksFullTable(proj, tasks, clr){
         +'style="appearance:none;-webkit-appearance:none;font-size:10px;font-weight:800;padding:3px 24px 3px 10px;border-radius:20px;background:'+info.color+'22;color:'+info.color+';border:1.5px solid '+info.color+'55;cursor:pointer;outline:none;font-family:var(--font);min-width:88px">'
         +opts
       +'</select>'
-      +'<span style="position:absolute;left:7px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:8px;color:'+info.color+'">▾</span>'
+      +'<span style="position:absolute;left:7px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:8px;color:'+info.color+'">?</span>'
     +'</div>';
   }
 
@@ -23540,7 +23902,7 @@ function renderProjTasksFullTable(proj, tasks, clr){
   +'</div>';
 
   if(!tasks.length){
-    return header+'<div style="text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:40px;margin-bottom:12px">📋</div><div style="font-weight:700;margin-bottom:8px">لا توجد مهام</div><button class="btn btn-primary" onclick="openProjTaskModal(\''+proj.id+'\')"><i class="fa-solid fa-plus"></i> أضف مهمة</button></div>';
+    return header+'<div style="text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:40px;margin-bottom:12px">ًں“‹</div><div style="font-weight:700;margin-bottom:8px">لا توجد مهام</div><button class="btn btn-primary" onclick="openProjTaskModal(\''+proj.id+'\')"><i class="fa-solid fa-plus"></i> أضف مهمة</button></div>';
   }
 
   var rows = tasks.map(function(t, idx){
@@ -23561,13 +23923,13 @@ function renderProjTasksFullTable(proj, tasks, clr){
         +(t.taskNote?'<div style="font-size:9px;color:var(--accent);font-weight:600;margin-top:1px"><i class="fa-solid fa-comment-dots"></i> '+escapeHtml(t.taskNote.substring(0,50))+'</div>':'')
       +'</td>'
       +'<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'+stSelect(t)+'</td>'
-      +'<td style="padding:11px 8px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono)">'+(t.orderDate||'—')+'</td>'
-      +'<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+( t.deadline||'—')+'</td>'
+      +'<td style="padding:11px 8px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono)">'+(t.orderDate||'?')+'</td>'
+      +'<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'">'+( t.deadline||'?')+'</td>'
       +'<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border)">'
-        +(t.value>0?'<div style="font-weight:900;color:#f7c948;font-size:12px">'+t.value.toLocaleString()+' '+cur+'</div><div style="font-size:9px;color:'+payColor+';font-weight:700;margin-top:2px">'+payLabel+'</div>':'<span style="color:var(--text3)">—</span>')
+        +(t.value>0?'<div style="font-weight:900;color:#f7c948;font-size:12px">'+t.value.toLocaleString()+' '+cur+'</div><div style="font-size:9px;color:'+payColor+';font-weight:700;margin-top:2px">'+payLabel+'</div>':'<span style="color:var(--text3)">?</span>')
       +'</td>'
       +'<td style="padding:11px 8px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border);font-size:11px">'
-        +(t.assignee_name?'<div style="display:flex;align-items:center;gap:5px;justify-content:center"><div style="width:22px;height:22px;border-radius:50%;background:'+clr+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;flex-shrink:0">'+t.assignee_name.charAt(0).toUpperCase()+'</div>'+escapeHtml(t.assignee_name)+'</div>':'—')
+        +(t.assignee_name?'<div style="display:flex;align-items:center;gap:5px;justify-content:center"><div style="width:22px;height:22px;border-radius:50%;background:'+clr+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;flex-shrink:0">'+t.assignee_name.charAt(0).toUpperCase()+'</div>'+escapeHtml(t.assignee_name)+'</div>':'?')
       +'</td>'
       +'<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'
         +'<div style="display:flex;gap:3px;justify-content:center;align-items:center">'
@@ -23585,7 +23947,7 @@ function renderProjTasksFullTable(proj, tasks, clr){
     +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
     +'<thead><tr style="background:var(--surface2)">'
       +'<th style="padding:10px 14px;text-align:right;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المهمة</th>'
-      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة ▾</th>'
+      +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الحالة ?</th>'
       +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">تاريخ الطلب</th>'
       +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">الديدلاين</th>'
       +'<th style="padding:10px 8px;text-align:center;font-weight:800;color:var(--text3);border-bottom:1px solid var(--border)">المبلغ</th>'
@@ -23602,7 +23964,7 @@ function renderProjTasksFullTable(proj, tasks, clr){
     +'</table></div>';
 }
 
-// ── Overview Tab ──
+// â”€â”€ Overview Tab â”€â”€
 function renderProjOverview(proj,tasks,client,clr){
   var prog=_getProjProgress(proj.id);
   var st=_getProjStatusInfo(proj.status);
@@ -23634,7 +23996,13 @@ function renderProjOverview(proj,tasks,client,clr){
 
   var html='';
 
-  // ── Row 1: بطاقات ملخص سريع ──
+  // â”€â”€ Integration Layer: ملخص مالي من الفواتير المرتبطة â”€â”€
+  if(typeof renderProjectFinanceSummaryHTML==='function'){
+    var _finSummary=renderProjectFinanceSummaryHTML(proj.id);
+    if(_finSummary) html+='<div style="margin-bottom:14px">'+_finSummary+'</div>';
+  }
+
+  // â”€â”€ Row 1: بطاقات ملخص سريع â”€â”€
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px">';
   var cards=[
     {label:'إجمالي المهام',val:totalTasks,color:clr,icon:'fa-clipboard-list'},
@@ -23652,7 +24020,7 @@ function renderProjOverview(proj,tasks,client,clr){
   });
   html+='</div>';
 
-  // ── Row 2: تفاصيل المشروع + المالية ──
+  // â”€â”€ Row 2: تفاصيل المشروع + المالية â”€â”€
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">';
 
   // تفاصيل
@@ -23662,7 +24030,7 @@ function renderProjOverview(proj,tasks,client,clr){
     +'<div style="display:flex;flex-direction:column;gap:8px;font-size:12px">'
       +(client?'<div style="display:flex;gap:8px;align-items:center"><span style="color:var(--text3);width:90px"><i class="fa-solid fa-user"></i> العميل</span><strong>'+escapeHtml(client.name)+'</strong></div>':'')
       +(proj.start?'<div style="display:flex;gap:8px;align-items:center"><span style="color:var(--text3);width:90px"><i class="fa-solid fa-play"></i> البدء</span><strong>'+proj.start+'</strong></div>':'')
-      +(proj.deadline?'<div style="display:flex;gap:8px;align-items:center"><span style="color:var(--text3);width:90px"><i class="fa-solid fa-flag-checkered"></i> الموعد النهائي</span><strong style="color:'+(proj.deadline<today?'#f76f7c':clr)+'">'+proj.deadline+(proj.deadline<today?' ⚠️':'')+'</strong></div>':'')
+      +(proj.deadline?'<div style="display:flex;gap:8px;align-items:center"><span style="color:var(--text3);width:90px"><i class="fa-solid fa-flag-checkered"></i> الموعد النهائي</span><strong style="color:'+(proj.deadline<today?'#f76f7c':clr)+'">'+proj.deadline+(proj.deadline<today?' âڑ ï¸ڈ':'')+'</strong></div>':'')
       +'<div style="display:flex;gap:8px;align-items:center"><span style="color:var(--text3);width:90px"><i class="fa-solid fa-circle"></i> الحالة</span>'
         +'<select style="background:'+clr+'22;border:1px solid '+clr+'55;border-radius:8px;color:'+clr+';font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;font-family:var(--font)" onchange="changeProjStatus(\''+proj.id+'\',this.value)">'
           +statusOpts.map(function(s){return '<option value="'+s+'"'+(proj.status===s?' selected':'')+'>'+_getProjStatusInfo(s).label+'</option>';}).join('')
@@ -23711,7 +24079,7 @@ function renderProjOverview(proj,tasks,client,clr){
 
   html+='</div>'; // end row 2
 
-  // ── Row 3: Gantt-lite ──
+  // â”€â”€ Row 3: Gantt-lite â”€â”€
   if(timedTasks.length>0){
     html+='<div class="card" style="margin-bottom:14px">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
@@ -23730,7 +24098,7 @@ function renderProjOverview(proj,tasks,client,clr){
         {id:'hold',label:'موقوف',color:'#888888'},
         {id:'done',label:'مكتمل',color:'#4fd1a5'},
       ];
-      var stInf=allProjSt.find(function(s){return s.id===t.status;})||{label:'—',color:'#888'};
+      var stInf=allProjSt.find(function(s){return s.id===t.status;})||{label:'?',color:'#888'};
       html+='<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;margin-bottom:5px;background:var(--surface2);cursor:pointer;transition:.15s" '
         +'onmouseover="this.style.background=\'var(--surface3)\'" onmouseout="this.style.background=\'var(--surface2)\'" '
         +'onclick="openProjTaskDetail(\''+t.id+'\',\''+proj.id+'\')">'
@@ -23745,7 +24113,7 @@ function renderProjOverview(proj,tasks,client,clr){
         +'<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:'+stInf.color+'22;color:'+stInf.color+';font-weight:700;white-space:nowrap">'+stInf.label+'</span>'
         // deadline
         +'<span style="font-size:11px;font-weight:700;color:'+(isLate?'#f76f7c':isDone?'#4fd1a5':'var(--text3)')+';white-space:nowrap;font-family:var(--mono)">'
-          +(isLate?'⚠️ ':isDone?'✅ ':'📅 ')+t.deadline
+          +(isLate?'âڑ ï¸ڈ ':isDone?'? ':'ًں“… ')+t.deadline
         +'</span>'
         +'</div>';
     });
@@ -23753,7 +24121,7 @@ function renderProjOverview(proj,tasks,client,clr){
     html+='</div>';
   }
 
-  // ── Row 4: الفريق ──
+  // â”€â”€ Row 4: الفريق â”€â”€
   if(teamMembers.length>0){
     html+='<div class="card" style="margin-bottom:14px">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
@@ -23782,7 +24150,63 @@ function renderProjOverview(proj,tasks,client,clr){
     html+='</div></div>';
   }
 
-  // ── Row 5: آخر المهام ──
+  // â”€â”€ Row 4.5: الكيانات المرتبطة (Integration Layer) â”€â”€
+  (function(){
+    var _links = [];
+    // العميل
+    if(client){
+      _links.push('<a style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);cursor:pointer;text-decoration:none" onclick="closeM(\'modal-project-detail\');setTimeout(()=>openClientProfile('+client.id+'),150)">'
+        +'<div style="width:28px;height:28px;border-radius:50%;background:'+(client.color||clr)+'22;color:'+(client.color||clr)+';display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0">'+(client.name||'?')[0]+'</div>'
+        +'<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escapeHtml(client.name)+'</div><div style="font-size:10px;color:var(--text3)">العميل</div></div>'
+        +'<i class="fa-solid fa-arrow-left" style="font-size:10px;color:var(--text3)"></i></a>');
+    }
+    // العرض المرتبط
+    if(typeof getProjectProposal==='function'){
+      var _prop=getProjectProposal(proj.id);
+      if(_prop){
+        var _pstC={pending:'#f7c948',draft:'var(--text3)',accepted:'var(--accent3)',rejected:'var(--accent4)',expired:'var(--text3)'};
+        _links.push('<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">'
+          +'<div style="width:28px;height:28px;border-radius:50%;background:var(--accent)22;color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0"><i class="fa-solid fa-file-invoice"></i></div>'
+          +'<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escapeHtml(_prop.title||'عرض سعر')+'</div><div style="font-size:10px;color:'+(_pstC[_prop.status]||'var(--text3)')+'">عرض السعر آ· '+(_prop.status||'?')+'</div></div>'
+          +'</div>');
+      }
+    }
+    // العقد المرتبط
+    if(typeof getProjectContract==='function'){
+      var _ct=getProjectContract(proj.id);
+      if(_ct){
+        var _cstC={draft:'var(--text3)',sent:'#64b5f6',signed:'var(--accent3)',rejected:'var(--accent4)'};
+        var _cstL={draft:'مسودة',sent:'أُرسل',signed:'موقّع',rejected:'مرفوض'};
+        _links.push('<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">'
+          +'<div style="width:28px;height:28px;border-radius:50%;background:#64b5f622;color:#64b5f6;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0"><i class="fa-solid fa-file-contract"></i></div>'
+          +'<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escapeHtml(_ct.title||'عقد')+'</div><div style="font-size:10px;color:'+(_cstC[_ct.status]||'var(--text3)')+'">العقد آ· '+(_cstL[_ct.status]||'?')+'</div></div>'
+          +'</div>');
+      }
+    }
+    // فواتير المشروع
+    if(typeof getProjectInvoices==='function'){
+      var _pinvs=getProjectInvoices(proj.id);
+      if(_pinvs.length){
+        var _ptotal=_pinvs.reduce(function(s,i){return s+(+i.total||0);},0);
+        var _ppaid=_pinvs.filter(function(i){return i.paid||i.status==='paid'||i.status==='مدفوعة';}).length;
+        _links.push('<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">'
+          +'<div style="width:28px;height:28px;border-radius:50%;background:var(--accent3)22;color:var(--accent3);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0"><i class="fa-solid fa-receipt"></i></div>'
+          +'<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:700;color:var(--text)">'+_pinvs.length+' فاتورة آ· '+_ptotal.toLocaleString()+' '+_getCurrency()+'</div><div style="font-size:10px;color:var(--text3)">'+_ppaid+' مدفوعة من '+_pinvs.length+'</div></div>'
+          +'</div>');
+      }
+    }
+
+    if(_links.length){
+      html+='<div class="card" style="margin-bottom:14px">'
+        +'<div style="font-size:13px;font-weight:800;margin-bottom:10px"><i class="fa-solid fa-link" style="color:'+clr+'"></i> الكيانات المرتبطة</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">'
+        +_links.join('')
+        +'</div>'
+        +'</div>';
+    }
+  })();
+
+  // â”€â”€ Row 5: آخر المهام â”€â”€
   html+='<div class="card" style="margin-bottom:14px">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
       +'<div class="section-title" style="margin:0"><i class="fa-solid fa-clipboard-list" style="color:'+clr+'"></i> آخر المهام</div>'
@@ -23793,7 +24217,7 @@ function renderProjOverview(proj,tasks,client,clr){
       :renderProjTasksOverviewTable(tasks.slice(0,6),proj,clr))
   +'</div>';
 
-  // ── Row 6: ملاحظات المشروع ──
+  // â”€â”€ Row 6: ملاحظات المشروع â”€â”€
   var pid=String(proj.id);
   var projComments=proj.comments||[];
   var commHtml=projComments.map(function(c){
@@ -23822,7 +24246,7 @@ function renderProjOverview(proj,tasks,client,clr){
 
   return html;
 }
-// ── Tasks List Tab ──
+// â”€â”€ Tasks List Tab â”€â”€
 function renderProjTasksList(proj,tasks,clr){
   // جمع الحالات المخصصة + الأساسية
   var customStatuses = S.customStatuses || [];
@@ -23841,14 +24265,14 @@ function renderProjTasksList(proj,tasks,clr){
 
   var statusBadge = function(st){
     var info = allStatuses.find(s=>s.id===st);
-    if(!info) info={label:st||'—',color:'#888'};
+    if(!info) info={label:st||'?',color:'#888'};
     return '<span style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;background:'+info.color+'22;color:'+info.color+';border:1px solid '+info.color+'44;white-space:nowrap">'+escapeHtml(info.label)+'</span>';
   };
 
   var payBadge = function(t){
-    if(t.paymentCollected||t.paymentStatus==='collected') return '<span style="font-size:10px;font-weight:800;color:#4fd1a5;background:rgba(79,209,165,.12);padding:3px 8px;border-radius:10px">✅ محصّل</span>';
-    if(t.paymentStatus==='deposit'||t.deposit>0) return '<span style="font-size:10px;font-weight:800;color:#a78bfa;background:rgba(167,139,250,.12);padding:3px 8px;border-radius:10px">🟣 عربون</span>';
-    return '<span style="font-size:10px;font-weight:800;color:#f97316;background:rgba(249,115,22,.12);padding:3px 8px;border-radius:10px">⏳ معلق</span>';
+    if(t.paymentCollected||t.paymentStatus==='collected') return '<span style="font-size:10px;font-weight:800;color:#4fd1a5;background:rgba(79,209,165,.12);padding:3px 8px;border-radius:10px">? محصّل</span>';
+    if(t.paymentStatus==='deposit'||t.deposit>0) return '<span style="font-size:10px;font-weight:800;color:#a78bfa;background:rgba(167,139,250,.12);padding:3px 8px;border-radius:10px">ًںں£ عربون</span>';
+    return '<span style="font-size:10px;font-weight:800;color:#f97316;background:rgba(249,115,22,.12);padding:3px 8px;border-radius:10px">âڈ³ معلق</span>';
   };
 
   var totalVal = tasks.reduce(function(s,t){return s+(t.value||0);},0);
@@ -23856,7 +24280,7 @@ function renderProjTasksList(proj,tasks,clr){
   var cur = proj.budgetCurrency||'ج.م';
 
   return '<div>'+
-    // ── Header + Status Filters ──
+    // â”€â”€ Header + Status Filters â”€â”€
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">'+
       '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
         '<button onclick="window[\'_ptl_filter_'+proj.id+'\']=(\'all\');renderProjectDetail()" class="btn btn-sm" style="background:'+( activeFilter==='all'?clr:'var(--surface2)')+';color:'+(activeFilter==='all'?'#fff':'var(--text2)')+';border:none">الكل ('+tasks.length+')</button>'+
@@ -23869,7 +24293,7 @@ function renderProjTasksList(proj,tasks,clr){
       '<button class="btn btn-primary btn-sm" onclick="openProjTaskModal(\''+proj.id+'\')"><i class="fa-solid fa-plus"></i> مهمة جديدة</button>'+
     '</div>'+
 
-    // ── Finance Summary ──
+    // â”€â”€ Finance Summary â”€â”€
     (totalVal>0?'<div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">'+
       '<div style="display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:10px;padding:8px 14px;border:1px solid var(--border)">'+
         '<span style="font-size:11px;color:var(--text3)">إجمالي</span>'+
@@ -23885,9 +24309,9 @@ function renderProjTasksList(proj,tasks,clr){
       '</div>'+
     '</div>':'') +
 
-    // ── Table ──
+    // â”€â”€ Table â”€â”€
     (!filtered.length?
-      '<div style="text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:40px;margin-bottom:12px">📋</div><div style="font-weight:700;margin-bottom:6px">لا توجد مهام</div><button class="btn btn-primary" onclick="openProjTaskModal(\''+proj.id+'\')"><i class="fa-solid fa-plus"></i> أضف مهمة</button></div>'
+      '<div style="text-align:center;padding:60px 20px;color:var(--text3)"><div style="font-size:40px;margin-bottom:12px">ًں“‹</div><div style="font-weight:700;margin-bottom:6px">لا توجد مهام</div><button class="btn btn-primary" onclick="openProjTaskModal(\''+proj.id+'\')"><i class="fa-solid fa-plus"></i> أضف مهمة</button></div>'
     :
     '<div style="overflow-x:auto;border-radius:14px;border:1px solid var(--border)">'+
     '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
@@ -23918,17 +24342,17 @@ function renderProjTasksList(proj,tasks,clr){
           '</select>'+
           statusBadge(t.status)+
         '</td>'+
-        '<td style="padding:11px 8px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border)">'+(t.orderDate||'—')+'</td>'+
-        '<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border);color:'+(t.deadline&&new Date(t.deadline)<new Date()&&!isDone?'#f76f7c':'var(--text3)')+'">'+(t.deadline||'—')+'</td>'+
+        '<td style="padding:11px 8px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border)">'+(t.orderDate||'?')+'</td>'+
+        '<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border);color:'+(t.deadline&&new Date(t.deadline)<new Date()&&!isDone?'#f76f7c':'var(--text3)')+'">'+(t.deadline||'?')+'</td>'+
         '<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border)">'+
-          (t.value>0?'<span style="font-weight:900;color:#f7c948">'+t.value.toLocaleString()+' '+(t.currency||cur)+'</span>':'<span style="color:var(--text3)">—</span>')+
+          (t.value>0?'<span style="font-weight:900;color:#f7c948">'+t.value.toLocaleString()+' '+(t.currency||cur)+'</span>':'<span style="color:var(--text3)">?</span>')+
         '</td>'+
         '<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border)">'+
           payBadge(t)+
           (t.value>0&&!t.paymentCollected&&!isDone?'':'') +
-          (t.value>0&&isDone&&!t.paymentCollected?'<div style="margin-top:4px"><button data-tid="'+t.id+'" data-pid="'+proj.id+'" onclick="event.stopPropagation();_askPtaskPayment(this.dataset.tid,this.dataset.pid)" class="btn btn-success btn-sm" style="font-size:9px;padding:2px 8px">💰 تحصيل</button></div>':'')+
+          (t.value>0&&isDone&&!t.paymentCollected?'<div style="margin-top:4px"><button data-tid="'+t.id+'" data-pid="'+proj.id+'" onclick="event.stopPropagation();_askPtaskPayment(this.dataset.tid,this.dataset.pid)" class="btn btn-success btn-sm" style="font-size:9px;padding:2px 8px">ًں’° تحصيل</button></div>':'')+
         '</td>'+
-        '<td style="padding:11px 8px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border);font-size:11px">'+(t.assignee_name?escapeHtml(t.assignee_name):'—')+'</td>'+
+        '<td style="padding:11px 8px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border);font-size:11px">'+(t.assignee_name?escapeHtml(t.assignee_name):'?')+'</td>'+
         '<td style="padding:11px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'+
           '<div style="display:flex;gap:3px;justify-content:center">'+
           '<button data-tid="'+t.id+'" data-pid="'+proj.id+'" onclick="event.stopPropagation();openProjTaskDetail(this.dataset.tid,this.dataset.pid)" class="btn btn-ghost btn-sm" style="padding:3px 6px;font-size:11px" title="تفاصيل"><i class="fa-solid fa-eye"></i></button>'+
@@ -23950,7 +24374,7 @@ function renderProjTasksList(proj,tasks,clr){
   '</div>';
 }
 
-// ── تغيير حالة مهمة المشروع من الجدول مباشرة ──
+// â”€â”€ تغيير حالة مهمة المشروع من الجدول مباشرة â”€â”€
 function _changePtaskStatus(taskId, projId, newStatus){
   var t=(S.project_tasks||[]).find(function(x){return String(x.id)===String(taskId);});
   if(!t) return;
@@ -23960,7 +24384,7 @@ function _changePtaskStatus(taskId, projId, newStatus){
     // اطلب رابط المشروع إذا لم يكن موجوداً
     if(!prevDone){
       _askProjectLinkForTask(taskId, projId, function(){
-        // بعد الرابط، اسأل التحصيل
+        // بعد الرابء اسأل التحصيل
         if(t.value>0 && !t.paymentCollected) _askPtaskPayment(taskId, projId);
       });
       lsSave(); cloudSave(S); renderProjectDetail();
@@ -23979,7 +24403,7 @@ function _changePtaskStatus(taskId, projId, newStatus){
   lsSave(); cloudSave(S); renderProjectDetail();
 }
 
-// ── اطلب رابط المشروع عند الإكمال ──
+// â”€â”€ اطلب رابط المشروع عند الإكمال â”€â”€
 function _askProjectLinkForTask(taskId, projId, afterCb){
   var t=(S.project_tasks||[]).find(function(x){return String(x.id)===String(taskId);});
   if(!t) { if(afterCb) afterCb(); return; }
@@ -23987,7 +24411,7 @@ function _askProjectLinkForTask(taskId, projId, afterCb){
   ov.className='modal-overlay';
   ov.style.cssText='display:flex;align-items:center;justify-content:center;z-index:10000';
   ov.innerHTML='<div class="modal" style="width:min(420px,92vw);border-radius:18px;padding:28px">'
-    +'<div style="font-size:36px;text-align:center;margin-bottom:10px">🔗</div>'
+    +'<div style="font-size:36px;text-align:center;margin-bottom:10px">ًں”—</div>'
     +'<div style="font-size:16px;font-weight:900;text-align:center;margin-bottom:6px">رابط تسليم المشروع</div>'
     +'<div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:18px">المهمة: <strong>'+escapeHtml(t.title)+'</strong></div>'
     +'<input id="_proj-link-input" class="form-input" placeholder="https://drive.google.com/... أو أي رابط للتسليم" value="'+escapeHtml(t.projectLink||t.driveLink||'')+'"/>'
@@ -24016,13 +24440,13 @@ function _saveProjectLink(taskId, projId){
   toast('<i class="fa-solid fa-link" style="color:var(--accent3)"></i> تم حفظ رابط المشروع');
 }
 
-// ── إشعار العميل بتعديل (داخلي - تغيير الحالة للتعديلات) ──
+// â”€â”€ إشعار العميل بتعديل (داخلي - تغيير الحالة للتعديلات) â”€â”€
 function _notifyClientRevision(task){
-  // This is handled on the client portal side — just a visual cue
+  // This is handled on the client portal side ? just a visual cue
   toast('<i class="fa-solid fa-pencil" style="color:#f97316"></i> تم تحويل المهمة لحالة تعديلات');
 }
 
-// ── استلام العميل للمشروع من بوابة العميل — يُستدعى من client-portal ──
+// â”€â”€ استلام العميل للمشروع من بوابة العميل ? يُستدعى من client-portal â”€â”€
 // يتم التعامل معها عبر Supabase realtime sync
 function _markTaskClientReceived(taskId, projId){
   var t=(S.project_tasks||[]).find(function(x){return String(x.id)===String(taskId);});
@@ -24031,10 +24455,10 @@ function _markTaskClientReceived(taskId, projId){
   t.clientReceivedAt = new Date().toISOString();
   lsSave(); cloudSave(S);
   if(projId) renderProjectDetail();
-  showMiniNotif('<i class="fa-solid fa-handshake" style="color:var(--accent3)"></i> العميل استلم المشروع — تم التأكيد!');
+  showMiniNotif('<i class="fa-solid fa-handshake" style="color:var(--accent3)"></i> العميل استلم المشروع ? تم التأكيد!');
 }
 
-// ── طلب تعديل من العميل — تُحوّل المهمة لحالة revision ──
+// â”€â”€ طلب تعديل من العميل ? تُحوّل المهمة لحالة revision â”€â”€
 function _markTaskClientRevision(taskId, projId, revisionNote){
   var t=(S.project_tasks||[]).find(function(x){return String(x.id)===String(taskId);});
   if(!t) return;
@@ -24044,7 +24468,7 @@ function _markTaskClientRevision(taskId, projId, revisionNote){
   t.clientRevisionNote = revisionNote||'';
   t.clientRevisionAt   = new Date().toISOString();
   t.clientReceived     = false;
-  // إذا كان فيه عضو فريق منفذ — نحدّث في بياناته كمان
+  // إذا كان فيه عضو فريق منفذ ? نحدّث في بياناته كمان
   if(t.assignee_id && t.assignee_name){
     // تحديث حالة التاسك في الفريق
     _updateTeamMemberTaskStatus(t.assignee_id, taskId, 'revision', revisionNote);
@@ -24087,11 +24511,11 @@ function _askPtaskPayment(taskId, projId){
   var projType = proj && proj.projectType === 'team' ? 'expense' : 'income';
   var qText = projType==='expense' ? 'هل دفعت للعضو المسؤول؟' : 'هل حصلت على المبلغ من العميل؟';
   ov.innerHTML='<div class="modal" style="width:min(380px,92vw);border-radius:18px;padding:24px;text-align:center">'+
-    '<div style="font-size:36px;margin-bottom:10px">💰</div>'+
+    '<div style="font-size:36px;margin-bottom:10px">ًں’°</div>'+
     '<div style="font-size:16px;font-weight:900;margin-bottom:6px">'+qText+'</div>'+
-    '<div style="font-size:13px;color:var(--text3);margin-bottom:20px">المهمة: <strong>'+escapeHtml(t.title)+'</strong> · المبلغ: <strong style="color:#f7c948">'+t.value.toLocaleString()+' '+cur+'</strong></div>'+
+    '<div style="font-size:13px;color:var(--text3);margin-bottom:20px">المهمة: <strong>'+escapeHtml(t.title)+'</strong> آ· المبلغ: <strong style="color:#f7c948">'+t.value.toLocaleString()+' '+cur+'</strong></div>'+
     '<div style="display:flex;gap:10px;justify-content:center">'+
-      '<button data-tid="'+taskId+'" data-pid="'+projId+'" onclick="_confirmPtaskPayment(this.dataset.tid,this.dataset.pid,true);this.closest(\'.modal-overlay\').remove()" class="btn btn-success" style="flex:1">✅ نعم، تم</button>'+
+      '<button data-tid="'+taskId+'" data-pid="'+projId+'" onclick="_confirmPtaskPayment(this.dataset.tid,this.dataset.pid,true);this.closest(\'.modal-overlay\').remove()" class="btn btn-success" style="flex:1">? نعم، تم</button>'+
       '<button onclick="this.closest(\'.modal-overlay\').remove()" class="btn btn-ghost" style="flex:1">لا، لاحقاً</button>'+
     '</div>'+
   '</div>';
@@ -24110,19 +24534,19 @@ function _confirmPtaskPayment(taskId, projId, confirmed){
   var alreadyLinked=S.transactions.some(tr=>String(tr.linkedProjTaskId)===String(t.id)&&tr.type==='income');
   if(!alreadyLinked && t.value>0){
     S.transactions.push({id:Date.now()+Math.random(),type:'income',amount:t.value,currency:cur,
-      desc:'مهمة: '+(t.title||'')+(proj?' — مشروع: '+proj.name:''),
+      desc:'مهمة: '+(t.title||'')+(proj?' ? مشروع: '+proj.name:''),
       date:new Date().toISOString().slice(0,10),isoDate:new Date().toISOString().slice(0,10),
       linkedProjTaskId:t.id,project_id:proj?String(proj.id):'',project_name:proj?proj.name:'',
       source:'project_task',createdAt:new Date().toISOString()});
   }
   lsSave(); cloudSave(S); renderProjectDetail();
-  toast('✅ تم تسجيل التحصيل في المالية');
+  toast('? تم تسجيل التحصيل في المالية');
   if(typeof renderFinance==='function') setTimeout(renderFinance,200);
 }
 
-// ══════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // PROJECT FINANCE TAB
-// ══════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function renderProjFinanceTab(proj, tasks, clr) {
   var cur = proj.budgetCurrency || 'ج.م';
   var budget = proj.budget || 0;
@@ -24151,7 +24575,7 @@ function renderProjFinanceTab(proj, tasks, clr) {
   var budgetColor = profit >= 0 ? '#4fd1a5' : '#f76f7c';
   
   return '<div>' +
-  // ── Summary Cards ──
+  // â”€â”€ Summary Cards â”€â”€
   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px">' +
     _projFinCard('الميزانية الكلية', budget>0?(budget.toLocaleString()+' '+cur):('لم تُحدد'), clr, 'fa-bullseye') +
     _projFinCard('إجمالي التكاليف', totalCost.toLocaleString()+' '+cur, '#f7c948', 'fa-coins') +
@@ -24161,7 +24585,7 @@ function renderProjFinanceTab(proj, tasks, clr) {
     (deposits>0 ? _projFinCard('عربونات مدفوعة', deposits.toLocaleString()+' '+cur, '#a78bfa', 'fa-hand-holding-dollar') : '') +
   '</div>' +
   
-  // ── Budget Progress ──
+  // â”€â”€ Budget Progress â”€â”€
   (budget>0 ? '<div class="card" style="padding:16px;margin-bottom:16px">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
       '<div style="font-size:13px;font-weight:800"><i class="fa-solid fa-chart-bar" style="color:'+clr+'"></i> استهلاك الميزانية</div>' +
@@ -24176,7 +24600,7 @@ function renderProjFinanceTab(proj, tasks, clr) {
     '</div>' +
   '</div>' : '') +
   
-  // ── Tasks Financial Breakdown ──
+  // â”€â”€ Tasks Financial Breakdown â”€â”€
   '<div class="card" style="padding:16px;margin-bottom:16px">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
       '<div style="font-size:13px;font-weight:800"><i class="fa-solid fa-list-check" style="color:'+clr+'"></i> مالية المهام</div>' +
@@ -24197,12 +24621,12 @@ function renderProjFinanceTab(proj, tasks, clr) {
     tasks.filter(function(t){return t.value>0;}).map(function(t){
       var st = _getTaskStatusInfo(t.status||'todo');
       var payColor = (t.paymentCollected||t.paymentStatus==='collected') ? '#4fd1a5' : (t.paymentStatus==='deposit'||t.deposit>0) ? '#a78bfa' : '#f7c948';
-      var payLabel = (t.paymentCollected||t.paymentStatus==='collected') ? '✅ محصّل' : (t.paymentStatus==='deposit'||t.deposit>0) ? ('🟣 عربون: '+(t.deposit||0)) : '⏳ معلق';
+      var payLabel = (t.paymentCollected||t.paymentStatus==='collected') ? '? محصّل' : (t.paymentStatus==='deposit'||t.deposit>0) ? ('ًںں£ عربون: '+(t.deposit||0)) : 'âڈ³ معلق';
       return '<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="openProjTaskDetail('+t.id+','+proj.id+')">'+
         '<td style="padding:10px 6px;font-weight:700">'+escapeHtml(t.title)+'</td>'+
-        '<td style="padding:10px 6px;color:var(--text3)">'+escapeHtml(t.assignee_name||'—')+'</td>'+
+        '<td style="padding:10px 6px;color:var(--text3)">'+escapeHtml(t.assignee_name||'?')+'</td>'+
         '<td style="padding:10px 6px;text-align:center;font-weight:800;color:#f7c948">'+t.value.toLocaleString()+' '+(t.currency||cur)+'</td>'+
-        '<td style="padding:10px 6px;text-align:center;color:#a78bfa">'+((t.deposit>0)?t.deposit.toLocaleString()+' '+(t.currency||cur):'—')+'</td>'+
+        '<td style="padding:10px 6px;text-align:center;color:#a78bfa">'+((t.deposit>0)?t.deposit.toLocaleString()+' '+(t.currency||cur):'?')+'</td>'+
         '<td style="padding:10px 6px;text-align:center"><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:'+st.bg+';color:'+st.color+'">'+st.label+'</span></td>'+
         '<td style="padding:10px 6px;text-align:center">'+
           '<span style="font-size:10px;font-weight:700;color:'+payColor+'">'+payLabel+'</span>'+
@@ -24219,7 +24643,7 @@ function renderProjFinanceTab(proj, tasks, clr) {
     '</div>') +
   '</div>' +
   
-  // ── Linked Transactions from Finance ──
+  // â”€â”€ Linked Transactions from Finance â”€â”€
   '<div class="card" style="padding:16px">' +
     '<div style="font-size:13px;font-weight:800;margin-bottom:12px"><i class="fa-solid fa-arrows-left-right" style="color:'+clr+'"></i> معاملات مالية مرتبطة</div>' +
     (projTrans.length === 0 ?
@@ -24256,7 +24680,7 @@ function _projFinCard(label, value, color, icon) {
   '</div>';
 }
 
-// ── Project Finance Helpers ──
+// â”€â”€ Project Finance Helpers â”€â”€
 function openProjIncomeModal(projId) {
   var proj = _getProjById(projId); if(!proj) return;
   var client = proj.client_id ? (S.clients||[]).find(c=>String(c.id)===String(proj.client_id)) : null;
@@ -24319,7 +24743,7 @@ function openNewInvoiceForProject(projId) {
   }, 400);
 }
 
-// ── Overview Table for آخر المهام in project detail overview tab ──
+// â”€â”€ Overview Table for آخر المهام in project detail overview tab â”€â”€
 function renderProjTasksOverviewTable(tasks, proj, clr){
   var customStatuses = S.customStatuses || [];
   var baseStatuses = [
@@ -24335,7 +24759,7 @@ function renderProjTasksOverviewTable(tasks, proj, clr){
 
   function stBadge(t){
     var info = allStatuses.find(function(s){return s.id===t.status;});
-    if(!info) info={label:t.status||'—',color:'#888'};
+    if(!info) info={label:t.status||'?',color:'#888'};
     var opts = allStatuses.map(function(s){
       return '<option value="'+s.id+'"'+(t.status===s.id?' selected':'')+'>'+s.label+'</option>';
     }).join('');
@@ -24347,7 +24771,7 @@ function renderProjTasksOverviewTable(tasks, proj, clr){
         +'style="appearance:none;-webkit-appearance:none;font-size:10px;font-weight:800;padding:3px 24px 3px 10px;border-radius:20px;background:'+info.color+'22;color:'+info.color+';border:1.5px solid '+info.color+'55;cursor:pointer;outline:none;font-family:var(--font);min-width:80px">'
         +opts
       +'</select>'
-      +'<span style="position:absolute;left:7px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:8px;color:'+info.color+'">▾</span>'
+      +'<span style="position:absolute;left:7px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:8px;color:'+info.color+'">?</span>'
     +'</div>';
   }
 
@@ -24376,13 +24800,13 @@ function renderProjTasksOverviewTable(tasks, proj, clr){
           +(t.desc?'<div style="font-size:10px;color:var(--text3);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px">'+escapeHtml(t.desc)+'</div>':'')
         +'</td>'
         +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">'+stBadge(t)+'</td>'
-        +'<td style="padding:10px 8px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono)">'+(t.orderDate||t.createdAt&&t.createdAt.slice(0,10)||'—')+'</td>'
-        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'"><span title="'+(isLate?'متأخرة':'')+'">'+(t.deadline||'—')+'</span></td>'
+        +'<td style="padding:10px 8px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono)">'+(t.orderDate||t.createdAt&&t.createdAt.slice(0,10)||'?')+'</td>'
+        +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:'+(isLate?'#f76f7c':'var(--text3)')+'"><span title="'+(isLate?'متأخرة':'')+'">'+(t.deadline||'?')+'</span></td>'
         +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)">'
-          +(t.value>0?'<span style="font-weight:900;color:#f7c948">'+t.value.toLocaleString()+' '+(t.currency||cur)+'</span>':'<span style="color:var(--text3)">—</span>')
+          +(t.value>0?'<span style="font-weight:900;color:#f7c948">'+t.value.toLocaleString()+' '+(t.currency||cur)+'</span>':'<span style="color:var(--text3)">?</span>')
         +'</td>'
         +'<td style="padding:10px 8px;text-align:center;color:var(--text3);border-bottom:1px solid var(--border);font-size:11px">'
-          +(t.assignee_name?'<span style="display:flex;align-items:center;gap:4px;justify-content:center"><i class="fa-solid fa-user" style="color:'+clr+';font-size:10px"></i>'+escapeHtml(t.assignee_name)+'</span>':'—')
+          +(t.assignee_name?'<span style="display:flex;align-items:center;gap:4px;justify-content:center"><i class="fa-solid fa-user" style="color:'+clr+';font-size:10px"></i>'+escapeHtml(t.assignee_name)+'</span>':'?')
         +'</td>'
         +'<td style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border)" onclick="event.stopPropagation()">'
           +'<button data-tid="'+t.id+'" data-pid="'+proj.id+'" onclick="_openTaskNotePopup(this.dataset.tid,this.dataset.pid)" class="btn btn-ghost btn-sm" style="font-size:10px;padding:3px 8px;color:var(--accent)" title="أضف ملاحظة">'
@@ -24396,7 +24820,7 @@ function renderProjTasksOverviewTable(tasks, proj, clr){
     +'</table></div>';
 }
 
-// ── Task Note Popup ──
+// â”€â”€ Task Note Popup â”€â”€
 function _openTaskNotePopup(taskId, projId){
   var t=(S.project_tasks||[]).find(function(x){return String(x.id)===String(taskId);});
   if(!t) return;
@@ -24457,10 +24881,10 @@ function renderProjTaskRow(t,clr){
         '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface3);border-radius:8px;margin-bottom:4px">' +
           '<i class="fa-solid fa-coins" style="color:#f7c948;font-size:12px"></i>' +
           '<span style="font-size:12px;font-weight:900;color:#f7c948">'+t.value.toLocaleString()+' '+(t.currency||'ج.م')+'</span>' +
-          (t.deposit>0?'<span style="font-size:10px;color:#a78bfa"> · عربون: '+t.deposit.toLocaleString()+'</span>':'') +
+          (t.deposit>0?'<span style="font-size:10px;color:#a78bfa"> آ· عربون: '+t.deposit.toLocaleString()+'</span>':'') +
           '<div style="flex:1"></div>' +
-          '<span style="font-size:10px;font-weight:800;color:'+payColor+'">● '+payLabel+'</span>' +
-          (t.value>0&&t.status==='done'&&!t.paymentCollected?'<button data-tid="'+t.id+'" onclick="event.stopPropagation();markTaskPaymentCollected(this.dataset.tid)" class="btn btn-success btn-sm" style="padding:2px 8px;font-size:10px;margin-right:6px">✓ تحصيل</button>':'') +
+          '<span style="font-size:10px;font-weight:800;color:'+payColor+'">â—ڈ '+payLabel+'</span>' +
+          (t.value>0&&t.status==='done'&&!t.paymentCollected?'<button data-tid="'+t.id+'" onclick="event.stopPropagation();markTaskPaymentCollected(this.dataset.tid)" class="btn btn-success btn-sm" style="padding:2px 8px;font-size:10px;margin-right:6px">âœ“ تحصيل</button>':'') +
         '</div>' : '') +
       (steps.length?
         '<div style="margin-top:6px"><div style="height:4px;background:var(--surface3);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+stepPct+'%;background:'+clr+';border-radius:2px;transition:.4s"></div></div></div>' : '') +
@@ -24475,12 +24899,12 @@ function renderProjTaskRow(t,clr){
 
 function renderProjKanban(proj,tasks,clr){
   var cols=[
-    {id:'todo',     label:'🆕 جديد',          color:'#64b5f6'},
-    {id:'progress', label:'⚡ قيد التنفيذ',    color:'#f7c948'},
-    {id:'review',   label:'🔍 مراجعة',         color:'#a78bfa'},
-    {id:'revision', label:'✏️ تعديلات',         color:'#f97316'},
-    {id:'done',     label:'✅ مكتمل',           color:'#4fd1a5'},
-    {id:'hold',     label:'⏸ موقوف مؤقتاً',   color:'#888888'}
+    {id:'todo',     label:'ًں†• جديد',          color:'#64b5f6'},
+    {id:'progress', label:'âڑ، قيد التنفيذ',    color:'#f7c948'},
+    {id:'review',   label:'ًں”چ مراجعة',         color:'#a78bfa'},
+    {id:'revision', label:'âœڈï¸ڈ تعديلات',         color:'#f97316'},
+    {id:'done',     label:'? مكتمل',           color:'#4fd1a5'},
+    {id:'hold',     label:'âڈ¸ موقوف مؤقتاً',   color:'#888888'}
   ];
   return `
     <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
@@ -24523,7 +24947,7 @@ function renderProjKbCard(t,clr,proj){
     '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap">'+
       '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">'+
         (t.deadline?'<span style="font-size:9px;color:var(--text3);background:var(--surface3);padding:1px 5px;border-radius:4px"><i class="fa-solid fa-calendar"></i> '+t.deadline+'</span>':'')+
-        (t.value?'<span style="font-size:9px;color:var(--accent3);font-weight:700;background:rgba(79,209,165,.1);padding:1px 5px;border-radius:4px">'+t.value.toLocaleString()+' '+(t.currency||'ج.م')+(t.paymentCollected?' ✅':'')+'</span>':'')+
+        (t.value?'<span style="font-size:9px;color:var(--accent3);font-weight:700;background:rgba(79,209,165,.1);padding:1px 5px;border-radius:4px">'+t.value.toLocaleString()+' '+(t.currency||'ج.م')+(t.paymentCollected?' ?':'')+'</span>':'')+
       '</div>'+
       '<div style="display:flex;align-items:center;gap:4px">'+
         (assigneeInitial?'<div style="width:22px;height:22px;border-radius:50%;background:'+clr+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;flex-shrink:0" title="'+escapeHtml(t.assignee_name||'')+'">'+assigneeInitial+'</div>':'')+
@@ -24553,7 +24977,7 @@ function initProjKanbanDnD(){
   });
 }
 
-// ── Team Tab ──
+// â”€â”€ Team Tab â”€â”€
 function renderProjTeam(proj,clr){
   var members=proj.members||[];
   return `<div class="card">
@@ -24564,12 +24988,12 @@ function renderProjTeam(proj,clr){
     ${members.length?members.map(m=>`
     <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface2);border-radius:10px;margin-bottom:8px">
       <div style="width:36px;height:36px;border-radius:50%;background:${clr};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0">${(m.name||'?').charAt(0).toUpperCase()}</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:700">${escapeHtml(m.name||m.email||'—')}</div></div>
-    </div>`).join(''):`<div style="text-align:center;color:var(--text3);padding:30px;font-size:13px">لا يوجد أعضاء — عدّل المشروع لإضافة أعضاء</div>`}
+      <div style="flex:1"><div style="font-size:13px;font-weight:700">${escapeHtml(m.name||m.email||'?')}</div></div>
+    </div>`).join(''):`<div style="text-align:center;color:var(--text3);padding:30px;font-size:13px">لا يوجد أعضاء ? عدّل المشروع لإضافة أعضاء</div>`}
   </div>`;
 }
 
-// ── Files Tab ──
+// â”€â”€ Files Tab â”€â”€
 function renderProjFiles(proj,clr){
   var files=proj.files||[];
   var linkIcons={drive:'<i class="fa-brands fa-google-drive" style="color:#4285F4"></i>',dropbox:'<i class="fa-brands fa-dropbox" style="color:#0061FF"></i>',notion:'<i class="fa-solid fa-n" style="color:#000"></i>',figma:'<i class="fa-brands fa-figma" style="color:#F24E1E"></i>',other:'<i class="fa-solid fa-link" style="color:var(--accent)"></i>'};
@@ -24657,7 +25081,7 @@ function deleteProjFile(projId,idx){
   toast('<i class="fa-solid fa-trash"></i> تم الحذف');
 }
 
-// ── Project Tasks ──
+// â”€â”€ Project Tasks â”€â”€
 var _ptaskSteps=[];
 function openProjTaskModal(projId, taskId, defaultStatus){
   _ptaskSteps=[];
@@ -24687,21 +25111,21 @@ function openProjTaskModal(projId, taskId, defaultStatus){
   var depInp=document.getElementById('ptask-deposit');
   if(depInp) depInp.value=t&&t.deposit?t.deposit:'';
   togglePtaskDepositField();
-  // ── ملأ dropdown الفريق ──
+  // â”€â”€ ملأ dropdown الفريق â”€â”€
   var teamFilterSel = document.getElementById('ptask-team-filter');
   var _projForTeam = _getProjById(projId);
   if(teamFilterSel){
     var allGroups = _getTeamGroups();
-    teamFilterSel.innerHTML = '<option value="">— كل الأعضاء —</option>' +
+    teamFilterSel.innerHTML = '<option value="">? كل الأعضاء ?</option>' +
       allGroups.map(function(g){
         return '<option value="'+g.id+'">'+escapeHtml(g.name)+'</option>';
       }).join('');
-    // لو المشروع له فريق معين → اختره تلقائياً
+    // لو المشروع له فريق معين ? اختره تلقائياً
     var savedTeamId = _projForTeam && _projForTeam.team_group_id ? _projForTeam.team_group_id : '';
     teamFilterSel.value = savedTeamId;
   }
 
-  // Assignee from project members — fallback to all team members
+  // Assignee from project members ? fallback to all team members
   var proj2=_projForTeam||_getProjById(projId);
   var projMembers=proj2?proj2.members||[]:[];
   var allTeamMembers=(S.teams||[]).filter(function(m){return m.role!='invite_pending';});
@@ -24714,7 +25138,7 @@ function openProjTaskModal(projId, taskId, defaultStatus){
   } else {
     members=[me,...allTeamMembers];
   }
-  // لو في فريق محدد → فلتر الأعضاء
+  // لو في فريق محدد ? فلتر الأعضاء
   var savedTeamId2 = proj2 && proj2.team_group_id ? proj2.team_group_id : '';
   if(savedTeamId2){
     var grp2 = _getTeamGroups().find(function(g){ return g.id===savedTeamId2; });
@@ -24725,7 +25149,7 @@ function openProjTaskModal(projId, taskId, defaultStatus){
     }
   }
   var asel=document.getElementById('ptask-assignee');
-  var assigneeLabel=hasProjectMembers?'— اختر من فريق المشروع —':'— اختر عضو —';
+  var assigneeLabel=hasProjectMembers?'? اختر من فريق المشروع ?':'? اختر عضو ?';
   asel.innerHTML='<option value="">'+assigneeLabel+'</option>'+members.map(function(m){
     var n=escapeHtml(m.name||m.email||'?');
     var sel=(t&&(t.assignee_id===m.id||t.assignee_id===String(m.id)))?'selected':'';
@@ -24749,17 +25173,17 @@ function _renderPtaskAssigneeInfo(t){
   if(!t || !t.assignee_name){ infoEl.style.display='none'; return; }
   var payLabel='لم يُحصّل بعد';
   var payColor='var(--text3)';
-  if(t.paymentCollected || t.paymentStatus==='collected'){ payLabel='✅ تم التحصيل الكامل'; payColor='var(--accent3)'; }
-  else if(t.deposit>0 || t.paymentStatus==='deposit'){ payLabel='🟡 عربون: '+(t.deposit||0)+' '+(t.currency||'ج.م'); payColor='var(--accent2)'; }
+  if(t.paymentCollected || t.paymentStatus==='collected'){ payLabel='? تم التحصيل الكامل'; payColor='var(--accent3)'; }
+  else if(t.deposit>0 || t.paymentStatus==='deposit'){ payLabel='ًںں، عربون: '+(t.deposit||0)+' '+(t.currency||'ج.م'); payColor='var(--accent2)'; }
   infoEl.style.display='flex';
-  infoEl.innerHTML='<i class="fa-solid fa-circle-info" style="color:var(--accent);margin-left:5px"></i> <b>'+escapeHtml(t.assignee_name)+'</b> — المقابل: <b style="color:var(--accent3)">'+(t.value||0)+' '+(t.currency||'ج.م')+'</b> · حالة الدفع: <span style="color:'+payColor+';font-weight:700">'+payLabel+'</span>';
+  infoEl.innerHTML='<i class="fa-solid fa-circle-info" style="color:var(--accent);margin-left:5px"></i> <b>'+escapeHtml(t.assignee_name)+'</b> ? المقابل: <b style="color:var(--accent3)">'+(t.value||0)+' '+(t.currency||'ج.م')+'</b> آ· حالة الدفع: <span style="color:'+payColor+';font-weight:700">'+payLabel+'</span>';
 }
 
 var _ptaskEditingStepIdx = null;
 function renderPtaskSteps(){
   var el=document.getElementById('ptask-steps-list'); if(!el) return;
   if(!_ptaskSteps.length){
-    el.innerHTML='<div style="text-align:center;padding:10px;font-size:11px;color:var(--text3)">لا توجد خطوات — أضف خطوة أدناه</div>';
+    el.innerHTML='<div style="text-align:center;padding:10px;font-size:11px;color:var(--text3)">لا توجد خطوات ? أضف خطوة أدناه</div>';
     return;
   }
   el.innerHTML=_ptaskSteps.map(function(s,i){
@@ -24852,14 +25276,14 @@ function saveProjTask(){
   } else {
     d.id=Date.now(); S.project_tasks.push(d);
   }
-  // ── تسجيل مالي تلقائي عند التحصيل الكامل ──
+  // â”€â”€ تسجيل مالي تلقائي عند التحصيل الكامل â”€â”€
   if(d.value>0 && isNewlyCollected){
     var proj=_getProjById(projId);
     if(!S.transactions) S.transactions=[];
     var alreadyLinked=S.transactions.some(tr=>String(tr.linkedProjTaskId)===String(d.id)&&tr.type==='income');
     if(!alreadyLinked){
       S.transactions.push({id:Date.now()+Math.random(),type:'income',amount:d.value,currency:d.currency||'ج.م',
-        desc:'مهمة: '+(d.title||'')+(proj?' — مشروع: '+proj.name:''),
+        desc:'مهمة: '+(d.title||'')+(proj?' ? مشروع: '+proj.name:''),
         date:new Date().toISOString().slice(0,10),isoDate:new Date().toISOString().slice(0,10),
         linkedProjTaskId:d.id,project_id:proj?String(proj.id):'',project_name:proj?proj.name:'',
         source:'project_task',createdAt:new Date().toISOString()});
@@ -24868,7 +25292,7 @@ function saveProjTask(){
   }
   lsSave(); cloudSave(S); closeM('modal-proj-task'); renderProjectDetail();
   toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ المهمة');
-  // ── سؤال تسجيل العربون كدخل ──
+  // â”€â”€ سؤال تسجيل العربون كدخل â”€â”€
   if(isNewDeposit && depositVal>0){
     var _proj=_getProjById(projId);
     var _mpt=document.getElementById('modal-proj-task'); if(_mpt) _mpt.style.display='none';
@@ -24876,7 +25300,7 @@ function saveProjTask(){
       _showPaymentIncomePrompt({
         amount:depositVal,
         label:'عربون',
-        desc:'عربون مهمة: '+d.title+(_proj?' — مشروع: '+_proj.name:''),
+        desc:'عربون مهمة: '+d.title+(_proj?' ? مشروع: '+_proj.name:''),
         client:_proj?_proj.client||'':'',
         taskId:d.id,
         paymentType:'deposit'
@@ -24903,7 +25327,7 @@ function toggleProjTaskDone(taskId,projId,done){
           type:'income',
           amount:t.value,
           currency:t.currency||'ج.م',
-          desc:'إتمام مهمة: '+(t.title||'')+(proj?' — مشروع: '+proj.name:''),
+          desc:'إتمام مهمة: '+(t.title||'')+(proj?' ? مشروع: '+proj.name:''),
           date:new Date().toISOString().slice(0,10),
           isoDate:new Date().toISOString().slice(0,10),
           linkedProjTaskId:t.id,
@@ -24929,7 +25353,7 @@ function toggleProjTaskDone(taskId,projId,done){
       type:'income',
       amount:t.value,
       currency:t.currency||'ج.م',
-      desc:'إتمام مهمة: '+(t.title||'')+(proj?' — مشروع: '+proj.name:''),
+      desc:'إتمام مهمة: '+(t.title||'')+(proj?' ? مشروع: '+proj.name:''),
       date:new Date().toISOString().slice(0,10),
       isoDate:new Date().toISOString().slice(0,10),
       linkedProjTaskId:t.id,
@@ -24970,7 +25394,7 @@ function changeProjStatus(projId,status){
   proj.status=status; lsSave(); cloudSave(S); renderProjectDetail();
 }
 
-// ── Client Portal (Share) ──
+// â”€â”€ Client Portal (Share) â”€â”€
 function openProjSharePortal(projId){
   var uid=(typeof _supaUserId!=='undefined'&&_supaUserId)?_supaUserId:'';
   var _cppPath=window.location.pathname.split('/').filter(function(x){return x!=='';});
@@ -24986,7 +25410,7 @@ function openProjSharePortal(projId){
     // مفيش عميل مرتبط بالمشروع
     var over2=document.createElement('div');
     over2.className='modal-overlay'; over2.style.display='flex';
-    over2.innerHTML='<div class="modal" style="max-width:420px;text-align:center"><div class="modal-header"><div class="modal-title"><i class="fa-solid fa-share-nodes"></i> مشاركة مع العميل</div><button class="close-btn" onclick="this.closest(\'.modal-overlay\').remove()"><i class="fa-solid fa-xmark"></i></button></div><div style="padding:24px 20px"><div style="font-size:48px;margin-bottom:12px">⚠️</div><div style="font-size:15px;font-weight:800;margin-bottom:8px">المشروع ليس له عميل محدد</div><div style="font-size:13px;color:var(--text3)">عدّل المشروع وحدد العميل أولاً لإنشاء رابط البوابة</div></div></div>';
+    over2.innerHTML='<div class="modal" style="max-width:420px;text-align:center"><div class="modal-header"><div class="modal-title"><i class="fa-solid fa-share-nodes"></i> مشاركة مع العميل</div><button class="close-btn" onclick="this.closest(\'.modal-overlay\').remove()"><i class="fa-solid fa-xmark"></i></button></div><div style="padding:24px 20px"><div style="font-size:48px;margin-bottom:12px">âڑ ï¸ڈ</div><div style="font-size:15px;font-weight:800;margin-bottom:8px">المشروع ليس له عميل محدد</div><div style="font-size:13px;color:var(--text3)">عدّل المشروع وحدد العميل أولاً لإنشاء رابط البوابة</div></div></div>';
     document.body.appendChild(over2);
     over2.onclick=e=>{if(e.target===over2)over2.remove();};
     return;
@@ -25009,38 +25433,38 @@ function openProjSharePortal(projId){
       <div style="font-size:11px;color:var(--text3);margin-bottom:8px">يفتح بوابة العميل مباشرةً على تاب المشاريع</div>
       <div style="font-size:10px;color:var(--accent3);font-family:monospace;word-break:break-all;margin-bottom:10px;background:var(--surface3);padding:8px;border-radius:8px">${projTabLink}</div>
       <div style="display:flex;gap:6px">
-        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${projTabLink}').then(()=>toast('✅ تم نسخ رابط المشروع'))"><i class="fa-solid fa-copy"></i> نسخ</button>
+        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${projTabLink}').then(()=>toast('? تم نسخ رابط المشروع'))"><i class="fa-solid fa-copy"></i> نسخ</button>
         <button class="btn btn-ghost btn-sm" onclick="window.open('${projTabLink}','_blank')"><i class="fa-solid fa-eye"></i> معاينة</button>
       </div>
     </div>
     <div style="background:rgba(79,209,165,.08);border:1px solid rgba(79,209,165,.3);border-radius:12px;padding:14px;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:800;color:#4fd1a5;margin-bottom:4px"><i class="fa-solid fa-id-card" style="margin-left:5px"></i> بوابة العميل الكاملة — ${escapeHtml(client.name)}</div>
+      <div style="font-size:13px;font-weight:800;color:#4fd1a5;margin-bottom:4px"><i class="fa-solid fa-id-card" style="margin-left:5px"></i> بوابة العميل الكاملة ? ${escapeHtml(client.name)}</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:8px">العميل يشوف: كل مشاريعه، فواتيره، طلباته، عقوده</div>
       <div style="font-size:10px;color:var(--accent3);font-family:monospace;word-break:break-all;margin-bottom:10px;background:var(--surface3);padding:8px;border-radius:8px">${clientLink}</div>
       <div style="display:flex;gap:6px">
-        <button class="btn btn-success btn-sm" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${clientLink}').then(()=>toast('✅ تم نسخ رابط بوابة ${escapeHtml(client.name)}'))"><i class="fa-solid fa-copy"></i> نسخ رابط البوابة</button>
+        <button class="btn btn-success btn-sm" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${clientLink}').then(()=>toast('? تم نسخ رابط بوابة ${escapeHtml(client.name)}'))"><i class="fa-solid fa-copy"></i> نسخ رابط البوابة</button>
         <button class="btn btn-ghost btn-sm" onclick="window.open('${clientLink}','_blank')"><i class="fa-solid fa-eye"></i> معاينة</button>
       </div>
     </div>
-    <div style="font-size:11px;color:var(--text3);text-align:center"><i class="fa-solid fa-lock" style="margin-left:4px"></i> العميل يرى بياناته فقط — لا يمكنه التعديل أو الحذف</div>
+    <div style="font-size:11px;color:var(--text3);text-align:center"><i class="fa-solid fa-lock" style="margin-left:4px"></i> العميل يرى بياناته فقط ? لا يمكنه التعديل أو الحذف</div>
   </div>`;
   document.body.appendChild(over);
   over.onclick=e=>{if(e.target===over)over.remove();};
 }
 
-// ── Hook into renderAll ──
+// â”€â”€ Hook into renderAll â”€â”€
 var _origRenderAll_proj=null;
 if(typeof renderAll==='function'){
   _origRenderAll_proj=renderAll;
 }
 
-// ── Init S.projects ──
+// â”€â”€ Init S.projects â”€â”€
 document.addEventListener('DOMContentLoaded',function(){
   if(!S.projects) S.projects=[];
   if(!S.project_tasks) S.project_tasks=[];
 });
 
-// ── Hook renderAll to include renderProjects ──
+// â”€â”€ Hook renderAll to include renderProjects â”€â”€
 var _projRenderHooked=false;
 function _hookProjRender(){
   if(_projRenderHooked) return;
@@ -25057,21 +25481,21 @@ function _hookProjRender(){
 setTimeout(_hookProjRender,500);
 
 
-// ════════════════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // PROJECT CLIENT PORTAL (Read-only public view)
-// ════════════════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 
-// ════════════════════════════════════════════════════════════════
-// FULL CLIENT PORTAL — لوحة العميل الكاملة
-// ════════════════════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// FULL CLIENT PORTAL ? لوحة العميل الكاملة
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function _buildFullClientPortal(userId, clientId){
   if(typeof supa==='undefined'){
-    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cairo,Tajawal,sans-serif;direction:rtl;color:#666"><div style="text-align:center"><div style="font-size:48px;margin-bottom:12px">⚠️</div><div style="font-size:16px">لا يمكن تحميل لوحة التحكم</div><div style="font-size:13px;margin-top:6px;color:#999">يرجى المحاولة لاحقاً</div></div></div>';
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cairo,Tajawal,sans-serif;direction:rtl;color:#666"><div style="text-align:center"><div style="font-size:48px;margin-bottom:12px">âڑ ï¸ڈ</div><div style="font-size:16px">لا يمكن تحميل لوحة التحكم</div><div style="font-size:13px;margin-top:6px;color:#999">يرجى المحاولة لاحقاً</div></div></div>';
     return;
   }
   // Loading
   document.body.style.cssText='margin:0;padding:0;background:#f4f5fb;font-family:Cairo,Tajawal,sans-serif;direction:rtl';
-  document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><div style="font-size:40px;margin-bottom:12px;animation:spin 1s linear infinite">⏳</div><div style="font-size:14px;color:#666">جاري تحميل بيانات العميل...</div></div></div>';
+  document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><div style="font-size:40px;margin-bottom:12px;animation:spin 1s linear infinite">âڈ³</div><div style="font-size:14px;color:#666">جاري تحميل بيانات العميل...</div></div></div>';
 
   supa.from('studio_data').select('data').eq('user_id',userId).maybeSingle().then(function(res){
     if(!res||!res.data){ _showCPError('لا يمكن تحميل البيانات. تأكد من الرابط.'); return; }
@@ -25134,7 +25558,7 @@ function _buildFullClientPortal(userId, clientId){
     });
     // Project tasks
     var allProjTasks=ud.project_tasks||[];
-    // Tasks (regular) — FIX: trim + case-insensitive match to handle slight name differences
+    // Tasks (regular) ? FIX: trim + case-insensitive match to handle slight name differences
     var cNameNorm = (cName||'').trim().toLowerCase();
     var tasks=(ud.tasks||[]).filter(function(t){
       var tClientNorm = (t.client||'').trim().toLowerCase();
@@ -25145,7 +25569,7 @@ function _buildFullClientPortal(userId, clientId){
     var invoices=(ud.invoices||[]).filter(function(inv){
       return inv.client===cName||(cPhone&&(inv.client_phone===cPhone||inv.clientPhone===cPhone));
     });
-    // Orders — بحث شامل بكل الحقول الممكنة
+    // Orders ? بحث شامل بكل الحقول الممكنة
     var orders=(ud.svc_orders||[]).filter(function(o){
       return String(o.client_id)===String(clientId)||
              o.client_name===cName||o.name===cName||
@@ -25161,8 +25585,8 @@ function _buildFullClientPortal(userId, clientId){
       return s.client===cName||(cPhone&&s.client_phone===cPhone);
     });
 
-    var stProjMap={active:'🟢 نشط',hold:'🟡 معلق',review:'🔵 مراجعة',done:'✅ مكتمل'};
-    var taskStMap={todo:'🆕 جديد',progress:'⚡ قيد التنفيذ',review:'🔍 مراجعة',revision:'✏️ تعديلات',done:'✅ مكتمل',hold:'⏸ موقوف'};
+    var stProjMap={active:'ًںں¢ نشط',hold:'ًںں، معلق',review:'ًں”µ مراجعة',done:'? مكتمل'};
+    var taskStMap={todo:'ًں†• جديد',progress:'âڑ، قيد التنفيذ',review:'ًں”چ مراجعة',revision:'âœڈï¸ڈ تعديلات',done:'? مكتمل',hold:'âڈ¸ موقوف'};
 
     // Build HTML
     document.body.innerHTML='';
@@ -25209,8 +25633,8 @@ function _buildFullClientPortal(userId, clientId){
     var paidInv=invoices.filter(function(i){return i.paid||i.status==='مدفوعة';}).reduce(function(s,i){return s+(+i.total||0);},0);
     var activeProj=projects.filter(function(p){return p.status!=='done';}).length;
     wrap.innerHTML='<div class="_fcp-card" style="border-right:4px solid '+accent+';margin-bottom:20px">'+
-      '<div style="font-size:22px;font-weight:900;margin-bottom:6px">مرحباً، '+cName+' <span style="font-size:20px">👋</span></div>'+
-      '<div style="font-size:13px;color:'+textSub+';margin-bottom:14px">بوابتك الشخصية — كل تفاصيل تعاملاتك مع '+studioName+'</div>'+
+      '<div style="font-size:22px;font-weight:900;margin-bottom:6px">مرحباً، '+cName+' <span style="font-size:20px">ًں‘‹</span></div>'+
+      '<div style="font-size:13px;color:'+textSub+';margin-bottom:14px">بوابتك الشخصية ? كل تفاصيل تعاملاتك مع '+studioName+'</div>'+
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">'+
         [['مشاريع نشطة',activeProj,accent],['طلبات',orders.length,'#f7c948'],['فواتير',invoices.length,'#64b5f6'],['إجمالي مدفوع',paidInv.toLocaleString()+' ج.م','#4fd1a5']].map(function(x){
           return '<div style="background:'+x[2]+'18;border:1px solid '+x[2]+'33;border-radius:12px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:900;color:'+x[2]+'">'+x[1]+'</div><div style="font-size:10px;color:'+textMuted+';margin-top:2px">'+x[0]+'</div></div>';
@@ -25220,7 +25644,7 @@ function _buildFullClientPortal(userId, clientId){
 
     // Tabs
     var tabsDiv=document.createElement('div'); tabsDiv.className='_fcp-tabs';
-    var tabs=[['projects','📁 المشاريع'],['orders','📦 الطلبات'],['invoices','📄 الفواتير'],['contracts','📋 العقود']];
+    var tabs=[['projects','ًں“پ المشاريع'],['orders','ًں“¦ الطلبات'],['invoices','ًں“„ الفواتير'],['contracts','ًں“‹ العقود']];
     tabs.forEach(function(t,i){
       var btn=document.createElement('button'); btn.className='_fcp-tab'+(i===0?' on':'');
       btn.textContent=t[1]; btn.dataset.tab=t[0];
@@ -25238,14 +25662,14 @@ function _buildFullClientPortal(userId, clientId){
     wrap.appendChild(tabContent);
     document.body.appendChild(wrap);
 
-    // ── لو في taskid في الـ URL — افتح تاب المشاريع وـ highlight التاسك ──
+    // â”€â”€ لو في taskid في الـ URL ? افتح تاب المشاريع وـ highlight التاسك â”€â”€
     var _targetTaskId = new URLSearchParams(window.location.search).get('taskid');
     if(_targetTaskId) {
       // فعّل تاب المشاريع
       tabsDiv.querySelectorAll('._fcp-tab').forEach(function(b){ b.classList.remove('on'); });
       tabsDiv.querySelector('[data-tab="projects"]') && tabsDiv.querySelector('[data-tab="projects"]').classList.add('on');
       tabContent.innerHTML = renderClientTab('projects');
-      // بعد ما الـ DOM يتبني — scroll للتاسك وـ highlight
+      // بعد ما الـ DOM يتبني ? scroll للتاسك وـ highlight
       setTimeout(function(){
         var allTaskEls = tabContent.querySelectorAll('._fcp-task-row');
         allTaskEls.forEach(function(el){
@@ -25292,7 +25716,7 @@ function _buildFullClientPortal(userId, clientId){
     }
 
     function renderClientProjects(){
-      if(!projects.length) return '<div class="_fcp-card" style="text-align:center;padding:40px;color:'+textMuted+'"><div style="font-size:40px;margin-bottom:10px">📁</div><div>لا توجد مشاريع بعد</div></div>';
+      if(!projects.length) return '<div class="_fcp-card" style="text-align:center;padding:40px;color:'+textMuted+'"><div style="font-size:40px;margin-bottom:10px">ًں“پ</div><div>لا توجد مشاريع بعد</div></div>';
       return projects.map(function(p){
         var ptasks=allProjTasks.filter(function(t){return String(t.project_id)===String(p.id);});
         var done=ptasks.filter(function(t){return t.status==='done';}).length;
@@ -25304,14 +25728,14 @@ function _buildFullClientPortal(userId, clientId){
             '<div style="display:flex;align-items:center;gap:10px">'+
               '<div style="width:10px;height:10px;border-radius:50%;background:'+(p.color||accent)+';flex-shrink:0"></div>'+
               '<div><div style="font-size:14px;font-weight:800">'+p.name+'</div>'+
-              '<div style="font-size:11px;color:'+textSub+'">'+ptasks.length+' مهمة · '+prog+'% مكتمل</div></div>'+
+              '<div style="font-size:11px;color:'+textSub+'">'+ptasks.length+' مهمة آ· '+prog+'% مكتمل</div></div>'+
             '</div>'+
             _stBadge(stProjMap[p.status||'active']||p.status,stC,stC+'22')+
           '</div>'+
           '<div style="margin-top:12px;height:6px;background:'+borderC+';border-radius:3px;overflow:hidden">'+
             '<div style="height:100%;width:'+prog+'%;background:'+(p.color||accent)+';border-radius:3px"></div>'+
           '</div>'+
-          (p.deadline?'<div style="font-size:11px;color:'+textMuted+';margin-top:8px">⏰ موعد التسليم: '+p.deadline+'</div>':'')+
+          (p.deadline?'<div style="font-size:11px;color:'+textMuted+';margin-top:8px">âڈ° موعد التسليم: '+p.deadline+'</div>':'')+
         '</div>'+
         // Tasks dropdown
         '<div class="_fcp-proj-drop" style="display:none;margin-top:-12px;padding:12px 16px 16px;background:'+surface2+';border:1px solid '+borderC+';border-top:none;border-radius:0 0 18px 18px">'+
@@ -25338,7 +25762,7 @@ function _buildFullClientPortal(userId, clientId){
     }
 
     function renderClientOrders(){
-      if(!orders.length) return '<div class="_fcp-card" style="text-align:center;padding:40px;color:'+textMuted+'"><div style="font-size:40px;margin-bottom:10px">📦</div><div>لا توجد طلبات بعد</div></div>';
+      if(!orders.length) return '<div class="_fcp-card" style="text-align:center;padding:40px;color:'+textMuted+'"><div style="font-size:40px;margin-bottom:10px">ًں“¦</div><div>لا توجد طلبات بعد</div></div>';
       return orders.map(function(o){
         var stC=({new:'#64b5f6',pending:'#f7c948',done:'#4fd1a5',cancelled:'#f76f7c'})[o.status]||'#888';
         var stLabel=({new:'جديد',pending:'قيد التنفيذ',done:'مكتمل',cancelled:'ملغي'})[o.status]||o.status||'جديد';
@@ -25355,7 +25779,7 @@ function _buildFullClientPortal(userId, clientId){
     }
 
     function renderClientInvoices(){
-      if(!invoices.length) return '<div class="_fcp-card" style="text-align:center;padding:40px;color:'+textMuted+'"><div style="font-size:40px;margin-bottom:10px">📄</div><div>لا توجد فواتير بعد</div></div>';
+      if(!invoices.length) return '<div class="_fcp-card" style="text-align:center;padding:40px;color:'+textMuted+'"><div style="font-size:40px;margin-bottom:10px">ًں“„</div><div>لا توجد فواتير بعد</div></div>';
       var totalAll=invoices.reduce(function(s,i){return s+(+i.total||0);},0);
       var totalPaid=invoices.filter(function(i){return i.paid||i.status==='مدفوعة';}).reduce(function(s,i){return s+(+i.total||0);},0);
       return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'+
@@ -25366,9 +25790,9 @@ function _buildFullClientPortal(userId, clientId){
         var paid=inv.paid||inv.status==='مدفوعة';
         return '<div class="_fcp-card">'+
           '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'+
-            '<div><div style="font-size:14px;font-weight:800;margin-bottom:2px">'+(inv.number||'فاتورة')+(inv.desc?' — '+inv.desc:'')+'</div>'+
+            '<div><div style="font-size:14px;font-weight:800;margin-bottom:2px">'+(inv.number||'فاتورة')+(inv.desc?' ? '+inv.desc:'')+'</div>'+
             '<div style="font-size:11px;color:'+textSub+'">'+(inv.date||'')+'</div></div>'+
-            _stBadge(paid?'✅ مدفوعة':'⏳ غير مدفوعة',paid?'#4fd1a5':'#f7c948',paid?'rgba(79,209,165,.15)':'rgba(247,201,72,.15)')+
+            _stBadge(paid?'? مدفوعة':'⏳ غير مدفوعة',paid?'#4fd1a5':'#f7c948',paid?'rgba(79,209,165,.15)':'rgba(247,201,72,.15)')+
           '</div>'+
           '<div style="font-size:18px;font-weight:900;color:'+(paid?'#4fd1a5':accent)+';margin-top:10px">'+Number(inv.total||0).toLocaleString()+' '+(inv.currency||'ج.م')+'</div>'+
         '</div>';
@@ -25376,7 +25800,7 @@ function _buildFullClientPortal(userId, clientId){
     }
 
     function renderClientContracts(){
-      if(!contracts.length) return '<div class="_fcp-card" style="text-align:center;padding:40px;color:'+textMuted+'"><div style="font-size:40px;margin-bottom:10px">📋</div><div>لا توجد عقود بعد</div></div>';
+      if(!contracts.length) return '<div class="_fcp-card" style="text-align:center;padding:40px;color:'+textMuted+'"><div style="font-size:40px;margin-bottom:10px">ًں“‹</div><div>لا توجد عقود بعد</div></div>';
       return contracts.map(function(c){
         return '<div class="_fcp-card">'+
           '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'+
@@ -25393,7 +25817,7 @@ function _buildFullClientPortal(userId, clientId){
 
 function _showCPError(msg){
   document.body.style.cssText='margin:0;padding:0;background:#f4f5fb;font-family:Cairo,Tajawal,sans-serif;direction:rtl';
-  document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><div style="font-size:60px;margin-bottom:16px">⚠️</div><div style="font-size:18px;font-weight:700;color:#333;margin-bottom:8px">لا يمكن تحميل لوحة التحكم</div><div style="font-size:14px;color:#777">'+msg+'</div></div></div>';
+  document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><div style="font-size:60px;margin-bottom:16px">âڑ ï¸ڈ</div><div style="font-size:18px;font-weight:700;color:#333;margin-bottom:8px">لا يمكن تحميل لوحة التحكم</div><div style="font-size:14px;color:#777">'+msg+'</div></div></div>';
 }
 
 function _buildProjectPortalPage(userId, projId){
@@ -25409,8 +25833,8 @@ function _buildProjectPortalPage(userId, projId){
     var accent=settings.accentColor||settings.accent||'#7c6ff7';
     var clr=proj.color||accent;
     var prog=tasks.length?Math.round(tasks.filter(function(t){return t.status==='done';}).length/tasks.length*100):0;
-    var stMap={active:'🟢 نشط',hold:'🟡 معلق',review:'🔵 مراجعة',done:'✅ مكتمل'};
-    var colLabels={todo:'📋 To Do',progress:'⚡ In Progress',review:'🔍 Review',done:'✅ Done'};
+    var stMap={active:'ًںں¢ نشط',hold:'ًںں، معلق',review:'ًں”µ مراجعة',done:'? مكتمل'};
+    var colLabels={todo:'ًں“‹ To Do',progress:'âڑ، In Progress',review:'ًں”چ Review',done:'? Done'};
     var colOrder=['todo','progress','review','done'];
 
     var tasksHtml=colOrder.map(function(col){
@@ -25424,9 +25848,9 @@ function _buildProjectPortalPage(userId, projId){
             '<div style="font-size:13px;font-weight:700;margin-bottom:4px'+(t.status==='done'?';text-decoration:line-through;opacity:.5':'')+'">'+(t.title||'')+'</div>'+
             (t.desc?'<div style="font-size:11px;opacity:.7;margin-bottom:4px">'+t.desc+'</div>':'')+
             '<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:10px;opacity:.7">'+
-              (t.deadline?'<span>📅 '+t.deadline+'</span>':'')+
-              (t.assignee_name?'<span>👤 '+t.assignee_name+'</span>':'')+
-              (steps.length?'<span>📋 '+doneS+'/'+steps.length+' خطوات</span>':'')+
+              (t.deadline?'<span>ًں“… '+t.deadline+'</span>':'')+
+              (t.assignee_name?'<span>ًں‘¤ '+t.assignee_name+'</span>':'')+
+              (steps.length?'<span>ًں“‹ '+doneS+'/'+steps.length+' خطوات</span>':'')+
             '</div>'+
           '</div>';
         }).join('')+'</div>';
@@ -25456,7 +25880,7 @@ function _buildProjectPortalPage(userId, projId){
           '</div>'+
           '<span style="background:'+clr+'22;color:'+clr+';padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700">'+(stMap[proj.status]||proj.status)+'</span>'+
         '</div>'+
-        (proj.deadline?'<div style="font-size:12px;opacity:.6;margin-bottom:12px">📅 الموعد النهائي: '+proj.deadline+'</div>':'')+
+        (proj.deadline?'<div style="font-size:12px;opacity:.6;margin-bottom:12px">ًں“… الموعد النهائي: '+proj.deadline+'</div>':'')+
         '<div style="font-size:12px;opacity:.6;margin-bottom:6px;display:flex;justify-content:space-between"><span>تقدم المشروع</span><span>'+prog+'%</span></div>'+
         '<div style="height:10px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden;margin-bottom:4px">'+
           '<div style="height:100%;width:'+prog+'%;background:'+clr+';border-radius:5px;transition:.4s"></div>'+
@@ -25466,7 +25890,7 @@ function _buildProjectPortalPage(userId, projId){
     '</div>'+
     (tasks.length?'<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px;margin-bottom:20px"><div style="font-size:15px;font-weight:800;margin-bottom:14px"><i class="fa-solid fa-list-check" style="color:'+clr+'"></i> المهام</div>'+tasksHtml+'</div>':'')+
     ((proj.files||[]).length?'<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px;margin-bottom:20px"><div style="font-size:15px;font-weight:800;margin-bottom:14px"><i class="fa-solid fa-folder" style="color:'+clr+'"></i> الملفات</div>'+filesHtml+'</div>':'')+
-    '<div style="text-align:center;font-size:11px;opacity:.3;padding:20px">عرض فقط · مدعوم من Ordo</div>';
+    '<div style="text-align:center;font-size:11px;opacity:.3;padding:20px">عرض فقط آ· مدعوم من Ordo</div>';
     document.body.appendChild(main);
     // scroll unlock
     document.documentElement.classList.add('pub-page');
@@ -25475,7 +25899,7 @@ function _buildProjectPortalPage(userId, projId){
 }
 
 // STATUS SETTINGS POPOVER (kanban column gear icon)
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 (function(){
   // Inject popover CSS
   const s = document.createElement('style');
@@ -25520,7 +25944,7 @@ function openStatusPopover(statusId, triggerEl){
     new:      {label:'جديد',       icon:'<i class="fa-solid fa-clipboard-list"></i>', color:'#5a5a80', isDefault:true},
     progress: {label:'قيد التنفيذ', icon:'<i class="fa-solid fa-bolt"></i>', color:'#f7c948', isDefault:true},
     review:   {label:'مراجعة',     icon:'<i class="fa-solid fa-magnifying-glass"></i>', color:'#7c6ff7', isDefault:true},
-    paused:   {label:'موقوف',      icon:'⏸', color:'#64b5f6', isDefault:true},
+    paused:   {label:'موقوف',      icon:'âڈ¸', color:'#64b5f6', isDefault:true},
   };
   const def = defaultDefs[statusId];
   const isCustom = !def;
@@ -25551,7 +25975,7 @@ function openStatusPopover(statusId, triggerEl){
       <div style="margin-bottom:10px">
         <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">تعديل الحالة</div>
         <div style="display:flex;gap:6px;align-items:center">
-          <div id="_sp-icon-preview" onclick="document.getElementById('_sp-edit-icon-input').focus()" style="width:38px;height:30px;display:flex;align-items:center;justify-content:center;background:var(--surface3);border:1px solid var(--border);border-radius:7px;font-size:14px;cursor:pointer" title="أيقونة">${icon||'📝'}</div>
+          <div id="_sp-icon-preview" onclick="document.getElementById('_sp-edit-icon-input').focus()" style="width:38px;height:30px;display:flex;align-items:center;justify-content:center;background:var(--surface3);border:1px solid var(--border);border-radius:7px;font-size:14px;cursor:pointer" title="أيقونة">${icon||'ًں“‌'}</div>
           <input id="_sp-edit-icon-input" value="${(icon||'').replace(/<[^>]*>/g,'').trim()}" placeholder="</>" style="width:0;height:0;opacity:0;position:absolute;pointer-events:none">
           <input id="_sp-edit-label" value="${(label||'').replace(/"/g,'&quot;')}" placeholder="اسم الحالة" style="flex:1;height:30px;padding:0 8px;background:var(--surface3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;font-family:var(--font);outline:none">
           <input id="_sp-edit-color" type="color" value="${color.startsWith('var')?'#7c6ff7':color}" style="width:30px;height:30px;border:none;border-radius:7px;cursor:pointer;background:none;padding:0">
@@ -25573,7 +25997,7 @@ function openStatusPopover(statusId, triggerEl){
       <!-- Add new status -->
       <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">+ إضافة حالة جديدة</div>
       <div class="_sp-new">
-        <input id="_sp-new-icon" placeholder="⭐" style="width:34px;text-align:center;font-size:14px" title="رمز اختياري">
+        <input id="_sp-new-icon" placeholder="â­گ" style="width:34px;text-align:center;font-size:14px" title="رمز اختياري">
         <input id="_sp-new-label" placeholder="اسم الحالة...">
         <input id="_sp-new-color" type="color" value="#7c6ff7" style="width:28px;height:28px;border:none;border-radius:6px;cursor:pointer;background:none;padding:0;flex-shrink:0">
         <button class="_sp-add-btn" onclick="_spAddNew()">+ إضافة</button>
@@ -25600,7 +26024,7 @@ function _spSaveEdit(statusId){
   if(!label){toast('أدخل اسم الحالة');return;}
 
   // If icon input is empty, keep the original icon
-  const defaultDefs={new:{icon:'<i class="fa-solid fa-clipboard-list"></i>'},progress:{icon:'<i class="fa-solid fa-bolt"></i>'},review:{icon:'<i class="fa-solid fa-magnifying-glass"></i>'},paused:{icon:'⏸'}};
+  const defaultDefs={new:{icon:'<i class="fa-solid fa-clipboard-list"></i>'},progress:{icon:'<i class="fa-solid fa-bolt"></i>'},review:{icon:'<i class="fa-solid fa-magnifying-glass"></i>'},paused:{icon:'âڈ¸'}};
   var icon = iconInput;
   if(!icon){
     var def = defaultDefs[statusId];
@@ -25649,7 +26073,7 @@ function _spToggleHide(statusId){
 function _spDelete(statusId){
   const count = (S.tasks||[]).filter(t=>t.status===statusId).length;
   const msg = count>0
-    ? `هذه الحالة مستخدمة في ${count} مهمة — هل تريد حذفها؟ ستنتقل المهام لحالة "جديد"`
+    ? `هذه الحالة مستخدمة في ${count} مهمة ? هل تريد حذفها؟ ستنتقل المهام لحالة "جديد"`
     : 'هل تريد حذف هذه الحالة؟';
   confirmDel(msg, ()=>{
     if(count>0) (S.tasks||[]).forEach(t=>{ if(t.status===statusId) t.status='new'; });
@@ -25675,9 +26099,9 @@ function _spAddNew(){
   toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تمت إضافة الحالة: '+(icon?icon+' ':'')+label);
 }
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // AUTO-ARCHIVE: completed tasks hide next day
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function runDailyArchive(){
   const today = new Date().toISOString().split('T')[0];
   const lastRun = localStorage.getItem('_studioArchiveDate');
@@ -25709,7 +26133,7 @@ function restoreArchivedTask(taskId){
   const {archivedAt, ...task} = t;
   S.tasks.push(task);
   lsSave(); renderAll();
-  toast('↩ تم استعادة: '+t.title);
+  toast('â†© تم استعادة: '+t.title);
 }
 
 function renderArchivedTasksLog(){
@@ -25730,9 +26154,9 @@ function renderArchivedTasksLog(){
           <span style="font-size:18px"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i></span>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title||''}</div>
-            <div style="font-size:11px;color:var(--text3)">${t.client||''} ${t.value?'· '+t.value.toLocaleString()+' ج':''} ${t.doneAt?'· اكتمل '+t.doneAt:''}</div>
+            <div style="font-size:11px;color:var(--text3)">${t.client||''} ${t.value?'آ· '+t.value.toLocaleString()+' ج':''} ${t.doneAt?'آ· اكتمل '+t.doneAt:''}</div>
           </div>
-          <button onclick="restoreArchivedTask(${t.id})" class="btn btn-ghost btn-sm" style="flex-shrink:0;color:var(--accent)">↩ استعادة</button>
+          <button onclick="restoreArchivedTask(${t.id})" class="btn btn-ghost btn-sm" style="flex-shrink:0;color:var(--accent)">â†© استعادة</button>
         </div>`).join('')}
     </div>`).join('');
 }
@@ -25805,9 +26229,9 @@ window.addEventListener('load', function(){
   };
 })();
 
-// ═══════════════════════════════════════════════════
-// TRACKING PAGE — branded with system colors + logo
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// TRACKING PAGE ? branded with system colors + logo
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // Override _buildTrackingPageHTML with branded version
 _buildTrackingPageHTML = function(t){
   const steps=t.steps||[];
@@ -25857,7 +26281,7 @@ _buildTrackingPageHTML = function(t){
 
   return `<!DOCTYPE html><html dir="rtl" lang="ar"><head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>متابعة: ${t.title} — ${studio}</title>
+  <title>متابعة: ${t.title} ? ${studio}</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
   <style>
     :root{--accent:${accentHex};--accent-rgb:${accentRgb};--bg:${bg};--bg2:${bg2};--bg3:${bg3};--border:${border};--text:${text};--text2:${text2};--text3:${text3}}
@@ -25904,7 +26328,7 @@ _buildTrackingPageHTML = function(t){
         : `<div class="studio-logo-fallback"><i class="fa-solid fa-palette"></i></div>`}
       <div class="studio-name">${studio}</div>
       <div class="proj-title">${t.title}</div>
-      <div class="proj-meta">${t.client?'<i class="fa-solid fa-user"></i> '+t.client+'  ·  ':''}<span style="color:${statusColor==='#f7c948'?'#ffe082':statusColor}">${status}</span></div>
+      <div class="proj-meta">${t.client?'<i class="fa-solid fa-user"></i> '+t.client+'  آ·  ':''}<span style="color:${statusColor==='#f7c948'?'#ffe082':statusColor}">${status}</span></div>
     </div>
   </div>
   <div class="con">
@@ -25917,14 +26341,14 @@ _buildTrackingPageHTML = function(t){
         ${t.deadline?`<div class="ic"><div class="il"><i class="fa-solid fa-alarm-clock"></i> موعد التسليم</div><div class="iv" style="color:${daysLeft!==null&&daysLeft<=3?'#f76f7c':daysLeft!==null&&daysLeft<=7?'#f7c948':'#4fd1a5'}">${t.deadline}${daysLeft!==null?' ('+daysLeft+' يوم)':''}</div></div>`:''}
       </div>
     </div>
-    ${steps.length?`<div class="card"><div class="ct"><i class="fa-solid fa-folder-open"></i> مراحل التنفيذ — ${stepsDone}/${stepsTotal}</div>
+    ${steps.length?`<div class="card"><div class="ct"><i class="fa-solid fa-folder-open"></i> مراحل التنفيذ ? ${stepsDone}/${stepsTotal}</div>
       ${steps.map((s,i)=>{const dn=s.done,cr=!dn&&steps.slice(0,i).every(x=>x.done);return `<div class="step-row"><div class="sn ${dn?'done':cr?'cur':''}">${dn?'<i class="fa-solid fa-check"></i>':cr?'<i class="fa-solid fa-play"></i>':i+1}</div><span class="sl ${dn?'done':cr?'cur':''}">${s.text}</span><span style="font-size:10px;color:${dn?'#4fd1a5':cr?'var(--accent)':'var(--text3)'};font-weight:700">${dn?'مكتمل <i class="fa-solid fa-check"></i>':cr?'جاري الآن <i class="fa-solid fa-play"></i>':''}</span></div>`;}).join('')}
     </div>`:''}
     ${t.brief?`<div class="card"><div class="ct"><i class="fa-solid fa-file-lines"></i> وصف المشروع</div><p style="font-size:13px;color:var(--text2);line-height:1.9">${t.brief}</p></div>`:''}
     ${(phone||email||socials.length)?`<div class="card">
       <div class="ct"><i class="fa-solid fa-phone"></i> تواصل مع ${studio}</div>
       ${phone?`<div class="contact-row"><i class="fa-solid fa-mobile-screen"></i> <a href="https://wa.me/${phone.replace(/\D/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:600">${phone}</a></div>`:''}
-      ${email?`<div class="contact-row"><i class="fa-solid fa-envelope"></i>️ <a href="mailto:${email}" style="color:var(--accent);text-decoration:none;font-weight:600">${email}</a></div>`:''}
+      ${email?`<div class="contact-row"><i class="fa-solid fa-envelope"></i>ï¸ڈ <a href="mailto:${email}" style="color:var(--accent);text-decoration:none;font-weight:600">${email}</a></div>`:''}
       ${socials.length?`<div style="margin-top:10px;display:flex;flex-wrap:wrap">
         ${socials.map(s=>`<a href="${s.url}" target="_blank" class="social-link">${_svgIcons[s.platform]||_svgIcons.other} ${({"instagram":"انستقرام","facebook":"فيسبوك","behance":"بيهانس","linkedin":"لينكدإن","tiktok":"تيك توك","youtube":"يوتيوب","twitter":"تويتر","whatsapp":"واتساب","website":"موقع"})[s.platform]||s.platform}</a>`).join('')}
       </div>`:''}
@@ -25937,9 +26361,9 @@ _buildTrackingPageHTML = function(t){
   </body></html>`;
 };
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // FIX: Use user avatar in tracking page logo
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 (function(){
   const _origBuild = _buildTrackingPageHTML;
   _buildTrackingPageHTML = function(t){
@@ -26001,7 +26425,7 @@ _buildTrackingPageHTML = function(t){
 
   return `<!DOCTYPE html><html dir="rtl" lang="ar"><head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>متابعة: ${t.title} — ${studio}</title>
+  <title>متابعة: ${t.title} ? ${studio}</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
   <style>
     :root{--accent:${accentHex};--accent-rgb:${accentRgb};--bg:${bg};--bg2:${bg2};--bg3:${bg3};--border:${border};--text:${text};--text2:${text2};--text3:${text3}}
@@ -26042,7 +26466,7 @@ _buildTrackingPageHTML = function(t){
         : `<div class="studio-logo-fallback"><i class="fa-solid fa-palette"></i></div>`}
       <div class="studio-name">${studio}</div>
       <div class="proj-title">${t.title}</div>
-      <div class="proj-meta">${t.client?'<i class="fa-solid fa-user"></i> '+t.client+'  ·  ':''}<span style="color:${statusColor==='#f7c948'?'#ffe082':statusColor}">${status}</span></div>
+      <div class="proj-meta">${t.client?'<i class="fa-solid fa-user"></i> '+t.client+'  آ·  ':''}<span style="color:${statusColor==='#f7c948'?'#ffe082':statusColor}">${status}</span></div>
     </div>
   </div>
   <div class="con">
@@ -26055,14 +26479,14 @@ _buildTrackingPageHTML = function(t){
         ${t.deadline?`<div class="ic"><div class="il"><i class="fa-solid fa-alarm-clock"></i> موعد التسليم</div><div class="iv" style="color:${daysLeft!==null&&daysLeft<=3?'#f76f7c':daysLeft!==null&&daysLeft<=7?'#f7c948':'#4fd1a5'}">${t.deadline}${daysLeft!==null?' ('+daysLeft+' يوم)':''}</div></div>`:''}
       </div>
     </div>
-    ${steps.length?`<div class="card"><div class="ct"><i class="fa-solid fa-folder-open"></i> مراحل التنفيذ — ${stepsDone}/${stepsTotal}</div>
+    ${steps.length?`<div class="card"><div class="ct"><i class="fa-solid fa-folder-open"></i> مراحل التنفيذ ? ${stepsDone}/${stepsTotal}</div>
       ${steps.map((s,i)=>{const dn=s.done,cr=!dn&&steps.slice(0,i).every(x=>x.done);return `<div class="step-row"><div class="sn ${dn?'done':cr?'cur':''}">${dn?'<i class="fa-solid fa-check"></i>':cr?'<i class="fa-solid fa-play"></i>':i+1}</div><span class="sl ${dn?'done':cr?'cur':''}">${s.text}</span><span style="font-size:10px;color:${dn?'#4fd1a5':cr?'var(--accent)':'var(--text3)'};font-weight:700">${dn?'مكتمل <i class="fa-solid fa-check"></i>':cr?'جاري الآن <i class="fa-solid fa-play"></i>':''}</span></div>`;}).join('')}
     </div>`:''}
     ${t.brief?`<div class="card"><div class="ct"><i class="fa-solid fa-file-lines"></i> وصف المشروع</div><p style="font-size:13px;color:var(--text2);line-height:1.9">${t.brief}</p></div>`:''}
     ${(phone||email||socials.length)?`<div class="card">
       <div class="ct"><i class="fa-solid fa-phone"></i> تواصل مع ${studio}</div>
       ${phone?`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><i class="fa-solid fa-mobile-screen"></i> <a href="https://wa.me/${phone.replace(/\D/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:600">${phone}</a></div>`:''}
-      ${email?`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><i class="fa-solid fa-envelope"></i>️ <a href="mailto:${email}" style="color:var(--accent);text-decoration:none;font-weight:600">${email}</a></div>`:''}
+      ${email?`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><i class="fa-solid fa-envelope"></i>ï¸ڈ <a href="mailto:${email}" style="color:var(--accent);text-decoration:none;font-weight:600">${email}</a></div>`:''}
       ${socials.length?`<div style="margin-top:10px;display:flex;flex-wrap:wrap">${socials.map(s=>`<a href="${s.url}" target="_blank" class="social-link">${_svgIcons[s.platform]||_svgIcons.other} ${({"instagram":"انستقرام","facebook":"فيسبوك","behance":"بيهانس","linkedin":"لينكدإن","tiktok":"تيك توك","youtube":"يوتيوب","twitter":"تويتر","whatsapp":"واتساب","website":"موقع"})[s.platform]||s.platform}</a>`).join('')}</div>`:''}
     </div>`:''}
     <div class="ftr">
@@ -26072,9 +26496,9 @@ _buildTrackingPageHTML = function(t){
   </div></body></html>`;
 };
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // CARD <i class="fa-solid fa-gear"></i> = RENAME CURRENT STATUS ONLY (mini inline)
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function openCardStatusRename(statusId, triggerEl){
   // Remove any existing
   document.querySelectorAll('._card-rename-pop').forEach(el=>el.remove());
@@ -26124,9 +26548,9 @@ function _cardRenameApply(statusId){
   toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تحديث اسم الحالة: '+label);
 }
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // <i class="fa-solid fa-gear"></i> STATUS MANAGER MODAL (big button above kanban)
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function openStatusManagerModal(){
   let modal=document.getElementById('_modal-status-mgr');
   if(!modal){
@@ -26149,7 +26573,7 @@ function _renderStatusMgrModal(){
     {id:'new',    label:'جديد',       icon:'<i class="fa-solid fa-clipboard-list"></i>', color:'#5a5a80'},
     {id:'progress',label:'قيد التنفيذ',icon:'<i class="fa-solid fa-bolt"></i>', color:'#f7c948'},
     {id:'review', label:'مراجعة',     icon:'<i class="fa-solid fa-magnifying-glass"></i>', color:'#7c6ff7'},
-    {id:'paused', label:'موقوف',      icon:'⏸', color:'#64b5f6'},
+    {id:'paused', label:'موقوف',      icon:'âڈ¸', color:'#64b5f6'},
   ];
   const customStatuses=S.customStatuses||[];
   const allStatuses=[
@@ -26177,7 +26601,7 @@ function _renderStatusMgrModal(){
       <div style="background:var(--surface2);border-radius:12px;padding:14px;border:1px solid var(--border)">
         <div style="font-size:11px;color:var(--text3);font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px">+ إضافة حالة جديدة</div>
         <div style="display:flex;gap:8px;align-items:center">
-          <input id="_smgr-new-icon" class="form-input" placeholder="⭐" style="width:38px;text-align:center;font-size:22px;padding:0 4px;height:34px">
+          <input id="_smgr-new-icon" class="form-input" placeholder="â­گ" style="width:38px;text-align:center;font-size:22px;padding:0 4px;height:34px">
           <input id="_smgr-new-label" class="form-input" placeholder="اسم الحالة الجديدة" style="flex:1;height:34px">
           <input id="_smgr-new-color" type="color" value="#7c6ff7" style="width:34px;height:34px;border:none;border-radius:8px;cursor:pointer;padding:0;background:none;flex-shrink:0">
           <button onclick="_smgrAddNew()" class="btn btn-primary" style="height:34px;padding:0 14px;white-space:nowrap">+ إضافة</button>
@@ -26303,7 +26727,7 @@ function _renderCustomKanbanCols(){
           </div><span style="font-size:10px;color:var(--text3)">${sd}/${sp.length}</span></div>`:''}
         <div style="font-size:10px;margin-top:5px;display:flex;justify-content:space-between;align-items:center">
           <button onclick="event.stopPropagation();openCardStatusRename('${cs.id}',this)" style="background:rgba(255,255,255,.06);border:none;border-radius:6px;color:var(--text3);font-size:11px;padding:2px 7px;cursor:pointer" title="تعديل الحالة"><i class="fa-solid fa-gear"></i></button>
-          <button onclick="event.stopPropagation();kbShowMoveMenu(event,${t.id})" style="background:${cs.color}22;border:none;border-radius:6px;color:${cs.color};font-size:10px;padding:2px 7px;cursor:pointer;font-weight:700">نقل ▾</button>
+          <button onclick="event.stopPropagation();kbShowMoveMenu(event,${t.id})" style="background:${cs.color}22;border:none;border-radius:6px;color:${cs.color};font-size:10px;padding:2px 7px;cursor:pointer;font-weight:700">نقل ?</button>
         </div>
       </div>`;
     }).join('');
@@ -26318,9 +26742,9 @@ function _renderCustomKanbanCols(){
   statusCols.style.gridTemplateColumns=`repeat(${Math.min(count,4)},1fr)`;
 }
 
-// ═══════════════════════════════════════════════════
-// TEAM ASSIGNMENTS — show tasks for linked user
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+// TEAM ASSIGNMENTS ? show tasks for linked user
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 window.addEventListener('load', function(){
   setTimeout(function(){
     const session = getSession();
@@ -26350,7 +26774,7 @@ function _renderTeamTasksBanner(myTasks, myName){
       `<div onclick="openTaskDetail(${t.id})" style="display:flex;align-items:center;gap:10px;padding:9px 10px;background:var(--surface2);border-radius:10px;margin-bottom:6px;cursor:pointer;border:1px solid rgba(100,181,246,.15)">
         <div style="width:8px;height:8px;border-radius:50%;background:#64b5f6;flex-shrink:0"></div>
         <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">${t.title}</div>
-        <div style="font-size:11px;color:var(--text3)">${t.client||''} ${t.deadline?'· '+t.deadline:''}</div></div>
+        <div style="font-size:11px;color:var(--text3)">${t.client||''} ${t.deadline?'آ· '+t.deadline:''}</div></div>
         <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(100,181,246,.15);color:#64b5f6;font-weight:700">${t.workerAmount?t.workerAmount.toLocaleString()+' '+_getCurrency():''}</span>
       </div>`).join('')+
       (myTasks.length>3?`<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px">+ ${myTasks.length-3} مهام أخرى</div>`:'')
@@ -26374,8 +26798,8 @@ function _renderTeamTasksBanner(myTasks, myName){
             <div style="font-size:13px;font-weight:700">${t.title}</div>
             <div style="font-size:11px;color:var(--text3);margin-top:2px">
               ${t.client?'<i class="fa-solid fa-user"></i> '+t.client:''}
-              ${t.deadline?'  ·  <i class="fa-solid fa-alarm-clock"></i> '+t.deadline:''}
-              ${t.workerAmount?'  ·  <i class="fa-solid fa-coins"></i> '+t.workerAmount.toLocaleString()+' ج':''}
+              ${t.deadline?'  آ·  <i class="fa-solid fa-alarm-clock"></i> '+t.deadline:''}
+              ${t.workerAmount?'  آ·  <i class="fa-solid fa-coins"></i> '+t.workerAmount.toLocaleString()+' ج':''}
             </div>
           </div>
           <span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(100,181,246,.12);color:#64b5f6;font-weight:700;white-space:nowrap">
@@ -26386,7 +26810,7 @@ function _renderTeamTasksBanner(myTasks, myName){
     if(activeView) activeView.insertBefore(el, activeView.firstChild);
   }
 }
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 
 // Override openFreelancerGoalModal with full-featured version
 openFreelancerGoalModal = function(type){
@@ -26479,7 +26903,7 @@ openFreelancerGoalModal = function(type){
         <div class="form-group"><label class="form-label">مدة الهدف (أيام)</label><input class="form-input" id="fgc-days" type="number" value="${existing?.days||30}" placeholder="30"></div>
       </div>
       <div class="form-group"><label class="form-label"><i class="fa-solid fa-pen-to-square"></i> وصف الهدف</label><textarea class="form-input" id="fgc-desc" style="height:70px;resize:none" placeholder="اشرح الهدف بالتفصيل...">${existing?.desc||''}</textarea></div>
-      <div class="form-group"><label class="form-label">📏 الحد الأدنى للنجاح</label><input class="form-input" id="fgc-min" value="${existing?.minReq||''}" placeholder="مثال: إنهاء 3 كورسات على الأقل"></div>
+      <div class="form-group"><label class="form-label">ًں“ڈ الحد الأدنى للنجاح</label><input class="form-input" id="fgc-min" value="${existing?.minReq||''}" placeholder="مثال: إنهاء 3 كورسات على الأقل"></div>
       <div class="form-group">
         <label class="form-label"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> خطوات الهدف</label>
         <div id="fgc-steps-list" style="margin-bottom:8px">
@@ -26766,9 +27190,9 @@ function deleteFgCustomGoal(id){
   toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم الحذف');
 }
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // TASK TIME SUMMARY IN DETAIL MODAL
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 window.addEventListener('load', function(){
   const _origOpenTaskDetail = openTaskDetail;
   openTaskDetail = function(id){
@@ -26876,9 +27300,9 @@ window.addEventListener('load', function(){
   };
 });
 
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // TASK TRACKING LINK (per-task client portal)
-// ═══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 window.addEventListener('load', function(){
   // Add "رابط المتابعة" button to task detail modal
   const _origOTD = openTaskDetail;
@@ -26902,7 +27326,7 @@ function _buildTrackingPageHTML(t){
   const daysLeft=t.deadline?Math.max(0,Math.ceil((new Date(t.deadline)-new Date())/(1000*60*60*24))):null;
   return `<!DOCTYPE html><html dir="rtl" lang="ar"><head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>متابعة: ${t.title} — ${studio}</title>
+  <title>متابعة: ${t.title} ? ${studio}</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
@@ -26936,7 +27360,7 @@ function _buildTrackingPageHTML(t){
   <div class="hdr">
     <div class="badge">${studio}</div>
     <h1>${t.title}</h1>
-    <div class="sub">${t.client?'<i class="fa-solid fa-user"></i> '+t.client+'  ·  ':''}<span style="color:${statusColor}">${status}</span></div>
+    <div class="sub">${t.client?'<i class="fa-solid fa-user"></i> '+t.client+'  آ·  ':''}<span style="color:${statusColor}">${status}</span></div>
   </div>
   <div class="con">
     <div class="card" style="text-align:center">
@@ -26948,12 +27372,12 @@ function _buildTrackingPageHTML(t){
         ${t.deadline?`<div class="ic"><div class="il"><i class="fa-solid fa-alarm-clock"></i> موعد التسليم</div><div class="iv" style="color:${daysLeft!==null&&daysLeft<=3?'#f76f7c':daysLeft!==null&&daysLeft<=7?'#f7c948':'#4fd1a5'}">${t.deadline}${daysLeft!==null?' ('+daysLeft+'د)':''}</div></div>`:''}
       </div>
     </div>
-    ${steps.length?`<div class="card"><div class="ct"><i class="fa-solid fa-folder-open"></i> مراحل التنفيذ — ${stepsDone}/${stepsTotal}</div>
+    ${steps.length?`<div class="card"><div class="ct"><i class="fa-solid fa-folder-open"></i> مراحل التنفيذ ? ${stepsDone}/${stepsTotal}</div>
       ${steps.map((s,i)=>{const dn=s.done,cr=!dn&&steps.slice(0,i).every(x=>x.done);return `<div class="step-row"><div class="sn ${dn?'done':cr?'cur':''}">${dn?'<i class="fa-solid fa-check"></i>':cr?'<i class="fa-solid fa-play"></i>':i+1}</div><span class="sl ${dn?'done':cr?'cur':''}">${s.text}</span><span style="font-size:10px;color:${dn?'#4fd1a5':cr?'#7c6ff7':'#555'};font-weight:700">${dn?'مكتمل':cr?'جاري <i class="fa-solid fa-play"></i>':''}</span></div>`;}).join('')}
     </div>`:''}
     ${t.brief?`<div class="card"><div class="ct"><i class="fa-solid fa-file-lines"></i> وصف المشروع</div><p style="font-size:13px;color:#aaa;line-height:1.9">${t.brief}</p></div>`:''}
     <div class="ftr">
-      <div style="margin-bottom:8px">${studio} · آخر تحديث: ${new Date().toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'})}</div>
+      <div style="margin-bottom:8px">${studio} آ· آخر تحديث: ${new Date().toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'})}</div>
       ${studioPhone?`<a href="https://wa.me/${studioPhone.replace(/\D/g,'')}" style="color:#25D366;text-decoration:none;font-size:12px"><i class="fa-solid fa-phone"></i> تواصل مع ${studio}</a>`:''}
     </div>
   </div></body></html>`;
@@ -26964,7 +27388,7 @@ function _showTrackingShareModal(t){
   const clientName=t.client||'عزيزي العميل';
   const taskTitle=t.title||'المشروع';
 
-  // ── رابط دائم حقيقي يفتح client-portal.html ──
+  // â”€â”€ رابط دائم حقيقي يفتح client-portal.html â”€â”€
   const cl=(S.clients||[]).find(c=>(c.name||'').toLowerCase()===(t.client||'').toLowerCase());
   const clientPhone=cl?.phone||'';
   const clientId=cl?.id||'';
@@ -26981,7 +27405,7 @@ function _showTrackingShareModal(t){
     +(clientPhone?'&phone='+encodeURIComponent(clientPhone):'')
     +'&taskid='+encodeURIComponent(t.id);
 
-  const waText='مرحباً '+clientName+' 👋\n\nنفيدك بأن مشروعك "'+taskTitle+'" لدى '+studio+' قيد التنفيذ.\n\nيمكنك متابعة التقدم ومراحل التنفيذ في أي وقت من الرابط:\n\n'+trackUrl+'\n\nللاستفسار لا تتردد في التواصل معنا 🙏\n'+studio;
+  const waText='مرحباً '+clientName+' ًں‘‹\n\nظ†فيدك بأن مشروعك "'+taskTitle+'" لدى '+studio+' قيد التنفيذ.\n\nيمكنك متابعة التقدم ومراحل التنفيذ في أي وقت من الرابط:\n\n'+trackUrl+'\n\nظ„لاستفسار لا تتردد في التواصل معنا ًں™ڈ\n'+studio;
   const waUrl=clientPhone?'https://wa.me/'+clientPhone.replace(/\D/g,'')+'?text='+encodeURIComponent(waText):'https://wa.me/?text='+encodeURIComponent(waText);
 
   let modal=document.getElementById('_modal-tracking');
@@ -27010,7 +27434,7 @@ function _showTrackingShareModal(t){
           <input id="_trk-url" class="form-input" value="${esc(trackUrl)}" readonly style="flex:1;font-size:11px;direction:ltr">
           <button onclick="navigator.clipboard.writeText(document.getElementById('_trk-url').value);toast('<i class=\'fa-solid fa-square-check\' style=\'color:var(--accent3)\'></i> تم نسخ الرابط')" class="btn btn-ghost btn-sm"><i class="fa-solid fa-copy" style="margin-left:5px"></i> نسخ</button>
         </div>
-        <div style="font-size:11px;color:var(--accent3);margin-top:5px;font-weight:700"><i class="fa-solid fa-square-check"></i> رابط دائم — يعمل على أي جهاز في أي وقت</div>
+        <div style="font-size:11px;color:var(--accent3);margin-top:5px;font-weight:700"><i class="fa-solid fa-square-check"></i> رابط دائم ? يعمل على أي جهاز في أي وقت</div>
       </div>
       <div class="form-group">
         <label class="form-label"><i class="fa-solid fa-pen-to-square"></i> رسالة واتساب الجاهزة</label>
@@ -27027,7 +27451,7 @@ function _showTrackingShareModal(t){
   openM('_modal-tracking');
 }
 
-// Add tracking button to task detail — runs once
+// Add tracking button to task detail ? runs once
 (function(){
   const _hook=function(){
     const _orig=openTaskDetail;
@@ -27052,7 +27476,7 @@ function _showTrackingShareModal(t){
   else _hook();
 })();
 
-// ── helpers لـ openProjTaskDetail المطور ──
+// â”€â”€ helpers لـ openProjTaskDetail المطور â”€â”€
 function _ptdSaveField(taskId, field, value){
   var t=(S.project_tasks||[]).find(function(x){return String(x.id)===String(taskId);});
   if(!t) return;
@@ -27071,3 +27495,624 @@ function _ptdSaveNote(taskId, projId){
   lsSave(); cloudSave(S);
   if(typeof showMiniNotif==='function') showMiniNotif('<i class="fa-solid fa-floppy-disk" style="color:var(--accent)"></i> تم حفظ الملاحظة');
 }
+
+// ============================================================
+// Ordo User Patch: multi-currency wallets + temporary todos
+// ============================================================
+(function(){
+  var DEFAULT_CURRENCIES = [
+    {code:'EGP', symbol:'ج.م', label:'جنيه مصري', enabled:true},
+    {code:'USD', symbol:'$', label:'دولار أمريكي', enabled:true},
+    {code:'SAR', symbol:'ر.س', label:'ريال سعودي', enabled:false},
+    {code:'AED', symbol:'AED', label:'درهم إماراتي', enabled:false},
+    {code:'EUR', symbol:'€', label:'يورو', enabled:false},
+    {code:'KWD', symbol:'د.ك', label:'دينار كويتي', enabled:false},
+    {code:'QAR', symbol:'ر.ق', label:'ريال قطري', enabled:false}
+  ];
+
+  function _nowIso(){ return new Date().toISOString(); }
+  function _num(v){ return Number(v||0) || 0; }
+  function _uid(prefix){ return (prefix||'id') + '_' + Date.now() + '_' + Math.random().toString(16).slice(2,8); }
+  function _state(){ return window.S || {}; }
+  function _hasCore(){ return window.OrdoData && typeof window.OrdoData.normalizeAll === 'function'; }
+  function _ensureFinanceState(){
+    var s = _state();
+    s.settings = s.settings || {};
+    if(_hasCore()) window.OrdoData.normalizeAll();
+    s.settings.enabled_currencies = Array.isArray(s.settings.enabled_currencies) ? s.settings.enabled_currencies : DEFAULT_CURRENCIES.map(function(c){return Object.assign({},c);});
+    if(!s.settings.base_currency) s.settings.base_currency = 'ج.م';
+    if(!s.settings.base_currency_code){
+      var base = s.settings.enabled_currencies.find(function(c){ return c.symbol === s.settings.base_currency || c.code === s.settings.base_currency; }) || s.settings.enabled_currencies[0] || DEFAULT_CURRENCIES[0];
+      s.settings.base_currency_code = base.code;
+    }
+    s.wallets = Array.isArray(s.wallets) ? s.wallets : [];
+    s.wallet_transfers = Array.isArray(s.wallet_transfers) ? s.wallet_transfers : [];
+    s.temp_todo_lists = Array.isArray(s.temp_todo_lists) ? s.temp_todo_lists : [];
+    _enabledCurrencies(false).forEach(function(cur){ _ensureWallet(cur.code); });
+    (s.tasks||[]).forEach(function(t){ _normalizeMoneyEntity(t); });
+    (s.transactions||[]).forEach(function(t){ _normalizeMoneyEntity(t); });
+    return s;
+  }
+  function _allCurrencyDefs(){
+    var s = _state();
+    var saved = (s.settings && Array.isArray(s.settings.enabled_currencies)) ? s.settings.enabled_currencies : [];
+    var map = {};
+    DEFAULT_CURRENCIES.forEach(function(c){ map[c.code] = Object.assign({}, c); });
+    saved.forEach(function(c){
+      var code = c.code || c.currency_code;
+      if(!code) return;
+      map[code] = Object.assign({}, map[code] || {}, c, {code:code});
+    });
+    return Object.keys(map).map(function(k){ return map[k]; });
+  }
+  function _currencyMeta(value){
+    var s = _state();
+    var val = value || (s.settings && (s.settings.base_currency_code || s.settings.base_currency)) || 'EGP';
+    if(window.OrdoData && typeof window.OrdoData.getCurrencyMeta === 'function') return window.OrdoData.getCurrencyMeta(val);
+    return _allCurrencyDefs().find(function(c){ return c.code === val || c.symbol === val || c.label === val; }) || DEFAULT_CURRENCIES[0];
+  }
+  function _enabledCurrencies(includeBalance){
+    var s = _state();
+    var list = _allCurrencyDefs().filter(function(c){ return c.enabled !== false; });
+    if(includeBalance && Array.isArray(s.wallets)){
+      s.wallets.forEach(function(w){
+        if(_num(w.balance) !== 0 && !list.some(function(c){return c.code === w.currency_code;})){
+          list.push(_currencyMeta(w.currency_code));
+        }
+      });
+    }
+    return list;
+  }
+  function _baseCurrency(){
+    var s = _state();
+    return _currencyMeta(s.settings && (s.settings.base_currency_code || s.settings.base_currency));
+  }
+  function _entityCurrency(entity){
+    if(entity && (entity.currency_code || entity.currency || entity.currency_symbol)){
+      return _currencyMeta(entity.currency_code || entity.currency || entity.currency_symbol);
+    }
+    return _baseCurrency();
+  }
+  function _formatMoney(amount, entityOrCurrency){
+    var cur = (typeof entityOrCurrency === 'string') ? _currencyMeta(entityOrCurrency) : _entityCurrency(entityOrCurrency || {});
+    if(window.OrdoData && typeof window.OrdoData.formatMoney === 'function') return window.OrdoData.formatMoney(amount, cur.code);
+    return _num(amount).toLocaleString() + ' ' + cur.symbol;
+  }
+  function _currencyOptions(selected, includeDisabledWithBalance){
+    var sel = _currencyMeta(selected || _baseCurrency().code).code;
+    return _enabledCurrencies(!!includeDisabledWithBalance).map(function(c){
+      return '<option value="'+c.code+'" '+(c.code===sel?'selected':'')+'>'+c.label+' ('+c.symbol+')</option>';
+    }).join('');
+  }
+  function _normalizeMoneyEntity(entity){
+    if(!entity) return entity;
+    var cur = _entityCurrency(entity);
+    entity.currency_code = cur.code;
+    entity.currency_symbol = cur.symbol;
+    entity.currency = cur.code;
+    return entity;
+  }
+  function _touchEntity(type, entity){
+    if(!entity) return;
+    entity.updatedAt = _nowIso();
+    entity._dirty = true;
+    if(window.OrdoData && typeof window.OrdoData.markDirty === 'function') window.OrdoData.markDirty(type, entity.id);
+  }
+  function _saveState(){
+    if(window.OrdoFinance && typeof window.OrdoFinance.recalculateWallets === 'function') window.OrdoFinance.recalculateWallets();
+    if(window.OrdoData && typeof window.OrdoData.saveDirty === 'function') window.OrdoData.saveDirty();
+    else { if(typeof lsSave === 'function') lsSave(); if(typeof cloudSave === 'function') cloudSave(S); }
+  }
+  function _ensureWallet(code){
+    var s = _state(), cur = _currencyMeta(code);
+    s.wallets = Array.isArray(s.wallets) ? s.wallets : [];
+    var w = s.wallets.find(function(x){ return x.currency_code === cur.code; });
+    if(!w){
+      w = {id:_uid('wallet'), currency_code:cur.code, currency_symbol:cur.symbol, currency_label:cur.label, balance:0, createdAt:_nowIso(), updatedAt:_nowIso(), _dirty:true};
+      s.wallets.push(w);
+    } else {
+      w.currency_symbol = cur.symbol;
+      w.currency_label = cur.label;
+    }
+    return w;
+  }
+  function _fillCurrencySelect(id, selected, includeDisabledWithBalance){
+    var el = document.getElementById(id);
+    if(el) el.innerHTML = _currencyOptions(selected, includeDisabledWithBalance);
+  }
+  function _updateTaskCurrencyLabels(){
+    var cur = _currencyMeta(document.getElementById('t-currency')?.value || _baseCurrency().code);
+    var valueLabel = document.querySelector('#t-value-row label[for="t-value"], #t-value-row #t-value')?.closest('.form-group')?.querySelector('.form-label');
+    var depLabel = document.querySelector('#deposit-row .form-label');
+    if(valueLabel) valueLabel.textContent = 'قيمة المشروع (' + cur.symbol + ')';
+    if(depLabel) depLabel.textContent = 'قيمة العربون المدفوع (' + cur.symbol + ')';
+  }
+  function _updateTransactionCurrencyLabels(){
+    var inc = _currencyMeta(document.getElementById('in-currency')?.value || _baseCurrency().code);
+    var exp = _currencyMeta(document.getElementById('ex-currency')?.value || _baseCurrency().code);
+    var inLabel = document.getElementById('in-amount')?.closest('.form-group')?.querySelector('.form-label');
+    var exLabel = document.getElementById('ex-amount')?.closest('.form-group')?.querySelector('.form-label');
+    if(inLabel) inLabel.textContent = 'المبلغ (' + inc.symbol + ') *';
+    if(exLabel) exLabel.textContent = 'المبلغ (' + exp.symbol + ') *';
+  }
+  function _replaceMoneyText(root, amount, entity){
+    if(!root || !amount) return;
+    var raw = _num(amount).toLocaleString();
+    var formatted = _formatMoney(amount, entity);
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var nodes = [], n;
+    while(n = walker.nextNode()) nodes.push(n);
+    nodes.forEach(function(node){
+      if(node.nodeValue && node.nodeValue.indexOf(raw) > -1 && /ج|ط¬|EGP|\$|ر\.س|AED|€/.test(node.nodeValue)){
+        node.nodeValue = node.nodeValue
+          .replace(raw + ' ج.م', formatted)
+          .replace(raw + ' ج', formatted)
+          .replace(raw + ' ج.م', formatted)
+          .replace(raw + ' ج', formatted);
+      }
+    });
+  }
+  function _postProcessTaskMoney(root){
+    root = root || document;
+    (S.tasks||[]).forEach(function(t){ _replaceMoneyText(root, t.value, t); _replaceMoneyText(root, t.deposit, t); _replaceMoneyText(root, t.workerAmount, t); });
+  }
+
+  function _injectTaskCurrencyField(){
+    _ensureFinanceState();
+    var row = document.getElementById('t-value-row');
+    if(!row || document.getElementById('t-currency')) return;
+    var group = document.createElement('div');
+    group.className = 'form-group';
+    group.id = 't-currency-wrap';
+    group.innerHTML = '<label class="form-label">عملة المهمة</label><select class="form-select" id="t-currency"></select>';
+    row.appendChild(group);
+    _fillCurrencySelect('t-currency');
+    document.getElementById('t-currency').onchange = _updateTaskCurrencyLabels;
+    _updateTaskCurrencyLabels();
+  }
+  function _injectTransactionCurrencyFields(){
+    _ensureFinanceState();
+    if(!document.getElementById('in-currency')){
+      var inAmount = document.getElementById('in-amount');
+      if(inAmount && inAmount.closest('.form-group')){
+        var g = document.createElement('div');
+        g.className = 'form-group';
+        g.innerHTML = '<label class="form-label">العملة</label><select class="form-select" id="in-currency"></select>';
+        inAmount.closest('.form-row').appendChild(g);
+      }
+    }
+    if(!document.getElementById('ex-currency')){
+      var exAmount = document.getElementById('ex-amount');
+      if(exAmount && exAmount.closest('.form-group')){
+        var g2 = document.createElement('div');
+        g2.className = 'form-group';
+        g2.innerHTML = '<label class="form-label">العملة</label><select class="form-select" id="ex-currency"></select>';
+        exAmount.closest('.form-row').appendChild(g2);
+      }
+    }
+    _fillCurrencySelect('in-currency');
+    _fillCurrencySelect('ex-currency');
+    var ic = document.getElementById('in-currency'), ec = document.getElementById('ex-currency');
+    if(ic) ic.onchange = _updateTransactionCurrencyLabels;
+    if(ec) ec.onchange = _updateTransactionCurrencyLabels;
+    _updateTransactionCurrencyLabels();
+  }
+
+  function _syncTaskCurrency(id, selectedCode){
+    var t = (S.tasks||[]).find(function(x){ return String(x.id) === String(id); });
+    if(!t) return;
+    var cur = _currencyMeta(selectedCode || t.currency_code || t.currency || _baseCurrency().code);
+    t.currency_code = cur.code;
+    t.currency_symbol = cur.symbol;
+    t.currency = cur.code;
+    if(t.deposit && !t.deposit_currency_code) t.deposit_currency_code = cur.code;
+    _touchEntity('tasks', t);
+  }
+  function _syncTransactionCurrency(id, code){
+    var tx = (S.transactions||[]).find(function(x){ return String(x.id) === String(id); });
+    if(!tx) return;
+    var cur = _currencyMeta(code || tx.currency_code || tx.currency || _baseCurrency().code);
+    tx.currency_code = cur.code;
+    tx.currency_symbol = cur.symbol;
+    tx.currency = cur.code;
+    _touchEntity('transactions', tx);
+  }
+
+  function _injectWalletTransferModal(){
+    if(document.getElementById('modal-wallet-transfer')) return;
+    var modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'modal-wallet-transfer';
+    modal.innerHTML =
+      '<div class="modal" style="max-width:560px">'+
+        '<div class="modal-header"><div class="modal-title"><i class="fa-solid fa-right-left"></i> تسوية / تحويل بين المحافظ</div><button class="close-btn" onclick="closeM(\'modal-wallet-transfer\')"><i class="fa-solid fa-xmark"></i></button></div>'+
+        '<div class="form-row"><div class="form-group"><label class="form-label">من محفظة</label><select class="form-select" id="wt-from"></select></div><div class="form-group"><label class="form-label">إلى محفظة</label><select class="form-select" id="wt-to"></select></div></div>'+
+        '<div class="form-row"><div class="form-group"><label class="form-label">المبلغ الخارج</label><input class="form-input" type="number" id="wt-from-amount" oninput="_ordoCalcTransferRate()" placeholder="0"></div><div class="form-group"><label class="form-label">المبلغ الداخل</label><input class="form-input" type="number" id="wt-to-amount" oninput="_ordoCalcTransferRate()" placeholder="0"></div></div>'+
+        '<div class="form-group"><label class="form-label">سعر التحويل</label><input class="form-input" type="number" id="wt-rate" step="0.0001" placeholder="يحسب تلقائيًا"></div>'+
+        '<div class="form-group"><label class="form-label">ملاحظة</label><textarea class="form-textarea" id="wt-note" rows="2"></textarea></div>'+
+        '<div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeM(\'modal-wallet-transfer\')">إلغاء</button><button class="btn btn-success" onclick="saveWalletTransfer()"><i class="fa-solid fa-floppy-disk"></i> حفظ التحويل</button></div>'+
+      '</div>';
+    document.body.appendChild(modal);
+  }
+  function _injectWalletsPanel(){
+    _ensureFinanceState();
+    var finance = document.getElementById('page-finance');
+    if(!finance || document.getElementById('ordo-wallets-panel')) return;
+    var anchor = document.getElementById('fin-summary-cards') || finance.children[1] || finance.firstElementChild;
+    var card = document.createElement('div');
+    card.className = 'card ordo-wallets-panel';
+    card.id = 'ordo-wallets-panel';
+    card.style.marginBottom = '16px';
+    card.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">'+
+        '<div class="section-title" style="margin:0"><i class="fa-solid fa-wallet" style="color:var(--accent2)"></i> المحافظ</div>'+
+        '<button class="btn btn-ghost btn-sm" onclick="openWalletTransferModal()"><i class="fa-solid fa-right-left"></i> تسوية / تحويل بين المحافظ</button>'+
+      '</div>'+
+      '<div id="ordo-wallets-grid" class="ordo-wallets-grid"></div>';
+    finance.insertBefore(card, anchor);
+    _injectWalletTransferModal();
+  }
+  function _formatTotalsList(totals, key){
+    var rows = Object.keys(totals||{}).filter(function(code){ return _num(totals[code][key]) !== 0; });
+    if(!rows.length) return _formatMoney(0, _baseCurrency().code);
+    return rows.map(function(code){ return _formatMoney(totals[code][key], code); }).join(' / ');
+  }
+  function renderWalletsPanel(){
+    _ensureFinanceState();
+    if(window.OrdoFinance && typeof window.OrdoFinance.recalculateWallets === 'function') window.OrdoFinance.recalculateWallets();
+    var grid = document.getElementById('ordo-wallets-grid');
+    if(!grid) return;
+    var wallets = window.OrdoFinance && window.OrdoFinance.getWallets ? window.OrdoFinance.getWallets() : (S.wallets||[]);
+    if(!wallets.length){ grid.innerHTML = '<div class="empty" style="padding:18px">لا توجد محافظ بعد</div>'; return; }
+    grid.innerHTML = wallets.map(function(w){
+      var summary = window.OrdoFinance && window.OrdoFinance.getWalletSummary ? window.OrdoFinance.getWalletSummary(w.currency_code) : {income:0,expense:0,balance:w.balance,last:null};
+      var last = summary.last ? (summary.last.isoDate || summary.last.date || summary.last.createdAt || '').toString().slice(0,10) : '—';
+      return '<div class="ordo-wallet-card">'+
+        '<div style="display:flex;justify-content:space-between;align-items:start;gap:8px"><div><div style="font-size:13px;font-weight:900">'+(w.currency_label||w.currency_code)+'</div><div style="font-size:11px;color:var(--text3)">'+(w.currency_code||'')+' · '+(w.currency_symbol||'')+'</div></div><div class="badge">'+(w.currency_symbol||'')+'</div></div>'+
+        '<div class="ordo-wallet-balance">'+_formatMoney(summary.balance, w.currency_code)+'</div>'+
+        '<div class="ordo-wallet-lines"><span>الداخل: <b style="color:var(--accent3)">'+_formatMoney(summary.income, w.currency_code)+'</b></span><span>الخارج: <b style="color:var(--accent4)">'+_formatMoney(summary.expense, w.currency_code)+'</b></span><span>آخر حركة: '+last+'</span></div>'+
+      '</div>';
+    }).join('');
+  }
+
+  function _injectCurrencySettings(){
+    _ensureFinanceState();
+    var page = document.getElementById('page-settings');
+    if(!page || document.getElementById('ordo-currency-settings')) return;
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'ordo-currency-settings';
+    card.style.marginBottom = '16px';
+    card.innerHTML =
+      '<div class="section-title" style="margin-bottom:12px"><i class="fa-solid fa-coins" style="color:var(--accent2)"></i> العملات والمحافظ</div>'+
+      '<div class="form-row"><div class="form-group"><label class="form-label">العملة الأساسية للحساب</label><select class="form-select" id="ordo-base-currency"></select></div></div>'+
+      '<div class="form-group"><label class="form-label">العملات التي أتعامل بها</label><div id="ordo-enabled-currencies" class="ordo-currency-checks"></div></div>'+
+      '<button class="btn btn-success" onclick="saveOrdoCurrencySettings()"><i class="fa-solid fa-floppy-disk"></i> حفظ العملات</button>';
+    var firstCard = page.querySelector('.card');
+    page.insertBefore(card, firstCard || null);
+    renderCurrencySettings();
+  }
+  function renderCurrencySettings(){
+    _ensureFinanceState();
+    var base = document.getElementById('ordo-base-currency');
+    var checks = document.getElementById('ordo-enabled-currencies');
+    if(base) base.innerHTML = _allCurrencyDefs().map(function(c){
+      return '<option value="'+c.code+'" '+(c.code===_baseCurrency().code?'selected':'')+'>'+c.label+' ('+c.symbol+')</option>';
+    }).join('');
+    if(checks) checks.innerHTML = _allCurrencyDefs().map(function(c){
+      var enabled = c.enabled !== false;
+      return '<label class="ordo-currency-check"><input type="checkbox" value="'+c.code+'" '+(enabled?'checked':'')+'> <span>'+c.label+'</span><b>'+c.symbol+'</b></label>';
+    }).join('');
+  }
+
+  function _injectTempTodos(){
+    _ensureFinanceState();
+    var page = document.getElementById('page-tasks');
+    if(!page || document.getElementById('ordo-temp-todos')) return;
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'ordo-temp-todos';
+    card.style.marginTop = '16px';
+    card.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">'+
+        '<div class="section-title" style="margin:0"><i class="fa-solid fa-list-check" style="color:var(--accent)"></i> مهام مؤقتة</div>'+
+        '<button class="btn btn-primary btn-sm" onclick="createTempTodoList()"><i class="fa-solid fa-plus"></i> قائمة مؤقتة جديدة</button>'+
+      '</div>'+
+      '<div id="ordo-temp-todos-list"></div>';
+    page.appendChild(card);
+    renderTempTodos();
+  }
+  function _findTempList(id){ return (S.temp_todo_lists||[]).find(function(l){ return String(l.id) === String(id); }); }
+  function _touchTempList(list){ if(!list) return; list.updatedAt = _nowIso(); list._dirty = true; if(window.OrdoData) window.OrdoData.markDirty('temp_todo_lists', list.id); }
+  function renderTempTodos(){
+    _ensureFinanceState();
+    var el = document.getElementById('ordo-temp-todos-list');
+    if(!el) return;
+    var lists = (S.temp_todo_lists||[]).slice().sort(function(a,b){ return Number(!!a.archived)-Number(!!b.archived) || String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||'')); });
+    if(!lists.length){ el.innerHTML = '<div class="empty" style="padding:18px">لا توجد قوائم مؤقتة</div>'; return; }
+    el.innerHTML = lists.map(function(list){
+      var items = Array.isArray(list.items) ? list.items : [];
+      var done = items.filter(function(i){ return !!i.done; }).length;
+      var pct = items.length ? Math.round(done/items.length*100) : 0;
+      return '<div class="ordo-temp-list '+(list.archived?'is-archived':'')+'">'+
+        '<div class="ordo-temp-head"><div><div style="font-weight:900">'+(escapeHtml(list.title||'قائمة مؤقتة'))+'</div><div style="font-size:11px;color:var(--text3);margin-top:3px">إنشاء: '+String(list.createdAt||'').slice(0,10)+' · آخر تعديل: '+String(list.updatedAt||list.createdAt||'').slice(0,10)+' · '+items.length+' عناصر · '+done+' مكتمل · '+pct+'%</div></div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="addTempTodoItem(\''+list.id+'\')"><i class="fa-solid fa-plus"></i></button><button class="btn btn-ghost btn-sm" onclick="archiveTempTodoList(\''+list.id+'\','+(!list.archived)+')">'+(list.archived?'إعادة فتح':'أرشفة')+'</button><button class="btn btn-danger btn-sm" onclick="deleteTempTodoList(\''+list.id+'\')"><i class="fa-solid fa-trash"></i></button></div></div>'+
+        '<div class="ordo-temp-progress"><span style="width:'+pct+'%"></span></div>'+
+        '<div class="ordo-temp-items">'+(items.length?items.map(function(item){
+          return '<div class="ordo-temp-item '+(item.done?'done':'')+'"><label><input type="checkbox" '+(item.done?'checked':'')+' onchange="toggleTempTodoItem(\''+list.id+'\',\''+item.id+'\')"> <span>'+escapeHtml(item.text||'')+'</span></label><div><button class="icon-btn" onclick="editTempTodoItem(\''+list.id+'\',\''+item.id+'\')" title="تعديل"><i class="fa-solid fa-pen"></i></button><button class="icon-btn" onclick="deleteTempTodoItem(\''+list.id+'\',\''+item.id+'\')" title="حذف"><i class="fa-solid fa-xmark"></i></button></div></div>';
+        }).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">لا توجد عناصر داخل القائمة</div>')+'</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  window.createTempTodoList = function(){
+    _ensureFinanceState();
+    var title = prompt('اسم القائمة المؤقتة');
+    if(!title || !title.trim()) return;
+    var now = _nowIso();
+    var list = {id:_uid('tmp'), title:title.trim(), description:'', items:[], archived:false, createdAt:now, updatedAt:now, _dirty:true};
+    if(window.OrdoData && typeof window.OrdoData.createEntity === 'function') window.OrdoData.createEntity('temp_todo_lists', list);
+    else S.temp_todo_lists.push(list);
+    _saveState(); renderTempTodos(); _updateTempTodoDashboard();
+  };
+  window.addTempTodoItem = function(listId){
+    var list = _findTempList(listId); if(!list) return;
+    var text = prompt('نص المهمة المؤقتة'); if(!text || !text.trim()) return;
+    list.items = Array.isArray(list.items) ? list.items : [];
+    list.items.push({id:_uid('item'), text:text.trim(), done:false, createdAt:_nowIso(), completedAt:null});
+    _touchTempList(list); _saveState(); renderTempTodos(); _updateTempTodoDashboard();
+  };
+  window.toggleTempTodoItem = function(listId,itemId){
+    var list = _findTempList(listId); if(!list) return;
+    var item = (list.items||[]).find(function(i){ return String(i.id) === String(itemId); }); if(!item) return;
+    item.done = !item.done; item.completedAt = item.done ? _nowIso() : null;
+    _touchTempList(list); _saveState(); renderTempTodos();
+  };
+  window.editTempTodoItem = function(listId,itemId){
+    var list = _findTempList(listId); if(!list) return;
+    var item = (list.items||[]).find(function(i){ return String(i.id) === String(itemId); }); if(!item) return;
+    var text = prompt('تعديل العنصر', item.text || ''); if(text === null) return;
+    item.text = text.trim(); _touchTempList(list); _saveState(); renderTempTodos();
+  };
+  window.deleteTempTodoItem = function(listId,itemId){
+    var list = _findTempList(listId); if(!list) return;
+    list.items = (list.items||[]).filter(function(i){ return String(i.id) !== String(itemId); });
+    _touchTempList(list); _saveState(); renderTempTodos(); _updateTempTodoDashboard();
+  };
+  window.archiveTempTodoList = function(listId,archived){
+    var list = _findTempList(listId); if(!list) return;
+    list.archived = !!archived; _touchTempList(list); _saveState(); renderTempTodos(); _updateTempTodoDashboard();
+  };
+  window.deleteTempTodoList = function(listId){
+    if(!confirm('حذف القائمة المؤقتة؟')) return;
+    S.temp_todo_lists = (S.temp_todo_lists||[]).filter(function(l){ return String(l.id) !== String(listId); });
+    _saveState(); renderTempTodos(); _updateTempTodoDashboard();
+  };
+  window.openWalletTransferModal = function(){
+    _injectWalletTransferModal();
+    _fillCurrencySelect('wt-from', _baseCurrency().code, true);
+    _fillCurrencySelect('wt-to', _enabledCurrencies(true)[1]?.code || _baseCurrency().code, true);
+    ['wt-from-amount','wt-to-amount','wt-rate','wt-note'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+    openM('modal-wallet-transfer');
+  };
+  window._ordoCalcTransferRate = function(){
+    var out = _num(document.getElementById('wt-from-amount')?.value);
+    var inc = _num(document.getElementById('wt-to-amount')?.value);
+    var rate = document.getElementById('wt-rate');
+    if(rate && out && inc) rate.value = (inc / out).toFixed(4).replace(/\.?0+$/,'');
+  };
+  window.saveWalletTransfer = function(){
+    var data = {
+      from_currency:document.getElementById('wt-from')?.value,
+      to_currency:document.getElementById('wt-to')?.value,
+      from_amount:_num(document.getElementById('wt-from-amount')?.value),
+      to_amount:_num(document.getElementById('wt-to-amount')?.value),
+      exchange_rate:_num(document.getElementById('wt-rate')?.value),
+      note:document.getElementById('wt-note')?.value || ''
+    };
+    if(!data.from_currency || !data.to_currency || data.from_currency === data.to_currency) return alert('اختر محفظتين مختلفتين');
+    if(!data.from_amount || !data.to_amount) return alert('أدخل المبلغ الخارج والداخل');
+    if(window.OrdoFinance && typeof window.OrdoFinance.addWalletTransfer === 'function') window.OrdoFinance.addWalletTransfer(data);
+    else {
+      var now = _nowIso();
+      S.wallet_transfers.push(Object.assign({id:_uid('wtr'), createdAt:now, updatedAt:now, _dirty:true}, data));
+    }
+    _saveState(); closeM('modal-wallet-transfer'); renderWalletsPanel(); if(typeof renderFinance==='function') renderFinance();
+  };
+  window.saveOrdoCurrencySettings = function(){
+    _ensureFinanceState();
+    var base = document.getElementById('ordo-base-currency')?.value || 'EGP';
+    var enabled = Array.from(document.querySelectorAll('#ordo-enabled-currencies input:checked')).map(function(i){ return i.value; });
+    if(enabled.indexOf(base) === -1) enabled.push(base);
+    S.settings.enabled_currencies = DEFAULT_CURRENCIES.map(function(c){
+      var old = _allCurrencyDefs().find(function(x){ return x.code === c.code; }) || c;
+      return Object.assign({}, old, c, {enabled:enabled.indexOf(c.code) > -1});
+    });
+    var b = _currencyMeta(base);
+    S.settings.base_currency_code = b.code;
+    S.settings.base_currency = b.symbol;
+    S.settings.currency = b.symbol;
+    _enabledCurrencies(false).forEach(function(c){ _ensureWallet(c.code); });
+    S.settings.updatedAt = _nowIso();
+    S.settings._dirty = true;
+    _saveState();
+    _injectTaskCurrencyField(); _injectTransactionCurrencyFields(); renderCurrencySettings(); renderWalletsPanel();
+    if(typeof renderAll === 'function') setTimeout(renderAll, 20);
+    if(typeof toast === 'function') toast('تم حفظ العملات والمحافظ');
+  };
+
+  function _updateTempTodoDashboard(){
+    var openCount = (S.temp_todo_lists||[]).filter(function(l){ return !l.archived; }).length;
+    var el = document.getElementById('dash-pending-txt');
+    if(el && el.textContent.indexOf('مهام مؤقتة مفتوحة') === -1){
+      el.textContent = (el.textContent || '').trim() + (el.textContent ? ' · ' : '') + 'مهام مؤقتة مفتوحة: ' + openCount;
+    } else if(el) {
+      el.textContent = el.textContent.replace(/مهام مؤقتة مفتوحة:\s*\d+/, 'مهام مؤقتة مفتوحة: ' + openCount);
+    }
+  }
+  function _patchFinanceTotals(){
+    if(!window.OrdoFinance || !document.getElementById('fin-in')) return;
+    var businessTx = (S.transactions||[]).filter(function(tx){ return tx.source_type !== 'wallet_transfer'; });
+    var totals = window.OrdoFinance.groupTotalsByCurrency(businessTx);
+    var setHtml = function(id, html){ var e=document.getElementById(id); if(e) e.innerHTML = html; };
+    setHtml('fin-in', _formatTotalsList(totals, 'income'));
+    setHtml('fin-out', _formatTotalsList(totals, 'expense'));
+    setHtml('fin-net', _formatTotalsList(totals, 'balance'));
+  }
+  function _patchDashboardTotals(){
+    if(!window.OrdoFinance || !document.getElementById('dash-income')) return;
+    var businessTx = (S.transactions||[]).filter(function(tx){ return tx.type === 'income' && tx.source_type !== 'wallet_transfer'; });
+    var totals = window.OrdoFinance.groupTotalsByCurrency(businessTx);
+    var income = _formatTotalsList(totals, 'income');
+    document.getElementById('dash-income').textContent = income;
+    _updateTempTodoDashboard();
+  }
+
+  function _installWrappers(){
+    if(window.__ordoWalletTodoPatchInstalled) return;
+    window.__ordoWalletTodoPatchInstalled = true;
+
+    if(typeof openTaskModal === 'function'){
+      var oldOpenTaskModal = openTaskModal;
+      openTaskModal = function(id){
+        _injectTaskCurrencyField();
+        oldOpenTaskModal.apply(this, arguments);
+        setTimeout(function(){
+          _injectTaskCurrencyField();
+          var task = id ? (S.tasks||[]).find(function(t){ return String(t.id) === String(id); }) : null;
+          _fillCurrencySelect('t-currency', task ? (task.currency_code || task.currency) : _baseCurrency().code);
+          _updateTaskCurrencyLabels();
+        }, 20);
+      };
+    }
+    if(typeof saveTask === 'function'){
+      var oldSaveTask = saveTask;
+      saveTask = function(){
+        _injectTaskCurrencyField();
+        var ids = (S.tasks||[]).map(function(t){ return String(t.id); });
+        var eid = document.getElementById('task-eid')?.value || '';
+        var cur = document.getElementById('t-currency')?.value || _baseCurrency().code;
+        oldSaveTask.apply(this, arguments);
+        setTimeout(function(){
+          var saved = eid ? (S.tasks||[]).find(function(t){ return String(t.id) === String(eid); }) : (S.tasks||[]).find(function(t){ return ids.indexOf(String(t.id)) === -1; });
+          if(!saved) saved = (S.tasks||[])[(S.tasks||[]).length-1];
+          if(saved){ _syncTaskCurrency(saved.id, cur); _saveState(); _postProcessTaskMoney(document); }
+        }, 40);
+      };
+    }
+    if(typeof openTaskDetail === 'function'){
+      var oldOpenTaskDetail = openTaskDetail;
+      openTaskDetail = function(id){
+        oldOpenTaskDetail.apply(this, arguments);
+        setTimeout(function(){
+          var t = (S.tasks||[]).find(function(x){ return String(x.id) === String(id); });
+          if(t) _postProcessTaskMoney(document.getElementById('td-body') || document);
+        }, 40);
+      };
+    }
+    if(typeof openIncomeModal === 'function'){
+      var oldOpenIncome = openIncomeModal;
+      openIncomeModal = function(id, prefillTaskId){
+        _injectTransactionCurrencyFields();
+        oldOpenIncome.apply(this, arguments);
+        setTimeout(function(){
+          _injectTransactionCurrencyFields();
+          var tx = id ? (S.transactions||[]).find(function(t){ return String(t.id) === String(id); }) : null;
+          var task = prefillTaskId ? (S.tasks||[]).find(function(t){ return String(t.id) === String(prefillTaskId); }) : null;
+          _fillCurrencySelect('in-currency', tx ? (tx.currency_code || tx.currency) : task ? (task.currency_code || task.currency) : _baseCurrency().code);
+          _updateTransactionCurrencyLabels();
+        }, 20);
+      };
+    }
+    if(typeof openExpenseModal === 'function'){
+      var oldOpenExpense = openExpenseModal;
+      openExpenseModal = function(id){
+        _injectTransactionCurrencyFields();
+        oldOpenExpense.apply(this, arguments);
+        setTimeout(function(){
+          _injectTransactionCurrencyFields();
+          var tx = id ? (S.transactions||[]).find(function(t){ return String(t.id) === String(id); }) : null;
+          _fillCurrencySelect('ex-currency', tx ? (tx.currency_code || tx.currency) : _baseCurrency().code);
+          _updateTransactionCurrencyLabels();
+        }, 20);
+      };
+    }
+    if(typeof saveTrans === 'function'){
+      var oldSaveTrans = saveTrans;
+      saveTrans = function(type){
+        _injectTransactionCurrencyFields();
+        var isInc = type === 'income';
+        var ids = (S.transactions||[]).map(function(t){ return String(t.id); });
+        var eid = document.getElementById(isInc?'income-eid':'expense-eid')?.value || '';
+        var cur = document.getElementById(isInc?'in-currency':'ex-currency')?.value || _baseCurrency().code;
+        oldSaveTrans.apply(this, arguments);
+        setTimeout(function(){
+          var saved = eid ? (S.transactions||[]).find(function(t){ return String(t.id) === String(eid); }) : (S.transactions||[]).find(function(t){ return ids.indexOf(String(t.id)) === -1; });
+          if(!saved) saved = (S.transactions||[])[(S.transactions||[]).length-1];
+          if(saved){ _syncTransactionCurrency(saved.id, cur); _saveState(); renderWalletsPanel(); _patchFinanceTotals(); _patchDashboardTotals(); }
+        }, 60);
+      };
+    }
+    if(typeof renderTasks === 'function'){
+      var oldRenderTasks = renderTasks;
+      renderTasks = function(){
+        var r = oldRenderTasks.apply(this, arguments);
+        setTimeout(function(){ _injectTaskCurrencyField(); _injectTempTodos(); _postProcessTaskMoney(document.getElementById('page-tasks') || document); }, 20);
+        return r;
+      };
+    }
+    if(typeof renderFinance === 'function'){
+      var oldRenderFinance = renderFinance;
+      renderFinance = function(){
+        var r = oldRenderFinance.apply(this, arguments);
+        setTimeout(function(){ _injectWalletsPanel(); renderWalletsPanel(); _patchFinanceTotals(); }, 20);
+        return r;
+      };
+    }
+    if(typeof updateDash === 'function'){
+      var oldUpdateDash = updateDash;
+      updateDash = function(){
+        var r = oldUpdateDash.apply(this, arguments);
+        setTimeout(function(){ _patchDashboardTotals(); }, 20);
+        return r;
+      };
+    }
+    if(typeof renderAll === 'function'){
+      var oldRenderAll = renderAll;
+      renderAll = function(){
+        _ensureFinanceState();
+        var r = oldRenderAll.apply(this, arguments);
+        setTimeout(function(){
+          _injectCurrencySettings(); _injectTaskCurrencyField(); _injectTransactionCurrencyFields();
+          _injectWalletsPanel(); renderWalletsPanel(); _injectTempTodos();
+          _postProcessTaskMoney(document); _patchFinanceTotals(); _patchDashboardTotals();
+        }, 40);
+        return r;
+      };
+    }
+  }
+
+  function _bootPatch(){
+    _ensureFinanceState();
+    _installWrappers();
+    _injectCurrencySettings();
+    _injectTaskCurrencyField();
+    _injectTransactionCurrencyFields();
+    _injectWalletsPanel();
+    _injectTempTodos();
+    renderWalletsPanel();
+    renderTempTodos();
+    _postProcessTaskMoney(document);
+    _patchFinanceTotals();
+    _patchDashboardTotals();
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(_bootPatch, 120); });
+  else setTimeout(_bootPatch, 120);
+
+  window.OrdoCurrencyPatch = {
+    ensureState:_ensureFinanceState,
+    formatMoney:_formatMoney,
+    renderWalletsPanel:renderWalletsPanel,
+    renderTempTodos:renderTempTodos
+  };
+})();

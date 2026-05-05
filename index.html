@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -35,6 +35,7 @@
 <title>Ordo </title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
 
 
 <!-- ═══ SUPABASE SDK ═══ -->
@@ -343,6 +344,14 @@ function applyPlatformConfig() {
     document.documentElement.style.background = '#0a0a0f';
     if(document.body){ document.body.style.background = '#0a0a0f'; document.body.style.color = '#e8e8f0'; }
   }
+  if(typeof _updateNavLocks === 'function') _updateNavLocks();
+  try{
+    var activePage = document.querySelector('.page.active');
+    var activeId = activePage && activePage.id ? activePage.id.replace(/^page-/,'') : '';
+    if(activeId && activeId !== 'dashboard' && typeof hasPlatformFeature === 'function' && !hasPlatformFeature(activeId) && typeof showPage === 'function'){
+      showPage('dashboard');
+    }
+  }catch(e){}
   return cfg;
 }
 
@@ -353,10 +362,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // استمع لتغييرات localStorage من الأدمن (نفس الـ origin = GitHub Pages)
 window.addEventListener('storage', function(e) {
-  if(e.key === 'platform_config') {
+  if(e.key === 'platform_config' || e.key === 'ordo_user_features') {
     applyPlatformConfig();
   }
 });
+
+// Keep admin feature toggles reflected while the user app is open.
+setInterval(function(){
+  try{ if(typeof _updateNavLocks === 'function') _updateNavLocks(); }catch(e){}
+}, 2500);
 
 // Also run immediately from localStorage
 (function() { if(document.readyState !== 'loading') applyPlatformConfig(); })();
@@ -498,26 +512,33 @@ async function _deleteEntity(table, idField, itemId) {
 
 // ── Smart save: يحفظ التغييرات الجديدة في الجداول المناسبة ──
 let _lastSavedTasks = 0, _lastSavedClients = 0, _lastSavedInvoices = 0, _lastSavedTrans = 0;
+let _lastSavedEntityAt = {};
 function _smartEntitySave() {
   if (!_supaUserId || !S || !window._cloudLoadDone || !window._appReady) return;
-  // نشوف إيه اللي اتغير وبس نحفظه
-  const now = Date.now();
-  if ((S.tasks||[]).length !== _lastSavedTasks) {
-    _lastSavedTasks = (S.tasks||[]).length;
-    (S.tasks||[]).forEach(t => _saveEntity('tasks', 'task_id', t));
-  }
-  if ((S.clients||[]).length !== _lastSavedClients) {
-    _lastSavedClients = (S.clients||[]).length;
-    (S.clients||[]).forEach(c => _saveEntity('clients', 'client_id', c));
-  }
-  if ((S.invoices||[]).length !== _lastSavedInvoices) {
-    _lastSavedInvoices = (S.invoices||[]).length;
-    (S.invoices||[]).forEach(i => _saveEntity('invoices', 'invoice_id', i));
-  }
-  if ((S.transactions||[]).length !== _lastSavedTrans) {
-    _lastSavedTrans = (S.transactions||[]).length;
-    (S.transactions||[]).forEach(t => _saveEntity('transactions', 'transaction_id', t));
-  }
+  const configs = [
+    ['tasks','tasks','task_id'],
+    ['clients','clients','client_id'],
+    ['invoices','invoices','invoice_id'],
+    ['transactions','transactions','transaction_id'],
+    ['reviews','reviews','review_id']
+  ];
+  configs.forEach(([key, table, idField]) => {
+    const arr = S[key] || [];
+    arr.forEach(item => {
+      if(!item || !item.id) return;
+      const stamp = item.updatedAt || item.updated_at || item.createdAt || item.created_at || '';
+      const dirtyKey = key + ':' + String(item.id);
+      if(item._dirty || _lastSavedEntityAt[dirtyKey] !== stamp){
+        _lastSavedEntityAt[dirtyKey] = stamp;
+        _saveEntity(table, idField, item);
+        if(item._dirty) delete item._dirty;
+      }
+    });
+  });
+  _lastSavedTasks = (S.tasks||[]).length;
+  _lastSavedClients = (S.clients||[]).length;
+  _lastSavedInvoices = (S.invoices||[]).length;
+  _lastSavedTrans = (S.transactions||[]).length;
 }
 
 async function _doCloudSave(data, force) {
@@ -537,6 +558,7 @@ async function _doCloudSave(data, force) {
   _cloudSaving = true;
 
   try {
+    try { if(window.OrdoData) window.OrdoData.normalizeAll({mark:false}); } catch(e) {}
     const _safe = _safeSerialize(data);
     _safe._savedAt = new Date().toISOString();
     const _un = _safe?.settings?.username || null;
@@ -1060,7 +1082,7 @@ function getQRDataURL(text, size) {
 </script>
 <!-- Quill Rich Text Editor -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=rollback-currency-tab-1">
 
 <style>
 /* ── Mobile Modal Responsive — Bottom Sheet ── */
@@ -1157,19 +1179,14 @@ function getQRDataURL(text, size) {
 // Prevent flash: show body only after auth check AND subscription load
 window._appReady = false;
 window._cloudLoadDone = false;
+window._loginDone = false; // يتحوّل لـ true لما اللوجين يكتمل
+
 window._showApp = function(){
-  // لو في login flow نشط — مش نفعّل الحفظ قبل ما البيانات تتحمل
-  if(!window._cloudLoadDone) {
-    window._appReady = false; // لا نسمح بالحفظ قبل التحميل
-  } else {
-    window._appReady = true;
-  }
+  if(!window._cloudLoadDone) { window._appReady = false; } else { window._appReady = true; }
   document.body.style.visibility = 'visible';
-  // لو صفحة متجر عام - لا تضيف overflow:hidden
   var _pp = new URLSearchParams(window.location.search);
   var isPublic = _pp.get('svcorder') || _pp.get('u') || (_pp.get('portal') && _pp.get('uid'));
   if(isPublic) {
-    // Public page: ensure scroll works
     document.documentElement.classList.remove('app-loaded');
     document.body.classList.remove('app-loaded');
     document.documentElement.classList.add('pub-page');
@@ -1177,14 +1194,21 @@ window._showApp = function(){
     var shell = document.getElementById('app-shell') || document.querySelector('.app-shell');
     if(shell) shell.style.display = 'none';
   } else {
-    // Normal app: lock scroll (app uses internal scrolling)
     document.documentElement.classList.add('app-loaded');
     document.body.classList.add('app-loaded');
   }
 };
-// Fallback: show after 4s no matter what
-setTimeout(window._showApp, 4000);
-// لو صفحة متجر - تفعيل أسرع
+
+// Fallback: بعد 4 ثواني — اعرض الصفحة بس لو اللوجين اتحدد (في session أو مفيش)
+setTimeout(function(){
+  // لو اللوجين اتكمل فعلاً — مش بنتدخل
+  if(window._loginDone) return;
+  // لو مفيش session بعد 4 ثواني — اعرض اللوجين
+  var authScreen = document.getElementById('auth-screen');
+  if(authScreen && authScreen.classList.contains('hidden')) return; // اللوجين مخبي = في session
+  document.body.style.visibility = 'visible';
+}, 4000);
+
 if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(window._showApp, 500);
 </script>
 
@@ -1332,19 +1356,17 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <div class="logo-sub" id="_sidebar-logo-sub">Freelance Business</div>
     </div>
   </div>
-  <div class="nav-section-label" data-i18n="sec_main">الرئيسية</div>
   <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span class="nav-label" data-ar="لوحة التحكم" data-i18n="nav_dashboard">لوحة التحكم</span></div>
   <div class="nav-item" onclick="showPage('tasks',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span><span class="nav-label" data-ar="المهام" data-i18n="nav_tasks">المهام</span><span class="nav-badge" id="tasks-badge" style="display:none"></span></div>
   <div class="nav-item" onclick="showPage('projects',this)" id="nav-projects"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span><span class="nav-label">المشاريع</span><span class="nav-badge" id="projects-badge" style="display:none;background:var(--accent2)"></span></div>
   <div class="nav-item" onclick="showPage('schedule',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="nav-label" data-ar="تنظيم اليوم" data-i18n="nav_schedule">تنظيم اليوم</span></div>
-  <div class="nav-item" onclick="showPage(&#39;meetings&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="nav-label" data-ar="الميتنج" data-i18n="nav_meetings">الميتنج</span><span class="nav-badge" id="meetings-badge" style="display:none;background:var(--accent4)"></span></div>
+  <div class="nav-item" id="nav-meetings" onclick="showPage(&#39;meetings&#39;,this)" style="display:none"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="nav-label" data-ar="الميتنج" data-i18n="nav_meetings">الميتنج</span><span class="nav-badge" id="meetings-badge" style="display:none;background:var(--accent4)"></span></div>
 
-  <div class="nav-section-label" data-i18n="sec_finance">المال والعملاء</div>
+  
   <div class="nav-item" onclick="showPage(&#39;clients&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nav-label" data-ar="قاعدة العملاء" data-i18n="nav_clients">قاعدة العملاء</span></div>
   <div class="nav-item" onclick="showPage(&#39;finance&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="nav-label" data-ar="المالية" data-i18n="nav_finance">المالية</span></div>
-  <div class="nav-item" onclick="showPage(&#39;invoices&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><span class="nav-label" data-ar="الفواتير والعقود" data-i18n="nav_invoices">الفواتير والعقود</span></div>
-  <div class="nav-item" onclick="showPage('proposals',this)" id="nav-proposals"><span class="nav-icon"><i class="fa-solid fa-file-contract"></i></span><span class="nav-label">عروض الأسعار</span><span class="nav-badge" id="proposals-nav-badge" style="display:none;background:#f7c948;color:#1a1a2e;font-size:10px;padding:2px 6px;border-radius:10px;font-weight:900"></span></div>
-  <div class="nav-section-label" data-i18n="sec_services">خدماتي</div>
+  <div class="nav-item" onclick="showPage(&#39;invoices&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><span class="nav-label" data-ar="الفواتير والعقود والعروض" data-i18n="nav_invoices">الفواتير والعقود والعروض</span></div>
+  <div class="nav-item" onclick="showPage('proposals',this)" id="nav-proposals" style="display:none"><span class="nav-icon"><i class="fa-solid fa-file-contract"></i></span><span class="nav-label">عروض الأسعار</span><span class="nav-badge" id="proposals-nav-badge" style="display:none;background:#f7c948;color:#1a1a2e;font-size:10px;padding:2px 6px;border-radius:10px;font-weight:900"></span></div>
   <div class="nav-item" onclick="showPage('services',this)" id="nav-services">
     <span class="nav-icon"><i class="fa-solid fa-bag-shopping"></i></span>
     <span class="nav-label" data-ar="خدماتي" data-i18n="nav_services">خدماتي</span>
@@ -1355,14 +1377,12 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     <span class="nav-label" data-ar="الدعم والرسائل" data-i18n="nav_support">الدعم والرسائل</span>
     <span class="nav-badge" id="support-badge" style="display:none;background:var(--accent4);color:#fff"></span>
   </div>
-  <div class="nav-section-label" data-i18n="sec_team">الفريق</div>
   <div class="nav-item" onclick="showPage(&#39;team&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nav-label" data-ar="فريق العمل" data-i18n="nav_team">فريق العمل</span><span class="nav-badge" id="team-badge" style="display:none"></span></div>
-  <div class="nav-section-label" data-i18n="sec_tools">أدوات الفريلانسر</div>
   <div class="nav-item" onclick="showPage(&#39;timetracker&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><span class="nav-label" data-ar="تتبع الوقت" data-i18n="nav_timetracker">تتبع الوقت</span></div>
   <div class="nav-item" onclick="showPage(&#39;freelancer-goals&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><span class="nav-label" data-ar="الأهداف والإنجازات" data-i18n="nav_goals">الأهداف والإنجازات</span></div>
   <div class="nav-item" onclick="showPage('vault',this)" id="nav-vault"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/></svg></span><span class="nav-label">حساباتي</span></div>
+  <div class="nav-item" onclick="showPage('workspace',this)" id="nav-workspace" style="display:none"><span class="nav-icon"><i class="fa-solid fa-cubes"></i></span><span class="nav-label">المساحة الحرة</span></div>
   <div class="nav-item" onclick="showPage('reviews',this)" id="nav-reviews"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="nav-label">التقييمات</span><span class="nav-badge" id="reviews-badge" style="display:none;background:#f7c948;color:#1a1a2e"></span></div>
-  <div class="nav-section-label" data-i18n="sec_settings">الإعدادات</div>
   <div class="nav-item" onclick="showPage(&#39;settings&#39;,this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M20 12h2M2 12h2M12 20v2M12 2v2"/></svg></span><span class="nav-label" data-ar="إعدادات النظام" data-i18n="nav_settings">إعدادات النظام</span></div>
   <div class="nav-item" onclick="openBackupModal()" style="color:var(--accent3)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span data-i18n="nav_backup" data-i18n="nav_backup"><i class="fa-solid fa-cloud-arrow-up" style="margin-left:6px"></i> نسخ احتياطي</span><span id="backup-reminder-dot" style="display:none;width:8px;height:8px;background:var(--accent4);border-radius:50%;margin-right:auto;flex-shrink:0"></span></div>
   <!-- User badge -->
@@ -1407,7 +1427,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <i class="fa-solid fa-inbox" style="font-size:15px"></i>
       <span id="_inbox-dot" style="display:none;position:absolute;top:4px;right:4px;min-width:16px;height:16px;background:#f97316;border-radius:8px;border:2px solid var(--surface);font-size:9px;font-weight:900;color:#fff;display:none;align-items:center;justify-content:center;padding:0 3px"></span>
     </button>
-    <button class="btn btn-primary btn-sm" id="header-cta" onclick="openTaskModal()" style="display: inline-flex;" data-i18n="btn_new_task"><i class="fa-solid fa-plus" style="margin-left:4px"></i> مهمة جديدة</button>
+    <button class="btn btn-primary btn-sm" id="header-cta" onclick="openTaskModal()" style="display: none;" data-i18n="btn_new_task"><i class="fa-solid fa-plus" style="margin-left:4px"></i> مهمة جديدة</button>
     <!-- Profile Avatar Button -->
     <button id="_header-avatar-btn" onclick="_toggleProfileMenu(this)" style="width:34px;height:34px;border-radius:50%;overflow:hidden;border:2px solid var(--border);background:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;padding:0;transition:.18s;position:relative" title="الملف الشخصي">
       <img id="_header-avatar-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
@@ -1455,12 +1475,13 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   <div class="bn-more-item" onclick="showPage(&#39;clients&#39;);closeBnMore()" id="bnm-clients"><span><i class="fa-solid fa-address-book"></i></span><span data-i18n="nav_clients">قاعدة العملاء</span></div>
   <div class="bn-more-item" onclick="showPage(&#39;team&#39;);closeBnMore()" id="bnm-team"><span><i class="fa-solid fa-people-group"></i></span><span data-i18n="nav_team">فريق العمل</span></div>
   <div class="bn-more-item" onclick="showPage(&#39;finance&#39;);closeBnMore()" id="bnm-finance"><span><i class="fa-solid fa-coins"></i></span><span data-i18n="nav_finance">المالية</span></div>
-  <div class="bn-more-item" onclick="showPage(&#39;invoices&#39;);closeBnMore()" id="bnm-invoices"><span><i class="fa-solid fa-file-invoice-dollar"></i></span><span data-i18n="nav_invoices">الفواتير والعقود</span></div>
-  <div class="bn-more-item" onclick="showPage('proposals');closeBnMore()" id="bnm-proposals"><span><i class="fa-solid fa-file-contract"></i></span><span>عروض الأسعار</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;invoices&#39;);closeBnMore()" id="bnm-invoices"><span><i class="fa-solid fa-file-invoice-dollar"></i></span><span data-i18n="nav_invoices">الفواتير والعقود والعروض</span></div>
+  <div class="bn-more-item" onclick="showPage('proposals');closeBnMore()" id="bnm-proposals" style="display:none"><span><i class="fa-solid fa-file-contract"></i></span><span>عروض الأسعار</span></div>
   <div class="bn-more-item" onclick="showPage('freelancer-goals');switchFgTab('courses');closeBnMore()" id="bnm-learning"><span><i class="fa-solid fa-graduation-cap"></i></span><span data-i18n="nav_goals">التعلم والأهداف</span></div>
-  <div class="bn-more-item" onclick="showPage(&#39;meetings&#39;);closeBnMore()" id="bnm-meetings"><span><i class="fa-solid fa-calendar-check"></i></span><span data-i18n="nav_meetings">الميتنج</span></div>
+  <div class="bn-more-item" onclick="showPage(&#39;meetings&#39;);closeBnMore()" id="bnm-meetings" style="display:none"><span><i class="fa-solid fa-calendar-check"></i></span><span data-i18n="nav_meetings">الميتنج</span></div>
   <div class="bn-more-item" onclick="showPage(&#39;schedule&#39;);closeBnMore()" id="bnm-schedule"><span><i class="fa-solid fa-clock"></i></span><span data-i18n="nav_schedule">تنظيم اليوم</span></div>
   <div class="bn-more-item" onclick="showPage('vault');closeBnMore()" id="bnm-vault"><span><i class="fa-solid fa-shield-keyhole"></i></span><span>حساباتي</span></div>
+  <div class="bn-more-item" onclick="showPage('workspace');closeBnMore()" id="bnm-workspace"><span><i class="fa-solid fa-cubes"></i></span><span>المساحة الحرة</span></div>
   <div class="bn-more-item" onclick="showPage(&#39;settings&#39;);closeBnMore()" id="bnm-settings"><span><i class="fa-solid fa-gear"></i></span><span data-i18n="nav_settings">الإعدادات</span></div>
   <div class="bn-more-item" onclick="showPage('services');closeBnMore()" id="bnm-services"><span><i class="fa-solid fa-bag-shopping"></i></span><span data-i18n="nav_services">خدماتي</span></div>
   <div class="bn-more-item" onclick="showPage('support');closeBnMore()" id="bnm-support"><span><i class="fa-solid fa-comments"></i></span><span data-i18n="nav_support">الدعم والرسائل</span></div>
@@ -2115,9 +2136,14 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 
 <div class="page" id="page-schedule">
   <div class="page-header">
-    <div><div class="page-title"><span data-i18n="title_schedule">تنظيم</span> <span data-i18n="title_schedule2">اليوم</span></div><div class="page-subtitle" data-i18n="sub_schedule">خطط يومك ساعة بساعة</div></div>
+    <div><div class="page-title"><span data-i18n="title_schedule">تنظيم</span> <span data-i18n="title_schedule2">اليوم والميتنج</span></div><div class="page-subtitle" data-i18n="sub_schedule">خطط يومك ومواعيدك في مكان واحد</div></div>
     <button class="btn btn-primary" onclick="openSchedModal()" data-i18n="btn_add_time"><i class="fa-solid fa-plus" style="margin-left:4px"></i> إضافة وقت</button>
   </div>
+  <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px;flex-wrap:wrap">
+    <button class="filter-chip active" id="schedule-tab-day" onclick="switchScheduleTab('day')"><i class="fa-solid fa-clock"></i> تنظيم اليوم</button>
+    <button class="filter-chip" id="schedule-tab-meetings" onclick="switchScheduleTab('meetings')"><i class="fa-solid fa-calendar-check"></i> الميتنج</button>
+  </div>
+  <div id="schedule-panel-day">
   <div class="grid grid-2">
     <div class="card"><div class="section-title">جدول اليوم</div><div id="sched-list"><div class="empty"><div class="empty-icon"><i class="fa-solid fa-clock"></i></div>أضف وقت لجدول اليوم</div></div></div>
     <div class="card">
@@ -2131,6 +2157,8 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       </div>
     </div>
   </div>
+  </div>
+  <div id="schedule-panel-meetings" style="display:none"></div>
 </div>
 
 <!-- CLIENTS -->
@@ -2669,6 +2697,14 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   <!-- محتوى تاب المعاملات -->
   <div id="fin-panel-transactions">
 
+  <div class="card" id="wallets-section" style="margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <div class="section-title" style="margin:0"><i class="fa-solid fa-wallet" style="color:var(--accent2)"></i> المحافظ</div>
+      <button class="btn btn-ghost btn-sm" onclick="openWalletTransferModal()"><i class="fa-solid fa-right-left"></i> تسوية / تحويل بين المحافظ</button>
+    </div>
+    <div id="wallets-grid" class="ordo-wallets-grid"></div>
+  </div>
+
   <!-- ملخص القروض والأرصدة - يتحدث تلقائياً -->
   <div id="fin-loans-summary" style="display:none;margin-bottom:16px"></div>
 
@@ -3053,12 +3089,13 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 <!-- INVOICES -->
 <div class="page" id="page-invoices">
   <div class="page-header">
-    <div><div class="page-title"><span data-i18n="title_invoices">الفواتير</span> <span data-i18n="title_invoices2">والعقود</span></div><div class="page-subtitle" data-i18n="sub_invoices">احترف تعاملاتك المالية</div></div>
+    <div><div class="page-title"><span data-i18n="title_invoices">الفواتير</span> <span data-i18n="title_invoices2">والعقود والعروض</span></div><div class="page-subtitle" data-i18n="sub_invoices">الفواتير والعقود وعروض الأسعار في مكان واحد</div></div>
     <button class="btn btn-primary" id="inv-add-btn" onclick="openInvoiceModal()" data-i18n="btn_new_invoice"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فاتورة جديدة</button>
   </div>
   <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px">
     <button class="filter-chip active" id="inv-tab-inv" onclick="switchInvTab('invoices')"><i class="fa-solid fa-square"></i> الفواتير</button>
     <button class="filter-chip" id="inv-tab-ct" onclick="switchInvTab('contracts')"><i class="fa-solid fa-pen-to-square"></i> العقود</button>
+    <button class="filter-chip" id="inv-tab-proposals" onclick="switchInvTab('proposals')"><i class="fa-solid fa-file-contract"></i> عروض الأسعار</button>
     <button class="filter-chip" id="inv-tab-stmt" onclick="switchInvTab('statements')"><i class="fa-solid fa-file-lines"></i> كشوفات الحساب</button>
   </div>
   <div id="inv-panel-invoices">
@@ -3121,6 +3158,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       </div>
     </div>
   </div>
+  <div id="inv-panel-proposals" style="display:none"></div>
 
 <!-- ══════════════════════════════════════════════════ -->
 <!-- PROPOSALS PAGE                                      -->
@@ -3409,6 +3447,15 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   <div id="reviews-page-content"></div>
 </div>
 
+<!-- WORKSPACE PAGE -->
+<div class="page" id="page-workspace">
+  <!-- Rendered dynamically by renderWorkspace() in app_patch2.js -->
+  <div style="text-align:center;padding:80px;color:var(--text3)">
+    <i class="fa-solid fa-cubes" style="font-size:36px;opacity:.3;margin-bottom:16px;display:block"></i>
+    جاري التحميل...
+  </div>
+</div>
+
 <!-- SETTINGS -->
 <div class="page" id="page-settings">
   <div class="page-header">
@@ -3418,18 +3465,38 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     </div>
   </div>
 
+  
+
   <!-- Settings Tabs Row -->
   <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;overflow-x:auto" id="settings-tabs-row">
     <button class="stab active" onclick="switchSettingsTab('general')"   id="stab-general"><i class="fa-solid fa-building"></i> عام</button>
     <button class="stab"        onclick="switchSettingsTab('appearance')" id="stab-appearance"><i class="fa-solid fa-palette"></i> المظهر</button>
     <button class="stab"        onclick="switchSettingsTab('team-specs')" id="stab-team-specs"><i class="fa-solid fa-tag"></i> الفريق والتخصصات</button>
     <button class="stab"        onclick="switchSettingsTab('finance')"    id="stab-finance"><i class="fa-solid fa-coins"></i> المالية</button>
+    <button class="stab"        onclick="switchSettingsTab('currencies')" id="stab-currencies"><i class="fa-solid fa-wallet"></i> العملات والمحافظ</button>
     <button class="stab"        onclick="switchSettingsTab('tasks')"      id="stab-tasks"><i class="fa-solid fa-clipboard-list"></i> المهام</button>
     <button class="stab"        onclick="switchSettingsTab('whatsapp')"   id="stab-whatsapp"><i class="fa-solid fa-comments"></i> واتساب</button>
     <button class="stab"        onclick="switchSettingsTab('features')"   id="stab-features"><i class="fa-solid fa-rocket"></i> التحديثات <span id="stab-features-badge" style="display:none;background:var(--accent4);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;margin-right:3px">جديد</span></button>
     <button class="stab"        onclick="switchSettingsTab('danger')"     id="stab-danger"><i class="fa-solid fa-triangle-exclamation"></i> خطر</button>
   </div>
 
+
+  <div class="stab-panel" id="stabp-currencies">
+    <div class="card" id="studio-currency-wallet-settings" style="margin-bottom:16px">
+        <div class="section-title" style="margin-bottom:12px"><i class="fa-solid fa-coins" style="color:var(--accent2)"></i> العملات والمحافظ</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">العملة الأساسية للحساب</label>
+            <select class="form-select" id="studio-base-currency"></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">العملات التي أتعامل بها</label>
+          <div id="studio-enabled-currencies" class="ordo-currency-checks"></div>
+        </div>
+        <button class="btn btn-success" onclick="saveStudioCurrencies()"><i class="fa-solid fa-floppy-disk"></i> حفظ العملات</button>
+      </div>
+  </div><!-- end stabp-currencies -->
 
   <div class="stab-panel active" id="stabp-general">
     <div class="grid grid-2">
@@ -3443,7 +3510,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
         <div class="form-group"><label class="form-label">البريد الإلكتروني</label><input class="form-input" id="set-email" placeholder="studio@email.com"></div>
         <div class="form-group"><label class="form-label">الموقع / العنوان</label><input class="form-input" id="set-address" placeholder="المدينة، الدولة"></div>
         <div class="form-group"><label class="form-label">شروط الدفع الافتراضية</label><textarea class="form-textarea" id="set-terms" placeholder="مثال: الدفع خلال 7 أيام"></textarea></div>
-        <div class="form-group">
+        <div class="form-group" style="display:none">
           <label class="form-label"><i class="fa-solid fa-coins" style="color:var(--accent2)"></i> العملة الافتراضية للنظام</label>
           <select class="form-input" id="set-currency">
             <option value="ج.م">🇪🇬 جنيه مصري (ج.م)</option>
@@ -4415,6 +4482,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <button class="profile-tab" data-tab="statements" onclick="switchProfileTab('statements',this)"><i class="fa-solid fa-file-lines"></i> كشوفات الحساب</button>
       <button class="profile-tab" data-tab="accounts" onclick="switchProfileTab('accounts',this)"><i class="fa-solid fa-coins"></i> الحسابات المالية</button>
       <button class="profile-tab" data-tab="reviews" onclick="switchProfileTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button>
+      <button class="profile-tab" data-tab="timeline" onclick="switchProfileTab('timeline',this)"><i class="fa-solid fa-clock-rotate-left"></i> السجل الزمني</button>
     </div>
     <div id="profile-body" style="max-height:75vh;overflow-y:auto;padding:18px 20px"></div>
   </div>
@@ -4489,10 +4557,11 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
       <div class="form-group"><label class="form-label">الحالة</label><select class="form-select" id="t-status"><option value="new">جديد</option><option value="progress">قيد التنفيذ</option><option value="review">مراجعة</option><option value="paused">⏸ موقوف مؤقتاً</option><option value="done">مكتمل</option></select></div>
     </div>
     <div class="form-row" id="t-value-row">
-      <div class="form-group"><label class="form-label">قيمة المشروع (ج)</label><input class="form-input" type="number" id="t-value" placeholder="0" oninput="calcTaskProfit()"></div>
+      <div class="form-group"><label class="form-label" id="t-value-label">قيمة المشروع</label><input class="form-input" type="number" id="t-value" placeholder="0" oninput="calcTaskProfit()"></div>
+      <div class="form-group" id="t-currency-wrap"><label class="form-label">عملة المهمة</label><select class="form-select" id="t-currency"><option value="EGP">جنيه مصري (ج.م)</option><option value="USD">دولار أمريكي ($)</option></select></div>
       <div class="form-group"><label class="form-label">حالة الدفع</label><select class="form-select" id="t-pay" onchange="toggleDeposit()"><option value="none"><i class="fa-solid fa-circle-xmark"></i> لم يتم الدفع</option><option value="deposit"><i class="fa-solid fa-heart"></i> تم دفع عربون</option><option value="full"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم الدفع كاملاً</option></select></div>
     </div>
-    <div class="form-group" id="deposit-row" style="display:none"><label class="form-label">قيمة العربون المدفوع (ج)</label><input class="form-input" type="number" id="t-deposit" placeholder="0"></div>
+    <div class="form-group" id="deposit-row" style="display:none"><label class="form-label" id="t-deposit-label">قيمة العربون المدفوع</label><input class="form-input" type="number" id="t-deposit" placeholder="0"></div>
 
     <!-- ── من يعمل على المهمة؟ ── -->
     <div style="background:rgba(100,181,246,.07);border:1px solid rgba(100,181,246,.25);border-radius:10px;padding:12px 14px;margin-bottom:10px" id="t-worker-section">
@@ -4591,7 +4660,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
       <button class="btn btn-ghost" onclick="closeM(&#39;modal-task&#39;)">إلغاء</button>
-      <button class="btn btn-primary" onclick="_beforeSaveTask();saveTask()" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
+      <button class="btn btn-primary" onclick="OrdoTaskSafeSave()" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
     </div>
   </div>
 </div>
@@ -5185,8 +5254,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   </div>
 </div>
 
-<script src="app.js"></script>
-<script src="app_patch.js"></script>
+<script src="app.js?v=currency-hotfix-11"></script>
 
 <!-- ═══ BACKUP MODAL ═══ -->
 <div class="modal-overlay" id="modal-backup">
@@ -5814,6 +5882,7 @@ document.addEventListener('click', function(e){
   if (act === 'share')   _showPropLinkModal(token);
   if (act === 'edit')    openProposalModal(id);
   if (act === 'del')     _delProposal(id);
+  if (act === 'convert' && typeof openConvertProposalModal === 'function') openConvertProposalModal(token);
   if (act === 'preview') {
     var p = (S.proposals||[]).find(function(x){ return x.token===token; });
     if (p) window.open(_propUrl(p), '_blank');
@@ -5822,19 +5891,20 @@ document.addEventListener('click', function(e){
 
 // ── Get proposal page URL (short if username exists) ──
 function _propUrl(p) {
+  var _propPublicToken = (typeof _publicProposalToken === 'function') ? _publicProposalToken(p) : (p && (p.public_token || p.token));
   // ✅ استخدم الرابط القصير لو في username
   if (typeof _shortProposalUrl === 'function' && (S && S.settings && S.settings.username)) {
-    return _shortProposalUrl(p.token);
+    return _shortProposalUrl(_propPublicToken || p.token);
   }
   var customUrl = (S && S.settings && S.settings.proposalPageUrl) ? S.settings.proposalPageUrl.trim() : '';
   if (customUrl) {
     customUrl = customUrl.split('?')[0].replace(/\/$/, '');
-    return customUrl + '?token=' + encodeURIComponent(p.token);
+    return customUrl + '?token=' + encodeURIComponent(_propPublicToken || p.token);
   }
   var href = window.location.href.split('?')[0];
   var base = href.substring(0, href.lastIndexOf('/') + 1);
   var uid = _supaUserId || '';
-  return base + 'proposal.html?token=' + encodeURIComponent(p.token) + (uid ? '&uid=' + encodeURIComponent(uid) : '');
+  return base + 'proposal.html?token=' + encodeURIComponent(_propPublicToken || p.token) + (uid ? '&uid=' + encodeURIComponent(uid) : '');
 }
 
 // ══════════════════════════════════════════════════════
@@ -5853,6 +5923,88 @@ function _getUsername() {
   return (S && S.settings && S.settings.username) || '';
 }
 
+function _ensurePublicLinkToken(entityType, entityId, opts) {
+  opts = opts || {};
+  var fallback = opts.fallbackToken || opts.token || '';
+  try {
+    if (window.OrdoData && typeof window.OrdoData.createPublicToken === 'function') {
+      var tokenObj = window.OrdoData.createPublicToken(entityType, entityId || fallback || (entityType + '_public'), {
+        client_id: opts.client_id || null,
+        project_id: opts.project_id || null,
+        allowed_sections: opts.allowed_sections || null,
+        expires_at: opts.expires_at || null
+      });
+      if (tokenObj && tokenObj.token) {
+        if (opts.allow_multiple !== undefined) tokenObj.allow_multiple = !!opts.allow_multiple;
+        if (opts.entity) {
+          opts.entity.public_token = tokenObj.token;
+          opts.entity.updatedAt = new Date().toISOString();
+          opts.entity._dirty = true;
+        }
+        try {
+          clearTimeout(window._ordoPublicTokenSaveTimer);
+          window._ordoPublicTokenSaveTimer = setTimeout(function(){
+            try {
+              if (window.OrdoData && typeof window.OrdoData.save === 'function') window.OrdoData.save({now:true});
+            } catch (e2) {}
+          }, 120);
+        } catch (e1) {}
+        return tokenObj.token;
+      }
+    }
+  } catch (e) {
+    console.warn('[Ordo] public token fallback', e);
+  }
+  return fallback || '';
+}
+
+function _publicProposalToken(pOrToken) {
+  var p = typeof pOrToken === 'object' ? pOrToken : (S.proposals || []).find(function(x){
+    return String(x.id) === String(pOrToken) || String(x.token) === String(pOrToken) || String(x.public_token) === String(pOrToken);
+  });
+  if (!p) return String(pOrToken || '');
+  return _ensurePublicLinkToken('proposal', p.id || p.token, {
+    entity: p,
+    fallbackToken: p.public_token || p.token,
+    client_id: p.client_id || null,
+    project_id: p.project_id || null,
+    allowed_sections: ['proposal','client','project','reviews']
+  }) || p.token;
+}
+
+function _publicPortalToken(clientId, taskId, portalObj) {
+  var client = (S.clients || []).find(function(c){ return String(c.id) === String(clientId || ''); });
+  S.client_portals = S.client_portals || [];
+  var portal = portalObj || S.client_portals.find(function(p){
+    return String(p.client_id || '') === String(clientId || '') &&
+      String(p.task_id || '') === String(taskId || '') &&
+      (p.source_type === 'client_portal_link' || p.entity_type === 'client_portal');
+  });
+  if (!portal) {
+    portal = {
+      id: 'portal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      entity_type: 'client_portal',
+      source_type: 'client_portal_link',
+      source_id: clientId || null,
+      client_id: clientId ? String(clientId) : null,
+      task_id: taskId ? String(taskId) : null,
+      client_name: client ? client.name : '',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      _dirty: true
+    };
+    S.client_portals.push(portal);
+  }
+  return _ensurePublicLinkToken('client_portal', portal.id, {
+    entity: portal,
+    fallbackToken: portal.public_token || portal.token,
+    client_id: clientId || portal.client_id || null,
+    project_id: portal.project_id || null,
+    allowed_sections: ['client','projects','tasks','invoices','contracts','proposals','reviews','orders']
+  });
+}
+
 function _shortBase() {
   // Returns:  https://ordo-freelance.github.io/Ordo/mahmoud
   var un = _getUsername();
@@ -5863,37 +6015,53 @@ function _shortBase() {
 function _shortProposalUrl(token) {
   // ✅ رابط مباشر مع uid للبحث المباشر
   var uid = _supaUserId || '';
-  return _getAppBase() + 'proposal.html?token=' + encodeURIComponent(token) + (uid ? '&uid=' + encodeURIComponent(uid) : '');
+  var publicToken = _publicProposalToken(token);
+  return _getAppBase() + 'proposal.html?token=' + encodeURIComponent(publicToken || token) + (uid ? '&uid=' + encodeURIComponent(uid) : '');
 }
 
 function _shortPortalUrl(clientId, taskId) {
   // ✅ رابط مباشر
+  var token = _publicPortalToken(clientId, taskId);
   var base = _getAppBase() + 'client-portal.html?uid=' + (_supaUserId||'') + '&cid=' + encodeURIComponent(clientId||'');
-  if (taskId) base += '&tid=' + encodeURIComponent(taskId);
+  if (taskId) base += '&taskid=' + encodeURIComponent(taskId);
+  if (token) base += '&token=' + encodeURIComponent(token);
   return base;
 }
 
 function _shortReviewUrl() {
   // ✅ رابط مباشر
-  return _getAppBase() + 'review.html?uid=' + (_supaUserId||'');
+  var token = _ensurePublicLinkToken('review', 'general_review_link', {
+    allowed_sections: ['reviews','client','project'],
+    allow_multiple: true
+  });
+  return _getAppBase() + 'review.html?uid=' + (_supaUserId||'') + (token ? '&token=' + encodeURIComponent(token) : '');
 }
 
 function _shortPublicReviewsUrl() {
   // ✅ صفحة التقييمات العامة
   var un = _getUsername();
-  return _getAppBase() + 'reviews-public.html?' + (un ? 'u=' + encodeURIComponent(un) : 'uid=' + (_supaUserId||''));
+  var token = _ensurePublicLinkToken('reviews_public', 'public_reviews_page', {
+    allowed_sections: ['reviews']
+  });
+  return _getAppBase() + 'reviews-public.html?' + (un ? 'u=' + encodeURIComponent(un) : 'uid=' + (_supaUserId||'')) + (token ? '&token=' + encodeURIComponent(token) : '');
 }
 
 function _shortStoreUrl(storeId) {
   // ✅ رابط مباشر — getSvcLink يتجاهل هذه الدالة الآن لكن نصلحها كذلك للاتساق
   var base = _getAppBase() + 'store.html';
   var un = _getUsername();
+  var publicToken = _ensurePublicLinkToken('store', storeId || 'default_store', {
+    allowed_sections: ['store','services','reviews']
+  });
+  function addStoreToken(url) {
+    return publicToken ? (url + (url.indexOf('?') >= 0 ? '&' : '?') + 'token=' + encodeURIComponent(publicToken)) : url;
+  }
   if (storeId) {
     var storeObj = (_getStores&&_getStores()||[]).find(function(s){return s.id===storeId;});
-    if (storeObj && storeObj.username) return base + '?u=' + encodeURIComponent(storeObj.username);
-    return (un ? base+'?u='+encodeURIComponent(un) : base+'?uid='+(_supaUserId||'')) + '&store=' + encodeURIComponent(storeId);
+    if (storeObj && storeObj.username) return addStoreToken(base + '?u=' + encodeURIComponent(storeObj.username));
+    return addStoreToken((un ? base+'?u='+encodeURIComponent(un) : base+'?uid='+(_supaUserId||'')) + '&store=' + encodeURIComponent(storeId));
   }
-  return un ? (base + '?u=' + encodeURIComponent(un)) : (base + '?uid=' + (_supaUserId||''));
+  return addStoreToken(un ? (base + '?u=' + encodeURIComponent(un)) : (base + '?uid=' + (_supaUserId||'')));
 }
 
 function _shortInvoiceUrl(invoiceId) {
@@ -5962,6 +6130,8 @@ function renderProposals() {
             + (sk!=='draft' ? '<button class="btn btn-ghost btn-sm" data-act="share" data-token="' + escapeHtml(p.token) + '" title="مشاركة الرابط"><i class="fa-solid fa-share-nodes"></i></button>' : '')
             + '<button class="btn btn-ghost btn-sm" data-act="edit" data-id="' + escapeHtml(String(p.id)) + '" title="تعديل"><i class="fa-solid fa-pen"></i></button>'
             + (sk!=='draft' ? '<button class="btn btn-ghost btn-sm" data-act="preview" data-token="' + escapeHtml(p.token) + '" title="معاينة"><i class="fa-solid fa-eye"></i></button>' : '')
+            + (sk==='accepted' && !p.project_id ? '<button class="btn btn-ghost btn-sm" style="color:var(--accent3)" data-act="convert" data-token="' + escapeHtml(p.token) + '" title="تحويل لمشروع"><i class="fa-solid fa-diagram-project"></i></button>' : '')
+            + (p.project_id ? '<span style="font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(79,209,165,.12);color:var(--accent3);font-weight:700" title="محوّل لمشروع"><i class="fa-solid fa-diagram-project"></i></span>' : '')
             + '<button class="btn btn-ghost btn-sm" style="color:var(--accent4)" data-act="del" data-id="' + escapeHtml(String(p.id)) + '" title="حذف"><i class="fa-solid fa-trash"></i></button>'
           + '</div>'
         + '</div>'
@@ -6125,6 +6295,7 @@ async function saveProposal(saveStatus) {
     id:           eid || ('prop_' + Date.now()),
     token:        existingProp ? existingProp.token : ('prp_' + Date.now() + '_' + Math.random().toString(36).slice(2,8)),
     clientName:   (document.getElementById('prop-client')||{value:''}).value,
+    client_id:    (()=>{ var cn=(document.getElementById('prop-client')||{value:''}).value; var c=(S.clients||[]).find(function(x){return x.name===cn;}); return c?String(c.id):''; })(),
     title:        title,
     date:         document.getElementById('prop-date').value || today,
     expiry:       document.getElementById('prop-expiry').value || '',
@@ -7478,5 +7649,1166 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 </script>
-<script src="customization_patch.js"></script>
+<script src="app_patch.js?v=currency-hotfix-11"></script>
+<script>
+(function(){
+  'use strict';
+
+  var CURRENCIES = [
+    {code:'EGP', symbol:'ج.م', label:'جنيه مصري', enabled:true},
+    {code:'USD', symbol:'$', label:'دولار أمريكي', enabled:true},
+    {code:'SAR', symbol:'ر.س', label:'ريال سعودي', enabled:false},
+    {code:'AED', symbol:'AED', label:'درهم إماراتي', enabled:false},
+    {code:'EUR', symbol:'€', label:'يورو', enabled:false},
+    {code:'KWD', symbol:'د.ك', label:'دينار كويتي', enabled:false},
+    {code:'QAR', symbol:'ر.ق', label:'ريال قطري', enabled:false}
+  ];
+
+  function st(){ return window.S || (window.S = {}); }
+  function now(){ return new Date().toISOString(); }
+  function num(v){ return Number(v || 0) || 0; }
+  function meta(value){
+    var key = String(value || '').trim();
+    var compactKey = key.replace(/\s+/g,'');
+    var isRepeatedEgp = /^ج(?:\.?م)+$/.test(compactKey) || /^م(?:\.?م)*(?:\.?ج)$/.test(compactKey);
+    var found = CURRENCIES.find(function(c){ return c.code === key || c.symbol === key || c.label === key; });
+    if(found) return Object.assign({}, found);
+    if(isRepeatedEgp || key === 'ج' || key === 'ج.م' || key === 'EGP' || key === 'ط¬' || key === 'ط¬.ظ…') return Object.assign({}, CURRENCIES[0]);
+    if(key === '$' || key === 'USD') return Object.assign({}, CURRENCIES[1]);
+    if(key === 'ر.س' || key === 'SAR' || key === 'ط±.ط³') return Object.assign({}, CURRENCIES[2]);
+    if(key === 'AED') return Object.assign({}, CURRENCIES[3]);
+    if(key === '€' || key === 'EUR' || key === 'â‚¬') return Object.assign({}, CURRENCIES[4]);
+    return Object.assign({}, CURRENCIES[0]);
+  }
+  function ensureState(){
+    var s = st();
+    s.settings = s.settings || {};
+    var saved = Array.isArray(s.settings.enabled_currencies) ? s.settings.enabled_currencies : [];
+    if(!saved.length) saved = CURRENCIES;
+    var enabledByCode = {};
+    saved.forEach(function(c){
+      var m = meta(c.code || c.currency_code || c.symbol || c.label);
+      enabledByCode[m.code] = c.enabled !== false;
+    });
+    s.settings.enabled_currencies = CURRENCIES.map(function(c){
+      return Object.assign({}, c, {enabled: enabledByCode[c.code] !== undefined ? enabledByCode[c.code] : c.enabled !== false});
+    });
+    var base = meta(s.settings.base_currency_code || s.settings.base_currency || s.settings.currency || 'EGP');
+    s.settings.base_currency_code = base.code;
+    s.settings.base_currency = base.symbol;
+    s.settings.currency = s.settings.currency || base.symbol;
+    s.wallets = Array.isArray(s.wallets) ? s.wallets : [];
+    enabledCurrencies().forEach(function(c){ ensureWallet(c.code); });
+    s.tasks = Array.isArray(s.tasks) ? s.tasks : [];
+    s.transactions = Array.isArray(s.transactions) ? s.transactions : [];
+  }
+  function enabledCurrencies(){
+    ensureSettingsOnly();
+    return st().settings.enabled_currencies.filter(function(c){ return c.enabled !== false; }).map(function(c){ return meta(c.code); });
+  }
+  function ensureSettingsOnly(){
+    var s = st();
+    s.settings = s.settings || {};
+    if(!Array.isArray(s.settings.enabled_currencies) || !s.settings.enabled_currencies.length){
+      s.settings.enabled_currencies = CURRENCIES.map(function(c){ return Object.assign({}, c); });
+    }
+  }
+  function baseCurrency(){
+    ensureSettingsOnly();
+    return meta(st().settings.base_currency_code || st().settings.base_currency || st().settings.currency || 'EGP');
+  }
+  function ensureWallet(code){
+    var s = st(), c = meta(code);
+    var w = s.wallets.find(function(x){ return meta(x.currency_code).code === c.code; });
+    if(!w){
+      w = {id:'wallet_'+c.code, currency_code:c.code, currency_symbol:c.symbol, currency_label:c.label, balance:0, createdAt:now(), updatedAt:now(), _dirty:true};
+      s.wallets.push(w);
+    }
+    w.currency_code = c.code;
+    w.currency_symbol = c.symbol;
+    w.currency_label = c.label;
+    return w;
+  }
+  function entityCurrency(entity){
+    entity = entity || {};
+    if(entity.currency_code || entity.currency || entity.currency_symbol) return meta(entity.currency_code || entity.currency || entity.currency_symbol);
+    if(entity.project_id && Array.isArray(st().projects)){
+      var p = st().projects.find(function(x){ return String(x.id) === String(entity.project_id); });
+      if(p) return meta(p.currency_code || p.currency || p.budgetCurrency || p.budget_currency);
+    }
+    return baseCurrency();
+  }
+  function money(amount, entityOrCurrency){
+    var c = typeof entityOrCurrency === 'string' ? meta(entityOrCurrency) : entityCurrency(entityOrCurrency);
+    return num(amount).toLocaleString('en-US') + ' ' + c.symbol;
+  }
+  function save(){
+    recalcWallets();
+    if(typeof window.lsSave === 'function') window.lsSave();
+    if(typeof window.cloudSave === 'function') window.cloudSave(st());
+  }
+  function recalcWallets(){
+    ensureState();
+    var totals = {};
+    function row(code){ var c = meta(code); return totals[c.code] || (totals[c.code] = {income:0, expense:0, balance:0}); }
+    st().transactions.forEach(function(tx){
+      var c = entityCurrency(tx), r = row(c.code);
+      if(tx.type === 'expense') r.expense += num(tx.amount);
+      if(tx.type === 'income') r.income += num(tx.amount);
+      r.balance = r.income - r.expense;
+    });
+    Object.keys(totals).forEach(function(code){
+      var w = ensureWallet(code);
+      w.balance = totals[code].balance;
+      w.updatedAt = now();
+    });
+    enabledCurrencies().forEach(function(c){ ensureWallet(c.code); });
+    return st().wallets;
+  }
+  function groupTotals(transactions){
+    var totals = {};
+    (transactions || []).forEach(function(tx){
+      var c = entityCurrency(tx);
+      totals[c.code] = totals[c.code] || {currency_code:c.code, currency_symbol:c.symbol, currency_label:c.label, income:0, expense:0, balance:0};
+      if(tx.type === 'expense') totals[c.code].expense += num(tx.amount);
+      if(tx.type === 'income') totals[c.code].income += num(tx.amount);
+      totals[c.code].balance = totals[c.code].income - totals[c.code].expense;
+    });
+    return totals;
+  }
+  function totalsList(totals, key){
+    var codes = Object.keys(totals || {}).filter(function(code){ return num(totals[code][key]) !== 0; });
+    if(!codes.length) return money(0, baseCurrency().code);
+    return codes.map(function(code){ return money(totals[code][key], code); }).join(' / ');
+  }
+  function totalsHtml(totals, key){
+    var codes = Object.keys(totals || {}).filter(function(code){ return num(totals[code][key]) !== 0; });
+    if(!codes.length) codes = [baseCurrency().code];
+    return '<div class="ordo-currency-total-list">'+codes.map(function(code){
+      var c = meta(code);
+      var value = totals && totals[code] ? totals[code][key] : 0;
+      return '<div class="ordo-currency-total-row"><span>'+c.label+'</span><b>'+money(value, code)+'</b></div>';
+    }).join('')+'</div>';
+  }
+  function forceEnglishDigits(root){
+    root = root || document.body;
+    if(!root) return;
+    var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
+    var re = /[٠-٩۰-۹]/g;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode:function(node){
+        if(!re.test(node.nodeValue || '')) return NodeFilter.FILTER_REJECT;
+        re.lastIndex = 0;
+        var p = node.parentElement;
+        if(p && /SCRIPT|STYLE/.test(p.tagName)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var nodes = [], node;
+    while((node = walker.nextNode())) nodes.push(node);
+    nodes.forEach(function(t){ t.nodeValue = t.nodeValue.replace(re, function(ch){ return map[ch] || ch; }); });
+    Array.prototype.slice.call(root.querySelectorAll ? root.querySelectorAll('input[type="number"],input[type="date"]') : []).forEach(function(el){
+      if(el.value) el.value = el.value.replace(re, function(ch){ return map[ch] || ch; });
+    });
+  }
+  function walletSummary(code){
+    var c = meta(code), income = 0, expense = 0;
+    (st().transactions || []).forEach(function(tx){
+      if(entityCurrency(tx).code !== c.code) return;
+      if(tx.type === 'income') income += num(tx.amount);
+      if(tx.type === 'expense') expense += num(tx.amount);
+    });
+    return {income:income, expense:expense, balance:income-expense};
+  }
+  function renderWallets(){
+    recalcWallets();
+    var ids = ['wallets-grid','fin-wallets-grid','ordo-wallets-grid'];
+    ids.forEach(function(id){
+      var grid = document.getElementById(id);
+      if(!grid) return;
+      var wallets = (st().wallets || []).filter(function(w){
+        var c = meta(w.currency_code);
+        return c.enabled !== false || num(w.balance) !== 0 || enabledCurrencies().some(function(x){ return x.code === c.code; });
+      });
+      grid.innerHTML = wallets.map(function(w){
+        var c = meta(w.currency_code), s = walletSummary(c.code);
+        return '<div class="ordo-wallet-card" role="button" tabindex="0" onclick="openWalletLedger(\''+c.code+'\')" onkeydown="if(event.key===\'Enter\')openWalletLedger(\''+c.code+'\')" style="cursor:pointer">'+
+          '<div class="ordo-wallet-head"><div><div class="ordo-wallet-title">'+c.label+'</div><div class="ordo-wallet-code">'+c.code+' · '+c.symbol+'</div></div><span><i class="fa-solid fa-wallet"></i></span></div>'+
+          '<div class="ordo-wallet-balance">'+money(s.balance,c.code)+'</div>'+
+          '<div class="ordo-wallet-lines"><span>إجمالي الدخل <b style="color:var(--accent3)">'+money(s.income,c.code)+'</b></span><span>إجمالي المصروفات <b style="color:var(--accent4)">'+money(s.expense,c.code)+'</b></span><span>صافي الربح <b style="color:'+(s.balance>=0?'var(--accent3)':'var(--accent4)')+'">'+money(s.balance,c.code)+'</b></span></div>'+
+        '</div>';
+      }).join('') || '<div class="empty" style="padding:18px">لا توجد محافظ بعد</div>';
+    });
+  }
+  function renderDashboardWalletMini(){
+    ensureState();
+    var target = document.getElementById('dash-income');
+    if(!target) return;
+    recalcWallets();
+    var wallets = (st().wallets || []).filter(function(w){
+      var s = walletSummary(w.currency_code);
+      var c = meta(w.currency_code);
+      return enabledCurrencies().some(function(x){ return x.code === c.code; }) || num(s.balance) !== 0 || num(s.income) !== 0 || num(s.expense) !== 0;
+    });
+    if(!wallets.length) wallets = [ensureWallet(baseCurrency().code)];
+    wallets = wallets.slice().sort(function(a,b){
+      function lastTime(w){
+        var code = meta(w.currency_code).code;
+        var latest = '';
+        (st().transactions || []).forEach(function(tx){
+          if(entityCurrency(tx).code !== code) return;
+          var d = String(tx.updatedAt || tx.createdAt || tx.isoDate || tx.date || '');
+          if(d > latest) latest = d;
+        });
+        return latest || String(w.updatedAt || w.createdAt || '');
+      }
+      return lastTime(b).localeCompare(lastTime(a));
+    });
+    var hiddenCount = Math.max(0, wallets.length - 3);
+    var shownWallets = wallets.slice(0,3);
+    var card = target.closest ? target.closest('.card') : null;
+    var label = card && card.querySelector('.stat-label');
+    var change = card && card.querySelector('.stat-change');
+    if(label) label.innerHTML = '<i class="fa-solid fa-wallet" style="color:var(--accent3)"></i> آخر دخل';
+    if(change) change.textContent = hiddenCount ? 'اضغط + لعرض باقي المحافظ' : 'آخر 3 محافظ حسب الحركة';
+    target.classList.remove('green');
+    target.classList.add('ordo-dash-wallet-mini');
+    target.innerHTML = shownWallets.map(function(w){
+      var c = meta(w.currency_code), s = walletSummary(c.code);
+      var pct = s.income ? Math.round((s.balance / Math.max(s.income, 1)) * 100) : 0;
+      return '<div class="ordo-dash-income-line">'+
+        '<span class="ordo-dash-income-title">آخر دخل '+c.label+':</span>'+
+        '<b>'+money(s.income,c.code)+'</b>'+
+        '<em>'+(pct >= 0 ? '▲ ' : '▼ ')+Math.abs(pct)+'%</em>'+
+      '</div>';
+    }).join('') + (hiddenCount ? '<button type="button" class="ordo-dash-income-more" onclick="showPage(\'finance\')">+ '+hiddenCount+' محافظ أخرى</button>' : '');
+    forceEnglishDigits(target);
+  }
+  window.openWalletLedger = function(code){
+    ensureState();
+    var c = meta(code);
+    var txs = (st().transactions || []).filter(function(tx){ return entityCurrency(tx).code === c.code; })
+      .slice().sort(function(a,b){ return String(b.isoDate || b.date || b.createdAt || '').localeCompare(String(a.isoDate || a.date || a.createdAt || '')); });
+    var old = document.getElementById('wallet-ledger-modal');
+    if(old) old.remove();
+    var ov = document.createElement('div');
+    ov.className = 'modal-overlay';
+    ov.id = 'wallet-ledger-modal';
+    ov.style.display = 'flex';
+    ov.innerHTML = '<div class="modal" style="max-width:760px">'+
+      '<div class="modal-header"><div class="modal-title"><i class="fa-solid fa-wallet"></i> سجل محفظة '+c.label+'</div><button class="close-btn" onclick="document.getElementById(&quot;wallet-ledger-modal&quot;)?.remove()"><i class="fa-solid fa-xmark"></i></button></div>'+
+      '<div class="table-wrap"><table><thead><tr><th>الوصف</th><th>النوع</th><th>المبلغ</th><th>التاريخ</th></tr></thead><tbody>'+
+      (txs.length ? txs.map(function(tx){
+        return '<tr><td>'+(tx.desc || tx.source || '-')+'</td><td><span class="badge '+(tx.type==='income'?'badge-green':'badge-red')+'">'+(tx.type==='income'?'دخل':'مصروف')+'</span></td><td style="font-weight:800;color:'+(tx.type==='income'?'var(--accent3)':'var(--accent4)')+'">'+money(tx.amount, tx)+'</td><td style="font-family:var(--mono);font-size:11px">'+(tx.isoDate || tx.date || '-')+'</td></tr>';
+      }).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:22px">لا توجد معاملات لهذه المحفظة</td></tr>')+
+      '</tbody></table></div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if(e.target === ov) ov.remove(); });
+    forceEnglishDigits(ov);
+  };
+  function fillCurrencySettings(){
+    ensureState();
+    var panel = document.getElementById('stabp-currencies');
+    if(!panel) return;
+    panel.innerHTML =
+      '<div class="card" id="studio-currency-wallet-settings" style="margin-bottom:16px">'+
+        '<div class="section-title" style="margin-bottom:12px"><i class="fa-solid fa-coins" style="color:var(--accent2)"></i> العملات والمحافظ</div>'+
+        '<div class="form-row"><div class="form-group">'+
+          '<label class="form-label">العملة الأساسية للحساب</label>'+
+          '<select class="form-select" id="studio-base-currency"></select>'+
+        '</div></div>'+
+        '<div class="form-group">'+
+          '<label class="form-label">العملات التي أتعامل بها</label>'+
+          '<div id="studio-enabled-currencies" class="ordo-currency-checks"></div>'+
+        '</div>'+
+        '<button class="btn btn-success" type="button" onclick="saveStudioCurrencies()"><i class="fa-solid fa-floppy-disk"></i> حفظ العملات</button>'+
+      '</div>';
+    var base = document.getElementById('studio-base-currency');
+    var checks = document.getElementById('studio-enabled-currencies');
+    var cur = baseCurrency().code;
+    if(base){
+      base.innerHTML = CURRENCIES.map(function(c){
+        return '<option value="'+c.code+'" '+(c.code === cur ? 'selected' : '')+'>'+c.label+' ('+c.symbol+')</option>';
+      }).join('');
+    }
+    if(checks){
+      checks.innerHTML = CURRENCIES.map(function(c){
+        var saved = st().settings.enabled_currencies.find(function(x){ return meta(x.code).code === c.code; });
+        var enabled = saved ? saved.enabled !== false : c.enabled !== false;
+        return '<label class="ordo-currency-check"><input type="checkbox" value="'+c.code+'" '+(enabled ? 'checked' : '')+'> <span>'+c.label+'</span><b>'+c.symbol+'</b></label>';
+      }).join('');
+    }
+  }
+  window.saveStudioCurrencies = function(){
+    ensureState();
+    var base = (document.getElementById('studio-base-currency') || {}).value || 'EGP';
+    var enabled = Array.prototype.slice.call(document.querySelectorAll('#studio-enabled-currencies input:checked')).map(function(i){ return i.value; });
+    if(enabled.indexOf(base) === -1) enabled.push(base);
+    st().settings.enabled_currencies = CURRENCIES.map(function(c){ return Object.assign({}, c, {enabled:enabled.indexOf(c.code) > -1}); });
+    var b = meta(base);
+    st().settings.base_currency_code = b.code;
+    st().settings.base_currency = b.symbol;
+    st().settings.currency = b.symbol;
+    st().settings.updatedAt = now();
+    st().settings._dirty = true;
+    enabled.forEach(ensureWallet);
+    save();
+    fillCurrencySettings();
+    fillTaskCurrency();
+    if(typeof window.toast === 'function') window.toast('تم حفظ العملات والمحافظ');
+  };
+  function fillTaskCurrency(){
+    ensureState();
+    var sel = document.getElementById('t-currency');
+    if(!sel) return;
+    var eid = (document.getElementById('task-eid') || {}).value;
+    var task = eid ? st().tasks.find(function(t){ return String(t.id) === String(eid); }) : null;
+    var current = meta(task ? (task.currency_code || task.currency || task.currency_symbol) : (sel.value || baseCurrency().code)).code;
+    sel.innerHTML = enabledCurrencies().map(function(c){
+      return '<option value="'+c.code+'" '+(c.code === current ? 'selected' : '')+'>'+c.label+' ('+c.symbol+')</option>';
+    }).join('');
+    var label = document.querySelector('#t-currency-wrap .form-label');
+    if(label) label.textContent = 'عملة المهمة';
+  }
+  function read(id){ var el = document.getElementById(id); return el ? el.value : ''; }
+  window.OrdoTaskSafeSave = function(){
+    ensureState();
+    var title = read('t-title').trim();
+    if(!title){ alert('أدخل اسم المهمة'); return false; }
+    var selected = read('t-currency') || baseCurrency().code;
+    var c = meta(selected);
+    var eid = read('task-eid');
+    var oldTask = eid ? st().tasks.find(function(t){ return String(t.id) === String(eid); }) : null;
+    var task = Object.assign({}, oldTask || {}, {
+      id: oldTask ? oldTask.id : Date.now(),
+      title:title,
+      client:read('t-client'),
+      priority:read('t-priority') || 'med',
+      status:read('t-status') || 'new',
+      value:num(read('t-value')),
+      orderDate:read('t-order'),
+      deadline:read('t-deadline'),
+      pay:read('t-pay') || 'none',
+      deposit:num(read('t-deposit')),
+      notes:read('t-notes'),
+      done:oldTask ? !!oldTask.done : false,
+      currency_code:c.code,
+      currency_symbol:c.symbol,
+      currency:c.code,
+      updatedAt:now(),
+      _dirty:true
+    });
+    if(oldTask){
+      var idx = st().tasks.findIndex(function(t){ return String(t.id) === String(oldTask.id); });
+      if(idx >= 0) st().tasks[idx] = task;
+    } else {
+      st().tasks.push(task);
+    }
+    save();
+    if(typeof window.closeM === 'function') window.closeM('modal-task');
+    if(typeof window.renderAll === 'function') window.renderAll();
+    setTimeout(patchTaskAmounts, 50);
+    return false;
+  };
+  function patchTaskAmounts(){
+    (st().tasks || []).forEach(function(task){
+      var c = entityCurrency(task);
+      task.currency_code = c.code;
+      task.currency_symbol = c.symbol;
+      task.currency = c.code;
+      Array.prototype.slice.call(document.querySelectorAll('[data-task-id="'+task.id+'"] span,[data-task-id="'+task.id+'"] div')).forEach(function(el){
+        if(el.children.length || !task.value) return;
+        var txt = (el.textContent || '').replace(/,/g,'');
+        if(txt.indexOf(String(num(task.value))) >= 0 && /(ج|EGP|USD|SAR|AED|KWD|QAR|\$)/.test(el.textContent || '')) el.textContent = money(task.value, task);
+      });
+    });
+  }
+  function patchCompleteModal(task){
+    if(!task) return;
+    var remaining = num(task.value) - (task.pay === 'deposit' ? num(task.deposit) : 0);
+    var c = entityCurrency(task);
+    var val = document.getElementById('complete-value');
+    var dep = document.getElementById('complete-deposit-paid');
+    var rem = document.getElementById('complete-remaining');
+    var amount = document.getElementById('complete-income-amount');
+    if(val) val.textContent = task.value ? money(task.value, task) : 'غير محدد';
+    if(dep) dep.textContent = money(task.deposit, task);
+    if(rem) rem.textContent = money(remaining, task);
+    if(amount){
+      amount.value = remaining > 0 ? remaining : num(task.value);
+      var label = amount.closest('.form-group') && amount.closest('.form-group').querySelector('.form-label');
+      if(label) label.textContent = 'المبلغ المراد تسجيله كإيراد (' + c.symbol + ')';
+    }
+  }
+  function financeTotalRows(totals, key){
+    var codes = Object.keys(totals || {}).filter(function(code){ return num(totals[code][key]) !== 0; });
+    if(!codes.length) codes = [baseCurrency().code];
+    return codes.slice(0,3).map(function(code){
+      var c = meta(code), value = totals[code] ? totals[code][key] : 0;
+      return '<div><span>'+c.label+'</span><b>'+money(value, code)+'</b></div>';
+    }).join('');
+  }
+  function renderFinanceDesign(){
+    var page = document.getElementById('page-finance');
+    if(!page) return;
+    page.classList.add('ordo-finance-redesign');
+    var tabs = document.getElementById('fin-tab-transactions');
+    if(tabs && tabs.parentElement && !tabs.parentElement.id) tabs.parentElement.id = 'ordo-fin-tabs-row';
+    var transactionsPanel = document.getElementById('fin-panel-transactions');
+    var txs = (st().transactions || []).filter(function(tx){ return !tx.isLoan && tx.source_type !== 'wallet_transfer'; });
+    var totals = groupTotals(txs);
+    var overview = document.getElementById('ordo-finance-overview');
+    if(!overview){
+      overview = document.createElement('div');
+      overview.id = 'ordo-finance-overview';
+    }
+    if(transactionsPanel && overview.parentElement !== transactionsPanel){
+      transactionsPanel.insertBefore(overview, transactionsPanel.firstChild);
+    }
+    var incomes = txs.filter(function(t){ return t.type === 'income'; }).slice().sort(function(a,b){ return num(b.amount)-num(a.amount); }).slice(0,3);
+    var maxIncome = incomes.reduce(function(m,t){ return Math.max(m, num(t.amount)); }, 1);
+    var chartDays = txs.slice(-6);
+    if(!chartDays.length) chartDays = txs.slice(0,6);
+    var chartMax = chartDays.reduce(function(m,t){ return Math.max(m, num(t.amount)); }, 1);
+    overview.innerHTML =
+      '<div class="ordo-fin-top-cards">'+
+        '<div class="ordo-fin-kpi"><span class="kpi-icon green"><i class="fa-solid fa-download"></i></span><div><h4>إجمالي الدخل حسب العملات</h4>'+financeTotalRows(totals,'income')+'<small>يعرض كل دخل حسب عملته الأصلية</small></div></div>'+
+        '<div class="ordo-fin-kpi"><span class="kpi-icon red"><i class="fa-solid fa-credit-card"></i></span><div><h4>إجمالي المصروفات حسب العملات</h4>'+financeTotalRows(totals,'expense')+'<small>يعرض كل مصروف حسب عملته الأصلية</small></div></div>'+
+        '<div class="ordo-fin-kpi"><span class="kpi-icon purple"><i class="fa-solid fa-right-left"></i></span><div><h4>صافي الربح حسب العملات</h4>'+financeTotalRows(totals,'balance')+'<small>بدون تحويل تلقائي بين العملات</small></div></div>'+
+        '<div class="ordo-fin-kpi"><span class="kpi-icon amber"><i class="fa-solid fa-clock"></i></span><div><h4>آخر تحديث</h4><strong>'+new Date().toISOString().slice(0,10)+'</strong><small>البيانات محسوبة من سجل المعاملات</small></div></div>'+
+      '</div>'+
+      '<div class="ordo-fin-analytics">'+
+        '<div class="ordo-fin-chart-card"><div class="ordo-fin-card-head"><b>تدفق مالي شهري</b><select><option>حسب اليوم</option></select></div><div class="ordo-fin-chart-bars">'+
+          chartDays.map(function(t){
+            var h = Math.max(12, Math.round(num(t.amount)/chartMax*100));
+            return '<span title="'+money(t.amount,t)+'"><i class="'+(t.type==='income'?'income':'expense')+'" style="height:'+h+'%"></i><small>'+(t.isoDate||t.date||'').slice(5)+'</small></span>';
+          }).join('')+
+        '</div></div>'+
+        '<div class="ordo-fin-income-card"><div class="ordo-fin-card-head"><b>أعلى بنود الدخل</b><i class="fa-solid fa-chart-line"></i></div>'+
+          (incomes.length ? incomes.map(function(t){ return '<div class="ordo-fin-income-row"><span>'+(t.desc||t.source||'دخل')+'</span><b>'+money(t.amount,t)+'</b></div>'; }).join('') : '<div class="empty" style="padding:18px">لا توجد إيرادات بعد</div>')+
+        '</div>'+
+      '</div>';
+    forceEnglishDigits(overview);
+  }
+  function patchFinance(){
+    recalcWallets();
+    var txs = (st().transactions || []).filter(function(tx){ return !tx.isLoan; });
+    var totals = groupTotals(txs);
+    var income = document.getElementById('fin-in');
+    var out = document.getElementById('fin-out');
+    var net = document.getElementById('fin-net');
+    [income, out, net].forEach(function(el){
+      var card = el && el.closest ? el.closest('.card') : null;
+      if(card) card.style.display = 'none';
+    });
+    var tbody = document.getElementById('fin-tbody');
+    if(tbody){
+      var sorted = txs.slice().sort(function(a,b){ return String(b.isoDate || b.date || '').localeCompare(String(a.isoDate || a.date || '')); });
+      Array.prototype.slice.call(tbody.querySelectorAll('tr')).forEach(function(row, i){
+        var tx = sorted[i];
+        if(tx && row.children && row.children[3]) row.children[3].textContent = money(tx.amount, tx);
+      });
+    }
+    renderWallets();
+    renderFinanceDesign();
+    organizeFinanceLayout();
+    forceEnglishDigits(document.getElementById('page-finance') || document.body);
+  }
+  function organizeFinanceLayout(){
+    var summary = document.getElementById('fin-summary-cards');
+    if(!summary) return;
+    var income = document.getElementById('fin-in');
+    var out = document.getElementById('fin-out');
+    var net = document.getElementById('fin-net');
+    [income, out, net].forEach(function(el){
+      var card = el && el.closest ? el.closest('.card') : null;
+      if(card) card.style.display = 'none';
+    });
+    var row = document.getElementById('ordo-fin-operational-row');
+    if(!row){
+      row = document.createElement('div');
+      row.id = 'ordo-fin-operational-row';
+      row.style.cssText = 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px';
+      var reminders = document.getElementById('fin-unpaid-reminders');
+      if(reminders && reminders.parentNode) reminders.parentNode.insertBefore(row, reminders);
+      else summary.parentNode.insertBefore(row, summary.nextSibling);
+    }
+    var margin = document.getElementById('fin-margin');
+    var pending = document.getElementById('fin-pending');
+    var deposits = document.getElementById('fin-deposits');
+    [margin, pending, deposits].forEach(function(el){
+      var card = el && el.closest ? el.closest('.card') : null;
+      if(card && card.parentNode !== row){
+        card.style.display = '';
+        card.style.marginBottom = '0';
+        row.appendChild(card);
+      }
+    });
+    var grids = summary.querySelectorAll('.grid');
+    Array.prototype.slice.call(grids).forEach(function(g){
+      if(!g.querySelector('.card:not([style*="display: none"])')) g.style.display = 'none';
+    });
+    var unpaid = document.getElementById('fin-unpaid-reminders');
+    if(unpaid){
+      unpaid.style.marginBottom = '16px';
+      Array.prototype.slice.call(unpaid.querySelectorAll('.card')).forEach(function(card){
+        card.style.marginBottom = '0';
+      });
+    }
+    if(window.matchMedia && window.matchMedia('(max-width: 900px)').matches){
+      row.style.gridTemplateColumns = '1fr';
+    } else {
+      row.style.gridTemplateColumns = 'repeat(3,minmax(0,1fr))';
+    }
+  }
+  function repairFontAwesomeIcons(){
+    var replacements = {
+      'fa-hand-wave':'fa-hand',
+      'fa-layout':'fa-table-cells-large',
+      'fa-shield-keyhole':'fa-shield-halved',
+      'fa-books':'fa-book',
+      'fa-people-arrows':'fa-people-arrows-left-right',
+      'fa-check-square':'fa-square-check'
+    };
+    Object.keys(replacements).forEach(function(oldClass){
+      Array.prototype.slice.call(document.querySelectorAll('.'+oldClass)).forEach(function(icon){
+        icon.classList.remove(oldClass);
+        icon.classList.add(replacements[oldClass]);
+      });
+    });
+    Array.prototype.slice.call(document.querySelectorAll('option')).forEach(function(opt){
+      var html = opt.innerHTML || '';
+      if(html.indexOf('<i') > -1 || /fa-(solid|regular|brands)/.test(html)){
+        opt.textContent = (opt.textContent || '').replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim();
+      }
+    });
+  }
+  function repairMojibakeText(root){
+    root = root || document.body;
+    if(!root) return;
+    var bad = /â|�|ًں|â­گ|âڈ¸|آ·/;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode:function(node){
+        var val = node.nodeValue || '';
+        if(!bad.test(val)) return NodeFilter.FILTER_REJECT;
+        var p = node.parentElement;
+        if(p && /SCRIPT|STYLE|TEXTAREA/.test(p.tagName)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var nodes = [], node;
+    while((node = walker.nextNode())) nodes.push(node);
+    nodes.forEach(function(t){
+      t.nodeValue = (t.nodeValue || '')
+        .replace(/â­گ/g, '★')
+        .replace(/âڈ¸/g, 'موقوف')
+        .replace(/â†گ/g, '←')
+        .replace(/â†©/g, '↩')
+        .replace(/آ·/g, '·')
+        .replace(/ًں[^\s،؛,.!؟)]*/g, '')
+        .replace(/â[^\s،؛,.!؟)]*/g, '')
+        .replace(/�+/g, '')
+        .replace(/\s{2,}/g, ' ');
+    });
+  }
+  function identitySettings(){
+    ensureState();
+    st().settings.identity_backgrounds = st().settings.identity_backgrounds || {};
+    return st().settings.identity_backgrounds;
+  }
+  function applyIdentityBackgrounds(){
+    document.body.style.backgroundColor = '';
+    document.body.style.backgroundImage = '';
+    document.body.style.backgroundSize = '';
+    document.body.style.backgroundAttachment = '';
+    document.body.style.backgroundPosition = '';
+    var servicesPage = document.getElementById('page-services');
+    if(servicesPage){
+      servicesPage.style.backgroundColor = '';
+      servicesPage.style.backgroundImage = '';
+      servicesPage.style.backgroundSize = '';
+      servicesPage.style.backgroundPosition = '';
+    }
+    try{ localStorage.removeItem('ordo_identity_backgrounds'); }catch(e){}
+  }
+  function renderAppearanceIdentitySettings(){
+    var old = document.getElementById('ordo-identity-settings-card');
+    if(old) old.remove();
+  }
+  window.saveIdentityBackgrounds = function(){
+    applyIdentityBackgrounds();
+    if(typeof window.toast === 'function') window.toast('تم تعطيل تخصيص الخلفيات مؤقتاً');
+  };
+  var FINANCE_CUSTOM_WIDGETS = [
+    {id:'transactions_tab', label:'تاب المعاملات', icon:'fa-list', selector:'#fin-panel-transactions', color:'var(--accent)', kind:'tab'},
+    {id:'wallets_tab', label:'تاب المحافظ', icon:'fa-wallet', selector:'#fin-panel-wallets', color:'var(--accent3)', kind:'tab'},
+    {id:'budgets_tab', label:'تاب الميزانيات', icon:'fa-bullseye', selector:'#fin-panel-budgets', color:'var(--accent2)', kind:'tab'},
+    {id:'loans_tab', label:'تاب القروض', icon:'fa-handshake', selector:'#fin-panel-loans', color:'var(--accent)', kind:'tab'},
+    {id:'stats_tab', label:'تاب الإحصائيات', icon:'fa-chart-pie', selector:'#fin-panel-stats', color:'var(--accent3)', kind:'tab'},
+    {id:'overview', label:'لوحة المدير المالي', icon:'fa-table-cells-large', selector:'#ordo-finance-overview', color:'var(--accent2)'},
+    {id:'income', label:'إجمالي الدخل', icon:'fa-download', selector:'#ordo-finance-overview .ordo-fin-kpi:nth-child(1)', color:'var(--accent3)'},
+    {id:'expenses', label:'إجمالي المصروفات', icon:'fa-credit-card', selector:'#ordo-finance-overview .ordo-fin-kpi:nth-child(2)', color:'var(--accent4)'},
+    {id:'profit', label:'صافي الربح', icon:'fa-chart-line', selector:'#ordo-finance-overview .ordo-fin-kpi:nth-child(3)', color:'var(--accent3)'},
+    {id:'pending', label:'آخر تحديث', icon:'fa-clock', selector:'#ordo-finance-overview .ordo-fin-kpi:nth-child(4)', color:'var(--accent2)'},
+    {id:'wallets', label:'المحافظ والأرصدة', icon:'fa-wallet', selector:'#wallets-section', color:'var(--accent3)'},
+    {id:'summary_cards', label:'كروت ملخص المالية', icon:'fa-layer-group', selector:'#fin-summary-cards', color:'var(--accent)'},
+    {id:'summary_income', label:'كارد إجمالي الدخل', icon:'fa-coins', selector:'#ordo-fin-summary-income', color:'var(--accent3)'},
+    {id:'summary_expense', label:'كارد إجمالي المصروفات', icon:'fa-money-bill-wave', selector:'#ordo-fin-summary-expense', color:'var(--accent4)'},
+    {id:'summary_net', label:'كارد صافي الربح', icon:'fa-chart-line', selector:'#ordo-fin-summary-net', color:'var(--accent)'},
+    {id:'summary_margin', label:'كارد هامش الربح', icon:'fa-chart-bar', selector:'#ordo-fin-summary-margin', color:'var(--accent2)'},
+    {id:'pending_card', label:'إيرادات معلقة', icon:'fa-hourglass-half', selector:'#ordo-fin-pending-card', color:'var(--accent2)'},
+    {id:'deposits_card', label:'عربون محصل', icon:'fa-heart', selector:'#ordo-fin-deposits-card', color:'var(--accent2)'},
+    {id:'loans_summary', label:'ملخص القروض والأرصدة', icon:'fa-scale-balanced', selector:'#fin-loans-summary', color:'var(--accent)'},
+    {id:'filters', label:'زر فلترة المعاملات', icon:'fa-filter', selector:'#ordo-fin-filter-zone', color:'var(--accent)'},
+    {id:'filter_panel', label:'لوحة الفلاتر', icon:'fa-sliders', selector:'#_fin-filter-panel', color:'var(--accent)'},
+    {id:'monthly', label:'سجل الشهور', icon:'fa-calendar-days', selector:'#fin-monthly-timeline', color:'var(--accent2)'},
+    {id:'unpaid', label:'تنبيهات غير محصلة', icon:'fa-triangle-exclamation', selector:'#fin-unpaid-reminders', color:'var(--accent4)'},
+    {id:'transactions', label:'سجل المعاملات', icon:'fa-list', selector:'#ordo-fin-transactions-card', color:'var(--accent)'},
+    {id:'wallets_grid', label:'كروت المحافظ', icon:'fa-wallet', selector:'#fin-wallets-grid', color:'var(--accent3)'},
+    {id:'wallet_detail', label:'سجل محفظة محددة', icon:'fa-receipt', selector:'#fin-wallet-detail-card', color:'var(--accent)'},
+    {id:'wallet_manual', label:'تعديل رصيد يدوي', icon:'fa-plus-circle', selector:'#ordo-fin-manual-wallet-card', color:'var(--accent2)'},
+    {id:'charts', label:'تدفق مالي شهري', icon:'fa-chart-column', selector:'#fin-panel-stats', color:'var(--accent3)'},
+    {id:'budgets', label:'الميزانيات', icon:'fa-bullseye', selector:'#fin-panel-budgets', color:'var(--accent2)'},
+    {id:'loans', label:'القروض والأرصدة', icon:'fa-handshake', selector:'#fin-panel-loans', color:'var(--accent)'}
+  ];
+  var FINANCE_CUSTOM_PANE = 'layout';
+  function prepFinanceCustomizeDom(){
+    var tabs = document.getElementById('fin-tab-transactions');
+    if(tabs && tabs.parentElement && !tabs.parentElement.id) tabs.parentElement.id = 'ordo-fin-tabs-row';
+    var tbody = document.getElementById('fin-tbody');
+    var wrap = tbody && tbody.closest ? tbody.closest('.table-wrap') : null;
+    if(wrap && !wrap.id) wrap.id = 'ordo-fin-transactions-table';
+    var txCard = wrap && wrap.closest ? wrap.closest('.card') : null;
+    if(txCard && !txCard.id) txCard.id = 'ordo-fin-transactions-card';
+    var filterBtn = document.getElementById('_fin-filter-toggle');
+    if(filterBtn && filterBtn.parentElement && !filterBtn.parentElement.id) filterBtn.parentElement.id = 'ordo-fin-filter-zone';
+    var monthly = document.getElementById('fin-monthly-timeline');
+    if(monthly && !monthly.id) monthly.id = 'fin-monthly-timeline';
+    var summary = document.getElementById('fin-summary-cards');
+    if(summary) {
+      var grid4 = summary.querySelector('.grid.grid-4');
+      if(grid4) {
+        var statCards = grid4.querySelectorAll('.card');
+        if(statCards[0] && !statCards[0].id) statCards[0].id = 'ordo-fin-summary-income';
+        if(statCards[1] && !statCards[1].id) statCards[1].id = 'ordo-fin-summary-expense';
+        if(statCards[2] && !statCards[2].id) statCards[2].id = 'ordo-fin-summary-net';
+        if(statCards[3] && !statCards[3].id) statCards[3].id = 'ordo-fin-summary-margin';
+      }
+      var grid2 = summary.querySelector('.grid.grid-2');
+      if(grid2) {
+        var cards = grid2.querySelectorAll('.card');
+        if(cards[0] && !cards[0].id) cards[0].id = 'ordo-fin-pending-card';
+        if(cards[1] && !cards[1].id) cards[1].id = 'ordo-fin-deposits-card';
+      }
+    }
+    var manualWallet = document.getElementById('fin-manual-wallet');
+    var manualCard = manualWallet && manualWallet.closest ? manualWallet.closest('.card') : null;
+    if(manualCard && !manualCard.id) manualCard.id = 'ordo-fin-manual-wallet-card';
+  }
+  function ensureFinanceCustomize(){
+    ensureState();
+    var s = st().settings;
+    s.finance_customization = s.finance_customization || {};
+    var cfg = s.finance_customization;
+    cfg.active = cfg.active || 'default';
+    cfg.workspaces = cfg.workspaces && cfg.workspaces.length ? cfg.workspaces : [{
+      id:'default',
+      name:'الافتراضي',
+      description:'التخطيط الافتراضي للنظام',
+      columns:4,
+      compact:false,
+      stickyTitle:true,
+      quickFilters:true,
+      widgets:FINANCE_CUSTOM_WIDGETS.map(function(w, i){ return {id:w.id, visible:true, order:i}; })
+    }];
+    cfg.workspaces.forEach(function(ws){
+      ws.widgets = ws.widgets || [];
+      FINANCE_CUSTOM_WIDGETS.forEach(function(w, i){
+        if(!ws.widgets.some(function(x){ return x.id === w.id; })){
+          var maxOrder = ws.widgets.reduce(function(m, x){ return Math.max(m, num(x.order)); }, -1);
+          ws.widgets.push({id:w.id, visible:true, order:maxOrder + 1});
+        }
+      });
+      ws.columns = ws.columns || 4;
+      if(typeof ws.compact !== 'boolean') ws.compact = false;
+      if(typeof ws.stickyTitle !== 'boolean') ws.stickyTitle = true;
+      if(typeof ws.quickFilters !== 'boolean') ws.quickFilters = true;
+    });
+    return cfg;
+  }
+  function activeFinanceWorkspace(){
+    var cfg = ensureFinanceCustomize();
+    return cfg.workspaces.find(function(w){ return w.id === cfg.active; }) || cfg.workspaces[0];
+  }
+  function saveFinanceCustomize(){
+    st().settings.updatedAt = now();
+    st().settings._dirty = true;
+    save();
+  }
+  function applyFinanceCustomize(){
+    prepFinanceCustomizeDom();
+    var ws = activeFinanceWorkspace();
+    FINANCE_CUSTOM_WIDGETS.forEach(function(w){
+      var state = ws.widgets.find(function(x){ return x.id === w.id; });
+      var el = document.querySelector(w.selector);
+      var hidden = state && state.visible === false;
+      if(w.kind === 'tab'){
+        var tabName = w.selector.replace('#fin-panel-','');
+        var btn = document.getElementById('fin-tab-'+tabName);
+        if(btn) btn.style.display = hidden ? 'none' : '';
+        if(el) el.setAttribute('data-ordo-custom-hidden', hidden ? '1' : '0');
+        return;
+      }
+      if(w.selector.indexOf('#fin-panel-') === 0) return;
+      if(el) el.style.display = hidden ? 'none' : '';
+    });
+    var tabsRow = document.getElementById('ordo-fin-tabs-row');
+    if(tabsRow){
+      ws.widgets.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); }).forEach(function(item){
+        var w = financeWidgetById(item.id);
+        if(!w || w.kind !== 'tab') return;
+        var tabName = w.selector.replace('#fin-panel-','');
+        var btn = document.getElementById('fin-tab-'+tabName);
+        if(btn && btn.parentElement === tabsRow) tabsRow.appendChild(btn);
+      });
+    }
+    ws.widgets.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); }).forEach(function(item){
+      var w = financeWidgetById(item.id);
+      if(!w || w.kind === 'tab') return;
+      var el = document.querySelector(w.selector);
+      if(!el || item.visible === false) return;
+      var parent = el.parentElement;
+      if(parent && parent.children && Array.prototype.indexOf.call(parent.children, el) > -1) parent.appendChild(el);
+    });
+    var finance = document.getElementById('page-finance');
+    if(finance) finance.classList.toggle('ordo-finance-compact', !!ws.compact);
+    var activeBtn = document.querySelector('#ordo-fin-tabs-row .filter-chip.active');
+    if(activeBtn && activeBtn.style.display === 'none') switchFinanceTabSafe('transactions');
+    if(typeof window.__ordoCurrentFinanceTab === 'string') switchFinanceTabSafe(window.__ordoCurrentFinanceTab);
+  }
+  function installFinanceCustomizeButton(){
+    var host = document.querySelector('#page-finance .page-header > div:last-child');
+    if(!host || document.getElementById('ordo-finance-customize-btn')) return;
+    var btn = document.createElement('button');
+    btn.id = 'ordo-finance-customize-btn';
+    btn.type = 'button';
+    btn.className = 'btn btn-ghost';
+    btn.title = 'تخصيص الواجهة';
+    btn.setAttribute('aria-label', 'تخصيص الواجهة');
+    btn.innerHTML = '<i class="fa-solid fa-sliders"></i>';
+    btn.onclick = openFinanceCustomizeModal;
+    host.appendChild(btn);
+  }
+  function switchFinanceTabSafe(tab){
+    prepFinanceCustomizeDom();
+    var tabs = ['transactions','wallets','budgets','loans','stats'];
+    var chosen = tab || 'transactions';
+    window.__ordoCurrentFinanceTab = chosen;
+    function isTabAllowed(t){
+      var panel = document.getElementById('fin-panel-'+t);
+      var btn = document.getElementById('fin-tab-'+t);
+      return !(panel && panel.getAttribute('data-ordo-custom-hidden') === '1') && !(btn && btn.style.display === 'none');
+    }
+    function firstAllowedTab(){
+      for(var i=0;i<tabs.length;i++){ if(isTabAllowed(tabs[i])) return tabs[i]; }
+      return 'transactions';
+    }
+    var anyAllowed = tabs.some(function(t){ return isTabAllowed(t); });
+    if(!anyAllowed){
+      var txPanelDefault = document.getElementById('fin-panel-transactions');
+      var txBtnDefault = document.getElementById('fin-tab-transactions');
+      if(txPanelDefault) txPanelDefault.setAttribute('data-ordo-custom-hidden', '0');
+      if(txBtnDefault) txBtnDefault.style.display = '';
+    }
+    var chosenPanel = document.getElementById('fin-panel-'+chosen);
+    var chosenBtn = document.getElementById('fin-tab-'+chosen);
+    if((chosenPanel && chosenPanel.getAttribute('data-ordo-custom-hidden') === '1') || (chosenBtn && chosenBtn.style.display === 'none')) chosen = firstAllowedTab();
+    window.__ordoCurrentFinanceTab = chosen;
+    tabs.forEach(function(t){
+      var btn = document.getElementById('fin-tab-'+t);
+      var panel = document.getElementById('fin-panel-'+t);
+      var hiddenByCustomize = panel && panel.getAttribute('data-ordo-custom-hidden') === '1';
+      if(btn){
+        btn.className = t === chosen ? 'filter-chip active' : 'filter-chip';
+        if(hiddenByCustomize) btn.style.display = 'none';
+      }
+      if(panel) panel.style.display = (!hiddenByCustomize && t === chosen) ? 'block' : 'none';
+    });
+    if(chosen === 'wallets' && typeof window.renderWalletsTab === 'function') window.renderWalletsTab();
+    if(chosen === 'budgets' && typeof window.renderBudgets === 'function') window.renderBudgets();
+    if(chosen === 'loans' && typeof window.renderLoans === 'function') window.renderLoans();
+    if(chosen === 'stats' && typeof window.renderFinStats === 'function') window.renderFinStats();
+    if(chosen === 'transactions' && typeof window.renderFinLoansSummary === 'function') window.renderFinLoansSummary();
+    setTimeout(function(){ renderWallets(); forceEnglishDigits(document.getElementById('page-finance') || document.body); }, 40);
+  }
+  function financeWidgetState(id){
+    var ws = activeFinanceWorkspace();
+    return ws.widgets.find(function(w){ return w.id === id; });
+  }
+  function financeWidgetById(id){
+    return FINANCE_CUSTOM_WIDGETS.find(function(w){ return w.id === id; });
+  }
+  function renderFinanceCustomizeModal(){
+    var modal = document.getElementById('finance-customize-body');
+    if(!modal) return;
+    var cfg = ensureFinanceCustomize();
+    var ws = activeFinanceWorkspace();
+    var wsCards = cfg.workspaces.map(function(item){
+      return '<button type="button" class="ordo-fin-ws-card '+(item.id===cfg.active?'active':'')+'" onclick="selectFinanceWorkspace(\''+item.id+'\')">'+
+        '<span>'+item.name+'</span><small>'+(item.description || 'مساحة عمل مخصصة')+'</small>'+
+      '</button>';
+    }).join('');
+    var visibleSet = FINANCE_CUSTOM_PANE === 'pages'
+      ? FINANCE_CUSTOM_WIDGETS.filter(function(w){ return w.kind === 'tab'; })
+      : FINANCE_CUSTOM_PANE === 'widgets'
+        ? FINANCE_CUSTOM_WIDGETS.filter(function(w){ return w.kind !== 'tab'; })
+        : FINANCE_CUSTOM_WIDGETS;
+    var available = visibleSet.map(function(w){
+      var state = financeWidgetState(w.id) || {visible:true};
+      return '<label class="ordo-fin-toggle">'+
+        '<span><i class="fa-solid '+w.icon+'" style="color:'+w.color+'"></i> '+w.label+'</span>'+
+        '<input type="checkbox" '+(state.visible!==false?'checked':'')+' onchange="toggleFinanceWidget(\''+w.id+'\',this.checked)">'+
+      '</label>';
+    }).join('');
+    var previewItems = ws.widgets.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); }).filter(function(item){
+      var w = financeWidgetById(item.id);
+      if(!w) return false;
+      if(FINANCE_CUSTOM_PANE === 'pages') return w.kind === 'tab';
+      if(FINANCE_CUSTOM_PANE === 'widgets') return w.kind !== 'tab';
+      return true;
+    });
+    var preview = previewItems.map(function(item){
+      var w = financeWidgetById(item.id);
+      if(!w || item.visible === false) return '';
+      return '<div class="ordo-fin-preview-card" draggable="true" data-widget-id="'+item.id+'" ondragstart="startFinanceWidgetDrag(event,\''+item.id+'\')" ondragover="overFinanceWidgetDrag(event,\''+item.id+'\')" ondrop="dropFinanceWidget(event,\''+item.id+'\')" ondragend="endFinanceWidgetDrag(event)">'+
+        '<div class="ordo-fin-preview-move"><button onclick="moveFinanceWidget(\''+item.id+'\',-1)" title="فوق">↑</button><button onclick="moveFinanceWidget(\''+item.id+'\',1)" title="تحت">↓</button></div>'+
+        '<i class="fa-solid '+w.icon+'" style="color:'+w.color+'"></i>'+
+        '<strong>'+w.label+'</strong>'+
+        '<small>مصغر</small>'+
+      '</div>';
+    }).join('');
+    modal.innerHTML =
+      '<div class="ordo-fin-custom-left">'+
+        '<button onclick="setFinanceCustomizePane(\'layout\')" class="'+(FINANCE_CUSTOM_PANE==='layout'?'active':'')+'"><i class="fa-solid fa-table-cells-large"></i> التخطيط</button>'+
+        '<button onclick="setFinanceCustomizePane(\'widgets\')" class="'+(FINANCE_CUSTOM_PANE==='widgets'?'active':'')+'"><i class="fa-solid fa-grip"></i> الويدجت</button>'+
+        '<button onclick="setFinanceCustomizePane(\'pages\')" class="'+(FINANCE_CUSTOM_PANE==='pages'?'active':'')+'"><i class="fa-solid fa-copy"></i> الصفحات</button>'+
+        '<button onclick="setFinanceCustomizePane(\'workspaces\')" class="'+(FINANCE_CUSTOM_PANE==='workspaces'?'active':'')+'"><i class="fa-solid fa-briefcase"></i> المساحات المحفوظة</button>'+
+        '<div class="ordo-fin-custom-box"><b>إعدادات التخطيط</b>'+
+          '<label>عدد الأعمدة</label><div class="ordo-fin-cols"><button onclick="setFinanceColumns(2)" class="'+(ws.columns===2?'active':'')+'">2</button><button onclick="setFinanceColumns(3)" class="'+(ws.columns===3?'active':'')+'">3</button><button onclick="setFinanceColumns(4)" class="'+(ws.columns===4?'active':'')+'">4</button></div>'+
+          '<label><input type="checkbox" '+(ws.stickyTitle?'checked':'')+' onchange="setFinanceOption(\'stickyTitle\',this.checked)"> تثبيت العنوان العلوي</label>'+
+          '<label><input type="checkbox" '+(ws.quickFilters?'checked':'')+' onchange="setFinanceOption(\'quickFilters\',this.checked)"> عرض فلاتر سريعة</label>'+
+          '<label><input type="checkbox" '+(ws.compact?'checked':'')+' onchange="setFinanceOption(\'compact\',this.checked)"> كثافة مضغوطة</label>'+
+        '</div>'+
+      '</div>'+
+      '<div class="ordo-fin-custom-main">'+
+        '<div class="ordo-fin-custom-topline"><input id="finance-ws-name" class="form-input" value="'+ws.name+'" oninput="renameFinanceWorkspaceLive(this.value)"><span><i class="fa-solid fa-circle-check"></i> يتم الحفظ تلقائياً</span></div>'+
+        '<div class="ordo-fin-preview-hint"><i class="fa-solid fa-arrows-up-down-left-right"></i> '+(FINANCE_CUSTOM_PANE==='pages'?'هنا تتحكم في تبويبات المالية فقط: إظهار، إخفاء، وترتيب.':'اسحب الويدجت وغير مكانها، أو استخدم الأسهم كبديل سريع.')+'</div>'+
+        '<div class="ordo-fin-preview-grid" style="grid-template-columns:repeat('+ws.columns+',minmax(0,1fr))">'+preview+'</div>'+
+        '<div class="ordo-fin-workspaces"><div class="section-title">المساحات المحفوظة</div>'+wsCards+'<button class="ordo-fin-ws-add" onclick="createFinanceWorkspace()">+ مساحة عمل جديدة</button></div>'+
+      '</div>'+
+      '<div class="ordo-fin-custom-right">'+
+        '<div class="section-title">'+(FINANCE_CUSTOM_PANE==='pages'?'التابات المتاحة':'العناصر المتاحة')+'</div>'+available+
+      '</div>';
+  }
+  window.openFinanceCustomizeModal = function(){
+    ensureFinanceCustomize();
+    var old = document.getElementById('finance-customize-modal');
+    if(old) old.remove();
+    var ov = document.createElement('div');
+    ov.id = 'finance-customize-modal';
+    ov.className = 'modal-overlay';
+    ov.style.display = 'flex';
+    ov.innerHTML = '<div class="modal ordo-fin-custom-modal">'+
+      '<div class="modal-header">'+
+        '<div><div class="modal-title">تخصيص الواجهة</div><div style="font-size:12px;color:var(--text3)">رتب واجهة المالية وأنشئ مساحات عمل تناسب طريقة شغلك</div></div>'+
+        '<button class="close-btn" onclick="document.getElementById(&quot;finance-customize-modal&quot;).remove()"><i class="fa-solid fa-xmark"></i></button>'+
+      '</div>'+
+      '<div class="ordo-fin-custom-actions"><button class="btn btn-success" onclick="saveFinanceCustomizationAndClose()"><i class="fa-solid fa-check"></i> حفظ التخصيص</button><button class="btn btn-ghost" onclick="applyFinanceCustomize()"><i class="fa-solid fa-eye"></i> معاينة</button><button class="btn btn-ghost" onclick="document.getElementById(&quot;finance-customize-modal&quot;).remove()">إلغاء</button></div>'+
+      '<div id="finance-customize-body" class="ordo-fin-custom-body"></div>'+
+    '</div>';
+    document.body.appendChild(ov);
+    renderFinanceCustomizeModal();
+    ov.addEventListener('click', function(e){ if(e.target === ov) ov.remove(); });
+  };
+  window.setFinanceCustomizePane = function(mode){
+    FINANCE_CUSTOM_PANE = mode || 'layout';
+    renderFinanceCustomizeModal();
+  };
+  window.toggleFinanceWidget = function(id, visible){
+    var item = financeWidgetState(id);
+    if(item) item.visible = visible;
+    saveFinanceCustomize();
+    applyFinanceCustomize();
+    renderFinanceCustomizeModal();
+  };
+  window.moveFinanceWidget = function(id, dir){
+    var ws = activeFinanceWorkspace();
+    var arr = ws.widgets.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); });
+    var idx = arr.findIndex(function(x){ return x.id === id; });
+    var next = idx + dir;
+    if(idx < 0 || next < 0 || next >= arr.length) return;
+    var tmp = arr[idx]; arr[idx] = arr[next]; arr[next] = tmp;
+    arr.forEach(function(x,i){ x.order = i; });
+    ws.widgets = arr;
+    saveFinanceCustomize();
+    applyFinanceCustomize();
+    renderFinanceCustomizeModal();
+  };
+  var FINANCE_DRAG_WIDGET = null;
+  function clearFinanceDragClasses(){
+    Array.prototype.slice.call(document.querySelectorAll('.ordo-fin-preview-card')).forEach(function(card){
+      card.classList.remove('is-dragging');
+      card.classList.remove('is-drop-target');
+    });
+  }
+  function reorderFinanceWidget(sourceId, targetId){
+    var ws = activeFinanceWorkspace();
+    var arr = ws.widgets.slice().sort(function(a,b){ return (a.order||0)-(b.order||0); });
+    var from = arr.findIndex(function(x){ return x.id === sourceId; });
+    var to = arr.findIndex(function(x){ return x.id === targetId; });
+    if(from < 0 || to < 0 || from === to) return;
+    var moved = arr.splice(from, 1)[0];
+    arr.splice(to, 0, moved);
+    arr.forEach(function(x,i){ x.order = i; });
+    ws.widgets = arr;
+    saveFinanceCustomize();
+    applyFinanceCustomize();
+    renderFinanceCustomizeModal();
+  }
+  window.startFinanceWidgetDrag = function(ev, id){
+    FINANCE_DRAG_WIDGET = id;
+    if(ev && ev.dataTransfer){
+      ev.dataTransfer.effectAllowed = 'move';
+      ev.dataTransfer.setData('text/plain', id);
+    }
+    if(ev && ev.currentTarget) ev.currentTarget.classList.add('is-dragging');
+  };
+  window.overFinanceWidgetDrag = function(ev, id){
+    if(ev) ev.preventDefault();
+    clearFinanceDragClasses();
+    var sourceId = FINANCE_DRAG_WIDGET || (ev && ev.dataTransfer && ev.dataTransfer.getData('text/plain'));
+    var card = ev && ev.currentTarget;
+    if(card && id !== sourceId) card.classList.add('is-drop-target');
+  };
+  window.dropFinanceWidget = function(ev, targetId){
+    if(ev) ev.preventDefault();
+    var sourceId = FINANCE_DRAG_WIDGET || (ev && ev.dataTransfer && ev.dataTransfer.getData('text/plain'));
+    clearFinanceDragClasses();
+    FINANCE_DRAG_WIDGET = null;
+    if(!sourceId || !targetId || sourceId === targetId) return;
+    reorderFinanceWidget(sourceId, targetId);
+  };
+  window.endFinanceWidgetDrag = function(){
+    FINANCE_DRAG_WIDGET = null;
+    clearFinanceDragClasses();
+  };
+  window.setFinanceColumns = function(cols){
+    activeFinanceWorkspace().columns = cols;
+    saveFinanceCustomize();
+    applyFinanceCustomize();
+    renderFinanceCustomizeModal();
+  };
+  window.setFinanceOption = function(key, val){
+    activeFinanceWorkspace()[key] = val;
+    saveFinanceCustomize();
+    applyFinanceCustomize();
+    renderFinanceCustomizeModal();
+  };
+  window.renameFinanceWorkspaceLive = function(name){
+    activeFinanceWorkspace().name = name || 'مساحة عمل';
+    saveFinanceCustomize();
+  };
+  window.selectFinanceWorkspace = function(id){
+    ensureFinanceCustomize().active = id;
+    saveFinanceCustomize();
+    applyFinanceCustomize();
+    switchFinanceTabSafe('transactions');
+    renderFinanceCustomizeModal();
+  };
+  window.createFinanceWorkspace = function(){
+    var cfg = ensureFinanceCustomize();
+    var base = JSON.parse(JSON.stringify(activeFinanceWorkspace()));
+    base.id = 'fin_ws_'+Date.now();
+    base.name = 'مساحة عمل جديدة';
+    cfg.workspaces.push(base);
+    cfg.active = base.id;
+    saveFinanceCustomize();
+    applyFinanceCustomize();
+    renderFinanceCustomizeModal();
+  };
+  window.saveFinanceCustomizationAndClose = function(){
+    saveFinanceCustomize();
+    applyFinanceCustomize();
+    var m = document.getElementById('finance-customize-modal');
+    if(m) m.remove();
+    if(typeof window.toast === 'function') window.toast('تم حفظ تخصيص المالية');
+  };
+  function hideRemoved(){
+    var ws = document.getElementById('nav-workspace');
+    if(ws) ws.style.display = 'none';
+    var wp = document.getElementById('page-workspace');
+    if(wp) wp.style.display = 'none';
+    var todo = document.getElementById('temp-todo-page-section');
+    if(todo) todo.remove();
+  }
+  function patch(){
+    ensureState();
+    hideRemoved();
+    fillCurrencySettings();
+    fillTaskCurrency();
+    patchTaskAmounts();
+    patchFinance();
+    renderDashboardWalletMini();
+    renderAppearanceIdentitySettings();
+    repairFontAwesomeIcons();
+    repairMojibakeText(document.body);
+    applyIdentityBackgrounds();
+    installFinanceCustomizeButton();
+    applyFinanceCustomize();
+    forceEnglishDigits(document.body);
+  }
+  if(!window.__ordoMojibakeObserver){
+    window.__ordoMojibakeObserver = new MutationObserver(function(list){
+      var root = document.body;
+      list.forEach(function(m){
+        if(m.target && m.target.nodeType === 1) root = m.target;
+      });
+      repairMojibakeText(root);
+    });
+    setTimeout(function(){
+      if(document.body) window.__ordoMojibakeObserver.observe(document.body, {childList:true, subtree:true});
+    }, 500);
+  }
+  var oldSwitch = window.switchSettingsTab;
+  window.switchSettingsTab = function(tab){
+    var r = oldSwitch ? oldSwitch.apply(this, arguments) : undefined;
+    if(tab === 'currencies') setTimeout(fillCurrencySettings, 20);
+    if(tab === 'appearance') setTimeout(renderAppearanceIdentitySettings, 20);
+    return r;
+  };
+  window.switchFinTab = function(tab){
+    switchFinanceTabSafe(tab);
+  };
+  var oldOpenTask = window.openTaskModal;
+  window.openTaskModal = function(){
+    var r = oldOpenTask ? oldOpenTask.apply(this, arguments) : undefined;
+    setTimeout(fillTaskCurrency, 60);
+    return r;
+  };
+  var oldUpdateDash = window.updateDash;
+  if(oldUpdateDash){
+    window.updateDash = function(){
+      var r = oldUpdateDash.apply(this, arguments);
+      setTimeout(renderDashboardWalletMini, 80);
+      return r;
+    };
+  }
+  var oldCompleteTask = window.completeTask;
+  window.completeTask = function(id){
+    var r = oldCompleteTask ? oldCompleteTask.apply(this, arguments) : undefined;
+    setTimeout(function(){
+      var task = (st().tasks || []).find(function(t){ return String(t.id) === String(id); });
+      patchCompleteModal(task);
+    }, 60);
+    return r;
+  };
+  window.confirmComplete = function(){
+    ensureState();
+    var id = (document.getElementById('complete-task-id') || {}).value;
+    var task = (st().tasks || []).find(function(t){ return String(t.id) === String(id); });
+    if(!task) return false;
+    var c = entityCurrency(task);
+    var payCollected = !!(document.getElementById('complete-pay-collected') && document.getElementById('complete-pay-collected').checked);
+    task.done = true;
+    task.status = 'done';
+    task.doneAt = new Date().toISOString().slice(0,10);
+    task.paymentCollected = payCollected;
+    task.currency_code = c.code;
+    task.currency_symbol = c.symbol;
+    task.currency = c.code;
+    task.updatedAt = now();
+    task._dirty = true;
+    var shouldRegister = !!(document.getElementById('complete-register-income') && document.getElementById('complete-register-income').checked);
+    var amount = num((document.getElementById('complete-income-amount') || {}).value);
+    if(shouldRegister && payCollected && amount > 0){
+      st().transactions.push({
+        id:'tx_'+Date.now(),
+        type:'income',
+        amount:amount,
+        source:task.client || '',
+        desc:'إيراد مشروع: '+task.title,
+        isoDate:new Date().toISOString().slice(0,10),
+        date:new Date().toISOString().slice(0,10),
+        linkedTaskId:task.id,
+        paymentType:'full',
+        currency_code:c.code,
+        currency_symbol:c.symbol,
+        currency:c.code,
+        createdAt:now(),
+        updatedAt:now(),
+        _dirty:true
+      });
+    }
+    save();
+    if(typeof window.closeM === 'function') window.closeM('modal-complete');
+    if(typeof window.renderAll === 'function') window.renderAll();
+    if(typeof window.renderFinance === 'function') setTimeout(window.renderFinance, 120);
+    if(typeof window._askRegularTaskProjectLink === 'function') setTimeout(function(){ window._askRegularTaskProjectLink(task.id); }, 250);
+    if(typeof window.showToast === 'function') window.showToast('تم إكمال المشروع');
+    return false;
+  };
+  var oldRenderAll = window.renderAll;
+  if(oldRenderAll){
+    window.renderAll = function(){
+      var r = oldRenderAll.apply(this, arguments);
+      setTimeout(patch, 80);
+      return r;
+    };
+  }
+  var oldRenderFinance = window.renderFinance;
+  if(oldRenderFinance){
+    window.renderFinance = function(){
+      var r = oldRenderFinance.apply(this, arguments);
+      setTimeout(patchFinance, 80);
+      return r;
+    };
+  }
+  var oldShowPageFinancePatch = window.showPage;
+  if(oldShowPageFinancePatch && !window.__ordoFinanceShowPagePatch){
+    window.__ordoFinanceShowPagePatch = true;
+    window.showPage = function(id, el){
+      var r = oldShowPageFinancePatch.apply(this, arguments);
+      if(id === 'finance') {
+        setTimeout(function(){
+          prepFinanceCustomizeDom();
+          applyFinanceCustomize();
+          switchFinanceTabSafe('transactions');
+        }, 80);
+      }
+      return r;
+    };
+  }
+  var oldToggleDarkLight = window.toggleDarkLight;
+  if(oldToggleDarkLight){
+    window.toggleDarkLight = function(){
+      var r = oldToggleDarkLight.apply(this, arguments);
+      setTimeout(applyIdentityBackgrounds, 80);
+      return r;
+    };
+  }
+  window.OrdoFinance = window.OrdoFinance || {};
+  Object.assign(window.OrdoFinance, {
+    recalculateWallets:recalcWallets,
+    getWallets:function(){ return recalcWallets(); },
+    getWalletSummary:walletSummary,
+    groupTotalsByCurrency:groupTotals
+  });
+  window.OrdoHotfix = {patch:patch, fillCurrencySettings:fillCurrencySettings, fillTaskCurrency:fillTaskCurrency, money:money, meta:meta, patchFinance:patchFinance};
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', patch);
+  else patch();
+  setTimeout(patch, 1500);
+})();
+
+</script>
+
 </body></html>

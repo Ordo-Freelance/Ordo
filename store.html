@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="ordo_public_core.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100vh;background:#f4f5fb;color:#1a1a2e;font-family:'Cairo',sans-serif;direction:rtl;overflow-x:hidden}
@@ -21,6 +22,13 @@ html,body{min-height:100vh;background:#f4f5fb;color:#1a1a2e;font-family:'Cairo',
 @keyframes _lsBar{0%{width:0;margin-right:100%}50%{width:60%;margin-right:0}100%{width:0;margin-right:0}}
 #_er{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;gap:14px}
 </style>
+<script>
+(function(){
+  try{
+    localStorage.removeItem('ordo_identity_backgrounds');
+  }catch(e){}
+})();
+</script>
 </head>
 <body>
 <!-- Offline indicator -->
@@ -141,6 +149,7 @@ var supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 var P=new URLSearchParams(location.search);
 var _pUid=P.get('uid')||P.get('svcorder');
 var _pUname=P.get('u');
+var _pPublicToken=P.get('token')||P.get('public_token')||P.get('t')||'';
 // دعم روابط ?store=ID أو ?s=ID
 var _storeId=P.get('store')||P.get('s')||null;
 
@@ -251,6 +260,13 @@ async function resolveUname(u){
 // ── BOOT ──
 async function boot(){
   var uid=_pUid;
+  if(_pPublicToken&&window.OrdoPublic){
+    try{
+      var resolved=await OrdoPublic.resolvePublicToken(supa,_pPublicToken,{uid:uid,entity_type:'store'});
+      if(resolved.ok){ uid=resolved.uid; window._storePublicToken=resolved.token; }
+      else { showErr('رابط المتجر غير صالح أو منتهي'); return; }
+    }catch(e){}
+  }
   if(!uid&&_pUname) uid=await resolveUname(_pUname);
   if(!uid){
     if(_pUname) showErr('لم يتم العثور على مستخدم بهذا الاسم: "'+_pUname+'"');
@@ -1209,7 +1225,8 @@ window._submitOrd=function(ue,se,pe,price,ple){
   }
   var btn=document.querySelector('._submit');
   if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>جاري الإرسال...';}
-  var order={id:Date.now()+'_o',type:'svc_order',client_name:nm,client_phone:ph,client_email:em,service_name:sn||pn||sv||'خدمة',pkg_name:pn||'',price:+price||0,desc:ds,status:'pending',created_at:new Date().toISOString(),read:false};
+  var order={id:Date.now()+'_o',type:'svc_order',client_name:nm,client_phone:ph,client_email:em,service_name:sn||pn||sv||'خدمة',pkg_name:pn||'',price:+price||0,desc:ds,status:'pending',source_type:'store_order',source_id:null,created_at:new Date().toISOString(),createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),read:false};
+  order.source_id=order.id;
   var studioPhone=(window._pubSettings&&window._pubSettings.phone)||'';
   var studioName=(window._pubSettings&&window._pubSettings.name)||'Studio';
   var savedClientId=null;
@@ -1238,7 +1255,11 @@ window._submitOrd=function(ue,se,pe,price,ple){
             phone:ph,
             email:em||'',
             source:'store_order',
-            createdAt:new Date().toISOString()
+            source_type:'store_order',
+            source_id:order.id,
+            status:'active',
+            createdAt:new Date().toISOString(),
+            updatedAt:new Date().toISOString()
           });
         }
         // ربط الطلب بالعميل

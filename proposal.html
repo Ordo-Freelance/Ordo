@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="ordo_public_core.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -576,6 +577,14 @@ async function boot(){
 
   try {
     var result = null;
+    if(window.OrdoPublic){
+      try{
+        var publicResolved = await OrdoPublic.resolvePublicToken(db, token, {uid:_urlUid, entity_type:'proposal'});
+        if(publicResolved.ok && publicResolved.entity){
+          result = {proposal:publicResolved.entity, uid:publicResolved.uid, fullData:publicResolved.data};
+        }
+      }catch(e){}
+    }
 
     // ━━ Strategy 0: Direct uid lookup via Supabase JS (fastest & most reliable) ━━
     if (_urlUid && !result) {
@@ -930,12 +939,93 @@ async function _confirmRespond() {
 
     // Update proposal
     if (!fresh.proposals) fresh.proposals = [];
-    var idx = fresh.proposals.findIndex(function(x){ return x.token === token; });
+    var currentProposalId = _proposal && (_proposal.id || _proposal.token || _proposal.public_token);
+    var idx = fresh.proposals.findIndex(function(x){
+      return x.token === token || x.public_token === token ||
+        String(x.id || '') === String(currentProposalId || '') ||
+        String(x.token || '') === String(currentProposalId || '') ||
+        String(x.public_token || '') === String(currentProposalId || '');
+    });
     if (idx === -1) throw new Error('proposal not found');
 
     fresh.proposals[idx].status      = _pendingAct;
     fresh.proposals[idx].clientNote  = note;
     fresh.proposals[idx].respondedAt = new Date().toISOString();
+    if(_pendingAct === 'accepted'){
+      var p = fresh.proposals[idx];
+      fresh.projects = fresh.projects || [];
+      fresh.invoices = fresh.invoices || [];
+      fresh.contracts = fresh.contracts || [];
+      var client = (fresh.clients || []).find(function(c){
+        return String(c.id) === String(p.client_id || '') ||
+          (c.name || '').trim().toLowerCase() === String(p.client_name || p.clientName || '').trim().toLowerCase();
+      });
+      if(client && !p.client_id) p.client_id = String(client.id);
+      var project = p.project_id ? fresh.projects.find(function(x){return String(x.id)===String(p.project_id);}) : null;
+      if(!project){
+        project = {
+          id:'proj_'+Date.now(),
+          name:p.project_name || p.title || 'Project',
+          client_id:p.client_id || null,
+          proposal_id:p.id || p.token,
+          status:'active',
+          budget:Number(p.total||p.amount||p.value||0)||0,
+          currency:p.currency || (client&&client.currency) || (fresh.settings&&fresh.settings.currency) || 'ج.م',
+          invoice_ids:[],
+          task_ids:[],
+          source_type:'proposal',
+          source_id:p.id || p.token,
+          createdAt:new Date().toISOString(),
+          updatedAt:new Date().toISOString(),
+          _dirty:true
+        };
+        fresh.projects.push(project);
+        p.project_id = project.id;
+      }
+      var amount = Number(p.total||p.amount||p.value||0)||0;
+      if(amount>0 && !p.invoice_id){
+        project.invoice_ids = project.invoice_ids || [];
+        var inv = {
+          id:'inv_'+Date.now(),
+          client_id:p.client_id || null,
+          client:p.client_name || p.clientName || '',
+          project_id:project.id,
+          total:amount,
+          currency:project.currency,
+          status:'pending',
+          source_type:'proposal',
+          source_id:p.id || p.token,
+          items:[{desc:p.title||'Proposal',qty:1,price:amount}],
+          createdAt:new Date().toISOString(),
+          updatedAt:new Date().toISOString(),
+          _dirty:true
+        };
+        fresh.invoices.push(inv);
+        p.invoice_id = inv.id;
+        project.invoice_ids.push(inv.id);
+      }
+      if((p.requires_contract||p.create_contract) && !p.contract_id){
+        var ct = {
+          id:'ct_'+Date.now(),
+          title:p.title || 'Contract',
+          client_id:p.client_id || null,
+          client_name:p.client_name || p.clientName || '',
+          project_id:project.id,
+          proposal_id:p.id || p.token,
+          value:amount,
+          currency:project.currency,
+          status:'draft',
+          source_type:'proposal',
+          source_id:p.id || p.token,
+          createdAt:new Date().toISOString(),
+          updatedAt:new Date().toISOString(),
+          _dirty:true
+        };
+        fresh.contracts.push(ct);
+        p.contract_id = ct.id;
+      }
+      p.acceptedAt = p.acceptedAt || new Date().toISOString();
+    }
     fresh._savedAt = new Date().toISOString();
 
     var { error } = await db.from('studio_data').upsert(

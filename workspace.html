@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ordo Workspace</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #111118;
+  --surface2: #16161f;
+  --surface3: #1c1c28;
+  --border: #2a2a3a;
+  --text: #e8e8f0;
+  --text2: #9090a8;
+  --text3: #5a5a70;
+  --accent: #7c6ff7;
+  --accent2: #f7c948;
+  --accent3: #4fd1a5;
+  --accent4: #f76f7c;
+  --font: 'Cairo', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --r1: 8px;
+  --r2: 12px;
+  --sidebar-w: 260px;
+}
+html.light {
+  --bg: #f0f2f8; --surface: #fff; --surface2: #f5f6fb;
+  --surface3: #eceef5; --border: #d8dae8; --text: #1a1a2e;
+  --text2: #5a5a7a; --text3: #9090b0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow:hidden}
+button{font-family:var(--font);cursor:pointer;border:none;background:none;color:inherit}
+input,textarea,select{font-family:var(--font);background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--r1);padding:7px 10px;font-size:13px;outline:none;transition:.15s}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r1);font-size:13px;font-weight:700;transition:.15s;cursor:pointer}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-ghost{background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-danger{background:rgba(247,111,124,.15);border:1px solid rgba(247,111,124,.3);color:var(--accent4)}
+
+/* ── Layout ── */
+#app{display:flex;height:100vh;overflow:hidden}
+
+/* ── Sidebar ── */
+#sidebar{width:var(--sidebar-w);background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:.25s;position:relative;z-index:10}
+#sidebar.collapsed{width:0;overflow:hidden}
+.sb-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.sb-logo{font-size:15px;font-weight:900;color:var(--accent);display:flex;align-items:center;gap:8px}
+.sb-logo i{font-size:18px}
+.sb-actions{display:flex;gap:4px;margin-right:auto}
+.sb-actions button{width:28px;height:28px;border-radius:6px;background:none;border:none;color:var(--text3);font-size:13px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.sb-actions button:hover{background:var(--surface2);color:var(--text)}
+
+/* Sidebar pages tree */
+#sb-tree{flex:1;overflow-y:auto;padding:8px 0}
+.sb-section{padding:4px 16px;font-size:10px;font-weight:800;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-top:8px}
+.page-item{display:flex;align-items:center;gap:6px;padding:5px 10px 5px 16px;border-radius:var(--r1);cursor:pointer;font-size:13px;font-weight:600;color:var(--text2);transition:.12s;margin:1px 6px;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.page-item:hover{background:var(--surface2);color:var(--text)}
+.page-item.active{background:rgba(124,111,247,.12);color:var(--accent)}
+.page-item .pi-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center}
+.page-item .pi-label{flex:1;overflow:hidden;text-overflow:ellipsis}
+.page-item .pi-actions{display:none;gap:2px;flex-shrink:0}
+.page-item:hover .pi-actions{display:flex}
+.page-item .pi-actions button{width:20px;height:20px;border-radius:4px;font-size:10px;color:var(--text3)}
+.page-item .pi-actions button:hover{background:var(--surface3);color:var(--text)}
+.page-indent{padding-right:28px}
+
+.sb-add-page{margin:4px 10px;padding:7px 12px;border-radius:var(--r1);border:1.5px dashed var(--border);color:var(--text3);font-size:12px;width:calc(100% - 20px);text-align:center;transition:.15s;background:none;cursor:pointer}
+.sb-add-page:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Main ── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* Topbar */
+#topbar{padding:10px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface);flex-shrink:0}
+#topbar-breadcrumb{font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#topbar-breadcrumb span{color:var(--text);font-weight:700}
+.tb-btn{width:32px;height:32px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:13px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.tb-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Page Content */
+#page-content{flex:1;overflow-y:auto;padding:40px 60px;max-width:860px;width:100%;margin:0 auto}
+@media(max-width:700px){#page-content{padding:20px 16px}}
+
+/* Page title */
+#page-title-wrap{margin-bottom:28px}
+#page-icon-btn{font-size:36px;cursor:pointer;margin-bottom:8px;display:inline-block;transition:.15s;border-radius:8px;padding:4px}
+#page-icon-btn:hover{background:var(--surface2)}
+#page-title-input{font-size:32px;font-weight:900;background:transparent;border:none;width:100%;color:var(--text);outline:none;line-height:1.3;resize:none;overflow:hidden}
+#page-title-input::placeholder{color:var(--text3)}
+
+/* ── Blocks ── */
+.block-wrap{position:relative;margin:2px 0}
+.block-wrap:hover .block-handle{opacity:1}
+.block-handle{position:absolute;right:-28px;top:6px;opacity:0;display:flex;gap:2px;transition:.15s}
+.block-handle button{width:22px;height:22px;border-radius:5px;font-size:11px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
+.block-handle button:hover{background:var(--surface3);color:var(--text)}
+
+/* Text block */
+.block-text{min-height:28px;font-size:14px;line-height:1.7;outline:none;color:var(--text);word-break:break-word}
+.block-text:empty::before{content:attr(data-ph);color:var(--text3);pointer-events:none}
+.block-h1{font-size:26px;font-weight:900;line-height:1.3}
+.block-h2{font-size:20px;font-weight:800;line-height:1.4}
+.block-h3{font-size:16px;font-weight:700;line-height:1.5;color:var(--text2)}
+.block-h4{font-size:14px;font-weight:700;line-height:1.5;color:var(--text3)}
+.block-quote{border-right:3px solid var(--accent);padding-right:14px;color:var(--text2);font-style:italic}
+.block-callout{background:rgba(124,111,247,.08);border:1px solid rgba(124,111,247,.2);border-radius:var(--r1);padding:12px 14px;font-size:13px}
+.block-divider{height:1px;background:var(--border);margin:16px 0}
+
+/* Todo */
+.block-todo{display:flex;align-items:flex-start;gap:9px}
+.block-todo input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;margin-top:4px;cursor:pointer}
+.block-todo .todo-text{flex:1;min-height:22px;font-size:14px;outline:none;line-height:1.6}
+.block-todo .todo-text.done-text{text-decoration:line-through;opacity:.5}
+
+/* Toggle */
+.block-toggle summary{cursor:pointer;font-size:14px;font-weight:700;list-style:none;display:flex;align-items:center;gap:7px;padding:4px 0}
+.block-toggle summary::before{content:'▶';font-size:10px;color:var(--text3);transition:.2s}
+.block-toggle[open] summary::before{transform:rotate(90deg)}
+.block-toggle-content{padding-right:20px;margin-top:4px}
+
+/* Numbered/Bulleted */
+.block-list-item{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.7}
+.block-list-marker{flex-shrink:0;color:var(--text2);font-size:13px;min-width:16px;margin-top:3px}
+
+/* ── Block Slash Menu ── */
+#slash-menu{position:fixed;z-index:99999;background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:6px;width:220px;box-shadow:0 16px 48px rgba(0,0,0,.5);display:none;max-height:320px;overflow-y:auto}
+.slash-group{font-size:10px;font-weight:800;color:var(--text3);letter-spacing:.6px;padding:6px 8px 3px;text-transform:uppercase}
+.slash-item{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:var(--r1);cursor:pointer;font-size:13px;font-weight:600;color:var(--text);transition:.12s}
+.slash-item:hover,.slash-item.selected{background:rgba(124,111,247,.1);color:var(--accent)}
+.slash-item .si-icon{width:28px;height:28px;border-radius:6px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+
+/* ── Database ── */
+.db-wrap{border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin:8px 0}
+.db-toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.db-view-tabs{display:flex;gap:2px;background:var(--surface3);border-radius:8px;padding:3px}
+.db-view-tab{padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;color:var(--text3);cursor:pointer;transition:.12s;display:flex;align-items:center;gap:5px}
+.db-view-tab.active{background:var(--accent);color:#fff}
+
+/* Table view */
+.db-table{width:100%;border-collapse:collapse}
+.db-table th{padding:9px 12px;text-align:right;font-size:11px;font-weight:800;color:var(--text3);background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap;user-select:none}
+.db-table th .th-inner{display:flex;align-items:center;gap:6px}
+.db-table th .col-type-icon{font-size:10px;background:var(--surface3);padding:2px 5px;border-radius:4px}
+.db-table td{padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.db-table tr:hover td{background:rgba(124,111,247,.04)}
+.db-cell-input{width:100%;background:transparent;border:none;outline:none;font-family:var(--font);font-size:13px;color:var(--text)}
+.db-cell-input:focus{background:rgba(124,111,247,.06);border-radius:4px;padding:2px 4px}
+.add-row-btn{display:flex;align-items:center;gap:7px;padding:8px 12px;color:var(--text3);font-size:13px;cursor:pointer;transition:.12s;width:100%;border:none;background:none;text-align:right}
+.add-row-btn:hover{background:var(--surface2);color:var(--accent)}
+.add-col-btn{padding:9px;cursor:pointer;color:var(--text3);font-size:14px;transition:.12s;background:var(--surface2);border-bottom:1px solid var(--border)}
+.add-col-btn:hover{color:var(--accent)}
+
+/* Board view */
+.db-board{display:flex;gap:14px;padding:14px;overflow-x:auto;min-height:200px}
+.board-col{min-width:220px;background:var(--surface2);border-radius:var(--r2);padding:10px}
+.board-col-title{font-size:12px;font-weight:800;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.board-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r1);padding:10px 12px;margin-bottom:8px;font-size:13px;cursor:pointer;transition:.15s}
+.board-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+
+/* Gallery view */
+.db-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:14px}
+.gallery-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;cursor:pointer;transition:.15s}
+.gallery-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.gallery-card-thumb{height:80px;background:linear-gradient(135deg,var(--accent)22,var(--accent3)22);display:flex;align-items:center;justify-content:center;font-size:28px}
+.gallery-card-body{padding:10px}
+
+/* Select field */
+.select-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;gap:4px}
+
+/* ── Flowchart ── */
+#flow-canvas-wrap{position:relative;width:100%;height:420px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;cursor:grab;margin:8px 0}
+#flow-canvas-wrap.grabbing{cursor:grabbing}
+#flow-canvas{position:absolute;top:0;left:0;width:100%;height:100%}
+.flow-node{position:absolute;background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:12px 16px;font-size:13px;font-weight:700;cursor:move;user-select:none;min-width:140px;text-align:center;transition:border-color .15s,box-shadow .15s;z-index:2}
+.flow-node:hover,.flow-node.selected{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,111,247,.2)}
+.flow-node .node-icon{font-size:18px;margin-bottom:4px;display:block}
+.flow-node .node-label{font-size:13px;font-weight:700}
+.flow-node .node-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.flow-node .node-conn{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:crosshair;z-index:3;opacity:0;transition:.15s}
+.flow-node:hover .node-conn,.flow-node.selected .node-conn{opacity:1}
+.node-conn.conn-b{bottom:-6px;left:50%;transform:translateX(-50%)}
+.node-conn.conn-t{top:-6px;left:50%;transform:translateX(-50%)}
+.node-conn.conn-l{left:-6px;top:50%;transform:translateY(-50%)}
+.node-conn.conn-r{right:-6px;top:50%;transform:translateY(-50%)}
+.flow-toolbar{position:absolute;top:10px;right:10px;display:flex;gap:6px;z-index:10}
+.flow-toolbar button{padding:6px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;transition:.15s}
+.flow-toolbar button:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Modals ── */
+.modal-ov{position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;animation:_mi .15s ease}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:0 32px 80px rgba(0,0,0,.5);animation:_mi .2s ease}
+@keyframes _mi{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.modal-title{font-size:15px;font-weight:800}
+.close-x{width:28px;height:28px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text3);font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s}
+.close-x:hover{color:var(--accent4)}
+
+/* ── Icon Picker ── */
+#icon-picker{position:fixed;z-index:99999;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;box-shadow:0 16px 40px rgba(0,0,0,.5);display:none;width:240px}
+.ip-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;max-height:160px;overflow-y:auto}
+.ip-emoji{width:26px;height:26px;border-radius:5px;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.1s}
+.ip-emoji:hover{background:var(--surface2)}
+
+/* ── Toast ── */
+#ws-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;pointer-events:none}
+.toast-msg{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:12px;font-weight:700;margin-top:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:_ti .25s ease;white-space:nowrap}
+@keyframes _ti{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:4px}
+
+/* Row delete btn */
+.row-del{opacity:0;transition:.15s;width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--accent4)}
+tr:hover .row-del{opacity:1}
+
+/* ── Page loading ── */
+#ws-loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:99999;font-size:14px;color:var(--text3)}
+#ws-loading .spin{width:36px;height:36px;border:3px solid var(--surface2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Flowchart node types */
+.node-start{background:rgba(79,209,165,.1);border-color:var(--accent3)}
+.node-decision{background:rgba(247,201,72,.1);border-color:var(--accent2);border-radius:6px;transform:rotate(0deg)}
+.node-process{background:rgba(124,111,247,.08);border-color:var(--accent)}
+.node-end{background:rgba(247,111,124,.1);border-color:var(--accent4)}
+
+/* Toggle dark/light */
+.tb-theme{font-size:14px}
+
+/* Collapsed sidebar toggle */
+#sb-toggle{position:absolute;top:14px;left:-16px;width:28px;height:28px;background:var(--surface);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:var(--text3);z-index:20;transition:.15s}
+#sb-toggle:hover{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<div id="ws-loading">
+  <div class="spin"></div>
+  <div>جاري تحميل المساحة الحرة...</div>
+</div>
+
+<div id="ws-toast"></div>
+<div id="slash-menu"></div>
+<div id="icon-picker"></div>
+
+<div id="app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-header">
+      <div class="sb-logo"><i class="fa-solid fa-cubes"></i> Workspace</div>
+      <div class="sb-actions">
+        <button onclick="_themeToggle()" title="تبديل المظهر" class="tb-theme"><i class="fa-solid fa-moon" id="theme-icon"></i></button>
+        <button onclick="_sbCollapse()" title="إغلاق"><i class="fa-solid fa-sidebar"></i></button>
+        <button onclick="window.close()" title="رجوع لـ Ordo" style="color:var(--accent)"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+      </div>
+    </div>
+    <div id="sb-tree"></div>
+    <div style="padding:8px 10px;border-top:1px solid var(--border)">
+      <button class="sb-add-page" onclick="_newPage(null)">
+        <i class="fa-solid fa-plus" style="margin-left:5px"></i> صفحة جديدة
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <!-- Topbar -->
+    <div id="topbar">
+      <button class="tb-btn" onclick="_sbToggle()" title="الشريط الجانبي"><i class="fa-solid fa-bars"></i></button>
+      <div id="topbar-breadcrumb">
+        <i class="fa-solid fa-cubes" style="color:var(--accent)"></i>
+        <span id="tb-page-name">اختر صفحة</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="_newPage(null)" style="flex-shrink:0">
+        <i class="fa-solid fa-plus"></i> صفحة
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div id="page-content">
+      <!-- Welcome state -->
+      <div id="welcome-state" style="text-align:center;padding:80px 20px;color:var(--text3)">
+        <div style="font-size:56px;margin-bottom:16px">🗂️</div>
+        <div style="font-size:22px;font-weight:900;color:var(--text);margin-bottom:8px">مرحباً في مساحتك الحرة</div>
+        <div style="font-size:14px;margin-bottom:28px;line-height:1.8">أنشئ صفحات، قواعد بيانات، ورك فلو، وتودو ليست — كل حاجة في مكان واحد</div>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="_newPage(null,'📄','صفحة فارغة','page')">
+            <i class="fa-solid fa-file"></i> صفحة فارغة
+          </button>
+          <button class="btn btn-ghost" onclick="_newPage(null,'🗄️','قاعدة بيانات','database')">
+            <i class="fa-solid fa-table"></i> قاعدة بيانات
+          </button>
+          <button class="btn btn-ghost" onclick="_newPage(null,'🔀','ورك فلو','flowchart')">
+            <i class="fa-solid fa-diagram-project"></i> ورك فلو
+          </button>
+        </div>
+      </div>
+      <!-- Page editor (hidden initially) -->
+      <div id="page-editor" style="display:none">
+        <div id="page-title-wrap">
+          <div id="page-icon-btn" onclick="_openIconPicker(event)">📄</div>
+          <textarea id="page-title-input" placeholder="عنوان الصفحة..." rows="1"
+            oninput="_autoResize(this);_savePageTitle(this.value)"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();_focusFirstBlock()}"></textarea>
+        </div>
+        <div id="blocks-container"></div>
+        <div id="add-block-hint" style="padding:12px 0;color:var(--text3);font-size:13px;cursor:pointer" 
+          onclick="_addBlock('text')" title="اضغط لإضافة محتوى">
+          <i class="fa-solid fa-plus" style="margin-left:6px"></i>اضغط لإضافة محتوى، أو اكتب / للقائمة
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// ORDO WORKSPACE — Full Notion-like workspace
+// ═══════════════════════════════════════════════════════════════════
+
+const SUPA_URL  = 'https://mpfmcjgigpvdxbhgzufo.supabase.co';
+const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wZm1jamdpZ3B2ZHhiaGd6dWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2Mjc3MzMsImV4cCI6MjA4ODIwMzczM30.fICNxH_7DEBHripIoyMcUugTnd4JEBx-ypegpPvb6PM';
+
+const supa = supabase.createClient(SUPA_URL, SUPA_ANON, {
+  auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce', debug:false }
+});
+
+// ── Global State
+let _uid = null;
+let _WS  = { pages: [] };  // workspace data
+let _currentPageId = null;
+let _saveTimer = null;
+let _sbOpen = true;
+
+// ── Block types enum
+const BLOCK_TYPES = {
+  text:'text', h1:'h1', h2:'h2', h3:'h3', h4:'h4',
+  quote:'quote', callout:'callout', divider:'divider',
+  todo:'todo', toggle:'toggle', bulleted:'bulleted', numbered:'numbered',
+  database:'database', flowchart:'flowchart', page:'page'
+};
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+async function _init() {
+  // Load theme
+  const tm = localStorage.getItem('studioDisplayMode') || 'dark';
+  if (tm === 'light') { document.documentElement.classList.add('light'); document.getElementById('theme-icon').className = 'fa-solid fa-sun'; }
+  
+  // Auth check
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session) {
+    // Try to get from localStorage
+    const stored = localStorage.getItem('studioOS_auth_v1');
+    if (stored) {
+      try {
+        const sess = JSON.parse(stored);
+        _uid = sess.id;
+      } catch(e) {}
+    }
+    if (!_uid) {
+      document.getElementById('ws-loading').innerHTML = `
+        <div style="font-size:40px;margin-bottom:16px">🔐</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)">يجب تسجيل الدخول أولاً</div>
+        <div style="margin-top:8px;font-size:13px">افتح Ordo وسجّل دخولك ثم ارجع هنا</div>
+        <a href="index.html" style="margin-top:20px;display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:var(--accent);color:#fff;border-radius:10px;text-decoration:none;font-weight:700">
+          <i class="fa-solid fa-home"></i> العودة لـ Ordo
+        </a>`;
+      return;
+    }
+  } else {
+    _uid = session.user.id;
+  }
+
+  // Load workspace data
+  await _loadWS();
+
+  // Show app
+  document.getElementById('ws-loading').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+
+  // Render sidebar
+  _renderSidebar();
+
+  // Open last page or show welcome
+  const lastPid = localStorage.getItem('_ws_last_page_' + _uid);
+  if (lastPid && _WS.pages.find(p => p.id === lastPid)) {
+    _openPage(lastPid);
+  } else if (_WS.pages.length > 0) {
+    _openPage(_WS.pages[0].id);
+  }
+}
+
+// ════════════════════════════════════════════
+// DATA LAYER
+// ════════════════════════════════════════════
+async function _loadWS() {
+  if (!_uid) return;
+  try {
+    const { data, error } = await supa.from('studio_data').select('data').eq('user_id', _uid).maybeSingle();
+    if (error || !data) return;
+    const parsed = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+    if (parsed && parsed.workspace2) {
+      _WS = parsed.workspace2;
+    } else {
+      _WS = { pages: [] };
+    }
+    if (!_WS.pages) _WS.pages = [];
+  } catch(e) { console.warn('loadWS error:', e); }
+}
+
+function _schedSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(_doSave, 800);
+}
+
+async function _doSave() {
+  if (!_uid) return;
+  try {
+    // Read current data first to avoid overwriting other fields
+    const { data } = await supa.from('studio_data').select('data').eq('user_id', _uid).maybeSingle();
+    let current = {};
+    if (data && data.data) current = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+    current.workspace2 = _WS;
+    await supa.from('studio_data').upsert({ user_id: _uid, data: JSON.stringify(current), updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  } catch(e) { console.warn('save error:', e); }
+}
+
+function _wsToast(msg, duration=2500) {
+  const t = document.createElement('div');
+  t.className = 'toast-msg';
+  t.innerHTML = msg;
+  document.getElementById('ws-toast').appendChild(t);
+  setTimeout(() => t.style.opacity = '0', duration - 300);
+  setTimeout(() => t.remove(), duration);
+}
+
+function _uid_now() { return 'ws_' + Date.now() + '_' + Math.random().toString(36).slice(2,6); }
+
+// ════════════════════════════════════════════
+// PAGES
+// ════════════════════════════════════════════
+function _newPage(parentId = null, icon = '📄', title = 'صفحة جديدة', type = 'page') {
+  const page = {
+    id: _uid_now(),
+    parentId,
+    icon,
+    title,
+    type, // page | database | flowchart
+    blocks: [],
+    // for database type:
+    db: type === 'database' ? { view:'table', fields: [
+      { id:'f1', name:'الاسم', type:'text', color:'var(--accent)' }
+    ], rows: [] } : null,
+    // for flowchart type:
+    flow: type === 'flowchart' ? { nodes: [], edges: [] } : null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  _WS.pages.push(page);
+  _schedSave();
+  _renderSidebar();
+  _openPage(page.id);
+  return page;
+}
+
+function _deletePage(id) {
+  const page = _WS.pages.find(p => p.id === id);
+  if (!page) return;
+  if (!confirm(`حذف "${page.title}"؟`)) return;
+  // Delete page and children
+  const toDelete = new Set();
+  const collect = (pid) => {
+    toDelete.add(pid);
+    _WS.pages.filter(p => p.parentId === pid).forEach(c => collect(c.id));
+  };
+  collect(id);
+  _WS.pages = _WS.pages.filter(p => !toDelete.has(p.id));
+  _schedSave();
+  _renderSidebar();
+  if (toDelete.has(_currentPageId)) {
+    _currentPageId = null;
+    document.getElementById('page-editor').style.display = 'none';
+    document.getElementById('welcome-state').style.display = 'block';
+  }
+}
+
+function _openPage(id) {
+  _currentPageId = id;
+  localStorage.setItem('_ws_last_page_' + _uid, id);
+  const page = _WS.pages.find(p => p.id === id);
+  if (!page) return;
+
+  // Update active state in sidebar
+  document.querySelectorAll('.page-item').forEach(el => el.classList.toggle('active', el.dataset.id === id));
+
+  // Update topbar
+  document.getElementById('tb-page-name').textContent = page.title || 'بدون عنوان';
+
+  // Show editor, hide welcome
+  document.getElementById('welcome-state').style.display = 'none';
+  document.getElementById('page-editor').style.display = 'block';
+
+  // Update title/icon
+  document.getElementById('page-icon-btn').textContent = page.icon || '📄';
+  const ti = document.getElementById('page-title-input');
+  ti.value = page.title || '';
+  _autoResize(ti);
+
+  // Render based on type
+  if (page.type === 'database') {
+    _renderDBPage(page);
+  } else if (page.type === 'flowchart') {
+    _renderFlowPage(page);
+  } else {
+    _renderBlocksPage(page);
+  }
+}
+
+function _savePageTitle(val) {
+  const page = _WS.pages.find(p => p.id === _currentPageId);
+  if (!page) return;
+  page.title = val;
+  document.getElementById('tb-page-name').textContent = val || 'بدون عنوان';
+  // Update sidebar
+  const el = document.querySelector(`.page-item[data-id="${_currentPageId}"] .pi-label`);
+  if (el) el.textContent = val || 'بدون عنوان';
+  _schedSave();
+}
+
+// ════════════════════════════════════════════
+// SIDEBAR
+// ════════════════════════════════════════════
+function _renderSidebar() {
+  const tree = document.getElementById('sb-tree');
+  const roots = _WS.pages.filter(p => !p.parentId);
+  tree.innerHTML = '';
+  if (roots.length === 0) {
+    tree.innerHTML = '<div style="padding:20px 16px;font-size:12px;color:var(--text3);text-align:center">لا صفحات بعد<br><small>اضغط + لإضافة صفحة</small></div>';
+    return;
+  }
+  roots.forEach(p => _renderPageItem(tree, p, 0));
+}
+
+function _renderPageItem(container, page, depth) {
+  const item = document.createElement('div');
+  item.className = 'page-item' + (_currentPageId === page.id ? ' active' : '') + (depth > 0 ? ' page-indent' : '');
+  item.dataset.id = page.id;
+  item.style.paddingRight = (16 + depth * 14) + 'px';
+
+  const typeIcon = page.type === 'database' ? 'fa-table' : page.type === 'flowchart' ? 'fa-diagram-project' : 'fa-file';
+
+  item.innerHTML = `
+    <span class="pi-icon">${page.icon || '📄'}</span>
+    <span class="pi-label">${_esc(page.title || 'بدون عنوان')}</span>
+    <span class="pi-actions">
+      <button onclick="event.stopPropagation();_newPage('${page.id}')" title="صفحة فرعية"><i class="fa-solid fa-plus"></i></button>
+      <button onclick="event.stopPropagation();_deletePage('${page.id}')" title="حذف" style="color:var(--accent4)"><i class="fa-solid fa-trash"></i></button>
+    </span>`;
+  item.onclick = () => _openPage(page.id);
+  container.appendChild(item);
+
+  // Children
+  _WS.pages.filter(p => p.parentId === page.id).forEach(child => _renderPageItem(container, child, depth + 1));
+}
+
+function _sbToggle() { _sbOpen = !_sbOpen; document.getElementById('sidebar').classList.toggle('collapsed', !_sbOpen); }
+function _sbCollapse() { _sbOpen = false; document.getElementById('sidebar').classList.add('collapsed'); }
+function _themeToggle() {
+  const isLight = document.documentElement.classList.toggle('light');
+  document.getElementById('theme-icon').className = isLight ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+  localStorage.setItem('studioDisplayMode', isLight ? 'light' : 'dark');
+}
+
+// ════════════════════════════════════════════
+// BLOCKS ENGINE
+// ════════════════════════════════════════════
+function _renderBlocksPage(page) {
+  const container = document.getElementById('blocks-container');
+  container.innerHTML = '';
+  if (!page.blocks) page.blocks = [];
+  if (page.blocks.length === 0) {
+    // Add empty text block
+    page.blocks.push({ id: _uid_now(), type: 'text', content: '' });
+    _schedSave();
+  }
+  page.blocks.forEach((block, idx) => _renderBlock(block, idx, container, page));
+}
+
+function _renderBlock(block, idx, container, page) {
+  const wrap = document.createElement('div');
+  wrap.className = 'block-wrap';
+  wrap.dataset.id = block.id;
+  wrap.dataset.type = block.type;
+
+  // Handle element
+  const handle = document.createElement('div');
+  handle.className = 'block-handle';
+  handle.innerHTML = `
+    <button onclick="_blockMenu(event,'${block.id}')" title="خيارات"><i class="fa-solid fa-grip-vertical"></i></button>
+    <button onclick="_addBlockAfter('${block.id}','text')" title="إضافة بلوك"><i class="fa-solid fa-plus"></i></button>`;
+  wrap.appendChild(handle);
+
+  let el;
+
+  if (block.type === 'divider') {
+    el = document.createElement('div');
+    el.className = 'block-divider';
+  } else if (block.type === 'todo') {
+    const div = document.createElement('div');
+    div.className = 'block-todo';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!block.checked;
+    cb.onchange = () => { block.checked = cb.checked; txt.classList.toggle('done-text', cb.checked); _schedSave(); };
+    const txt = document.createElement('div');
+    txt.className = 'block-text todo-text' + (block.checked ? ' done-text' : '');
+    txt.contentEditable = true;
+    txt.innerHTML = block.content || '';
+    txt.dataset.ph = 'عنصر تودو...';
+    _attachBlockEvents(txt, block, page);
+    div.appendChild(cb);
+    div.appendChild(txt);
+    el = div;
+  } else if (block.type === 'toggle') {
+    const details = document.createElement('details');
+    details.className = 'block-toggle';
+    details.open = block.open;
+    const summary = document.createElement('summary');
+    summary.contentEditable = true;
+    summary.textContent = block.content || '';
+    summary.oninput = () => { block.content = summary.textContent; _schedSave(); };
+    const inner = document.createElement('div');
+    inner.className = 'block-toggle-content block-text';
+    inner.contentEditable = true;
+    inner.innerHTML = block.innerContent || '';
+    inner.dataset.ph = 'محتوى داخلي...';
+    inner.oninput = () => { block.innerContent = inner.innerHTML; _schedSave(); };
+    details.addEventListener('toggle', () => { block.open = details.open; _schedSave(); });
+    details.appendChild(summary);
+    details.appendChild(inner);
+    el = details;
+  } else if (block.type === 'bulleted' || block.type === 'numbered') {
+    const div = document.createElement('div');
+    div.className = 'block-list-item';
+    const marker = document.createElement('div');
+    marker.className = 'block-list-marker';
+    if (block.type === 'numbered') {
+      // Count preceding numbered items at same level
+      marker.textContent = (idx + 1) + '.';
+    } else {
+      marker.innerHTML = '•';
+    }
+    const txt = document.createElement('div');
+    txt.className = 'block-text';
+    txt.contentEditable = true;
+    txt.innerHTML = block.content || '';
+    txt.dataset.ph = 'عنصر قائمة...';
+    _attachBlockEvents(txt, block, page);
+    div.appendChild(marker);
+    div.appendChild(txt);
+    el = div;
+  } else if (block.type === 'database') {
+    // Inline database
+    el = _buildInlineDB(block, page);
+  } else if (block.type === 'flowchart') {
+    el = _buildInlineFlow(block, page);
+  } else if (block.type === 'callout') {
+    const div = document.createElement('div');
+    div.className = 'block-callout';
+    div.contentEditable = true;
+    div.innerHTML = block.content || '';
+    div.dataset.ph = 'نص مميز...';
+    _attachBlockEvents(div, block, page);
+    el = div;
+  } else if (block.type === 'quote') {
+    const div = document.createElement('div');
+    div.className = 'block-text block-quote';
+    div.contentEditable = true;
+    div.innerHTML = block.content || '';
+    div.dataset.ph = 'اقتباس...';
+    _attachBlockEvents(div, block, page);
+    el = div;
+  } else {
+    // text, h1, h2, h3, h4
+    el = document.createElement('div');
+    el.className = 'block-text block-' + block.type;
+    el.contentEditable = true;
+    el.innerHTML = block.content || '';
+    const phMap = { text:'اكتب شيئاً أو / للقائمة...', h1:'عنوان رئيسي', h2:'عنوان ثانوي', h3:'عنوان فرعي', h4:'عنوان صغير' };
+    el.dataset.ph = phMap[block.type] || '';
+    _attachBlockEvents(el, block, page);
+  }
+
+  wrap.appendChild(el);
+  container.appendChild(wrap);
+}
+
+function _attachBlockEvents(el, block, page) {
+  el.oninput = () => {
+    block.content = el.innerHTML;
+    _schedSave();
+    // Slash menu check
+    const sel = window.getSelection();
+    if (sel.rangeCount) {
+      const text = sel.getRangeAt(0).startContainer.textContent || '';
+      const slashIdx = text.lastIndexOf('/');
+      if (slashIdx !== -1 && slashIdx === text.length - 1) {
+        _showSlashMenu(el, block, page);
+      } else if (_slashMenuOpen && !text.includes('/')) {
+        _hideSlashMenu();
+      }
+    }
+  };
+  el.onkeydown = (e) => {
+    if (_slashMenuOpen) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); _slashNav(1); return; }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); _slashNav(-1); return; }
+      if (e.key === 'Enter')     { e.preventDefault(); _slashSelect(); return; }
+      if (e.key === 'Escape')    { _hideSlashMenu(); return; }
+    }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const newBlock = { id: _uid_now(), type: block.type === 'h1' || block.type === 'h2' || block.type === 'h3' ? 'text' : block.type, content: '', checked: false };
+      const idx = page.blocks.findIndex(b => b.id === block.id);
+      page.blocks.splice(idx + 1, 0, newBlock);
+      _schedSave();
+      _renderBlocksPage(page);
+      setTimeout(() => {
+        const newEl = document.querySelector(`[data-id="${newBlock.id}"] [contenteditable]`);
+        if (newEl) { newEl.focus(); placeCaretAtStart(newEl); }
+      }, 30);
+    }
+    if (e.key === 'Backspace' && (el.textContent === '' || el.innerHTML === '')) {
+      e.preventDefault();
+      if (page.blocks.length <= 1) return;
+      const idx = page.blocks.findIndex(b => b.id === block.id);
+      if (idx > 0) {
+        page.blocks.splice(idx, 1);
+        _schedSave();
+        _renderBlocksPage(page);
+        setTimeout(() => {
+          const prevBlock = page.blocks[idx - 1];
+          const prevEl = document.querySelector(`[data-id="${prevBlock.id}"] [contenteditable]`);
+          if (prevEl) { prevEl.focus(); placeCaretAtEnd(prevEl); }
+        }, 30);
+      }
+    }
+  };
+}
+
+function placeCaretAtEnd(el) {
+  try {
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } catch(e) {}
+}
+function placeCaretAtStart(el) {
+  try {
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.setStart(el, 0);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } catch(e) {}
+}
+
+function _addBlock(type, afterId = null) {
+  const page = _WS.pages.find(p => p.id === _currentPageId);
+  if (!page) return;
+  const block = { id: _uid_now(), type, content: '', checked: false };
+  if (type === 'database') block.db = { view:'table', fields:[{ id:'f1', name:'الاسم', type:'text', color:'var(--accent)' }], rows:[] };
+  if (type === 'flowchart') block.flow = { nodes:[], edges:[] };
+  if (afterId) {
+    const idx = page.blocks.findIndex(b => b.id === afterId);
+    page.blocks.splice(idx + 1, 0, block);
+  } else {
+    page.blocks.push(block);
+  }
+  _schedSave();
+  _renderBlocksPage(page);
+  setTimeout(() => {
+    const newEl = document.querySelector(`[data-id="${block.id}"] [contenteditable]`);
+    if (newEl) { newEl.focus(); placeCaretAtStart(newEl); }
+  }, 30);
+}
+
+function _addBlockAfter(bid, type) { _addBlock(type, bid); }
+
+function _focusFirstBlock() {
+  const first = document.querySelector('#blocks-container [contenteditable]');
+  if (first) first.focus();
+}
+
+function _deleteBlock(id) {
+  const page = _WS.pages.find(p => p.id === _currentPageId);
+  if (!page) return;
+  if (page.blocks.length <= 1) { page.blocks[0].content = ''; _renderBlocksPage(page); return; }
+  page.blocks = page.blocks.filter(b => b.id !== id);
+  _schedSave();
+  _renderBlocksPage(page);
+}
+
+function _changeBlockType(id, newType) {
+  const page = _WS.pages.find(p => p.id === _currentPageId);
+  if (!page) return;
+  const block = page.blocks.find(b => b.id === id);
+  if (!block) return;
+  block.type = newType;
+  if (newType === 'database' && !block.db) block.db = { view:'table', fields:[{ id:'f1', name:'الاسم', type:'text', color:'var(--accent)' }], rows:[] };
+  if (newType === 'flowchart' && !block.flow) block.flow = { nodes:[], edges:[] };
+  _schedSave();
+  _renderBlocksPage(page);
+}
+
+// Block context menu
+function _blockMenu(event, blockId) {
+  event.stopPropagation();
+  const old = document.getElementById('_block-ctx');
+  if (old) old.remove();
+  const menu = document.createElement('div');
+  menu.id = '_block-ctx';
+  menu.style.cssText = `position:fixed;z-index:99999;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:180px;box-shadow:0 12px 36px rgba(0,0,0,.5);left:${event.clientX}px;top:${event.clientY}px`;
+  const opts = [
+    ['fa-trash', 'حذف البلوك', () => _deleteBlock(blockId), 'var(--accent4)'],
+    ['fa-heading', 'تحويل → عنوان', () => _changeBlockType(blockId,'h1')],
+    ['fa-paragraph', 'تحويل → نص', () => _changeBlockType(blockId,'text')],
+    ['fa-list-check', 'تحويل → تودو', () => _changeBlockType(blockId,'todo')],
+    ['fa-list', 'تحويل → قائمة', () => _changeBlockType(blockId,'bulleted')],
+    ['fa-quote-right', 'تحويل → اقتباس', () => _changeBlockType(blockId,'quote')],
+  ];
+  opts.forEach(([icon, label, fn, color]) => {
+    const item = document.createElement('button');
+    item.style.cssText = `display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border-radius:7px;font-size:12px;font-weight:700;color:${color||'var(--text)'};background:none;border:none;cursor:pointer;font-family:var(--font);transition:.12s`;
+    item.onmouseover = () => item.style.background = 'var(--surface2)';
+    item.onmouseout  = () => item.style.background = 'none';
+    item.innerHTML = `<i class="fa-solid ${icon}" style="width:14px"></i>${label}`;
+    item.onclick = () => { fn(); menu.remove(); };
+    menu.appendChild(item);
+  });
+  document.body.appendChild(menu);
+  document.addEventListener('click', () => menu.remove(), { once: true });
+}
+
+// ════════════════════════════════════════════
+// SLASH MENU
+// ════════════════════════════════════════════
+let _slashMenuOpen = false;
+let _slashItems = [];
+let _slashIdx = 0;
+let _slashTargetEl = null;
+let _slashBlock = null;
+let _slashPage = null;
+
+const SLASH_OPTIONS = [
+  { group: 'نصوص', icon:'T', label:'نص', type:'text' },
+  { group: 'نصوص', icon:'H1', label:'عنوان رئيسي', type:'h1' },
+  { group: 'نصوص', icon:'H2', label:'عنوان ثانوي', type:'h2' },
+  { group: 'نصوص', icon:'H3', label:'عنوان فرعي', type:'h3' },
+  { group: 'نصوص', icon:'H4', label:'عنوان رابع', type:'h4' },
+  { group: 'نصوص', icon:'❝', label:'اقتباس', type:'quote' },
+  { group: 'نصوص', icon:'💡', label:'تلميح', type:'callout' },
+  { group: 'نصوص', icon:'—', label:'فاصل', type:'divider' },
+  { group: 'قوائم', icon:'☑', label:'تودو / مهمة', type:'todo' },
+  { group: 'قوائم', icon:'•', label:'قائمة نقطية', type:'bulleted' },
+  { group: 'قوائم', icon:'1.', label:'قائمة مرقمة', type:'numbered' },
+  { group: 'قوائم', icon:'▶', label:'توغل / Toggle', type:'toggle' },
+  { group: 'أدوات', icon:'🗄', label:'قاعدة بيانات', type:'database' },
+  { group: 'أدوات', icon:'🔀', label:'ورك فلو', type:'flowchart' },
+];
+
+function _showSlashMenu(el, block, page) {
+  _slashTargetEl = el; _slashBlock = block; _slashPage = page;
+  _slashItems = SLASH_OPTIONS;
+  _slashIdx = 0;
+  _slashMenuOpen = true;
+  const rect = el.getBoundingClientRect();
+  const menu = document.getElementById('slash-menu');
+  menu.style.display = 'block';
+  menu.style.top = (rect.bottom + 4) + 'px';
+  menu.style.left = Math.max(10, rect.left) + 'px';
+  _renderSlashMenu();
+}
+
+function _renderSlashMenu() {
+  const menu = document.getElementById('slash-menu');
+  let html = '';
+  let lastGroup = '';
+  _slashItems.forEach((item, i) => {
+    if (item.group !== lastGroup) {
+      html += `<div class="slash-group">${item.group}</div>`;
+      lastGroup = item.group;
+    }
+    html += `<div class="slash-item${i === _slashIdx ? ' selected' : ''}" onclick="_slashApply('${item.type}')">
+      <div class="si-icon">${item.icon}</div>${item.label}</div>`;
+  });
+  menu.innerHTML = html;
+}
+
+function _hideSlashMenu() {
+  _slashMenuOpen = false;
+  document.getElementById('slash-menu').style.display = 'none';
+}
+
+function _slashNav(dir) {
+  _slashIdx = (_slashIdx + dir + _slashItems.length) % _slashItems.length;
+  _renderSlashMenu();
+}
+
+function _slashSelect() { if (_slashItems[_slashIdx]) _slashApply(_slashItems[_slashIdx].type); }
+
+function _slashApply(type) {
+  _hideSlashMenu();
+  if (!_slashBlock || !_slashPage) return;
+  // Remove the / from content
+  if (_slashTargetEl) {
+    const text = _slashTargetEl.textContent;
+    const slashIdx = text.lastIndexOf('/');
+    if (slashIdx !== -1) {
+      _slashTargetEl.textContent = text.slice(0, slashIdx);
+      _slashBlock.content = _slashTargetEl.innerHTML;
+    }
+  }
+  // Change block type or insert new
+  if (_slashBlock.content === '' || _slashBlock.content === undefined) {
+    _changeBlockType(_slashBlock.id, type);
+  } else {
+    _addBlockAfter(_slashBlock.id, type);
+  }
+}
+
+document.addEventListener('click', (e) => {
+  if (_slashMenuOpen && !document.getElementById('slash-menu').contains(e.target)) _hideSlashMenu();
+});
+
+// ════════════════════════════════════════════
+// DATABASE ENGINE
+// ════════════════════════════════════════════
+const FIELD_TYPES = {
+  text:     { icon:'T',  label:'نص' },
+  number:   { icon:'#',  label:'رقم' },
+  date:     { icon:'📅', label:'تاريخ' },
+  select:   { icon:'▾',  label:'اختيار' },
+  url:      { icon:'🔗', label:'رابط' },
+  checkbox: { icon:'☑',  label:'صح/خطأ' },
+  money:    { icon:'💰', label:'مبلغ' },
+  email:    { icon:'@',  label:'بريد' },
+};
+
+function _buildInlineDB(block, page) {
+  const wrap = document.createElement('div');
+  wrap.id = 'db-' + block.id;
+  wrap.dataset.dbId = block.id;
+  if (!block.db) block.db = { view:'table', fields:[{ id:'f1', name:'الاسم', type:'text', color:'var(--accent)' }], rows:[] };
+  _renderDBInto(wrap, block, page);
+  return wrap;
+}
+
+function _renderDBInto(wrap, block, page) {
+  const db = block.db;
+  const view = db.view || 'table';
+
+  let viewHtml = `
+    <div class="db-wrap">
+      <div class="db-toolbar">
+        <div class="db-view-tabs">
+          <div class="db-view-tab ${view==='table'?'active':''}" onclick="_setDBView('${block.id}','table','${page.id}')"><i class="fa-solid fa-table"></i> جدول</div>
+          <div class="db-view-tab ${view==='board'?'active':''}" onclick="_setDBView('${block.id}','board','${page.id}')"><i class="fa-solid fa-columns"></i> بورد</div>
+          <div class="db-view-tab ${view==='gallery'?'active':''}" onclick="_setDBView('${block.id}','gallery','${page.id}')"><i class="fa-solid fa-grip"></i> معرض</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="_dbAddField('${block.id}','${page.id}')"><i class="fa-solid fa-plus"></i> عمود</button>
+        <button class="btn btn-ghost btn-sm" onclick="_dbAddRow('${block.id}','${page.id}')"><i class="fa-solid fa-plus"></i> صف</button>
+      </div>`;
+
+  if (view === 'table') viewHtml += _buildTableView(block, page);
+  else if (view === 'board') viewHtml += _buildBoardView(block, page);
+  else if (view === 'gallery') viewHtml += _buildGalleryView(block, page);
+
+  viewHtml += '</div>';
+  wrap.innerHTML = viewHtml;
+}
+
+function _buildTableView(block, page) {
+  const db = block.db;
+  const fields = db.fields || [];
+  const rows = db.rows || [];
+
+  let thead = `<table class="db-table"><thead><tr>`;
+  thead += `<th style="width:28px;padding:8px 6px"></th>`;
+  fields.forEach(f => {
+    const fi = FIELD_TYPES[f.type] || FIELD_TYPES.text;
+    thead += `<th>
+      <div class="th-inner" onclick="_dbFieldMenu(event,'${block.id}','${f.id}','${page.id}')">
+        <span class="col-type-icon" style="color:${f.color||'var(--accent)'}">${fi.icon}</span>
+        ${_esc(f.name)}
+        <i class="fa-solid fa-chevron-down" style="font-size:9px;color:var(--text3);margin-right:auto"></i>
+      </div></th>`;
+  });
+  thead += `<th class="add-col-btn" onclick="_dbAddField('${block.id}','${page.id}')"><i class="fa-solid fa-plus"></i></th>`;
+  thead += `</tr></thead><tbody>`;
+
+  rows.forEach((row, ri) => {
+    thead += `<tr>`;
+    thead += `<td style="padding:4px 6px;width:28px"><button class="row-del" onclick="_dbDelRow('${block.id}',${ri},'${page.id}')" title="حذف"><i class="fa-solid fa-xmark"></i></button></td>`;
+    fields.forEach(f => {
+      thead += `<td>${_buildCellHTML(block, row, f, ri, page)}</td>`;
+    });
+    thead += `<td></td></tr>`;
+  });
+  thead += `</tbody></table>`;
+  thead += `<button class="add-row-btn" onclick="_dbAddRow('${block.id}','${page.id}')"><i class="fa-solid fa-plus" style="margin-left:6px"></i>إضافة صف</button>`;
+  return thead;
+}
+
+function _buildCellHTML(block, row, field, ri, page) {
+  const val = row[field.id] !== undefined ? row[field.id] : '';
+  const bid = block.id, fid = field.id, pid = page.id;
+
+  if (field.type === 'checkbox') {
+    return `<input type="checkbox" ${val?'checked':''} style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer" onchange="_dbSetCell('${bid}',${ri},'${fid}',this.checked,'${pid}')">`;
+  }
+  if (field.type === 'select') {
+    const opts = (field.options || []);
+    const selectedOpt = opts.find(o => o.id === val);
+    const badge = selectedOpt ? `<span class="select-badge" style="background:${selectedOpt.color||'var(--accent)'}22;color:${selectedOpt.color||'var(--accent)'}" onclick="_dbSelectPicker(event,'${bid}',${ri},'${fid}','${pid}')">${_esc(selectedOpt.label)}</span>` : `<span style="color:var(--text3);font-size:12px;cursor:pointer" onclick="_dbSelectPicker(event,'${bid}',${ri},'${fid}','${pid}')">اختر...</span>`;
+    return badge;
+  }
+  if (field.type === 'url') {
+    return `<div style="display:flex;align-items:center;gap:4px">
+      <input class="db-cell-input" type="url" value="${_esc(String(val))}" placeholder="https://..." onchange="_dbSetCell('${bid}',${ri},'${fid}',this.value,'${pid}')">
+      ${val ? `<a href="${_esc(String(val))}" target="_blank" style="color:var(--accent);flex-shrink:0"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:11px"></i></a>` : ''}
+    </div>`;
+  }
+  if (field.type === 'date') {
+    return `<input class="db-cell-input" type="date" value="${_esc(String(val))}" onchange="_dbSetCell('${bid}',${ri},'${fid}',this.value,'${pid}')">`;
+  }
+  if (field.type === 'number' || field.type === 'money') {
+    const prefix = field.type === 'money' ? '<span style="color:var(--text3);font-size:11px;margin-left:3px">ج</span>' : '';
+    return `<div style="display:flex;align-items:center">${prefix}<input class="db-cell-input" type="number" value="${_esc(String(val))}" placeholder="0" onchange="_dbSetCell('${bid}',${ri},'${fid}',+this.value,'${pid}')"></div>`;
+  }
+  return `<input class="db-cell-input" type="text" value="${_esc(String(val))}" placeholder="..." onchange="_dbSetCell('${bid}',${ri},'${fid}',this.value,'${pid}')">`;
+}
+
+function _buildBoardView(block, page) {
+  const db = block.db;
+  // Find select field for board grouping
+  const selectField = db.fields.find(f => f.type === 'select');
+  const cols = selectField ? (selectField.options || [{ id:'_none', label:'بدون تصنيف', color:'var(--text3)' }]) : [{ id:'_none', label:'كل الصفوف', color:'var(--text3)' }];
+  const nameField = db.fields.find(f => f.type === 'text') || db.fields[0];
+
+  let html = '<div class="db-board">';
+  cols.forEach(col => {
+    const colRows = selectField ? db.rows.filter(r => (r[selectField.id] || '') === col.id) : db.rows;
+    html += `<div class="board-col">
+      <div class="board-col-title"><span style="width:10px;height:10px;border-radius:50%;background:${col.color||'var(--accent)'};display:inline-block"></span>${_esc(col.label)}<span style="margin-right:auto;font-size:10px;opacity:.6">${colRows.length}</span></div>`;
+    colRows.forEach(row => {
+      html += `<div class="board-card">${_esc(nameField ? String(row[nameField.id] || '') : 'بدون اسم')}</div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function _buildGalleryView(block, page) {
+  const db = block.db;
+  const nameField = db.fields.find(f => f.type === 'text') || db.fields[0];
+  const emojis = ['📄','📊','📈','🗂','📁','🔖'];
+  let html = '<div class="db-gallery">';
+  db.rows.forEach((row, i) => {
+    html += `<div class="gallery-card">
+      <div class="gallery-card-thumb">${emojis[i % emojis.length]}</div>
+      <div class="gallery-card-body">
+        <div style="font-size:13px;font-weight:700">${_esc(nameField ? String(row[nameField.id] || '') : 'بدون اسم')}</div>
+      </div>
+    </div>`;
+  });
+  if (!db.rows.length) html += '<div style="padding:32px;text-align:center;color:var(--text3);font-size:12px;grid-column:1/-1">لا بيانات</div>';
+  html += '</div>';
+  return html;
+}
+
+// DB operations (global helpers called from inline HTML)
+function _setDBView(bid, view, pid) {
+  const page = _WS.pages.find(p => p.id === pid);
+  if (!page) return;
+  const block = page.blocks.find(b => b.id === bid);
+  if (!block || !block.db) return;
+  block.db.view = view;
+  _schedSave();
+  const wrap = document.getElementById('db-' + bid);
+  if (wrap) _renderDBInto(wrap, block, page);
+}
+
+function _dbAddRow(bid, pid) {
+  const page = _WS.pages.find(p => p.id === pid);
+  if (!page) return;
+  const block = page.blocks.find(b => b.id === bid);
+  if (!block || !block.db) return;
+  const row = { _id: _uid_now() };
+  block.db.fields.forEach(f => { row[f.id] = f.type === 'checkbox' ? false : ''; });
+  block.db.rows.push(row);
+  _schedSave();
+  const wrap = document.getElementById('db-' + bid);
+  if (wrap) _renderDBInto(wrap, block, page);
+}
+
+function _dbDelRow(bid, ri, pid) {
+  const page = _WS.pages.find(p => p.id === pid);
+  if (!page) return;
+  const block = page.blocks.find(b => b.id === bid);
+  if (!block || !block.db) return;
+  block.db.rows.splice(ri, 1);
+  _schedSave();
+  const wrap = document.getElementById('db-' + bid);
+  if (wrap) _renderDBInto(wrap, block, page);
+}
+
+function _dbSetCell(bid, ri, fid, val, pid) {
+  const page = _WS.pages.find(p => p.id === pid);
+  if (!page) return;
+  const block = page.blocks.find(b => b.id === bid);
+  if (!block || !block.db || !block.db.rows[ri]) return;
+  block.db.rows[ri][fid] = val;
+  _schedSave();
+}
+
+function _dbAddField(bid, pid) {
+  const page = _WS.pages.find(p => p.id === pid);
+  if (!page) return;
+  const block = page.blocks.find(b => b.id === bid);
+  if (!block || !block.db) return;
+
+  // Show field type picker
+  _showFieldTypePicker(bid, pid, (type, name) => {
+    const colors = ['var(--accent)','var(--accent2)','var(--accent3)','var(--accent4)','#64b5f6','#ce93d8'];
+    const fid = 'f_' + Date.now();
+    const field = { id: fid, name, type, color: colors[block.db.fields.length % colors.length] };
+    if (type === 'select') field.options = [];
+    block.db.fields.push(field);
+    block.db.rows.forEach(r => { r[fid] = type === 'checkbox' ? false : ''; });
+    _schedSave();
+    const wrap = document.getElementById('db-' + bid);
+    if (wrap) _renderDBInto(wrap, block, page);
+  });
+}
+
+function _showFieldTypePicker(bid, pid, callback) {
+  const old = document.getElementById('_fp-modal');
+  if (old) old.remove();
+  const m = document.createElement('div');
+  m.id = '_fp-modal';
+  m.className = 'modal-ov';
+  const types = Object.entries(FIELD_TYPES);
+  m.innerHTML = `<div class="modal-box" style="width:min(400px,95vw)">
+    <div class="modal-header"><div class="modal-title"><i class="fa-solid fa-table-columns"></i> إضافة عمود جديد</div><button class="close-x" onclick="document.getElementById('_fp-modal').remove()">✕</button></div>
+    <div class="form-group" style="margin-bottom:12px"><label style="font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px">اسم العمود</label>
+    <input id="_fp-name" class="form-input" placeholder="مثال: التاريخ، الحالة، التكلفة..." style="width:100%"></div>
+    <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">نوع العمود</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px">
+      ${types.map(([type, info]) => `<div class="_fp-type" data-type="${type}" style="padding:10px 6px;border:2px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;transition:.12s;font-size:11px">
+        <div style="font-size:20px;margin-bottom:4px">${info.icon}</div>${info.label}</div>`).join('')}
+    </div>
+    <input type="hidden" id="_fp-sel-type" value="text">
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="document.getElementById('_fp-modal').remove()">إلغاء</button>
+      <button class="btn btn-primary" id="_fp-ok"><i class="fa-solid fa-plus" style="margin-left:4px"></i>إضافة</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+
+  // Type selection
+  m.querySelectorAll('._fp-type').forEach(el => {
+    el.onclick = () => {
+      m.querySelectorAll('._fp-type').forEach(e => { e.style.borderColor='var(--border)'; e.style.background=''; });
+      el.style.borderColor = 'var(--accent)';
+      el.style.background = 'rgba(124,111,247,.08)';
+      document.getElementById('_fp-sel-type').value = el.dataset.type;
+    };
+  });
+  m.querySelector('._fp-type').click(); // default select first
+  document.getElementById('_fp-ok').onclick = () => {
+    const name = document.getElementById('_fp-name').value.trim() || 'عمود جديد';
+    const type = document.getElementById('_fp-sel-type').value;
+    m.remove();
+    callback(type, name);
+  };
+  m.onclick = e => { if (e.target === m) m.remove(); };
+  setTimeout(() => document.getElementById('_fp-name')?.focus(), 100);
+}
+
+function _dbFieldMenu(event, bid, fid, pid) {
+  event.stopPropagation();
+  const page = _WS.pages.find(p => p.id === pid);
+  if (!page) return;
+  const block = page.blocks.find(b => b.id === bid);
+  if (!block || !block.db) return;
+  const field = block.db.fields.find(f => f.id === fid);
+  if (!field) return;
+
+  const old = document.getElementById('_fld-ctx');
+  if (old) old.remove();
+  const menu = document.createElement('div');
+  menu.id = '_fld-ctx';
+  menu.style.cssText = `position:fixed;z-index:99999;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:180px;box-shadow:0 12px 36px rgba(0,0,0,.5);left:${event.clientX}px;top:${event.clientY}px`;
+
+  const opts = [
+    { label:'تعديل اسم العمود', icon:'fa-pen', fn: () => {
+      const n = prompt('اسم العمود:', field.name);
+      if (n) { field.name = n; _schedSave(); const wrap = document.getElementById('db-'+bid); if(wrap) _renderDBInto(wrap,block,page); }
+    }},
+    ...(field.type === 'select' ? [{ label:'إدارة الخيارات', icon:'fa-sliders', fn: () => _dbManageSelectOpts(bid, fid, pid) }] : []),
+    { label:'حذف العمود', icon:'fa-trash', color:'var(--accent4)', fn: () => {
+      if (!confirm('حذف هذا العمود وكل بياناته؟')) return;
+      block.db.fields = block.db.fields.filter(f => f.id !== fid);
+      block.db.rows.forEach(r => delete r[fid]);
+      _schedSave();
+      const wrap = document.getElementById('db-'+bid); if(wrap) _renderDBInto(wrap,block,page);
+    }},
+  ];
+  opts.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.style.cssText = `display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border-radius:7px;font-size:12px;font-weight:700;color:${opt.color||'var(--text)'};background:none;border:none;cursor:pointer;font-family:var(--font);transition:.12s`;
+    btn.onmouseover = () => btn.style.background='var(--surface2)';
+    btn.onmouseout  = () => btn.style.background='none';
+    btn.innerHTML = `<i class="fa-solid ${opt.icon}" style="width:14px"></i>${opt.label}`;
+    btn.onclick = () => { opt.fn(); menu.remove(); };
+    menu.appendChild(btn);
+  });
+  document.body.appendChild(menu);
+  document.addEventListener('click', () => menu.remove(), { once:true });
+}
+
+function _dbManageSelectOpts(bid, fid, pid) {
+  const page = _WS.pages.find(p => p.id === pid);
+  const block = page?.blocks.find(b => b.id === bid);
+  const field = block?.db?.fields.find(f => f.id === fid);
+  if (!field) return;
+  if (!field.options) field.options = [];
+
+  const old = document.getElementById('_sel-opts-modal');
+  if (old) old.remove();
+  const m = document.createElement('div');
+  m.id = '_sel-opts-modal';
+  m.className = 'modal-ov';
+  const colors = ['#7c6ff7','#f7c948','#4fd1a5','#f76f7c','#64b5f6','#ce93d8','#ff9f43'];
+
+  const renderOpts = () => {
+    const list = m.querySelector('#_so-list');
+    if (!list) return;
+    list.innerHTML = field.options.map(opt => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <div style="width:14px;height:14px;border-radius:50%;background:${opt.color||'var(--accent)'}"></div>
+        <span style="flex:1;font-size:13px;font-weight:700">${_esc(opt.label)}</span>
+        <button onclick="_soDelOpt('${bid}','${fid}','${pid}','${opt.id}');document.getElementById('_sel-opts-modal')&&(document.getElementById('_so-list').innerHTML='')" style="color:var(--accent4);background:none;border:none;cursor:pointer;font-size:12px">✕</button>
+      </div>`).join('');
+  };
+
+  m.innerHTML = `<div class="modal-box" style="width:min(360px,95vw)">
+    <div class="modal-header"><div class="modal-title">خيارات عمود "${_esc(field.name)}"</div><button class="close-x" onclick="document.getElementById('_sel-opts-modal').remove()">✕</button></div>
+    <div id="_so-list" style="margin-bottom:12px;max-height:200px;overflow-y:auto"></div>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <input id="_so-new-label" class="form-input" placeholder="اسم الخيار..." style="flex:1">
+      <input id="_so-new-color" type="color" value="#7c6ff7" style="width:40px;height:38px;border-radius:8px;border:1px solid var(--border);cursor:pointer;padding:2px">
+      <button class="btn btn-primary btn-sm" onclick="_soAddOpt('${bid}','${fid}','${pid}')"><i class="fa-solid fa-plus"></i></button>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="document.getElementById('_sel-opts-modal').remove()">تم</button>
+  </div>`;
+  document.body.appendChild(m);
+  renderOpts();
+  m.onclick = e => { if (e.target === m) m.remove(); };
+}
+
+function _soAddOpt(bid, fid, pid) {
+  const page = _WS.pages.find(p => p.id === pid);
+  const block = page?.blocks.find(b => b.id === bid);
+  const field = block?.db?.fields.find(f => f.id === fid);
+  if (!field) return;
+  const label = document.getElementById('_so-new-label')?.value.trim();
+  const color = document.getElementById('_so-new-color')?.value || '#7c6ff7';
+  if (!label) return;
+  field.options.push({ id: _uid_now(), label, color });
+  document.getElementById('_so-new-label').value = '';
+  _schedSave();
+  // Re-render opts list
+  const list = document.getElementById('_so-list');
+  if (list) {
+    list.innerHTML = field.options.map(opt => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <div style="width:14px;height:14px;border-radius:50%;background:${opt.color||'var(--accent)'}"></div>
+        <span style="flex:1;font-size:13px;font-weight:700">${_esc(opt.label)}</span>
+        <button onclick="_soDelOpt('${bid}','${fid}','${pid}','${opt.id}')" style="color:var(--accent4);background:none;border:none;cursor:pointer;font-size:12px">✕</button>
+      </div>`).join('');
+    const wrap = document.getElementById('db-' + bid);
+    if (wrap) _renderDBInto(wrap, block, page);
+  }
+}
+
+function _soDelOpt(bid, fid, pid, oid) {
+  const page = _WS.pages.find(p => p.id === pid);
+  const block = page?.blocks.find(b => b.id === bid);
+  const field = block?.db?.fields.find(f => f.id === fid);
+  if (!field) return;
+  field.options = field.options.filter(o => o.id !== oid);
+  _schedSave();
+  const wrap = document.getElementById('db-' + bid);
+  if (wrap) _renderDBInto(wrap, block, page);
+}
+
+function _dbSelectPicker(event, bid, ri, fid, pid) {
+  event.stopPropagation();
+  const page = _WS.pages.find(p => p.id === pid);
+  const block = page?.blocks.find(b => b.id === bid);
+  const field = block?.db?.fields.find(f => f.id === fid);
+  if (!field || !field.options) return;
+
+  const old = document.getElementById('_sp-popup');
+  if (old) old.remove();
+  const popup = document.createElement('div');
+  popup.id = '_sp-popup';
+  popup.style.cssText = `position:fixed;z-index:99999;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:160px;box-shadow:0 12px 36px rgba(0,0,0,.5);left:${event.clientX}px;top:${event.clientY}px`;
+  popup.innerHTML = field.options.map(opt => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;cursor:pointer;transition:.12s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''" onclick="_dbSetCell('${bid}',${ri},'${fid}','${opt.id}','${pid}');document.getElementById('_sp-popup')?.remove();document.getElementById('db-${bid}')&&_refreshDB('${bid}','${pid}')">
+      <span style="width:10px;height:10px;border-radius:50%;background:${opt.color||'var(--accent)'};flex-shrink:0"></span>
+      <span style="font-size:13px;font-weight:700">${_esc(opt.label)}</span>
+    </div>`).join('') +
+    `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;cursor:pointer;color:var(--text3);font-size:12px" onclick="_dbSetCell('${bid}',${ri},'${fid}','','${pid}');document.getElementById('_sp-popup')?.remove();_refreshDB('${bid}','${pid}')">
+      <i class="fa-solid fa-xmark"></i> مسح
+    </div>`;
+  document.body.appendChild(popup);
+  document.addEventListener('click', () => popup.remove(), { once:true });
+}
+
+function _refreshDB(bid, pid) {
+  const page = _WS.pages.find(p => p.id === pid);
+  const block = page?.blocks.find(b => b.id === bid);
+  const wrap = document.getElementById('db-' + bid);
+  if (wrap && block) _renderDBInto(wrap, block, page);
+}
+
+// ════════════════════════════════════════════
+// DATABASE as full-page type
+// ════════════════════════════════════════════
+function _renderDBPage(page) {
+  if (!page.db) page.db = { view:'table', fields:[{ id:'f1', name:'الاسم', type:'text', color:'var(--accent)' }], rows:[] };
+  // Create a fake block wrapper to reuse the DB engine
+  const fakeBlock = { id: 'db-page-' + page.id, type:'database', db: page.db };
+  const container = document.getElementById('blocks-container');
+  container.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.id = 'db-' + fakeBlock.id;
+  wrap.dataset.dbId = fakeBlock.id;
+  _renderDBInto(wrap, fakeBlock, page);
+  container.appendChild(wrap);
+  // Patch save to write to page.db
+  fakeBlock._savePatch = () => { page.db = fakeBlock.db; _schedSave(); };
+  // Store fakeBlock in page for quick access
+  page._fakeDBBlock = fakeBlock;
+  if (!page.blocks) page.blocks = [];
+}
+
+// ════════════════════════════════════════════
+// FLOWCHART ENGINE
+// ════════════════════════════════════════════
+let _flowState = {
+  dragging: null,
+  connecting: null,
+  panX: 0, panY: 0,
+  isPanning: false,
+  lastMouse: null,
+  svgEl: null,
+  block: null,
+  page: null
+};
+
+function _buildInlineFlow(block, page) {
+  const wrap = document.createElement('div');
+  wrap.id = 'flow-' + block.id;
+  if (!block.flow) block.flow = { nodes:[], edges:[] };
+  _renderFlowInto(wrap, block, page);
+  return wrap;
+}
+
+function _renderFlowInto(wrap, block, page) {
+  wrap.innerHTML = `
+    <div id="flow-canvas-wrap-${block.id}" class="flow-canvas-wrap" style="position:relative;width:100%;height:440px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;cursor:grab;margin:8px 0">
+      <svg id="flow-svg-${block.id}" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1">
+        <defs><marker id="arr-${block.id}" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="var(--accent)"/></marker></defs>
+      </svg>
+      <div id="flow-nodes-${block.id}" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:2"></div>
+      <div class="flow-toolbar" style="position:absolute;top:10px;right:10px;display:flex;gap:5px;z-index:10">
+        <button onclick="_flowAddNode('${block.id}','${page.id}','process')" style="padding:5px 10px;border-radius:7px;background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer"><i class="fa-solid fa-plus" style="margin-left:4px"></i>عملية</button>
+        <button onclick="_flowAddNode('${block.id}','${page.id}','decision')" style="padding:5px 10px;border-radius:7px;background:var(--surface);border:1px solid var(--border);color:var(--accent2);font-size:11px;font-weight:700;cursor:pointer"><i class="fa-solid fa-code-branch" style="margin-left:4px"></i>قرار</button>
+        <button onclick="_flowAddNode('${block.id}','${page.id}','start')" style="padding:5px 10px;border-radius:7px;background:var(--surface);border:1px solid var(--border);color:var(--accent3);font-size:11px;font-weight:700;cursor:pointer"><i class="fa-solid fa-circle-play" style="margin-left:4px"></i>بداية</button>
+        <button onclick="_flowAddNode('${block.id}','${page.id}','end')" style="padding:5px 10px;border-radius:7px;background:var(--surface);border:1px solid var(--border);color:var(--accent4);font-size:11px;font-weight:700;cursor:pointer"><i class="fa-solid fa-circle-stop" style="margin-left:4px"></i>نهاية</button>
+        <button onclick="_flowClear('${block.id}','${page.id}')" style="padding:5px 10px;border-radius:7px;background:var(--surface);border:1px solid var(--border);color:var(--accent4);font-size:11px;font-weight:700;cursor:pointer" title="مسح الكل"><i class="fa-solid fa-trash"></i></button>
+      </div>
+      <div style="position:absolute;bottom:8px;left:8px;font-size:10px;color:var(--text3);z-index:10">اسحب النودز · اضغط على الدوائر لإنشاء أسهم</div>
+    </div>`;
+
+  const canvasWrap = wrap.querySelector(`#flow-canvas-wrap-${block.id}`);
+  const svg = wrap.querySelector(`#flow-svg-${block.id}`);
+  const nodesContainer = wrap.querySelector(`#flow-nodes-${block.id}`);
+
+  // Render existing nodes
+  block.flow.nodes.forEach(node => _renderFlowNode(nodesContainer, svg, node, block, page));
+  _drawEdges(svg, block);
+
+  // Pan
+  canvasWrap.addEventListener('mousedown', (e) => {
+    if (e.target === canvasWrap || e.target === svg) {
+      _flowState.isPanning = true;
+      _flowState.lastMouse = { x: e.clientX, y: e.clientY };
+      canvasWrap.style.cursor = 'grabbing';
+    }
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!_flowState.isPanning) return;
+    const dx = e.clientX - (_flowState.lastMouse?.x || e.clientX);
+    const dy = e.clientY - (_flowState.lastMouse?.y || e.clientY);
+    _flowState.lastMouse = { x: e.clientX, y: e.clientY };
+    nodesContainer.querySelectorAll('.flow-node').forEach(n => {
+      const nid = n.dataset.nid;
+      const node = block.flow.nodes.find(nd => nd.id === nid);
+      if (node) { node.x += dx; node.y += dy; n.style.left = node.x + 'px'; n.style.top = node.y + 'px'; }
+    });
+    _drawEdges(svg, block);
+  });
+  document.addEventListener('mouseup', () => {
+    if (_flowState.isPanning) { _flowState.isPanning = false; canvasWrap.style.cursor = 'grab'; _schedSave(); }
+  });
+}
+
+function _renderFlowNode(container, svg, node, block, page) {
+  const el = document.createElement('div');
+  el.className = 'flow-node node-' + (node.type || 'process');
+  el.dataset.nid = node.id;
+  el.style.left = (node.x || 100) + 'px';
+  el.style.top = (node.y || 100) + 'px';
+
+  const typeEmoji = { start:'▶', end:'⏹', decision:'◇', process:'□', action:'⚡' };
+  el.innerHTML = `
+    <span class="node-icon">${typeEmoji[node.type] || '□'}</span>
+    <div class="node-label" contenteditable="true" style="outline:none;font-size:12px">${_esc(node.label || 'نص')}</div>
+    ${node.sub ? `<div class="node-sub">${_esc(node.sub)}</div>` : ''}
+    <div class="node-conn conn-b" data-dir="b"></div>
+    <div class="node-conn conn-t" data-dir="t"></div>
+    <div class="node-conn conn-l" data-dir="l"></div>
+    <div class="node-conn conn-r" data-dir="r"></div>`;
+
+  // Drag
+  let dragStartX, dragStartY, nodeStartX, nodeStartY;
+  el.addEventListener('mousedown', (e) => {
+    if (e.target.classList.contains('node-conn') || e.target.contentEditable === 'true') return;
+    e.stopPropagation();
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    nodeStartX = node.x; nodeStartY = node.y;
+    const onMove = (me) => {
+      node.x = nodeStartX + (me.clientX - dragStartX);
+      node.y = nodeStartY + (me.clientY - dragStartY);
+      el.style.left = node.x + 'px'; el.style.top = node.y + 'px';
+      _drawEdges(svg, block);
+    };
+    const onUp = () => { _schedSave(); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  // Label edit
+  const labelEl = el.querySelector('.node-label');
+  labelEl.addEventListener('input', () => { node.label = labelEl.textContent; _schedSave(); });
+  labelEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); labelEl.blur(); } });
+
+  // Connection dots
+  el.querySelectorAll('.node-conn').forEach(dot => {
+    dot.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      _flowState.connecting = { fromNode: node.id, fromDir: dot.dataset.dir };
+    });
+    dot.addEventListener('mouseup', (e) => {
+      e.stopPropagation();
+      if (_flowState.connecting && _flowState.connecting.fromNode !== node.id) {
+        // Add edge
+        const existing = block.flow.edges.find(ed => ed.from === _flowState.connecting.fromNode && ed.to === node.id);
+        if (!existing) {
+          block.flow.edges.push({ id: _uid_now(), from: _flowState.connecting.fromNode, to: node.id, label: '' });
+          _drawEdges(svg, block);
+          _schedSave();
+        }
+      }
+      _flowState.connecting = null;
+    });
+  });
+
+  // Right-click to delete
+  el.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    if (!confirm('حذف هذا النود؟')) return;
+    block.flow.nodes = block.flow.nodes.filter(n => n.id !== node.id);
+    block.flow.edges = block.flow.edges.filter(ed => ed.from !== node.id && ed.to !== node.id);
+    el.remove();
+    _drawEdges(svg, block);
+    _schedSave();
+  });
+
+  container.appendChild(el);
+}
+
+function _drawEdges(svg, block) {
+  // Remove old edges
+  svg.querySelectorAll('.flow-edge').forEach(e => e.remove());
+  const edges = block.flow.edges || [];
+  edges.forEach(edge => {
+    const fromNode = block.flow.nodes.find(n => n.id === edge.from);
+    const toNode   = block.flow.nodes.find(n => n.id === edge.to);
+    if (!fromNode || !toNode) return;
+    const x1 = (fromNode.x || 0) + 70, y1 = (fromNode.y || 0) + 50;
+    const x2 = (toNode.x || 0) + 70,   y2 = (toNode.y || 0);
+    const cx1 = x1, cy1 = y1 + Math.abs(y2 - y1) * 0.5;
+    const cx2 = x2, cy2 = y2 - Math.abs(y2 - y1) * 0.5;
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.className.baseVal = 'flow-edge';
+    path.setAttribute('d', `M${x1},${y1} C${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`);
+    path.setAttribute('stroke', 'var(--accent)');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('marker-end', `url(#arr-${block.id})`);
+    path.setAttribute('opacity', '0.7');
+    svg.appendChild(path);
+
+    if (edge.label) {
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+      const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+      text.className.baseVal = 'flow-edge';
+      text.setAttribute('x', midX);
+      text.setAttribute('y', midY - 6);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('fill', 'var(--text2)');
+      text.setAttribute('font-size', '11');
+      text.textContent = edge.label;
+      svg.appendChild(text);
+    }
+  });
+}
+
+function _flowAddNode(bid, pid, type) {
+  const page = _WS.pages.find(p => p.id === pid);
+  let block;
+  if (pid === bid.replace('db-page-','')) {
+    // Full page flow
+    block = page?._fakeFlowBlock;
+  } else {
+    block = page?.blocks?.find(b => b.id === bid);
+  }
+  if (!block) {
+    // Full page flowchart
+    if (page && page.type === 'flowchart') {
+      if (!page.flow) page.flow = { nodes:[], edges:[] };
+      const node = { id: _uid_now(), type, label: type==='start'?'بداية':type==='end'?'نهاية':type==='decision'?'قرار':'عملية', x: 80 + page.flow.nodes.length * 30, y: 80 + page.flow.nodes.length * 40 };
+      page.flow.nodes.push(node);
+      _schedSave();
+      _renderFlowPage(page);
+      return;
+    }
+    return;
+  }
+  if (!block.flow) block.flow = { nodes:[], edges:[] };
+  const labels = { start:'بداية', end:'نهاية', decision:'قرار؟', process:'عملية', action:'إجراء' };
+  const node = { id: _uid_now(), type, label: labels[type] || 'نود', x: 80 + block.flow.nodes.length * 30, y: 60 + block.flow.nodes.length * 40 };
+  block.flow.nodes.push(node);
+  _schedSave();
+  const wrap = document.getElementById('flow-' + bid);
+  if (wrap) _renderFlowInto(wrap, block, page);
+}
+
+function _flowClear(bid, pid) {
+  if (!confirm('مسح كل النودز والأسهم؟')) return;
+  const page = _WS.pages.find(p => p.id === pid);
+  const block = page?.blocks?.find(b => b.id === bid);
+  if (block && block.flow) { block.flow.nodes = []; block.flow.edges = []; _schedSave(); }
+  else if (page && page.type === 'flowchart') { page.flow = { nodes:[], edges:[] }; _schedSave(); _renderFlowPage(page); return; }
+  const wrap = document.getElementById('flow-' + bid);
+  if (wrap && block) _renderFlowInto(wrap, block, page);
+}
+
+// Full-page flowchart
+function _renderFlowPage(page) {
+  if (!page.flow) page.flow = { nodes:[], edges:[] };
+  const container = document.getElementById('blocks-container');
+  container.innerHTML = '';
+
+  // Create fake block
+  const fakeBlock = { id: 'flow-page-' + page.id, type:'flowchart', flow: page.flow };
+  page._fakeFlowBlock = fakeBlock;
+
+  const wrap = document.createElement('div');
+  wrap.id = 'flow-' + fakeBlock.id;
+  _renderFlowInto(wrap, fakeBlock, page);
+  container.appendChild(wrap);
+}
+
+// ════════════════════════════════════════════
+// ICON PICKER
+// ════════════════════════════════════════════
+const EMOJIS = ['📄','📊','📈','📉','🗂','📁','📂','🗃','🗄','📦','📝','✏️','🖊','📋','📌','📍','📎','🔗','🔖','🏷','💡','🔍','🔎','⭐','🌟','✨','🎯','🎪','🎨','🎭','🎬','🎤','🎧','🎵','🎶','🏠','🏢','🏗','🌍','🌏','🔧','🔨','⚙️','🛠','🔑','🔒','🔓','💰','💳','🏦','💹','📊','📈','🎓','📚','📖','🔬','🔭','💻','📱','🖥','⌨️','🖱','🌈','❤️','💙','💚','💜','🧡','🤝','👥','👤','💪','🚀','✈️','🚗','🚌','🏃','⏰','📅','🗓','⏳','⌛','🔔','📢','📣','🎁','🎉','🎊','🏆','🥇','🎖','🌺','🌸','🌻','🍎','🍊','🍋'];
+
+function _openIconPicker(event) {
+  const picker = document.getElementById('icon-picker');
+  picker.style.display = 'block';
+  picker.style.top = (event.clientY + 10) + 'px';
+  picker.style.left = Math.max(10, event.clientX - 100) + 'px';
+  picker.innerHTML = `<div style="margin-bottom:6px"><input placeholder="بحث..." style="width:100%;font-size:12px" oninput="_filterEmojis(this.value)"></div><div class="ip-grid" id="ip-grid">` +
+    EMOJIS.map(e => `<div class="ip-emoji" onclick="_setPageIcon('${e}')">${e}</div>`).join('') + '</div>';
+}
+
+function _filterEmojis(q) {
+  const grid = document.getElementById('ip-grid');
+  if (grid) grid.innerHTML = EMOJIS.filter(() => !q).map(e => `<div class="ip-emoji" onclick="_setPageIcon('${e}')">${e}</div>`).join('');
+}
+
+function _setPageIcon(icon) {
+  document.getElementById('page-icon-btn').textContent = icon;
+  document.getElementById('icon-picker').style.display = 'none';
+  const page = _WS.pages.find(p => p.id === _currentPageId);
+  if (page) { page.icon = icon; _schedSave(); _renderSidebar(); }
+}
+
+document.addEventListener('click', (e) => {
+  const picker = document.getElementById('icon-picker');
+  if (picker && !picker.contains(e.target) && e.target.id !== 'page-icon-btn') picker.style.display = 'none';
+});
+
+// ════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════
+function _esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function _autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+
+// ════════════════════════════════════════════
+// START
+// ════════════════════════════════════════════
+_init();
+</script>
+</body>
+</html>

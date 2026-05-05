@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="ordo_public_core.js"></script>
 
 <!-- تطبيق ثيم اليوزر فوراً من localStorage -->
 <script>
@@ -177,6 +178,20 @@ async function loadContract(){
   _ctToken=params.get('token')||params.get('ctsign');
   if(!_ctToken){ showError(); return; }
 
+  if(window.OrdoPublic){
+    try{
+      const resolved=await OrdoPublic.resolvePublicToken(supa,_ctToken,{entity_type:'contract'});
+      if(resolved.ok&&resolved.entity){
+        _ctData=resolved.entity; _ownerUid=resolved.uid||resolved.token.user_id||null;
+        _ctData.public_token=_ctToken;
+        _applyTheme(resolved.data.settings?.accentColor||resolved.data.settings?.accent, resolved.data.settings?.displayMode);
+        renderContract(_ctData); return;
+      } else if(resolved.reason==='revoked'||resolved.reason==='expired') {
+        showError(); return;
+      }
+    }catch(e){}
+  }
+
   // 1. shared_contracts
   try{
     const res=await supa.from('shared_contracts').select('data,user_id').eq('token',_ctToken).single();
@@ -199,7 +214,7 @@ async function loadContract(){
       for(var row of res2.data){
         try{
           var sd=typeof row.data==='string'?JSON.parse(row.data):row.data;
-          var found=(sd.contracts||[]).find(function(c){return c.token===_ctToken;});
+          var found=(sd.contracts||[]).find(function(c){return c.token===_ctToken||c.public_token===_ctToken;});
           if(found){
             _ctData=found; _ownerUid=row.user_id||null;
             _applyTheme(sd.settings?.accentColor||sd.settings?.accent, sd.settings?.displayMode);
@@ -334,12 +349,18 @@ async function submitContractSign(){
         var sdR=await supa.from('studio_data').select('data').eq('user_id',_ownerUid).single();
         if(sdR.data&&sdR.data.data){
           var sd=JSON.parse(sdR.data.data);
-          var idx=(sd.contracts||[]).findIndex(function(x){return x.token===_ctToken||x.id===_ctData.id;});
+          var idx=(sd.contracts||[]).findIndex(function(x){return x.token===_ctToken||x.public_token===_ctToken||x.id===_ctData.id;});
           if(idx>-1){
             sd.contracts[idx].status='signed';
             sd.contracts[idx].client_signature=sig;
             sd.contracts[idx].client_signer_name=name;
             sd.contracts[idx].signed_at=now;
+            sd.contracts[idx].signedAt=now;
+            sd.contracts[idx].updatedAt=now;
+            if(sd.contracts[idx].project_id){
+              var pr=(sd.projects||[]).find(function(p){return String(p.id)===String(sd.contracts[idx].project_id);});
+              if(pr){pr.contract_id=pr.contract_id||sd.contracts[idx].id;pr.updatedAt=now;}
+            }
             // هذا الـ upsert هو اللي Realtime في السيستم بيستمع له
             await supa.from('studio_data').upsert({user_id:_ownerUid,data:JSON.stringify(sd),updated_at:now},{onConflict:'user_id'});
           }
