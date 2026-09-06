@@ -1,0 +1,330 @@
+{
+  "tasks": [],
+  "clients": [],
+  "transactions": [],
+  "invoices": [],
+  "goals": [],
+  "schedule": [],
+  "teams": [],
+  "subscriptions": [],
+  "projects": [
+    {
+      "name": "مشروع اختبار تصميم المشاريع",
+      "desc": "",
+      "client_id": "",
+      "status": "active",
+      "start": "",
+      "deadline": "",
+      "color": "#7c6ff7",
+      "projectType": "tasks",
+      "members": [],
+      "team_group_id": "",
+      "budget": 15000,
+      "budgetCurrency": "ج.م",
+      "pricingType": "fixed",
+      "createdAt": "2026-06-06T19:02:47.770Z",
+      "id": 1780772567770,
+      "projectLedger": [],
+      "updatedAt": "2026-06-06T19:02:47.789Z",
+      "user_id": "local_user",
+      "currency_code": "EGP",
+      "currency_symbol": "ج.م",
+      "currency": "ج.م",
+      "invoice_ids": [],
+      "task_ids": [],
+      "updated_at": "2026-06-06T19:02:47.789Z",
+      "contentCalendar": {
+        "enabled": false,
+        "events": []
+      }
+    }
+  ],
+  "project_tasks": [],
+  "settings": {
+    "name": "",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "terms": "",
+    "logo": "",
+    "taskTypes": [
+      "مهمة عامة",
+      "مشروع",
+      "استشارة",
+      "تقرير",
+      "متابعة",
+      "أخرى"
+    ],
+    "svc_site_desc": "",
+    "svc_orders_open": true,
+    "svc_banner_size": "md",
+    "displayMode": "dark",
+    "accentColor": "#7c6ff7",
+    "workspace_mode": "freelancer",
+    "base_currency": "ج.م",
+    "base_currency_code": "EGP",
+    "enabled_currencies": [
+      {
+        "code": "EGP",
+        "symbol": "ج.م",
+        "label": "جنيه مصري",
+        "enabled": true
+      },
+      {
+        "code": "USD",
+        "symbol": "$",
+        "label": "دولار أمريكي",
+        "enabled": true
+      },
+      {
+        "code": "SAR",
+        "symbol": "ر.س",
+        "label": "ريال سعودي",
+        "enabled": false
+      },
+      {
+        "code": "AED",
+        "symbol": "AED",
+        "label": "درهم إماراتي",
+        "enabled": false
+      },
+      {
+        "code": "EUR",
+        "symbol": "€",
+        "label": "يورو",
+        "enabled": false
+      },
+      {
+        "code": "KWD",
+        "symbol": "د.ك",
+        "label": "دينار كويتي",
+        "enabled": false
+      },
+      {
+        "code": "QAR",
+        "symbol": "ر.ق",
+        "label": "ريال قطري",
+        "enabled": false
+      }
+    ],
+    "currency": "ج.م",
+    "finance_customization": {
+      "active": "default",
+      "workspaces": [
+        {
+          "id": "default",
+          "name": "الافتراضي",
+          "description": "التخطيط الافتراضي للنظام",
+          "columns": 4,
+          "compact": false,
+          "stickyTitle": true,
+          "quickFilters": true,
+          "widgets": [
+            {
+              "id": "transactions_tab",
+              "visible": true,
+              "order": 0
+            },
+            {
+              "id": "wallets_tab",
+              "visible": true,
+              "order": 1
+            },
+            {
+              "id": "budgets_tab",
+              "visible": true,
+              "order": 2
+            },
+            {
+              "id": "loans_tab",
+              "visible": true,
+              "order": 3
+            },
+            {
+              "id": "stats_tab",
+              "visible": true,
+              "order": 4
+            },
+            {
+              "id": "overview",
+              "visible": true,
+              "order": 5
+            },
+            {
+              "id": "income",
+              "visible": true,
+              "order": 6
+            },
+            {
+              "id": "expenses",
+              "visible": true,
+              "order": 7
+            },
+            {
+              "id": "profit",
+              "visible": true,
+              "order": 8
+            },
+            {
+              "id": "pending",
+              "visible": true,
+              "order": 9
+            },
+            {
+              "id": "summary_cards",
+              "visible": true,
+              "order": 10
+            },
+            {
+              "id": "summary_income",
+              "visible": true,
+              "order": 11
+            },
+            {
+              "id": "summary_expense",
+              "visible": true,
+              "order": 12
+            },
+            {
+              "id": "summary_net",
+              "visible": true,
+              "order": 13
+            },
+            {
+              "id": "summary_margin",
+              "visible": true,
+              "order": 14
+            },
+            {
+              "id": "pending_card",
+              "visible": true,
+              "order": 15
+            },
+            {
+              "id": "deposits_card",
+              "visible": true,
+              "order": 16
+            },
+            {
+              "id": "loans_summary",
+              "visible": true,
+              "order": 17
+            },
+            {
+              "id": "filters",
+              "visible": true,
+              "order": 18
+            },
+            {
+              "id": "filter_panel",
+              "visible": true,
+              "order": 19
+            },
+            {
+              "id": "monthly",
+              "visible": true,
+              "order": 20
+            },
+            {
+              "id": "unpaid",
+              "visible": true,
+              "order": 21
+            },
+            {
+              "id": "transactions",
+              "visible": true,
+              "order": 22
+            },
+            {
+              "id": "wallets_grid",
+              "visible": true,
+              "order": 23
+            },
+            {
+              "id": "wallet_detail",
+              "visible": true,
+              "order": 24
+            },
+            {
+              "id": "wallet_manual",
+              "visible": true,
+              "order": 25
+            },
+            {
+              "id": "charts",
+              "visible": true,
+              "order": 26
+            },
+            {
+              "id": "budgets",
+              "visible": true,
+              "order": 27
+            },
+            {
+              "id": "loans",
+              "visible": true,
+              "order": 28
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "services": [],
+  "standalone_packages": [],
+  "portfolio_projects": [],
+  "svc_orders": [],
+  "specializations": [],
+  "client_portals": [],
+  "loans": [],
+  "budgets": [],
+  "archivedTasks": [],
+  "customStatuses": [],
+  "paymentAccounts": [],
+  "hiddenPayMethods": [],
+  "hiddenStatuses": [],
+  "meetings": [],
+  "courses": [],
+  "timeEntries": [],
+  "contracts": [],
+  "statements": [],
+  "freelancerGoals": {
+    "custom": []
+  },
+  "support_msgs": [],
+  "stores": [],
+  "reviews": [],
+  "wallets": [
+    {
+      "id": "wallet_EGP",
+      "currency_code": "EGP",
+      "currency_symbol": "ج.م",
+      "currency_label": "جنيه مصري",
+      "balance": 0,
+      "createdAt": "2026-06-06T19:00:49.207Z",
+      "updatedAt": "2026-06-06T19:00:49.207Z",
+      "user_id": "local_user",
+      "status": "active"
+    },
+    {
+      "id": "wallet_USD",
+      "currency_code": "USD",
+      "currency_symbol": "$",
+      "currency_label": "دولار أمريكي",
+      "balance": 0,
+      "createdAt": "2026-06-06T19:00:49.207Z",
+      "updatedAt": "2026-06-06T19:00:49.207Z",
+      "user_id": "local_user",
+      "status": "active"
+    }
+  ],
+  "wallet_transfers": [],
+  "temp_todo_lists": [],
+  "_savedAt": "2026-06-19T11:40:02.138Z",
+  "proposals": [],
+  "team_tasks": [],
+  "leads": [],
+  "public_tokens": [],
+  "_dirtyMap": {},
+  "contacts": []
+}

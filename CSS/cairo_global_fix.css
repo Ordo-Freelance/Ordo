@@ -1,0 +1,41 @@
+/* Final platform font pass */
+:root {
+  --font: "Cairo", Arial, Tahoma, sans-serif !important;
+  --mono: "Cairo", Arial, Tahoma, sans-serif !important;
+}
+
+html,
+body,
+body *:not(.fa):not(.fas):not(.far):not(.fab):not(.fal):not(.fad):not(.fa-solid):not(.fa-regular):not(.fa-brands):not(.fa-light):not(.fa-thin):not(.fa-duotone) {
+  font-family: "Cairo", Arial, Tahoma, sans-serif !important;
+  letter-spacing: 0 !important;
+}
+
+button,
+input,
+select,
+textarea,
+.btn,
+.form-input,
+.form-select,
+.modal,
+.card,
+.page,
+[contenteditable="true"] {
+  font-family: "Cairo", Arial, Tahoma, sans-serif !important;
+}
+
+.fa,
+.fas,
+.far,
+.fab,
+.fal,
+.fad,
+.fa-solid,
+.fa-regular,
+.fa-brands,
+.fa-light,
+.fa-thin,
+.fa-duotone {
+  font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", "Font Awesome 6 Pro" !important;
+}

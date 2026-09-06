@@ -1,0 +1,76 @@
+/* Local Cairo font for the portable Ordo build. */
+@font-face {
+  font-family: "Cairo";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("cairo/Cairo-300.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Cairo";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("cairo/Cairo-400.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Cairo";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("cairo/Cairo-600.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Cairo";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("cairo/Cairo-700.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Cairo";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("cairo/Cairo-800.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Cairo";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("cairo/Cairo-900.ttf") format("truetype");
+}
+
+:root {
+  --font: "Cairo", Arial, Tahoma, sans-serif !important;
+  --mono: "Cairo", Arial, Tahoma, sans-serif !important;
+}
+
+html,
+body,
+body *:not(.fa):not(.fas):not(.far):not(.fab):not(.fa-solid):not(.fa-regular):not(.fa-brands) {
+  font-family: "Cairo", Arial, Tahoma, sans-serif !important;
+}
+
+input,
+button,
+textarea,
+select {
+  font-family: "Cairo", Arial, Tahoma, sans-serif !important;
+}
+
+.fa,
+.fas,
+.far,
+.fab,
+.fa-solid,
+.fa-regular,
+.fa-brands {
+  font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+}
