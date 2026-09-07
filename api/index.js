@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const LOCAL_DB_PATH = path.join(ROOT, '.local-data', 'ordo-dev-db.json');
 const SESSION_COOKIE = 'ordo_session';
+const OAUTH_STATE_COOKIE = 'ordo_oauth_state';
 const JSON_COLUMNS = new Set(['data', 'features', 'config', 'payload']);
 const TABLES = new Set([
   'studio_data',
@@ -26,6 +27,29 @@ const TABLES = new Set([
   'public_client_portal_events',
   'subscription_requests'
 ]);
+const PUBLIC_READ_TABLES = new Set(['platform_settings', 'public_tokens', 'public_store_items', 'public_reviews', 'public_contracts', 'shared_contracts']);
+const PUBLIC_WRITE_TABLES = new Set(['public_store_orders', 'public_reviews', 'review_queue', 'public_client_portal_events', 'subscription_requests']);
+const USER_TABLES = new Set(['studio_data', 'user_settings', 'user_notifications']);
+const JSON_DATA_TABLES = new Set(['team_invites', 'team_members', 'public_tokens', 'public_store_items', 'public_store_orders', 'public_reviews', 'review_queue', 'public_contracts', 'public_client_portal_events', 'subscription_requests']);
+const TABLE_COLUMNS = {
+  studio_data: new Set(['user_id', 'data', 'username_index', 'created_at', 'updated_at']),
+  user_settings: new Set(['user_id', 'data', 'updated_at']),
+  subscription_plans: new Set(['id', 'name', 'plan_name', 'price', 'price_monthly', 'duration_days', 'features', 'active', 'created_at', 'updated_at']),
+  serial_keys: new Set(['id', 'code', 'key_code', 'user_id', 'status', 'plan_id', 'plan_name', 'billing', 'duration_days', 'created_at', 'activated_at', 'expires_at', 'updated_at']),
+  user_notifications: new Set(['id', 'user_id', 'title', 'body', 'type', 'data', 'read', 'is_read', 'created_at', 'updated_at']),
+  platform_settings: new Set(['id', 'config', 'updated_at']),
+  shared_contracts: new Set(['token', 'user_id', 'data', 'created_at', 'updated_at']),
+  team_invites: new Set(['id', 'team_id', 'team_name', 'owner_user_id', 'owner_name', 'to_email', 'to_user_id', 'member_name', 'member_role', 'role', 'status', 'payload', 'data', 'created_at', 'updated_at']),
+  team_members: new Set(['id', 'team_id', 'user_id', 'owner_user_id', 'role', 'data', 'created_at', 'updated_at']),
+  public_tokens: new Set(['id', 'token', 'user_id', 'type', 'data', 'created_at', 'updated_at']),
+  public_store_items: new Set(['id', 'user_id', 'data', 'active', 'created_at', 'updated_at']),
+  public_store_orders: new Set(['id', 'user_id', 'data', 'status', 'created_at', 'updated_at']),
+  public_reviews: new Set(['id', 'user_id', 'data', 'created_at', 'updated_at']),
+  review_queue: new Set(['id', 'user_id', 'data', 'processed', 'created_at', 'updated_at']),
+  public_contracts: new Set(['id', 'token', 'user_id', 'data', 'created_at', 'updated_at']),
+  public_client_portal_events: new Set(['id', 'user_id', 'data', 'created_at', 'updated_at']),
+  subscription_requests: new Set(['id', 'user_id', 'plan_id', 'status', 'receipt_url', 'data', 'created_at', 'updated_at'])
+};
 
 function now() {
   return new Date().toISOString();
@@ -64,6 +88,22 @@ function setCookie(res, token) {
 
 function clearCookie(res) {
   res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+}
+
+function setOAuthStateCookie(res, state) {
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `${OAUTH_STATE_COOKIE}=${encodeURIComponent(state)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${secure}`);
+}
+
+function clearOAuthStateCookie(res, extraCookie) {
+  const cookies = [`${OAUTH_STATE_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`];
+  if (extraCookie) cookies.push(extraCookie);
+  res.setHeader('Set-Cookie', cookies);
+}
+
+function redirect(res, location, status = 302) {
+  res.writeHead(status, { Location: location });
+  res.end();
 }
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
@@ -223,6 +263,66 @@ function needsGeneratedId(table) {
   return !['studio_data', 'user_settings', 'platform_settings', 'shared_contracts'].includes(table);
 }
 
+function prepareDbRow(table, source) {
+  const allowed = TABLE_COLUMNS[table];
+  const input = { ...(source || {}) };
+  if (!allowed) return encodeJsonFields(input);
+  const out = {};
+  const extra = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (allowed.has(key)) out[key] = value;
+    else extra[key] = value;
+  }
+  if (JSON_DATA_TABLES.has(table) && Object.keys(extra).length) {
+    const current = parseMaybe(out.data) || {};
+    out.data = { ...current, ...extra };
+  }
+  return encodeJsonFields(out);
+}
+
+function enforceAccess(table, input, user) {
+  const op = String(input.op || 'select');
+  input.filters = Array.isArray(input.filters) ? input.filters : [];
+  if (!user) {
+    if (op === 'select' && PUBLIC_READ_TABLES.has(table)) return null;
+    if (['insert', 'upsert'].includes(op) && PUBLIC_WRITE_TABLES.has(table)) return null;
+    return { message: 'Login required', status: 401, code: 'login_required' };
+  }
+  if (user.is_admin) return null;
+  if (table === 'profiles') return { message: 'Admin only', status: 403, code: 'admin_only' };
+  if (table === 'serial_keys') {
+    const payload = input.payload || {};
+    const hasCodeFilter = input.filters.some(f => ['code', 'key_code', 'id'].includes(f.column));
+    const hasOwnFilter = input.filters.some(f => f.column === 'user_id' && String(f.value) === String(user.id));
+    if (op === 'select') {
+      if (!hasCodeFilter && !hasOwnFilter) input.filters.push({ op: 'eq', column: 'user_id', value: user.id });
+      return null;
+    }
+    if (op === 'update') {
+      const keys = Object.keys(payload);
+      const allowedKeys = new Set(['status', 'user_id', 'activated_at', 'expires_at', 'updated_at']);
+      const allowedPayload = keys.every(key => allowedKeys.has(key));
+      const activatingOwnKey = payload.status === 'active' && String(payload.user_id) === String(user.id) && hasCodeFilter;
+      const cancellingOwnKey = payload.status === 'expired' && payload.user_id === null && hasOwnFilter;
+      if (allowedPayload && (activatingOwnKey || cancellingOwnKey)) return null;
+    }
+    return { message: 'Admin only', status: 403, code: 'admin_only' };
+  }
+  if (['serial_keys', 'subscription_plans', 'platform_settings'].includes(table) && op !== 'select') {
+    return { message: 'Admin only', status: 403, code: 'admin_only' };
+  }
+  if (USER_TABLES.has(table)) {
+    const hasOwnFilter = input.filters.some(f => f.column === 'user_id' && String(f.value) === String(user.id));
+    if (['select', 'update', 'delete'].includes(op) && !hasOwnFilter) input.filters.push({ op: 'eq', column: 'user_id', value: user.id });
+    if (['insert', 'upsert'].includes(op)) {
+      const rows = Array.isArray(input.payload) ? input.payload : [input.payload];
+      rows.forEach(row => { if (row) row.user_id = user.id; });
+      input.payload = Array.isArray(input.payload) ? rows : rows[0];
+    }
+  }
+  return null;
+}
+
 class LocalStore {
   async userById(id) {
     const db = await readLocalDb();
@@ -252,6 +352,8 @@ class LocalStore {
       id: uuid(),
       email,
       password_hash: hashPassword(password),
+      auth_provider: 'email',
+      google_sub: '',
       name: meta.name || meta.full_name || '',
       phone: meta.phone || '',
       studio: meta.studio || '',
@@ -276,6 +378,39 @@ class LocalStore {
       if (Object.prototype.hasOwnProperty.call(meta, from)) user[to] = meta[from] || '';
     }
     user.updated_at = now();
+    await writeLocalDb(db);
+    return user;
+  }
+
+  async upsertOAuthUser(profile) {
+    const db = await readLocalDb();
+    const email = normalizeEmail(profile.email);
+    let user = db.ordo_users.find(row => row.email === email || row.google_sub === profile.sub);
+    const stamp = now();
+    if (!user) {
+      user = {
+        id: uuid(),
+        email,
+        password_hash: '',
+        auth_provider: 'google',
+        google_sub: profile.sub || '',
+        name: profile.name || email,
+        phone: '',
+        studio: '',
+        avatar_url: profile.picture || '',
+        is_admin: db.ordo_users.length === 0,
+        status: 'active',
+        created_at: stamp,
+        updated_at: stamp
+      };
+      db.ordo_users.push(user);
+    } else {
+      user.auth_provider = user.auth_provider || 'google';
+      user.google_sub = user.google_sub || profile.sub || '';
+      user.name = user.name || profile.name || email;
+      user.avatar_url = user.avatar_url || profile.picture || '';
+      user.updated_at = stamp;
+    }
     await writeLocalDb(db);
     return user;
   }
@@ -323,7 +458,7 @@ class LocalStore {
       const payloadRows = Array.isArray(input.payload) ? input.payload : [input.payload];
       const out = [];
       for (const original of payloadRows.filter(Boolean)) {
-        const row = encodeJsonFields({
+        const row = prepareDbRow(tableName, {
           ...(needsGeneratedId(tableName) ? { id: original.id || uuid() } : {}),
           ...original,
           updated_at: now()
@@ -339,7 +474,7 @@ class LocalStore {
       return input.single ? (out[0] || null) : out;
     }
     if (input.op === 'update') {
-      const payload = encodeJsonFields(input.payload || {});
+      const payload = prepareDbRow(tableName, input.payload || {});
       const out = [];
       for (const row of rows) {
         if (!matches(row, filters)) continue;
@@ -360,10 +495,17 @@ class LocalStore {
 
 async function makePostgresStore() {
   const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL;
-  if (!connectionString) return new LocalStore();
+  if (!connectionString) {
+    if (process.env.VERCEL) {
+      const error = new Error('DATABASE_URL is missing. Connect a Vercel Marketplace Postgres database before using production login.');
+      error.code = 'database_not_configured';
+      throw error;
+    }
+    return new LocalStore();
+  }
   const { neon } = await import('@neondatabase/serverless');
   const sql = neon(connectionString);
-  const query = (text, params = []) => sql(text, params);
+  const query = (text, params = []) => sql.query(text, params);
   return {
     async userById(id) {
       const rows = await query('SELECT * FROM ordo_users WHERE id = $1 LIMIT 1', [id]);
@@ -381,8 +523,26 @@ async function makePostgresStore() {
       const id = uuid();
       const isAdmin = (await this.userCount()) === 0;
       const rows = await query(
-        'INSERT INTO ordo_users (id,email,password_hash,name,phone,studio,avatar_url,is_admin,status,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NOW()) RETURNING *',
-        [id, email, hashPassword(password), meta.name || meta.full_name || '', meta.phone || '', meta.studio || '', meta.avatarUrl || meta.avatar_url || '', isAdmin, 'active']
+        'INSERT INTO ordo_users (id,email,password_hash,auth_provider,google_sub,name,phone,studio,avatar_url,is_admin,status,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW(),NOW()) RETURNING *',
+        [id, email, hashPassword(password), 'email', '', meta.name || meta.full_name || '', meta.phone || '', meta.studio || '', meta.avatarUrl || meta.avatar_url || '', isAdmin, 'active']
+      );
+      return rows[0];
+    },
+    async upsertOAuthUser(profile) {
+      const email = normalizeEmail(profile.email);
+      const existing = await query('SELECT * FROM ordo_users WHERE email = $1 OR google_sub = $2 LIMIT 1', [email, profile.sub || '']);
+      if (existing[0]) {
+        const rows = await query(
+          'UPDATE ordo_users SET auth_provider=COALESCE(auth_provider,$1), google_sub=COALESCE(NULLIF(google_sub, $2), $3), name=COALESCE(NULLIF(name, $2), $4), avatar_url=COALESCE(NULLIF(avatar_url, $2), $5), updated_at=NOW() WHERE id=$6 RETURNING *',
+          ['google', '', profile.sub || '', profile.name || email, profile.picture || '', existing[0].id]
+        );
+        return rows[0];
+      }
+      const id = uuid();
+      const isAdmin = (await this.userCount()) === 0;
+      const rows = await query(
+        'INSERT INTO ordo_users (id,email,password_hash,auth_provider,google_sub,name,avatar_url,is_admin,status,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NOW()) RETURNING *',
+        [id, email, '', 'google', profile.sub || '', profile.name || email, profile.picture || '', isAdmin, 'active']
       );
       return rows[0];
     },
@@ -446,7 +606,7 @@ async function makePostgresStore() {
         const payloadRows = Array.isArray(input.payload) ? input.payload : [input.payload];
         const out = [];
         for (const original of payloadRows.filter(Boolean)) {
-          const row = encodeJsonFields({
+          const row = prepareDbRow(tableName, {
             ...(needsGeneratedId(tableName) ? { id: original.id || uuid() } : {}),
             ...original
           });
@@ -466,12 +626,13 @@ async function makePostgresStore() {
         return input.single ? (out[0] || null) : out;
       }
       if (input.op === 'update') {
-        const payload = encodeJsonFields(input.payload || {});
+        const payload = prepareDbRow(tableName, input.payload || {});
         const keys = Object.keys(payload).filter(key => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key));
         const values = keys.map(key => payload[key]);
         const sets = keys.map((key, i) => `${key}=$${i + 1}`);
         const shiftedWhere = where.map(clause => clause.replace(/\$(\d+)/g, (_, n) => `$${Number(n) + values.length}`));
-        const rows = await query(`UPDATE ${tableName} SET ${sets.join(',')}, updated_at=NOW()${shiftedWhere.length ? ` WHERE ${shiftedWhere.join(' AND ')}` : ''} RETURNING *`, [...values, ...params]);
+        const setClause = sets.length ? `${sets.join(',')}, updated_at=NOW()` : 'updated_at=NOW()';
+        const rows = await query(`UPDATE ${tableName} SET ${setClause}${shiftedWhere.length ? ` WHERE ${shiftedWhere.join(' AND ')}` : ''} RETURNING *`, [...values, ...params]);
         const out = rows.map(decodeJsonFields);
         return input.single ? (out[0] || null) : out;
       }
@@ -500,23 +661,113 @@ async function currentUser(req, store) {
   return { user, token };
 }
 
+function publicOrigin(req) {
+  const proto = req.headers['x-forwarded-proto'] || 'http';
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
+  return `${proto}://${host}`;
+}
+
+function appRedirectTarget(req, fallback) {
+  const value = String(fallback || `${publicOrigin(req)}/HTML/index.html`);
+  try {
+    const target = new URL(value, publicOrigin(req));
+    return target.origin === publicOrigin(req) ? target.toString() : `${publicOrigin(req)}/HTML/index.html`;
+  } catch {
+    return `${publicOrigin(req)}/HTML/index.html`;
+  }
+}
+
+async function fetchGoogleProfile(code, redirectUri) {
+  const clientId = process.env.GOOGLE_CLIENT_ID || '';
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+  if (!clientId || !clientSecret) {
+    const error = new Error('Google login is missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET.');
+    error.code = 'google_not_configured';
+    throw error;
+  }
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri
+    })
+  });
+  const tokenJson = await tokenRes.json();
+  if (!tokenRes.ok || !tokenJson.access_token) {
+    const error = new Error(tokenJson.error_description || 'Google token exchange failed.');
+    error.code = 'google_token_failed';
+    throw error;
+  }
+  const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${tokenJson.access_token}` }
+  });
+  const profile = await profileRes.json();
+  if (!profileRes.ok || !profile.email) {
+    const error = new Error('Google profile email was not available.');
+    error.code = 'google_profile_failed';
+    throw error;
+  }
+  return profile;
+}
+
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return ok(res, null);
-  if (req.method !== 'POST') return fail(res, 'POST only', 405, 'method_not_allowed');
-
-  const store = await makePostgresStore();
-  const input = await readBody(req);
   const url = new URL(req.url, 'http://localhost');
-  const action = url.searchParams.get('action') || input.action || '';
+  const action = url.searchParams.get('action') || '';
 
   try {
-    if (action === 'auth.session' || action === 'auth.user') {
-      const { user, token } = await currentUser(req, store);
-      if (!user) return ok(res, action === 'auth.session' ? { session: null } : { user: null });
-      return ok(res, action === 'auth.session' ? { session: sessionPayload(user, token) } : { user: userPayload(user) });
+    if (action === 'auth.google.start') {
+      const clientId = process.env.GOOGLE_CLIENT_ID || '';
+      if (!clientId || !process.env.GOOGLE_CLIENT_SECRET) return fail(res, 'Google login is not configured yet.', 500, 'google_not_configured');
+      const state = uuid();
+      const redirectTo = appRedirectTarget(req, url.searchParams.get('redirectTo'));
+      const redirectUri = `${publicOrigin(req)}/api/index?action=auth.google.callback`;
+      setOAuthStateCookie(res, `${state}|${encodeURIComponent(redirectTo)}`);
+      const googleUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+      googleUrl.searchParams.set('client_id', clientId);
+      googleUrl.searchParams.set('redirect_uri', redirectUri);
+      googleUrl.searchParams.set('response_type', 'code');
+      googleUrl.searchParams.set('scope', 'openid email profile');
+      googleUrl.searchParams.set('access_type', 'offline');
+      googleUrl.searchParams.set('prompt', 'select_account');
+      googleUrl.searchParams.set('state', state);
+      return redirect(res, googleUrl.toString());
     }
 
-    if (action === 'auth.signup') {
+    if (action === 'auth.google.callback') {
+      const stored = parseCookies(req)[OAUTH_STATE_COOKIE] || '';
+      const [state, encodedRedirect] = stored.split('|');
+      const redirectTo = encodedRedirect ? decodeURIComponent(encodedRedirect) : `${publicOrigin(req)}/HTML/index.html`;
+      if (!state || state !== url.searchParams.get('state')) {
+        clearOAuthStateCookie(res);
+        return redirect(res, `${redirectTo}?auth_error=google_state`);
+      }
+      const store = await makePostgresStore();
+      const redirectUri = `${publicOrigin(req)}/api/index?action=auth.google.callback`;
+      const profile = await fetchGoogleProfile(url.searchParams.get('code') || '', redirectUri);
+      const user = await store.upsertOAuthUser(profile);
+      const token = await store.createSession(user.id);
+      const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+      clearOAuthStateCookie(res, `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000${secure}`);
+      return redirect(res, redirectTo);
+    }
+
+    if (req.method !== 'POST') return fail(res, 'POST only', 405, 'method_not_allowed');
+    const store = await makePostgresStore();
+    const input = await readBody(req);
+    const postAction = action || input.action || '';
+
+    if (postAction === 'auth.session' || postAction === 'auth.user') {
+      const { user, token } = await currentUser(req, store);
+      if (!user) return ok(res, postAction === 'auth.session' ? { session: null } : { user: null });
+      return ok(res, postAction === 'auth.session' ? { session: sessionPayload(user, token) } : { user: userPayload(user) });
+    }
+
+    if (postAction === 'auth.signup') {
       const email = normalizeEmail(input.email);
       const password = String(input.password || '');
       const metadata = input.metadata && typeof input.metadata === 'object' ? input.metadata : {};
@@ -528,7 +779,7 @@ export default async function handler(req, res) {
       return ok(res, { user: userPayload(user), session: sessionPayload(user, token) });
     }
 
-    if (action === 'auth.login') {
+    if (postAction === 'auth.login') {
       const email = normalizeEmail(input.email);
       const user = await store.userByEmail(email);
       if (!user || !verifyPassword(input.password || '', user.password_hash)) return fail(res, 'البريد الإلكتروني أو كلمة المرور غير صحيحة', 401, 'invalid_login');
@@ -538,29 +789,30 @@ export default async function handler(req, res) {
       return ok(res, { user: userPayload(user), session: sessionPayload(user, token) });
     }
 
-    if (action === 'auth.logout') {
+    if (postAction === 'auth.logout') {
       const token = parseCookies(req)[SESSION_COOKIE];
       if (token) await store.deleteSession(token);
       clearCookie(res);
       return ok(res, null);
     }
 
-    if (action === 'auth.update') {
+    if (postAction === 'auth.update') {
       const { user } = await currentUser(req, store);
       if (!user) return fail(res, 'Login required', 401, 'login_required');
       const updated = await store.updateUser(user.id, input.attributes || {});
       return ok(res, { user: userPayload(updated) });
     }
 
-    if (action === 'auth.reset') {
+    if (postAction === 'auth.reset') {
       return ok(res, { message: 'Password reset emails are not enabled yet. Admin can change the password from the panel.' });
     }
 
-    if (action === 'db.query') {
+    if (postAction === 'db.query') {
       const { user } = await currentUser(req, store);
-      if (!user) return fail(res, 'Login required', 401, 'login_required');
       const table = String(input.table || '');
       if (table !== 'profiles' && !TABLES.has(table)) return fail(res, `Table is not available: ${table}`, 400, 'table_not_allowed');
+      const accessError = enforceAccess(table, input, user);
+      if (accessError) return fail(res, accessError.message, accessError.status, accessError.code);
       const data = await store.query(table, input, user);
       return ok(res, data);
     }
