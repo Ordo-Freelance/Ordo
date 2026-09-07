@@ -12841,12 +12841,6 @@ async function loginWithSupaSession(supaUser, session, userMeta){
     }catch(e){ console.warn('[invites]', e.message||e); }
   })();
 
-  if(isAdmin || isViewer) {
-    showAdminChoiceOverlay(userObj, isAdmin);
-    showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> أهلاً ' + (userObj.name||''), '#4fd1a5');
-    return;
-  }
-
   // â”€â”€ استعادة الصفحة من الـ URL أو الداش بورد â”€â”€
   var _savedPage = (typeof _restorePageFromUrl === 'function') ? _restorePageFromUrl() : null;
   var _startPage = _savedPage || 'dashboard';
@@ -13417,26 +13411,10 @@ function goToUserSite(){
   _currentMode='user';
   const o=document.getElementById('admin-choice-overlay'); if(o) o.style.display='none';
   if(_supaUserId) loadUserSubscription(_supaUserId);
-  // أضف زرار الأدمن في الـ sidebar
-  setTimeout(()=>{ _addAdminSwitchBtn(); }, 500);
 }
 
 function goToAdminDash(){
   window.open('admin.html','_blank');
-}
-
-function _addAdminSwitchBtn(){
-  if(!_isAdminUser) return;
-  if(document.getElementById('_admin_sw_btn')) return;
-  const su=document.getElementById('sidebar-user'); if(!su) return;
-  const btn=document.createElement('button');
-  btn.id='_admin_sw_btn';
-  btn.title='التبديل للأدمن';
-  btn.style.cssText='background:rgba(108,99,255,.15);border:1px solid rgba(108,99,255,.3);color:var(--accent);border-radius:8px;padding:4px 7px;font-size:10px;cursor:pointer;font-family:var(--font);font-weight:700;flex-shrink:0;transition:.2s;white-space:nowrap';
-  btn.innerHTML='<i class="fa-solid fa-bolt"></i> أدمن';
-  btn.onclick=(e)=>{e.stopPropagation();openProfileModal();setTimeout(()=>_switchSettingsTab('adminswitch'),100);};
-  const logoutBtn=su.querySelector('.logout-btn');
-  if(logoutBtn) su.insertBefore(btn,logoutBtn); else su.appendChild(btn);
 }
 
 // migration helper
@@ -13712,9 +13690,10 @@ function openProfileModal(){
 }
 
 function renderProfileBody(user, users, tab='profile'){
-  const tabs = ['profile','subscription','accounts','reset',...(_isAdminUser?['adminswitch']:[])];
-  const tabLabels = ['بياناتي','اشتراكي','الحسابات','كلمة المرور',...(_isAdminUser?['<i class="fa-solid fa-bolt"></i> أدمن']:[])];
-  const tabIcons  = ['<i class="fa-solid fa-user"></i>','<i class="fa-solid fa-box"></i>','<i class="fa-solid fa-users"></i>','<i class="fa-solid fa-lock"></i>',...(_isAdminUser?['']:[])];
+  const tabs = ['profile','subscription','accounts','reset'];
+  if(!tabs.includes(tab)) tab = 'profile';
+  const tabLabels = ['بياناتي','اشتراكي','الحسابات','كلمة المرور'];
+  const tabIcons  = ['<i class="fa-solid fa-user"></i>','<i class="fa-solid fa-box"></i>','<i class="fa-solid fa-users"></i>','<i class="fa-solid fa-lock"></i>'];
 
 
   let html = `
@@ -19174,21 +19153,6 @@ supa.auth.onAuthStateChange(async (event, session) => {
     const existingSession = getSession();
     if(existingSession && existingSession.id && existingSession.id !== session.user.id && _authInitialized){
       console.warn('Session conflict: ignoring auth change for different user');
-      return;
-    }
-
-    // FIX: Check if this login was manually triggered by the user
-    const isAdminTabSession = (
-      session.user.app_metadata?.role === 'admin' ||
-      session.user.app_metadata?.is_admin === true ||
-      session.user.user_metadata?.role === 'admin' ||
-      session.user.user_metadata?.is_admin === true
-    );
-    // ALWAYS block admin accounts from auto-logging into user site
-    if(isAdminTabSession){
-      const authScreen = document.getElementById('auth-screen');
-      if(authScreen && !_supaUserId){ authScreen.classList.remove('hidden'); }
-      console.log('Admin account blocked from user site auto-login');
       return;
     }
 
