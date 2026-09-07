@@ -631,7 +631,8 @@ async function makePostgresStore() {
         const values = keys.map(key => payload[key]);
         const sets = keys.map((key, i) => `${key}=$${i + 1}`);
         const shiftedWhere = where.map(clause => clause.replace(/\$(\d+)/g, (_, n) => `$${Number(n) + values.length}`));
-        const setClause = sets.length ? `${sets.join(',')}, updated_at=NOW()` : 'updated_at=NOW()';
+        if (!keys.includes('updated_at')) sets.push('updated_at=NOW()');
+        const setClause = sets.join(',');
         const rows = await query(`UPDATE ${tableName} SET ${setClause}${shiftedWhere.length ? ` WHERE ${shiftedWhere.join(' AND ')}` : ''} RETURNING *`, [...values, ...params]);
         const out = rows.map(decodeJsonFields);
         return input.single ? (out[0] || null) : out;
