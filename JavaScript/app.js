@@ -12597,6 +12597,8 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   } catch(e) {}
 
   let cloudData = await cloudLoad();
+  // The Vercel loader has already resolved the server data and local fallback.
+  if(window._ordoCloudLoadedFromServer) _cachedData = null;
 
   // â”€â”€ لو السحابة رجعت فاضية وعندنا cache ? استخدم الـ cache فوراً â”€â”€
   const _cloudScore = (cloudData?.tasks?.length||0) + (cloudData?.clients?.length||0) + (cloudData?.invoices?.length||0);

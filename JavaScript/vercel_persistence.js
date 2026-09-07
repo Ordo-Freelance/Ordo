@@ -4,6 +4,9 @@
 
   var saveTimer = null;
   var SAVE_DELAY = 700;
+  root._cloudSaving = false;
+  root._cloudSavePending = false;
+  root._ordoCloudLoadedFromServer = false;
 
   function client(){
     return typeof supa !== 'undefined' ? supa : root.supa;
@@ -54,40 +57,22 @@
     } catch(e){}
   }
 
-  function score(data){
-    data = data || {};
-    return (data.tasks||[]).length * 4 +
-      (data.clients||[]).length * 3 +
-      (data.invoices||[]).length * 3 +
-      (data.transactions||[]).length * 2 +
-      (data.projects||[]).length * 2 +
-      (data.project_tasks||[]).length * 2 +
-      (data.services||[]).length +
-      (data.contracts||[]).length +
-      (data.reviews||[]).length +
-      (data.settings && Object.keys(data.settings).length ? 1 : 0);
-  }
-
-  function newer(a, b){
-    var at = Date.parse(a && (a._savedAt || a.updated_at) || '') || 0;
-    var bt = Date.parse(b && (b._savedAt || b.updated_at) || '') || 0;
-    var as = score(a), bs = score(b);
-    if(at || bt) return at >= bt ? a : b;
-    if(as !== bs) return as > bs ? a : b;
-    return a || b;
-  }
-
   root.cloudLoad = async function(){
+    root._ordoCloudLoadedFromServer = false;
     var userId = uid();
     var db = client();
     if(!userId || !db) return readCache() || normalize(root.S);
     try {
       var res = await db.from('studio_data').select('data,updated_at').eq('user_id', userId).maybeSingle();
       if(res.error) throw res.error;
+      root._ordoCloudLoadedFromServer = true;
       var remote = res && res.data ? normalize(res.data.data) : null;
       if(remote && res.data.updated_at && !remote.updated_at) remote.updated_at = res.data.updated_at;
       var local = readCache();
-      var chosen = remote && local ? newer(remote, local) : (remote || local || normalize(root.S));
+      if(remote && local && JSON.stringify(remote) !== JSON.stringify(local)) {
+        try { root.localStorage.setItem(cacheKey() + '_before_server_load', JSON.stringify(local)); } catch(e){}
+      }
+      var chosen = remote || local || normalize(root.S);
       root.S = normalize(chosen);
       writeCache(root.S);
       return root.S;
@@ -104,7 +89,7 @@
     root.S._savedAt = new Date().toISOString();
     writeCache(root.S);
     var db = client();
-    if(!userId || !db) return root.S;
+    if(!userId || !db || !root._ordoCloudLoadedFromServer) return root.S;
     try {
       var username = root.S && root.S.settings && root.S.settings.username ? String(root.S.settings.username).toLowerCase() : null;
       var result = await db.from('studio_data').upsert({
