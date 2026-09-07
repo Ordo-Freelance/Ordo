@@ -3066,7 +3066,7 @@ async function loadUsers() {
 
 async function loadStudioData() {
   try {
-    const { data, error } = await supa.from('studio_data').select('user_id, updated_at').limit(200);
+    const { data, error } = await supa.from('studio_data').select('user_id, data, updated_at').limit(200);
     if(error){
       console.error('studio_data RLS error:', error.message);
     } else if(data) {
@@ -3074,7 +3074,7 @@ async function loadStudioData() {
         try {
           ALL_STUDIO_DATA[row.user_id] = {
             ...row,
-            parsed: {}
+            parsed: typeof row.data === 'string' ? JSON.parse(row.data) : (row.data || {})
           };
         } catch {}
       });
@@ -3082,12 +3082,29 @@ async function loadStudioData() {
     }
   } catch(e) { console.error('loadStudioData exception:', e); }
 
+  try {
+    const { data: profiles, error } = await supa.from('profiles').select('id,email,name,phone,studio,created_at,updated_at').limit(200);
+    if(error) throw error;
+    (profiles || []).forEach(profile => {
+      const row = ALL_STUDIO_DATA[profile.id] || { user_id: profile.id, parsed: {} };
+      row.parsed = row.parsed || {};
+      row.parsed.settings = Object.assign({}, row.parsed.settings || {}, {
+        name: profile.name || row.parsed.settings?.name || '',
+        email: profile.email || '',
+        phone: profile.phone || row.parsed.settings?.phone || '',
+        studio: profile.studio || row.parsed.settings?.studio || ''
+      });
+      row.created_at = profile.created_at;
+      row.updated_at = row.updated_at || profile.updated_at;
+      ALL_STUDIO_DATA[profile.id] = row;
+    });
+  } catch(e) { console.error('profiles load error:', e); }
+
   // أضف المستخدمين من serial_keys (حتى اللي مش عندهم studio_data)
   try {
     const { data: skData, error: skErr } = await supa
       .from('serial_keys')
-      .select('user_id, status, activated_at, plan_id, billing, expires_at')
-      .not('user_id', 'is', null);
+      .select('user_id, status, activated_at, plan_id, billing, expires_at');
     if(skErr){ console.error('serial_keys RLS error:', skErr.message); }
     else if(skData) {
       skData.forEach(row => {
