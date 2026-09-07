@@ -5,6 +5,10 @@
   var saveTimer = null;
   var SAVE_DELAY = 700;
 
+  function client(){
+    return typeof supa !== 'undefined' ? supa : root.supa;
+  }
+
   function normalize(data){
     if(typeof data === 'string'){
       try { data = JSON.parse(data); } catch(e){ data = null; }
@@ -37,7 +41,7 @@
   }
 
   function readCache(){
-    try { return normalize(root.localStorage.getItem(cacheKey())); }
+    try { var raw = root.localStorage.getItem(cacheKey()); return raw ? normalize(raw) : null; }
     catch(e){ return null; }
   }
 
@@ -75,9 +79,11 @@
 
   root.cloudLoad = async function(){
     var userId = uid();
-    if(!userId || !root.supa) return readCache() || normalize(root.S);
+    var db = client();
+    if(!userId || !db) return readCache() || normalize(root.S);
     try {
-      var res = await root.supa.from('studio_data').select('data,updated_at').eq('user_id', userId).maybeSingle();
+      var res = await db.from('studio_data').select('data,updated_at').eq('user_id', userId).maybeSingle();
+      if(res.error) throw res.error;
       var remote = res && res.data ? normalize(res.data.data) : null;
       if(remote && res.data.updated_at && !remote.updated_at) remote.updated_at = res.data.updated_at;
       var local = readCache();
@@ -91,20 +97,23 @@
   };
 
   root.cloudSave = async function(data){
+    if(!root._cloudLoadDone || !root._appReady) return root.S;
     var userId = uid();
     if(data) root.S = data;
     root.S = normalize(root.S);
     root.S._savedAt = new Date().toISOString();
     writeCache(root.S);
-    if(!userId || !root.supa) return root.S;
+    var db = client();
+    if(!userId || !db) return root.S;
     try {
       var username = root.S && root.S.settings && root.S.settings.username ? String(root.S.settings.username).toLowerCase() : null;
-      await root.supa.from('studio_data').upsert({
+      var result = await db.from('studio_data').upsert({
         user_id:userId,
         data:JSON.stringify(root.S),
         username_index:username,
         updated_at:root.S._savedAt
       }, {onConflict:'user_id'});
+      if(result.error) throw result.error;
       if(root.showSyncIndicator) root.showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محفوظ', '#4fd1a5');
     } catch(e) {
       if(root.showSyncIndicator) root.showSyncIndicator('<i class="fa-solid fa-triangle-exclamation"></i> محفوظ محلياً فقط', '#f7c948');
@@ -119,8 +128,7 @@
   root._queueCloudSave = function(){ root.lsSave(); };
 
   root.addEventListener('beforeunload', function(){
-    if(root.S) {
-      root.S._savedAt = new Date().toISOString();
+    if(root.S && root._cloudLoadDone) {
       writeCache(root.S);
     }
   });
