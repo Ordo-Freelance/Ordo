@@ -29,7 +29,7 @@ const TABLES = new Set([
 ]);
 const PUBLIC_READ_TABLES = new Set(['platform_settings', 'public_tokens', 'public_store_items', 'public_reviews', 'public_contracts', 'shared_contracts']);
 const PUBLIC_WRITE_TABLES = new Set(['public_store_orders', 'public_reviews', 'review_queue', 'public_client_portal_events', 'subscription_requests']);
-const USER_TABLES = new Set(['studio_data', 'user_settings', 'user_notifications']);
+const USER_TABLES = new Set(['studio_data', 'user_settings', 'user_notifications', 'public_tokens', 'public_store_items']);
 const JSON_DATA_TABLES = new Set(['team_invites', 'team_members', 'public_tokens', 'public_store_items', 'public_store_orders', 'public_reviews', 'review_queue', 'public_contracts', 'public_client_portal_events', 'subscription_requests']);
 const TABLE_COLUMNS = {
   studio_data: new Set(['user_id', 'data', 'username_index', 'created_at', 'updated_at']),
@@ -382,6 +382,48 @@ class LocalStore {
     return user;
   }
 
+  async adminCreateUser(email, password, meta, isAdmin) {
+    const user = await this.createUser(email, password, meta);
+    const db = await readLocalDb();
+    const row = db.ordo_users.find(item => item.id === user.id);
+    row.is_admin = !!isAdmin;
+    row.updated_at = now();
+    await writeLocalDb(db);
+    return row;
+  }
+
+  async adminUpdateUser(identifier, attrs) {
+    const db = await readLocalDb();
+    const row = db.ordo_users.find(item => item.id === identifier || item.email === normalizeEmail(identifier));
+    if (!row) return null;
+    if (Object.prototype.hasOwnProperty.call(attrs, 'is_admin')) row.is_admin = !!attrs.is_admin;
+    if (attrs.status) row.status = attrs.status;
+    for (const key of ['name', 'phone', 'studio']) if (Object.prototype.hasOwnProperty.call(attrs, key)) row[key] = attrs[key] || '';
+    row.updated_at = now();
+    await writeLocalDb(db);
+    return row;
+  }
+
+  async adminDeleteUser(id) {
+    const db = await readLocalDb();
+    const exists = db.ordo_users.some(item => item.id === id);
+    if (!exists) return false;
+    db.ordo_users = db.ordo_users.filter(item => item.id !== id);
+    db.ordo_sessions = db.ordo_sessions.filter(item => item.user_id !== id);
+    for (const key of Object.keys(db)) {
+      if (!Array.isArray(db[key])) continue;
+      if (key === 'serial_keys') {
+        db[key] = db[key].map(item => item.user_id === id
+          ? { ...item, user_id:null, status:'unused', activated_at:null, expires_at:null, updated_at:now() }
+          : item);
+      } else if (!['ordo_users', 'ordo_sessions'].includes(key)) {
+        db[key] = db[key].filter(item => item.user_id !== id);
+      }
+    }
+    await writeLocalDb(db);
+    return true;
+  }
+
   async upsertOAuthUser(profile) {
     const db = await readLocalDb();
     const email = normalizeEmail(profile.email);
@@ -445,7 +487,17 @@ class LocalStore {
     const filters = Array.isArray(input.filters) ? input.filters : [];
     if (input.op === 'select') {
       let out = rows.filter(row => matches(row, filters));
-      if (isProfile) out = out.map(row => ({ id: row.id, email: row.email, name: row.name, created_at: row.created_at }));
+      if (isProfile) out = out.map(row => ({
+        id: row.id,
+        email: row.email,
+        name: row.name,
+        phone: row.phone,
+        studio: row.studio,
+        is_admin: !!row.is_admin,
+        status: row.status,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      }));
       if (input.order?.column) {
         const dir = input.order.ascending === false ? -1 : 1;
         out.sort((a, b) => String(getPath(a, input.order.column) ?? '').localeCompare(String(getPath(b, input.order.column) ?? '')) * dir);
@@ -563,6 +615,34 @@ async function makePostgresStore() {
         ]
       );
       return rows[0] || null;
+    },
+    async adminCreateUser(email, password, meta, isAdmin) {
+      const user = await this.createUser(email, password, meta);
+      if (!isAdmin) return user;
+      const rows = await query('UPDATE ordo_users SET is_admin=true, updated_at=NOW() WHERE id=$1 RETURNING *', [user.id]);
+      return rows[0] || user;
+    },
+    async adminUpdateUser(identifier, attrs) {
+      const current = String(identifier).includes('@')
+        ? await this.userByEmail(identifier)
+        : await this.userById(identifier);
+      if (!current) return null;
+      const rows = await query(
+        'UPDATE ordo_users SET name=$1, phone=$2, studio=$3, is_admin=$4, status=$5, updated_at=NOW() WHERE id=$6 RETURNING *',
+        [
+          attrs.name ?? current.name ?? '',
+          attrs.phone ?? current.phone ?? '',
+          attrs.studio ?? current.studio ?? '',
+          Object.prototype.hasOwnProperty.call(attrs, 'is_admin') ? !!attrs.is_admin : !!current.is_admin,
+          attrs.status || current.status || 'active',
+          current.id
+        ]
+      );
+      return rows[0] || null;
+    },
+    async adminDeleteUser(id) {
+      const rows = await query('DELETE FROM ordo_users WHERE id=$1 RETURNING id', [id]);
+      return !!rows[0];
     },
     async createSession(userId) {
       const token = uuid();
@@ -806,6 +886,43 @@ export default async function handler(req, res) {
 
     if (postAction === 'auth.reset') {
       return ok(res, { message: 'Password reset emails are not enabled yet. Admin can change the password from the panel.' });
+    }
+
+    if (postAction === 'admin.users.create') {
+      const { user } = await currentUser(req, store);
+      if (!user?.is_admin) return fail(res, 'Admin only', 403, 'admin_only');
+      const email = normalizeEmail(input.email);
+      const password = String(input.password || '');
+      const metadata = input.metadata && typeof input.metadata === 'object' ? input.metadata : {};
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail(res, 'البريد الإلكتروني غير صحيح');
+      if (password.length < 8) return fail(res, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+      const created = await store.adminCreateUser(email, password, metadata, !!input.is_admin);
+      return ok(res, { user: userPayload(created) });
+    }
+
+    if (postAction === 'admin.users.update') {
+      const { user } = await currentUser(req, store);
+      if (!user?.is_admin) return fail(res, 'Admin only', 403, 'admin_only');
+      const identifier = String(input.user_id || input.email || '');
+      const attrs = input.attributes && typeof input.attributes === 'object' ? input.attributes : {};
+      if (!identifier) return fail(res, 'User is required');
+      if (attrs.is_admin === false && (identifier === user.id || normalizeEmail(identifier) === user.email)) {
+        return fail(res, 'لا يمكن للمشرف إلغاء صلاحية حسابه الحالي', 400, 'cannot_demote_self');
+      }
+      const updated = await store.adminUpdateUser(identifier, attrs);
+      if (!updated) return fail(res, 'المستخدم غير موجود', 404, 'user_not_found');
+      return ok(res, { user: userPayload(updated) });
+    }
+
+    if (postAction === 'admin.users.delete') {
+      const { user } = await currentUser(req, store);
+      if (!user?.is_admin) return fail(res, 'Admin only', 403, 'admin_only');
+      const userId = String(input.user_id || '');
+      if (!userId) return fail(res, 'User is required');
+      if (userId === user.id) return fail(res, 'لا يمكن للمشرف حذف حسابه الحالي', 400, 'cannot_delete_self');
+      const deleted = await store.adminDeleteUser(userId);
+      if (!deleted) return fail(res, 'المستخدم غير موجود', 404, 'user_not_found');
+      return ok(res, { deleted:true });
     }
 
     if (postAction === 'db.query') {

@@ -238,7 +238,8 @@ function applyPortalIdentityBackground(settings){
 
 const P=new URLSearchParams(location.search);
 const pUid=P.get('uid'),pCid=P.get('cid'),pOrderId=P.get('order'),pTaskId=P.get('taskid')||P.get('tid'),pName=P.get('name')||'',pPhone=P.get('phone')||'';
-const pPublicToken=P.get('token')||P.get('public_token')||P.get('t')||'';
+const pPathToken=(location.pathname.match(/^\/portal\/([^/?#]+)\/?$/i)||[])[1]||'';
+const pPublicToken=P.get('token')||P.get('public_token')||P.get('t')||(pPathToken?decodeURIComponent(pPathToken):'');
 const pUsername=P.get('u'), pClientSlug=P.get('p');
 const pTab=P.get('tab')||'', pProjId=P.get('pid')||'';
 let _ud,_settings,_clientName,_clientPhone,_clientId,_clientTasks,_clientProjects,_clientInvoices,_clientOrders;

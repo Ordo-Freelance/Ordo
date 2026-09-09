@@ -156,6 +156,8 @@ var _pUname=P.get('u');
 var _pPublicToken=P.get('token')||P.get('public_token')||P.get('t')||'';
 // دعم روابط ?store=ID أو ?s=ID
 var _storeId=P.get('store')||P.get('s')||null;
+var _shortStorePath=location.pathname.match(/^\/store\/([^/?#]+)\/?$/i);
+if(!_pUname&&_shortStorePath) _pUname=decodeURIComponent(_shortStorePath[1]);
 
 // ── helpers ──
 function xe(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -201,28 +203,21 @@ async function resolveUname(u){
   if(!u) return null;
   var uLower=u.toLowerCase().trim();
 
-  // محاولة 1: username_index column (الأسرع) — للـ username الرئيسي
-  try{
-    var r=await supa.from('studio_data').select('user_id').ilike('username_index',uLower).maybeSingle();
-    if(r.data&&r.data.user_id){ console.log('[Store] resolved via username_index'); return r.data.user_id; }
-  }catch(e){ console.warn('[Store] username_index lookup failed:',e.message); }
-
-  // محاولة 2: جدول المتاجر العام الخفيف للفروع/الروابط الجديدة
   try{
     var r2=await supa.from('public_store_items')
-      .select('owner_user_id,store_data')
-      .eq('slug',uLower)
-      .eq('is_active',true)
+      .select('user_id,data')
+      .eq('data->>slug',uLower)
+      .eq('active',true)
       .limit(1)
       .maybeSingle();
-    if(r2.data&&r2.data.owner_user_id){
+    if(r2.data&&r2.data.user_id){
       try{
-        var sd=typeof r2.data.store_data==='string'?JSON.parse(r2.data.store_data):(r2.data.store_data||{});
+        var sd=typeof r2.data.data==='string'?JSON.parse(r2.data.data):(r2.data.data||{});
         window._storePublicData = sd.studio_data || sd;
-        if(sd.id) _storeId=sd.id;
+        if(sd.store_id) _storeId=sd.store_id;
       }catch(pe){}
       console.log('[Store] resolved via public_store_items');
-      return r2.data.owner_user_id;
+      return r2.data.user_id;
     }
   }catch(e){ console.warn('[Store] public_store_items lookup failed:',e.message); }
 

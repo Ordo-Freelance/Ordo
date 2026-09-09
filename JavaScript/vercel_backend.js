@@ -4,6 +4,28 @@
   var API_URL = (root.ORDO_CONFIG && root.ORDO_CONFIG.API_URL) || '/api/index';
   var AUTH_KEY = 'studioOS_auth_v1';
   var authListeners = [];
+  var uploadedFiles = {};
+
+  function imageDataUrl(file){
+    return new Promise(function(resolve, reject){
+      if(!file || !String(file.type || '').startsWith('image/')){
+        var raw = new FileReader(); raw.onload=function(){resolve(raw.result);}; raw.onerror=reject; raw.readAsDataURL(file); return;
+      }
+      var reader=new FileReader(); reader.onerror=reject;
+      reader.onload=function(){
+        var img=new Image(); img.onerror=function(){resolve(reader.result);};
+        img.onload=function(){
+          var max=1600, scale=Math.min(1,max/Math.max(img.width,img.height));
+          var canvas=document.createElement('canvas');
+          canvas.width=Math.max(1,Math.round(img.width*scale)); canvas.height=Math.max(1,Math.round(img.height*scale));
+          canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+          resolve(canvas.toDataURL('image/jpeg',0.82));
+        };
+        img.src=reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
   function request(action, payload){
     return fetch(API_URL + '?action=' + encodeURIComponent(action), {
@@ -95,6 +117,29 @@
   function makeClient(){
     return {
       from: function(table){ return makeBuilder(table); },
+      admin: {
+        createUser: function(opts){
+          opts = opts || {};
+          return request('admin.users.create', {
+            email:opts.email,
+            password:opts.password,
+            metadata:opts.metadata || {},
+            is_admin:!!opts.is_admin
+          }).then(function(body){ return {data:body.data,error:null}; }).catch(function(err){ return {data:null,error:err}; });
+        },
+        updateUserById: function(userId, attributes){
+          return request('admin.users.update', {user_id:userId,attributes:attributes || {}})
+            .then(function(body){ return {data:body.data,error:null}; }).catch(function(err){ return {data:null,error:err}; });
+        },
+        updateUserByEmail: function(email, attributes){
+          return request('admin.users.update', {email:email,attributes:attributes || {}})
+            .then(function(body){ return {data:body.data,error:null}; }).catch(function(err){ return {data:null,error:err}; });
+        },
+        deleteUser: function(userId){
+          return request('admin.users.delete', {user_id:userId})
+            .then(function(body){ return {data:body.data,error:null}; }).catch(function(err){ return {data:null,error:err}; });
+        }
+      },
       channel: function(){
         return {
           on: function(){ return this; },
@@ -134,7 +179,13 @@
         resetPasswordForEmail: function(email){
           return request('auth.reset', {email:email}).then(function(body){ return {data:body.data, error:null}; }).catch(function(err){ return {data:null, error:err}; });
         },
-        signInWithOAuth: function(){ return failure({message:'Google login is not enabled yet.'}); },
+        signInWithOAuth: function(opts){
+          opts = opts || {};
+          if(opts.provider !== 'google') return failure({message:'طريقة تسجيل الدخول غير مدعومة.'});
+          var redirectTo = opts.options && opts.options.redirectTo || root.location.origin + '/dashboard';
+          root.location.assign(API_URL + '?action=auth.google.start&redirectTo=' + encodeURIComponent(redirectTo));
+          return new Promise(function(){});
+        },
         onAuthStateChange: function(cb){
           if(typeof cb === 'function'){
             authListeners.push(cb);
@@ -151,9 +202,9 @@
       storage: {
         from: function(bucket){
           return {
-            upload: function(path, file){ return result({path:path, fullPath:'ordo-upload://' + bucket + '/' + path, file:file && file.name}); },
-            getPublicUrl: function(path){ return {data:{publicUrl:'ordo-upload://' + bucket + '/' + path}}; },
-            createSignedUrl: function(path){ return result({signedUrl:'ordo-upload://' + bucket + '/' + path}); },
+            upload: function(path, file){ return imageDataUrl(file).then(function(url){ uploadedFiles[bucket+'/'+path]=url; return {data:{path:path,fullPath:path},error:null}; }).catch(function(error){return {data:null,error:error};}); },
+            getPublicUrl: function(path){ return {data:{publicUrl:uploadedFiles[bucket+'/'+path]||''}}; },
+            createSignedUrl: function(path){ return result({signedUrl:uploadedFiles[bucket+'/'+path]||''}); },
             download: function(){ return result(new Blob([''])); },
             list: function(){ return result([]); },
             remove: function(){ return result([]); }

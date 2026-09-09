@@ -57,6 +57,37 @@
     } catch(e){}
   }
 
+  function publicSettings(settings){
+    settings=settings||{};
+    var allowed=['name','studio','bio','desc','phone','email','logo','store_logo','svc_banner','svc_banner_size','svc_banner_custom_px','svc_site_desc','svc_orders_open','username','accent','accent2','accentColor','accentColor2','theme_color','displayMode','display_mode','socials'];
+    var out={}; allowed.forEach(function(key){if(settings[key]!==undefined)out[key]=settings[key];}); return out;
+  }
+  function publicStoreData(data,store){
+    var storeId=store&&store.id; function belongs(item){return storeId?String(item.store_id||'')===String(storeId):!item.store_id;}
+    return {settings:publicSettings(data.settings),stores:store?[store]:[],services:(data.services||[]).filter(function(x){return x&&x.active!==false&&belongs(x);}),standalone_packages:(data.standalone_packages||[]).filter(function(x){return x&&x.active!==false&&belongs(x);}),portfolio_projects:(data.portfolio_projects||[]).filter(function(x){return x&&x.active!==false;}),reviews:(data.reviews||[]).filter(function(x){return x&&x.public_visible!==false&&x.approved!==false;})};
+  }
+  function publicPortalData(data,token){
+    var clientId=String(token.client_id||'');
+    var projects=(data.projects||[]).filter(function(x){return String(x.client_id||'')===clientId||String(x.clientId||'')===clientId;});
+    var projectIds=projects.map(function(x){return String(x.id);});
+    function forClient(x){return String(x.client_id||x.clientId||'')===clientId||projectIds.indexOf(String(x.project_id||x.projectId||''))>=0;}
+    return {settings:publicSettings(data.settings),clients:(data.clients||[]).filter(function(x){return String(x.id)===clientId;}).map(function(x){return{id:x.id,name:x.name,email:x.email,phone:x.phone,company:x.company};}),projects:projects,project_tasks:(data.project_tasks||[]).filter(forClient),tasks:(data.tasks||[]).filter(forClient),invoices:(data.invoices||[]).filter(forClient),contracts:(data.contracts||[]).filter(forClient),proposals:(data.proposals||[]).filter(forClient),client_portals:(data.client_portals||[]).filter(function(x){return String(x.client_id||'')===clientId;}),svc_orders:(data.svc_orders||[]).filter(forClient)};
+  }
+  async function publishPublicData(db,userId,data){
+    var settings=data.settings||{},stores=[null].concat(data.stores||[]);
+    for(var i=0;i<stores.length;i++){
+      var store=stores[i],slug=String((store&&store.username)||(!store&&settings.username)||'').toLowerCase(); if(!slug)continue;
+      var id='store_'+userId+(store?'_'+store.id:'');
+      var payload={slug:slug,store_id:store&&store.id||null,studio_data:publicStoreData(data,store)};
+      var storeRes=await db.from('public_store_items').upsert({id:id,user_id:userId,data:payload,active:true},{onConflict:'id'}); if(storeRes.error)throw storeRes.error;
+    }
+    for(var j=0;j<(data.public_tokens||[]).length;j++){
+      var token=data.public_tokens[j]; if(!token||!token.token)continue;
+      var tokenPayload=Object.assign({},token); if(token.entity_type==='client_portal')tokenPayload.studio_data=publicPortalData(data,token);
+      var tokenRes=await db.from('public_tokens').upsert({id:String(token.token),token:String(token.token),user_id:userId,type:token.entity_type||'',data:tokenPayload},{onConflict:'id'}); if(tokenRes.error)throw tokenRes.error;
+    }
+  }
+
   root.cloudLoad = async function(){
     root._ordoCloudLoadedFromServer = false;
     var userId = uid();
@@ -89,6 +120,7 @@
     root.S._savedAt = new Date().toISOString();
     writeCache(root.S);
     var db = client();
+    root._lastCloudSaveOk=false;
     if(!userId || !db || !root._ordoCloudLoadedFromServer) return root.S;
     try {
       var username = root.S && root.S.settings && root.S.settings.username ? String(root.S.settings.username).toLowerCase() : null;
@@ -99,6 +131,8 @@
         updated_at:root.S._savedAt
       }, {onConflict:'user_id'});
       if(result.error) throw result.error;
+      await publishPublicData(db,userId,root.S);
+      root._lastCloudSaveOk=true;
       if(root.showSyncIndicator) root.showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محفوظ', '#4fd1a5');
     } catch(e) {
       if(root.showSyncIndicator) root.showSyncIndicator('<i class="fa-solid fa-triangle-exclamation"></i> محفوظ محلياً فقط', '#f7c948');

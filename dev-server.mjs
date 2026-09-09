@@ -21,7 +21,11 @@ const types = new Map([
 
 function safePath(urlPath) {
   let decoded = decodeURIComponent(urlPath.split('?')[0]);
-  if (decoded === '/') decoded = '/index.html';
+  const appRoutes = new Set(['/','/dashboard','/tasks','/projects','/schedule','/meetings','/clients','/finance','/invoices','/services','/support','/team','/timetracker','/goals','/settings','/reports','/vault']);
+  if (appRoutes.has(decoded)) decoded = '/HTML/index.html';
+  else if (decoded === '/admin' || decoded === '/admin/') decoded = '/HTML/admin.html';
+  else if (decoded.startsWith('/store/')) decoded = '/HTML/store.html';
+  else if (decoded.startsWith('/portal/')) decoded = '/HTML/client-portal.html';
   const full = path.normalize(path.join(root, decoded));
   return full.startsWith(root) ? full : path.join(root, 'index.html');
 }

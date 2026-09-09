@@ -1297,8 +1297,10 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
         <span onclick="showForgotPassword()" style="font-size:12px;color:var(--accent);cursor:pointer;font-weight:600">نسيت كلمة المرور؟</span>
       </div>
       <button class="auth-btn" onclick="doLogin()">تسجيل الدخول</button>
-      <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:10px">الدخول حالياً بالإيميل وكلمة المرور فقط</div>
       <div class="auth-divider">أو</div>
+      <button type="button" class="auth-btn-google" onclick="doGoogleLogin()">
+        <i class="fa-brands fa-google"></i> المتابعة باستخدام Google
+      </button>
       <button class="auth-btn" onclick="triggerAuthBackupImport()" style="background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);box-shadow:none;margin-top:0">
         <i class="fa-solid fa-folder-open"></i> استعادة من نسخة احتياطية
       </button>
@@ -1344,7 +1346,10 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
         <input class="auth-input" id="reg-password2" type="password" placeholder="أعد كتابة كلمة المرور" onkeydown="if(event.key==='Enter')doRegister()">
       </div>
       <button class="auth-btn" onclick="doRegister()">إنشاء الحساب</button>
-      <div style="text-align:center;font-size:11px;color:var(--text3);margin-top:10px">طرق تسجيل دخول إضافية هتتضاف لاحقاً</div>
+      <div class="auth-divider">أو</div>
+      <button type="button" class="auth-btn-google" onclick="doGoogleLogin()">
+        <i class="fa-brands fa-google"></i> التسجيل باستخدام Google
+      </button>
       <div style="text-align:center;font-size:12px;color:var(--text2);margin-top:10px;padding-bottom:8px">
         عندك حساب بالفعل؟
         <span style="color:var(--accent);cursor:pointer;font-weight:700" onclick="switchAuthTab('login')">سجّل الدخول</span>

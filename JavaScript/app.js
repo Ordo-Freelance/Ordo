@@ -529,19 +529,16 @@ function _getPageFromSlug(slug){ return _SLUG_TO_PAGE[slug] || slug; }
 function _pushPageUrl(pageId){
   var slug = _getPageSlug(pageId);
   try{ localStorage.setItem('ordo_last_page', slug); }catch(e){}
-  var curHash = window.location.hash.replace('#','');
-  if(curHash === slug) {
-    // نفس الصفحة ? replace بس
-    window.history.replaceState({page: pageId}, '', '#' + slug);
-  } else {
-    window.history.pushState({page: pageId}, '', '#' + slug);
-  }
+  var target=window.location.protocol==='file:'?('#'+slug):('/'+slug);
+  var current=window.location.protocol==='file:'?window.location.hash:window.location.pathname;
+  if(current===target)window.history.replaceState({page:pageId},'',target); else window.history.pushState({page:pageId},'',target);
 }
 
 function _getPageFromUrl(){
   var hash = window.location.hash.replace('#','').trim();
-  if(!hash) return null;
-  return _getPageFromSlug(hash);
+  if(hash)return _getPageFromSlug(hash);
+  var path=window.location.pathname.split('/').filter(Boolean),slug=path.length?path[path.length-1]:'';
+  return _SLUG_TO_PAGE[slug]?_getPageFromSlug(slug):null;
 }
 
 // Handle browser back/forward buttons
@@ -21627,8 +21624,10 @@ function _openMyStore(){
 }
 
 function getSvcLink(storeId){
-  // ? دائماً ابنِ رابط store.html مباشر ? الروابط القصيرة بتديك 404 على GitHub Pages
   var uid = (typeof _supaUserId!=='undefined' && _supaUserId) ? _supaUserId : '';
+  var un=S&&S.settings&&S.settings.username;
+  if(storeId){var shortStore=(_getStores()||[]).find(function(s){return s.id===storeId;});if(shortStore&&shortStore.username)return window.location.origin+'/store/'+encodeURIComponent(shortStore.username);}
+  if(un&&window.location.protocol!=='file:')return window.location.origin+'/store/'+encodeURIComponent(un)+(storeId?'?store='+encodeURIComponent(storeId):'');
   var _spp=window.location.pathname,_sps=_spp.split('/').filter(function(x){return x!=='';});
   if(_sps.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_sps[_sps.length-1])>=0)_sps.pop();
   if(_sps.length&&_sps[_sps.length-1].endsWith('.html'))_sps.pop();
@@ -21639,7 +21638,6 @@ function getSvcLink(storeId){
       return base+'?u='+encodeURIComponent(storeObj.username);
     }
   }
-  var un=S&&S.settings&&S.settings.username;
   var link=un?(base+'?u='+encodeURIComponent(un)):(base+'?uid='+uid);
   if(storeId) link+='&store='+encodeURIComponent(storeId);
   return link;
@@ -21647,14 +21645,14 @@ function getSvcLink(storeId){
 
 // â•گâ•گ USERNAME / CUSTOM LINK FUNCTIONS â•گâ•گ
 function _updateUsernamePreview(un){
-  var base=window.location.origin+window.location.pathname;
+  var base=window.location.origin+'/store/';
   var linkEl=document.getElementById('username-link-preview');
   if(!linkEl) return;
   if(un){
-    linkEl.textContent=base+'?u='+un;
+    linkEl.textContent=base+encodeURIComponent(un);
     linkEl.title='انقر للمعاينة';
     linkEl.style.cursor='pointer';
-    linkEl.onclick=function(){ window.open(base+'?u='+un,'_blank'); };
+    linkEl.onclick=function(){ window.open(base+encodeURIComponent(un),'_blank'); };
   } else {
     linkEl.textContent='أدخل اسم مستخدم لتفعيل الرابط المخصص';
     linkEl.onclick=null;
@@ -21671,6 +21669,7 @@ async function checkAndSaveUsername(){
   try{
     // Check via username_index column (more reliable)
     var res=await supa.from('studio_data').select('user_id').eq('username_index', un).neq('user_id',_supaUserId).maybeSingle();
+    if(res.error) throw res.error;
     if(res.data){
       if(statusEl) statusEl.innerHTML='<span style="color:var(--accent4)">â‌Œ الاسم محجوز، جرب اسماً آخر</span>';
       return;
@@ -21679,23 +21678,16 @@ async function checkAndSaveUsername(){
     if(!S.settings) S.settings={};
     S.settings.username=un;
     if(inp) inp.value=un;
-    // Force immediate cloud save with username_index
-    S._savedAt=new Date().toISOString();
-    try{
-      const payload={user_id:_supaUserId,data:JSON.stringify(S),updated_at:S._savedAt,username_index:un};
-      await supa.from('studio_data').upsert(payload,{onConflict:'user_id'});
-    }catch(e2){}
     lsSave();
+    await cloudSaveNow(S);
+    if(!window._lastCloudSaveOk) throw new Error('cloud_save_failed');
     _updateUsernamePreview(un);
-    if(statusEl) statusEl.innerHTML='? تم الحفظ ? رابط متجرك: <span id="username-link-preview" style="color:var(--accent);cursor:pointer" onclick="window.open(window.location.origin+window.location.pathname+\'?u='+un+'\')">'+(window.location.origin+window.location.pathname)+'?u='+un+'</span>';
-    toast('? تم حفظ الاسم: @'+un);
+    var publicLink=window.location.origin+'/store/'+encodeURIComponent(un);
+    if(statusEl) statusEl.innerHTML='<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم الحفظ - رابط متجرك: <a href="'+publicLink+'" target="_blank" style="color:var(--accent)">'+publicLink+'</a>';
+    toast('<i class="fa-solid fa-square-check"></i> تم حفظ رابط المتجر: @'+un);
   } catch(e){
-    if(!S.settings) S.settings={};
-    S.settings.username=un;
-    if(inp) inp.value=un;
-    lsSave(); cloudSave(S);
-    _updateUsernamePreview(un);
-    if(statusEl) statusEl.innerHTML='? رابط متجرك: <span style="color:var(--accent)">'+(window.location.origin+window.location.pathname)+'?u='+un+'</span>';
+    if(statusEl) statusEl.innerHTML='<span style="color:var(--accent4)">تعذر حفظ الرابط في قاعدة البيانات</span>';
+    toast('<i class="fa-solid fa-triangle-exclamation"></i> تعذر حفظ رابط المتجر على السحابة');
   }
 }
 // â•گâ•گ MULTI-STORE FUNCTIONS â•گâ•گ
@@ -22152,20 +22144,17 @@ async function saveSvcUsername(){
   toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...');
   try{
     var res=await supa.from('studio_data').select('user_id').eq('username_index',un).neq('user_id',_supaUserId).maybeSingle();
+    if(res.error) throw res.error;
     if(res.data){toast('<i class="fa-solid fa-circle-xmark" style="color:var(--accent4)"></i> الاسم @'+un+' محجوز، جرب اسماً آخر');return;}
-  }catch(e){}
+  }catch(e){toast('<i class="fa-solid fa-triangle-exclamation"></i> تعذر التحقق من اسم المتجر');return;}
   if(!S.settings) S.settings={};
   S.settings.username=un;
   var setInp=document.getElementById('set-username'); if(setInp) setInp.value=un;
   var pv=document.getElementById('svc-un-live-preview'); if(pv) pv.textContent=un;
-  // Force save with username_index
-  S._savedAt=new Date().toISOString();
-  try{
-    const payload={user_id:_supaUserId,data:JSON.stringify(S),updated_at:S._savedAt,username_index:un};
-    await supa.from('studio_data').upsert(payload,{onConflict:'user_id'});
-  }catch(e2){ lsSave(); cloudSaveNow(S); }
   lsSave();
-  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ اليوزرنيم: @'+un);
+  await cloudSaveNow(S);
+  if(!window._lastCloudSaveOk){toast('<i class="fa-solid fa-triangle-exclamation"></i> تعذر حفظ رابط المتجر على السحابة');return;}
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ رابط المتجر: @'+un);
   // تحديث الرابط في الـ header
   try{ var lnk=document.getElementById('svc-inner-store-link'); if(lnk) lnk.textContent=getSvcLink(_getCurrentStoreId()); }catch(e){}
 }
@@ -22896,6 +22885,12 @@ function _renderPortfolioRow(item){
 function addPortfolioItem(type){ addPortfolioRow(type); }
 
 // â”€â”€ Save Service â”€â”€
+async function cloudSaveWithConfirm(message,onSuccess){
+  toast(message||'جاري الحفظ...'); await cloudSaveNow(S);
+  if(window._lastCloudSaveOk){if(onSuccess)onSuccess();return true;}
+  toast('<i class="fa-solid fa-triangle-exclamation"></i> تعذر الحفظ على السحابة؛ بياناتك ما زالت محفوظة محلياً'); return false;
+}
+
 function saveSvc(){
   var eid = document.getElementById('svc-eid').value;
   var name = document.getElementById('svc-name').value.trim();
@@ -23510,7 +23505,7 @@ function renderClientPortals(){
 }
 // â”€â”€ رابط بوابة العميل الكاملة â”€â”€
 function _ordoAttachPublicToken(link, token) {
-  if (!link || !token || /[?&]token=/.test(link)) return link;
+  if (!link || !token || /[?&]token=/.test(link) || /\/portal\/[^/?#]+/.test(link)) return link;
   return link + (link.indexOf('?') >= 0 ? '&' : '?') + 'token=' + encodeURIComponent(token);
 }
 
@@ -23537,6 +23532,13 @@ function _ordoClientPortalToken(clientId, taskId, portal) {
   return portal && (portal.public_token || portal.token) || '';
 }
 
+function _shortPortalUrl(clientId,taskId){
+  var portal=(S.client_portals||[]).find(function(p){return String(p.client_id||'')===String(clientId||'')&&(!taskId||String(p.task_id||'')===String(taskId));})||(S.client_portals||[]).find(function(p){return String(p.client_id||'')===String(clientId||'');});
+  var token=_ordoClientPortalToken(clientId,taskId,portal||{id:'client_'+clientId,client_id:clientId,task_id:taskId||null});
+  if(token&&window.location.protocol!=='file:')return window.location.origin+'/portal/'+encodeURIComponent(token)+(taskId?'?taskid='+encodeURIComponent(taskId):'');
+  return window.location.origin+'/HTML/client-portal.html?uid='+encodeURIComponent(_supaUserId||'')+'&cid='+encodeURIComponent(clientId||'')+(taskId?'&taskid='+encodeURIComponent(taskId):'')+(token?'&token='+encodeURIComponent(token):'');
+}
+
 function _showClientPortalLink(clientId){
   var c=(S.clients||[]).find(function(x){return String(x.id)===String(clientId);}); if(!c) return;
   var uid=(typeof _supaUserId!=='undefined'&&_supaUserId)?_supaUserId:'';
@@ -23544,7 +23546,7 @@ function _showClientPortalLink(clientId){
   if(_ps2.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_ps2[_ps2.length-1])>=0)_ps2.pop();
   if(_ps2.length&&_ps2[_ps2.length-1].endsWith('.html'))_ps2.pop();
   var base=window.location.origin+(_ps2.length?'/'+_ps2.join('/')+'/' :'/') +'client-portal.html';
-  var link=base+'?uid='+uid+'&cid='+clientId;
+  var link=_shortPortalUrl(clientId);
   link = _ordoAttachPublicToken(link, _ordoClientPortalToken(clientId));
   var over=document.createElement('div');
   over.className='modal-overlay'; over.style.display='flex';
@@ -30459,9 +30461,9 @@ function openProjSharePortal(projId){
   }
 
   // رابط بوابة العميل مع فتح تاب المشاريع مباشرة
-  var projTabLink = _cpBase+'?uid='+uid+'&cid='+client.id+'&tab=projects&pid='+projId;
+  var projTabLink = _shortPortalUrl(client.id)+'?tab=projects&pid='+encodeURIComponent(projId);
   // رابط البوابة الكاملة
-  var clientLink  = _cpBase+'?uid='+uid+'&cid='+client.id;
+  var clientLink  = _shortPortalUrl(client.id);
 
   var over=document.createElement('div');
   over.className='modal-overlay'; over.style.display='flex';
@@ -32633,12 +32635,7 @@ function _showTrackingShareModal(t){
   if(_bpArr.length&&_bpArr[_bpArr.length-1].endsWith('.html'))_bpArr.pop();
   const _basePath=(_bpArr.length?'/'+_bpArr.join('/')+'/' :'/');
   const portalBase=window.location.origin+_basePath+'client-portal.html';
-  const trackUrl=portalBase
-    +'?uid='+encodeURIComponent(_supaUserId||'')
-    +(clientId?'&cid='+encodeURIComponent(clientId):'')
-    +(cl?.name?'&name='+encodeURIComponent(cl.name):'')
-    +(clientPhone?'&phone='+encodeURIComponent(clientPhone):'')
-    +'&taskid='+encodeURIComponent(t.id);
+  const trackUrl=clientId?_shortPortalUrl(clientId,t.id):portalBase+'?uid='+encodeURIComponent(_supaUserId||'')+'&taskid='+encodeURIComponent(t.id);
 
   const trackingTpl = (S.settings && S.settings.waTemplates && S.settings.waTemplates.tracking) || getWaTemplateDefaults().tracking;
   const waText = fillWaVars(cleanWaTemplate(trackingTpl), {

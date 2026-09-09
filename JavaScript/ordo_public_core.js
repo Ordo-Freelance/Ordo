@@ -143,15 +143,15 @@
     try{
       var tokenRes = await cachedSupabaseQuery('public_token:' + expectedType + ':' + token, 5 * 60 * 1000, function(){
         return db.from('public_tokens')
-          .select('token,entity_type,entity_id,owner_user_id,is_active,expires_at,allowed_sections,created_at')
+          .select('token,user_id,type,data,created_at,updated_at')
           .eq('token', token)
-          .eq('is_active', true)
           .limit(1)
           .maybeSingle();
       });
       if(tokenRes && !tokenRes.error && tokenRes.data) tokenRow = tokenRes.data;
     }catch(e){}
 
+    if(tokenRow&&tokenRow.data){var tokenData=typeof tokenRow.data==='string'?JSON.parse(tokenRow.data):tokenRow.data;tokenRow=Object.assign({},tokenData||{},tokenRow,{owner_user_id:tokenRow.user_id,entity_type:tokenRow.type||(tokenData&&tokenData.entity_type),store_data:tokenData});}
     var type = (tokenRow && tokenRow.entity_type) || expectedType || '';
     var tableMap = {
       proposal: ['public_proposals', 'token,owner_user_id,proposal_data,is_active,expires_at,created_at'],
@@ -165,7 +165,7 @@
     if(!cfg && !tokenRow) return null;
 
     var entityRow = null;
-    if(cfg){
+    if(cfg && !tokenRow){
       try{
         var entityRes = await cachedSupabaseQuery('public_entity:' + type + ':' + token, 5 * 60 * 1000, function(){
           return db.from(cfg[0]).select(cfg[1]).eq('token', token).eq('is_active', true).limit(1).maybeSingle();

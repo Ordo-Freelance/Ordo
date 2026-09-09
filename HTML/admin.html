@@ -536,7 +536,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
     <button class="login-btn" onclick="adminLogin()" id="adm-login-btn">تسجيل الدخول</button>
     <div class="login-error" id="adm-login-err"></div>
     <div style="margin-top:20px;padding:12px;background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);border-radius:8px;font-size:11px;color:var(--text2);text-align:center">
-      🔐 هذه اللوحة مخصصة للمشرفين فقط<br>يتطلب حساب بصلاحيات Admin في Supabase
+      🔐 هذه اللوحة مخصصة للمشرفين فقط<br>يتطلب حساباً بصلاحيات إدارة على Ordo
     </div>
   </div>
 </div>
@@ -2214,7 +2214,6 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
       <div class="form-label">الدور</div>
       <select class="form-select" id="aa-role" onchange="onRoleChange()">
         <option value="admin">🛡 Admin — يمكنه إدارة الاشتراكات والأكواد</option>
-        <option value="viewer">👁 Viewer — عرض فقط بدون تعديل</option>
         <option value="super">👑 Super Admin — صلاحيات كاملة</option>
       </select>
     </div>
@@ -2233,7 +2232,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
       <input class="form-input" id="aa-note" placeholder="مثال: مسؤول عن دعم العملاء">
     </div>
     <div style="background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);border-radius:8px;padding:12px;font-size:12px;color:var(--text2);margin-bottom:16px">
-      ⚠ يجب تحديث <b>raw_user_meta_data</b> في Supabase يدوياً لتفعيل الصلاحيات. سيظهر لك كود SQL جاهز بعد الحفظ.
+      يتم تطبيق صلاحية الإدارة مباشرة على حساب Ordo المسجل بهذا البريد.
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal('modal-add-admin')">إلغاء</button>
@@ -2370,7 +2369,6 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
       <select class="form-select" id="eu-role">
         <option value="">مستخدم عادي</option>
         <option value="admin">🛡 Admin</option>
-        <option value="viewer">👁 Viewer</option>
       </select>
     </div>
     <div id="eu-error" style="color:var(--accent4);font-size:12px;min-height:16px;margin-bottom:8px"></div>
@@ -2418,22 +2416,6 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
       <button class="btn btn-ghost" onclick="closeModal('modal-edit-sub')">إلغاء</button>
       <button class="btn btn-danger btn-sm" onclick="revokeSubscription()">⛔ إلغاء الاشتراك</button>
       <button class="btn btn-primary" onclick="saveEditSubscription()">💾 حفظ التعديل</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ SQL GUIDE MODAL ═══ -->
-<div class="modal-overlay" id="modal-sql-guide">
-  <div class="modal" style="max-width:560px">
-    <div class="modal-header">
-      <div class="modal-title">📋 كود SQL للتفعيل</div>
-      <button class="close-btn" onclick="closeModal('modal-sql-guide')">✕</button>
-    </div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">شغّل هذا الكود في SQL Editor في Supabase لتفعيل صلاحيات المشرف:</div>
-    <div id="sql-guide-code" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:monospace;font-size:12px;color:var(--accent3);white-space:pre-wrap;margin-bottom:14px"></div>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn btn-primary" onclick="copySqlGuide()">📋 نسخ الكود</button>
-      <button class="btn btn-ghost" onclick="closeModal('modal-sql-guide')">إغلاق</button>
     </div>
   </div>
 </div>
@@ -2634,14 +2616,12 @@ function _serialToSupaPayload(s) {
 
 async function syncSerialsFromSupabase() {
   try {
-    const { data, error } = await supa.from('serial_keys').select('id,code,user_id,status,plan_id,plan_name,created_at,activated_at,expires_at').order('created_at', { ascending: false });
+    const { data, error } = await supa.from('serial_keys').select('id,code,user_id,status,plan_id,plan_name,billing,duration_days,created_at,activated_at,expires_at').order('created_at', { ascending: false });
     if (error) throw error;
-    if (data && data.length > 0) {
-      SERIALS = data.map(_supaRowToSerial);
-      lsSet('serials', SERIALS); // sync to localStorage as fallback
-    }
+    SERIALS = (data || []).map(_supaRowToSerial);
+    lsSet('serials', SERIALS);
   } catch(e) {
-    console.warn('Supabase serial_keys not available, using localStorage:', e.message);
+    console.warn('تعذر تحميل أكواد الاشتراك من قاعدة البيانات:', e.message);
     // localStorage fallback already loaded above
   }
 }
@@ -2706,10 +2686,12 @@ async function supaUpsertSerial(serial) {
 async function supaDeleteSerial(serial) {
   if (serial._supaId && typeof serial._supaId === 'string' && serial._supaId.includes('-')) {
     try {
-      await supa.from('serial_keys').delete().eq('id', serial._supaId);
-    } catch(e) { console.warn('supaDeleteSerial:', e.message); }
+      const { error } = await supa.from('serial_keys').delete().eq('id', serial._supaId);
+      if(error) throw error;
+    } catch(e) { console.warn('supaDeleteSerial:', e.message); return false; }
   }
   lsSet('serials', SERIALS);
+  return true;
 }
 
 // ══════════════════════════════════════════════════
@@ -2753,7 +2735,7 @@ async function adminLogin() {
       rUser.role === 'admin' || rUser.is_admin === true || rUser.is_admin === 'true';
 
     if(!isAdminAfterRefresh) {
-      errEl.innerHTML = '⛔ ليس لديك صلاحيات الإدارة<br><span style="font-size:11px;color:var(--text3)">تأكد من تشغيل الـ SQL في Supabase وأضف role=admin لحسابك</span>';
+      errEl.innerHTML = '⛔ ليس لديك صلاحيات الإدارة<br><span style="font-size:11px;color:var(--text3)">سجّل الدخول بحساب مشرف معتمد</span>';
       await supa.auth.signOut();
       return;
     }
@@ -2869,8 +2851,7 @@ async function loadAll() {
   if(icon) icon.textContent = '🔄';
   const count = Object.keys(ALL_STUDIO_DATA).length;
   if(count === 0){
-    toast('⚠ لم يتم تحميل مستخدمين — تحقق من RLS policies في Supabase');
-    showRlsWarning();
+    toast('⚠ لا توجد حسابات مسجلة أو تعذر تحميلها من قاعدة البيانات');
   } else {
     toast(`✅ تم تحميل ${count} مستخدم`);
   }
@@ -3083,7 +3064,7 @@ async function loadStudioData() {
   } catch(e) { console.error('loadStudioData exception:', e); }
 
   try {
-    const { data: profiles, error } = await supa.from('profiles').select('id,email,name,phone,studio,created_at,updated_at').limit(200);
+    const { data: profiles, error } = await supa.from('profiles').select('id,email,name,phone,studio,is_admin,status,created_at,updated_at').limit(200);
     if(error) throw error;
     (profiles || []).forEach(profile => {
       const row = ALL_STUDIO_DATA[profile.id] || { user_id: profile.id, parsed: {} };
@@ -3096,6 +3077,7 @@ async function loadStudioData() {
       });
       row.created_at = profile.created_at;
       row.updated_at = row.updated_at || profile.updated_at;
+      row.profile = profile;
       ALL_STUDIO_DATA[profile.id] = row;
     });
   } catch(e) { console.error('profiles load error:', e); }
@@ -3618,13 +3600,14 @@ async function createSerial() {
   };
   SERIALS.push(serial);
   const saved = await supaUpsertSerial(serial);
+  if(!saved) SERIALS = SERIALS.filter(s => s !== serial);
 
   if(btn) { btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-plus"></i> إنشاء الكود'; }
   closeModal('modal-create-serial');
   renderSerials();
   updateDashStats();
-  logActivity('إنشاء كود', `كود ${code} — باقة ${planId} — ${codeType === 'paid' ? price+'ج' : 'مجاني'}`, 'var(--accent)');
-  toast(saved ? `✅ تم إنشاء الكود: ${code}` : `⚠ حُفظ محلياً: ${code}`);
+  if(saved) logActivity('إنشاء كود', `كود ${code} — باقة ${planId} — ${codeType === 'paid' ? price+'ج' : 'مجاني'}`, 'var(--accent)');
+  toast(saved ? `✅ تم إنشاء الكود وحفظه: ${code}` : '⛔ تعذر حفظ الكود في قاعدة البيانات');
 }
 
 function openBulkSerialModal() {
@@ -3654,13 +3637,19 @@ async function createBulkSerials() {
   // Save all to Supabase
   const results = await Promise.all(newSerials.map(s => supaUpsertSerial(s)));
   const savedCount = results.filter(Boolean).length;
+  if(savedCount !== newSerials.length) {
+    const failed = new Set(newSerials.filter((_, index) => !results[index]));
+    SERIALS = SERIALS.filter(serial => !failed.has(serial));
+  }
 
   if(btn) { btn.disabled=false; btn.textContent='إنشاء الأكواد'; }
   closeModal('modal-bulk-serial');
   renderSerials();
   updateDashStats();
   logActivity('إنشاء دفعة', `${count} كود — باقة ${planId}`, 'var(--accent)');
-  toast(`✅ تم إنشاء ${count} كود (${savedCount} محفوظ في Supabase)`);
+  toast(savedCount === newSerials.length
+    ? `✅ تم إنشاء وحفظ ${savedCount} كود`
+    : `⚠ تم حفظ ${savedCount} من ${newSerials.length} كود`);
 }
 
 function renderSerials() {
@@ -3740,8 +3729,11 @@ function copyCode(code) {
 async function deleteSerial(id) {
   if(!confirm('حذف هذا الكود؟')) return;
   const serial = SERIALS.find(s => String(s.id) === String(id));
+  if(serial) {
+    const deleted = await supaDeleteSerial(serial);
+    if(!deleted) { toast('⛔ تعذر حذف الكود من قاعدة البيانات'); return; }
+  }
   SERIALS = SERIALS.filter(s => String(s.id) !== String(id));
-  if(serial) await supaDeleteSerial(serial);
   else lsSet('serials', SERIALS);
   renderSerials();
   updateDashStats();
@@ -3801,6 +3793,12 @@ async function assignSerial() {
   const btn = document.querySelector('#modal-assign-serial .btn-primary, #modal-assign-serial .btn-success');
   if(btn) { btn.disabled=true; btn.textContent='⏳ جاري الحفظ...'; }
 
+  const previous = {
+    userId: serial.userId,
+    activatedAt: serial.activatedAt,
+    status: serial.status,
+    expiresAt: serial.expiresAt
+  };
   const now = new Date();
   serial.userId      = uid;
   serial.activatedAt = now.toISOString();
@@ -3822,13 +3820,19 @@ async function assignSerial() {
   const saved = await supaUpsertSerial(serial);
   if(btn) { btn.disabled=false; btn.textContent='تفعيل'; }
 
+  if(!saved) {
+    Object.assign(serial, previous);
+    toast('⛔ تعذر تعيين الكود في قاعدة البيانات');
+    return;
+  }
+
   closeModal('modal-assign-serial');
   renderUsersTable();
   renderSerials();
   updateDashStats();
   const userName = ALL_STUDIO_DATA[uid]?.parsed?.settings?.name || uid.substring(0,8);
   logActivity('تعيين اشتراك', `كود ${serial.code} → ${userName}`, 'var(--accent3)');
-  toast(saved ? `✅ تم تعيين الكود وحفظه في Supabase` : `⚠ تم التعيين محلياً فقط`);
+  toast('✅ تم تعيين الكود وحفظه في قاعدة البيانات');
 }
 
 // ══════════════════════════════════════════════════
@@ -4611,13 +4615,14 @@ async function createNewUser() {
 
   btn.disabled = true; btn.textContent = '⏳ جاري الإنشاء...';
   try {
-    const { data, error } = await supa.auth.signUp({
+    const { data, error } = await supa.admin.createUser({
       email, password,
-      options: { data: { full_name: name, name, studio: studio || name + ' Studio', phone } }
+      metadata: { full_name: name, name, studio: studio || name + ' Studio', phone },
+      is_admin: false
     });
     if(error) throw error;
     errEl.style.color = 'var(--accent3)';
-    errEl.textContent = '✅ تم إنشاء الحساب — تحقق من البريد للتأكيد';
+    errEl.textContent = '✅ تم إنشاء الحساب بنجاح';
     logActivity('إنشاء مستخدم', `تم إنشاء حساب ${name} (${email})`, 'var(--accent3)');
     setTimeout(() => { closeModal('modal-create-user'); loadAll(); }, 1500);
   } catch(e) {
@@ -4634,7 +4639,7 @@ function openEditUserModal(uid) {
   document.getElementById('eu-name').value    = p.settings?.name || '';
   document.getElementById('eu-studio').value  = p.settings?.studio || '';
   document.getElementById('eu-phone').value   = p.settings?.phone || '';
-  document.getElementById('eu-role').value    = '';
+  document.getElementById('eu-role').value    = u?.profile?.is_admin ? 'admin' : '';
   document.getElementById('eu-error').textContent = '';
   openModal('modal-edit-user');
 }
@@ -4653,6 +4658,10 @@ async function saveEditUser() {
 
   btn.disabled = true; btn.textContent = '⏳ جاري الحفظ...';
   try {
+    const adminUpdate = { name, studio: studio || name, phone };
+    adminUpdate.is_admin = role === 'admin';
+    const { error: profileErr } = await supa.admin.updateUserById(uid, adminUpdate);
+    if(profileErr) throw profileErr;
     // حدّث بيانات studio_data مع admin flags
     const u = ALL_STUDIO_DATA[uid];
     if(u && u.parsed) {
@@ -4683,21 +4692,10 @@ async function saveEditUser() {
       if(!ALL_STUDIO_DATA[uid]) ALL_STUDIO_DATA[uid] = {};
       ALL_STUDIO_DATA[uid].parsed = newData;
     }
-    // لو في تغيير role — اعرض SQL
-    if(role) {
-      const roleMap = {
-        admin: '{"role":"admin","is_admin":true}',
-        viewer: '{"role":"viewer","is_viewer":true}'
-      };
-      const sql = `UPDATE auth.users SET raw_user_meta_data = raw_user_meta_data || '${roleMap[role]}'::jsonb WHERE id = '${uid}';`;
-      errEl.style.color = 'var(--accent2)';
-      errEl.innerHTML = `✅ تم حفظ البيانات<br><small>لتعيين الصلاحية، شغّل في Supabase SQL Editor:<br><code style="font-size:10px;word-break:break-all">${sql}</code></small>`;
-    } else {
-      errEl.style.color = 'var(--accent3)';
-      errEl.textContent = '✅ تم حفظ التعديلات — ستظهر عند المستخدم في الجلسة التالية';
-    }
+    errEl.style.color = 'var(--accent3)';
+    errEl.textContent = '✅ تم حفظ البيانات والصلاحية';
     logActivity('تعديل مستخدم', `تم تعديل بيانات ${name}`, 'var(--accent2)');
-    setTimeout(() => { closeModal('modal-edit-user'); loadAll(); }, role ? 3000 : 1200);
+    setTimeout(() => { closeModal('modal-edit-user'); loadAll(); }, 1200);
   } catch(e) {
     errEl.style.color = 'var(--accent4)';
     errEl.textContent = '⛔ ' + (e.message || 'حدث خطأ');
@@ -4709,23 +4707,16 @@ async function saveEditUser() {
 //  DELETE USER
 // ══════════════════════════════════════════════════
 function confirmDeleteUser(uid, email) {
-  if(!confirm(`⚠ هل أنت متأكد من حذف حساب:\n${email}\n\nسيتم حذف كل بيانات المستخدم من Supabase نهائياً!`)) return;
+  if(!confirm(`⚠ هل أنت متأكد من حذف حساب:\n${email}\n\nسيتم حذف كل بيانات المستخدم نهائياً!`)) return;
   if(!confirm(`تأكيد أخير:\nحذف ${email} بشكل نهائي لا يمكن التراجع عنه؟`)) return;
   deleteUserAccount(uid, email);
 }
 
 async function deleteUserAccount(uid, email) {
-  const toast_ref = toast('⏳ جاري حذف الحساب...');
+  toast('⏳ جاري حذف الحساب...');
   try {
-    // 1. احذف بيانات الاستوديو
-    await supa.from('studio_data').delete().eq('user_id', uid);
-
-    // 2. حرّر الأكواد المرتبطة بالمستخدم
-    await supa.from('serial_keys')
-      .update({ user_id: null, status: 'unused', activated_at: null, expires_at: null })
-      .eq('user_id', uid);
-
-    // 3. احذف من الـ localStorage
+    const { error } = await supa.admin.deleteUser(uid);
+    if(error) throw error;
     SERIALS = SERIALS.map(s => s.userId === uid
       ? {...s, userId: null, status: 'unused', activatedAt: null, expiresAt: null}
       : s
@@ -4734,18 +4725,14 @@ async function deleteUserAccount(uid, email) {
     delete ALL_STUDIO_DATA[uid];
     ALL_USERS = ALL_USERS.filter(u => u.id !== uid);
 
-    // 4. اعرض رسالة بـ SQL للحذف من auth.users (محتاج Service Role)
-    const sql = `-- شغّل في Supabase SQL Editor لحذف الحساب نهائياً:\nDELETE FROM auth.users WHERE id = '${uid}';`;
-    logActivity('حذف مستخدم', `تم حذف بيانات ${email} — نفّذ SQL لحذف auth`, 'var(--accent4)');
+    logActivity('حذف مستخدم', `تم حذف حساب ${email}`, 'var(--accent4)');
     
     renderUsersTable();
     updateDashStats();
     
     if(_currentDetailUid === uid) showPage('users');
 
-    // اعرض الـ SQL في modal
-    const msg = `✅ تم حذف بيانات المستخدم من studio_data وتحرير الأكواد.\n\nلحذف الحساب نهائياً من قاعدة البيانات، شغّل في Supabase → SQL Editor:\n\nDELETE FROM auth.users WHERE id = '${uid}';`;
-    alert(msg);
+    toast('✅ تم حذف الحساب وبياناته وتحرير أكواد الاشتراك');
 
   } catch(e) {
     console.error('deleteUserAccount error:', e);
@@ -5794,6 +5781,23 @@ function renderAdminsPage() {
   const tbody = document.getElementById('admins-tbody');
   if(!tbody) return;
 
+  const savedByEmail = new Map(ADMINS.map(a => [String(a.email||'').toLowerCase(), a]));
+  const databaseAdmins = Object.values(ALL_STUDIO_DATA).filter(row => row?.profile?.is_admin).map(row => {
+    const profile = row.profile;
+    const saved = savedByEmail.get(String(profile.email||'').toLowerCase()) || {};
+    return {
+      ...saved,
+      id: profile.id,
+      email: profile.email,
+      name: profile.name || row.parsed?.settings?.name || profile.email,
+      role: saved.role || 'admin',
+      permissions: saved.permissions || {users:true,serials:true,plans:true,reset:true,export:true},
+      createdAt: saved.createdAt || profile.created_at
+    };
+  });
+  ADMINS = databaseAdmins;
+  lsSet('admins', ADMINS);
+
   const supers  = ADMINS.filter(a=>a.role==='super').length;
   const admins  = ADMINS.filter(a=>a.role==='admin').length;
   const viewers = ADMINS.filter(a=>a.role==='viewer').length;
@@ -5825,7 +5829,6 @@ function renderAdminsPage() {
         <div style="display:flex;gap:5px">
           <button class="btn btn-ghost btn-sm" onclick="editAdmin('${a.id}')">✏</button>
           <button class="btn btn-danger btn-sm" onclick="deleteAdmin('${a.id}')">🗑</button>
-          <button class="btn btn-success btn-sm" onclick="showAdminSql('${a.email}','${a.role}')">SQL</button>
         </div>
       </td>
     </tr>`).join('');
@@ -5869,7 +5872,7 @@ function editAdmin(id) {
   openModal('modal-add-admin');
 }
 
-function saveAdmin() {
+async function saveAdmin() {
   const editId = document.getElementById('aa-edit-id')?.value;
   const email  = document.getElementById('aa-email')?.value.trim().toLowerCase();
   const name   = document.getElementById('aa-name')?.value.trim();
@@ -5880,47 +5883,38 @@ function saveAdmin() {
   const perms = {};
   ['users','serials','plans','reset','export'].forEach(p=>{perms[p]=!!document.getElementById('perm-'+p)?.checked;});
 
+  const { data, error } = await supa.admin.updateUserByEmail(email, {
+    is_admin: role === 'admin' || role === 'super',
+    name: name || undefined
+  });
+  if(error) { toast('⛔ '+(error.message||'تعذر حفظ صلاحية المشرف')); return; }
+  const userId = data?.user?.id || editId || Date.now().toString();
   if(editId) {
     const idx = ADMINS.findIndex(a=>a.id===editId);
-    if(idx>-1) ADMINS[idx] = {...ADMINS[idx], email, name, role, note, permissions:perms};
+    if(idx>-1) ADMINS[idx] = {...ADMINS[idx], id:userId, email, name, role, note, permissions:perms};
   } else {
-    ADMINS.push({id:Date.now().toString(), email, name, role, note, permissions:perms, createdAt:new Date().toISOString()});
+    ADMINS.push({id:userId, email, name, role, note, permissions:perms, createdAt:new Date().toISOString()});
   }
   lsSet('admins', ADMINS);
+  await loadStudioData();
   closeModal('modal-add-admin');
   renderAdminsPage();
   logActivity('إضافة مشرف', `تم إضافة ${name} (${role})`, 'var(--accent)');
-  toast('✅ تم حفظ المشرف');
-
-  // Show SQL guide
-  setTimeout(()=>showAdminSql(email, role), 300);
+  toast('✅ تم حفظ المشرف وتفعيل صلاحيته');
 }
 
-function deleteAdmin(id) {
+async function deleteAdmin(id) {
   if(!confirm('حذف هذا المشرف؟')) return;
+  const admin = ADMINS.find(a=>a.id===id);
+  if(admin?.email) {
+    const { error } = await supa.admin.updateUserByEmail(admin.email, {is_admin:false});
+    if(error) { toast('⛔ تعذر إلغاء صلاحية المشرف'); return; }
+  }
   ADMINS = ADMINS.filter(a=>a.id!==id);
   lsSet('admins', ADMINS);
+  await loadStudioData();
   renderAdminsPage();
-  toast('🗑 تم حذف المشرف');
-}
-
-function showAdminSql(email, role) {
-  const roleMap = {super:'{"role":"admin","is_admin":true,"is_super":true}', admin:'{"role":"admin","is_admin":true}', viewer:'{"role":"viewer","is_viewer":true}'};
-  const sql = `-- تفعيل صلاحيات المشرف في Supabase
-UPDATE auth.users
-SET raw_user_meta_data = raw_user_meta_data || '${roleMap[role]||roleMap.admin}'::jsonb
-WHERE email = '${email}';
-
--- تأكيد
-SELECT email, raw_user_meta_data->'role' as role
-FROM auth.users WHERE email = '${email}';`;
-  document.getElementById('sql-guide-code').textContent = sql;
-  openModal('modal-sql-guide');
-}
-
-function copySqlGuide() {
-  const code = document.getElementById('sql-guide-code')?.textContent||'';
-  navigator.clipboard.writeText(code).then(()=>toast('✅ تم نسخ الكود'));
+  toast('✅ تم إلغاء صلاحية المشرف');
 }
 
 // ── Hook into showPage to load admins ──
