@@ -23,6 +23,8 @@
     { "source": "/proposal/:token", "destination": "/HTML/proposal.html?token=:token" },
     { "source": "/review/:token", "destination": "/HTML/review.html?token=:token" },
     { "source": "/reviews/:username", "destination": "/HTML/reviews-public.html?u=:username" },
+    { "source": "/privacy", "destination": "/HTML/privacy.html" },
+    { "source": "/terms", "destination": "/HTML/terms.html" },
     { "source": "/admin", "destination": "/HTML/admin.html" },
     { "source": "/admin/", "destination": "/HTML/admin.html" },
     { "source": "/api/:path*", "destination": "/api/index.js" }

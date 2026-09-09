@@ -23,6 +23,8 @@ function safePath(urlPath) {
   let decoded = decodeURIComponent(urlPath.split('?')[0]);
   const appRoutes = new Set(['/','/dashboard','/tasks','/projects','/schedule','/meetings','/clients','/finance','/invoices','/services','/support','/team','/timetracker','/goals','/settings','/reports','/vault']);
   if (appRoutes.has(decoded)) decoded = '/HTML/index.html';
+  else if (decoded === '/privacy') decoded = '/HTML/privacy.html';
+  else if (decoded === '/terms') decoded = '/HTML/terms.html';
   else if (decoded === '/admin' || decoded === '/admin/') decoded = '/HTML/admin.html';
   else if (decoded.startsWith('/store/')) decoded = '/HTML/store.html';
   else if (decoded.startsWith('/portal/')) decoded = '/HTML/client-portal.html';
