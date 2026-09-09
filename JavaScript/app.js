@@ -21623,11 +21623,27 @@ function _openMyStore(){
   window.open(link, '_blank');
 }
 
+function _getShortStoreSlug(){
+  var settings=(S&&S.settings)||{};
+  var slug=String(settings.username||settings.store_slug||'').toLowerCase().trim().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'');
+  if(!slug)slug=String((typeof _supaUserId!=='undefined'&&_supaUserId)||'').replace(/[^a-z0-9]/gi,'').toLowerCase().slice(0,8);
+  if(!slug)slug='store';
+  settings.store_slug=slug;
+  return slug;
+}
+
 function getSvcLink(storeId){
   var uid = (typeof _supaUserId!=='undefined' && _supaUserId) ? _supaUserId : '';
   var un=S&&S.settings&&S.settings.username;
-  if(storeId){var shortStore=(_getStores()||[]).find(function(s){return s.id===storeId;});if(shortStore&&shortStore.username)return window.location.origin+'/store/'+encodeURIComponent(shortStore.username);}
-  if(un&&window.location.protocol!=='file:')return window.location.origin+'/store/'+encodeURIComponent(un)+(storeId?'?store='+encodeURIComponent(storeId):'');
+  var mainSlug=_getShortStoreSlug();
+  if(window.location.protocol!=='file:'){
+    if(storeId){
+      var shortStore=(_getStores()||[]).find(function(s){return s.id===storeId;});
+      var storeSlug=shortStore&&shortStore.username?shortStore.username:(mainSlug+'-'+String(storeId).replace(/[^a-z0-9]/gi,'').toLowerCase().slice(0,5));
+      return window.location.origin+'/store/'+encodeURIComponent(storeSlug);
+    }
+    return window.location.origin+'/store/'+encodeURIComponent(mainSlug);
+  }
   var _spp=window.location.pathname,_sps=_spp.split('/').filter(function(x){return x!=='';});
   if(_sps.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_sps[_sps.length-1])>=0)_sps.pop();
   if(_sps.length&&_sps[_sps.length-1].endsWith('.html'))_sps.pop();
@@ -21677,6 +21693,7 @@ async function checkAndSaveUsername(){
     // Save to S.settings.username
     if(!S.settings) S.settings={};
     S.settings.username=un;
+    S.settings.store_slug=un;
     if(inp) inp.value=un;
     lsSave();
     await cloudSaveNow(S);
@@ -22149,6 +22166,7 @@ async function saveSvcUsername(){
   }catch(e){toast('<i class="fa-solid fa-triangle-exclamation"></i> تعذر التحقق من اسم المتجر');return;}
   if(!S.settings) S.settings={};
   S.settings.username=un;
+  S.settings.store_slug=un;
   var setInp=document.getElementById('set-username'); if(setInp) setInp.value=un;
   var pv=document.getElementById('svc-un-live-preview'); if(pv) pv.textContent=un;
   lsSave();
@@ -23536,7 +23554,8 @@ function _shortPortalUrl(clientId,taskId){
   var portal=(S.client_portals||[]).find(function(p){return String(p.client_id||'')===String(clientId||'')&&(!taskId||String(p.task_id||'')===String(taskId));})||(S.client_portals||[]).find(function(p){return String(p.client_id||'')===String(clientId||'');});
   var token=_ordoClientPortalToken(clientId,taskId,portal||{id:'client_'+clientId,client_id:clientId,task_id:taskId||null});
   if(token&&window.location.protocol!=='file:')return window.location.origin+'/portal/'+encodeURIComponent(token)+(taskId?'?taskid='+encodeURIComponent(taskId):'');
-  return window.location.origin+'/HTML/client-portal.html?uid='+encodeURIComponent(_supaUserId||'')+'&cid='+encodeURIComponent(clientId||'')+(taskId?'&taskid='+encodeURIComponent(taskId):'')+(token?'&token='+encodeURIComponent(token):'');
+  if(token)return (window.location.protocol==='file:'?'client-portal.html?token=':window.location.origin+'/portal/')+encodeURIComponent(token)+(taskId?'?taskid='+encodeURIComponent(taskId):'');
+  return window.location.protocol==='file:'?'client-portal.html?uid='+encodeURIComponent(_supaUserId||'')+'&cid='+encodeURIComponent(clientId||'')+(taskId?'&taskid='+encodeURIComponent(taskId):''):window.location.origin+'/clients';
 }
 
 function _showClientPortalLink(clientId){

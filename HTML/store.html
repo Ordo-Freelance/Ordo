@@ -268,6 +268,10 @@ async function buildPage(userId, preloadedData){
 
     // ── settings ──
     var settings=ud.settings||{};
+    var canonicalSlug=settings.username||settings.store_slug||_pUname;
+    if(location.protocol!=='file:'&&canonicalSlug&&location.pathname!=='/store/'+encodeURIComponent(canonicalSlug)){
+      history.replaceState({},'', '/store/'+encodeURIComponent(canonicalSlug));
+    }
     var accent=settings.accent||settings.accentColor||settings.theme_color||'#7c6ff7';
     var isLight=(settings.displayMode||settings.display_mode||'dark')==='light';
     var logo=settings.store_logo||settings.logo||'';
@@ -915,7 +919,8 @@ async function buildPage(userId, preloadedData){
       var revTotal=allReviews.length;
       var revAvg=(allReviews.reduce(function(s,r){return s+(+r.stars||0);},0)/revTotal).toFixed(1);
       // Build public reviews page URL
-      var publicReviewsUrl=BASE+'reviews-public.html?'+(settings.username?'u='+encodeURIComponent(settings.username):'uid='+encodeURIComponent(userId));
+      var reviewSlug=settings.username||settings.store_slug||_pUname;
+      var publicReviewsUrl=(location.protocol!=='file:'&&reviewSlug)?location.origin+'/reviews/'+encodeURIComponent(reviewSlug):BASE+'reviews-public.html?'+(reviewSlug?'u='+encodeURIComponent(reviewSlug):'uid='+encodeURIComponent(userId));
 
       var reviewCards=allReviews.slice(0,6).map(function(r){
         var starLabel=['','سيء','مقبول','جيد','رائع','ممتاز'][+r.stars]||'';

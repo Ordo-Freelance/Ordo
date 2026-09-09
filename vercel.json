@@ -20,6 +20,9 @@
     { "source": "/vault", "destination": "/HTML/index.html" },
     { "source": "/store/:username", "destination": "/HTML/store.html?u=:username" },
     { "source": "/portal/:token", "destination": "/HTML/client-portal.html?token=:token" },
+    { "source": "/proposal/:token", "destination": "/HTML/proposal.html?token=:token" },
+    { "source": "/review/:token", "destination": "/HTML/review.html?token=:token" },
+    { "source": "/reviews/:username", "destination": "/HTML/reviews-public.html?u=:username" },
     { "source": "/admin", "destination": "/HTML/admin.html" },
     { "source": "/admin/", "destination": "/HTML/admin.html" },
     { "source": "/api/:path*", "destination": "/api/index.js" }

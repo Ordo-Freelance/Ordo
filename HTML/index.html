@@ -4077,7 +4077,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
         <!-- يوزرنيم الموقع الرئيسي -->
         <div class="card" style="padding:16px">
           <div style="font-size:13px;font-weight:800;margin-bottom:4px"><i class="fa-solid fa-at" style="color:var(--accent)"></i> يوزرنيم الموقع</div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:10px">رابط موقعك: store.html?u=<span id="svc-un-live-preview" style="color:var(--accent);font-weight:700">...</span></div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px">رابط متجرك: /store/<span id="svc-un-live-preview" style="color:var(--accent);font-weight:700">...</span></div>
           <div style="display:flex;gap:8px;align-items:center">
             <input class="form-input" id="svc-main-username" placeholder="mahmoud-studio" style="flex:1;direction:ltr" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_-]/g,'');document.getElementById('svc-un-live-preview').textContent=this.value||'...'">
             <button onclick="saveSvcUsername()" class="btn btn-primary btn-sm" style="flex-shrink:0;white-space:nowrap"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
@@ -6078,7 +6078,7 @@ function _getAppBase() {
 }
 
 function _getUsername() {
-  return (S && S.settings && S.settings.username) || '';
+  return (S && S.settings && (S.settings.username || S.settings.store_slug)) || '';
 }
 
 function _ensurePublicLinkToken(entityType, entityId, opts) {
@@ -6171,15 +6171,15 @@ function _shortBase() {
 }
 
 function _shortProposalUrl(token) {
-  // ✅ رابط مباشر مع uid للبحث المباشر
-  var uid = _supaUserId || '';
   var publicToken = _publicProposalToken(token);
+  if (window.location.protocol !== 'file:') return window.location.origin + '/proposal/' + encodeURIComponent(publicToken || token);
+  var uid = _supaUserId || '';
   return _getAppBase() + 'proposal.html?token=' + encodeURIComponent(publicToken || token) + (uid ? '&uid=' + encodeURIComponent(uid) : '');
 }
 
 function _shortPortalUrl(clientId, taskId) {
-  // ✅ رابط مباشر
   var token = _publicPortalToken(clientId, taskId);
+  if (token && window.location.protocol !== 'file:') return window.location.origin + '/portal/' + encodeURIComponent(token) + (taskId ? '?taskid=' + encodeURIComponent(taskId) : '');
   var base = _getAppBase() + 'client-portal.html?uid=' + (_supaUserId||'') + '&cid=' + encodeURIComponent(clientId||'');
   if (taskId) base += '&taskid=' + encodeURIComponent(taskId);
   if (token) base += '&token=' + encodeURIComponent(token);
@@ -6187,25 +6187,25 @@ function _shortPortalUrl(clientId, taskId) {
 }
 
 function _shortReviewUrl() {
-  // ✅ رابط مباشر
   var token = _ensurePublicLinkToken('review', 'general_review_link', {
     allowed_sections: ['reviews','client','project'],
     allow_multiple: true
   });
+  if (token && window.location.protocol !== 'file:') return window.location.origin + '/review/' + encodeURIComponent(token);
   return _getAppBase() + 'review.html?uid=' + (_supaUserId||'') + (token ? '&token=' + encodeURIComponent(token) : '');
 }
 
 function _shortPublicReviewsUrl() {
-  // ✅ صفحة التقييمات العامة
   var un = _getUsername();
   var token = _ensurePublicLinkToken('reviews_public', 'public_reviews_page', {
     allowed_sections: ['reviews']
   });
+  if (un && window.location.protocol !== 'file:') return window.location.origin + '/reviews/' + encodeURIComponent(un);
   return _getAppBase() + 'reviews-public.html?' + (un ? 'u=' + encodeURIComponent(un) : 'uid=' + (_supaUserId||'')) + (token ? '&token=' + encodeURIComponent(token) : '');
 }
 
 function _shortStoreUrl(storeId) {
-  // ✅ رابط مباشر — getSvcLink يتجاهل هذه الدالة الآن لكن نصلحها كذلك للاتساق
+  if (window.location.protocol !== 'file:' && typeof getSvcLink === 'function') return getSvcLink(storeId);
   var base = _getAppBase() + 'store.html';
   var un = _getUsername();
   var publicToken = _ensurePublicLinkToken('store', storeId || 'default_store', {

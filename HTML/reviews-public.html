@@ -542,7 +542,7 @@
       var db = supabase.createClient(SUPA_URL, SUPA_ANON),
         P = new URLSearchParams(location.search),
         pUid = P.get("uid") || "",
-        pU = P.get("u") || P.get("user") || "",
+        pU = P.get("u") || P.get("user") || ((location.pathname.match(/^\/reviews\/([^/?#]+)\/?$/i)||[])[1] ? decodeURIComponent((location.pathname.match(/^\/reviews\/([^/?#]+)\/?$/i)||[])[1]) : ""),
         pToken = P.get("token") || P.get("public_token") || P.get("t") || "";
       var BASE =
         window.location.origin +
@@ -629,14 +629,14 @@
             bio = s.bio || s.title || "",
             logo = s.logo || "",
             phone = s.phone || "",
-            un = s.username || "";
+            un = s.username || s.store_slug || "";
           document.documentElement.style.setProperty("--ac", ac);
           if (isL) document.body.classList.add("light");
           document.title = nm + " — تقييمات العملاء";
           $("fy").textContent = new Date().getFullYear();
-          var storeUrl = un
-            ? BASE + "store.html?u=" + encodeURIComponent(un)
-            : BASE + "store.html?uid=" + encodeURIComponent(uid);
+          var storeUrl = (location.protocol !== "file:" && un)
+            ? location.origin + "/store/" + encodeURIComponent(un)
+            : (un ? BASE + "store.html?u=" + encodeURIComponent(un) : BASE + "store.html?uid=" + encodeURIComponent(uid));
           var storeToken = (ud.public_tokens || []).find(function(t){ return t && t.entity_type === "store" && !t.revoked; });
           if (storeToken && storeToken.token) storeUrl += (storeUrl.indexOf("?") >= 0 ? "&" : "?") + "token=" + encodeURIComponent(storeToken.token);
           var reviewUrl = BASE + "review.html?uid=" + encodeURIComponent(uid);

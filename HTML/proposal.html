@@ -484,7 +484,8 @@ if(!token){
 if(!token){
   try{
     var parts = location.pathname.split('/').filter(Boolean);
-    var pIdx = parts.indexOf('p');
+    var pIdx = parts.indexOf('proposal');
+    if(pIdx < 0) pIdx = parts.indexOf('p');
     if(pIdx >= 0 && parts[pIdx+1]) token = decodeURIComponent(parts[pIdx+1]);
   }catch(e){}
 }

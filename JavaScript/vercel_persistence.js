@@ -57,9 +57,25 @@
     } catch(e){}
   }
 
+  function cleanSlug(value){
+    return String(value || '').toLowerCase().trim()
+      .replace(/[^a-z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-{2,}/g, '-');
+  }
+
+  function ensureStoreSlug(settings,userId){
+    settings=settings||{};
+    var slug=cleanSlug(settings.username||settings.store_slug);
+    if(!slug) slug=String(userId||'').replace(/[^a-z0-9]/gi,'').toLowerCase().slice(0,8);
+    if(!slug) slug='store';
+    settings.store_slug=slug;
+    return slug;
+  }
+
   function publicSettings(settings){
     settings=settings||{};
-    var allowed=['name','studio','bio','desc','phone','email','logo','store_logo','svc_banner','svc_banner_size','svc_banner_custom_px','svc_site_desc','svc_orders_open','username','accent','accent2','accentColor','accentColor2','theme_color','displayMode','display_mode','socials'];
+    var allowed=['name','studio','bio','desc','phone','email','logo','store_logo','svc_banner','svc_banner_size','svc_banner_custom_px','svc_site_desc','svc_orders_open','username','store_slug','accent','accent2','accentColor','accentColor2','theme_color','displayMode','display_mode','socials'];
     var out={}; allowed.forEach(function(key){if(settings[key]!==undefined)out[key]=settings[key];}); return out;
   }
   function publicStoreData(data,store){
@@ -74,9 +90,10 @@
     return {settings:publicSettings(data.settings),clients:(data.clients||[]).filter(function(x){return String(x.id)===clientId;}).map(function(x){return{id:x.id,name:x.name,email:x.email,phone:x.phone,company:x.company};}),projects:projects,project_tasks:(data.project_tasks||[]).filter(forClient),tasks:(data.tasks||[]).filter(forClient),invoices:(data.invoices||[]).filter(forClient),contracts:(data.contracts||[]).filter(forClient),proposals:(data.proposals||[]).filter(forClient),client_portals:(data.client_portals||[]).filter(function(x){return String(x.client_id||'')===clientId;}),svc_orders:(data.svc_orders||[]).filter(forClient)};
   }
   async function publishPublicData(db,userId,data){
-    var settings=data.settings||{},stores=[null].concat(data.stores||[]);
+    var settings=data.settings||{},mainSlug=ensureStoreSlug(settings,userId),stores=[null].concat(data.stores||[]);
     for(var i=0;i<stores.length;i++){
-      var store=stores[i],slug=String((store&&store.username)||(!store&&settings.username)||'').toLowerCase(); if(!slug)continue;
+      var store=stores[i],slug=store?cleanSlug(store.username):(mainSlug);
+      if(store&&!slug)slug=mainSlug+'-'+String(store.id||i).replace(/[^a-z0-9]/gi,'').toLowerCase().slice(0,5);
       var id='store_'+userId+(store?'_'+store.id:'');
       var payload={slug:slug,store_id:store&&store.id||null,studio_data:publicStoreData(data,store)};
       var storeRes=await db.from('public_store_items').upsert({id:id,user_id:userId,data:payload,active:true},{onConflict:'id'}); if(storeRes.error)throw storeRes.error;
@@ -117,17 +134,17 @@
     var userId = uid();
     if(data) root.S = data;
     root.S = normalize(root.S);
+    var storeSlug=ensureStoreSlug(root.S.settings,userId);
     root.S._savedAt = new Date().toISOString();
     writeCache(root.S);
     var db = client();
     root._lastCloudSaveOk=false;
     if(!userId || !db || !root._ordoCloudLoadedFromServer) return root.S;
     try {
-      var username = root.S && root.S.settings && root.S.settings.username ? String(root.S.settings.username).toLowerCase() : null;
       var result = await db.from('studio_data').upsert({
         user_id:userId,
         data:JSON.stringify(root.S),
-        username_index:username,
+        username_index:storeSlug,
         updated_at:root.S._savedAt
       }, {onConflict:'user_id'});
       if(result.error) throw result.error;
