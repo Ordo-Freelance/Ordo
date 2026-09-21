@@ -2576,7 +2576,16 @@ function saveUserStatuses() {
   localStorage.setItem('admin_user_status', JSON.stringify(USER_STATUS));
 }
 function getUserStatus(uid) {
-  return USER_STATUS[uid] || { banned: false, loginCount: 0, lastLogin: null, loginHistory: [] };
+  const stored = USER_STATUS[uid] || {};
+  const profileStatus = ALL_STUDIO_DATA?.[uid]?.profile?.status;
+  return {
+    banned: profileStatus ? profileStatus !== 'active' : !!stored.banned,
+    loginCount: 0,
+    lastLogin: null,
+    loginHistory: [],
+    ...stored,
+    ...(profileStatus ? { banned: profileStatus !== 'active' } : {})
+  };
 }
 loadUserStatuses();
 
@@ -2594,6 +2603,8 @@ function _supaRowToSerial(row) {
     planId:      row.plan_id   || '',
     billing:     row.billing   || 'monthly',
     note:        row.note      || '',
+    codeType:    row.code_type || 'free',
+    price:       Number(row.price || 0),
     status:      row.status    || 'unused',
     userId:      row.user_id   || null,
     activatedAt: row.activated_at || null,
@@ -2611,6 +2622,8 @@ function _serialToSupaPayload(s) {
     duration_days: plan?.duration_days || null,
     billing:      s.billing   || 'monthly',
     note:         s.note      || null,
+    code_type:    s.codeType  || 'free',
+    price:        Number(s.price || 0),
     status:       s.status    || 'unused',
     activated_at: s.activatedAt || null,
     expires_at:   s.expiresAt !== undefined ? s.expiresAt : null
@@ -2702,7 +2715,7 @@ async function syncPlansFromSupabase() {
 
 async function syncSerialsFromSupabase() {
   try {
-    const { data, error } = await supa.from('serial_keys').select('id,code,user_id,status,plan_id,plan_name,billing,duration_days,created_at,activated_at,expires_at').order('created_at', { ascending: false });
+    const { data, error } = await supa.from('serial_keys').select('id,code,user_id,status,plan_id,plan_name,billing,duration_days,note,code_type,price,created_at,activated_at,expires_at').order('created_at', { ascending: false });
     if (error) throw error;
     SERIALS = (data || []).map(_supaRowToSerial);
     lsSet('serials', SERIALS);
@@ -4435,11 +4448,23 @@ async function toggleAccountStatus(uid, name, email) {
   const action = isBanned ? 'تفعيل' : 'تعطيل';
   if(!confirm(action + ' حساب ' + name + '؟')) return;
 
-  st.banned = !isBanned;
+  const nextBanned = !isBanned;
+  const { error: accountError } = await supa.admin.updateUserById(uid, {
+    status: nextBanned ? 'disabled' : 'active'
+  });
+  if(accountError) {
+    toast('⛔ تعذر تحديث حالة الحساب: ' + accountError.message);
+    return;
+  }
+
+  st.banned = nextBanned;
   st.bannedAt = st.banned ? new Date().toISOString() : null;
   st.bannedReason = st.banned ? (prompt('سبب التعطيل (اختياري):') || '') : null;
   USER_STATUS[uid] = st;
   saveUserStatuses();
+  if(ALL_STUDIO_DATA[uid]?.profile) {
+    ALL_STUDIO_DATA[uid].profile.status = nextBanned ? 'disabled' : 'active';
+  }
 
   // Try to update Supabase studio_data with banned flag
   try {

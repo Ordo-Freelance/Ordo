@@ -35,7 +35,7 @@ const TABLE_COLUMNS = {
   studio_data: new Set(['user_id', 'data', 'username_index', 'created_at', 'updated_at']),
   user_settings: new Set(['user_id', 'data', 'updated_at']),
   subscription_plans: new Set(['id', 'name', 'plan_name', 'price', 'price_monthly', 'duration_days', 'features', 'active', 'created_at', 'updated_at']),
-  serial_keys: new Set(['id', 'code', 'key_code', 'user_id', 'status', 'plan_id', 'plan_name', 'billing', 'duration_days', 'created_at', 'activated_at', 'expires_at', 'updated_at']),
+  serial_keys: new Set(['id', 'code', 'key_code', 'user_id', 'status', 'plan_id', 'plan_name', 'billing', 'duration_days', 'note', 'code_type', 'price', 'created_at', 'activated_at', 'expires_at', 'updated_at']),
   user_notifications: new Set(['id', 'user_id', 'title', 'body', 'type', 'data', 'read', 'is_read', 'created_at', 'updated_at']),
   platform_settings: new Set(['id', 'config', 'updated_at']),
   shared_contracts: new Set(['token', 'user_id', 'data', 'created_at', 'updated_at']),
@@ -545,6 +545,8 @@ class LocalStore {
   }
 }
 
+let postgresSchemaReady;
+
 async function makePostgresStore() {
   const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL;
   if (!connectionString) {
@@ -558,6 +560,14 @@ async function makePostgresStore() {
   const { neon } = await import('@neondatabase/serverless');
   const sql = neon(connectionString);
   const query = (text, params = []) => sql.query(text, params);
+  if (!postgresSchemaReady) {
+    postgresSchemaReady = query('ALTER TABLE serial_keys ADD COLUMN IF NOT EXISTS note text, ADD COLUMN IF NOT EXISTS code_type text, ADD COLUMN IF NOT EXISTS price numeric(10,2) NOT NULL DEFAULT 0')
+      .catch(error => {
+        postgresSchemaReady = null;
+        throw error;
+      });
+  }
+  await postgresSchemaReady;
   return {
     async userById(id) {
       const rows = await query('SELECT * FROM ordo_users WHERE id = $1 LIMIT 1', [id]);
