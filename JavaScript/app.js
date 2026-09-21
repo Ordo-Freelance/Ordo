@@ -12251,6 +12251,7 @@ function renderAll(){
   try{ _updateNavBtns(); }catch(e){}
   if(typeof renderSupport==='function') renderSupport();
   if(typeof _updateInboxBadge==='function') _updateInboxBadge();
+  if(typeof _updateTeamInviteBadge==='function') _updateTeamInviteBadge();
   // Refresh freelancer goals page if active
   if(document.getElementById('page-freelancer-goals')?.classList.contains('active')){
     renderFreelancerGoalsPage();
@@ -12830,7 +12831,7 @@ async function loginWithSupaSession(supaUser, session, userMeta){
         window._pendingTeamInvites = (window._pendingTeamInvites||[]).concat(toShow.filter(function(t){
           return !(window._pendingTeamInvites||[]).find(function(x){return x.id===t.id;});
         }));
-        if(typeof _updateInboxBadge==='function') _updateInboxBadge();
+        if(typeof _updateTeamInviteBadge==='function') _updateTeamInviteBadge();
         var inboxBtn = document.getElementById('team-invite-inbox-btn');
         if(inboxBtn) inboxBtn.style.display='';
         if(typeof window._showTeamInviteDialog==='function') window._showTeamInviteDialog(toShow);
@@ -20280,7 +20281,7 @@ window._inboxAcceptInvite = function(idx){
   var inv = invites[idx]; if(!inv) return;
   invites.splice(idx, 1);
   window._pendingTeamInvites = invites;
-  _updateInboxBadge();
+  _updateTeamInviteBadge();
   // PHASE 3 FIX: Save acceptance locally
   if(inv) {
     var localKey = '_accepted_team_invites_' + (_supaUserId||'');
@@ -20310,14 +20311,14 @@ window._inboxRejectInvite = function(idx){
   var inv = invites[idx]; if(!inv) return;
   invites.splice(idx, 1);
   window._pendingTeamInvites = invites;
-  _updateInboxBadge();
+  _updateTeamInviteBadge();
   showMiniNotif('تم رفض دعوة "'+inv.teamName+'"');
   var inbox = document.getElementById('_team-inbox-overlay');
   if(inbox) inbox.remove();
   setTimeout(openTeamInviteInbox, 200);
 };
 
-function _updateInboxBadge(){
+function _updateTeamInviteBadge(){
   var invites = window._pendingTeamInvites || [];
   var badge = document.getElementById('team-invite-inbox-badge');
   if(!badge) return;
@@ -20876,7 +20877,7 @@ window.openMyMemberTeamProfile = function(ownerId){
       window._myTeamMemberships = memberships;
       if(typeof renderMyMemberTeams === 'function') renderMyMemberTeams();
       if(typeof _renderMemberTasksSection === 'function') _renderMemberTasksSection();
-      _updateInboxBadge();
+      _updateTeamInviteBadge();
       if(memberships.length){
         _showTeamMembershipBanner(memberships);
         var knownKey  = 'known_teams_'+(_supaUserId||'g');
@@ -21298,7 +21299,7 @@ window.openMyMemberTeamProfile = function(ownerId){
             var exists = window._pendingTeamInvites.find(function(x){return x.id===inv.id;});
             if(!exists){
               window._pendingTeamInvites.push(inv);
-              if(typeof _updateInboxBadge==='function') _updateInboxBadge();
+              if(typeof _updateTeamInviteBadge==='function') _updateTeamInviteBadge();
               var inboxBtn=document.getElementById('team-invite-inbox-btn');
               if(inboxBtn) inboxBtn.style.display='';
               showMiniNotif('<i class="fa-solid fa-envelope" style="color:var(--accent2)"></i> دعوة جديدة من '+escapeHtml(rec.owner_name||'مشرف')+'!');
@@ -21323,7 +21324,7 @@ window.openMyMemberTeamProfile = function(ownerId){
       var exists = window._pendingTeamInvites.find(function(x){ return x.id===inv.id; });
       if(!exists) window._pendingTeamInvites.push(inv);
     });
-    _updateInboxBadge();
+    _updateTeamInviteBadge();
     var existing = document.getElementById('_team-invite-overlay');
     if(existing) existing.remove();
     var invite = invites[0];
