@@ -3734,7 +3734,7 @@ async function deleteSerial(id) {
     if(!deleted) { toast('⛔ تعذر حذف الكود من قاعدة البيانات'); return; }
   }
   SERIALS = SERIALS.filter(s => String(s.id) !== String(id));
-  else lsSet('serials', SERIALS);
+  lsSet('serials', SERIALS);
   renderSerials();
   updateDashStats();
   toast('🗑 تم حذف الكود');
