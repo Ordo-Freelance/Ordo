@@ -2468,7 +2468,7 @@ function lsGet(k, def) {
 }
 function lsSet(k, v) { localStorage.setItem('admin_'+k, JSON.stringify(v)); }
 
-let PLANS = lsGet('plans', [
+const DEFAULT_PLANS = [
   {
     id:'starter', name:'مبتدئ', icon:'🌱', price_monthly:49, price_annual:390,
     max_clients:5, duration_days:30, desc:'للمستقلين في البداية',
@@ -2560,7 +2560,9 @@ let PLANS = lsGet('plans', [
       _use_case_profile:'agency'
     }
   }
-]);
+];
+
+let PLANS = lsGet('plans', DEFAULT_PLANS);
 
 let SERIALS = lsGet('serials', []);
 let ACTIVITY_LOG = lsGet('activity_log', []);
@@ -2601,9 +2603,12 @@ function _supaRowToSerial(row) {
 }
 
 function _serialToSupaPayload(s) {
+  const plan = PLANS.find(item => item.id === s.planId);
   const p = {
     code:         s.code      || null,
     plan_id:      s.planId    || null,
+    plan_name:    plan?.name  || null,
+    duration_days: plan?.duration_days || null,
     billing:      s.billing   || 'monthly',
     note:         s.note      || null,
     status:       s.status    || 'unused',
@@ -2612,6 +2617,87 @@ function _serialToSupaPayload(s) {
   };
   if('userId' in s) p.user_id = s.userId || null;
   return p;
+}
+
+function _planFromDb(row) {
+  const aliases = { basic: 'starter' };
+  const presetId = aliases[row.id] || row.id;
+  const preset = DEFAULT_PLANS.find(plan => plan.id === presetId) || {};
+  const dbFeatures = row.features && typeof row.features === 'object' ? row.features : {};
+  return {
+    ...preset,
+    id: row.id,
+    name: row.name || row.plan_name || preset.name || row.id,
+    icon: dbFeatures._plan_icon || preset.icon || '📦',
+    desc: dbFeatures._plan_desc || preset.desc || '',
+    price_monthly: Number(row.price_monthly ?? row.price ?? preset.price_monthly ?? 0),
+    price_annual: Number(dbFeatures._price_annual ?? preset.price_annual ?? 0),
+    max_clients: Number(dbFeatures._max_clients ?? dbFeatures.max_clients_feat ?? preset.max_clients ?? 0),
+    duration_days: Number(row.duration_days || preset.duration_days || 30),
+    active: row.active !== false,
+    features: { ...(preset.features || {}), ...dbFeatures }
+  };
+}
+
+function _planToDb(plan) {
+  return {
+    id: plan.id,
+    name: plan.name,
+    plan_name: plan.name,
+    price: Number(plan.price_monthly || 0),
+    price_monthly: Number(plan.price_monthly || 0),
+    duration_days: Number(plan.duration_days || 30),
+    active: plan.active !== false,
+    features: {
+      ...(plan.features || {}),
+      _plan_icon: plan.icon || '📦',
+      _plan_desc: plan.desc || '',
+      _price_annual: Number(plan.price_annual || 0),
+      _max_clients: Number(plan.max_clients || 0)
+    },
+    updated_at: new Date().toISOString()
+  };
+}
+
+async function syncPlansFromSupabase() {
+  try {
+    const { data, error } = await supa.from('subscription_plans')
+      .select('id,name,plan_name,price,price_monthly,duration_days,features,active,created_at,updated_at')
+      .order('price_monthly', { ascending: true });
+    if(error) throw error;
+
+    const rows = data || [];
+    const canonicalDefaults = DEFAULT_PLANS.map(plan => ({
+      ...plan,
+      id: plan.id === 'starter' ? 'basic' : plan.id
+    }));
+    const byId = new Map(rows.map(row => [row.id, row]));
+    const missing = canonicalDefaults.filter(plan => !byId.has(plan.id));
+    const seedRows = rows.filter(row => ['basic', 'pro'].includes(row.id) && ['Basic', 'Pro'].includes(row.name));
+
+    if(missing.length || seedRows.length) {
+      const defaultsById = new Map(canonicalDefaults.map(plan => [plan.id, plan]));
+      const upserts = [
+        ...missing.map(_planToDb),
+        ...seedRows.map(row => _planToDb(defaultsById.get(row.id)))
+      ];
+      const { error: upsertError } = await supa.from('subscription_plans').upsert(upserts, { onConflict: 'id' });
+      if(upsertError) throw upsertError;
+      const { data: refreshed, error: refreshError } = await supa.from('subscription_plans')
+        .select('id,name,plan_name,price,price_monthly,duration_days,features,active,created_at,updated_at')
+        .order('price_monthly', { ascending: true });
+      if(refreshError) throw refreshError;
+      PLANS = (refreshed || []).filter(row => row.active !== false).map(_planFromDb);
+    } else {
+      PLANS = rows.filter(row => row.active !== false).map(_planFromDb);
+    }
+    lsSet('plans', PLANS);
+    renderPlans();
+    return true;
+  } catch(e) {
+    console.warn('تعذر تحميل الباقات من قاعدة البيانات:', e.message);
+    return false;
+  }
 }
 
 async function syncSerialsFromSupabase() {
@@ -2840,6 +2926,7 @@ async function loadAll() {
     }
   } catch(e) {}
   await loadStudioData();
+  await syncPlansFromSupabase();
   loadDashboard();
   renderUsersTable();
   syncSerialsFromSupabase().then(() => {
@@ -4111,7 +4198,7 @@ function _toggleCopyPlanSection() {
 function _chk(id) { return !!document.getElementById(id)?.checked; }
 function _num(id) { const el = document.getElementById(id); return el ? +el.value || 0 : 0; }
 
-function savePlan() {
+async function savePlan() {
   const editId = document.getElementById('cp-edit-id')?.value;
   const name   = document.getElementById('cp-name')?.value.trim();
   const icon   = document.getElementById('cp-icon')?.value.trim() || '📦';
@@ -4260,24 +4347,48 @@ function savePlan() {
 
   const mc = features.max_clients_feat || 0;
 
+  let plan;
   if(editId) {
     const idx = PLANS.findIndex(p => p.id === editId);
-    if(idx > -1) PLANS[idx] = { ...PLANS[idx], name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, features };
+    if(idx > -1) {
+      plan = { ...PLANS[idx], name, icon, desc, price_monthly:pm, price_annual:pa, duration_days:dur, max_clients:mc, features };
+      PLANS[idx] = plan;
+    }
   } else {
-    PLANS.push({ id: Date.now().toString(), name, icon, desc, price_monthly:pm, price_annual:pa, max_clients:mc, features });
+    const slug = name.toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, '-').replace(/^-|-$/g, '');
+    plan = { id: slug || ('plan-'+Date.now()), name, icon, desc, price_monthly:pm, price_annual:pa, duration_days:dur, max_clients:mc, active:true, features };
+    PLANS.push(plan);
+  }
+  if(!plan) { toast('⛔ تعذر تحديد الباقة'); return; }
+
+  const btn = document.querySelector('#modal-create-plan .btn-primary');
+  if(btn) { btn.disabled = true; btn.textContent = '⏳ جاري الحفظ...'; }
+  const { error } = await supa.from('subscription_plans').upsert(_planToDb(plan), { onConflict:'id' });
+  if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk" style="margin-left:6px"></i> حفظ الباقة'; }
+  if(error) {
+    toast('⛔ تعذر حفظ الباقة في قاعدة البيانات: ' + error.message);
+    await syncPlansFromSupabase();
+    return;
   }
   lsSet('plans', PLANS);
   closeModal('modal-create-plan');
-  renderPlans();
-  toast('✅ تم حفظ الباقة');
+  await syncPlansFromSupabase();
+  toast('✅ تم حفظ الباقة على السحابة');
 }
 
-function deletePlan(id) {
+async function deletePlan(id) {
   if(!confirm('حذف هذه الباقة؟')) return;
-  PLANS = PLANS.filter(p => p.id !== id);
+  const linked = SERIALS.filter(serial => serial.planId === id);
+  if(linked.length) {
+    toast(`⛔ لا يمكن حذف الباقة: مرتبطة بـ ${linked.length} كود`);
+    return;
+  }
+  const { error } = await supa.from('subscription_plans').delete().eq('id', id);
+  if(error) { toast('⛔ تعذر حذف الباقة: ' + error.message); return; }
+  PLANS = PLANS.filter(plan => plan.id !== id);
   lsSet('plans', PLANS);
   renderPlans();
-  toast('🗑 تم حذف الباقة');
+  toast('🗑 تم حذف الباقة من السحابة');
 }
 
 // ══════════════════════════════════════════════════

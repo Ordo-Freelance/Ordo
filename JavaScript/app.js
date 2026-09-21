@@ -1351,6 +1351,22 @@ function _showPageLock(id, el, reason){
   window.scrollTo(0,0);
 }
 
+function _normalizeSubscriptionPlan(row) {
+  if(!row) return null;
+  const features = row.features && typeof row.features === 'object' ? row.features : {};
+  return {
+    ...row,
+    name: row.name || row.plan_name || row.id,
+    icon: row.icon || features._plan_icon || '<i class="fa-solid fa-box"></i>',
+    desc: row.desc || features._plan_desc || '',
+    price_monthly: Number(row.price_monthly ?? row.price ?? 0),
+    price_annual: Number(row.price_annual ?? features._price_annual ?? 0),
+    max_clients: Number(row.max_clients ?? features._max_clients ?? features.max_clients_feat ?? 0),
+    duration_days: Number(row.duration_days || 30),
+    features
+  };
+}
+
 // â”€â”€ تفعيل السيريال ? دالة موحّدة â”€â”€
 async function _activateCode(inputId, msgId, onSuccess){
   const inp=document.getElementById(inputId), msg=document.getElementById(msgId);
@@ -1421,7 +1437,7 @@ async function _activateCode(inputId, msgId, onSuccess){
     let plan = null;
     try {
       const {data: planRow, error: planErr} = await supa.from('subscription_plans').select('id,name,plan_name,price,price_monthly,duration_days,features,active').eq('id', data.plan_id).maybeSingle();
-      if(!planErr) plan = planRow;
+      if(!planErr) plan = _normalizeSubscriptionPlan(planRow);
     } catch(pe) {
       const lsPlans = JSON.parse(localStorage.getItem('admin_plans')||'[]');
       plan = lsPlans.find(p => p.id === data.plan_id) || null;
@@ -13005,7 +13021,7 @@ async function loadUserSubscription(uid) {
           .eq('id', serialData.plan_id)
           .maybeSingle();
         if(!planErr && planData) {
-          plan = planData;
+          plan = _normalizeSubscriptionPlan(planData);
         } else {
           throw new Error(planErr?.message || 'no plan data');
         }
@@ -13042,7 +13058,7 @@ async function loadUserSubscription(uid) {
         const lsPlans = JSON.parse(localStorage.getItem('admin_plans') || localStorage.getItem('plans') || '[]');
         let plan = lsPlans.find(p => p.id === _asSrc.planId) || null;
         if(!plan) {
-          try { const {data:pr} = await supa.from('subscription_plans').select('id,name,plan_name,price,price_monthly,duration_days,features,active').eq('id',_asSrc.planId).maybeSingle(); if(pr) plan=pr; } catch(e){}
+          try { const {data:pr} = await supa.from('subscription_plans').select('id,name,plan_name,price,price_monthly,duration_days,features,active').eq('id',_asSrc.planId).maybeSingle(); if(pr) plan=_normalizeSubscriptionPlan(pr); } catch(e){}
         }
         _userSubscription = { ..._asSrc, plan, _fromAdminOverride: true };
       }
@@ -13135,7 +13151,7 @@ async function renderPlansListing() {
     const { data, error: pe } = await supa.from('subscription_plans').select('id,name,plan_name,price,price_monthly,duration_days,features,active,created_at');
     if(!pe && data && data.length) {
       // فلتر active محلياً لو الـ column موجود
-      plans = data.filter(p => p.active !== false && p.active !== 0);
+      plans = data.filter(p => p.active !== false && p.active !== 0).map(_normalizeSubscriptionPlan);
       // Sort by price locally
       plans.sort((a,b) => (a.price_monthly||0) - (b.price_monthly||0));
     }
