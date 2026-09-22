@@ -5873,6 +5873,7 @@ async function saveEditSubscription() {
   // ابحث عن الكود المرتبط بالمستخدم
   let serial = SERIALS.find(s => s.userId === uid && s.status === 'active');
   if(!serial) serial = SERIALS.find(s => s.userId === uid); // fallback: أي كود
+  const previousSerial = serial ? {...serial} : null;
 
   if(serial) {
     // عدّل البيانات مع الحفاظ على userId و activatedAt و code
@@ -5898,11 +5899,15 @@ async function saveEditSubscription() {
   } else {
     // مفيش كود — أنشئ واحد جديد
     const code = generateCode();
+    const activationDate = new Date();
+    let expiryDate = expires ? new Date(expires) : null;
+    if(!expiryDate && billing === 'annual') { expiryDate = new Date(activationDate); expiryDate.setFullYear(expiryDate.getFullYear()+1); }
+    if(!expiryDate && billing !== 'lifetime') { expiryDate = new Date(activationDate); expiryDate.setMonth(expiryDate.getMonth()+1); }
     serial = {
       code, planId, billing,
       status: 'active', userId: uid,
-      activatedAt: new Date().toISOString(),
-      expiresAt: expires ? new Date(expires).toISOString() : null,
+      activatedAt: activationDate.toISOString(),
+      expiresAt: expiryDate ? expiryDate.toISOString() : null,
       createdAt: new Date().toISOString()
     };
     SERIALS.push(serial);
@@ -5911,23 +5916,13 @@ async function saveEditSubscription() {
 
   const saved = await supaUpsertSerial(serial);
 
-  // Backup: store subscription in studio_data so user sees it even if serial_keys RLS fails
-  if(!saved) {
-    try {
-      // Try storing in studio_data as admin_subscription override
-      const existing = ALL_STUDIO_DATA[uid]?.raw || {};
-      const backupSub = {
-        planId: serial.planId,
-        billing: serial.billing,
-        status: 'active',
-        expiresAt: serial.expiresAt,
-        activatedAt: serial.activatedAt,
-        code: serial.code,
-        _adminOverride: true
-      };
-      const newData = { ...existing, admin_subscription: JSON.stringify(backupSub) };
-      await supa.from('studio_data').update({ data: JSON.stringify(newData) }).eq('user_id', uid);
-    } catch(e2) { console.warn('backup sub failed:', e2); }
+  if(!saved){
+    if(previousSerial) Object.assign(serial, previousSerial);
+    else SERIALS = SERIALS.filter(item => item !== serial);
+    lsSet('serials', SERIALS);
+    if(btn) { btn.disabled=false; btn.textContent='💾 حفظ التعديلات'; }
+    toast('⛔ تعذر حفظ الاشتراك في قاعدة البيانات');
+    return;
   }
 
   if(btn) { btn.disabled=false; btn.textContent='💾 حفظ التعديلات'; }
@@ -5937,12 +5932,7 @@ async function saveEditSubscription() {
   renderUsersTable();
   const userName = ALL_STUDIO_DATA[uid]?.parsed?.settings?.name || uid.substring(0,8);
   logActivity('تعديل اشتراك', `${userName} → ${planId}`, 'var(--accent2)');
-  if(saved) {
-    toast('✅ تم تعديل الاشتراك في Supabase');
-  } else {
-    const sqlHint = 'UPDATE serial_keys SET plan_id=\''+planId+'\', billing=\''+billing+'\', status=\'active\' WHERE user_id=\''+uid+'\';';
-    showSqlHint('⚠ RLS منعت التعديل المباشر — شغّل هذا الـ SQL في Supabase', sqlHint);
-  }
+  toast('✅ تم تعديل الاشتراك وحفظه');
 }
 
 function revokeSubscription() {

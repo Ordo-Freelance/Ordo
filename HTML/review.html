@@ -438,10 +438,6 @@ async function submitReview(){
   btn.disabled=true;
   btn.innerHTML='<span class="spin" style="width:18px;height:18px;border-width:2px"></span> جاري الإرسال...';
 
-  const ANON=SUPA_ANON;
-  const BASE=SUPA_URL;
-  const HDRS={'apikey':ANON,'Authorization':'Bearer '+ANON,'Content-Type':'application/json','Prefer':'return=minimal'};
-
   const review={
     id:'rev_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
     task_id:_reviewTokenObj&&_reviewTokenObj.entity_type==='task'?_reviewTokenObj.entity_id:null, task_title:'تقييم عام',
@@ -458,121 +454,17 @@ async function submitReview(){
 
   let saved=false;
 
-  // Strategy 1: review_queue table via REST API (works without auth/session)
+  // Save through the public API, which validates the review link.
   try{
-    const r1=await fetch(BASE+'/rest/v1/review_queue',{
-      method:'POST',
-      headers:{...HDRS,'Prefer':'return=minimal'},
-      body:JSON.stringify({
-        target_user_id:_resolvedUid,
-        review_json:JSON.stringify(review),
-        processed:false,
-        created_at:new Date().toISOString()
-      })
-    });
-    if(r1.ok||r1.status===201) saved=true;
-  }catch(e){ console.warn('review_queue REST failed',e); }
+    const queued=await ORDO_API_REQUEST('public.review.submit',{type:'review',token:pPublicToken,review:review});
+    saved=!!queued.data;
+  }catch(e){ console.warn('Review save failed',e); }
 
-  // Strategy 1a: public_reviews table. This is the low-egress public write path.
   if(!saved){
-    try{
-      const rPub = await db.from('public_reviews').insert({
-        token: review.token || ('review_' + review.id),
-        owner_user_id: _resolvedUid,
-        review_data: review,
-        is_active: true,
-        created_at: new Date().toISOString()
-      });
-      if(!rPub.error) saved = true;
-    }catch(e){}
-  }
-
-  // Strategy 1b: retry via Supabase JS client if REST failed
-  if(!saved){
-    try{
-      const r1b=await db.from('review_queue').insert({
-        target_user_id:_resolvedUid,review_json:JSON.stringify(review),
-        processed:false,created_at:new Date().toISOString()
-      });
-      if(!r1b.error) saved=true;
-    }catch(e){}
-  }
-
-  // Strategy 2: optional owner-scoped studio_data fallback. Disabled by default to avoid high egress.
-  if(!saved && window.ORDO_ALLOW_OWNER_STUDIO_FALLBACK === true){
-    try{
-      const gr=await fetch(BASE+'/rest/v1/studio_data?user_id=eq.'+encodeURIComponent(_resolvedUid)+'&select=data',{headers:HDRS});
-      if(gr.ok){
-        const rows=await gr.json();
-        let fresh=rows?.[0]?.data;
-        if(typeof fresh==='string') fresh=JSON.parse(fresh);
-        if(fresh?.data&&!fresh?.tasks) fresh=typeof fresh.data==='string'?JSON.parse(fresh.data):fresh.data;
-        if(fresh){
-          if(!fresh.reviews) fresh.reviews=[];
-          const dup=fresh.reviews.find(r=>
-            (_reviewTokenObj&&!_reviewTokenObj.allow_multiple&&r.token===_reviewTokenObj.token) ||
-            (!_reviewTokenObj?.allow_multiple&&(r.client_name||'').toLowerCase()===name.toLowerCase()&&!r.task_id)
-          );
-          if(dup){ saved=true; }
-          else{
-            if(_reviewTokenObj){
-              fresh.public_tokens=fresh.public_tokens||[];
-              const tk=fresh.public_tokens.find(t=>t.token===_reviewTokenObj.token);
-              if(tk&&!tk.allow_multiple) tk.used_at=new Date().toISOString();
-            }
-            fresh.reviews.push(review); fresh._savedAt=new Date().toISOString();
-            const pr=await fetch(BASE+'/rest/v1/studio_data?user_id=eq.'+encodeURIComponent(_resolvedUid),
-              {method:'PATCH',headers:HDRS,body:JSON.stringify({data:JSON.stringify(fresh),updated_at:new Date().toISOString()})});
-            if(pr.ok||pr.status===204) saved=true;
-          }
-        }
-      }
-    }catch(e2){ console.warn('patch failed',e2); }
-  }
-
-  // Strategy 3: Retry once after delay (mobile network may be slow)
-  if(!saved){
-    await new Promise(r=>setTimeout(r,2000));
-    try{
-      const r3=await fetch(BASE+'/rest/v1/review_queue',{
-        method:'POST',
-        headers:{...HDRS,'Prefer':'return=minimal'},
-        body:JSON.stringify({
-          target_user_id:_resolvedUid,
-          review_json:JSON.stringify(review),
-          processed:false,
-          created_at:new Date().toISOString()
-        })
-      });
-      if(r3.ok||r3.status===201) saved=true;
-    }catch(e){}
-  }
-
-  // Backup to localStorage if all else fails
-  if(!saved){
-    try{
-      const pend=JSON.parse(localStorage.getItem('_ordo_pending_reviews')||'[]');
-      pend.push({uid:_resolvedUid,review,ts:Date.now()});
-      localStorage.setItem('_ordo_pending_reviews',JSON.stringify(pend));
-    }catch(e){}
-    console.warn('Review stored locally as pending');
-  }
-
-  if(saved&&_reviewTokenObj&&window.ORDO_ALLOW_OWNER_STUDIO_FALLBACK === true){
-    try{
-      const rr=await db.from('studio_data').select('data').eq('user_id',_resolvedUid).maybeSingle();
-      let fresh=rr.data&&rr.data.data;
-      if(typeof fresh==='string') fresh=JSON.parse(fresh);
-      if(fresh?.data&&!fresh?.tasks) fresh=typeof fresh.data==='string'?JSON.parse(fresh.data):fresh.data;
-      if(fresh){
-        fresh.public_tokens=fresh.public_tokens||[];
-        const tk=fresh.public_tokens.find(t=>t.token===_reviewTokenObj.token);
-        if(tk&&!tk.allow_multiple) tk.used_at=tk.used_at||new Date().toISOString();
-        if(!fresh.reviews) fresh.reviews=[];
-        if(!fresh.reviews.find(r=>r.id===review.id || (!_reviewTokenObj.allow_multiple&&r.token===review.token))) fresh.reviews.push(review);
-        await db.from('studio_data').upsert({user_id:_resolvedUid,data:JSON.stringify(fresh),updated_at:new Date().toISOString()},{onConflict:'user_id'});
-      }
-    }catch(e){}
+    btn.disabled=false;
+    btn.textContent='إرسال التقييم';
+    showErr('تعذر إرسال التقييم. حاول مرة أخرى.');
+    return;
   }
 
   document.getElementById('header-card').style.display='none';

@@ -26766,8 +26766,8 @@ async function _pollReviews(){
 
     // â”€â”€ Check review_queue table â”€â”€
     const {data:qRows, error:qErr} = await supa.from('review_queue')
-      .select('id, review_json, created_at')
-      .eq('target_user_id', _supaUserId)
+      .select('id, data, created_at')
+      .eq('user_id', _supaUserId)
       .eq('processed', false)
       .limit(50);
 
@@ -26776,7 +26776,9 @@ async function _pollReviews(){
       if(!S.reviews) S.reviews = [];
       for(const qRow of qRows){
         try{
-          const rev = typeof qRow.review_json==='string' ? JSON.parse(qRow.review_json) : qRow.review_json;
+          const rawReview=qRow.data?.review_json;
+          const rev = typeof rawReview==='string' ? JSON.parse(rawReview) : rawReview;
+          if(!rev) continue;
           const exists = S.reviews.find(r=>r.id===rev.id || ((r.client_name||'').toLowerCase()===(rev.client_name||'').toLowerCase() && !r.task_id));
           if(!exists){
             S.reviews.push(rev);
@@ -26793,6 +26795,19 @@ async function _pollReviews(){
         if(document.getElementById('page-reviews')?.classList.contains('active')) renderReviewsPage();
         toast('â­گ وصل تقييم جديد!');
       }
+    }
+
+    // Public reviews written by the client portal also arrive here.
+    const publicRows = await supa.from('public_reviews').select('id,data').eq('user_id',_supaUserId).limit(100);
+    if(!publicRows.error && publicRows.data?.length){
+      let changed=false;
+      S.reviews=S.reviews||[];
+      for(const row of publicRows.data){
+        const raw=row.data?.review_data||row.data;
+        const review=typeof raw==='string'?JSON.parse(raw):raw;
+        if(review?.id&&!S.reviews.some(item=>String(item.id)===String(review.id))){ S.reviews.push(review); changed=true; }
+      }
+      if(changed){ lsSave(); if(document.getElementById('page-reviews')?.classList.contains('active')) renderReviewsPage(); }
     }
 
     // â”€â”€ Also poll studio_data directly (original logic) â”€â”€
@@ -26812,6 +26827,51 @@ async function _pollReviews(){
 }
 setInterval(_pollReviews,5*60*1000); setTimeout(_pollReviews,5000);
 
+async function _pollPublicInbox(){
+  if(!_supaUserId||!supa||!S)return;
+  try{
+    const [orders,events]=await Promise.all([
+      supa.from('public_store_orders').select('id,data,created_at').eq('user_id',_supaUserId).order('created_at',{ascending:false}).limit(100),
+      supa.from('public_client_portal_events').select('id,data,created_at').eq('user_id',_supaUserId).order('created_at',{ascending:false}).limit(100)
+    ]);
+    let changed=false;
+    S.svc_orders=S.svc_orders||[];
+    if(!orders.error) for(const row of orders.data||[]){
+      const order=row.data?.order_data;
+      if(order?.id&&!S.svc_orders.some(item=>String(item.id)===String(order.id))){ S.svc_orders.push(order); changed=true; }
+    }
+    S._publicEventIds=S._publicEventIds||[];
+    if(!events.error) for(const row of events.data||[]){
+      if(S._publicEventIds.includes(row.id)) continue;
+      const type=row.data?.event_type, payload=row.data?.event_data||{};
+      const taskId=String(payload.task_id||payload.taskId||'');
+      const task=[...(S.tasks||[]),...(S.project_tasks||[])].find(item=>String(item.id)===taskId);
+      if(type==='svc_order'&&payload.id&&!S.svc_orders.some(item=>String(item.id)===String(payload.id))) S.svc_orders.push(payload);
+      if(type==='meeting_request'){
+        S.support_msgs=S.support_msgs||[];
+        if(!S.support_msgs.some(item=>String(item.id)===String(payload.id))) S.support_msgs.push(payload);
+      }
+      if(type==='task_received'&&task){ task.clientReceived=true; task.clientReceivedAt=payload.created_at||row.created_at; }
+      if(type==='revision_request'){
+        if(task){ task.status='revision'; task.done=false; task.clientRevisionRequested=true; task.clientRevisionNote=payload.note||''; }
+        S._inbox=S._inbox||[];
+        if(!S._inbox.some(item=>String(item.id)===String(payload.id))) S._inbox.unshift(payload);
+      }
+      if(type==='task_note'){
+        if(task){ task.clientNote=payload.note||''; task.clientNoteAt=payload.created_at||row.created_at; }
+        S._inbox=S._inbox||[];
+        S._inbox.unshift({id:row.id,type:'note',taskId:taskId,note:payload.note||'',createdAt:row.created_at,read:false});
+      }
+      S._publicEventIds.push(row.id);
+      changed=true;
+    }
+    if(S._publicEventIds.length>500) S._publicEventIds=S._publicEventIds.slice(-500);
+    if(changed){ lsSave(); toast('وصل تحديث جديد من بوابة العميل أو المتجر'); }
+  }catch(error){ console.warn('Public inbox sync failed:',error); }
+}
+setTimeout(_pollPublicInbox,7000);
+setInterval(_pollPublicInbox,5*60*1000);
+
 async function _syncReviewsNow(btn){
   if(!_supaUserId||!supa){ toast('يرجى تسجيل الدخول أولاً'); return; }
   if(btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-rotate fa-spin"></i> جاري الجلب...'; }
@@ -26819,15 +26879,17 @@ async function _syncReviewsNow(btn){
   try{
     // 1. review_queue
     const {data:qRows,error:qErr}=await supa.from('review_queue')
-      .select('id,review_json,created_at')
-      .eq('target_user_id',_supaUserId)
+      .select('id,data,created_at')
+      .eq('user_id',_supaUserId)
       .eq('processed',false)
       .limit(100);
     if(!qErr && qRows?.length){
       if(!S.reviews) S.reviews=[];
       for(const qRow of qRows){
         try{
-          const rev=typeof qRow.review_json==='string'?JSON.parse(qRow.review_json):qRow.review_json;
+          const rawReview=qRow.data?.review_json;
+          const rev=typeof rawReview==='string'?JSON.parse(rawReview):rawReview;
+          if(!rev) continue;
           const exists=S.reviews.find(r=>r.id===rev.id||((r.client_name||'').toLowerCase()===(rev.client_name||'').toLowerCase()&&!r.task_id));
           if(!exists){ S.reviews.push(rev); found++; }
           await supa.from('review_queue').update({processed:true}).eq('id',qRow.id);

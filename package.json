@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "node dev-server.mjs",
-    "check": "node --check api/index.js && node --check dev-server.mjs"
+    "check": "node --check api/index.js && node --check dev-server.mjs",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1"

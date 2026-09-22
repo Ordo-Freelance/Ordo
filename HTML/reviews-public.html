@@ -589,6 +589,14 @@
         try {
           var uid = pUid;
           if (!uid && pU) {
+            if (window.ORDO_API_REQUEST) {
+              try {
+                var publicSnapshot = (await ORDO_API_REQUEST('public.snapshot', {type:'reviews_public', username:pU.toLowerCase()})).data;
+                if (publicSnapshot) { uid = publicSnapshot.uid; tokenResolved = {data:publicSnapshot.data}; }
+              } catch (e) { console.warn('[Reviews] Public lookup failed:', e.message); }
+            }
+          }
+          if (!uid && pU) {
             try {
               var r1 = await db
                 .from("studio_data")
@@ -604,6 +612,10 @@
             return;
           }
           var ud = tokenResolved && tokenResolved.data ? tokenResolved.data : null;
+          if (!ud && window.ORDO_API_REQUEST) {
+            try { ud = (await ORDO_API_REQUEST('public.snapshot', {type:'reviews_public', uid:uid})).data.data; }
+            catch (e) { console.warn('[Reviews] Public data unavailable:', e.message); }
+          }
           if (!ud) {
           var res = await db
             .from("studio_data")

@@ -194,6 +194,15 @@
   async function resolvePublicToken(db, token, options){
     options = options || {};
     if(!db || !token) return {ok:false, reason:'missing_token'};
+    if(typeof window.ORDO_API_REQUEST === 'function'){
+      try{
+        var response = await window.ORDO_API_REQUEST('public.snapshot', {
+          token: token, uid: options.uid || '', type: options.entity_type || ''
+        });
+        var snapshot = response && response.data;
+        if(snapshot) return {ok:true, uid:snapshot.uid, data:snapshot.data, token:snapshot.token, entity:null};
+      }catch(e){ return {ok:false, reason:e && e.code || 'not_found'}; }
+    }
     var direct = await resolveFromPublicTables(db, token, options.entity_type);
     if(direct && direct.expired) return {ok:false, reason:'expired'};
     if(direct && direct.ok) return direct;

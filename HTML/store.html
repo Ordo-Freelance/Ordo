@@ -203,6 +203,13 @@ async function resolveUname(u){
   if(!u) return null;
   var uLower=u.toLowerCase().trim();
 
+  if(window.ORDO_API_REQUEST){
+    try{
+      var snapshot=(await ORDO_API_REQUEST('public.snapshot',{type:'store',username:uLower})).data;
+      if(snapshot){ window._storePublicData=snapshot.data; return snapshot.uid; }
+    }catch(e){ console.warn('[Store] Public store lookup failed:',e.message); }
+  }
+
   try{
     var r2=await supa.from('public_store_items')
       .select('user_id,data')
@@ -238,6 +245,10 @@ async function boot(){
     }catch(e){}
   }
   if(!uid&&_pUname) uid=await resolveUname(_pUname);
+  if(uid&&!window._storePublicData&&window.ORDO_API_REQUEST){
+    try{ window._storePublicData=(await ORDO_API_REQUEST('public.snapshot',{type:'store',uid:uid})).data.data; }
+    catch(e){ console.warn('[Store] Public data unavailable:',e.message); }
+  }
   if(!uid){
     if(_pUname) showErr('لم يتم العثور على مستخدم بهذا الاسم: "'+_pUname+'"');
     else showErr('رابط غير صحيح - يرجى التحقق من الرابط');
@@ -1210,13 +1221,13 @@ window._submitOrd=function(ue,se,pe,price,ple){
   var savedClientId=null;
 
   supa.from('public_store_orders').insert({
-    owner_user_id: uid,
-    order_data: order,
+    user_id:uid,
+    data:{order_data:order},
     status: 'pending',
     created_at: new Date().toISOString()
   }).then(function(ins){
     if(ins && !ins.error) return {savedToQueue:true};
-    if(window.ORDO_ALLOW_OWNER_STUDIO_FALLBACK !== true) return {savedToQueue:true};
+    if(window.ORDO_ALLOW_OWNER_STUDIO_FALLBACK !== true) throw (ins && ins.error) || new Error('تعذر إرسال الطلب');
     return supa.from('studio_data').select('data').eq('user_id',uid).maybeSingle();
   }).then(function(r){
     if(r && r.savedToQueue) return;

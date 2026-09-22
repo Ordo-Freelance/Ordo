@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS ordo_users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email text NOT NULL UNIQUE,
   password_hash text NOT NULL,
+  auth_provider text NOT NULL DEFAULT 'email',
+  google_sub text DEFAULT '',
   name text DEFAULT '',
   phone text DEFAULT '',
   studio text DEFAULT '',
@@ -14,6 +16,9 @@ CREATE TABLE IF NOT EXISTS ordo_users (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE ordo_users ADD COLUMN IF NOT EXISTS auth_provider text NOT NULL DEFAULT 'email';
+ALTER TABLE ordo_users ADD COLUMN IF NOT EXISTS google_sub text DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS ordo_sessions (
   token uuid PRIMARY KEY DEFAULT gen_random_uuid(),

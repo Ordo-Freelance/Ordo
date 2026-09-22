@@ -28,8 +28,8 @@ const TABLES = new Set([
   'subscription_requests'
 ]);
 const PUBLIC_READ_TABLES = new Set(['platform_settings', 'public_tokens', 'public_store_items', 'public_reviews', 'public_contracts', 'shared_contracts']);
-const PUBLIC_WRITE_TABLES = new Set(['public_store_orders', 'public_reviews', 'review_queue', 'public_client_portal_events', 'subscription_requests']);
-const USER_TABLES = new Set(['studio_data', 'user_settings', 'user_notifications', 'public_tokens', 'public_store_items']);
+const PUBLIC_WRITE_TABLES = new Set(['public_store_orders', 'subscription_requests']);
+const USER_TABLES = new Set(['studio_data', 'user_settings', 'user_notifications', 'public_tokens', 'public_store_items', 'review_queue', 'public_store_orders', 'public_reviews', 'public_client_portal_events']);
 const JSON_DATA_TABLES = new Set(['team_invites', 'team_members', 'public_tokens', 'public_store_items', 'public_store_orders', 'public_reviews', 'review_queue', 'public_contracts', 'public_client_portal_events', 'subscription_requests']);
 const TABLE_COLUMNS = {
   studio_data: new Set(['user_id', 'data', 'username_index', 'created_at', 'updated_at']),
@@ -153,6 +153,86 @@ function parseMaybe(value) {
     try { return JSON.parse(value); } catch {}
   }
   return value;
+}
+
+function unwrapStudio(value) {
+  let data = value;
+  for (let i = 0; i < 4; i++) {
+    data = parseMaybe(data);
+    if (data && typeof data === 'object' && data.data && !data.settings && !data.clients && !data.services) data = data.data;
+    else break;
+  }
+  return data && typeof data === 'object' ? data : {};
+}
+
+function publicView(data, type, token) {
+  const settings = data.settings || {};
+  const publicSettings = Object.fromEntries(['name','studio','studioName','username','store_slug','logo','avatar','accent','accentColor','theme_color','phone','email','whatsapp','about','bio','currency','socialLinks','social_links'].filter(key => settings[key] !== undefined).map(key => [key, settings[key]]));
+  if (type === 'store') return { settings: publicSettings, services: data.services || [], standalone_packages: data.standalone_packages || [], portfolio_projects: data.portfolio_projects || [], stores: data.stores || [], reviews: (data.reviews || []).filter(row => row.public_visible !== false) };
+  if (type === 'reviews_public') return { settings: publicSettings, reviews: (data.reviews || []).filter(row => row.public_visible !== false), public_tokens: (data.public_tokens || []).filter(item => ['review','store'].includes(item.entity_type) && !item.revoked && (!item.expires_at || new Date(item.expires_at) > new Date())).map(item => ({token:item.token,entity_type:item.entity_type})) };
+  if (type === 'review') return { settings: publicSettings, reviews: (data.reviews || []).filter(row => row.public_visible !== false) };
+  const clientId = String(token?.client_id || '');
+  const clientName = String(token?.client_name || '').trim().toLowerCase();
+  const belongs = row => String(row?.client_id ?? row?.clientId ?? '') === clientId || (!!clientName && String(row?.client_name || row?.client || '').trim().toLowerCase() === clientName);
+  const clients = (data.clients || []).filter(row => String(row.id) === clientId);
+  if (!clients.length && clientName) clients.push({id:clientId,name:token.client_name});
+  return {
+    settings: publicSettings,
+    clients,
+    projects: (data.projects || []).filter(belongs), tasks: (data.tasks || []).filter(row => belongs(row) && row.client_visibility !== false && row.is_internal !== true),
+    project_tasks: (data.project_tasks || []).filter(row => belongs(row) && row.client_visibility !== false && row.is_internal !== true), invoices: (data.invoices || []).filter(belongs),
+    team_tasks: (data.team_tasks || []).filter(row => row.client_visibility === true && belongs(row)),
+    contracts: (data.contracts || []).filter(belongs), proposals: (data.proposals || []).filter(belongs),
+    reviews: (data.reviews || []).filter(belongs), svc_orders: (data.svc_orders || []).filter(belongs),
+    services: data.services || [], standalone_packages: data.standalone_packages || [],
+    portfolio_projects: data.portfolio_projects || [], client_portals: (data.client_portals || []).filter(belongs)
+  };
+}
+
+async function publicSnapshot(store, input) {
+  const type = String(input.type || '');
+  if (!['store','reviews_public','review','client_portal'].includes(type)) return null;
+  const token = String(input.token || '').trim();
+  const username = String(input.username || '').trim().toLowerCase();
+  const uid = String(input.uid || '').trim();
+  if ((type === 'review' || type === 'client_portal') && !token) return null;
+  const candidates = await store.publicStudioCandidates({ token, username, uid: token ? uid : (type === 'store' || type === 'reviews_public' ? uid : '') });
+  for (const row of candidates) {
+    const data = unwrapStudio(row.data);
+    const tokens = Array.isArray(data.public_tokens) ? data.public_tokens : [];
+    let matching = token ? tokens.find(item => item?.token === token && !item.revoked && (!item.expires_at || new Date(item.expires_at) > new Date()) && (item.entity_type === type || (type === 'reviews_public' && item.entity_type === 'review'))) : null;
+    if (token && !matching) {
+      const collection = type === 'client_portal' ? data.client_portals : type === 'review' ? data.reviews : type === 'store' ? data.stores : [];
+      const entity = (collection || []).find(item => [item?.token, item?.public_token, item?.shareToken].includes(token));
+      if (entity) matching = { token, entity_type:type, entity_id:entity.id, client_id:entity.client_id || null, client_name:entity.client_name || '', allowed_sections:[], allow_multiple:true };
+    }
+    if (token && !matching) continue;
+    if (!token && username && ![row.username_index,data.settings?.username,data.settings?.store_slug].some(value => String(value || '').toLowerCase() === username)) continue;
+    if (type === 'client_portal') {
+      const portal = (data.client_portals || []).find(item => String(item.id) === String(matching?.entity_id));
+      if (portal?.client_id && !matching.client_id) matching.client_id = portal.client_id;
+      if (portal?.client_name && !matching.client_name) matching.client_name = portal.client_name;
+    }
+    if (type === 'client_portal' && !matching?.client_id) continue;
+    const view = publicView(data, type, matching);
+    if (type === 'store' || type === 'reviews_public') {
+      try {
+        const queued = await store.query('public_reviews', {
+          op:'select', columns:'id,data', filters:[{op:'eq',column:'user_id',value:row.user_id}], limit:200
+        });
+        const seen = new Set((view.reviews || []).map(item => String(item.id)));
+        for (const record of queued || []) {
+          const payload = parseMaybe(record.data) || {};
+          const review = parseMaybe(payload.review_data) || payload;
+          if (!review.id || review.public_visible === false || payload.public_visible === false || seen.has(String(review.id))) continue;
+          view.reviews.push(review);
+          seen.add(String(review.id));
+        }
+      } catch (error) { console.warn('Public reviews unavailable:', error); }
+    }
+    return { uid: row.user_id, data: view, token: matching || null };
+  }
+  return null;
 }
 
 function encodeJsonFields(row) {
@@ -324,6 +404,14 @@ function enforceAccess(table, input, user) {
 }
 
 class LocalStore {
+  async publicStudioCandidates({ token, username, uid }) {
+    const db = await readLocalDb();
+    return (db.studio_data || []).filter(row =>
+      (!uid || String(row.user_id) === uid) &&
+      (!username || String(row.username_index || unwrapStudio(row.data).settings?.username || '').toLowerCase() === username) &&
+      (!token || JSON.stringify(row.data).includes(token))
+    ).slice(0, 20);
+  }
   async userById(id) {
     const db = await readLocalDb();
     return db.ordo_users.find(user => user.id === id) || null;
@@ -588,7 +676,10 @@ async function makePostgresStore() {
   const sql = neon(connectionString);
   const query = (text, params = []) => sql.query(text, params);
   if (!postgresSchemaReady) {
-    postgresSchemaReady = query('ALTER TABLE serial_keys ADD COLUMN IF NOT EXISTS note text, ADD COLUMN IF NOT EXISTS code_type text, ADD COLUMN IF NOT EXISTS price numeric(10,2) NOT NULL DEFAULT 0')
+    postgresSchemaReady = Promise.all([
+      query('ALTER TABLE serial_keys ADD COLUMN IF NOT EXISTS note text, ADD COLUMN IF NOT EXISTS code_type text, ADD COLUMN IF NOT EXISTS price numeric(10,2) NOT NULL DEFAULT 0'),
+      query("ALTER TABLE ordo_users ADD COLUMN IF NOT EXISTS auth_provider text NOT NULL DEFAULT 'email', ADD COLUMN IF NOT EXISTS google_sub text DEFAULT ''")
+    ])
       .catch(error => {
         postgresSchemaReady = null;
         throw error;
@@ -596,6 +687,20 @@ async function makePostgresStore() {
   }
   await postgresSchemaReady;
   return {
+    async publicStudioCandidates({ token, username, uid }) {
+      const clauses = [];
+      const params = [];
+      if (uid) { params.push(uid); clauses.push(`user_id = $${params.length}`); }
+      if (username) {
+        params.push(username);
+        const exact = `$${params.length}`;
+        params.push('%' + username.replace(/[\\%_]/g, '\\$&') + '%');
+        clauses.push(`(lower(username_index) = ${exact} OR data::text ILIKE $${params.length} ESCAPE '\\')`);
+      }
+      if (token) { params.push('%' + token.replace(/[\\%_]/g, '\\$&') + '%'); clauses.push(`data::text LIKE $${params.length} ESCAPE '\\'`); }
+      if (!clauses.length) return [];
+      return query(`SELECT user_id, data, username_index FROM studio_data WHERE ${clauses.join(' AND ')} LIMIT 20`, params);
+    },
     async userById(id) {
       const rows = await query('SELECT * FROM ordo_users WHERE id = $1 LIMIT 1', [id]);
       return rows[0] || null;
@@ -795,6 +900,10 @@ async function makePostgresStore() {
 }
 
 async function readBody(req) {
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
+  if (typeof req.body === 'string' || Buffer.isBuffer(req.body)) {
+    try { return JSON.parse(String(req.body)); } catch { return {}; }
+  }
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   const raw = Buffer.concat(chunks).toString('utf8');
@@ -967,6 +1076,61 @@ export default async function handler(req, res) {
       return ok(res, { serial: result.serial, already_active: result.reason === 'already_yours' });
     }
 
+    if (postAction === 'public.snapshot') {
+      const snapshot = await publicSnapshot(store, input);
+      if (!snapshot) return fail(res, 'الرابط غير صالح أو غير متاح', 404, 'public_not_found');
+      return ok(res, snapshot);
+    }
+
+    if (postAction === 'public.portalEvent') {
+      const snapshot = await publicSnapshot(store, {type:'client_portal', token:input.token});
+      if (!snapshot) return fail(res, 'رابط البوابة غير صالح', 404, 'public_not_found');
+      const eventType = String(input.event_type || '');
+      if (!['svc_order','meeting_request','task_received','revision_request','task_note'].includes(eventType)) return fail(res, 'نوع الطلب غير صحيح');
+      const payload = input.event_data && typeof input.event_data === 'object' ? input.event_data : {};
+      if (JSON.stringify(payload).length > 10000) return fail(res, 'الطلب كبير جداً', 413, 'too_large');
+      const taskId = String(payload.task_id || payload.taskId || '');
+      if (['task_received','revision_request','task_note'].includes(eventType) && ![...(snapshot.data.tasks || []), ...(snapshot.data.project_tasks || []), ...(snapshot.data.team_tasks || [])].some(item => String(item.id) === taskId)) return fail(res, 'المهمة غير متاحة', 403, 'task_not_available');
+      const row = await store.query('public_client_portal_events', {op:'insert', payload:{
+        id:uuid(), user_id:snapshot.uid, data:{client_id:snapshot.token.client_id,event_type:eventType,event_data:payload}, created_at:now()
+      }, single:true});
+      return ok(res, {id:row.id});
+    }
+
+    if (postAction === 'public.review.submit') {
+      const type = input.type === 'client_portal' ? 'client_portal' : 'review';
+      const snapshot = await publicSnapshot(store, {type,token:input.token});
+      if (!snapshot) return fail(res, 'رابط التقييم غير صالح', 404, 'public_not_found');
+      const supplied = input.review && typeof input.review === 'object' ? input.review : {};
+      const name = String(supplied.client_name || '').trim().slice(0, 120);
+      const comment = String(supplied.comment || '').trim().slice(0, 3000);
+      const stars = Number(supplied.stars || supplied.rating);
+      if (!name || !Number.isInteger(stars) || stars < 1 || stars > 5) return fail(res, 'بيانات التقييم غير صحيحة');
+      const taskId = String(supplied.task_id || '');
+      if (type === 'client_portal' && taskId && ![...(snapshot.data.tasks || []), ...(snapshot.data.project_tasks || []), ...(snapshot.data.team_tasks || [])].some(item => String(item.id) === taskId)) return fail(res, 'المهمة غير متاحة', 403, 'task_not_available');
+      if (type === 'review' && snapshot.token.allow_multiple !== true) {
+        const prior = await store.query('public_reviews', {op:'select',columns:'id,data',filters:[{op:'eq',column:'user_id',value:snapshot.uid}],limit:500});
+        if ((prior || []).some(row => (parseMaybe(row.data)?.review_data || {}).token === input.token)) return fail(res, 'تم استخدام رابط التقييم من قبل', 409, 'review_already_submitted');
+      }
+      const review = {
+        id:uuid(), client_name:name, comment, text:comment, stars, rating:stars,
+        client_id:type === 'client_portal' ? snapshot.token.client_id : (snapshot.token.client_id || null),
+        task_id:taskId || null, task_title:String(supplied.task_title || '').slice(0, 200),
+        token:String(input.token), public_visible:true, created_at:now(), source:'review_form'
+      };
+      let saved = false;
+      try {
+        await store.query('review_queue', {op:'insert',payload:{id:uuid(),user_id:snapshot.uid,data:{review_json:review},processed:false,created_at:now()},single:true});
+        saved = true;
+      } catch (error) { console.warn('Review queue write failed:', error); }
+      try {
+        await store.query('public_reviews', {op:'insert',payload:{id:uuid(),user_id:snapshot.uid,data:{review_data:review,public_visible:true},created_at:now()},single:true});
+        saved = true;
+      } catch (error) { console.warn('Public review write failed:', error); }
+      if (!saved) return fail(res, 'تعذر حفظ التقييم', 500, 'review_save_failed');
+      return ok(res, {id:review.id});
+    }
+
     if (postAction === 'admin.users.create') {
       const { user } = await currentUser(req, store);
       if (!user?.is_admin) return fail(res, 'Admin only', 403, 'admin_only');
@@ -1021,3 +1185,5 @@ export default async function handler(req, res) {
     return fail(res, error.message || 'Server error', status, error.code || 'server_error');
   }
 }
+
+export { publicSnapshot, readBody };

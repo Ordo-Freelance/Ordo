@@ -202,6 +202,10 @@ const ORDO_HOME='./';
 const STORE_URL='./store.html';
 
 const db=supabase.createClient(SUPA_URL,SUPA_ANON);
+async function sendPortalEvent(eventType, eventData){
+  if(!pPublicToken || !window.ORDO_API_REQUEST) throw new Error('رابط البوابة غير صالح');
+  return ORDO_API_REQUEST('public.portalEvent',{token:pPublicToken,event_type:eventType,event_data:eventData});
+}
 const xe=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');
 
 // xeHtml: يعرض HTML من Quill بشكل آمن — يحتفظ بالصور ويمنع السكريبتات
@@ -1326,13 +1330,7 @@ async function _submitSvcOrder(uid, svcName, svcType, price){
   };
 
   try{
-    const queued = await db.from('public_client_portal_events').insert({
-      owner_user_id: uid,
-      client_id: String(_clientId||''),
-      event_type: 'svc_order',
-      event_data: order,
-      created_at: new Date().toISOString()
-    });
+    const queued = await sendPortalEvent('svc_order',order);
     if(queued && !queued.error){
       document.getElementById('_svc-order-ov')?.remove();
       const queuedOk = document.createElement('div'); queuedOk.className='overlay'; queuedOk.onclick=()=>queuedOk.remove();
@@ -1929,13 +1927,7 @@ async function submitReview(taskId, taskTitle){
   };
 
   try{
-    const queued = await db.from('public_reviews').insert({
-      token: 'portal_' + review.id,
-      owner_user_id: uid,
-      review_data: review,
-      is_active: true,
-      created_at: new Date().toISOString()
-    });
+    const queued = await ORDO_API_REQUEST('public.review.submit',{type:'client_portal',token:pPublicToken,review:review});
     if(queued && !queued.error){
       document.getElementById('rev-ov')?.remove();
       const queuedThnk=document.createElement('div');queuedThnk.className='overlay';
@@ -2055,13 +2047,7 @@ async function _confirmClientReceive(taskId){
     if(t){ t.clientReceived=true; t.clientReceivedAt=now; }
     if(pt){ pt.clientReceived=true; pt.clientReceivedAt=now; }
 
-    // Save to Supabase — always save to the FREELANCER's data (pUid or _resolvedUid)
-    const saveUid = window._resolvedUid || pUid;
-    if(saveUid){
-      const fresh = JSON.parse(JSON.stringify(_ud));
-      const {error} = await db.from('studio_data').upsert({user_id:saveUid, data:fresh, updated_at:now},{onConflict:'user_id'});
-      if(error) console.error('save error:',error);
-    }
+    await sendPortalEvent('task_received',{task_id:String(taskId),client_id:String(_clientId),created_at:now});
 
     document.getElementById('receive-ov')?.remove();
 
@@ -2164,12 +2150,7 @@ async function _submitRevisionRequest(taskId){
       read:false
     });
 
-    // Save to Supabase — always to freelancer's data
-    const saveUid=window._resolvedUid||pUid;
-    if(saveUid){
-      const fresh=JSON.parse(JSON.stringify(_ud));
-      await db.from('studio_data').upsert({user_id:saveUid,data:fresh,updated_at:now},{onConflict:'user_id'});
-    }
+    await sendPortalEvent('revision_request',inboxItem);
 
     document.getElementById('revision-ov')?.remove();
     document.getElementById('proj-detail-ov')?.remove();
@@ -2216,11 +2197,7 @@ async function _submitProjTaskNote(taskId){
     });
   }
 
-  const saveUid=window._resolvedUid||pUid;
-  if(saveUid){
-    const fresh=JSON.parse(JSON.stringify(_ud));
-    await db.from('studio_data').upsert({user_id:saveUid,data:fresh,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-  }
+  await sendPortalEvent('task_note',{task_id:String(taskId),client_id:String(_clientId),note:note,created_at:new Date().toISOString()});
   if(inp){inp.value='';inp.placeholder='تم إرسال الملاحظة ✓';}
   setTimeout(()=>{if(inp)inp.placeholder='اترك ملاحظة على هذه المهمة...';},2500);
 }
@@ -2521,13 +2498,7 @@ async function _submitClientBooking(uid){
   };
 
   try{
-    const queued = await db.from('public_client_portal_events').insert({
-      owner_user_id: uid,
-      client_id: String(_clientId||''),
-      event_type: 'meeting_request',
-      event_data: meeting,
-      created_at: new Date().toISOString()
-    });
+    const queued = await sendPortalEvent('meeting_request',meeting);
     if(queued && !queued.error){
       document.getElementById('book-client-ov')?.remove();
       const queuedMeetingOk=document.createElement('div');queuedMeetingOk.className='overlay';queuedMeetingOk.onclick=()=>queuedMeetingOk.remove();
