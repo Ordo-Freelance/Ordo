@@ -3262,6 +3262,8 @@ function openTaskModal(id){
   if(invHint)invHint.style.display='none';
   if(id){
     const t=S.tasks.find(t=>t.id===id);if(!t)return;
+    const visibilityInput=document.getElementById('t-client-visibility');
+    if(visibilityInput) visibilityInput.checked=t.client_visibility!==false&&t.is_internal!==true;
     document.getElementById('t-title').value=t.title;
     document.getElementById('t-client').value=t.client||'';
     document.getElementById('t-priority').value=t.priority;
@@ -3302,6 +3304,8 @@ function openTaskModal(id){
       else taskQuill.setText('');
     }, 80);
   } else {
+    const visibilityInput=document.getElementById('t-client-visibility');
+    if(visibilityInput) visibilityInput.checked=true;
     ['t-title','t-value','t-deposit','t-notes'].forEach(f=>{const e=document.getElementById(f);if(e)e.value='';}); 
     document.getElementById('t-client').value='';
     document.getElementById('t-priority').value='med';
@@ -3350,6 +3354,7 @@ function saveTask(){
     }
   }
   const eid=v('task-eid');
+  const selectedClient=(S.clients||[]).find(c=>c.name===client&&!c._isPersonal);
   const issueInv=document.getElementById('t-issue-inv')?.checked;
   const briefHTML = taskQuill ? taskQuill.root.innerHTML.trim() : '';
   const briefContent = (briefHTML === '<p><br></p>' || briefHTML === '<p></p>') ? '' : briefHTML;
@@ -3367,6 +3372,9 @@ function saveTask(){
   const isTeam = workerType==='team';
   const d={
     title, client,
+    client_id:selectedClient?String(selectedClient.id):null,
+    client_name:selectedClient?.name||client,
+    client_visibility:!!selectedClient&&!!document.getElementById('t-client-visibility')?.checked,
     priority:v('t-priority'), status:v('t-status'),
     value: isFulltime ? 0 : (+v('t-value')||0),
     orderDate:v('t-order'), deadline:v('t-deadline'),

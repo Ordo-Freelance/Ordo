@@ -29,7 +29,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .nav-in{max-width:860px;margin:0 auto;height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .nav-brand{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:0}
 .nav-ico{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;overflow:hidden;flex-shrink:0}
-.nav-ico img{width:100%;height:100%;object-fit:cover}
+.nav-ico img{width:100%;height:100%;object-fit:contain}
+.nav-logo{display:block;max-width:min(160px,38vw);height:44px;width:auto;object-fit:contain;flex-shrink:0}
 .nav-nm{font-size:15px;font-weight:800;color:var(--t1)}
 .nav-sub{font-size:10px;color:var(--t3)}
 .nav-wa{display:flex;align-items:center;gap:6px;background:#25D366;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer;text-decoration:none;transition:.15s;white-space:nowrap;flex-shrink:0}
@@ -377,14 +378,14 @@ async function _bootWithData(userId, clientId, ud){
         lsEl.style.background=bgMode;
       }
       if(lsLogo){
-        lsLogo.style.background='linear-gradient(135deg,'+accent+','+accent2+')';
-        lsLogo.style.boxShadow='0 8px 32px '+accent+'44';
+        lsLogo.style.background=logo?'transparent':'linear-gradient(135deg,'+accent+','+accent2+')';
+        lsLogo.style.boxShadow=logo?'none':'0 8px 32px '+accent+'44';
         if(logo){
-        lsLogo.innerHTML='<img src="'+logo+'" style="width:100%;height:100%;object-fit:cover;border-radius:14px" onerror="this.style.display=&quot;none&quot;">';
+        lsLogo.innerHTML='<img src="'+logo+'" style="width:100%;height:100%;object-fit:contain" onerror="this.style.display=&quot;none&quot;">';
         }
       }
       if(lsBar) lsBar.style.background='linear-gradient(90deg,'+accent+','+accent2+')';
-      if(lsName&&studioName){
+      if(lsName&&studioName&&!logo){
         lsName.textContent=studioName;
         setTimeout(function(){lsName.style.opacity='1';},100);
       }
@@ -541,11 +542,11 @@ function renderPage(){
     }
   }catch(e){}
 
-  const lo=logo?`<div class="nav-ico"><img src="${xe(logo)}" alt=""></div>`:`<div class="nav-ico">${(nm||'S').charAt(0)}</div>`;
+  const lo=logo?`<img class="nav-logo" src="${xe(logo)}" alt="شعار ${xe(nm)}">`:`<div class="nav-ico">${(nm||'S').charAt(0)}</div>`;
 
   document.getElementById('root').innerHTML=`
   <nav class="nav"><div class="nav-in">
-    <a class="nav-brand" href="${xe(_storeLink)}">${lo}<div><div class="nav-nm">${xe(nm)}</div><div class="nav-sub">بوابة العميل</div></div></a>
+    <a class="nav-brand" href="${xe(_storeLink)}">${lo}<div>${logo?'':`<div class="nav-nm">${xe(nm)}</div>`}<div class="nav-sub">بوابة العميل</div></div></a>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
       <button onclick="_openClientBookingForm()" class="nav-hdr-btn nav-meeting">
         <i class="fa-solid fa-calendar-days"></i><span>احجز ميتنج</span>

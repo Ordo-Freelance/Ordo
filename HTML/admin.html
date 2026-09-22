@@ -3434,7 +3434,7 @@ function applyUserFilters() {
           <div style="display:flex;gap:4px;flex-wrap:wrap">
             <button type="button" class="btn btn-ghost btn-sm" data-user-action="detail" data-user-id="${uid}" onclick="openUserDetailPage('${uid}')" title="عرض التفاصيل">👁</button>
             <button type="button" class="btn btn-primary btn-sm" data-user-action="edit" data-user-id="${uid}" onclick="openEditUserModal('${uid}')" title="تعديل البيانات">✏</button>
-            <button type="button" class="btn btn-success btn-sm" data-user-action="assign" data-user-id="${uid}" onclick="openAssignSerialModal('${uid}')" title="تعيين اشتراك">🔑</button>
+            <button type="button" class="btn btn-success btn-sm" data-user-action="assign" data-user-id="${uid}" title="تعيين اشتراك">🔑</button>
             <button type="button" class="btn btn-danger btn-sm" data-user-action="password" data-user-id="${uid}" data-user-email="${email}" onclick="resetUserPw('${uid}','${email}')" title="تغيير كلمة المرور">🔄</button>
           </div>
         </td>
@@ -3827,7 +3827,7 @@ function renderSerials() {
           <span class="badge ${statusClass[status]}">${statusLabel[status]}</span>
           <div style="display:flex;gap:5px">
             <button type="button" class="btn btn-ghost btn-sm" data-serial-action="copy" data-serial-code="${s.code}" onclick="copyCode('${s.code}')" title="نسخ">📋</button>
-            ${!s.userId ? `<button type="button" class="btn btn-success btn-sm" data-serial-action="assign" data-serial-id="${s.id}" onclick="openAssignSerialModalByCode('${s.id}')">تعيين</button>` : ''}
+            ${!s.userId ? `<button type="button" class="btn btn-success btn-sm" data-serial-action="assign" data-serial-id="${s.id}">تعيين</button>` : ''}
             <button class="btn btn-danger btn-sm" onclick="deleteSerial('${s.id}')">🗑</button>
           </div>
         </div>
@@ -3901,6 +3901,13 @@ async function openAssignSerialModal(userId, serialId) {
   const userSel = document.getElementById('assign-user');
   const serialSel = document.getElementById('assign-serial');
   const submitBtn = document.getElementById('assign-submit-btn');
+  if(!userSel || !serialSel) return;
+
+  // Show feedback immediately; loading the user list can take several seconds.
+  userSel.innerHTML = '<option value="">جاري تحميل المستخدمين...</option>';
+  serialSel.innerHTML = '<option value="">جاري تحميل الأكواد...</option>';
+  if(submitBtn) submitBtn.disabled = true;
+  openModal('modal-assign-serial');
 
   if(!Object.keys(ALL_STUDIO_DATA).length) await loadStudioData();
 
@@ -3922,7 +3929,6 @@ async function openAssignSerialModal(userId, serialId) {
   if(serialId && unused.some(s => String(s.id) === String(serialId))) serialSel.value = String(serialId);
   if(submitBtn) submitBtn.disabled = !users.length || !unused.length;
 
-  openModal('modal-assign-serial');
   updateAssignPreview();
 }
 
