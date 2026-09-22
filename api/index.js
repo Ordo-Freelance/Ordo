@@ -167,7 +167,7 @@ function unwrapStudio(value) {
 
 function publicView(data, type, token) {
   const settings = data.settings || {};
-  const publicSettings = Object.fromEntries(['name','studio','studioName','username','store_slug','logo','avatar','accent','accentColor','theme_color','phone','email','whatsapp','about','bio','currency','socialLinks','social_links'].filter(key => settings[key] !== undefined).map(key => [key, settings[key]]));
+  const publicSettings = Object.fromEntries(['name','studio','studioName','username','store_slug','logo','avatar','accent','accentColor','accent2','accentColor2','theme_color','displayMode','display_mode','phone','email','whatsapp','about','bio','currency','socialLinks','social_links'].filter(key => settings[key] !== undefined).map(key => [key, settings[key]]));
   if (type === 'store') return { settings: publicSettings, services: data.services || [], standalone_packages: data.standalone_packages || [], portfolio_projects: data.portfolio_projects || [], stores: data.stores || [], reviews: (data.reviews || []).filter(row => row.public_visible !== false) };
   if (type === 'reviews_public') return { settings: publicSettings, reviews: (data.reviews || []).filter(row => row.public_visible !== false), public_tokens: (data.public_tokens || []).filter(item => ['review','store'].includes(item.entity_type) && !item.revoked && (!item.expires_at || new Date(item.expires_at) > new Date())).map(item => ({token:item.token,entity_type:item.entity_type})) };
   if (type === 'review') return { settings: publicSettings, reviews: (data.reviews || []).filter(row => row.public_visible !== false) };

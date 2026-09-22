@@ -283,7 +283,7 @@ async function buildPage(userId, preloadedData){
     if(location.protocol!=='file:'&&canonicalSlug&&location.pathname!=='/store/'+encodeURIComponent(canonicalSlug)){
       history.replaceState({},'', '/store/'+encodeURIComponent(canonicalSlug));
     }
-    var accent=settings.accent||settings.accentColor||settings.theme_color||'#7c6ff7';
+    var accent=settings.accentColor||settings.accent||settings.theme_color||'#7c6ff7';
     var isLight=(settings.displayMode||settings.display_mode||'dark')==='light';
     var logo=settings.store_logo||settings.logo||'';
     var studioName=(settings.name||'Studio');

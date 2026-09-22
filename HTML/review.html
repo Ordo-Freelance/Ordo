@@ -71,7 +71,7 @@ body{
 }
 .header-card::before{
   content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse 100% 80% at 50% 100%, rgba(79,209,165,.07) 0%, transparent 70%);
+  background:radial-gradient(ellipse 100% 80% at 50% 100%, color-mix(in srgb,var(--ac) 7%,transparent) 0%, transparent 70%);
   pointer-events:none;
 }
 .freelancer-avatar{
@@ -94,8 +94,8 @@ body{
 .freelancer-title{font-size:13px;color:var(--t2);}
 .badge-verified{
   display:inline-flex;align-items:center;gap:4px;
-  background:rgba(79,209,165,.12);color:var(--ac);
-  border:1px solid rgba(79,209,165,.25);
+  background:color-mix(in srgb,var(--ac) 12%,transparent);color:var(--ac);
+  border:1px solid color-mix(in srgb,var(--ac) 25%,transparent);
   border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;
   margin-top:8px;
 }
@@ -153,7 +153,7 @@ body{
 /* ── Submit btn ── */
 .btn-submit{
   width:100%;padding:14px;
-  background:linear-gradient(135deg,var(--ac),#3ab88f);
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
   color:#0a0d14;border:none;border-radius:12px;
   font-family:var(--font);font-size:15px;font-weight:900;
   cursor:pointer;transition:opacity .2s,transform .1s;
@@ -174,7 +174,7 @@ body{
 }
 #success-card{
   width:100%;max-width:480px;
-  background:var(--surface);border:1px solid rgba(79,209,165,.3);
+  background:var(--surface);border:1px solid color-mix(in srgb,var(--ac) 30%,transparent);
   border-radius:20px;padding:40px 24px;
   text-align:center;display:none;
   animation:fadeUp .5s ease both;
@@ -313,6 +313,24 @@ function showErr(msg){
   document.getElementById('loader').classList.add('hide');
 }
 
+function applyReviewIdentity(s){
+  const accent=s.accentColor||s.accent||s.theme_color||'#7c6ff7';
+  const secondary=s.accentColor2||s.accent2||accent;
+  document.documentElement.style.setProperty('--ac',accent);
+  document.documentElement.style.setProperty('--ac2',secondary);
+  const light=(s.displayMode||s.display_mode||'dark')==='light';
+  document.documentElement.style.setProperty('--bg',light?'#f4f6fa':'#0a0d14');
+  document.documentElement.style.setProperty('--surface',light?'#ffffff':'#13161f');
+  document.documentElement.style.setProperty('--surface2',light?'#f0f1f8':'#1a1e2b');
+  document.documentElement.style.setProperty('--border',light?'rgba(0,0,0,.08)':'rgba(255,255,255,.08)');
+  document.documentElement.style.setProperty('--t1',light?'#1a1a2e':'#f0f2f8');
+  document.documentElement.style.setProperty('--t2',light?'#444466':'#9aa3bc');
+  document.documentElement.style.setProperty('--t3',light?'#888899':'#5a6380');
+  document.body.style.backgroundColor='var(--bg)';
+  document.body.style.color='var(--t1)';
+  document.body.style.backgroundImage=`radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in srgb, ${accent} ${light?'7':'12'}%, transparent) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 80% 80%, color-mix(in srgb, ${secondary} ${light?'5':'8'}%, transparent) 0%, transparent 60%)`;
+}
+
 // ── Boot ──
 async function boot(){
   try{
@@ -327,7 +345,7 @@ async function boot(){
       document.getElementById('fl-name').textContent=s.name||s.username||'فريلانسر';
       document.getElementById('fl-title').textContent=s.bio||s.title||'خدمات إبداعية متميزة';
       document.title=(s.name||s.username||'فريلانسر')+' — تقييم الخدمة';
-      if(s.accentColor||s.accent) document.documentElement.style.setProperty('--ac',s.accentColor||s.accent);
+      applyReviewIdentity(s);
       document.getElementById('loader').classList.add('hide');
       document.getElementById('header-card').style.display='';
       document.getElementById('form-card').style.display='';
@@ -376,32 +394,7 @@ async function boot(){
     // Show freelancer info
     const s=ud?.settings||{};
     
-    // Apply user's accent color if available
-    const userAccent = s.accentColor || s.accent || null;
-    if(userAccent){
-      document.documentElement.style.setProperty('--ac', userAccent);
-      document.documentElement.style.setProperty('--ac2', userAccent);
-      // Update gradient in background
-      document.body.style.backgroundImage = 
-        `radial-gradient(ellipse 80% 50% at 50% -10%, ${userAccent}22 0%, transparent 60%),
-         radial-gradient(ellipse 50% 40% at 80% 80%, ${userAccent}14 0%, transparent 60%)`;
-    }
-    // Apply user's display mode
-    const userMode = s.displayMode || s.display_mode || 'dark';
-    if(userMode === 'light'){
-      document.documentElement.style.setProperty('--bg','#f4f6fa');
-      document.documentElement.style.setProperty('--surface','#ffffff');
-      document.documentElement.style.setProperty('--surface2','#f0f1f8');
-      document.documentElement.style.setProperty('--border','rgba(0,0,0,.08)');
-      document.documentElement.style.setProperty('--t1','#1a1a2e');
-      document.documentElement.style.setProperty('--t2','#444466');
-      document.documentElement.style.setProperty('--t3','#888899');
-      document.body.style.background = '#f4f6fa';
-      document.body.style.color = '#1a1a2e';
-      document.body.style.backgroundImage = 
-        `radial-gradient(ellipse 80% 50% at 50% -10%, ${userAccent||'#7c6ff7'}12 0%, transparent 60%),
-         radial-gradient(ellipse 50% 40% at 80% 80%, ${userAccent||'#7c6ff7'}08 0%, transparent 60%)`;
-    }
+    applyReviewIdentity(s);
     if(s.logo){
       document.getElementById('avatar-wrap').innerHTML=`<img class="freelancer-avatar" src="${s.logo}" onerror="this.style.display='none'">`;
     }

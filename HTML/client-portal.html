@@ -173,6 +173,17 @@ body.lm .svc-card{background:#fff;border-color:rgba(0,0,0,.08)}
 body.lm .inv-card{background:#f0f1f8;border-color:rgba(0,0,0,.06)}
 body.lm .rev-card{background:#f0f1f8;border-color:rgba(0,0,0,.06)}
 body.lm .ftr{border-color:rgba(0,0,0,.08)}
+/* Public identity: all decorative accent surfaces follow the account color. */
+body::before,body.lm::before{background:radial-gradient(ellipse 70% 50% at 15% 0%,color-mix(in srgb,var(--ac) 10%,transparent),transparent 60%)}
+.welcome::before{background:radial-gradient(circle,color-mix(in srgb,var(--ac) 8%,transparent),transparent)}
+.card:hover{border-color:color-mix(in srgb,var(--ac) 30%,transparent)}
+.badge-prog,.inv-ico,.nav-store{background:color-mix(in srgb,var(--ac) 15%,transparent)}
+.nav-store{border-color:color-mix(in srgb,var(--ac) 35%,transparent)}
+.nav-store:hover{background:color-mix(in srgb,var(--ac) 25%,transparent)}
+.nav-meeting{box-shadow:0 3px 12px color-mix(in srgb,var(--ac) 35%,transparent)}
+.svc-card:hover{border-color:color-mix(in srgb,var(--ac) 45%,transparent);box-shadow:0 10px 28px color-mix(in srgb,var(--ac) 15%,transparent)}
+.pf-card:hover{border-color:color-mix(in srgb,var(--ac) 50%,transparent)}
+.pf-ph-icon{color:color-mix(in srgb,var(--ac) 60%,transparent)}
 </style>
 <script>
 (function(){
@@ -354,8 +365,10 @@ async function boot(){
 async function _bootWithData(userId, clientId, ud){
   try{
     _ud=ud;_settings=ud.settings||{};
-    const accent=_settings.accent||_settings.accentColor||'#7c6ff7';
-    const accent2=_settings.accent2||_settings.accentColor2||accent;
+    _settings.accent=_settings.accentColor||_settings.accent||_settings.theme_color||'#7c6ff7';
+    _settings.accent2=_settings.accentColor2||_settings.accent2||_settings.accent;
+    const accent=_settings.accent;
+    const accent2=_settings.accent2;
     const _userMode = _settings.displayMode||_settings.display_mode||'dark';
     if(_userMode==='light'){
       document.body.classList.add('lm');

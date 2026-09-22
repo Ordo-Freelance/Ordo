@@ -51,7 +51,7 @@
         background:
           radial-gradient(
             ellipse 70% 50% at 20% 0%,
-            rgba(124, 111, 247, 0.12),
+            color-mix(in srgb, var(--ac) 12%, transparent),
             transparent 60%
           ),
           radial-gradient(
@@ -303,7 +303,7 @@
       }
       .rc:hover {
         transform: translateY(-3px);
-        box-shadow: 0 12px 32px rgba(124, 111, 247, 0.1);
+        box-shadow: 0 12px 32px color-mix(in srgb, var(--ac) 10%, transparent);
       }
       .rcm {
         font-size: 12px;
@@ -357,7 +357,7 @@
         align-items: center;
         gap: 8px;
         padding: 12px 28px;
-        background: linear-gradient(135deg, var(--ac), #5a55d0);
+        background: linear-gradient(135deg, var(--ac), var(--ac2));
         color: #fff;
         border: none;
         border-radius: 12px;
@@ -370,7 +370,7 @@
       }
       .oc:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(124, 111, 247, 0.3);
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--ac) 30%, transparent);
       }
       body.light {
         --bg: #f4f5fb;
@@ -390,7 +390,7 @@
         background:
           radial-gradient(
             ellipse 70% 50% at 20% 0%,
-            rgba(124, 111, 247, 0.06),
+            color-mix(in srgb, var(--ac) 6%, transparent),
             transparent 60%
           ),
           radial-gradient(
@@ -635,7 +635,8 @@
             reviews = (ud.reviews || []).filter(function(r){ return r && r.public_visible !== false; }).sort(function (a, b) {
               return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             }),
-            ac = s.accentColor || s.accent || "#7c6ff7",
+            ac = s.accentColor || s.accent || s.theme_color || "#7c6ff7",
+            ac2 = s.accentColor2 || s.accent2 || ac,
             isL = (s.displayMode || s.display_mode || "dark") === "light",
             nm = s.name || s.username || "فريلانسر",
             bio = s.bio || s.title || "",
@@ -643,6 +644,7 @@
             phone = s.phone || "",
             un = s.username || s.store_slug || "";
           document.documentElement.style.setProperty("--ac", ac);
+          document.documentElement.style.setProperty("--ac2", ac2);
           if (isL) document.body.classList.add("light");
           document.title = nm + " — تقييمات العملاء";
           $("fy").textContent = new Date().getFullYear();
