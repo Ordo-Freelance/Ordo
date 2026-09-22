@@ -5416,7 +5416,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=client-task-visibility-1"></script>
+<script src="../JavaScript/app.js?v=identity-links-1"></script>
 <script src="../JavaScript/vercel_persistence.js?v=1"></script>
 
 <!-- ═══ BACKUP MODAL ═══ -->
@@ -6205,8 +6205,8 @@ function _shortPublicReviewsUrl() {
   var token = _ensurePublicLinkToken('reviews_public', 'public_reviews_page', {
     allowed_sections: ['reviews']
   });
-  if (un && window.location.protocol !== 'file:') return window.location.origin + '/reviews/' + encodeURIComponent(un);
-  return _getAppBase() + 'reviews-public.html?' + (un ? 'u=' + encodeURIComponent(un) : 'uid=' + (_supaUserId||'')) + (token ? '&token=' + encodeURIComponent(token) : '');
+  if (window.location.protocol !== 'file:') return window.location.origin + '/reviews?uid=' + encodeURIComponent(_supaUserId||'') + (token ? '&token=' + encodeURIComponent(token) : '');
+  return _getAppBase() + 'reviews-public.html?uid=' + encodeURIComponent(_supaUserId||'') + (token ? '&token=' + encodeURIComponent(token) : '');
 }
 
 function _shortStoreUrl(storeId) {

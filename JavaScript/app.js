@@ -21737,12 +21737,9 @@ function getSvcLink(storeId){
   var un=S&&S.settings&&S.settings.username;
   var mainSlug=_getShortStoreSlug();
   if(window.location.protocol!=='file:'){
-    if(storeId){
-      var shortStore=(_getStores()||[]).find(function(s){return s.id===storeId;});
-      var storeSlug=shortStore&&shortStore.username?shortStore.username:(mainSlug+'-'+String(storeId).replace(/[^a-z0-9]/gi,'').toLowerCase().slice(0,5));
-      return window.location.origin+'/store/'+encodeURIComponent(storeSlug);
-    }
-    return window.location.origin+'/store/'+encodeURIComponent(mainSlug);
+    var storeBase=uid ? window.location.origin+'/store?uid='+encodeURIComponent(uid)
+      : window.location.origin+'/store/'+encodeURIComponent(mainSlug);
+    return storeId ? storeBase+(uid?'&':'?')+'store='+encodeURIComponent(storeId) : storeBase;
   }
   var _spp=window.location.pathname,_sps=_spp.split('/').filter(function(x){return x!=='';});
   if(_sps.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_sps[_sps.length-1])>=0)_sps.pop();

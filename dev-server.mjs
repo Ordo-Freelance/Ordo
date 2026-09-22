@@ -26,11 +26,11 @@ function safePath(urlPath) {
   else if (decoded === '/privacy') decoded = '/HTML/privacy.html';
   else if (decoded === '/terms') decoded = '/HTML/terms.html';
   else if (decoded === '/admin' || decoded === '/admin/') decoded = '/HTML/admin.html';
-  else if (decoded.startsWith('/store/')) decoded = '/HTML/store.html';
+  else if (decoded === '/store' || decoded.startsWith('/store/')) decoded = '/HTML/store.html';
   else if (decoded.startsWith('/portal/')) decoded = '/HTML/client-portal.html';
   else if (decoded.startsWith('/proposal/')) decoded = '/HTML/proposal.html';
   else if (decoded.startsWith('/review/')) decoded = '/HTML/review.html';
-  else if (decoded.startsWith('/reviews/')) decoded = '/HTML/reviews-public.html';
+  else if (decoded === '/reviews' || decoded.startsWith('/reviews/')) decoded = '/HTML/reviews-public.html';
   const full = path.normalize(path.join(root, decoded));
   return full.startsWith(root) ? full : path.join(root, 'index.html');
 }

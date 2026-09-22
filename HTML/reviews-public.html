@@ -648,9 +648,7 @@
           if (isL) document.body.classList.add("light");
           document.title = nm + " — تقييمات العملاء";
           $("fy").textContent = new Date().getFullYear();
-          var storeUrl = (location.protocol !== "file:" && un)
-            ? location.origin + "/store/" + encodeURIComponent(un)
-            : (un ? BASE + "store.html?u=" + encodeURIComponent(un) : BASE + "store.html?uid=" + encodeURIComponent(uid));
+          var storeUrl = (location.protocol !== "file:" ? location.origin + "/store" : BASE + "store.html") + "?uid=" + encodeURIComponent(uid);
           var storeToken = (ud.public_tokens || []).find(function(t){ return t && t.entity_type === "store" && !t.revoked; });
           if (storeToken && storeToken.token) storeUrl += (storeUrl.indexOf("?") >= 0 ? "&" : "?") + "token=" + encodeURIComponent(storeToken.token);
           var reviewToken = (ud.public_tokens || []).find(function(t){ return t && t.entity_type === "review" && !t.revoked; });

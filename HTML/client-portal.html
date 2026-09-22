@@ -539,8 +539,8 @@ function renderPage(){
   const airOnHim = Object.values(prepaidByCurrency).reduce((s,v)=>s+(+v||0),0);
 
   // ── بناء رابط المتجر بالـ username لو متاح ──
-  const _storeUn=_settings.username||_settings.store_slug;
-  const _storeLink=(location.protocol!=='file:'&&_storeUn) ? (location.origin+'/store/'+encodeURIComponent(_storeUn)) : (_storeUn ? (STORE_URL+'?u='+encodeURIComponent(_storeUn)) : (STORE_URL+'?uid='+(window._resolvedUid||pUid||'')));
+  const _storeUid=window._resolvedUid||pUid||'';
+  const _storeLink=(location.protocol!=='file:'?location.origin+'/store':'/HTML/store.html')+'?uid='+encodeURIComponent(_storeUid);
 
   // ── Fix #9: Apply user identity (title, favicon, theme-color) ──
   document.title = (nm || 'Ordo') + ' — بوابة العميل';
