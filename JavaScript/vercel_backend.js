@@ -223,6 +223,7 @@
   root.ORDO_LOCAL_ONLY = false;
   root.ORDO_NO_AUTH = false;
   root.ORDO_NO_SUBSCRIPTIONS = false;
+  root.ORDO_API_REQUEST = request;
   root.SUPA_URL = '';
   root.SUPA_ANON = '';
   root.supabase = { createClient:function(){ return makeClient(); }, __ordoVercelShim:true };

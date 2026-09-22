@@ -1387,9 +1387,39 @@ async function _activateCode(inputId, msgId, onSuccess){
   }, 15000);
 
   try{
+    if(typeof window.ORDO_API_REQUEST === 'function'){
+      try {
+        const activated = await window.ORDO_API_REQUEST('serial.activate', {code:code});
+        clearTimeout(_actTimeout);
+        msg.style.color='var(--accent3)';
+        msg.innerHTML=activated?.data?.already_active
+          ? '<i class="fa-solid fa-square-check"></i> هذا الكود مفعّل بالفعل لحسابك'
+          : '<i class="fa-solid fa-square-check"></i> تم تفعيل الاشتراك بنجاح!';
+        inp.value='';
+        await loadUserSubscription(_supaUserId);
+        _updateNavLocks();
+        if(btn) btn.disabled=false;
+        setTimeout(()=>{
+          _hideLock();
+          renderAll();
+          updateSubscriptionBar();
+          showPage('dashboard');
+          if(onSuccess) onSuccess();
+        }, 500);
+        return;
+      } catch(apiError) {
+        clearTimeout(_actTimeout);
+        const codeName=apiError?.code || '';
+        const messages={serial_not_found:'الكود غير موجود',serial_used:'هذا الكود مستخدم مسبقاً',login_required:'يجب تسجيل الدخول أولاً'};
+        msg.style.color='var(--accent4)';
+        msg.innerHTML='<i class="fa-solid fa-ban"></i> '+(messages[codeName] || apiError?.message || 'تعذر تفعيل الكود');
+        if(btn) btn.disabled=false;
+        return;
+      }
+    }
     // البحث عن الكود في serial_keys ? column اسمه 'code'
     let data = null, error = null;
-    const r1 = await supa.from('serial_keys').select('id,code,key_code,user_id,status,plan_id,plan_name,duration_days,created_at,activated_at,expires_at').eq('code', code).maybeSingle();
+    const r1 = await supa.from('serial_keys').select('id,code,key_code,user_id,status,plan_id,plan_name,billing,duration_days,created_at,activated_at,expires_at').eq('code', code).maybeSingle();
     if(!r1.error && r1.data) {
       data = r1.data;
     } else if(r1.error) {
@@ -1415,7 +1445,7 @@ async function _activateCode(inputId, msgId, onSuccess){
     // تحقق من الـ status في الـ JS
     if(data.status !== 'unused'){
       msg.style.color='var(--accent4)';
-      msg.textContent = data.user_id === _supaUserId
+      msg.innerHTML = data.user_id === _supaUserId
         ? '<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> هذا الكود مفعّل بالفعل لحسابك'
         : '<i class="fa-solid fa-ban"></i> هذا الكود مستخدم مسبقاً';
       if(btn) btn.disabled=false;
@@ -13503,6 +13533,7 @@ async function doLogout(){
   switchAuthTab('login');
   // Don't reload ? session already cleared by Supabase
 }
+function logoutUser(){ return doLogout(); }
 
 function updateUserBadge(user){
   const el=document.getElementById('user-display-name');
@@ -19567,6 +19598,16 @@ function saveRateSettings(){
   localStorage.setItem('tt_rate',_ttRate);localStorage.setItem('tt_currency',_ttCur);
   closeM('modal-rate-settings');renderTimeTracker();toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> معدل الساعة: '+_ttRate+' '+ttSym());
 }
+function ttSaveRate(){
+  const rate=Number(document.getElementById('tt-rate-input')?.value||0);
+  const currency=document.getElementById('tt-currency')?.value||'EGP';
+  if(!Number.isFinite(rate)||rate<=0){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل معدل ساعة صحيحاً');return;}
+  _ttRate=rate;_ttCur=currency;
+  localStorage.setItem('tt_rate',String(_ttRate));
+  localStorage.setItem('tt_currency',_ttCur);
+  renderTimeTracker();
+  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ معدل الساعة');
+}
 function ttQuickRate(r){_ttRate=r;localStorage.setItem('tt_rate',r);renderTimeTracker();toast('<i class="fa-solid fa-bolt"></i> معدل: '+r+' '+ttSym());}
 
 // â•”â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•—
@@ -20223,6 +20264,40 @@ function incReceiptPreview(inp){
   },function(){
     var r=new FileReader(); r.onload=function(e){ window._incReceiptData=e.target.result; var img=document.getElementById('in-receipt-img'); var prev=document.getElementById('in-receipt-prev'); var ph=document.getElementById('in-receipt-ph'); if(img) img.src=e.target.result; if(prev) prev.style.display='block'; if(ph) ph.style.display='none'; }; r.readAsDataURL(file);
   });
+}
+function incReceiptClear(){
+  window._incReceiptData=null;
+  var img=document.getElementById('in-receipt-img');
+  var prev=document.getElementById('in-receipt-prev');
+  var ph=document.getElementById('in-receipt-ph');
+  var fi=document.getElementById('in-receipt-file');
+  if(img) img.src='';
+  if(prev) prev.style.display='none';
+  if(ph) ph.style.display='';
+  if(fi) fi.value='';
+}
+
+async function _nuclearCloudReset(){
+  if(!confirm('سيتم حذف بيانات حسابك السحابية نهائياً. هل أنت متأكد؟')) return;
+  const typed=prompt('للتأكيد اكتب: حذف بياناتي');
+  if(typed!=='حذف بياناتي'){toast('<i class="fa-solid fa-circle-info"></i> تم إلغاء الحذف');return;}
+  if(!_supaUserId){toast('<i class="fa-solid fa-triangle-exclamation"></i> يجب تسجيل الدخول أولاً');return;}
+  const tables=['public_store_items','public_tokens','user_notifications','user_settings'];
+  try{
+    for(const table of tables){
+      const result=await supa.from(table).delete().eq('user_id',_supaUserId);
+      if(result.error) throw result.error;
+    }
+    const settings=S.settings||{};
+    S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],settings:settings};
+    lsSave();
+    await cloudSaveNow(S);
+    renderAll();
+    toast('<i class="fa-solid fa-square-check"></i> تم مسح بيانات الحساب السحابية');
+  }catch(error){
+    console.error('Cloud reset failed:',error);
+    toast('<i class="fa-solid fa-ban"></i> تعذر مسح كل البيانات: '+(error?.message||'خطأ غير معروف'));
+  }
 }
 
 // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
@@ -23544,6 +23619,9 @@ function _ordoAttachPublicToken(link, token) {
   return link + (link.indexOf('?') >= 0 ? '&' : '?') + 'token=' + encodeURIComponent(token);
 }
 
+function openOrderDetail(orderId){ return openOrderAccept(orderId); }
+function openTask(taskId){ return openTaskDetail(taskId); }
+
 function _ordoClientPortalToken(clientId, taskId, portal) {
   try {
     if (typeof _publicPortalToken === 'function') return _publicPortalToken(clientId, taskId, portal);
@@ -24382,6 +24460,21 @@ window._showAllPkgs=function(){
       '</div></div>';
   }).join('');
   var btn=document.querySelector('[onclick="_showAllPkgs()"]'); if(btn) btn.remove();
+};
+
+window._showAllPf=function(){
+  var ud=window._pubUd;if(!ud)return;
+  var projects=ud.portfolio_projects||[];
+  var grid=document.querySelector('#_sec-pf ._pf-grid');if(!grid)return;
+  grid.innerHTML=projects.map(function(p){
+    var img=p.image||p.thumb||'';
+    var link=p.link||p.url||'#';
+    return '<a class="_pf-card" href="'+escapeHtml(link)+'" target="_blank" rel="noopener">'+
+      (img?'<img src="'+escapeHtml(img)+'" alt="" loading="lazy" onerror=\'this.style.display="none"\'>':
+      '<div class="_pf-card-ph"><div style="font-size:26px;margin-bottom:5px"><i class="fa-solid fa-folder"></i></div><div style="font-size:10px;font-weight:700">'+escapeHtml((p.title||p.label||'مشروع').slice(0,20))+'</div></div>')+
+      '</a>';
+  }).join('');
+  var btn=document.querySelector('[onclick="_showAllPf()"]');if(btn)btn.remove();
 };
 
 // â”€â”€ Open full service page â”€â”€

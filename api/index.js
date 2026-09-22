@@ -339,6 +339,32 @@ class LocalStore {
     return db.ordo_users.length;
   }
 
+  async activateSerial(code, userId) {
+    const db = await readLocalDb();
+    const serial = db.serial_keys.find(row =>
+      String(row.code || row.key_code || '').toUpperCase() === String(code || '').toUpperCase()
+    );
+    if (!serial) return { reason: 'not_found' };
+    if (serial.status !== 'unused' || serial.user_id) {
+      return { reason: String(serial.user_id) === String(userId) ? 'already_yours' : 'already_used', serial: decodeJsonFields(serial) };
+    }
+    const activatedAt = new Date();
+    let expiresAt = null;
+    if (serial.billing === 'annual') {
+      expiresAt = new Date(activatedAt); expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    } else if (serial.billing !== 'lifetime') {
+      expiresAt = new Date(activatedAt); expiresAt.setMonth(expiresAt.getMonth() + 1);
+    }
+    Object.assign(serial, {
+      status: 'active', user_id: userId,
+      activated_at: activatedAt.toISOString(),
+      expires_at: expiresAt ? expiresAt.toISOString() : null,
+      updated_at: activatedAt.toISOString()
+    });
+    await writeLocalDb(db);
+    return { serial: decodeJsonFields(serial) };
+  }
+
   async createUser(email, password, meta) {
     const db = await readLocalDb();
     if (db.ordo_users.some(user => user.email === email)) {
@@ -580,6 +606,34 @@ async function makePostgresStore() {
     async userCount() {
       const rows = await query('SELECT COUNT(*)::int AS count FROM ordo_users');
       return rows[0]?.count || 0;
+    },
+    async activateSerial(code, userId) {
+      const rows = await query(
+        `UPDATE serial_keys
+         SET status='active', user_id=$2, activated_at=NOW(),
+             expires_at=CASE
+               WHEN billing='lifetime' THEN NULL
+               WHEN billing='annual' THEN NOW() + INTERVAL '1 year'
+               ELSE NOW() + INTERVAL '1 month'
+             END,
+             updated_at=NOW()
+         WHERE (UPPER(code)=UPPER($1) OR UPPER(COALESCE(key_code,''))=UPPER($1))
+           AND status='unused' AND user_id IS NULL
+         RETURNING *`,
+        [code, userId]
+      );
+      if (rows[0]) return { serial: decodeJsonFields(rows[0]) };
+      const existing = await query(
+        `SELECT * FROM serial_keys
+         WHERE UPPER(code)=UPPER($1) OR UPPER(COALESCE(key_code,''))=UPPER($1)
+         LIMIT 1`,
+        [code]
+      );
+      if (!existing[0]) return { reason: 'not_found' };
+      return {
+        reason: String(existing[0].user_id) === String(userId) ? 'already_yours' : 'already_used',
+        serial: decodeJsonFields(existing[0])
+      };
     },
     async createUser(email, password, meta) {
       const id = uuid();
@@ -896,6 +950,17 @@ export default async function handler(req, res) {
 
     if (postAction === 'auth.reset') {
       return ok(res, { message: 'Password reset emails are not enabled yet. Admin can change the password from the panel.' });
+    }
+
+    if (postAction === 'serial.activate') {
+      const { user } = await currentUser(req, store);
+      if (!user) return fail(res, 'Login required', 401, 'login_required');
+      const code = String(input.code || '').trim().toUpperCase();
+      if (!code) return fail(res, 'أدخل كود الاشتراك', 400, 'code_required');
+      const result = await store.activateSerial(code, user.id);
+      if (result.reason === 'not_found') return fail(res, 'الكود غير موجود', 404, 'serial_not_found');
+      if (result.reason === 'already_used') return fail(res, 'هذا الكود مستخدم مسبقاً', 409, 'serial_used');
+      return ok(res, { serial: result.serial, already_active: result.reason === 'already_yours' });
     }
 
     if (postAction === 'admin.users.create') {

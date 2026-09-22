@@ -197,7 +197,9 @@ body { background:var(--bg); color:var(--text); font-family:var(--font); min-hei
 .page-header {
   display:flex; align-items:center; justify-content:space-between;
   margin-bottom:22px; flex-wrap:wrap; gap:12px;
+  position:relative; z-index:2;
 }
+.page-header .btn { pointer-events:auto; }
 .page-title { font-size:22px; font-weight:900; }
 .page-title span { color:var(--accent); }
 .page-sub { font-size:12px; color:var(--text3); margin-top:3px; }
@@ -975,7 +977,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           <div class="page-sub" id="msgs-count-sub">رسائل الإدارة للمستخدمين</div>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-primary btn-sm" onclick="openSendMessageModal(null,'الكل — بث عام')">
+          <button class="btn btn-primary btn-sm" id="admin-broadcast-btn" onclick="openSendMessageModal(null,'الكل — بث عام')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:6px"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
             بث للجميع
           </button>
@@ -1209,7 +1211,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           <div class="page-title">إدارة <span>المشرفين</span></div>
           <div class="page-sub">تحكم في صلاحيات الفريق</div>
         </div>
-        <button class="btn btn-primary" onclick="openAddAdminModal()">➕ إضافة مشرف</button>
+        <button class="btn btn-primary" id="admin-add-btn" onclick="openAddAdminModal()">➕ إضافة مشرف</button>
       </div>
 
       <div class="grid grid-3" style="gap:12px;margin-bottom:18px">
@@ -1615,7 +1617,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           <div class="page-title">رسائل <span>التحديثات</span></div>
           <div class="page-sub">أرسل إعلانات وتحديثات لجميع المستخدمين</div>
         </div>
-        <button class="btn btn-primary" onclick="openNewUpdateModal()"><i class="fa-solid fa-plus"></i> رسالة جديدة</button>
+        <button class="btn btn-primary" id="admin-new-update-btn" onclick="openNewUpdateModal()"><i class="fa-solid fa-plus"></i> رسالة جديدة</button>
       </div>
 
       <div class="card" style="margin-bottom:16px" id="updates-list-card">
@@ -6628,7 +6630,7 @@ function openNewUpdateModal() {
   const exists = document.getElementById('modal-new-update');
   if(exists) { exists.remove(); }
   const m = document.createElement('div');
-  m.className = 'modal-overlay';
+  m.className = 'modal-overlay open';
   m.id = 'modal-new-update';
   m.style.display = 'flex';
   m.innerHTML = `
@@ -6904,7 +6906,7 @@ function openNewChallengeModal(editId) {
     `<option value="${t.value}" ${edit?.type===t.value?'selected':''}>${t.label}</option>`).join('');
   const m = document.createElement('div');
   m.id = 'modal-new-challenge';
-  m.className = 'modal-overlay';
+  m.className = 'modal-overlay open';
   m.style.display = 'flex';
   m.innerHTML = `
     <div class="modal" style="max-width:520px">
@@ -7042,7 +7044,7 @@ function openFallbackChallengeModal(editId) {
   const typeOptions = types.map(t => `<option value="${t.value}" ${edit?.type === t.value ? 'selected' : ''}>${t.label}</option>`).join('');
   const modal = document.createElement('div');
   modal.id = 'modal-new-challenge';
-  modal.className = 'modal-overlay';
+  modal.className = 'modal-overlay open';
   modal.style.display = 'flex';
   modal.innerHTML = `
     <div class="modal" style="max-width:560px">
@@ -7688,17 +7690,22 @@ document.addEventListener('change', function(e) {
     const pageMessages = btn.closest('#page-messages');
     const id = btn.id || '';
     try {
-      if(pageUpdates && hasText(btn, ['رسالة جديدة','ط±ط³ط§ظ„ط© ط¬ط¯ظٹط¯ط©'])) {
+      if(id === 'admin-add-btn') {
+        e.preventDefault(); e.stopImmediatePropagation();
+        openAddAdminModal();
+        return;
+      }
+      if(id === 'admin-new-update-btn' || (pageUpdates && hasText(btn, ['رسالة جديدة','ط±ط³ط§ظ„ط© ط¬ط¯ظٹط¯ط©']))) {
         e.preventDefault(); e.stopPropagation();
         if(typeof openNewUpdateModal === 'function') openNewUpdateModal();
         return;
       }
-      if(pageChallenge && hasText(btn, ['تحدي جديد','طھط­ط¯ظٹ ط¬ط¯ظٹط¯'])) {
+      if(id === 'admin-new-challenge-btn' || (pageChallenge && hasText(btn, ['تحدي جديد','طھط­ط¯ظٹ ط¬ط¯ظٹط¯']))) {
         e.preventDefault(); e.stopPropagation();
         if(typeof openNewChallengeModal === 'function') openNewChallengeModal();
         return;
       }
-      if(pageMessages && hasText(btn, ['بث للجميع','ط¨ط«'])) {
+      if(id === 'admin-broadcast-btn' || (pageMessages && hasText(btn, ['بث للجميع','ط¨ط«']))) {
         e.preventDefault(); e.stopPropagation();
         if(typeof openSendMessageModal === 'function') openSendMessageModal(null,'الكل — بث عام');
         return;

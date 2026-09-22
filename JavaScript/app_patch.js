@@ -868,6 +868,12 @@ async function _loadAdminUpdatesFromCloud() {
 
 // هذا يشغّل في admin.html فقط — مفيش أثر في app.js
 if(typeof document !== 'undefined' && window.location.pathname.includes('admin')) {
+  if(typeof window.toggleAcc !== 'function') {
+    window.toggleAcc = function(key) {
+      var body = document.getElementById('acc-body-' + key);
+      if(body) body.style.display = body.style.display === 'none' ? 'block' : 'none';
+    };
+  }
   window._injectExtraPlanSections = function() {
     const accordion = document.getElementById('cp-sections-accordion');
     if(!accordion || document.getElementById('acc-services')) return;
