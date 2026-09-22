@@ -8142,10 +8142,16 @@ document.addEventListener('DOMContentLoaded', function(){
     var c = meta(selected);
     var eid = read('task-eid');
     var oldTask = eid ? st().tasks.find(function(t){ return String(t.id) === String(eid); }) : null;
+    var clientName = read('t-client');
+    var selectedClient = (st().clients || []).find(function(item){ return item.name === clientName && !item._isPersonal; });
     var task = Object.assign({}, oldTask || {}, {
       id: oldTask ? oldTask.id : Date.now(),
       title:title,
-      client:read('t-client'),
+      client:clientName,
+      client_id:selectedClient ? String(selectedClient.id) : null,
+      client_name:selectedClient ? selectedClient.name : clientName,
+      client_visibility:!!selectedClient && !!document.getElementById('t-client-visibility')?.checked,
+      is_internal:!selectedClient,
       priority:read('t-priority') || 'med',
       status:read('t-status') || 'new',
       value:num(read('t-value')),
