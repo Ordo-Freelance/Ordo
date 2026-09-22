@@ -651,9 +651,10 @@
             : (un ? BASE + "store.html?u=" + encodeURIComponent(un) : BASE + "store.html?uid=" + encodeURIComponent(uid));
           var storeToken = (ud.public_tokens || []).find(function(t){ return t && t.entity_type === "store" && !t.revoked; });
           if (storeToken && storeToken.token) storeUrl += (storeUrl.indexOf("?") >= 0 ? "&" : "?") + "token=" + encodeURIComponent(storeToken.token);
-          var reviewUrl = BASE + "review.html?uid=" + encodeURIComponent(uid);
           var reviewToken = (ud.public_tokens || []).find(function(t){ return t && t.entity_type === "review" && !t.revoked; });
-          if (reviewToken && reviewToken.token) reviewUrl += "&token=" + encodeURIComponent(reviewToken.token);
+          var reviewUrl = reviewToken && reviewToken.token
+            ? location.origin + "/review/" + encodeURIComponent(reviewToken.token)
+            : "";
           try {
             if (logo) {
               var fav = document.querySelector("link[rel*='icon']");
@@ -699,7 +700,7 @@
               '<a href="https://wa.me/' +
               phone.replace(/\D/g, "") +
               '" target="_blank" class="fla"><i class="fa-brands fa-whatsapp"></i> تواصل معنا</a>';
-          fl +=
+          if (reviewUrl) fl +=
             '<a href="' +
             xe(reviewUrl) +
             '" class="fla"><i class="fa-solid fa-pen-to-square"></i> أضف تقييمك</a>';
