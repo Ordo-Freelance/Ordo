@@ -324,7 +324,10 @@ async function boot(){
       _reviewTokenObj=resolved.token;
       _ud=resolved.data;
       const s=_ud?.settings||{};
-      document.getElementById('studio-name').textContent=s.name||s.studio||'Ordo';
+      document.getElementById('fl-name').textContent=s.name||s.username||'فريلانسر';
+      document.getElementById('fl-title').textContent=s.bio||s.title||'خدمات إبداعية متميزة';
+      document.title=(s.name||s.username||'فريلانسر')+' — تقييم الخدمة';
+      if(s.accentColor||s.accent) document.documentElement.style.setProperty('--ac',s.accentColor||s.accent);
       document.getElementById('loader').classList.add('hide');
       document.getElementById('header-card').style.display='';
       document.getElementById('form-card').style.display='';
