@@ -1689,12 +1689,21 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
       <div class="form-label">اختر المستخدم</div>
       <select class="form-select" id="rp-user-sel"></select>
     </div>
+    <div class="form-group">
+      <div class="form-label">كلمة المرور الجديدة</div>
+      <input class="form-input" id="rp-password" type="password" minlength="8" autocomplete="new-password" placeholder="8 أحرف على الأقل">
+    </div>
+    <div class="form-group">
+      <div class="form-label">تأكيد كلمة المرور</div>
+      <input class="form-input" id="rp-password-confirm" type="password" minlength="8" autocomplete="new-password">
+    </div>
+    <div id="rp-error" style="min-height:20px;font-size:12px;color:var(--accent4);margin-bottom:8px"></div>
     <div style="background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);border-radius:8px;padding:12px;font-size:12px;color:var(--text2);margin-bottom:16px">
-      📧 سيتم إرسال رابط إعادة الضبط على البريد الإلكتروني الخاص بالمستخدم
+      سيتم تغيير كلمة المرور مباشرةً من لوحة الإدارة.
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal('modal-reset-pw')">إلغاء</button>
-      <button class="btn btn-primary" onclick="doAdminResetPw()">📧 إرسال رابط الإعادة</button>
+      <button class="btn btn-primary" id="rp-submit-btn" onclick="doAdminResetPw()">حفظ كلمة المرور</button>
     </div>
   </div>
 </div>
@@ -2431,16 +2440,16 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
     </div>
     <div class="form-group">
       <div class="form-label">المستخدم</div>
-      <select class="form-select" id="assign-user"></select>
+      <select class="form-select" id="assign-user" onchange="updateAssignPreview()"></select>
     </div>
     <div class="form-group">
       <div class="form-label">الكود / السيريال</div>
-      <select class="form-select" id="assign-serial"></select>
+      <select class="form-select" id="assign-serial" onchange="updateAssignPreview()"></select>
     </div>
     <div id="assign-preview" style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;margin-bottom:16px;display:none"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal('modal-assign-serial')">إلغاء</button>
-      <button class="btn btn-primary" onclick="assignSerial()">✅ تعيين الاشتراك</button>
+      <button class="btn btn-primary" id="assign-submit-btn" onclick="assignSerial()">✅ تعيين الاشتراك</button>
     </div>
   </div>
 </div>
@@ -3418,10 +3427,10 @@ function applyUserFilters() {
         <td style="font-size:12px;color:var(--text2)">${date}</td>
         <td>
           <div style="display:flex;gap:4px;flex-wrap:wrap">
-            <button class="btn btn-ghost btn-sm" onclick="openUserDetailPage('${uid}')">👁</button>
-            <button class="btn btn-primary btn-sm" onclick="openEditUserModal('${uid}')" title="تعديل البيانات">✏</button>
-            <button class="btn btn-success btn-sm" onclick="openAssignSerialModal('${uid}')" title="تعيين اشتراك">🔑</button>
-            <button class="btn btn-danger btn-sm" onclick="resetUserPw('${uid}','${email}')" title="ريسيت كلمة المرور">🔄</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-user-action="detail" data-user-id="${uid}" title="عرض التفاصيل">👁</button>
+            <button type="button" class="btn btn-primary btn-sm" data-user-action="edit" data-user-id="${uid}" title="تعديل البيانات">✏</button>
+            <button type="button" class="btn btn-success btn-sm" data-user-action="assign" data-user-id="${uid}" title="تعيين اشتراك">🔑</button>
+            <button type="button" class="btn btn-danger btn-sm" data-user-action="password" data-user-id="${uid}" data-user-email="${email}" title="تغيير كلمة المرور">🔄</button>
           </div>
         </td>
       </tr>`;
@@ -3812,8 +3821,8 @@ function renderSerials() {
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
           <span class="badge ${statusClass[status]}">${statusLabel[status]}</span>
           <div style="display:flex;gap:5px">
-            <button class="btn btn-ghost btn-sm" onclick="copyCode('${s.code}')" title="نسخ">📋</button>
-            ${!s.userId ? `<button class="btn btn-success btn-sm" onclick="openAssignSerialModalByCode('${s.id}')">تعيين</button>` : ''}
+            <button type="button" class="btn btn-ghost btn-sm" data-serial-action="copy" data-serial-code="${s.code}" title="نسخ">📋</button>
+            ${!s.userId ? `<button type="button" class="btn btn-success btn-sm" data-serial-action="assign" data-serial-id="${s.id}">تعيين</button>` : ''}
             <button class="btn btn-danger btn-sm" onclick="deleteSerial('${s.id}')">🗑</button>
           </div>
         </div>
@@ -3824,8 +3833,36 @@ function renderSerials() {
 
 function filterSerials() { renderSerials(); }
 
-function copyCode(code) {
-  navigator.clipboard.writeText(code).then(() => toast('✅ تم نسخ الكود: ' + code));
+async function copyText(text) {
+  try {
+    if(navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch(e) {
+    console.warn('Clipboard API unavailable, using fallback:', e);
+  }
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.readOnly = true;
+  area.style.cssText = 'position:fixed;inset:0 auto auto -9999px;opacity:0;pointer-events:none';
+  document.body.appendChild(area);
+  area.focus();
+  area.select();
+  area.setSelectionRange(0, area.value.length);
+  let copied = false;
+  try { copied = document.execCommand('copy'); } catch(e) { copied = false; }
+  area.remove();
+  return copied;
+}
+
+async function copyCode(code) {
+  const copied = await copyText(code);
+  if(copied) toast('✅ تم نسخ الكود: ' + code);
+  else {
+    window.prompt('انسخ الكود يدوياً:', code);
+    toast('⚠ المتصفح منع النسخ التلقائي');
+  }
 }
 
 async function deleteSerial(id) {
@@ -3853,15 +3890,21 @@ function isExpired(serial) {
 let _assigningUserId = null;
 let _assigningSerialId = null;
 
-function openAssignSerialModal(userId) {
+async function openAssignSerialModal(userId, serialId) {
   _assigningUserId = userId;
+  _assigningSerialId = serialId || null;
   const userSel = document.getElementById('assign-user');
   const serialSel = document.getElementById('assign-serial');
+  const submitBtn = document.getElementById('assign-submit-btn');
+
+  if(!Object.keys(ALL_STUDIO_DATA).length) await loadStudioData();
 
   // Populate users
-  userSel.innerHTML = Object.entries(ALL_STUDIO_DATA).map(([uid, u]) => {
+  const users = Object.entries(ALL_STUDIO_DATA);
+  userSel.innerHTML = '<option value="">— اختر مستخدماً —</option>' + users.map(([uid, u]) => {
     const name = u.parsed?.settings?.name || uid.substring(0,12);
-    return `<option value="${uid}" ${uid===userId?'selected':''}>${name}</option>`;
+    const email = u.parsed?.settings?.email || u.profile?.email || '';
+    return `<option value="${uid}" ${uid===userId?'selected':''}>${name}${email ? ' — ' + email : ''}</option>`;
   }).join('');
 
   // Populate unused serials
@@ -3871,16 +3914,41 @@ function openAssignSerialModal(userId) {
     return `<option value="${s.id}">${s.code} (${plan?.name||s.planId} · ${getBillingLabel(s.billing)})</option>`;
   }).join('');
 
+  if(serialId && unused.some(s => String(s.id) === String(serialId))) serialSel.value = String(serialId);
+  if(submitBtn) submitBtn.disabled = !users.length || !unused.length;
+
   openModal('modal-assign-serial');
+  updateAssignPreview();
 }
 
 function openAssignSerialModalByCode(serialId) {
-  _assigningSerialId = serialId;
-  openAssignSerialModal(null);
-  setTimeout(() => {
-    const serialSel = document.getElementById('assign-serial');
-    if(serialSel) serialSel.value = serialId;
-  }, 50);
+  openAssignSerialModal(null, serialId);
+}
+
+function updateAssignPreview() {
+  const uid = document.getElementById('assign-user')?.value;
+  const sid = document.getElementById('assign-serial')?.value;
+  const preview = document.getElementById('assign-preview');
+  const submitBtn = document.getElementById('assign-submit-btn');
+  if(!preview) return;
+  const usersCount = Object.keys(ALL_STUDIO_DATA).length;
+  const unusedCount = SERIALS.filter(s => !s.userId).length;
+  preview.style.display = 'block';
+  if(!usersCount || !unusedCount) {
+    preview.textContent = !usersCount ? 'لا يوجد مستخدمون متاحون للتعيين.' : 'لا توجد أكواد غير مستخدمة.';
+    if(submitBtn) submitBtn.disabled = true;
+    return;
+  }
+  if(!uid || !sid) {
+    preview.textContent = 'اختر المستخدم والكود لإتمام التعيين.';
+    if(submitBtn) submitBtn.disabled = true;
+    return;
+  }
+  const serial = SERIALS.find(s => String(s.id) === String(sid));
+  const user = ALL_STUDIO_DATA[uid];
+  const name = user?.parsed?.settings?.name || uid.substring(0,12);
+  preview.textContent = `${serial?.code || ''} سيتم تعيينه إلى ${name}`;
+  if(submitBtn) submitBtn.disabled = false;
 }
 
 async function assignSerial() {
@@ -3892,7 +3960,7 @@ async function assignSerial() {
   if(!serial) { toast('⚠ الكود غير موجود'); return; }
   const plan = PLANS.find(p => p.id === serial.planId);
 
-  const btn = document.querySelector('#modal-assign-serial .btn-primary, #modal-assign-serial .btn-success');
+  const btn = document.getElementById('assign-submit-btn');
   if(btn) { btn.disabled=true; btn.textContent='⏳ جاري الحفظ...'; }
 
   const previous = {
@@ -3920,7 +3988,7 @@ async function assignSerial() {
   }
 
   const saved = await supaUpsertSerial(serial);
-  if(btn) { btn.disabled=false; btn.textContent='تفعيل'; }
+  if(btn) { btn.disabled=false; btn.textContent='✅ تعيين الاشتراك'; }
 
   if(!saved) {
     Object.assign(serial, previous);
@@ -3929,12 +3997,13 @@ async function assignSerial() {
   }
 
   closeModal('modal-assign-serial');
+  await syncSerialsFromSupabase();
   renderUsersTable();
   renderSerials();
   updateDashStats();
   const userName = ALL_STUDIO_DATA[uid]?.parsed?.settings?.name || uid.substring(0,8);
   logActivity('تعيين اشتراك', `كود ${serial.code} → ${userName}`, 'var(--accent3)');
-  toast('✅ تم تعيين الكود وحفظه في قاعدة البيانات');
+  toast(`✅ تم تعيين ${serial.code} إلى ${userName} وحفظه`);
 }
 
 // ══════════════════════════════════════════════════
@@ -4414,30 +4483,40 @@ function openResetByAdminModal() {
   sel.innerHTML = '<option value="">— اختر مستخدماً —</option>' + Object.entries(ALL_STUDIO_DATA).map(([uid, u]) => {
     const name = u.parsed?.settings?.name || uid.substring(0,12);
     const email = u.parsed?.settings?.email || '';
-    return `<option value="${email}">${name} (${email})</option>`;
+    return `<option value="${uid}" data-email="${email}">${name} (${email})</option>`;
   }).join('');
+  document.getElementById('rp-password').value = '';
+  document.getElementById('rp-password-confirm').value = '';
+  document.getElementById('rp-error').textContent = '';
   openModal('modal-reset-pw');
 }
 
 async function doAdminResetPw() {
-  const email = document.getElementById('rp-user-sel')?.value;
-  if(!email) { toast('⚠ اختر مستخدماً'); return; }
-  const { error } = await supa.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin
-  });
-  if(error) { toast('⚠ فشل الإرسال: ' + error.message); return; }
+  const sel = document.getElementById('rp-user-sel');
+  const uid = sel?.value;
+  const email = sel?.selectedOptions?.[0]?.dataset?.email || '';
+  const password = document.getElementById('rp-password')?.value || '';
+  const confirmPassword = document.getElementById('rp-password-confirm')?.value || '';
+  const errorEl = document.getElementById('rp-error');
+  const btn = document.getElementById('rp-submit-btn');
+  if(errorEl) errorEl.textContent = '';
+  if(!uid) { if(errorEl) errorEl.textContent = 'اختر مستخدماً'; return; }
+  if(password.length < 8) { if(errorEl) errorEl.textContent = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'; return; }
+  if(password !== confirmPassword) { if(errorEl) errorEl.textContent = 'كلمتا المرور غير متطابقتين'; return; }
+  if(btn) { btn.disabled = true; btn.textContent = 'جاري الحفظ...'; }
+  const { error } = await supa.admin.updateUserById(uid, { password });
+  if(btn) { btn.disabled = false; btn.textContent = 'حفظ كلمة المرور'; }
+  if(error) { if(errorEl) errorEl.textContent = error.message || 'تعذر تغيير كلمة المرور'; return; }
   closeModal('modal-reset-pw');
-  logActivity('ريسيت كلمة مرور', `تم إرسال رابط إعادة الضبط لـ ${email}`, 'var(--accent4)');
-  toast('✅ تم إرسال رابط الإعادة لـ ' + email);
+  logActivity('تغيير كلمة مرور', `تم تغيير كلمة المرور لـ ${email}`, 'var(--accent4)');
+  toast('✅ تم تغيير كلمة المرور لـ ' + email);
 }
 
-async function resetUserPw(uid, email) {
+function resetUserPw(uid, email) {
   if(!email || email === '—') { toast('⚠ لا يوجد بريد إلكتروني لهذا المستخدم'); return; }
-  if(!confirm(`إرسال رابط إعادة ضبط كلمة المرور لـ ${email}؟`)) return;
-  const { error } = await supa.auth.resetPasswordForEmail(email);
-  if(error) { toast('⚠ فشل الإرسال'); return; }
-  logActivity('ريسيت كلمة مرور', `تم إرسال رابط إعادة الضبط لـ ${email}`, 'var(--accent4)');
-  toast('✅ تم إرسال الرابط لـ ' + email);
+  openResetByAdminModal();
+  const sel = document.getElementById('rp-user-sel');
+  if(sel) sel.value = uid;
 }
 
 // ══════════════════════════════════════════════════
@@ -7453,14 +7532,19 @@ function clearUsersSelection() {
   if(sa) { sa.checked = false; sa.indeterminate = false; }
   updateUsersBulkBar();
 }
-function bulkCopyUserEmails() {
+async function bulkCopyUserEmails() {
   const ids = getCheckedUserIds();
   const emails = ids.map(uid => {
     const u = ALL_STUDIO_DATA[uid];
     return u?.parsed?.settings?.email || '';
   }).filter(Boolean);
   if(!emails.length) { toast('⚠ لا إيميلات للمحددين'); return; }
-  navigator.clipboard.writeText(emails.join('\n')).then(() => toast(`✅ تم نسخ ${emails.length} إيميل`));
+  const copied = await copyText(emails.join('\n'));
+  if(copied) toast(`✅ تم نسخ ${emails.length} إيميل`);
+  else {
+    window.prompt('انسخ الإيميلات يدوياً:', emails.join('\n'));
+    toast('⚠ المتصفح منع النسخ التلقائي');
+  }
 }
 async function bulkDeleteUsers() {
   const ids = getCheckedUserIds();
@@ -7614,14 +7698,19 @@ function clearSerialsSelection() {
   if(sa) { sa.checked = false; sa.indeterminate = false; }
   updateSerialsBulkBar();
 }
-function bulkCopyCodes() {
+async function bulkCopyCodes() {
   const ids = getCheckedSerialIds();
   const codes = ids.map(sid => {
     const s = SERIALS.find(x => String(x.id) === String(sid));
     return s?.code || '';
   }).filter(Boolean);
   if(!codes.length) { toast('⚠ لا أكواد للمحددة'); return; }
-  navigator.clipboard.writeText(codes.join('\n')).then(() => toast(`✅ تم نسخ ${codes.length} كود`));
+  const copied = await copyText(codes.join('\n'));
+  if(copied) toast(`✅ تم نسخ ${codes.length} كود`);
+  else {
+    window.prompt('انسخ الأكواد يدوياً:', codes.join('\n'));
+    toast('⚠ المتصفح منع النسخ التلقائي');
+  }
 }
 async function bulkDeleteSerials() {
   const ids = getCheckedSerialIds();
@@ -7690,6 +7779,23 @@ document.addEventListener('change', function(e) {
     const pageMessages = btn.closest('#page-messages');
     const id = btn.id || '';
     try {
+      const userAction = btn.dataset.userAction;
+      if(userAction) {
+        e.preventDefault(); e.stopImmediatePropagation();
+        const uid = btn.dataset.userId;
+        if(userAction === 'detail') openUserDetailPage(uid);
+        else if(userAction === 'edit') openEditUserModal(uid);
+        else if(userAction === 'assign') openAssignSerialModal(uid);
+        else if(userAction === 'password') resetUserPw(uid, btn.dataset.userEmail || '');
+        return;
+      }
+      const serialAction = btn.dataset.serialAction;
+      if(serialAction) {
+        e.preventDefault(); e.stopImmediatePropagation();
+        if(serialAction === 'copy') copyCode(btn.dataset.serialCode || '');
+        else if(serialAction === 'assign') openAssignSerialModalByCode(btn.dataset.serialId);
+        return;
+      }
       if(id === 'admin-add-btn') {
         e.preventDefault(); e.stopImmediatePropagation();
         openAddAdminModal();

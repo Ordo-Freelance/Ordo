@@ -424,6 +424,7 @@ class LocalStore {
     if (!row) return null;
     if (Object.prototype.hasOwnProperty.call(attrs, 'is_admin')) row.is_admin = !!attrs.is_admin;
     if (attrs.status) row.status = attrs.status;
+    if (attrs.password) row.password_hash = hashPassword(attrs.password);
     for (const key of ['name', 'phone', 'studio']) if (Object.prototype.hasOwnProperty.call(attrs, key)) row[key] = attrs[key] || '';
     row.updated_at = now();
     await writeLocalDb(db);
@@ -691,6 +692,9 @@ async function makePostgresStore() {
         ? await this.userByEmail(identifier)
         : await this.userById(identifier);
       if (!current) return null;
+      if (attrs.password) {
+        await query('UPDATE ordo_users SET password_hash=$1, updated_at=NOW() WHERE id=$2', [hashPassword(attrs.password), current.id]);
+      }
       const rows = await query(
         'UPDATE ordo_users SET name=$1, phone=$2, studio=$3, is_admin=$4, status=$5, updated_at=NOW() WHERE id=$6 RETURNING *',
         [
@@ -981,6 +985,7 @@ export default async function handler(req, res) {
       const identifier = String(input.user_id || input.email || '');
       const attrs = input.attributes && typeof input.attributes === 'object' ? input.attributes : {};
       if (!identifier) return fail(res, 'User is required');
+      if (attrs.password && String(attrs.password).length < 8) return fail(res, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
       if (attrs.is_admin === false && (identifier === user.id || normalizeEmail(identifier) === user.email)) {
         return fail(res, 'لا يمكن للمشرف إلغاء صلاحية حسابه الحالي', 400, 'cannot_demote_self');
       }
