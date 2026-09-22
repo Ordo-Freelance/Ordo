@@ -3427,10 +3427,10 @@ function applyUserFilters() {
         <td style="font-size:12px;color:var(--text2)">${date}</td>
         <td>
           <div style="display:flex;gap:4px;flex-wrap:wrap">
-            <button type="button" class="btn btn-ghost btn-sm" data-user-action="detail" data-user-id="${uid}" title="عرض التفاصيل">👁</button>
-            <button type="button" class="btn btn-primary btn-sm" data-user-action="edit" data-user-id="${uid}" title="تعديل البيانات">✏</button>
-            <button type="button" class="btn btn-success btn-sm" data-user-action="assign" data-user-id="${uid}" title="تعيين اشتراك">🔑</button>
-            <button type="button" class="btn btn-danger btn-sm" data-user-action="password" data-user-id="${uid}" data-user-email="${email}" title="تغيير كلمة المرور">🔄</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-user-action="detail" data-user-id="${uid}" onclick="openUserDetailPage('${uid}')" title="عرض التفاصيل">👁</button>
+            <button type="button" class="btn btn-primary btn-sm" data-user-action="edit" data-user-id="${uid}" onclick="openEditUserModal('${uid}')" title="تعديل البيانات">✏</button>
+            <button type="button" class="btn btn-success btn-sm" data-user-action="assign" data-user-id="${uid}" onclick="openAssignSerialModal('${uid}')" title="تعيين اشتراك">🔑</button>
+            <button type="button" class="btn btn-danger btn-sm" data-user-action="password" data-user-id="${uid}" data-user-email="${email}" onclick="resetUserPw('${uid}','${email}')" title="تغيير كلمة المرور">🔄</button>
           </div>
         </td>
       </tr>`;
@@ -3821,8 +3821,8 @@ function renderSerials() {
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
           <span class="badge ${statusClass[status]}">${statusLabel[status]}</span>
           <div style="display:flex;gap:5px">
-            <button type="button" class="btn btn-ghost btn-sm" data-serial-action="copy" data-serial-code="${s.code}" title="نسخ">📋</button>
-            ${!s.userId ? `<button type="button" class="btn btn-success btn-sm" data-serial-action="assign" data-serial-id="${s.id}">تعيين</button>` : ''}
+            <button type="button" class="btn btn-ghost btn-sm" data-serial-action="copy" data-serial-code="${s.code}" onclick="copyCode('${s.code}')" title="نسخ">📋</button>
+            ${!s.userId ? `<button type="button" class="btn btn-success btn-sm" data-serial-action="assign" data-serial-id="${s.id}" onclick="openAssignSerialModalByCode('${s.id}')">تعيين</button>` : ''}
             <button class="btn btn-danger btn-sm" onclick="deleteSerial('${s.id}')">🗑</button>
           </div>
         </div>
