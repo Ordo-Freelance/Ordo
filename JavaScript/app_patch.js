@@ -111,6 +111,7 @@ window._openSubscriptionFlow = async function(highlightPlanId) {
       ['goals', '🎯 الأهداف', !!f.goals],
       ['timetracker', '⏱ تتبع الوقت', !!f.timetracker],
       ['contracts', '📄 العقود', !!f.contracts],
+      ['image_uploads', '🖼 رفع الصور', f.image_uploads !== false],
     ].filter(([,, v]) => v);
 
     const maxClients = f.max_clients_feat || plan.max_clients || 0;
@@ -141,6 +142,7 @@ window._openSubscriptionFlow = async function(highlightPlanId) {
           <div style="display:flex;flex-wrap:wrap;gap:4px;font-size:10px;color:var(--text3)">
             ${maxClients ? `<span>👥 حتى ${maxClients} عميل</span>` : '<span>👥 عملاء ∞</span>'}
             ${maxTasks   ? `<span> · 📋 حتى ${maxTasks} مهمة</span>` : '<span> · 📋 مهام ∞</span>'}
+            <span> · 💾 ${f.storage_mb ?? 25} MB للصور</span>
           </div>
         </div>
         <div style="padding:10px 16px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:8px">
@@ -1212,12 +1214,14 @@ window.renderPlansListing = async function() {
       f.goals               && '🎯 الأهداف',
       f.loans               && '💳 القروض',
       f.budgets             && '📊 الميزانيات',
+      f.image_uploads !== false && '🖼 رفع الصور',
     ].filter(Boolean);
 
     const limits = [
       (f.max_clients_feat||plan.max_clients) ? `👥 ${f.max_clients_feat||plan.max_clients} عميل` : '👥 ∞',
       f.max_tasks ? `📋 ${f.max_tasks} مهمة` : '📋 ∞',
       f.max_invoices ? `🧾 ${f.max_invoices} فاتورة` : '🧾 ∞',
+      `💾 ${f.storage_mb ?? 25} MB للصور`,
     ];
 
     return `
