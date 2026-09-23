@@ -35,6 +35,7 @@
   "headers": [
     { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }] },
     { "source": "/admin", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
+    { "source": "/admin/", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
     { "source": "/HTML/admin.html", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] }
   ]
 }
