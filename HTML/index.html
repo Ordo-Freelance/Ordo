@@ -1428,7 +1428,6 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   <div class="nav-item" onclick="showPage('timetracker',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><span class="nav-label" data-ar="تتبع الوقت" data-i18n="nav_timetracker">تتبع الوقت</span></div>
   <div class="nav-item" onclick="showPage('freelancer-goals',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><span class="nav-label" data-ar="الأهداف والإنجازات" data-i18n="nav_goals">الأهداف والإنجازات</span></div>
   <div class="nav-item" onclick="showPage('vault',this)" id="nav-vault"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/></svg></span><span class="nav-label">حساباتي</span></div>
-  <div class="nav-item" onclick="showPage('workspace',this)" id="nav-workspace" style="display:none"><span class="nav-icon"><i class="fa-solid fa-cubes"></i></span><span class="nav-label">المساحة الحرة</span></div>
   <div class="nav-item" onclick="showPage('reviews',this)" id="nav-reviews"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span class="nav-label">التقييمات</span><span class="nav-badge" id="reviews-badge" style="display:none;background:#f7c948;color:#1a1a2e"></span></div>
   <div class="nav-item" onclick="showPage('settings',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M20 12h2M2 12h2M12 20v2M12 2v2"/></svg></span><span class="nav-label" data-ar="إعدادات النظام" data-i18n="nav_settings">إعدادات النظام</span></div>
   <div class="nav-item" onclick="openBackupModal()" style="color:var(--accent3)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span data-i18n="nav_backup" data-i18n="nav_backup"><i class="fa-solid fa-cloud-arrow-up" style="margin-left:6px"></i> نسخ احتياطي</span><span id="backup-reminder-dot" style="display:none;width:8px;height:8px;background:var(--accent4);border-radius:50%;margin-right:auto;flex-shrink:0"></span></div>
@@ -1528,7 +1527,6 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   <div class="bn-more-item" onclick="showPage('meetings');closeBnMore()" id="bnm-meetings" style="display:none"><span><i class="fa-solid fa-calendar-check"></i></span><span data-i18n="nav_meetings">الميتنج</span></div>
   <div class="bn-more-item" onclick="showPage('schedule');closeBnMore()" id="bnm-schedule"><span><i class="fa-solid fa-clock"></i></span><span data-i18n="nav_schedule">تنظيم اليوم</span></div>
   <div class="bn-more-item" onclick="showPage('vault');closeBnMore()" id="bnm-vault"><span><i class="fa-solid fa-shield-keyhole"></i></span><span>حساباتي</span></div>
-  <div class="bn-more-item" onclick="showPage('workspace');closeBnMore()" id="bnm-workspace"><span><i class="fa-solid fa-cubes"></i></span><span>المساحة الحرة</span></div>
   <div class="bn-more-item" onclick="showPage('settings');closeBnMore()" id="bnm-settings"><span><i class="fa-solid fa-gear"></i></span><span data-i18n="nav_settings">الإعدادات</span></div>
   <div class="bn-more-item" onclick="showPage('services');closeBnMore()" id="bnm-services"><span><i class="fa-solid fa-bag-shopping"></i></span><span data-i18n="nav_services">خدماتي</span></div>
   <div class="bn-more-item" onclick="showPage('support');closeBnMore()" id="bnm-support"><span><i class="fa-solid fa-comments"></i></span><span data-i18n="nav_support">الدعم والرسائل</span></div>
@@ -3525,15 +3523,6 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   <div id="reviews-page-content"></div>
 </div>
 
-<!-- WORKSPACE PAGE -->
-<div class="page" id="page-workspace">
-  <!-- Rendered dynamically by renderWorkspace() in app_patch2.js -->
-  <div style="text-align:center;padding:80px;color:var(--text3)">
-    <i class="fa-solid fa-cubes" style="font-size:36px;opacity:.3;margin-bottom:16px;display:block"></i>
-    جاري التحميل...
-  </div>
-</div>
-
 <!-- SETTINGS -->
 <div class="page" id="page-settings">
   <div class="page-header">
@@ -5421,7 +5410,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=reviews-logo-1"></script>
+<script src="../JavaScript/app.js?v=remove-workspace-1"></script>
 <script src="../JavaScript/vercel_persistence.js?v=1"></script>
 
 <!-- ═══ BACKUP MODAL ═══ -->
@@ -7817,7 +7806,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 </script>
-<script src="../JavaScript/app_patch.js?v=currency-hotfix-11"></script>
+<script src="../JavaScript/app_patch.js?v=remove-workspace-1"></script>
 <script>
 (function(){
   'use strict';
@@ -8819,10 +8808,6 @@ document.addEventListener('DOMContentLoaded', function(){
     if(typeof window.toast === 'function') window.toast('تم حفظ تخصيص المالية');
   };
   function hideRemoved(){
-    var ws = document.getElementById('nav-workspace');
-    if(ws) ws.style.display = 'none';
-    var wp = document.getElementById('page-workspace');
-    if(wp) wp.style.display = 'none';
     var todo = document.getElementById('temp-todo-page-section');
     if(todo) todo.remove();
   }

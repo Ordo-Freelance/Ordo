@@ -591,7 +591,6 @@ function _sectionAliases(sectionId) {
     invoices: ['invoices','contracts','proposals'],
     schedule: ['schedule','meetings','dailylog'],
     services: ['services','store'],
-    workspace: ['workspace'],
     vault: ['vault'],
     reviews: ['reviews'],
     support: ['support']
@@ -5693,43 +5692,6 @@ function _executeDeleteClient(id, clientName) {
 }
 
 
-// ══════════════════════════════════════════════════════════════════════
-// SECTION 2 — WORKSPACE OPENER
-// يفتح workspace.html في نافذة جديدة
-// ══════════════════════════════════════════════════════════════════════
-
-// Override showPage لفتح workspace.html
-(function() {
-  var _origShowPage = window.showPage;
-  if (typeof _origShowPage === 'function') {
-    window.showPage = function(page, btn) {
-      if (page === 'workspace') {
-        // حساب المسار الصحيح لـ workspace.html
-        var href = window.location.href.split('?')[0];
-        var base = href.substring(0, href.lastIndexOf('/') + 1);
-        window.open(base + 'workspace.html', '_blank');
-        return;
-      }
-      _origShowPage.call(this, page, btn);
-    };
-  }
-})();
-
-// Fallback: لو showPage مش موجودة بعد
-window.openWorkspace = function() {
-  var href = window.location.href.split('?')[0];
-  var base = href.substring(0, href.lastIndexOf('/') + 1);
-  window.open(base + 'workspace.html', '_blank');
-};
-
-// ── stub renderWorkspace عشان متكسرش لو اتنادى
-function renderWorkspace() {
-  window.openWorkspace();
-}
-
-console.log('[Ordo] app_patch2.js loaded ✓ — delClient enhanced + Workspace (workspace.html)');
-try{ if(window.OrdoPlugins) window.OrdoPlugins.register('workspace', function(){}); }catch(e){}
-
 /* ===== END APP PATCH 2 ===== */
 
 
@@ -6800,7 +6762,6 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
     timetracker: 'تتبع الوقت',
     'freelancer-goals': 'الأهداف والإنجازات',
     vault: 'حساباتي',
-    workspace: 'المساحة الحرة',
     reviews: 'التقييمات',
     settings: 'إعدادات النظام'
   };

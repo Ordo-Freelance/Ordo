@@ -408,7 +408,6 @@ function _platformFeatureState(pageId){
     dailylog:'schedule',
     schedule:'schedule',
     meetings:'schedule',
-    workspace:'workspace',
     vault:'vault',
     reports:'reports',
     reviews:'reviews',
