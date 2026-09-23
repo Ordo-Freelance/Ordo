@@ -235,6 +235,30 @@ async function publicSnapshot(store, input) {
   return null;
 }
 
+async function deleteOwnReview(store, userId, reviewId) {
+  const ownerFilter = [{op:'eq',column:'user_id',value:userId}];
+  const studio = await store.query('studio_data', {op:'select',columns:'user_id,data',filters:ownerFilter,single:true});
+  const publicRows = await store.query('public_reviews', {op:'select',columns:'id,data',filters:ownerFilter,limit:500});
+  const queueRows = await store.query('review_queue', {op:'select',columns:'id,data',filters:ownerFilter,limit:500});
+  const publicMatches = (publicRows || []).filter(row => String(parseMaybe(parseMaybe(row.data)?.review_data || row.data)?.id) === reviewId);
+  const queueMatches = (queueRows || []).filter(row => String(parseMaybe(parseMaybe(row.data)?.review_json)?.id) === reviewId);
+  const root = parseMaybe(studio?.data);
+  let current = root;
+  for (let i = 0; i < 4 && current && typeof current === 'object' && !Array.isArray(current.reviews) && current.data; i++) {
+    current.data = parseMaybe(current.data);
+    current = current.data;
+  }
+  const studioMatches = Array.isArray(current?.reviews) ? current.reviews.filter(review => String(review?.id) === reviewId) : [];
+  if (!studioMatches.length && !publicMatches.length && !queueMatches.length) return false;
+  if (studioMatches.length) {
+    current.reviews = current.reviews.filter(review => String(review?.id) !== reviewId);
+    await store.query('studio_data', {op:'update',payload:{data:root},filters:ownerFilter});
+  }
+  for (const row of publicMatches) await store.query('public_reviews', {op:'delete',filters:[...ownerFilter,{op:'eq',column:'id',value:row.id}]});
+  for (const row of queueMatches) await store.query('review_queue', {op:'delete',filters:[...ownerFilter,{op:'eq',column:'id',value:row.id}]});
+  return true;
+}
+
 function encodeJsonFields(row) {
   const out = { ...row };
   for (const key of JSON_COLUMNS) {
@@ -1131,6 +1155,16 @@ export default async function handler(req, res) {
       return ok(res, {id:review.id});
     }
 
+    if (postAction === 'reviews.delete') {
+      const { user } = await currentUser(req, store);
+      if (!user) return fail(res, 'Login required', 401, 'login_required');
+      const reviewId = String(input.review_id || '').trim();
+      if (!reviewId) return fail(res, 'معرّف التقييم مطلوب', 400, 'review_id_required');
+      const deleted = await deleteOwnReview(store, user.id, reviewId);
+      if (!deleted) return fail(res, 'التقييم غير موجود', 404, 'review_not_found');
+      return ok(res, {deleted:true});
+    }
+
     if (postAction === 'admin.users.create') {
       const { user } = await currentUser(req, store);
       if (!user?.is_admin) return fail(res, 'Admin only', 403, 'admin_only');
@@ -1186,4 +1220,4 @@ export default async function handler(req, res) {
   }
 }
 
-export { publicSnapshot, readBody };
+export { publicSnapshot, deleteOwnReview, readBody };

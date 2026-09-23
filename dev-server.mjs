@@ -21,7 +21,7 @@ const types = new Map([
 
 function safePath(urlPath) {
   let decoded = decodeURIComponent(urlPath.split('?')[0]);
-  const appRoutes = new Set(['/','/dashboard','/tasks','/projects','/schedule','/meetings','/clients','/finance','/invoices','/services','/support','/team','/timetracker','/goals','/settings','/reports','/vault']);
+  const appRoutes = new Set(['/','/dashboard','/tasks','/projects','/schedule','/meetings','/clients','/finance','/invoices','/services','/support','/team','/timetracker','/goals','/settings','/reports','/vault','/reviews']);
   if (appRoutes.has(decoded)) decoded = '/HTML/index.html';
   else if (decoded === '/privacy') decoded = '/HTML/privacy.html';
   else if (decoded === '/terms') decoded = '/HTML/terms.html';
@@ -30,7 +30,7 @@ function safePath(urlPath) {
   else if (decoded.startsWith('/portal/')) decoded = '/HTML/client-portal.html';
   else if (decoded.startsWith('/proposal/')) decoded = '/HTML/proposal.html';
   else if (decoded.startsWith('/review/')) decoded = '/HTML/review.html';
-  else if (decoded === '/reviews' || decoded.startsWith('/reviews/')) decoded = '/HTML/reviews-public.html';
+  else if (decoded === '/public-reviews' || decoded.startsWith('/reviews/')) decoded = '/HTML/reviews-public.html';
   const full = path.normalize(path.join(root, decoded));
   return full.startsWith(root) ? full : path.join(root, 'index.html');
 }

@@ -744,12 +744,24 @@ function _confirmCollect(clientId, totalOwed){
 // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 // â”€â”€ REVIEWS PAGE â”€â”€
 // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
+async function _deleteReviewsOnServer(ids){
+  if(typeof window.ORDO_API_REQUEST !== 'function') throw new Error('خدمة الحذف غير متاحة الآن');
+  for(const id of ids) await window.ORDO_API_REQUEST('reviews.delete', {review_id:String(id)});
+  const removed = new Set(ids.map(String));
+  S.reviews = (S.reviews||[]).filter(r => !removed.has(String(r.id)));
+  try {
+    const pending = JSON.parse(localStorage.getItem('_ordo_pending_reviews')||'[]');
+    localStorage.setItem('_ordo_pending_reviews',JSON.stringify(pending.filter(p => !removed.has(String(p.review?.id)))));
+  } catch(e) {}
+  lsSave();
+  renderReviewsPage();
+}
 function deleteReview(reviewId) {
-  confirmDel('حذف هذا التقييم نهائياً؟', function() {
-    S.reviews = (S.reviews||[]).filter(r => String(r.id) !== String(reviewId));
-    lsSave(); cloudSave(S);
-    renderReviewsPage();
-    toast('<i class="fa-solid fa-trash"></i> تم حذف التقييم');
+  confirmDel('حذف هذا التقييم نهائياً؟', async function() {
+    try {
+      await _deleteReviewsOnServer([reviewId]);
+      toast('<i class="fa-solid fa-trash"></i> تم حذف التقييم');
+    } catch(e) { toast('تعذر حذف التقييم: '+(e.message||'حاول مرة أخرى')); }
   });
 }
 
@@ -2217,6 +2229,7 @@ function uploadLogo(input, variant){
     if(!S.settings.logo) S.settings.logo = url;
     lsSave(); cloudSaveNow(S);
     _renderLogoPreviews();
+    updateUserBadge(getSession()||{});
     toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع اللوجو');
   };
   reader.onerror = function(){ toast('<i class="fa-solid fa-triangle-exclamation"></i> فشل قراءة الصورة'); };
@@ -2235,7 +2248,7 @@ function removeLogo(variant){
   else if(variant==='dark') S.settings.logoDark='';
   else { S.settings.logo=''; S.settings.logoDark=''; S.settings.logoLight=''; }
   if(!S.settings.logoDark && !S.settings.logoLight) S.settings.logo='';
-  lsSave();cloudSaveNow(S);_renderLogoPreviews();
+  lsSave();cloudSaveNow(S);_renderLogoPreviews();updateUserBadge(getSession()||{});
 }
 function clearAll(){if(confirm('سيتم مسح جميع البيانات! هل أنت متأكد؟')){const s=S.settings;S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],settings:s};lsSave();renderAll();}}
 
@@ -13550,7 +13563,14 @@ function updateUserBadge(user){
   if(el) el.textContent = user.studio||user.name;
   if(ph) ph.textContent = user.email || user.phone || '';
   if(av){
-    if(user.avatarUrl){
+    const studioLogo = S?.settings?.logo || S?.settings?.logoDark || S?.settings?.logoLight;
+    av.classList.toggle('has-studio-logo',!!studioLogo);
+    if(studioLogo){
+      const img=document.createElement('img');
+      img.src=studioLogo;
+      img.alt='شعار الحساب';
+      av.replaceChildren(img);
+    } else if(user.avatarUrl){
       av.innerHTML = `<img src="${user.avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
     } else {
       av.textContent = (user.name||'م')[0];
@@ -15996,10 +16016,11 @@ function _bulkReviewsAction(action){
   if(!ids.length){ toast('<i class="fa-solid fa-triangle-exclamation"></i> حدد تقييمات أولاً'); return; }
 
   if(action === 'delete'){
-    confirmDel('حذف '+ids.length+' تقييم نهائياً؟', function(){
-      S.reviews = (S.reviews||[]).filter(function(r){ return !ids.includes(String(r.id)); });
-      lsSave(); cloudSave(S); renderReviewsPage();
-      showMiniNotif('<i class="fa-solid fa-trash"></i> تم حذف '+ids.length+' تقييم');
+    confirmDel('حذف '+ids.length+' تقييم نهائياً؟', async function(){
+      try {
+        await _deleteReviewsOnServer(ids);
+        showMiniNotif('<i class="fa-solid fa-trash"></i> تم حذف '+ids.length+' تقييم');
+      } catch(e) { toast('تعذر حذف بعض التقييمات: '+(e.message||'حاول مرة أخرى')); await _syncReviewsNow(null); }
     });
   }
   else if(action === 'markread'){

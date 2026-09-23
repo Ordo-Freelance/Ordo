@@ -118,10 +118,12 @@
         min-width: 0;
       }
       .nav-av {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        object-fit: cover;
+        max-width: 90px;
+        max-height: 44px;
+        width: auto;
+        height: auto;
+        border-radius: 0;
+        object-fit: contain;
         flex-shrink: 0;
       }
       .nav-av-ph {
@@ -182,14 +184,16 @@
         z-index: 1;
       }
       .h-av {
-        width: 88px;
-        height: 88px;
-        border-radius: 50%;
-        border: 3px solid var(--ac);
-        object-fit: cover;
+        max-width: 200px;
+        max-height: 100px;
+        width: auto;
+        height: auto;
+        border: 0;
+        border-radius: 0;
+        object-fit: contain;
         margin: 0 auto 14px;
         display: block;
-        background: var(--s2);
+        background: transparent;
       }
       .h-av-ph {
         width: 88px;

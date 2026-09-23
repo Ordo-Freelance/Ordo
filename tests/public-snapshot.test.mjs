@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { publicSnapshot, readBody } from '../api/index.js';
+import { publicSnapshot, deleteOwnReview, readBody } from '../api/index.js';
 
 const studio = {
   settings: { name:'Studio', username:'studio', email:'owner@example.com', accentColor:'#10b981', accentColor2:'#047857', displayMode:'light' },
@@ -34,6 +34,25 @@ test('portal token limits data to its client', async () => {
 
 test('portal refuses an unknown token', async () => {
   assert.equal(await publicSnapshot(store, {type:'client_portal',token:'wrong'}), null);
+});
+
+test('deleting a review removes every owned source without touching another owner', async () => {
+  const rows = {
+    studio_data:[{user_id:'owner',data:{reviews:[{id:'r1'},{id:'r2'}]}},{user_id:'other',data:{reviews:[{id:'r1'}]}}],
+    public_reviews:[{id:'p1',user_id:'owner',data:{review_data:{id:'r1'}}},{id:'p2',user_id:'other',data:{review_data:{id:'r1'}}}],
+    review_queue:[{id:'q1',user_id:'owner',data:{review_json:{id:'r1'}}}]
+  };
+  const reviewStore = {async query(table,input){
+    const match = row => (input.filters || []).every(filter => String(row[filter.column]) === String(filter.value));
+    if(input.op === 'select') { const found=rows[table].filter(match); return input.single ? found[0] || null : found; }
+    if(input.op === 'update') { rows[table].filter(match).forEach(row => Object.assign(row,input.payload)); return []; }
+    if(input.op === 'delete') { rows[table]=rows[table].filter(row => !match(row)); return []; }
+  }};
+  assert.equal(await deleteOwnReview(reviewStore,'owner','r1'),true);
+  assert.deepEqual(rows.studio_data[0].data.reviews.map(review => review.id),['r2']);
+  assert.deepEqual(rows.studio_data[1].data.reviews.map(review => review.id),['r1']);
+  assert.deepEqual(rows.public_reviews.map(row => row.id),['p2']);
+  assert.equal(rows.review_queue.length,0);
 });
 
 test('portal recovers client identity from its linked portal record', async () => {

@@ -32,6 +32,11 @@
   } catch(e) {}
 })();
 </script>
+<script>
+if(location.pathname==='/reviews' && new URLSearchParams(location.search).has('uid')){
+  location.replace('/public-reviews'+location.search);
+}
+</script>
 <title>Ordo </title>
 <link href="../Assets/vendor/fonts/offline-fonts.css" rel="stylesheet">
 <link rel="stylesheet" href="../Assets/vendor/fontawesome/css/all.min.css">
@@ -1087,7 +1092,7 @@ function getQRDataURL(text, size) {
 </script>
 <!-- Quill Rich Text Editor -->
 <link href="../Assets/vendor/quill/quill.snow.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../CSS/styles.css?v=project-finance-v12-2">
+<link rel="stylesheet" href="../CSS/styles.css?v=reviews-logo-1">
 <script>
 (function(){
   try{
@@ -5416,7 +5421,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=identity-links-1"></script>
+<script src="../JavaScript/app.js?v=reviews-logo-1"></script>
 <script src="../JavaScript/vercel_persistence.js?v=1"></script>
 
 <!-- ═══ BACKUP MODAL ═══ -->
@@ -6205,7 +6210,7 @@ function _shortPublicReviewsUrl() {
   var token = _ensurePublicLinkToken('reviews_public', 'public_reviews_page', {
     allowed_sections: ['reviews']
   });
-  if (window.location.protocol !== 'file:') return window.location.origin + '/reviews?uid=' + encodeURIComponent(_supaUserId||'') + (token ? '&token=' + encodeURIComponent(token) : '');
+  if (window.location.protocol !== 'file:') return window.location.origin + '/public-reviews?uid=' + encodeURIComponent(_supaUserId||'') + (token ? '&token=' + encodeURIComponent(token) : '');
   return _getAppBase() + 'reviews-public.html?uid=' + encodeURIComponent(_supaUserId||'') + (token ? '&token=' + encodeURIComponent(token) : '');
 }
 

@@ -930,7 +930,7 @@ async function buildPage(userId, preloadedData){
       var revTotal=allReviews.length;
       var revAvg=(allReviews.reduce(function(s,r){return s+(+r.stars||0);},0)/revTotal).toFixed(1);
       // Build public reviews page URL
-      var publicReviewsUrl=(location.protocol!=='file:'?location.origin+'/reviews':BASE+'reviews-public.html')+'?uid='+encodeURIComponent(userId);
+      var publicReviewsUrl=(location.protocol!=='file:'?location.origin+'/public-reviews':BASE+'reviews-public.html')+'?uid='+encodeURIComponent(userId);
 
       var reviewCards=allReviews.slice(0,6).map(function(r){
         var starLabel=['','سيء','مقبول','جيد','رائع','ممتاز'][+r.stars]||'';

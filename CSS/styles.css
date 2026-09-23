@@ -267,6 +267,20 @@
   font-size: 14px; font-weight: 900; color: #fff;
   flex-shrink: 0;
 }
+.user-avatar.has-studio-logo {
+  width: 72px;
+  height: 48px;
+  border-radius: 0;
+  background: transparent;
+}
+.user-avatar.has-studio-logo img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
 .user-info { flex: 1; overflow: hidden; }
 .user-name  { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .user-phone { font-size: 10px; color: var(--text3); margin-top: 1px; }
