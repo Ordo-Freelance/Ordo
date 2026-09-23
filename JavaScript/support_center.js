@@ -55,12 +55,12 @@
   }
   async function load(tab, openId){
     if(tab) activeTab = tab;
-    if(!window._supaUserId || !window.supa){ render(); return; }
+    if(typeof _supaUserId === 'undefined' || !_supaUserId || typeof supa === 'undefined'){ render(); return; }
     loading = true; render();
     try {
       const {data,error} = await supa.from('user_notifications')
         .select('id,user_id,title,body,type,read,data,created_at')
-        .eq('user_id',window._supaUserId).order('created_at',{ascending:false}).limit(100);
+        .eq('user_id',_supaUserId).order('created_at',{ascending:false}).limit(100);
       if(error) throw error;
       rows = data || [];
     } catch(error) { console.warn('support center load:',error.message); }
@@ -89,7 +89,7 @@
     if(!row) return;
     if(!row.read && row.type !== 'support_request') {
       row.read = true; render();
-      await supa.from('user_notifications').update({read:true}).eq('id',row.id).eq('user_id',window._supaUserId);
+      await supa.from('user_notifications').update({read:true}).eq('id',row.id).eq('user_id',_supaUserId);
       if(typeof _markSingleNotifRead === 'function') _markSingleNotifRead('srv_'+row.id);
     }
     const meta = dataOf(row);
@@ -110,7 +110,7 @@
       const errorEl = overlay.querySelector('#support-form-error');
       if(!title || !body){ errorEl.textContent = 'اكتب عنوان الرسالة وتفاصيلها أولًا'; return; }
       const button = event.currentTarget; button.disabled = true;
-      const {error} = await supa.from('user_notifications').insert([{user_id:window._supaUserId,title,body,type:'support_request',read:false,data:{category:overlay.querySelector('#support-kind').value},created_at:new Date().toISOString()}]);
+      const {error} = await supa.from('user_notifications').insert([{user_id:_supaUserId,title,body,type:'support_request',read:false,data:{category:overlay.querySelector('#support-kind').value},created_at:new Date().toISOString()}]);
       if(error){ errorEl.textContent = 'تعذر الإرسال: '+error.message; button.disabled = false; return; }
       overlay.remove(); activeTab = 'requests'; await load();
       if(typeof toast === 'function') toast('تم إرسال رسالتك للإدارة');

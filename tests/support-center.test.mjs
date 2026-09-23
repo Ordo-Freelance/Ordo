@@ -21,8 +21,8 @@ test('support center loads only the signed-in user and separates updates from me
     ],error:null}; }
   };
   const document = { getElementById(id) { return {'support-grid':grid,'support-badge':badge,'page-support':page}[id] || null; } };
-  const window = { _supaUserId:'owner-1', supa:{}, showPage() {} };
-  const context = { document, window, supa:{from(table) { assert.equal(table,'user_notifications'); return query; }}, URL };
+  const window = { showPage() {} };
+  const context = { document, window, _supaUserId:'owner-1', supa:{from(table) { assert.equal(table,'user_notifications'); return query; }}, URL };
   vm.runInNewContext(source,context);
   context.window.showPage('support');
   await new Promise(resolve => setImmediate(resolve));
