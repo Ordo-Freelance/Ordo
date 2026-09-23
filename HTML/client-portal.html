@@ -384,7 +384,9 @@ async function _bootWithData(userId, clientId, ud){
       var lsLogo=document.getElementById('ls-logo');
       var lsName=document.getElementById('ls-name');
       var lsBar=document.getElementById('ls-bar');
-      var logo=_settings.logo||'';
+      var logo=_userMode==='light'
+        ? (_settings.logoDark||_settings.logo||_settings.logoLight||'')
+        : (_settings.logoLight||_settings.logo||_settings.logoDark||'');
       var studioName=_settings.name||'';
       if(lsEl){
         var bgMode=(_settings.displayMode||_settings.display_mode||'dark')==='light'?'#f4f5fb':'#0a0a0f';
@@ -469,7 +471,11 @@ async function _bootWithData(userId, clientId, ud){
 }
 
 function renderPage(){
-  const s=_settings;const nm=s.name||'Studio';const logo=s.logo||'';const phone=s.phone||'';
+  const s=_settings;const nm=s.name||'Studio';
+  const logo=(s.displayMode||s.display_mode||'dark')==='light'
+    ? (s.logoDark||s.logo||s.logoLight||'')
+    : (s.logoLight||s.logo||s.logoDark||'');
+  const phone=s.phone||'';
   const accent=s.accent||s.accentColor||'#7c6ff7';
   const latestOrder=_clientOrders.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0];
   const svcName=latestOrder?.service_name||latestOrder?.pkg_name||'عميل';

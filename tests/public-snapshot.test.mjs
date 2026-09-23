@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { publicSnapshot, deleteOwnReview, readBody } from '../api/index.js';
 
 const studio = {
-  settings: { name:'Studio', username:'studio', email:'owner@example.com', accentColor:'#10b981', accentColor2:'#047857', displayMode:'light' },
+  settings: { name:'Studio', username:'studio', email:'owner@example.com', accentColor:'#10b981', accentColor2:'#047857', displayMode:'light', logoDark:'dark-logo.png', logoLight:'light-logo.png' },
   clients: [{id:'c1',name:'One'},{id:'c2',name:'Two'}],
   tasks: [{id:'t1',client_id:'c1'},{id:'t2',client_id:'c2'}],
   services: [{id:'s1',name:'Design'}],
@@ -23,6 +23,8 @@ test('store exposes public services without private studio data', async () => {
   assert.equal(result.data.settings.accentColor, '#10b981');
   assert.equal(result.data.settings.accentColor2, '#047857');
   assert.equal(result.data.settings.displayMode, 'light');
+  assert.equal(result.data.settings.logoDark, 'dark-logo.png');
+  assert.equal(result.data.settings.logoLight, 'light-logo.png');
 });
 
 test('portal token limits data to its client', async () => {

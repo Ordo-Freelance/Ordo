@@ -699,12 +699,16 @@ function renderPage(settings) {
   
   // Apply user identity (title, favicon)
   var _userName = settings.name || settings.username || 'فريلانسر';
+  var proposalMode = settings.displayMode || settings.display_mode || 'light';
+  var proposalLogo = proposalMode === 'light'
+    ? (settings.logoDark || settings.logo || settings.logoLight || '')
+    : (settings.logoLight || settings.logo || settings.logoDark || '');
   document.title = _userName + ' — عرض سعر';
   try{
-    if(settings.logo){
+    if(proposalLogo){
       var _favLink = document.querySelector("link[rel*='icon']");
       if(!_favLink){ _favLink=document.createElement('link'); _favLink.rel='icon'; document.head.appendChild(_favLink); }
-      _favLink.href = settings.logo;
+      _favLink.href = proposalLogo;
     }
     var _metaTheme = document.querySelector('meta[name="theme-color"]');
     if(!_metaTheme){ _metaTheme=document.createElement('meta'); _metaTheme.name='theme-color'; document.head.appendChild(_metaTheme); }
@@ -712,7 +716,7 @@ function renderPage(settings) {
   }catch(e){}
 
   // Apply user's display mode
-  var userMode = settings.displayMode || settings.display_mode || 'light';
+  var userMode = proposalMode;
   if(userMode === 'dark'){
     document.documentElement.style.setProperty('--bg','#0a0d14');
     document.documentElement.style.setProperty('--surface','#13161f');
@@ -728,8 +732,8 @@ function renderPage(settings) {
   }
 
   // Freelancer info
-  if (settings.logo) {
-    el('fl-avatar').innerHTML = '<img src="' + xe(settings.logo) + '" onerror="this.parentNode.textContent=\'🎨\'">';
+  if (proposalLogo) {
+    el('fl-avatar').innerHTML = '<img src="' + xe(proposalLogo) + '" onerror="this.parentNode.textContent=\'🎨\'">';
   }
   setText('fl-name',  settings.name || settings.username || 'فريلانسر');
   setText('fl-title', settings.bio  || settings.title    || 'خدمات احترافية');

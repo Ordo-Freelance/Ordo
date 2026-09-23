@@ -395,8 +395,11 @@ async function boot(){
     const s=ud?.settings||{};
     
     applyReviewIdentity(s);
-    if(s.logo){
-      document.getElementById('avatar-wrap').innerHTML=`<img class="freelancer-avatar" src="${s.logo}" onerror="this.style.display='none'">`;
+    const reviewLogo = (s.displayMode || s.display_mode || 'dark') === 'light'
+      ? (s.logoDark || s.logo || s.logoLight || '')
+      : (s.logoLight || s.logo || s.logoDark || '');
+    if(reviewLogo){
+      document.getElementById('avatar-wrap').innerHTML=`<img class="freelancer-avatar" src="${reviewLogo}" onerror="this.style.display='none'">`;
     }
     document.getElementById('fl-name').textContent=s.name||s.username||'فريلانسر';
     document.getElementById('fl-title').textContent=s.bio||s.title||'خدمات إبداعية متميزة';
@@ -405,10 +408,10 @@ async function boot(){
     var _revUserName = s.name||s.username||'فريلانسر';
     document.title = _revUserName + ' — تقييم الخدمة';
     try{
-      if(s.logo){
+      if(reviewLogo){
         var _favLink = document.querySelector("link[rel*='icon']");
         if(!_favLink){ _favLink=document.createElement('link'); _favLink.rel='icon'; document.head.appendChild(_favLink); }
-        _favLink.href = s.logo;
+        _favLink.href = reviewLogo;
       }
     }catch(e){}
 

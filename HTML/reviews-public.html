@@ -644,7 +644,7 @@
             isL = (s.displayMode || s.display_mode || "dark") === "light",
             nm = s.name || s.username || "فريلانسر",
             bio = s.bio || s.title || "",
-            logo = s.logo || "",
+            logo = isL ? (s.logoDark || s.logo || s.logoLight || "") : (s.logoLight || s.logo || s.logoDark || ""),
             phone = s.phone || "",
             un = s.username || s.store_slug || "";
           document.documentElement.style.setProperty("--ac", ac);

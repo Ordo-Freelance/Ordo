@@ -285,7 +285,7 @@ async function buildPage(userId, preloadedData){
     }
     var accent=settings.accentColor||settings.accent||settings.theme_color||'#7c6ff7';
     var isLight=(settings.displayMode||settings.display_mode||'dark')==='light';
-    var logo=settings.store_logo||settings.logo||'';
+    var logo=settings.store_logo||(isLight ? (settings.logoDark||settings.logo||settings.logoLight) : (settings.logoLight||settings.logo||settings.logoDark))||'';
     var studioName=(settings.name||'Studio');
     var phone=settings.phone||'';
     var email=settings.email||'';

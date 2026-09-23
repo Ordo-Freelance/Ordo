@@ -1820,6 +1820,7 @@ function loadSettings(){
   if(picker) picker.value = color;
   installSettingsRedesign();
   applyStudioAppearance();
+  updateUserBadge(getSession()||{});
   const nd=document.getElementById('studio-name-disp');if(nd)nd.textContent=s.name||'صاحب العمل';
   renderPoliciesList('policies-list', s.policies||[], 'removePolicy');
   renderSocialsList();
@@ -2179,6 +2180,10 @@ window.openReceivableWhatsAppModal = function(clientName, phone, msg){
   openM('modal-whatsapp');
 };
 function v(id){const e=document.getElementById(id);return e?e.value:'';}
+function _logoForMode(settings, mode){
+  const s=settings||{};
+  return mode==='light' ? (s.logoDark||s.logo||s.logoLight||'') : (s.logoLight||s.logo||s.logoDark||'');
+}
 function _logoForContext(context){
   const s=S.settings||{};
   if(context==='dark-bg') return s.logoLight || s.logo || s.logoDark || '';
@@ -2397,6 +2402,7 @@ function setDisplayMode(mode) {
   var _staleEls = ['_toast','_autosave-dot','sync-indicator','mini-notif'];
   _staleEls.forEach(function(id){ var e=document.getElementById(id); if(e) e.remove(); });
   applyStudioAppearance();
+  updateUserBadge(getSession()||{});
 }
 
 function setThemeColor(color) {
@@ -13562,7 +13568,8 @@ function updateUserBadge(user){
   if(el) el.textContent = user.studio||user.name;
   if(ph) ph.textContent = user.email || user.phone || '';
   if(av){
-    const studioLogo = S?.settings?.logo || S?.settings?.logoDark || S?.settings?.logoLight;
+    const mode = localStorage.getItem('studioDisplayMode') || S?.settings?.displayMode || 'dark';
+    const studioLogo = _logoForMode(S?.settings,mode);
     av.classList.toggle('has-studio-logo',!!studioLogo);
     if(studioLogo){
       const img=document.createElement('img');
@@ -24007,7 +24014,7 @@ function _buildSvcOrderPage(userId){
     var bannerSize=(_storeObj ? (_storeObj.banner_size||'md') : (settings.svc_banner_size||'md'));
     var bannerCustomPx=(_storeObj ? (_storeObj.banner_custom_px||300) : (settings.svc_banner_custom_px||300));
     var bannerH={sm:'160px',md:'260px',lg:'400px',custom:bannerCustomPx+'px'}[bannerSize]||'260px';
-    var logo=settings.logo||'';
+    var logo=_logoForMode(settings,settings.displayMode||settings.display_mode||localStorage.getItem('studioDisplayMode')||'dark');
     var studioName=settings.name||'Ordo';
     var phone=settings.phone||'';
     var socials=settings.socials||[];
@@ -24835,7 +24842,7 @@ function _buildNewOrderPortalPage(userId, portalId){
     var borderC=isLight?'rgba(0,0,0,.1)':'rgba(255,255,255,.08)';
     var cardBg=isLight?'rgba(0,0,0,.04)':'rgba(255,255,255,.06)';
     var cardBorder=isLight?'rgba(0,0,0,.08)':'rgba(255,255,255,.09)';
-    var logo=settings.logo||'';
+    var logo=_logoForMode(settings,isLight?'light':'dark');
     var studioName=settings.name||'Ordo';
     document.body.innerHTML='';
     document.body.style.cssText='margin:0;padding:0;background:'+bg+';font-family:Cairo,Tajawal,system-ui,sans-serif;direction:rtl;color:'+textMain;
@@ -24987,7 +24994,7 @@ function _buildClientPortalPage(userId, portalId){
     var cardBg=isLight?'rgba(0,0,0,.03)':'rgba(255,255,255,.05)';
     var cardBorder=isLight?'rgba(0,0,0,.07)':'rgba(255,255,255,.09)';
     var navBg=isLight?'rgba(255,255,255,.92)':'rgba(10,10,15,.92)';
-    var logo=settings.logo||''; var studioName=settings.name||'Ordo';
+    var logo=_logoForMode(settings,isLight?'light':'dark'); var studioName=settings.name||'Ordo';
     var phone=settings.phone||''; var socials=settings.socials||[];
     var tasks=ud.tasks||[];
     var invoices=ud.invoices||[];
@@ -30804,7 +30811,7 @@ function _buildFullClientPortal(userId, clientId){
     var textMuted=isLight?'#888899':'#777799';
     var borderC=isLight?'rgba(0,0,0,.1)':'rgba(255,255,255,.08)';
     var navBg=isLight?'rgba(255,255,255,.95)':'rgba(10,10,15,.95)';
-    var logo=settings.store_logo||settings.logo||'';
+    var logo=settings.store_logo||_logoForMode(settings,isLight?'light':'dark');
     var studioName=settings.name||'Ordo';
 
     // Client's data

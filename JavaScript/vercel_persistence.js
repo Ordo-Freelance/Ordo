@@ -75,7 +75,7 @@
 
   function publicSettings(settings){
     settings=settings||{};
-    var allowed=['name','studio','bio','desc','phone','email','logo','store_logo','svc_banner','svc_banner_size','svc_banner_custom_px','svc_site_desc','svc_orders_open','username','store_slug','accent','accent2','accentColor','accentColor2','theme_color','displayMode','display_mode','socials'];
+    var allowed=['name','studio','bio','desc','phone','email','logo','logoDark','logoLight','store_logo','svc_banner','svc_banner_size','svc_banner_custom_px','svc_site_desc','svc_orders_open','username','store_slug','accent','accent2','accentColor','accentColor2','theme_color','displayMode','display_mode','socials'];
     var out={}; allowed.forEach(function(key){if(settings[key]!==undefined)out[key]=settings[key];}); return out;
   }
   function publicStoreData(data,store){
