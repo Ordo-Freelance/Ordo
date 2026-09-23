@@ -1199,6 +1199,7 @@ function getQRDataURL(text, size) {
 </style>
 
 <script src="../Assets/vendor/quill/quill.min.js"></script>
+<link rel="stylesheet" href="../CSS/user-redesign.css?v=20260923-1">
 
 </head>
 <body style="visibility:hidden">
@@ -1477,6 +1478,19 @@ try {
   function move(page,container){var el=item(page);if(el)container.appendChild(el);}
   var saved={};
   try{saved=JSON.parse(localStorage.getItem('_ordo_sidebar_groups_v1')||'{}')||{};}catch(e){}
+  var restoredGroup=['projects','clients','finance','team','system','settings'].find(function(key){return !!saved[key];});
+  function setGroupOpen(section,open){
+    var toggle=section.querySelector('.sidebar-group-toggle');
+    var body=section.querySelector('.sidebar-group-items');
+    section.classList.toggle('is-open',open);
+    toggle.setAttribute('aria-expanded',String(open));
+    body.inert=!open;
+    saved[section.dataset.group]=open;
+  }
+  function openOnly(section){
+    sidebar.querySelectorAll('.sidebar-group').forEach(function(group){setGroupOpen(group,group===section);});
+    try{localStorage.setItem('_ordo_sidebar_groups_v1',JSON.stringify(saved));}catch(e){}
+  }
   function group(key,title,icon,pages,parent){
     var section=document.createElement('div');
     section.className='sidebar-group';
@@ -1485,24 +1499,22 @@ try {
     toggle.type='button';
     toggle.className='sidebar-group-toggle';
     toggle.innerHTML='<span class="sidebar-group-title"><i class="fa-solid '+icon+'" aria-hidden="true"></i><span>'+title+'</span></span><i class="fa-solid fa-chevron-down sidebar-group-chevron" aria-hidden="true"></i>';
-    toggle.setAttribute('aria-expanded',saved[key]?'true':'false');
+    toggle.setAttribute('aria-expanded',key===restoredGroup?'true':'false');
     toggle.setAttribute('aria-controls','sidebar-group-'+key);
     var body=document.createElement('div');
     body.className='sidebar-group-items';
     body.id='sidebar-group-'+key;
-    body.inert=!saved[key];
+    body.inert=key!==restoredGroup;
     section.append(toggle,body);
     pages.forEach(function(page){move(page,body);});
     if(parent)parent.appendChild(section);
     else sidebar.insertBefore(section,user);
-    section.classList.toggle('is-open',!!saved[key]);
+    section.classList.toggle('is-open',key===restoredGroup);
+    saved[key]=key===restoredGroup;
     toggle.addEventListener('click',function(){
       var open=!section.classList.contains('is-open');
-      section.classList.toggle('is-open',open);
-      toggle.setAttribute('aria-expanded',String(open));
-      body.inert=!open;
-      saved[key]=open;
-      try{localStorage.setItem('_ordo_sidebar_groups_v1',JSON.stringify(saved));}catch(e){}
+      if(open) openOnly(section);
+      else {setGroupOpen(section,false);try{localStorage.setItem('_ordo_sidebar_groups_v1',JSON.stringify(saved));}catch(e){}}
     });
     return section;
   }
@@ -1522,11 +1534,7 @@ try {
   function revealActive(){
     var active=sidebar.querySelector('.sidebar-group .nav-item.active');
     var section=active&&active.closest('.sidebar-group');
-    if(section&&!section.classList.contains('is-open')){
-      section.classList.add('is-open');
-      section.querySelector('.sidebar-group-toggle').setAttribute('aria-expanded','true');
-      section.querySelector('.sidebar-group-items').inert=false;
-    }
+    if(section&&!section.classList.contains('is-open')) openOnly(section);
   }
   var observer=new MutationObserver(function(){revealActive();});
   items.forEach(function(el){observer.observe(el,{attributes:true,attributeFilter:['class']});});

@@ -1,0 +1,141 @@
+/* Ordo user workspace: a consistent, lightweight visual layer. */
+body.app-loaded:not(.light-mode):not(.pub-page) {
+  --bg: #0d1425;
+  --surface: #151e32;
+  --surface2: #1b2640;
+  --surface3: #22304e;
+  --border: #303d59;
+  --text: #f3f6ff;
+  --text2: #bdc7e4;
+  --text3: #8493b5;
+  background: radial-gradient(ellipse 70% 32% at 55% 0%, #172548 0%, transparent 100%), var(--bg);
+}
+body.app-loaded.light-mode:not(.pub-page) {
+  background: #f5f7ff;
+}
+body.app-loaded:not(.pub-page) .sidebar {
+  background: color-mix(in srgb, var(--surface) 93%, var(--bg));
+  border-left: 1px solid var(--border);
+}
+body.app-loaded:not(.pub-page) .app-header {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+body.app-loaded:not(.pub-page) .page-header { margin-bottom: 25px; }
+body.app-loaded:not(.pub-page) .page-title { letter-spacing: -.025em; }
+body.app-loaded:not(.pub-page) .sidebar-group { margin-top: 12px; padding-top: 12px; }
+body.app-loaded:not(.pub-page) .sidebar-group::before { opacity: .4; }
+body.app-loaded:not(.pub-page) .sidebar-group-toggle {
+  min-height: 43px;
+  padding: 10px 13px;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 700;
+}
+body.app-loaded:not(.pub-page) .sidebar-group.is-open .sidebar-group-toggle {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface2));
+}
+body.app-loaded:not(.pub-page) .sidebar-group-items .nav-item {
+  min-height: 39px;
+  margin: 3px 4px;
+  padding: 9px 13px;
+  border-radius: 10px;
+}
+body.app-loaded:not(.pub-page) .nav-item.active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface2));
+  box-shadow: inset -2px 0 var(--accent);
+}
+body.app-loaded:not(.pub-page) .card,
+body.app-loaded:not(.pub-page) .stat-card,
+body.app-loaded:not(.pub-page) .ordo-home-stat-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 10px 26px rgba(5, 10, 27, .10);
+  animation: none !important;
+}
+body.app-loaded:not(.light-mode):not(.pub-page) .card,
+body.app-loaded:not(.light-mode):not(.pub-page) .stat-card,
+body.app-loaded:not(.light-mode):not(.pub-page) .ordo-home-stat-card {
+  background: linear-gradient(145deg, var(--surface2), var(--surface));
+}
+body.app-loaded:not(.pub-page) .card:hover,
+body.app-loaded:not(.pub-page) .stat-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+body.app-loaded:not(.pub-page) .btn { border-radius: 11px; font-weight: 700; }
+body.app-loaded:not(.pub-page) .form-input,
+body.app-loaded:not(.pub-page) .form-select,
+body.app-loaded:not(.pub-page) .form-textarea {
+  border-radius: 10px;
+  border-color: var(--border);
+  background: var(--surface2);
+}
+body.app-loaded.light-mode:not(.pub-page) .form-input,
+body.app-loaded.light-mode:not(.pub-page) .form-select,
+body.app-loaded.light-mode:not(.pub-page) .form-textarea { background: #fff; }
+body.app-loaded:not(.pub-page) .form-input:focus,
+body.app-loaded:not(.pub-page) .form-select:focus,
+body.app-loaded:not(.pub-page) .form-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+body.app-loaded:not(.pub-page) .modal-overlay.open,
+body.app-loaded:not(.pub-page) .modal-overlay[style*="flex"] {
+  background: rgba(4, 8, 20, .74);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+body.app-loaded:not(.pub-page) .modal {
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
+  border-radius: 18px;
+  box-shadow: 0 28px 78px rgba(3, 7, 20, .48);
+}
+body.app-loaded:not(.light-mode):not(.pub-page) .modal {
+  background: linear-gradient(150deg, #1b2741, #111a2d);
+}
+body.app-loaded:not(.pub-page) .modal-header {
+  border-bottom-color: var(--border);
+  padding-bottom: 14px;
+}
+/* The task board retains its existing columns, drag/drop and data model. */
+#page-tasks .tasks-v2-shell { color: var(--text); }
+#page-tasks .tasks-v2-col {
+  border-radius: 16px !important;
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+  box-shadow: 0 10px 24px rgba(5, 10, 27, .10);
+}
+#page-tasks .tasks-v2-col-head { border-bottom-color: var(--border) !important; }
+#page-tasks .tasks-v2-card {
+  padding: 13px !important;
+  border-radius: 12px !important;
+  border-color: var(--border) !important;
+  background: var(--surface2) !important;
+  box-shadow: none !important;
+}
+#page-tasks .tasks-v2-card:hover {
+  transform: none !important;
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border)) !important;
+}
+#page-tasks .tasks-v2-card-title {
+  font-size: calc(13px * var(--app-font-scale, 1)) !important;
+  line-height: 1.5 !important;
+}
+#page-tasks .tasks-v2-card-subtitle {
+  font-size: calc(11px * var(--app-font-scale, 1)) !important;
+  line-height: 1.5 !important;
+}
+body.app-loaded:not(.pub-page) .tasks-v2-stat { border-radius: 14px; }
+@media (max-width: 700px) {
+  body.app-loaded:not(.pub-page) .sidebar-group { margin-top: 5px; padding-top: 8px; }
+  body.app-loaded:not(.pub-page) .page-header { margin-bottom: 18px; }
+  body.app-loaded:not(.pub-page) .modal { max-width: 100%; border-radius: 16px 16px 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.app-loaded:not(.pub-page) .card,
+  body.app-loaded:not(.pub-page) .modal { animation: none !important; transition: none !important; }
+}
