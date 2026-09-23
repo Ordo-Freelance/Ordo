@@ -1092,7 +1092,7 @@ function getQRDataURL(text, size) {
 </script>
 <!-- Quill Rich Text Editor -->
 <link href="../Assets/vendor/quill/quill.snow.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../CSS/styles.css?v=sidebar-groups-1">
+<link rel="stylesheet" href="../CSS/styles.css?v=sidebar-smooth-2">
 <script>
 (function(){
   try{
@@ -1461,40 +1461,46 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   function move(page,container){var el=item(page);if(el)container.appendChild(el);}
   var saved={};
   try{saved=JSON.parse(localStorage.getItem('_ordo_sidebar_groups_v1')||'{}')||{};}catch(e){}
-  function group(key,title,pages){
+  function group(key,title,icon,pages,parent){
     var section=document.createElement('div');
     section.className='sidebar-group';
     section.dataset.group=key;
     var toggle=document.createElement('button');
     toggle.type='button';
     toggle.className='sidebar-group-toggle';
-    toggle.innerHTML='<span>'+title+'</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
+    toggle.innerHTML='<span class="sidebar-group-title"><i class="fa-solid '+icon+'" aria-hidden="true"></i><span>'+title+'</span></span><i class="fa-solid fa-chevron-down sidebar-group-chevron" aria-hidden="true"></i>';
     toggle.setAttribute('aria-expanded',saved[key]?'true':'false');
     toggle.setAttribute('aria-controls','sidebar-group-'+key);
     var body=document.createElement('div');
     body.className='sidebar-group-items';
     body.id='sidebar-group-'+key;
+    body.inert=!saved[key];
     section.append(toggle,body);
     pages.forEach(function(page){move(page,body);});
-    sidebar.insertBefore(section,user);
+    if(parent)parent.appendChild(section);
+    else sidebar.insertBefore(section,user);
     section.classList.toggle('is-open',!!saved[key]);
     toggle.addEventListener('click',function(){
       var open=!section.classList.contains('is-open');
       section.classList.toggle('is-open',open);
       toggle.setAttribute('aria-expanded',String(open));
+      body.inert=!open;
       saved[key]=open;
       try{localStorage.setItem('_ordo_sidebar_groups_v1',JSON.stringify(saved));}catch(e){}
     });
     return section;
   }
   var dashboard=item('dashboard');if(dashboard)sidebar.insertBefore(dashboard,user);
-  group('projects','المشاريع',['tasks','projects','schedule','meetings']);
-  group('clients','إدارة العمل والعملاء',['clients','services','reviews']);
-  var support=item('support');if(support)sidebar.insertBefore(support,user);
-  group('finance','المالية',['finance','invoices','proposals']);
-  group('team','الفريق',['team']);
-  group('system','النظام والمساحة',['timetracker','freelancer-goals','vault']);
-  group('settings','الإعدادات',['settings']);
+  group('projects','المشاريع','fa-folder-open',['tasks','projects','schedule','meetings']);
+  group('clients','إدارة العمل والعملاء','fa-briefcase',['clients','services','reviews']);
+  group('finance','المالية','fa-coins',['finance','invoices','proposals']);
+  group('team','الفريق','fa-users',['team']);
+  group('system','النظام والمساحة','fa-layer-group',['timetracker','freelancer-goals','vault']);
+  var utility=document.createElement('div');
+  utility.className='sidebar-utility';
+  sidebar.insertBefore(utility,user);
+  var support=item('support');if(support)utility.appendChild(support);
+  group('settings','الإعدادات','fa-gear',['settings'],utility);
   var backup=items.find(function(el){return (el.getAttribute('onclick')||'').includes('openBackupModal(');});
   if(backup){var settingsBody=document.getElementById('sidebar-group-settings');settingsBody.appendChild(backup);}
   function revealActive(){
@@ -1503,6 +1509,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     if(section&&!section.classList.contains('is-open')){
       section.classList.add('is-open');
       section.querySelector('.sidebar-group-toggle').setAttribute('aria-expanded','true');
+      section.querySelector('.sidebar-group-items').inert=false;
     }
   }
   var observer=new MutationObserver(function(){revealActive();});
