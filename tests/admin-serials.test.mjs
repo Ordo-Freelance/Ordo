@@ -56,3 +56,16 @@ test('confirmed assignment updates the serial and reports success', async () => 
   assert.equal(context.SERIALS[0].userId, 'user-1');
   assert.match(notices.at(-1), /تم تعيين/);
 });
+
+test('opening an assignment modal moves it outside a hidden parent overlay', () => {
+  const modalSource = source.slice(source.indexOf('function openModal('), source.indexOf('function closeModal('));
+  const body = { appendChild(element) { element.parentElement = body; } };
+  const hiddenOverlay = { classList: { contains(name) { return name === 'modal-overlay'; } } };
+  const added = [];
+  const modal = { parentElement: hiddenOverlay, classList: { add(name) { added.push(name); } } };
+  const context = { document: { body, getElementById() { return modal; } } };
+  vm.runInNewContext(modalSource, context);
+  context.openModal('modal-assign-serial');
+  assert.equal(modal.parentElement, body);
+  assert.deepEqual(added, ['open']);
+});

@@ -4846,7 +4846,12 @@ function toast(msg) {
 // ── MODALS ──
 function openModal(id) {
   const el = document.getElementById(id);
-  if(el) { el.classList.add('open'); }
+  if(el) {
+    // Some legacy modal markup is nested inside another (hidden) overlay.
+    // A fixed child remains invisible when its ancestor has opacity:0.
+    if(el.parentElement?.classList.contains('modal-overlay')) document.body.appendChild(el);
+    el.classList.add('open');
+  }
 }
 function closeModal(id) {
   const el = document.getElementById(id);
