@@ -2,7 +2,8 @@
   'use strict';
 
   var API_URL = (root.ORDO_CONFIG && root.ORDO_CONFIG.API_URL) || '/api/index';
-  var AUTH_KEY = 'studioOS_auth_v1';
+  var AUTH_SCOPE = /(?:^|\/)admin(?:\.html)?$/.test(root.location.pathname) ? 'admin' : 'user';
+  var AUTH_KEY = AUTH_SCOPE === 'admin' ? 'ordo_admin_auth_v1' : 'studioOS_auth_v1';
   var authListeners = [];
   var uploadedFiles = {};
 
@@ -31,7 +32,7 @@
     return fetch(API_URL + '?action=' + encodeURIComponent(action), {
       method: 'POST',
       credentials: 'include',
-      headers: {'Content-Type':'application/json'},
+      headers: {'Content-Type':'application/json', 'X-Ordo-Auth-Scope':AUTH_SCOPE},
       body: JSON.stringify(Object.assign({action:action}, payload || {}))
     }).then(function(res){
       return res.json().catch(function(){ return {}; }).then(function(body){

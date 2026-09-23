@@ -784,7 +784,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           </div>
         </div>
         <div id="user-features-team-mode"></div>
-        <div id="user-features-controls" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px"></div>
+        <div id="user-features-controls"></div>
       </div>
 
       <div class="card" style="margin-top:16px">
@@ -797,6 +797,8 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
           <input class="form-input" id="uf-user-search" placeholder="ابحث باسم أو إيميل..." oninput="renderUserFeatureUsersList()" style="max-width:320px">
+          <select class="form-select" id="uf-user-pick" onchange="renderUserFeatureUsersList()" style="max-width:260px"><option value="">اختر مستخدماً</option></select>
+          <select class="form-select" id="uf-user-group-pick" onchange="renderUserFeatureUsersList()" style="max-width:220px"><option value="">كل المجلدات</option></select>
           <select class="form-select" id="uf-user-feature-pick" onchange="renderUserFeatureUsersList()" style="max-width:260px">
             <option value="">كل المميزات</option>
           </select>
@@ -976,6 +978,10 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           <div class="page-sub">إدارة أنواع الاشتراكات والصلاحيات</div>
         </div>
         <button class="btn btn-primary" onclick="openCreatePlanModal()">➕ إنشاء باقة جديدة</button>
+      </div>
+      <div class="card card-sm" style="margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:800"><i class="fa-solid fa-sliders"></i> مقارنة الباقات حسب المميزات</span>
+        <span style="font-size:12px;color:var(--text3)">افتح أي باقة لتشغيل قسم كامل أو تخصيص مميزاته الفرعية بشكل مستقل.</span>
       </div>
       <div id="plans-grid" class="grid grid-3">
         <div class="loading-wrap" style="grid-column:1/-1"><div class="spinner"></div> جاري التحميل...</div>
@@ -1890,10 +1896,20 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
       <div class="copy-plan-inline" id="_copy-plan-list"></div>
     </div>
 
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:18px">
+      <div style="font-size:13px;font-weight:900;margin-bottom:5px">🗂 أقسام التطبيق داخل الباقة</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">يمكن تشغيل قسم وترك قسم آخر للترقية. التفاصيل الدقيقة لكل قسم بالأسفل.</div>
+      <div id="cp-page-features"></div>
+    </div>
+
     <!-- ── SECTION B: الصلاحيات والأقسام ── -->
     <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:8px">
       <span>🎛 صلاحيات الأقسام</span>
       <span style="font-size:10px;color:var(--text3);font-weight:400">— اضغط على القسم لتفصيل الصلاحيات</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <input class="form-input" id="cp-feature-search" type="search" placeholder="ابحث عن قسم أو ميزة داخل الباقة..." oninput="filterPlanFeatureSections(this.value)" style="flex:1;min-width:220px">
+      <span id="cp-feature-summary" class="badge badge-gray">—</span>
     </div>
     <div id="cp-sections-accordion" style="display:flex;flex-direction:column;gap:6px">
 
@@ -4072,6 +4088,35 @@ async function assignSerial() {
 // ══════════════════════════════════════════════════
 //  PLANS
 // ══════════════════════════════════════════════════
+function filterPlanFeatureSections(query){
+  const sections = document.querySelectorAll('#cp-sections-accordion .perm-section');
+  const q = String(query || '').trim().toLocaleLowerCase();
+  sections.forEach(section => {
+    const rows = section.querySelectorAll('.perm-row');
+    const headerMatches = (section.querySelector('.perm-sec-header')?.textContent || '').toLocaleLowerCase().includes(q);
+    let matches = headerMatches || !q;
+    rows.forEach(row => {
+      const visible = !q || headerMatches || (row.textContent || '').toLocaleLowerCase().includes(q);
+      row.style.display = visible ? '' : 'none';
+      if(visible) matches = true;
+    });
+    section.style.display = matches ? '' : 'none';
+    if(q && matches) section.querySelector('.perm-sec-body')?.classList.add('open');
+  });
+  updatePlanFeatureSummary();
+}
+
+function updatePlanFeatureSummary(){
+  const checks = [...document.querySelectorAll('#cp-sections-accordion input[type="checkbox"]')];
+  const active = checks.filter(el => el.checked).length;
+  const summary = document.getElementById('cp-feature-summary');
+  if(summary) summary.textContent = `${active} من ${checks.length} مميزة مفعلة`;
+}
+
+document.addEventListener('change', e => {
+  if(e.target?.closest('#cp-sections-accordion')) updatePlanFeatureSummary();
+});
+
 function renderPlans() {
   const el = document.getElementById('plans-grid');
   if(!el) return;
@@ -4081,7 +4126,8 @@ function renderPlans() {
   }
   el.innerHTML = PLANS.map(p => {
     const usersOnPlan = SERIALS.filter(s => s.planId === p.id && s.userId).length;
-    const featList = Object.entries(p.features||{}).filter(([,v])=>v)
+    const enabledFeatures = Object.entries(p.features||{}).filter(([k,v])=>v === true && !k.startsWith('_'));
+    const featList = enabledFeatures
       .map(([k]) => ({ tasks:'المهام', clients:'العملاء', finance:'المالية', invoices:'الفواتير', schedule:'الجدولة', reports:'التقارير', cloud:'السحابة', corporate:'🏢 شركات', services:'🛍 خدمات', languages:'🌐 اللغات' }[k]||null))
       .filter(Boolean)
       .map(f => `<div class="plan-feat"><span style="color:var(--accent3)">✓</span> ${f}</div>`).join('');
@@ -4099,7 +4145,12 @@ function renderPlans() {
         <div class="plan-price">${p.price_monthly ? p.price_monthly+'ج' : 'مجاني'}</div>
         <div style="font-size:11px;color:var(--text3)">/شهر · ${p.price_annual ? p.price_annual+'ج/سنة' : ''}</div>
         ${isCorp ? `<div style="font-size:11px;color:var(--accent2);margin-top:6px">موظفون: حتى ${p.features.corp_max_employees||'∞'}</div>` : ''}
+        <div style="font-size:12px;color:var(--accent3);font-weight:800;margin-top:10px">${enabledFeatures.length} ميزة مفعلة</div>
         <div class="plan-features">${featList}</div>
+        <details style="margin-top:10px;font-size:12px;color:var(--text2)">
+          <summary style="cursor:pointer;font-weight:800">عرض كل المميزات المفعلة</summary>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:9px">${enabledFeatures.map(([k]) => `<span class="badge badge-gray" title="${k}">${(document.getElementById('feat-'+k.replaceAll('_','-'))?.closest('.perm-row,.perm-sec-header')?.querySelector('label')?.textContent || k).trim()}</span>`).join('') || '<span>لا توجد مميزات مفعلة</span>'}</div>
+        </details>
         <div class="divider"></div>
         <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2)">
           <span>الحد: <b>${p.max_clients||'∞'} عميل</b></span>
@@ -4160,6 +4211,8 @@ function _copyPlanPerms(fromId) {
     ['max_services','feat-max-services'],['corp_max_employees','feat-corp-max-employees']
   ];
   numFields.forEach(([fk,elId]) => { const el=document.getElementById(elId); if(el&&el.type!=='hidden') el.value=f[fk]||''; });
+  renderPlanPageFeatures(f);
+  updatePlanFeatureSummary();
   toast(`✅ تم نسخ صلاحيات "${from.icon||''} ${from.name}"`);
 }
 // Close dropdown on outside click (legacy)
@@ -4201,6 +4254,9 @@ function openCreatePlanModal() {
   const cs = document.getElementById('_copy-plan-section');
   if(cs) cs.style.display = 'none';
   _populateCopyPlanDropdown();
+  renderPlanPageFeatures();
+  document.getElementById('cp-feature-search').value = '';
+  filterPlanFeatureSections('');
   openModal('modal-create-plan');
 }
 
@@ -4305,6 +4361,9 @@ function editPlan(id) {
   _setIL('feat-advanced-reports-ready', f.advanced_reports_ready, !!f.reports);
 
   _populateCopyPlanDropdown();
+  renderPlanPageFeatures(f);
+  document.getElementById('cp-feature-search').value = '';
+  filterPlanFeatureSections('');
   openModal('modal-create-plan');
 }
 
@@ -4492,6 +4551,9 @@ async function savePlan() {
     workspace_mode          : _chk('feat-mode-company') ? 'company' : 'freelancer',
   };
 
+  document.querySelectorAll('[data-plan-page]').forEach(el => {
+    features[_planPageFeatureKey(el.dataset.planPage)] = !!el.checked;
+  });
   const mc = features.max_clients_feat || 0;
 
   let plan;
@@ -5030,21 +5092,38 @@ async function deleteUserAccount(uid, email) {
 // ══════════════════════════════════════════════════
 let _platformConfig = JSON.parse(localStorage.getItem('platform_config') || '{}');
 const USER_FEATURE_CONTROLS = [
-  {key:'dashboard', label:'الرئيسية'},
-  {key:'tasks', label:'المهام'},
-  {key:'projects', label:'المشاريع'},
-  {key:'schedule', label:'تنظيم اليوم والميتنج'},
-  {key:'clients', label:'العملاء'},
-  {key:'finance', label:'المالية'},
-  {key:'invoices', label:'الفواتير والعقود وعروض الأسعار'},
-  {key:'services', label:'خدماتي والمتجر'},
-  {key:'support', label:'الدعم والرسائل'},
-  {key:'team', label:'الفريق'},
-  {key:'timetracker', label:'تتبع الوقت'},
-  {key:'freelancer-goals', label:'الأهداف والإنجازات'},
-  {key:'vault', label:'حساباتي'},
-  {key:'reviews', label:'التقييمات'}
+  {key:'dashboard', label:'لوحة التحكم', group:'الرئيسية'},
+  {key:'tasks', label:'المهام', group:'المشاريع'},
+  {key:'projects', label:'المشاريع', group:'المشاريع'},
+  {key:'schedule', label:'تنظيم اليوم', group:'المشاريع'},
+  {key:'meetings', label:'الاجتماعات', group:'المشاريع'},
+  {key:'clients', label:'قاعدة العملاء', group:'إدارة العمل والعملاء'},
+  {key:'services', label:'الخدمات', group:'إدارة العمل والعملاء'},
+  {key:'store', label:'المتجر', group:'إدارة العمل والعملاء'},
+  {key:'reviews', label:'التقييمات', group:'إدارة العمل والعملاء'},
+  {key:'finance', label:'المالية', group:'المالية'},
+  {key:'invoices', label:'الفواتير', group:'المالية'},
+  {key:'contracts', label:'العقود', group:'المالية'},
+  {key:'proposals', label:'عروض الأسعار', group:'المالية'},
+  {key:'team', label:'الفريق', group:'الفريق'},
+  {key:'timetracker', label:'تتبع الوقت', group:'النظام والمساحة'},
+  {key:'freelancer-goals', label:'الأهداف والإنجازات', group:'النظام والمساحة'},
+  {key:'vault', label:'حساباتي', group:'النظام والمساحة'},
+  {key:'support', label:'الدعم والرسائل', group:'التواصل'}
 ];
+const USER_FEATURE_GROUPS = [...new Set(USER_FEATURE_CONTROLS.map(f => f.group))];
+
+function _planPageFeatureKey(key){ return 'page_' + key.replaceAll('-', '_'); }
+function renderPlanPageFeatures(features={}){
+  const box = document.getElementById('cp-page-features');
+  if(!box) return;
+  box.innerHTML = USER_FEATURE_GROUPS.map(group => `<div style="margin-top:12px">
+    <div style="font-size:12px;font-weight:850;margin-bottom:7px;color:var(--text2)"><i class="fa-solid fa-folder"></i> ${group}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:7px">${USER_FEATURE_CONTROLS.filter(f=>f.group===group).map(f =>
+      `<label style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer"><input type="checkbox" data-plan-page="${f.key}" ${features[_planPageFeatureKey(f.key)]!==false?'checked':''}>${f.label}</label>`
+    ).join('')}</div>
+  </div>`).join('');
+}
 
 function _readDirectUserFeatures(){
   try {
@@ -5100,17 +5179,21 @@ function renderUserFeatureControls(){
   ].filter(Boolean);
   if(!boxes.length) return;
   _renderPlatformTeamMode(document.getElementById('user-features-team-mode'));
-  const html=USER_FEATURE_CONTROLS.map(f=>{
+  const card=f=>{
     const state=controls[f.key]||'enabled';
-    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px">
-      <div style="font-size:12px;font-weight:900;margin-bottom:8px">${f.label}</div>
+    return `<label style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <span style="font-size:12px;font-weight:800">${f.label}</span>
       <select class="form-select" data-user-feature="${f.key}" style="height:34px;font-size:12px">
         <option value="enabled" ${state==='enabled'?'selected':''}>مفتوح</option>
         <option value="coming" ${state==='coming'?'selected':''}>قادم قريباً</option>
         <option value="disabled" ${state==='disabled'?'selected':''}>مغلق</option>
       </select>
-    </div>`;
-  }).join('');
+    </label>`;
+  };
+  const html=USER_FEATURE_GROUPS.map(group=>`<section style="padding:16px 0;border-top:1px solid var(--border)">
+    <div style="font-size:14px;font-weight:900;margin-bottom:11px"><i class="fa-solid fa-folder-open" style="color:var(--accent)"></i> ${group}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:9px">${USER_FEATURE_CONTROLS.filter(f=>f.group===group).map(card).join('')}</div>
+  </section>`).join('');
   boxes.forEach(box=>box.innerHTML=html);
   updateUserFeatureStats();
 }
@@ -5135,26 +5218,49 @@ function loadUserFeaturesPage(){
 function renderUserFeatureUsersList(){
   const tbody = document.getElementById('uf-users-tbody');
   const pick = document.getElementById('uf-user-feature-pick');
+  const groupPick = document.getElementById('uf-user-group-pick');
+  const userPick = document.getElementById('uf-user-pick');
   if(!tbody) return;
   _mergeUserFeaturesFromStorage();
+  if(groupPick && !groupPick.dataset.ready) {
+    groupPick.innerHTML = '<option value="">كل المجلدات</option>' + USER_FEATURE_GROUPS.map(group => `<option value="${group}">${group}</option>`).join('');
+    groupPick.dataset.ready = '1';
+  }
   if(pick && !pick.dataset.ready) {
     pick.innerHTML = '<option value="">كل المميزات</option>' + USER_FEATURE_CONTROLS.map(f => `<option value="${f.key}">${f.label}</option>`).join('');
     pick.dataset.ready = '1';
   }
   const q = (document.getElementById('uf-user-search')?.value || '').trim().toLowerCase();
   const chosenFeature = pick?.value || '';
-  const users = Object.entries(ALL_STUDIO_DATA || {}).filter(([uid,row]) => {
+  const chosenGroup = groupPick?.value || '';
+  const availableUsers = Object.entries(ALL_STUDIO_DATA || {}).sort((a,b) =>
+    String(a[1].parsed?.settings?.name || '').localeCompare(String(b[1].parsed?.settings?.name || ''), 'ar'));
+  if(userPick && userPick.options.length !== availableUsers.length + 1) {
+    const previous = userPick.value;
+    userPick.innerHTML = '<option value="">اختر مستخدماً</option>';
+    availableUsers.forEach(([uid,row]) => userPick.add(new Option(row.parsed?.settings?.name || row.parsed?.settings?.email || uid, uid)));
+    userPick.value = previous && ALL_STUDIO_DATA[previous] ? previous : '';
+  }
+  if(!userPick?.value && !q) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:28px">اختر مستخدماً لعرض صلاحياته أو ابحث بالاسم والبريد</td></tr>';
+    return;
+  }
+  const users = availableUsers.filter(([uid,row]) => {
     const p = row.parsed || {};
     const txt = [uid, p.settings?.name, p.settings?.email, p.settings?.phone].join(' ').toLowerCase();
-    return !q || txt.includes(q);
-  }).slice(0, 80);
+    return (!q || txt.includes(q)) && (!userPick?.value || uid === userPick.value);
+  }).slice(0, userPick?.value ? 1 : 10);
   if(!users.length) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">لا يوجد مستخدمين مطابقين</td></tr>';
     return;
   }
   const featureRows = chosenFeature
     ? USER_FEATURE_CONTROLS.filter(f => f.key === chosenFeature)
-    : USER_FEATURE_CONTROLS;
+    : USER_FEATURE_CONTROLS.filter(f => !chosenGroup || f.group === chosenGroup);
+  if(!featureRows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px">اختر ميزة من المجلد المحدد</td></tr>';
+    return;
+  }
   tbody.innerHTML = users.map(([uid,row]) => {
     const p = row.parsed || {};
     const name = p.settings?.name || 'مستخدم';
@@ -5170,7 +5276,7 @@ function renderUserFeatureUsersList(){
           <div style="font-weight:900">${name}</div>
           <div style="font-size:11px;color:var(--text3)" dir="ltr">${email}</div>
         </td>` : ''}
-        <td>${f.label}</td>
+        <td><span style="display:block;font-size:10px;color:var(--text3)">${f.group}</span>${f.label}</td>
         <td><span class="badge badge-gray">${globalLabel}</span></td>
         <td>
           <select class="form-select" data-uf-user="${uid}" data-uf-key="${f.key}" style="height:32px;font-size:12px">
@@ -5200,7 +5306,7 @@ function renderUserFeatureUsersList(){
 async function saveInlineUserFeatureOverrides(uid){
   if(!uid || !ALL_STUDIO_DATA[uid]) return toast('⚠ المستخدم غير موجود');
   const row = ALL_STUDIO_DATA[uid];
-  const data = row.parsed || {};
+  const data = structuredClone(row.parsed || {});
   const next = Object.assign({}, data.admin_feature_overrides || {});
   document.querySelectorAll('[data-uf-user="'+uid+'"]').forEach(sel => {
     if(sel.value) next[sel.dataset.ufKey] = sel.value;
@@ -5209,13 +5315,14 @@ async function saveInlineUserFeatureOverrides(uid){
   data.admin_feature_overrides = next;
   data.admin_team_mode = document.querySelector('[data-uf-team-user="'+uid+'"]')?.value || data.admin_team_mode || 'inherit';
   data._admin_overrides_updated_at = new Date().toISOString();
-  row.parsed = data;
   try {
     if(typeof supa !== 'undefined') {
-      await supa.from('studio_data')
+      const { error } = await supa.from('studio_data')
         .update({ data: JSON.stringify(data), updated_at: new Date().toISOString() })
         .eq('user_id', uid);
+      if(error) throw error;
     }
+    row.parsed = data;
     toast('✅ تم حفظ تحكم المستخدم');
   } catch(e) {
     console.warn('saveInlineUserFeatureOverrides:', e);

@@ -415,7 +415,10 @@ function _platformFeatureState(pageId){
     support:'support'
   };
   const key=map[pageId]||pageId;
-  return _normalizeFeatureState(_getPlatformUserFeatures()[key]);
+  const features=_getPlatformUserFeatures();
+  const parentState=_normalizeFeatureState(features[key]);
+  if(parentState !== 'enabled') return parentState;
+  return _normalizeFeatureState(features[pageId]);
 }
 
 function hasPlatformFeature(pageId){
@@ -446,6 +449,8 @@ function hasPageFeature(pageId){
   const f = _getPlanFeatures();
   // لو features فاضية ? افتح كل الصفحات
   if(!f || Object.keys(f).length === 0) return true;
+  const pageFlag = 'page_' + String(pageId).replace(/-/g, '_');
+  if(f[pageFlag] === false) return false;
   const map = { tasks:'tasks', projects:'tasks', clients:'clients', finance:'finance',
     invoices:'invoices', schedule:'schedule', team:'team',
     reports:'reports', meetings:'meetings', learning:'learning',
@@ -19228,11 +19233,13 @@ supa.auth.onAuthStateChange(async (event, session) => {
       return;
     }
 
-    // لو فيه مستخدم تاني logged in في tab تاني ? ignore
+    // A deliberate sign-in to another account must replace the current user.
+    // Admin traffic now has a separate cookie and never reaches this listener.
     const existingSession = getSession();
     if(existingSession && existingSession.id && existingSession.id !== session.user.id && _authInitialized){
-      console.warn('Session conflict: ignoring auth change for different user');
-      return;
+      if(event !== 'SIGNED_IN') return;
+      _supaUserId = null;
+      window._cloudLoadDone = false;
     }
 
     const meta = session.user.user_metadata || {};

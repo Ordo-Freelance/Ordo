@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const LOCAL_DB_PATH = path.join(ROOT, '.local-data', 'ordo-dev-db.json');
 const SESSION_COOKIE = 'ordo_session';
+const ADMIN_SESSION_COOKIE = 'ordo_admin_session';
 const OAUTH_STATE_COOKIE = 'ordo_oauth_state';
 const JSON_COLUMNS = new Set(['data', 'features', 'config', 'payload']);
 const TABLES = new Set([
@@ -81,13 +82,17 @@ function parseCookies(req) {
   }).filter(([key]) => key));
 }
 
-function setCookie(res, token) {
-  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000${secure}`);
+function sessionCookieName(req) {
+  return req.headers['x-ordo-auth-scope'] === 'admin' ? ADMIN_SESSION_COOKIE : SESSION_COOKIE;
 }
 
-function clearCookie(res) {
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+function setCookie(res, token, req) {
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `${sessionCookieName(req)}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000${secure}`);
+}
+
+function clearCookie(res, req) {
+  res.setHeader('Set-Cookie', `${sessionCookieName(req)}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
 }
 
 function setOAuthStateCookie(res, state) {
@@ -936,7 +941,7 @@ async function readBody(req) {
 }
 
 async function currentUser(req, store) {
-  const token = parseCookies(req)[SESSION_COOKIE];
+  const token = parseCookies(req)[sessionCookieName(req)];
   if (!token) return { user: null, token: null };
   const user = await store.userBySession(token);
   if (!user || user.status !== 'active') return { user: null, token };
@@ -1057,7 +1062,7 @@ export default async function handler(req, res) {
       if (password.length < 6) return fail(res, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل');
       const user = await store.createUser(email, password, metadata);
       const token = await store.createSession(user.id);
-      setCookie(res, token);
+      setCookie(res, token, req);
       return ok(res, { user: userPayload(user), session: sessionPayload(user, token) });
     }
 
@@ -1067,14 +1072,14 @@ export default async function handler(req, res) {
       if (!user || !verifyPassword(input.password || '', user.password_hash)) return fail(res, 'البريد الإلكتروني أو كلمة المرور غير صحيحة', 401, 'invalid_login');
       if (user.status !== 'active') return fail(res, 'هذا الحساب موقوف', 403, 'account_disabled');
       const token = await store.createSession(user.id);
-      setCookie(res, token);
+      setCookie(res, token, req);
       return ok(res, { user: userPayload(user), session: sessionPayload(user, token) });
     }
 
     if (postAction === 'auth.logout') {
-      const token = parseCookies(req)[SESSION_COOKIE];
+      const token = parseCookies(req)[sessionCookieName(req)];
       if (token) await store.deleteSession(token);
-      clearCookie(res);
+      clearCookie(res, req);
       return ok(res, null);
     }
 
@@ -1220,4 +1225,4 @@ export default async function handler(req, res) {
   }
 }
 
-export { publicSnapshot, deleteOwnReview, readBody };
+export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser };
