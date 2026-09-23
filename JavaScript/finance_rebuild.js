@@ -96,8 +96,19 @@
   }
   function receivableItems(){
     var items = [];
+    var invoicedTaskIds = {};
+    var invoicedProjectTaskIds = {};
+    list(state().invoices).forEach(function(inv){
+      list(inv && inv.items).forEach(function(it){
+        var taskId = it && (it._taskId || it.taskId || it.linkedTaskId);
+        var projectTaskId = it && (it._projectTaskId || it.projectTaskId || it.linkedProjTaskId);
+        if(taskId != null && taskId !== '') invoicedTaskIds[String(taskId)] = true;
+        if(projectTaskId != null && projectTaskId !== '') invoicedProjectTaskIds[String(projectTaskId)] = true;
+      });
+    });
     list(state().tasks).forEach(function(t){
       if(!t || t.status === 'cancelled') return;
+      if(invoicedTaskIds[String(t.id)] || (t.invoiceId && list(state().invoices).some(function(inv){ return String(inv.id) === String(t.invoiceId); }))) return;
       var done = !!(t.done || t.status === 'done');
       var amount = taskPendingAmount(t);
       if(!done || amount <= 0) return;
@@ -116,6 +127,7 @@
     });
     list(state().project_tasks).forEach(function(t){
       if(!t || t.status === 'cancelled') return;
+      if(invoicedProjectTaskIds[String(t.id)] || (t.invoiceId && list(state().invoices).some(function(inv){ return String(inv.id) === String(t.invoiceId); }))) return;
       var done = t.status === 'done' || t.done || t.clientReceived;
       var amount = taskPendingAmount(t);
       if(!done || amount <= 0) return;
@@ -722,12 +734,7 @@
     var group = groupByClientName(clientName);
     if(!group || !group.items.length) return;
     var invoiceItems = group.items.filter(function(item){
-      if(!item || item.kind === 'project_task') return false;
-      if(item.kind === 'invoice'){
-        var inv = list(state().invoices).find(function(x){ return String(x.id) === String(item.id); });
-        if(isProjectInvoice(inv)) return false;
-      }
-      return true;
+      return !!item && item.kind === 'task';
     });
     if(!invoiceItems.length){
       alert('لا توجد تاسكات فردية غير محصلة لهذا العميل. فواتير المشاريع يتم إنشاؤها من قسم المشاريع.');

@@ -75,6 +75,7 @@
       arr(i.items).forEach(function(it){
         if(it && it._taskId != null) ids[String(it._taskId)] = true;
         if(it && it.taskId != null) ids[String(it.taskId)] = true;
+        if(it && it.linkedTaskId != null) ids[String(it.linkedTaskId)] = true;
       });
     });
     return ids;
@@ -103,7 +104,7 @@
     });
     var invoicedTaskIds = invoiceTaskIds(bundle.invoices);
     bundle.tasks.forEach(function(t){
-      if(invoicedTaskIds[String(t.id)]) return;
+      if(invoicedTaskIds[String(t.id)] || (t.invoiceId && bundle.invoices.some(function(i){ return String(i.id) === String(t.invoiceId); }))) return;
       add(cur(t), 'unpaidTasks', taskUnpaidAmount(t));
     });
     bundle.transactions.forEach(function(t){
@@ -133,7 +134,7 @@
     });
     var invoicedTaskIds = invoiceTaskIds(bundle.invoices);
     bundle.tasks.forEach(function(t){
-      if(invoicedTaskIds[String(t.id)]) return;
+      if(invoicedTaskIds[String(t.id)] || (t.invoiceId && bundle.invoices.some(function(i){ return String(i.id) === String(t.invoiceId); }))) return;
       var due = taskUnpaidAmount(t);
       if(due > 0) rows.push({date:taskDate(t), type:'مهمة غير مدفوعة', desc:t.title || '-', amount:due, code:cur(t)});
     });
