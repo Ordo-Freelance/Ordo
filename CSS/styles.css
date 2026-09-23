@@ -304,6 +304,12 @@
 
 /* Google login button */
 .auth-btn-google {
+  width: 100% !important;
+  min-height: 46px;
+  padding: 11px 16px !important;
+  border-radius: 10px !important;
+  font: 700 13px var(--font) !important;
+  cursor: pointer;
   background: var(--surface2) !important;
   border: 1.5px solid var(--border) !important;
   color: var(--text) !important;
@@ -476,6 +482,12 @@ body.light-mode::before {
   position: relative;
   
 }
+#auth-screen:not(.hidden) {
+  position: fixed;
+  inset: 0;
+  min-height: 100dvh;
+}
+body:has(#auth-screen:not(.hidden)) .app-shell { visibility: hidden; }
 body.app-loaded {
   overflow: hidden;
 }

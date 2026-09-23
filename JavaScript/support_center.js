@@ -3,8 +3,8 @@
   let rows = [];
   let activeTab = 'messages';
   let loading = false;
-  const notices = new Set(['admin_update']);
-  const messages = new Set(['message','broadcast','info','success','warning','error','support_reply']);
+  const notices = new Set(['admin_update','challenge']);
+  const messages = new Set(['message','broadcast','info','success','warning','error','support_reply','direct_message']);
 
   function esc(value){
     return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -80,6 +80,28 @@
     document.body.appendChild(overlay);
     return overlay;
   }
+  window._showAdminIncomingPopup = function(incoming){
+    if(!Array.isArray(incoming) || !incoming.length || typeof _supaUserId === 'undefined' || !_supaUserId) return;
+    const key = '_admin_popup_seen_'+_supaUserId;
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem(key) || '[]'); } catch(_) {}
+    if(!Array.isArray(seen)) seen = [];
+    const eligible = incoming.filter(row => !row.read && (notices.has(row.type) || messages.has(row.type)) && !seen.includes(String(row.id)));
+    if(!eligible.length || document.getElementById('support-center-modal')) return;
+    localStorage.setItem(key, JSON.stringify([...new Set([...seen,...eligible.map(row => String(row.id))])].slice(-150)));
+    const latest = eligible.slice(0,5);
+    const overlay = modal('<div class="modal-header"><div class="modal-title"><i class="fa-solid fa-bell" style="color:var(--accent)"></i> لديك '+eligible.length+' '+(eligible.length === 1 ? 'رسالة أو تحديث جديد' : 'رسائل وتحديثات جديدة')+'</div><button type="button" class="close-btn" data-support-close aria-label="إغلاق">✕</button></div>'+
+      '<div style="display:grid;gap:9px;max-height:55vh;overflow:auto">'+latest.map(row => '<button type="button" class="card" data-incoming-id="'+esc(row.id)+'" data-incoming-tab="'+(notices.has(row.type)?'updates':'messages')+'" style="text-align:right;cursor:pointer;font-family:inherit;color:var(--text);padding:13px"><strong>'+esc(row.title || 'رسالة من الإدارة')+'</strong><div style="color:var(--text2);font-size:12px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(cleanBody(row.body))+'</div></button>').join('')+'</div>'+
+      '<button type="button" class="btn btn-ghost" data-incoming-all style="margin-top:14px;width:100%">عرض الكل في الدعم والرسائل</button>');
+    overlay.addEventListener('click', async event => {
+      const chosen = event.target.closest('[data-incoming-id]');
+      const all = event.target.closest('[data-incoming-all]');
+      if(!chosen && !all) return;
+      overlay.remove();
+      if(typeof showPage === 'function') showPage('support');
+      await load(chosen?.dataset.incomingTab || (notices.has(latest[0].type)?'updates':'messages'), chosen?.dataset.incomingId);
+    });
+  };
   async function openDetail(id){
     if(String(id).startsWith('local_')) {
       if(typeof window.openSupportMsg === 'function') window.openSupportMsg(String(id).slice(6));
@@ -126,7 +148,7 @@
   window.renderSupport = render;
   window._openSupportNotification = function(id){
     const item = window._notifications?.find(n => String(n.supaId) === String(id));
-    const tab = item?.type === 'admin_update' ? 'updates' : 'messages';
+    const tab = notices.has(item?.type) ? 'updates' : 'messages';
     if(typeof showPage === 'function') showPage('support');
     load(tab,id);
   };

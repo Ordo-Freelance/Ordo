@@ -4334,6 +4334,7 @@ function _completeProjTask(taskId){
   showMiniNotif(t.done
     ? '<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إكمال المهمة'
     : '<i class="fa-solid fa-rotate-left"></i> تم إعادة فتح المهمة');
+  if(t.done && typeof celebrateCompletion === 'function') celebrateCompletion('تمت المهمة بنجاح: '+escapeHtml(t.title||'مهمة المشروع'));
 }
 
 function _ptDragStart(e,id){ _ptDragId=id; e.currentTarget.classList.add('tt-dragging'); e.dataTransfer.effectAllowed='move'; }
@@ -26363,9 +26364,10 @@ function showMotivationalNotif(msg, color){
 // 6. CELEBRATION ON TASK COMPLETION
 // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function celebrateCompletion(msg){
-  msg=msg||'<i class="fa-solid fa-champagne-glasses"></i> تم إنجاز المهمة!';
+  msg=msg||'تمت المهمة بنجاح!';
   const cols=['#7c6ff7','#f7c948','#4fd1a5','#f76f7c','#64b5f6','#fff','#ff9f43'];
-  for(let i=0;i<55;i++){
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  for(let i=0;i<(reducedMotion?0:32);i++){
     const c=document.createElement('div');
     const sz=Math.random()*9+5;
     c.style.cssText=`position:fixed;top:-20px;left:${Math.random()*100}vw;width:${sz}px;height:${sz}px;background:${cols[Math.floor(Math.random()*cols.length)]};border-radius:${Math.random()>.5?'50%':'3px'};pointer-events:none;z-index:99998;animation:_confettiFall ${1.5+Math.random()*2}s ease-in forwards`;
@@ -26395,7 +26397,7 @@ window.addEventListener('load', function(){
     const title=t?.title||'المهمة';
     if(t) t.doneAt = t.doneAt || new Date().toISOString().split('T')[0];
     _cc();
-    setTimeout(()=>{ celebrateCompletion('تم إنجاز: '+title); checkGoalMilestones(); }, 300);
+    setTimeout(()=>{ celebrateCompletion('تمت المهمة بنجاح: '+escapeHtml(title)); checkGoalMilestones(); }, 300);
   };
 
   // Init freelancerGoals in S
@@ -26736,6 +26738,7 @@ async function _loadServerNotifications(){
     }
     _notifTableExists = true;
     if(res.data){
+      if(typeof window._showAdminIncomingPopup === 'function') window._showAdminIncomingPopup(res.data);
       // Remove cached server notifications that belonged to other users.
       // Older builds used an unsupported OR filter and showed all users' rows to admins.
       var ownIds = new Set(res.data.map(function(row){ return String(row.id); }));

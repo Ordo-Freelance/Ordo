@@ -17,6 +17,8 @@ test('support center loads only the signed-in user and separates updates from me
     order() { return this; },
     async limit() { return {data:[
       {id:'update-1',user_id:'owner-1',title:'ميزة جديدة',body:'تعليمات',type:'admin_update',read:false,created_at:'2026-09-23T00:00:00Z'},
+      {id:'challenge-1',user_id:'owner-1',title:'تحدي الأسبوع',body:'أنجز ثلاث مهام',type:'challenge',read:false,created_at:'2026-09-23T00:00:00Z'},
+      {id:'direct-1',user_id:'owner-1',title:'رسالة خاصة',body:'تعليمات',type:'direct_message',read:false,created_at:'2026-09-23T00:00:00Z'},
       {id:'message-1',user_id:'owner-1',title:'من الإدارة',body:'رسالة',type:'message',read:false,created_at:'2026-09-23T00:00:00Z'}
     ],error:null}; }
   };
@@ -28,8 +30,27 @@ test('support center loads only the signed-in user and separates updates from me
   await new Promise(resolve => setImmediate(resolve));
   assert.deepEqual(filters,[['user_id','owner-1']]);
   assert.match(grid.innerHTML,/من الإدارة/);
+  assert.match(grid.innerHTML,/رسالة خاصة/);
   assert.doesNotMatch(grid.innerHTML,/ميزة جديدة<\/strong>/);
   handler({target:{closest(selector) { return selector === '[data-support-tab]' ? {dataset:{supportTab:'updates'}} : null; }}});
   assert.match(grid.innerHTML,/ميزة جديدة/);
+  assert.match(grid.innerHTML,/تحدي الأسبوع/);
   assert.doesNotMatch(grid.innerHTML,/من الإدارة<\/strong>/);
+});
+
+test('incoming admin items open one popup per user and are not repeated after refresh', () => {
+  const values = new Map();
+  let popups = 0;
+  const document = {
+    getElementById() { return null; },
+    createElement() { return {className:'',style:{},innerHTML:'',addEventListener(){},remove(){}}; },
+    body:{appendChild(){popups++;}}
+  };
+  const context = {document,window:{},_supaUserId:'owner-1',localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value)},URL};
+  vm.runInNewContext(source,context);
+  const rows = [{id:'challenge-1',type:'challenge',title:'تحدي',body:'أنجز مهمة',read:false}];
+  context.window._showAdminIncomingPopup(rows);
+  context.window._showAdminIncomingPopup(rows);
+  assert.equal(popups,1);
+  assert.match(values.get('_admin_popup_seen_owner-1'),/challenge-1/);
 });
