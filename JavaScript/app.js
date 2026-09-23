@@ -8877,9 +8877,8 @@ function _markAdminUpdatesSeen(){
     if(latest && latest.id !== lastRead){
       // Cache them
       try{ localStorage.setItem('_platform_updates_cache', JSON.stringify(updates.slice(0,20))); }catch(e){}
-      if(typeof addNotification === 'function'){
-        addNotification('<i class="fa-solid fa-bullhorn"></i> '+(latest.emoji||'')+(latest.title||'تحديث جديد من الإدارة'),'info');
-      }
+      // Published updates are delivered through user_notifications. Do not
+      // create a second local notification for the same update.
       var badge=document.getElementById('stab-features-badge');
       if(badge)badge.style.display='inline-block';
     }
@@ -26715,7 +26714,7 @@ async function _loadServerNotifications(){
   try {
     var res = await supa.from('user_notifications')
       .select('id,user_id,title,body,type,read,data,created_at,updated_at')
-      .or('user_id.eq.'+_supaUserId+',user_id.is.null')
+      .eq('user_id', _supaUserId)
       .order('created_at', {ascending:false})
       .limit(30);
     if(res.error){
@@ -26723,10 +26722,22 @@ async function _loadServerNotifications(){
       return;
     }
     _notifTableExists = true;
-    if(res.data && res.data.length){
+    if(res.data){
+      // Remove cached server notifications that belonged to other users.
+      // Older builds used an unsupported OR filter and showed all users' rows to admins.
+      var ownIds = new Set(res.data.map(function(row){ return String(row.id); }));
+      var updateTitles = res.data.filter(function(row){ return row.type === 'admin_update'; }).map(function(row){ return row.title || ''; }).filter(Boolean);
+      _notifications = _notifications.filter(function(item){
+        if(item.supaId) return ownIds.has(String(item.supaId));
+        // Older builds also cached a second dashboard notification for updates.
+        if(item.type === 'info' && updateTitles.some(function(title){ return String(item.msg || '').includes(title); })) return false;
+        return true;
+      });
       var newCount2 = 0;
       res.data.forEach(function(n){
+        if(n.type === 'support_request') return; // sent request, not an incoming alert
         var exists = _notifications.find(function(x){ return x.id === 'srv_'+n.id; });
+        if(exists) { if(n.read) exists.read = true; return; }
         if(!exists){
           // استخرج صفحة الوجهة من الـ body لو موجودة
           var _rawBody = n.body || '';
@@ -26736,13 +26747,14 @@ async function _loadServerNotifications(){
           _notifications.unshift({
             id: 'srv_'+n.id, supaId: n.id,
             msg: (n.title ? '**'+n.title+'**\n' : '')+_rawBody,
-            type: n.type==='broadcast'?'message':n.type||'message',
-            time: n.created_at, read: false,
+            type: n.type||'message',
+            time: n.created_at, read: !!n.read,
             page: n.action_page || n.page || _pageFromBody || ''
           });
           if(!n.read) newCount2++;
         }
       });
+      _saveNotifications(); _updateNotifBell();
       if(newCount2 > 0) {
         _saveNotifications(); _updateNotifBell();
         // Check if any team_added notifications
@@ -27806,7 +27818,7 @@ function _toggleNotifPanel(triggerEl){
         var ago      = _timeAgo(n.time);
         var icon     = ICONS[n.type]  || 'â„¹';
         var color    = COLORS[n.type] || 'var(--accent)';
-        var msgHtml  = (n.msg||'').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+        var msgHtml  = escapeHtml(n.msg||'').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
         var isAdminMsg  = !!n.supaId;
         var isOrderNotif = n.type === 'order' || (n.msg && n.msg.includes('طلب جديد'));
         var badge = '';
@@ -27816,8 +27828,7 @@ function _toggleNotifPanel(triggerEl){
         if(isOrderNotif && n.orderId){
           navAction = "openOrderDetail('"+n.orderId+"')";
         } else if(isAdminMsg && n.supaId){
-          var safeMsg = (n.msg||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-          navAction = "_showAdminMsgDetail('"+safeMsg+"','"+ago+"')";
+          navAction = "_openSupportNotification("+JSON.stringify(n.supaId).replace(/"/g,'&quot;')+")";
         } else if(n.type === 'challenge' || (n.msg && (n.msg.includes('تحدي') || n.msg.includes('challenge')))){
           navAction = "_notifNavTo('dashboard')";
         } else if(n.type === 'invoice' || (n.msg && n.msg.includes('فاتور'))){
@@ -27832,7 +27843,7 @@ function _toggleNotifPanel(triggerEl){
           navAction = "_notifNavTo('goals')";
         } else if(n.page){ navAction = "_notifNavTo('"+n.page+"')"; }
         // Mark as read on click + navigate
-        var clickAction = '_markSingleNotifRead('+n.id+');';
+        var clickAction = '_markSingleNotifRead('+JSON.stringify(n.id).replace(/"/g,'&quot;')+');';
         if(navAction) clickAction += "document.getElementById('_notif-panel')&&document.getElementById('_notif-panel').remove();"+navAction;
         var isUnread = !n.read;
         return '<div onclick="'+clickAction+'" style="padding:12px 15px;border-bottom:1px solid rgba(42,42,58,.4);display:flex;gap:11px;align-items:flex-start;cursor:pointer'+(isAdminMsg?';background:rgba(108,99,255,.04)':'')+(isOrderNotif?';background:rgba(247,201,72,.03)':'')+(isUnread?';background:rgba(124,111,247,.06)':'')+'">'+
@@ -27958,6 +27969,9 @@ function _markSingleNotifRead(notifId){
   if(n) n.read=true;
   _saveNotifications();
   _updateNotifBell();
+  if(n && n.supaId && typeof supa !== 'undefined') {
+    supa.from('user_notifications').update({read:true}).eq('id',n.supaId).eq('user_id',_supaUserId).then(function(){});
+  }
 }
 
 // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
