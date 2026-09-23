@@ -349,6 +349,10 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
   color:var(--accent); letter-spacing:1px; flex:1;
 }
 .serial-meta { font-size:11px; color:var(--text3); margin-top:3px; }
+.serial-tabs { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+.serial-tab { border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text2); padding:10px 15px; font:700 13px var(--font); cursor:pointer; }
+.serial-tab.active { border-color:var(--accent); background:rgba(108,99,255,.12); color:var(--accent); }
+.serial-tab span { margin-inline-start:6px; opacity:.75; }
 
 /* ─── ACTIVITY LOG ─── */
 .log-item {
@@ -936,6 +940,11 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
         <button class="btn btn-ghost btn-sm" onclick="bulkCopyCodes()">📋 نسخ الأكواد</button>
         <button class="btn btn-danger btn-sm" onclick="bulkDeleteSerials()">🗑 حذف المحددة</button>
         <button class="btn btn-ghost btn-sm" onclick="clearSerialsSelection()">✕ إلغاء التحديد</button>
+      </div>
+
+      <div class="serial-tabs" role="tablist" aria-label="حالة أكواد الاشتراك">
+        <button type="button" class="serial-tab active" id="serial-tab-available" role="tab" aria-selected="true" onclick="setSerialTab('available')">الأكواد المتاحة <span id="serial-available-count">0</span></button>
+        <button type="button" class="serial-tab" id="serial-tab-used" role="tab" aria-selected="false" onclick="setSerialTab('used')">المباعة / المفعّلة <span id="serial-used-count">0</span></button>
       </div>
 
       <div class="filter-bar">
@@ -2756,13 +2765,6 @@ async function supaUpsertSerial(serial) {
       const { data: f1 } = await supa.from('serial_keys').select('id').eq('code', serial.code).maybeSingle();
       if(f1?.id) { supaId = f1.id; serial._supaId = supaId; }
     }
-    // لو لسه مفيش — ابحث بـ user_id (للتعديل من الأدمن)
-    if(!supaId && serial.userId) {
-      const { data: byUser } = await supa.from('serial_keys')
-        .select('id').eq('user_id', serial.userId).eq('status','active').maybeSingle();
-      if(byUser?.id) { supaId = byUser.id; serial._supaId = supaId; }
-    }
-
     let result;
     if(supaId) {
       // UPDATE — الـ record موجود
@@ -2779,6 +2781,7 @@ async function supaUpsertSerial(serial) {
       } else {
         result = data;
       }
+      if(!result) throw new Error('لم يتم تحديث أي كود');
       if(!serial._supaId) serial._supaId = supaId;
     } else {
       // INSERT — كود جديد مش موجود
@@ -3768,6 +3771,16 @@ async function createBulkSerials() {
     : `⚠ تم حفظ ${savedCount} من ${newSerials.length} كود`);
 }
 
+let activeSerialTab = 'available';
+function serialIsAvailable(serial) {
+  return !serial.userId && !serial.activatedAt && (!serial.status || serial.status === 'unused');
+}
+function setSerialTab(tab) {
+  activeSerialTab = tab === 'used' ? 'used' : 'available';
+  const statusFilter = document.getElementById('serial-filter-status');
+  if(statusFilter) statusFilter.value = '';
+  renderSerials();
+}
 function renderSerials() {
   const el = document.getElementById('serials-list');
   if(!el) return;
@@ -3784,15 +3797,34 @@ function renderSerials() {
   const planF    = document.getElementById('serial-filter-plan')?.value||'';
   const statusF  = document.getElementById('serial-filter-status')?.value||'';
 
-  let serials = [...SERIALS].reverse();
+  const availableCount = SERIALS.filter(serialIsAvailable).length;
+  const usedCount = SERIALS.length - availableCount;
+  setText('serial-available-count', availableCount);
+  setText('serial-used-count', usedCount);
+  for(const tab of ['available', 'used']) {
+    const button = document.getElementById('serial-tab-' + tab);
+    if(button) {
+      button.classList.toggle('active', activeSerialTab === tab);
+      button.setAttribute('aria-selected', String(activeSerialTab === tab));
+    }
+  }
+  const statusFilter = document.getElementById('serial-filter-status');
+  if(statusFilter) {
+    const choices = activeSerialTab === 'available'
+      ? '<option value="">كل الحالات</option><option value="unused">🟢 غير مستخدم</option>'
+      : '<option value="">كل الحالات</option><option value="active">✅ نشط</option><option value="expired">⛔ منتهي</option>';
+    if(statusFilter.innerHTML !== choices) statusFilter.innerHTML = choices;
+  }
+  let serials = [...SERIALS].reverse().filter(s => activeSerialTab === 'available' ? serialIsAvailable(s) : !serialIsAvailable(s));
   if(search) serials = serials.filter(s => s.code.toLowerCase().includes(search) || (s.note||'').toLowerCase().includes(search));
   if(planF)  serials = serials.filter(s => s.planId === planF);
-  if(statusF) serials = serials.filter(s => (s.userId ? (isExpired(s) ? 'expired' : 'active') : 'unused') === statusF);
+  if(statusF) serials = serials.filter(s => (serialIsAvailable(s) ? 'unused' : (isExpired(s) ? 'expired' : 'active')) === statusF);
 
-  setText('serials-sub', `${SERIALS.length} كود (${SERIALS.filter(s=>s.userId).length} مستخدم)`);
+  setText('serials-sub', `${availableCount} متاح · ${usedCount} مفعّل أو مباع`);
 
   if(!serials.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔑</div><p>لا توجد أكواد</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🔑</div><p>${activeSerialTab === 'available' ? 'لا توجد أكواد متاحة' : 'لا توجد أكواد مباعة أو مفعّلة'}</p></div>`;
+    updateSerialsBulkBar();
     return;
   }
 
@@ -3804,7 +3836,7 @@ function renderSerials() {
 
   el.innerHTML = selectAllBar + serials.map(s => {
     const plan = PLANS.find(p=>p.id===s.planId);
-    const status = !s.userId ? 'unused' : (isExpired(s) ? 'expired' : 'active');
+    const status = serialIsAvailable(s) ? 'unused' : (isExpired(s) ? 'expired' : 'active');
     const statusLabel = {unused:'🟢 غير مستخدم', active:'✅ نشط', expired:'⛔ منتهي'};
     const statusClass = {unused:'badge-green', active:'badge-purple', expired:'badge-red'};
     const user = s.userId ? getStudioUser(s.userId) : null;
@@ -3826,8 +3858,8 @@ function renderSerials() {
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
           <span class="badge ${statusClass[status]}">${statusLabel[status]}</span>
           <div style="display:flex;gap:5px">
-            <button type="button" class="btn btn-ghost btn-sm" data-serial-action="copy" data-serial-code="${s.code}" onclick="copyCode('${s.code}')" title="نسخ">📋</button>
-            ${!s.userId ? `<button type="button" class="btn btn-success btn-sm" data-serial-action="assign" data-serial-id="${s.id}">تعيين</button>` : ''}
+            <button type="button" class="btn btn-ghost btn-sm" data-serial-action="copy" data-serial-id="${s.id}" title="نسخ">📋</button>
+            ${serialIsAvailable(s) ? `<button type="button" class="btn btn-success btn-sm" data-serial-action="assign" data-serial-id="${s.id}">تعيين</button>` : ''}
             <button class="btn btn-danger btn-sm" onclick="deleteSerial('${s.id}')">🗑</button>
           </div>
         </div>
@@ -3920,7 +3952,7 @@ async function openAssignSerialModal(userId, serialId) {
   }).join('');
 
   // Populate unused serials
-  const unused = SERIALS.filter(s => !s.userId);
+  const unused = SERIALS.filter(serialIsAvailable);
   serialSel.innerHTML = '<option value="">— اختر كوداً —</option>' + unused.map(s => {
     const plan = PLANS.find(p=>p.id===s.planId);
     return `<option value="${s.id}">${s.code} (${plan?.name||s.planId} · ${getBillingLabel(s.billing)})</option>`;
@@ -3943,7 +3975,7 @@ function updateAssignPreview() {
   const submitBtn = document.getElementById('assign-submit-btn');
   if(!preview) return;
   const usersCount = Object.keys(ALL_STUDIO_DATA).length;
-  const unusedCount = SERIALS.filter(s => !s.userId).length;
+  const unusedCount = SERIALS.filter(serialIsAvailable).length;
   preview.style.display = 'block';
   if(!usersCount || !unusedCount) {
     preview.textContent = !usersCount ? 'لا يوجد مستخدمون متاحون للتعيين.' : 'لا توجد أكواد غير مستخدمة.';
@@ -3969,7 +4001,8 @@ async function assignSerial() {
 
   const serial = SERIALS.find(s => String(s.id) === String(sid));
   if(!serial) { toast('⚠ الكود غير موجود'); return; }
-  const plan = PLANS.find(p => p.id === serial.planId);
+  if(!serialIsAvailable(serial)) { toast('⚠ هذا الكود لم يعد متاحاً'); await syncSerialsFromSupabase(); renderSerials(); return; }
+  if(!ALL_STUDIO_DATA[uid]) { toast('⚠ المستخدم غير موجود'); return; }
 
   const btn = document.getElementById('assign-submit-btn');
   if(btn) { btn.disabled=true; btn.textContent='⏳ جاري الحفظ...'; }
@@ -3998,16 +4031,26 @@ async function assignSerial() {
     serial.expiresAt = e.toISOString();
   }
 
-  const saved = await supaUpsertSerial(serial);
+  // Guard against two admins assigning the same code at once. A zero-row update is a failure.
+  const { data: savedRow, error: saveError } = await supa.from('serial_keys')
+    .update(_serialToSupaPayload(serial))
+    .eq('id', serial._supaId || serial.id)
+    .eq('status', 'unused')
+    .is('user_id', null)
+    .select('id,code,user_id,status,plan_id,plan_name,billing,duration_days,note,code_type,price,created_at,activated_at,expires_at')
+    .maybeSingle();
   if(btn) { btn.disabled=false; btn.textContent='✅ تعيين الاشتراك'; }
 
-  if(!saved) {
+  if(saveError || !savedRow) {
     Object.assign(serial, previous);
-    toast('⛔ تعذر تعيين الكود في قاعدة البيانات');
+    toast('⛔ تعذر تعيين الكود؛ ربما تم استخدامه بالفعل. حدّث القائمة وحاول مجدداً');
+    await syncSerialsFromSupabase();
+    renderSerials();
     return;
   }
 
   closeModal('modal-assign-serial');
+  Object.assign(serial, _supaRowToSerial(savedRow));
   await syncSerialsFromSupabase();
   renderUsersTable();
   renderSerials();
@@ -7792,8 +7835,10 @@ document.addEventListener('change', function(e) {
       const serialAction = btn.dataset.serialAction;
       if(serialAction) {
         e.preventDefault(); e.stopImmediatePropagation();
-        if(serialAction === 'copy') copyCode(btn.dataset.serialCode || '');
-        else if(serialAction === 'assign') openAssignSerialModalByCode(btn.dataset.serialId);
+        const serial = SERIALS.find(item => String(item.id) === String(btn.dataset.serialId));
+        if(!serial) { toast('⚠ الكود غير موجود؛ حدّث القائمة'); return; }
+        if(serialAction === 'copy') copyCode(serial.code);
+        else if(serialAction === 'assign') openAssignSerialModalByCode(serial.id);
         return;
       }
       if(id === 'admin-add-btn') {
