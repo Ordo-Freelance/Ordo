@@ -2355,10 +2355,12 @@ function toggleDarkLight() {
   if(btn) { var ic=btn.querySelector('i'); if(ic) ic.className=next==='dark'?'fa-solid fa-moon':'fa-solid fa-sun'; }
 }
 
-function setDisplayMode(mode) {
+function setDisplayMode(mode, persist = true) {
+  if(mode !== 'light' && mode !== 'dark') mode = 'dark';
   document.body.classList.toggle('light-mode', mode === 'light');
   document.documentElement.classList.toggle('light-mode', mode === 'light');
-  localStorage.setItem('studioDisplayMode', mode);
+  if(persist) localStorage.setItem('studioDisplayMode', mode);
+  document.documentElement.style.colorScheme = mode;
 
   // â”€â”€ Fix: Update inline CSS variables + background that anti-flash script sets â”€â”€
   if(mode === 'light') {
@@ -2396,25 +2398,27 @@ function setDisplayMode(mode) {
   const toggleBtn = document.getElementById('dark-toggle-btn');
   if(toggleBtn){ var tic=toggleBtn.querySelector('i'); if(tic) tic.className=mode==='dark'?'fa-solid fa-moon':'fa-solid fa-sun'; var bi=document.querySelector('#bnm-dark-icon i'); if(bi) bi.className=mode==='dark'?'fa-solid fa-moon':'fa-solid fa-sun'; }
   // Sync to cloud
-  if(typeof S !== 'undefined' && S){
+  if(persist && typeof S !== 'undefined' && S){
     if(!S.settings) S.settings={};
     S.settings.displayMode = mode;
     if(typeof lsSave==='function') lsSave();
     clearTimeout(window._modeCloudTimer);
     if(typeof cloudSaveNow==='function') cloudSaveNow(S);
   }
-  // Force recreate styled elements so they pick up new variables
-  var _staleEls = ['_toast','_autosave-dot','sync-indicator','mini-notif'];
-  _staleEls.forEach(function(id){ var e=document.getElementById(id); if(e) e.remove(); });
-  applyStudioAppearance();
-  updateUserBadge(getSession()||{});
+  if(persist){
+    // Only a deliberate toggle needs the expensive follow-up UI work.
+    var _staleEls = ['_toast','_autosave-dot','sync-indicator','mini-notif'];
+    _staleEls.forEach(function(id){ var e=document.getElementById(id); if(e) e.remove(); });
+    applyStudioAppearance();
+    updateUserBadge(getSession()||{});
+  }
 }
 
-function setThemeColor(color) {
+function setThemeColor(color, persist = true) {
   document.documentElement.style.setProperty('--accent', color);
   var rgb = _hexToRgbObj(color);
   if(rgb) document.documentElement.style.setProperty('--accent-rgb', rgb.r+','+rgb.g+','+rgb.b);
-  localStorage.setItem('studioAccentColor', color);
+  if(persist) localStorage.setItem('studioAccentColor', color);
   // update swatches
   document.querySelectorAll('.theme-swatch').forEach(s => {
     s.classList.toggle('active', s.dataset.color === color);
@@ -2422,7 +2426,7 @@ function setThemeColor(color) {
   const picker = document.getElementById('custom-accent-picker');
   if(picker) picker.value = color;
   // Sync to cloud via S.settings
-  if(typeof S !== 'undefined' && S){
+  if(persist && typeof S !== 'undefined' && S){
     if(!S.settings) S.settings={};
     S.settings.accentColor = color;
     if(typeof lsSave === 'function') lsSave();
@@ -2626,8 +2630,8 @@ function t(arabicText) { return arabicText; }
 function loadThemePreferences() {
   const mode  = localStorage.getItem('studioDisplayMode') || 'dark';
   const color = localStorage.getItem('studioAccentColor') || '#7c6ff7';
-  setDisplayMode(mode);
-  setThemeColor(color);
+  setDisplayMode(mode, false);
+  setThemeColor(color, false);
   const btn = document.getElementById('dark-toggle-btn');
   if(btn){ var _ic=btn.querySelector('i'); if(_ic) _ic.className=mode==='dark'?'fa-solid fa-moon':'fa-solid fa-sun'; }
 }
@@ -13509,12 +13513,14 @@ function migrateSFields(){
     (S.courses||[]).forEach(c=>{ if(!c.steps) c.steps=[]; });
     // Restore theme/display preferences from cloud
     if(S.settings.accentColor){
-      localStorage.setItem('studioAccentColor', S.settings.accentColor);
-      document.documentElement.style.setProperty('--accent', S.settings.accentColor);
+      const preferredAccent = localStorage.getItem('studioAccentColor') || S.settings.accentColor;
+      if(!localStorage.getItem('studioAccentColor')) localStorage.setItem('studioAccentColor', preferredAccent);
+      document.documentElement.style.setProperty('--accent', preferredAccent);
     }
     if(S.settings.displayMode){
-      localStorage.setItem('studioDisplayMode', S.settings.displayMode);
-      const isLight = S.settings.displayMode === 'light';
+      const preferredMode = localStorage.getItem('studioDisplayMode') || S.settings.displayMode;
+      if(!localStorage.getItem('studioDisplayMode')) localStorage.setItem('studioDisplayMode', preferredMode);
+      const isLight = preferredMode === 'light';
       document.body.classList.toggle('light-mode', isLight);
       document.documentElement.classList.toggle('light-mode', isLight);
     }
@@ -28258,8 +28264,14 @@ function _syncThemeToCloud(){
 // Load theme from cloud when logging in
 function _loadThemeFromCloud(){
   if(!S?.settings) return;
-  if(S.settings.accentColor) setThemeColor(S.settings.accentColor);
-  if(S.settings.displayMode) setDisplayMode(S.settings.displayMode);
+  if(S.settings.accentColor){
+    if(!localStorage.getItem('studioAccentColor')) localStorage.setItem('studioAccentColor', S.settings.accentColor);
+    setThemeColor(localStorage.getItem('studioAccentColor'), false);
+  }
+  if(S.settings.displayMode){
+    if(!localStorage.getItem('studioDisplayMode')) localStorage.setItem('studioDisplayMode', S.settings.displayMode);
+    setDisplayMode(localStorage.getItem('studioDisplayMode'), false);
+  }
   if(S.settings.fontScale) localStorage.setItem('studioFontScale', S.settings.fontScale);
   if(S.settings.toneColor) localStorage.setItem('studioToneColor', S.settings.toneColor);
   if(S.settings.hoverOverlayColor) localStorage.setItem('studioHoverOverlay', S.settings.hoverOverlayColor);

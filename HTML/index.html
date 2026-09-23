@@ -10,6 +10,7 @@
 <script>
 (function(){
   try {
+    document.documentElement.classList.add('theme-loading');
     var mode = localStorage.getItem('studioDisplayMode') || 'dark';
     var accent = localStorage.getItem('studioAccentColor') || '#7c6ff7';
     if(mode === 'light') {
@@ -29,9 +30,11 @@
     document.documentElement.style.setProperty('--accent', accent);
     var bg = mode === 'light' ? '#f0f2f8' : '#0a0a0f';
     document.documentElement.style.background = bg;
+    document.documentElement.style.colorScheme = mode;
   } catch(e) {}
 })();
 </script>
+<style>html.theme-loading *,html.theme-loading *::before,html.theme-loading *::after{transition:none!important;animation:none!important}</style>
 <script>
 if(location.pathname==='/reviews' && new URLSearchParams(location.search).has('uid')){
   location.replace('/public-reviews'+location.search);
@@ -1092,7 +1095,7 @@ function getQRDataURL(text, size) {
 </script>
 <!-- Quill Rich Text Editor -->
 <link href="../Assets/vendor/quill/quill.snow.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../CSS/styles.css?v=sidebar-smooth-2">
+<link rel="stylesheet" href="../CSS/styles.css?v=theme-no-flash-4">
 <script>
 (function(){
   try{
@@ -1199,6 +1202,7 @@ function getQRDataURL(text, size) {
 
 </head>
 <body style="visibility:hidden">
+<script>document.body.classList.toggle('light-mode', document.documentElement.classList.contains('light-mode'));document.documentElement.classList.remove('theme-loading');</script>
 <!-- Offline indicator -->
 <div id="_offline-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(20,20,30,.94);backdrop-filter:blur(8px);padding:7px 16px;text-align:center;font-family:Cairo,Tajawal,sans-serif;font-size:12px;font-weight:400;color:#f7c948;letter-spacing:.3px;border-bottom:1px solid rgba(247,201,72,.15)">
   <i class="fa-solid fa-wifi" style="opacity:.6;margin-left:6px;font-size:11px"></i>لا يوجد اتصال بالإنترنت
@@ -5476,7 +5480,7 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=admin-permissions-3"></script>
+<script src="../JavaScript/app.js?v=theme-no-flash-4"></script>
 <script src="../JavaScript/vercel_persistence.js?v=theme-logo-1"></script>
 
 <!-- ═══ BACKUP MODAL ═══ -->

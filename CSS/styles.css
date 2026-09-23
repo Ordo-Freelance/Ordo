@@ -497,9 +497,9 @@ body.pub-page #app-body {
   display: none !important;
 }
 
-/* Smooth transitions for theme changes */
-*, *::before, *::after {
-  transition: background-color 0.25s ease, border-color 0.25s ease;
+/* Animate only the main surfaces; thousands of per-element transitions stall theme changes. */
+body, .sidebar, .app-header, .top-bar, .card, .modal, .kb-col {
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease;
 }
 .btn, .nav-item, .card, input, select, textarea {
   transition: all 0.2s cubic-bezier(.4,0,.2,1) !important;
