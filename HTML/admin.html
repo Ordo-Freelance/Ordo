@@ -991,7 +991,8 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           <div class="page-sub" id="msgs-count-sub">رسائل الإدارة للمستخدمين</div>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-primary btn-sm" id="admin-broadcast-btn" onclick="openSendMessageModal(null,'الكل — بث عام')">
+          <button class="btn btn-primary btn-sm" id="admin-direct-message-btn" onclick="openSendMessageModal(null,null,'direct')">✉ رسالة لمستخدم</button>
+          <button class="btn btn-ghost btn-sm" id="admin-broadcast-btn" onclick="openSendMessageModal(null,'الكل — بث عام','broadcast')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:6px"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
             بث للجميع
           </button>
@@ -2321,6 +2322,12 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
         <div id="msg-target-name" style="font-weight:700;font-size:14px">المستخدم</div>
         <div style="font-size:11px;color:var(--text3)" id="msg-target-sub">—</div>
       </div>
+    </div>
+    <div class="form-group" id="msg-recipient-group">
+      <label class="form-label" for="msg-recipient">إرسال إلى مستخدم واحد *</label>
+      <select class="form-select" id="msg-recipient" onchange="selectMessageRecipient(this.value)">
+        <option value="">— اختر المستخدم —</option>
+      </select>
     </div>
     <div class="form-group">
       <div class="form-label">نوع الرسالة</div>
@@ -6193,6 +6200,7 @@ async function deleteAdmin(id) {
 
 let _currentMsgType = 'info';
 let _currentMsgUserId = null;
+let _messageAudience = 'direct';
 let _allMessages = JSON.parse(localStorage.getItem('admin_messages_fallback') || '[]');
 
 async function _pushAdminPendingNotificationToStudioData(targetUserId, notif, broadcast){
@@ -6222,6 +6230,7 @@ async function _pushAdminPendingNotificationToStudioData(targetUserId, notif, br
 }
 
 function setMsgType(type, btn) {
+  if(type === 'broadcast' && _messageAudience !== 'broadcast') return;
   _currentMsgType = type;
   document.querySelectorAll('.msg-type-btn').forEach(b => {
     b.style.borderColor = 'var(--border)';
@@ -6231,13 +6240,36 @@ function setMsgType(type, btn) {
   btn.style.borderColor = 'var(--accent)';
   btn.style.background  = 'rgba(108,99,255,.15)';
   btn.style.color       = 'var(--accent)';
-  // Toggle user selector visibility for broadcast
-  const targetInfo = document.getElementById('msg-target-info');
-  if(targetInfo) targetInfo.style.opacity = type === 'broadcast' ? '.5' : '1';
 }
 
-function openSendMessageModal(userId, userName) {
-  _currentMsgUserId = userId;
+function selectMessageRecipient(userId) {
+  _currentMsgUserId = userId || null;
+  const user = userId ? ALL_STUDIO_DATA[userId] : null;
+  const name = user?.parsed?.settings?.name || user?.profile?.name || 'اختر مستخدماً';
+  const av = document.getElementById('msg-target-avatar');
+  const nm = document.getElementById('msg-target-name');
+  const sb = document.getElementById('msg-target-sub');
+  if(av) av.textContent = name[0] || 'م';
+  if(nm) nm.textContent = name;
+  if(sb) sb.textContent = user?.parsed?.settings?.email || user?.profile?.email || 'ستصل الرسالة للحساب المحدد فقط';
+}
+
+async function openSendMessageModal(userId, userName, audience = 'direct') {
+  _messageAudience = audience === 'broadcast' ? 'broadcast' : 'direct';
+  _currentMsgUserId = _messageAudience === 'direct' ? (userId || null) : null;
+  if(_messageAudience === 'direct' && !Object.keys(ALL_STUDIO_DATA).length) await loadStudioData();
+  const recipientGroup = document.getElementById('msg-recipient-group');
+  const recipientSelect = document.getElementById('msg-recipient');
+  if(recipientGroup) recipientGroup.style.display = _messageAudience === 'direct' ? '' : 'none';
+  if(recipientSelect) {
+    recipientSelect.replaceChildren(new Option('— اختر المستخدم —', ''));
+    Object.entries(ALL_STUDIO_DATA).forEach(([uid, user]) => {
+      const name = user.parsed?.settings?.name || user.profile?.name || uid.slice(0, 8);
+      const email = user.parsed?.settings?.email || user.profile?.email || '';
+      recipientSelect.add(new Option(name + (email ? ' — ' + email : ''), uid));
+    });
+    recipientSelect.value = _currentMsgUserId || '';
+  }
   // Fill target info
   const av = document.getElementById('msg-target-avatar');
   const nm = document.getElementById('msg-target-name');
@@ -6245,14 +6277,14 @@ function openSendMessageModal(userId, userName) {
   if(av) av.textContent = (userName||'م')[0];
   if(nm) nm.textContent = userName || 'مستخدم';
   if(sb) {
-    if(!userId) {
+    if(_messageAudience === 'broadcast') {
       sb.textContent = '📢 رسالة بث — ستصل لجميع المستخدمين';
       sb.style.color = 'var(--accent2)';
     } else {
-      const u = ALL_STUDIO_DATA[userId];
-      const sub = getSubscription(userId);
+      const sub = userId ? getSubscription(userId) : null;
       sb.textContent = sub ? 'باقة: '+(PLANS.find(p=>p.id===sub.planId)?.name||sub.planId) : 'بدون اشتراك';
       sb.style.color = 'var(--text3)';
+      selectMessageRecipient(userId);
     }
   }
   // Reset form
@@ -6263,10 +6295,10 @@ function openSendMessageModal(userId, userName) {
   if(bodyEl)  bodyEl.value  = '';
   if(errEl)   errEl.textContent = '';
   const navPgEl = document.getElementById('msg-nav-page'); if(navPgEl) navPgEl.value = '';
-  // Set type to broadcast if userId is null
-  const defaultType = userId ? 'message' : 'broadcast';
+  const defaultType = _messageAudience === 'broadcast' ? 'broadcast' : 'message';
   _currentMsgType = defaultType;
   document.querySelectorAll('.msg-type-btn').forEach(b => {
+    b.style.display = _messageAudience === 'broadcast' ? (b.dataset.type === 'broadcast' ? '' : 'none') : (b.dataset.type === 'broadcast' ? 'none' : '');
     const isActive = b.dataset.type === defaultType;
     b.style.borderColor = isActive ? 'var(--accent)' : 'var(--border)';
     b.style.background  = isActive ? 'rgba(108,99,255,.15)' : 'var(--surface2)';
@@ -6281,11 +6313,15 @@ async function doSendMessage() {
   const errEl  = document.getElementById('msg-error');
   const btn    = document.getElementById('msg-send-btn');
   if(!body) { if(errEl) errEl.textContent = '⚠ يرجى كتابة نص الرسالة'; return; }
+  if(_messageAudience === 'direct' && (!_currentMsgUserId || !ALL_STUDIO_DATA[_currentMsgUserId])) {
+    if(errEl) errEl.textContent = '⚠ اختر مستخدمًا واحدًا قبل الإرسال';
+    return;
+  }
   if(errEl) errEl.textContent = '';
   if(btn) { btn.disabled = true; btn.textContent = '⏳ جاري الإرسال...'; }
 
   try {
-    const isBroadcast = _currentMsgType === 'broadcast' || !_currentMsgUserId;
+    const isBroadcast = _messageAudience === 'broadcast';
     const _navPage = document.getElementById('msg-nav-page')?.value || null;
     // نحفظ صفحة الوجهة جوه الـ body كـ metadata مخفي
     const _bodyWithPage = _navPage ? body + '\n__page__:' + _navPage : body;
@@ -7898,9 +7934,14 @@ document.addEventListener('change', function(e) {
         if(typeof openNewChallengeModal === 'function') openNewChallengeModal();
         return;
       }
+      if(id === 'admin-direct-message-btn') {
+        e.preventDefault(); e.stopPropagation();
+        openSendMessageModal(null,null,'direct');
+        return;
+      }
       if(id === 'admin-broadcast-btn' || (pageMessages && hasText(btn, ['بث للجميع','ط¨ط«']))) {
         e.preventDefault(); e.stopPropagation();
-        if(typeof openSendMessageModal === 'function') openSendMessageModal(null,'الكل — بث عام');
+        if(typeof openSendMessageModal === 'function') openSendMessageModal(null,'الكل — بث عام','broadcast');
         return;
       }
       if(id === 'upd-draft-btn') { e.preventDefault(); e.stopPropagation(); saveUpdate(false); return; }
