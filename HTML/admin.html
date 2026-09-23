@@ -527,7 +527,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
 }
 .sidebar-overlay.open { display:block; }
 </style>
-<link rel="stylesheet" href="../CSS/admin-redesign.css?v=20260923-1">
+<link rel="stylesheet" href="../CSS/admin-redesign.css?v=20260923-2">
 </head>
 <body>
 
@@ -4120,7 +4120,10 @@ function filterPlanFeatureSections(query){
       if(visible) matches = true;
     });
     section.style.display = matches ? '' : 'none';
-    if(q && matches) section.querySelector('.perm-sec-body')?.classList.add('open');
+    if(q && matches) setPlanPermissionOpen(section.querySelector('.perm-sec-body'), true);
+  });
+  document.querySelectorAll('#cp-sections-accordion .plan-perm-group').forEach(group => {
+    group.style.display = [...group.querySelectorAll('.perm-section')].some(section => section.style.display !== 'none') ? '' : 'none';
   });
   updatePlanFeatureSummary();
 }
@@ -4251,14 +4254,14 @@ document.addEventListener('click', function(e){
 });
 
 function openCreatePlanModal() {
+  organizePlanPermissionSections();
   document.getElementById('plan-modal-title').textContent = '➕ إنشاء باقة جديدة';
   document.getElementById('cp-edit-id').value = '';
   ['cp-name','cp-icon','cp-desc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   ['cp-price-monthly','cp-price-annual'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('cp-duration').value = '30';
   // Reset all section bodies
-  document.querySelectorAll('.perm-sec-body').forEach(b => b.classList.remove('open'));
-  document.querySelectorAll('.perm-sec-header').forEach(h => { h.classList.remove('open'); const arr=h.querySelector('.acc-arrow'); if(arr) arr.style.transform=''; });
+  document.querySelectorAll('#cp-sections-accordion .perm-sec-body').forEach(b => setPlanPermissionOpen(b, false));
   // Reset all checkboxes to defaults
   const defaultOn = ['feat-tasks','feat-clients','feat-finance','feat-invoices','feat-other-on',
     'feat-task-attachments','feat-task-steps','feat-task-client-link','feat-task-kanban','feat-task-dates','feat-task-mentions',
@@ -4291,12 +4294,12 @@ function openCreatePlanModal() {
 }
 
 function editPlan(id) {
+  organizePlanPermissionSections();
   const plan = PLANS.find(p => p.id === id);
   if(!plan) return;
 
   // Reset sections
-  document.querySelectorAll('.perm-sec-body').forEach(b => b.classList.remove('open'));
-  document.querySelectorAll('.perm-sec-header').forEach(h => { h.classList.remove('open'); const arr=h.querySelector('.acc-arrow'); if(arr) arr.style.transform=''; });
+  document.querySelectorAll('#cp-sections-accordion .perm-sec-body').forEach(b => setPlanPermissionOpen(b, false));
 
   document.getElementById('plan-modal-title').textContent = '✏ تعديل الباقة';
   document.getElementById('cp-edit-id').value = id;
@@ -4401,24 +4404,94 @@ function editPlan(id) {
 }
 
 // ── Accordion helpers ──
+function organizePlanPermissionSections(){
+  const root = document.getElementById('cp-sections-accordion');
+  if(!root || root.dataset.organized === '1') return;
+  root.dataset.organized = '1';
+
+  const makeSection = (key, title, icon, inputIds) => {
+    const section = document.createElement('div');
+    section.className = 'perm-section';
+    section.id = 'acc-' + key;
+    section.innerHTML = `<div class="perm-sec-header" role="button" tabindex="0" aria-expanded="false" aria-controls="acc-body-${key}" onclick="toggleAcc('${key}')"><div class="perm-sec-title"><i class="fa-solid ${icon}" aria-hidden="true"></i><span>${title}</span></div><span class="acc-arrow" aria-hidden="true">▾</span></div><div class="perm-sec-body" id="acc-body-${key}"><div class="perm-grid"></div></div>`;
+    const grid = section.querySelector('.perm-grid');
+    inputIds.forEach(id => {
+      const row = document.getElementById(id)?.closest('.perm-row');
+      if(row) grid.appendChild(row);
+    });
+    return section;
+  };
+
+  const schedule = makeSection('schedule', 'تنظيم اليوم والاجتماعات', 'fa-calendar-days',
+    ['feat-schedule','feat-schedule-day','feat-schedule-export','feat-meetings']);
+  const timetracker = makeSection('timetracker', 'تتبع الوقت', 'fa-stopwatch', ['feat-timetracker']);
+  const tools = document.getElementById('acc-tools');
+  const reports = document.getElementById('acc-reports');
+  ['feat-languages','feat-lang-en'].forEach(id => {
+    const row = document.getElementById(id)?.closest('.perm-row');
+    if(row) tools?.querySelector('.perm-grid')?.appendChild(row);
+  });
+  const toolsTitle = tools?.querySelector('.perm-sec-title span');
+  if(toolsTitle) toolsTitle.textContent = 'إعدادات النظام والمزامنة';
+  const reportsTitle = reports?.querySelector('.perm-sec-title span');
+  if(reportsTitle) reportsTitle.textContent = 'الأهداف والإنجازات والتقارير';
+  const servicesTitle = document.querySelector('#acc-services .perm-sec-title span');
+  if(servicesTitle) servicesTitle.textContent = 'خدماتي والمتجر والتقييمات';
+
+  const integration = root.querySelector('.perm-sec');
+  if(integration) integration.classList.add('perm-section');
+  const groups = [
+    ['المشاريع','fa-folder-open',['acc-tasks',schedule]],
+    ['إدارة العمل والعملاء','fa-briefcase',['acc-clients','acc-services']],
+    ['المالية','fa-coins',['acc-finance','acc-invoices']],
+    ['الفريق','fa-users',['acc-team']],
+    ['النظام والمساحة','fa-layer-group',[timetracker,'acc-reports','acc-tools']],
+    ['خيارات متقدمة','fa-sliders',['acc-hidden',integration]]
+  ];
+  groups.forEach(([title, icon, entries]) => {
+    const group = document.createElement('section');
+    group.className = 'plan-perm-group';
+    group.innerHTML = `<div class="plan-perm-group-title"><i class="fa-solid ${icon}" aria-hidden="true"></i>${title}</div><div class="plan-perm-group-items"></div>`;
+    const items = group.querySelector('.plan-perm-group-items');
+    entries.forEach(entry => {
+      const section = typeof entry === 'string' ? document.getElementById(entry) : entry;
+      if(section) items.appendChild(section);
+    });
+    root.appendChild(group);
+  });
+  root.querySelectorAll('.perm-sec-header').forEach(header => {
+    const body = header.nextElementSibling;
+    if(!body?.classList.contains('perm-sec-body')) return;
+    header.setAttribute('role','button');
+    header.setAttribute('tabindex','0');
+    header.setAttribute('aria-controls',body.id);
+    header.setAttribute('aria-expanded','false');
+    header.addEventListener('keydown',event => {
+      if(event.target !== header || (event.key !== 'Enter' && event.key !== ' ')) return;
+      event.preventDefault();
+      header.click();
+    });
+  });
+}
+
+function setPlanPermissionOpen(body, open){
+  if(!body) return;
+  const header = body.previousElementSibling;
+  body.classList.toggle('open', open);
+  body.style.display = open ? 'flex' : 'none';
+  if(header){
+    header.classList.toggle('open', open);
+    header.setAttribute('aria-expanded', String(open));
+    const arrow = header.querySelector('.acc-arrow');
+    if(arrow) arrow.style.transform = open ? 'rotate(180deg)' : '';
+  }
+}
 function toggleAcc(key) {
   const body   = document.getElementById('acc-body-' + key);
-  const header = body?.previousElementSibling;
   if(!body) return;
   const isOpen = body.classList.contains('open');
-  // Close all others
-  document.querySelectorAll('.perm-sec-body.open').forEach(b => {
-    b.classList.remove('open');
-    const h = b.previousElementSibling;
-    if(h) { h.classList.remove('open'); const arr=h.querySelector('.acc-arrow'); if(arr) arr.style.transform=''; }
-  });
-  // Legacy acc-body support
-  document.querySelectorAll('.acc-body').forEach(b => { if(b!==body) b.style.display='none'; });
-  if(!isOpen) {
-    body.classList.add('open');
-    body.style.display = 'flex';
-    if(header) { header.classList.add('open'); const arr=header.querySelector('.acc-arrow'); if(arr) arr.style.transform='rotate(180deg)'; }
-  }
+  document.querySelectorAll('#cp-sections-accordion .perm-sec-body.open').forEach(b => setPlanPermissionOpen(b, false));
+  if(!isOpen) setPlanPermissionOpen(body, true);
 }
 function updateAccBadge(key) {
   const input = document.getElementById('feat-max-' + key) || document.getElementById('feat-max-' + key + '-feat');

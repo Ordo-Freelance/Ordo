@@ -79,6 +79,13 @@ html.light-mode .modal {border-color:var(--border);}
 .admin-plan-steps i {color:var(--accent);margin-inline-end:6px;}
 #cp-basics,#cp-permissions {scroll-margin-top:115px;}
 #modal-create-plan .perm-section {border-radius:13px;margin-bottom:10px;}
+#modal-create-plan .plan-perm-group {border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px;background:rgba(9,14,29,.22);}
+#modal-create-plan .plan-perm-group-title {display:flex;align-items:center;gap:9px;margin:1px 3px 12px;font-size:13px;font-weight:900;color:var(--text);}
+#modal-create-plan .plan-perm-group-title i {width:27px;height:27px;display:grid;place-items:center;border-radius:8px;background:rgba(129,123,255,.14);color:var(--accent);font-size:12px;}
+#modal-create-plan .plan-perm-group-items {display:flex;flex-direction:column;gap:8px;}
+#modal-create-plan .plan-perm-group .perm-section {margin:0;}
+#modal-create-plan .perm-sec-header[role="button"]:focus-visible {outline:2px solid var(--accent);outline-offset:-2px;}
+#modal-create-plan .perm-sec-body:not(.open) {display:none!important;}
 #modal-create-plan .perm-sec-header {min-height:54px;padding:12px 15px;}
 #modal-create-plan .perm-sec-header:hover {background:var(--surface3);}
 #modal-create-plan .perm-sec-body {padding:14px 18px;gap:8px;}
