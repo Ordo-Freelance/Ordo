@@ -2229,17 +2229,25 @@ function uploadLogo(input, variant){
   if(f.size>2*1024*1024){toast('<i class="fa-solid fa-triangle-exclamation"></i> الصورة أكبر من 2 ميجا');input.value='';return;}
   toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع اللوجو...');
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     const url = e.target.result;
     if(!S.settings) S.settings={};
+    const previous = {logo:S.settings.logo,logoLight:S.settings.logoLight,logoDark:S.settings.logoDark};
     if(variant==='light') S.settings.logoLight = url;
     else if(variant==='dark') S.settings.logoDark = url;
     else S.settings.logo = url;
     if(!S.settings.logo) S.settings.logo = url;
-    lsSave(); cloudSaveNow(S);
+    await cloudSaveNow(S);
+    if(window._lastCloudSaveError?.code === 'storage_quota_exceeded') {
+      Object.assign(S.settings,previous);
+      lsSave();
+      input.value='';
+      toast('<i class="fa-solid fa-triangle-exclamation"></i> مساحة الصور غير كافية. احذف صورًا أو اطلب مساحة إضافية.');
+      return;
+    }
     _renderLogoPreviews();
     updateUserBadge(getSession()||{});
-    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع اللوجو');
+    toast(window._lastCloudSaveOk ? '<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع اللوجو' : 'تم حفظ اللوجو محلياً، ولم يتأكد رفعه للسحابة بعد');
   };
   reader.onerror = function(){ toast('<i class="fa-solid fa-triangle-exclamation"></i> فشل قراءة الصورة'); };
   reader.readAsDataURL(f);

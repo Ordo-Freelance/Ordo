@@ -4,6 +4,13 @@
 
   var saveTimer = null;
   var SAVE_DELAY = 700;
+  var lastSavedFingerprint = '';
+  var lastPublishedFingerprint = '';
+  function fingerprint(value){
+    var source = JSON.stringify(value), hash = 2166136261;
+    for(var i=0;i<source.length;i++) hash = Math.imul(hash ^ source.charCodeAt(i),16777619);
+    return String(source.length)+':'+(hash>>>0);
+  }
   root._cloudSaving = false;
   root._cloudSavePending = false;
   root._ordoCloudLoadedFromServer = false;
@@ -135,10 +142,13 @@
     if(data) root.S = data;
     root.S = normalize(root.S);
     var storeSlug=ensureStoreSlug(root.S.settings,userId);
+    var contentFingerprint = userId+':'+fingerprint(Object.assign({},root.S,{_savedAt:null}));
+    if(contentFingerprint === lastSavedFingerprint && root._lastCloudSaveOk) return root.S;
     root.S._savedAt = new Date().toISOString();
     writeCache(root.S);
     var db = client();
     root._lastCloudSaveOk=false;
+    root._lastCloudSaveError=null;
     if(!userId || !db || !root._ordoCloudLoadedFromServer) return root.S;
     try {
       var result = await db.from('studio_data').upsert({
@@ -148,11 +158,18 @@
         updated_at:root.S._savedAt
       }, {onConflict:'user_id'});
       if(result.error) throw result.error;
-      await publishPublicData(db,userId,root.S);
+      var publicFingerprint = userId+':'+fingerprint({settings:publicSettings(root.S.settings),stores:root.S.stores,services:root.S.services,standalone_packages:root.S.standalone_packages,portfolio_projects:root.S.portfolio_projects,reviews:root.S.reviews,public_tokens:root.S.public_tokens,projects:root.S.projects,project_tasks:root.S.project_tasks,tasks:root.S.tasks,invoices:root.S.invoices,contracts:root.S.contracts,proposals:root.S.proposals,client_portals:root.S.client_portals,svc_orders:root.S.svc_orders});
+      if(publicFingerprint !== lastPublishedFingerprint){
+        await publishPublicData(db,userId,root.S);
+        lastPublishedFingerprint = publicFingerprint;
+      }
+      lastSavedFingerprint = contentFingerprint;
       root._lastCloudSaveOk=true;
       if(root.showSyncIndicator) root.showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محفوظ', '#4fd1a5');
     } catch(e) {
+      root._lastCloudSaveError=e;
       if(root.showSyncIndicator) root.showSyncIndicator('<i class="fa-solid fa-triangle-exclamation"></i> محفوظ محلياً فقط', '#f7c948');
+      if(e && e.code === 'storage_quota_exceeded' && root.toast) root.toast(e.message || 'مساحة الصور امتلأت');
     }
     return root.S;
   };

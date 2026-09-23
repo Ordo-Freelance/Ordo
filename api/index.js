@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { imageBytes, storageLimitBytes, mayIncreaseImageUsage } from './storage_quota.js';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const LOCAL_DB_PATH = path.join(ROOT, '.local-data', 'ordo-dev-db.json');
@@ -168,6 +169,28 @@ function unwrapStudio(value) {
     else break;
   }
   return data && typeof data === 'object' ? data : {};
+}
+
+async function storageInfo(store, userId) {
+  const filter = [{op:'eq',column:'user_id',value:userId}];
+  const [studio, serials, settings, requests, account] = await Promise.all([
+    store.query('studio_data',{op:'select',columns:'user_id,data',filters:filter,single:true}),
+    store.query('serial_keys',{op:'select',columns:'user_id,plan_id,status,expires_at,activated_at',filters:filter}),
+    store.query('platform_settings',{op:'select',columns:'id,config',filters:[{op:'eq',column:'id',value:1}],single:true}),
+    store.query('subscription_requests',{op:'select',columns:'user_id,receipt_url,data',filters:filter}),
+    store.userById(userId)
+  ]);
+  const active = (serials || []).filter(item => item.plan_id && ['active','assigned'].includes(item.status) && (!item.expires_at || new Date(item.expires_at) > new Date())).sort((a,b) => String(b.activated_at||'').localeCompare(String(a.activated_at||'')))[0];
+  // Only serial_keys is authoritative here: studio_data is writable by the user.
+  const planId = active?.plan_id || null;
+  const plan = planId ? await store.query('subscription_plans',{op:'select',columns:'id,features',filters:[{op:'eq',column:'id',value:planId}],single:true}) : null;
+  const config = parseMaybe(settings?.config) || {};
+  const override = config.storage_overrides?.[userId] || {};
+  const features = parseMaybe(plan?.features) || {};
+  const enabled = override.uploads_enabled ?? features.image_uploads ?? true;
+  const otherBytes = imageBytes(account?.avatar_url) + (requests || []).reduce((sum,row) => sum + imageBytes(row.receipt_url) + imageBytes(row.data), 0);
+  const studioBytes = imageBytes(studio?.data);
+  return {user_id:userId,used_bytes:studioBytes + otherBytes,studio_bytes:studioBytes,other_bytes:otherBytes,limit_bytes:storageLimitBytes(features,override),uploads_enabled:!!enabled,plan_id:planId || null};
 }
 
 function publicView(data, type, token) {
@@ -1086,6 +1109,12 @@ export default async function handler(req, res) {
     if (postAction === 'auth.update') {
       const { user } = await currentUser(req, store);
       if (!user) return fail(res, 'Login required', 401, 'login_required');
+      const nextAvatar = input.attributes?.data?.avatarUrl ?? input.attributes?.data?.avatar_url;
+      if (nextAvatar !== undefined) {
+        const info = await storageInfo(store,user.id);
+        const candidate = info.used_bytes - imageBytes(user.avatar_url) + imageBytes(nextAvatar);
+        if (!mayIncreaseImageUsage(info.used_bytes,candidate,info.limit_bytes,info.uploads_enabled)) return fail(res,'مساحة الصور امتلأت أو رفع الصور غير متاح',413,'storage_quota_exceeded');
+      }
       const updated = await store.updateUser(user.id, input.attributes || {});
       return ok(res, { user: userPayload(updated) });
     }
@@ -1208,13 +1237,50 @@ export default async function handler(req, res) {
       return ok(res, { deleted:true });
     }
 
+    if (postAction === 'storage.usage') {
+      const { user } = await currentUser(req, store);
+      if (!user) return fail(res, 'Login required', 401, 'login_required');
+      const target = user.is_admin && input.user_id ? String(input.user_id) : user.id;
+      return ok(res, await storageInfo(store, target));
+    }
+
     if (postAction === 'db.query') {
       const { user } = await currentUser(req, store);
       const table = String(input.table || '');
       if (table !== 'profiles' && !TABLES.has(table)) return fail(res, `Table is not available: ${table}`, 400, 'table_not_allowed');
       const accessError = enforceAccess(table, input, user);
       if (accessError) return fail(res, accessError.message, accessError.status, accessError.code);
+      if (user && !user.is_admin && ['studio_data','subscription_requests'].includes(table) && ['insert','upsert','update'].includes(input.op)) {
+        const rows = Array.isArray(input.payload) ? input.payload : [input.payload];
+        const info = await storageInfo(store, user.id);
+        for (const row of rows.filter(Boolean)) {
+          const newBytes = table === 'studio_data' && row.data !== undefined
+            ? info.other_bytes + imageBytes(row.data)
+            : table === 'subscription_requests'
+              ? info.used_bytes + imageBytes(row)
+              : info.used_bytes;
+          if (!mayIncreaseImageUsage(info.used_bytes, newBytes, info.limit_bytes, info.uploads_enabled)) {
+            return fail(res, info.uploads_enabled ? 'مساحة الصور امتلأت. احذف صورًا أو قم بترقية المساحة.' : 'رفع الصور غير متاح لهذا الحساب.', 413, 'storage_quota_exceeded');
+          }
+        }
+      }
+      if (!user && table === 'subscription_requests' && ['insert','upsert'].includes(input.op) && imageBytes(input.payload) > 2 * 1024 * 1024) {
+        return fail(res, 'حجم صورة الإيصال كبير جداً', 413, 'image_too_large');
+      }
       const data = await store.query(table, input, user);
+      if (table === 'platform_settings' && input.op === 'select' && !user?.is_admin) {
+        const publicRow = row => {
+          if(!row) return row;
+          const config = parseMaybe(row.config) || {};
+          const {storage_overrides, ...publicConfig} = config;
+          return {...row,config:publicConfig};
+        };
+        return ok(res,Array.isArray(data) ? data.map(publicRow) : publicRow(data));
+      }
+      if (['insert','upsert','update'].includes(input.op) && ['studio_data','public_store_items','public_tokens'].includes(table)) {
+        const compact = row => row ? {id:row.id,user_id:row.user_id,updated_at:row.updated_at} : null;
+        return ok(res, Array.isArray(data) ? data.map(compact) : compact(data));
+      }
       return ok(res, data);
     }
 
@@ -1225,4 +1291,4 @@ export default async function handler(req, res) {
   }
 }
 
-export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser };
+export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo };

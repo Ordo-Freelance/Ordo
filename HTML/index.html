@@ -1095,7 +1095,7 @@ function getQRDataURL(text, size) {
 </script>
 <!-- Quill Rich Text Editor -->
 <link href="../Assets/vendor/quill/quill.snow.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../CSS/styles.css?v=admin-notices-5">
+<link rel="stylesheet" href="../CSS/styles.css?v=storage-1">
 <script>
 (function(){
   try{
@@ -1387,6 +1387,15 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
   </div>
 </div>
 <!-- ═══ END AUTH ═══ -->
+<script>
+try {
+  if(!localStorage.getItem('studioOS_auth_v1')) {
+    document.body.classList.add('auth-booting');
+    document.getElementById('auth-screen').classList.remove('hidden');
+    document.body.style.visibility = 'visible';
+  }
+} catch(e) {}
+</script>
 
 
 <!-- SIDEBAR OVERLAY -->
@@ -3602,6 +3611,13 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     </div>
   </div>
 
+  <div class="card" style="margin-bottom:18px;padding:16px" id="user-storage-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><strong><i class="fa-solid fa-hard-drive"></i> مساحة الصور</strong><button type="button" class="btn btn-ghost btn-sm" onclick="refreshUserStorageUsage()">تحديث</button></div>
+    <div id="user-storage-summary" style="font-size:12px;color:var(--text2);margin-top:9px">جاري حساب المساحة...</div>
+    <div style="height:7px;background:var(--surface3);border-radius:10px;overflow:hidden;margin-top:10px"><div id="user-storage-progress" style="height:100%;width:0;background:var(--accent);border-radius:10px"></div></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">تشمل الصور المحفوظة في الحساب. الروابط الخارجية لا تُحتسب.</div>
+  </div>
+
   
 
   <!-- Settings Tabs Row -->
@@ -5480,8 +5496,9 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=admin-notices-5"></script>
-<script src="../JavaScript/vercel_persistence.js?v=theme-logo-1"></script>
+<script src="../JavaScript/app.js?v=storage-1"></script>
+<script>document.body.classList.remove('auth-booting');</script>
+<script src="../JavaScript/vercel_persistence.js?v=storage-1"></script>
 
 <!-- ═══ BACKUP MODAL ═══ -->
 <div class="modal-overlay" id="modal-backup">
@@ -9163,5 +9180,6 @@ document.addEventListener('DOMContentLoaded', function(){
 <script src="../JavaScript/text_repair.js?v=1"></script>
 <script src="../JavaScript/client_finance_fix.js?v=2"></script>
 <script src="../JavaScript/support_center.js?v=admin-notices-5"></script>
+<script src="../JavaScript/storage_usage.js?v=storage-1"></script>
 
 </body></html>

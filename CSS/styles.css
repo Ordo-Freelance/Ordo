@@ -37,6 +37,7 @@
   overflow-y: auto;
 }
 #auth-screen.hidden { display: none; }
+body.auth-booting #auth-screen button { pointer-events:none; opacity:.65; }
 
 .auth-card {
   background: var(--surface);

@@ -1188,6 +1188,15 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
             <div id="udp-sub-edit"></div>
           </div>
         </div>
+        <div class="card" style="margin-top:14px" id="udp-storage-card">
+          <div style="font-size:13px;font-weight:800;margin-bottom:10px"><i class="fa-solid fa-hard-drive"></i> مساحة الصور لهذا المستخدم</div>
+          <div id="udp-storage-usage" style="font-size:12px;color:var(--text2);margin-bottom:12px">جاري حساب الاستهلاك...</div>
+          <div style="display:flex;align-items:end;gap:10px;flex-wrap:wrap">
+            <label style="font-size:12px">حد مخصص (MB) <input class="form-input" id="udp-storage-quota" type="number" min="0" max="10240" placeholder="يرث من الباقة" style="width:150px"></label>
+            <label style="font-size:12px">رفع الصور <select class="form-select" id="udp-storage-uploads"><option value="">يرث من الباقة</option><option value="yes">مسموح</option><option value="no">ممنوع</option></select></label>
+            <button type="button" class="btn btn-primary btn-sm" onclick="saveUserStorageOverride(_currentDetailUid)">حفظ المساحة</button>
+          </div>
+        </div>
       </div>
 
       <!-- Tab: Feature Overrides -->
@@ -1900,6 +1909,14 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
       <div style="font-size:13px;font-weight:900;margin-bottom:5px">🗂 أقسام التطبيق داخل الباقة</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px">يمكن تشغيل قسم وترك قسم آخر للترقية. التفاصيل الدقيقة لكل قسم بالأسفل.</div>
       <div id="cp-page-features"></div>
+    </div>
+    <div class="card" style="margin-bottom:18px">
+      <div style="font-size:13px;font-weight:900;margin-bottom:10px"><i class="fa-solid fa-images"></i> الصور والمساحة</div>
+      <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+        <label style="font-size:12px"><input type="checkbox" id="feat-image-uploads" checked> السماح برفع الصور</label>
+        <label style="font-size:12px">المساحة المضمنة (MB) <input class="form-input" type="number" id="feat-storage-mb" min="0" max="10240" value="25" style="width:110px;display:inline-block;margin-inline-start:8px"></label>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">تشمل الصور المحفوظة داخل بيانات الحساب. يمكن تخصيص حد مختلف لكل مستخدم من صفحته.</div>
     </div>
 
     <!-- ── SECTION B: الصلاحيات والأقسام ── -->
@@ -4211,6 +4228,8 @@ function _copyPlanPerms(fromId) {
     ['max_services','feat-max-services'],['corp_max_employees','feat-corp-max-employees']
   ];
   numFields.forEach(([fk,elId]) => { const el=document.getElementById(elId); if(el&&el.type!=='hidden') el.value=f[fk]||''; });
+  document.getElementById('feat-storage-mb').value = f.storage_mb ?? 25;
+  document.getElementById('feat-image-uploads').checked = f.image_uploads !== false;
   renderPlanPageFeatures(f);
   updatePlanFeatureSummary();
   toast(`✅ تم نسخ صلاحيات "${from.icon||''} ${from.name}"`);
@@ -4250,6 +4269,8 @@ function openCreatePlanModal() {
   });
   // Reset number inputs  
   document.querySelectorAll('.perm-num').forEach(el => el.value = '');
+  document.getElementById('feat-storage-mb').value = '25';
+  document.getElementById('feat-image-uploads').checked = true;
   // Hide copy section unless plans exist
   const cs = document.getElementById('_copy-plan-section');
   if(cs) cs.style.display = 'none';
@@ -4280,6 +4301,8 @@ function editPlan(id) {
   setVal('cp-duration',      plan.duration_days||30);
 
   const f = plan.features || {};
+  setVal('feat-storage-mb', f.storage_mb ?? 25);
+  document.getElementById('feat-image-uploads').checked = f.image_uploads !== false;
   const fkey = k => k.replace(/-/g, '_');
 
   const defaultOn = new Set([
@@ -4326,6 +4349,7 @@ function editPlan(id) {
     const stored = f[fkey(k)];
     el.checked = stored !== undefined ? !!stored : defaultOn.has(k);
   });
+  document.getElementById('feat-image-uploads').checked = f.image_uploads !== false;
 
   const numFields = [
     ['max_tasks',          'feat-max-tasks'],
@@ -4415,6 +4439,8 @@ async function savePlan() {
   if(!name) { toast('⚠ أدخل اسم الباقة'); return; }
 
   const features = {
+    image_uploads: _chk('feat-image-uploads'),
+    storage_mb: _num('feat-storage-mb'),
     // المهام
     tasks:              _chk('feat-tasks'),
     max_tasks:          _num('feat-max-tasks'),
@@ -5662,7 +5688,48 @@ function switchDetailTab(tab) {
   if(tab === 'activity') renderUserActivityLog(_currentDetailUid);
   if(tab === 'contracts') loadDetailContracts((ALL_STUDIO_DATA[_currentDetailUid]?.parsed)||{});
   if(tab === 'timetracker') loadDetailTimeTracker((ALL_STUDIO_DATA[_currentDetailUid]?.parsed)||{});
+  if(tab === 'subscription') loadDetailStorage(_currentDetailUid);
   if(tab === 'features') loadDetailFeatureOverrides(_currentDetailUid, (ALL_STUDIO_DATA[_currentDetailUid]?.parsed)||{});
+}
+
+async function loadDetailStorage(uid){
+  if(!uid || typeof ORDO_API_REQUEST !== 'function') return;
+  const label = document.getElementById('udp-storage-usage');
+  if(label) label.textContent = 'جاري حساب الاستهلاك...';
+  try {
+    const result = await ORDO_API_REQUEST('storage.usage',{user_id:uid});
+    const info = result.data || {};
+    const mb = bytes => (Number(bytes || 0) / 1048576).toFixed(2);
+    if(label) label.textContent = mb(info.used_bytes)+' MB مستخدمة من '+mb(info.limit_bytes)+' MB — رفع الصور '+(info.uploads_enabled?'مسموح':'موقوف');
+    const configRow = await supa.from('platform_settings').select('config').eq('id',1).maybeSingle();
+    const cfg = typeof configRow.data?.config === 'string' ? JSON.parse(configRow.data.config) : (configRow.data?.config || {});
+    const override = cfg.storage_overrides?.[uid] || {};
+    document.getElementById('udp-storage-quota').value = override.quota_mb ?? '';
+    document.getElementById('udp-storage-uploads').value = override.uploads_enabled === undefined ? '' : override.uploads_enabled ? 'yes' : 'no';
+  } catch(error) { if(label) label.textContent = 'تعذر قراءة الاستهلاك: '+(error.message || error); }
+}
+
+async function saveUserStorageOverride(uid){
+  if(!uid) return;
+  const raw = document.getElementById('udp-storage-quota').value.trim();
+  const upload = document.getElementById('udp-storage-uploads').value;
+  if(raw !== '' && (!Number.isFinite(Number(raw)) || Number(raw)<0 || Number(raw)>10240)) return toast('⚠ المساحة يجب أن تكون بين 0 و10240 MB');
+  try {
+    const existing = await supa.from('platform_settings').select('config').eq('id',1).maybeSingle();
+    if(existing.error) throw existing.error;
+    const cfg = typeof existing.data?.config === 'string' ? JSON.parse(existing.data.config) : {...(existing.data?.config || {})};
+    cfg.storage_overrides = {...(cfg.storage_overrides || {})};
+    const override = {};
+    if(raw !== '') override.quota_mb = Number(raw);
+    if(upload) override.uploads_enabled = upload === 'yes';
+    if(Object.keys(override).length) cfg.storage_overrides[uid] = override;
+    else delete cfg.storage_overrides[uid];
+    const saved = await supa.from('platform_settings').upsert({id:1,config:cfg,updated_at:new Date().toISOString()},{onConflict:'id'});
+    if(saved.error) throw saved.error;
+    _platformConfig = cfg;
+    toast('✅ تم حفظ صلاحية الصور والمساحة');
+    loadDetailStorage(uid);
+  } catch(error) { toast('⛔ تعذر حفظ المساحة: '+(error.message || error)); }
 }
 
 function loadDetailFeatureOverrides(uid, p){
