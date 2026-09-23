@@ -527,6 +527,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
 }
 .sidebar-overlay.open { display:block; }
 </style>
+<link rel="stylesheet" href="../CSS/admin-redesign.css?v=20260923-1">
 </head>
 <body>
 
@@ -949,6 +950,12 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
         <button type="button" class="serial-tab" id="serial-tab-used" role="tab" aria-selected="false" onclick="setSerialTab('used')">المباعة / المفعّلة <span id="serial-used-count">0</span></button>
       </div>
 
+      <div class="admin-serial-stats" aria-label="ملخص أكواد الاشتراك">
+        <div class="admin-metric"><span class="admin-metric-icon"><i class="fa-solid fa-key"></i></span><span>الأكواد المتاحة</span><strong id="serial-stat-available">0</strong></div>
+        <div class="admin-metric"><span class="admin-metric-icon"><i class="fa-solid fa-user-check"></i></span><span>الأكواد المستخدمة</span><strong id="serial-stat-used">0</strong></div>
+        <div class="admin-metric"><span class="admin-metric-icon"><i class="fa-solid fa-clock"></i></span><span>الأكواد المنتهية</span><strong id="serial-stat-expired">0</strong></div>
+      </div>
+
       <div class="filter-bar">
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
@@ -979,7 +986,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
         </div>
         <button class="btn btn-primary" onclick="openCreatePlanModal()">➕ إنشاء باقة جديدة</button>
       </div>
-      <div class="card card-sm" style="margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div class="card card-sm admin-plan-intro" style="margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span style="font-size:13px;font-weight:800"><i class="fa-solid fa-sliders"></i> مقارنة الباقات حسب المميزات</span>
         <span style="font-size:12px;color:var(--text3)">افتح أي باقة لتشغيل قسم كامل أو تخصيص مميزاته الفرعية بشكل مستقل.</span>
       </div>
@@ -1868,9 +1875,13 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
 
     <div style="padding:20px 24px">
     <input type="hidden" id="cp-edit-id">
+    <nav class="admin-plan-steps" aria-label="أقسام إعداد الباقة">
+      <button type="button" class="active" onclick="goToPlanEditorSection('cp-basics',this)"><i class="fa-solid fa-file-lines"></i> ١. معلومات الباقة</button>
+      <button type="button" onclick="goToPlanEditorSection('cp-permissions',this)"><i class="fa-solid fa-layer-group"></i> ٢. الصلاحيات والمميزات</button>
+    </nav>
 
     <!-- ── SECTION A: معلومات الباقة ── -->
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px">
+    <div id="cp-basics" style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px">
       <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">📦 معلومات الباقة</div>
       <div class="plan-2col">
         <div class="form-group" style="margin:0">
@@ -1920,7 +1931,7 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
     </div>
 
     <!-- ── SECTION B: الصلاحيات والأقسام ── -->
-    <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+    <div id="cp-permissions" style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:8px">
       <span>🎛 صلاحيات الأقسام</span>
       <span style="font-size:10px;color:var(--text3);font-weight:400">— اضغط على القسم لتفصيل الصلاحيات</span>
     </div>
@@ -3843,6 +3854,9 @@ function renderSerials() {
   const usedCount = SERIALS.length - availableCount;
   setText('serial-available-count', availableCount);
   setText('serial-used-count', usedCount);
+  setText('serial-stat-available', availableCount);
+  setText('serial-stat-used', usedCount);
+  setText('serial-stat-expired', SERIALS.filter(s => !serialIsAvailable(s) && isExpired(s)).length);
   for(const tab of ['available', 'used']) {
     const button = document.getElementById('serial-tab-' + tab);
     if(button) {
@@ -3870,13 +3884,10 @@ function renderSerials() {
     return;
   }
 
-  // Select-all bar above cards
-  const selectAllBar = `<div style="display:flex;align-items:center;gap:8px;padding:8px 4px;margin-bottom:8px">
-    <input type="checkbox" id="serials-select-all" onchange="toggleSelectAllSerials(this)" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent)">
-    <label for="serials-select-all" style="font-size:12px;color:var(--text2);cursor:pointer">تحديد الكل</label>
-  </div>`;
-
-  el.innerHTML = selectAllBar + serials.map(s => {
+  el.innerHTML = `<div class="admin-code-table"><div class="admin-code-head">
+    <span><input type="checkbox" id="serials-select-all" onchange="toggleSelectAllSerials(this)" aria-label="تحديد كل الأكواد"></span>
+    <span>الكود</span><span>الباقة</span><span>الحالة</span><span>المستخدم</span><span>الصلاحية</span><span>إجراءات</span>
+  </div>` + serials.map(s => {
     const plan = PLANS.find(p=>p.id===s.planId);
     const status = serialIsAvailable(s) ? 'unused' : (isExpired(s) ? 'expired' : 'active');
     const statusLabel = {unused:'🟢 غير مستخدم', active:'✅ نشط', expired:'⛔ منتهي'};
@@ -3884,29 +3895,20 @@ function renderSerials() {
     const user = s.userId ? getStudioUser(s.userId) : null;
     const userName = user?.settings?.name || (s.userId ? s.userId.substring(0,8)+'...' : '—');
     return `
-      <div class="serial-card" style="position:relative">
-        <div style="display:flex;align-items:center;padding-left:4px">
-          <input type="checkbox" class="serial-row-cb" data-sid="${s.id}" onchange="onSerialCheckChange()" style="cursor:pointer;width:16px;height:16px;accent-color:var(--accent);flex-shrink:0">
-        </div>
-        <div style="font-size:22px">${plan?.icon||'🔑'}</div>
-        <div style="flex:1;min-width:0">
-          <div class="serial-code">${s.code}</div>
-          <div class="serial-meta">
-            ${plan ? plan.name : s.planId} · ${getBillingLabel(s.billing)}
-            ${s.note ? ` · <span style="color:var(--text2)">${s.note}</span>` : ''}
-          </div>
-          ${s.userId ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">👤 ${userName} ${s.activatedAt ? '· فُعِّل ' + new Date(s.activatedAt).toLocaleDateString('ar-EG') : ''} ${s.expiresAt && s.billing!=='lifetime' ? '· ينتهي '+new Date(s.expiresAt).toLocaleDateString('ar-EG') : ''}</div>` : ''}
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-          <span class="badge ${statusClass[status]}">${statusLabel[status]}</span>
-          <div style="display:flex;gap:5px">
+      <div class="serial-card admin-code-row">
+        <span><input type="checkbox" class="serial-row-cb" data-sid="${s.id}" onchange="onSerialCheckChange()" aria-label="تحديد ${s.code}"></span>
+        <div class="serial-code" dir="ltr">${s.code}</div>
+        <div class="admin-code-plan"><span>${plan?.icon||'🔑'}</span><span>${plan ? plan.name : s.planId}<small>${getBillingLabel(s.billing)}</small></span></div>
+        <div><span class="badge ${statusClass[status]}">${statusLabel[status]}</span></div>
+        <div class="admin-code-user">${s.userId ? userName : 'غير مخصص'}${s.note ? `<small>${s.note}</small>` : ''}</div>
+        <div class="admin-code-date">${s.expiresAt && s.billing!=='lifetime' ? new Date(s.expiresAt).toLocaleDateString('ar-EG') : '—'}</div>
+        <div class="admin-code-actions">
             <button type="button" class="btn btn-ghost btn-sm" data-serial-action="copy" data-serial-id="${s.id}" title="نسخ">📋</button>
             ${serialIsAvailable(s) ? `<button type="button" class="btn btn-success btn-sm" data-serial-action="assign" data-serial-id="${s.id}">تعيين</button>` : ''}
             <button class="btn btn-danger btn-sm" onclick="deleteSerial('${s.id}')">🗑</button>
-          </div>
         </div>
       </div>`;
-  }).join('');
+  }).join('') + '</div>';
   updateSerialsBulkBar();
 }
 
@@ -4133,6 +4135,13 @@ function updatePlanFeatureSummary(){
 document.addEventListener('change', e => {
   if(e.target?.closest('#cp-sections-accordion')) updatePlanFeatureSummary();
 });
+
+function goToPlanEditorSection(sectionId, button) {
+  const section = document.getElementById(sectionId);
+  if (!section) return;
+  document.querySelectorAll('.admin-plan-steps button').forEach(item => item.classList.toggle('active', item === button));
+  section.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
+}
 
 function renderPlans() {
   const el = document.getElementById('plans-grid');
@@ -5207,18 +5216,18 @@ function renderUserFeatureControls(){
   _renderPlatformTeamMode(document.getElementById('user-features-team-mode'));
   const card=f=>{
     const state=controls[f.key]||'enabled';
-    return `<label style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <span style="font-size:12px;font-weight:800">${f.label}</span>
-      <select class="form-select" data-user-feature="${f.key}" style="height:34px;font-size:12px">
+    return `<label class="uf-control">
+      <span>${f.label}</span>
+      <select class="form-select" data-user-feature="${f.key}" aria-label="حالة ${f.label}">
         <option value="enabled" ${state==='enabled'?'selected':''}>مفتوح</option>
         <option value="coming" ${state==='coming'?'selected':''}>قادم قريباً</option>
         <option value="disabled" ${state==='disabled'?'selected':''}>مغلق</option>
       </select>
     </label>`;
   };
-  const html=USER_FEATURE_GROUPS.map(group=>`<section style="padding:16px 0;border-top:1px solid var(--border)">
-    <div style="font-size:14px;font-weight:900;margin-bottom:11px"><i class="fa-solid fa-folder-open" style="color:var(--accent)"></i> ${group}</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:9px">${USER_FEATURE_CONTROLS.filter(f=>f.group===group).map(card).join('')}</div>
+  const html=USER_FEATURE_GROUPS.map(group=>`<section class="uf-group">
+    <div class="uf-group-title"><span><i class="fa-solid fa-folder-open"></i> ${group}</span><span class="uf-group-count">${USER_FEATURE_CONTROLS.filter(f=>f.group===group).length} مميزات</span></div>
+    <div class="uf-group-grid">${USER_FEATURE_CONTROLS.filter(f=>f.group===group).map(card).join('')}</div>
   </section>`).join('');
   boxes.forEach(box=>box.innerHTML=html);
   updateUserFeatureStats();
