@@ -647,6 +647,39 @@ body.pub-page #app-body {
   min-width: 20px;
   text-align: center;
 }
+.sidebar-group {
+  margin: 7px 10px 0;
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+}
+.sidebar-group-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text2);
+  font: 700 12px var(--font);
+  text-align: right;
+  padding: 10px 9px;
+  cursor: pointer;
+}
+.sidebar-group-toggle:hover,
+.sidebar-group.is-open .sidebar-group-toggle { color: var(--text); background: var(--hover-overlay, var(--surface2)); }
+.sidebar-group-toggle i { font-size: 10px; transition: transform var(--transition); }
+.sidebar-group.is-open .sidebar-group-toggle i { transform: rotate(180deg); }
+.sidebar-group-items { display: none; padding: 2px 0 5px; }
+.sidebar-group.is-open .sidebar-group-items { display: block; }
+.sidebar-group-items .nav-item {
+  margin: 2px 4px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  border-right-width: 2px;
+  font-size: 12.5px;
+}
 
 /* Sidebar overlay (mobile) */
 .sidebar-overlay {

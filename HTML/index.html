@@ -1092,7 +1092,7 @@ function getQRDataURL(text, size) {
 </script>
 <!-- Quill Rich Text Editor -->
 <link href="../Assets/vendor/quill/quill.snow.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../CSS/styles.css?v=reviews-logo-1">
+<link rel="stylesheet" href="../CSS/styles.css?v=sidebar-groups-1">
 <script>
 (function(){
   try{
@@ -1451,6 +1451,65 @@ if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(windo
     <span style="font-size:14px"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:11px"></i></span>
   </div>
 </aside><!-- end sidebar -->
+<script>
+(function organizeSidebar(){
+  var sidebar=document.getElementById('sidebar');
+  var user=document.getElementById('sidebar-user');
+  if(!sidebar||!user)return;
+  var items=Array.from(sidebar.querySelectorAll(':scope > .nav-item'));
+  function item(page){return items.find(function(el){return (el.getAttribute('onclick')||'').includes("showPage('"+page+"'");});}
+  function move(page,container){var el=item(page);if(el)container.appendChild(el);}
+  var saved={};
+  try{saved=JSON.parse(localStorage.getItem('_ordo_sidebar_groups_v1')||'{}')||{};}catch(e){}
+  function group(key,title,pages){
+    var section=document.createElement('div');
+    section.className='sidebar-group';
+    section.dataset.group=key;
+    var toggle=document.createElement('button');
+    toggle.type='button';
+    toggle.className='sidebar-group-toggle';
+    toggle.innerHTML='<span>'+title+'</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
+    toggle.setAttribute('aria-expanded',saved[key]?'true':'false');
+    toggle.setAttribute('aria-controls','sidebar-group-'+key);
+    var body=document.createElement('div');
+    body.className='sidebar-group-items';
+    body.id='sidebar-group-'+key;
+    section.append(toggle,body);
+    pages.forEach(function(page){move(page,body);});
+    sidebar.insertBefore(section,user);
+    section.classList.toggle('is-open',!!saved[key]);
+    toggle.addEventListener('click',function(){
+      var open=!section.classList.contains('is-open');
+      section.classList.toggle('is-open',open);
+      toggle.setAttribute('aria-expanded',String(open));
+      saved[key]=open;
+      try{localStorage.setItem('_ordo_sidebar_groups_v1',JSON.stringify(saved));}catch(e){}
+    });
+    return section;
+  }
+  var dashboard=item('dashboard');if(dashboard)sidebar.insertBefore(dashboard,user);
+  group('projects','المشاريع',['tasks','projects','schedule','meetings']);
+  group('clients','إدارة العمل والعملاء',['clients','services','reviews']);
+  var support=item('support');if(support)sidebar.insertBefore(support,user);
+  group('finance','المالية',['finance','invoices','proposals']);
+  group('team','الفريق',['team']);
+  group('system','النظام والمساحة',['timetracker','freelancer-goals','vault']);
+  group('settings','الإعدادات',['settings']);
+  var backup=items.find(function(el){return (el.getAttribute('onclick')||'').includes('openBackupModal(');});
+  if(backup){var settingsBody=document.getElementById('sidebar-group-settings');settingsBody.appendChild(backup);}
+  function revealActive(){
+    var active=sidebar.querySelector('.sidebar-group .nav-item.active');
+    var section=active&&active.closest('.sidebar-group');
+    if(section&&!section.classList.contains('is-open')){
+      section.classList.add('is-open');
+      section.querySelector('.sidebar-group-toggle').setAttribute('aria-expanded','true');
+    }
+  }
+  var observer=new MutationObserver(function(){revealActive();});
+  items.forEach(function(el){observer.observe(el,{attributes:true,attributeFilter:['class']});});
+  revealActive();
+})();
+</script>
 
 <!-- ╔══ APP BODY ══╗ -->
 <div class="app-body" id="app-body">
