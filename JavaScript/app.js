@@ -192,7 +192,7 @@ function userKey(){const sess=getSession();return 'studioOS_v3_'+(sess?sess.id:'
 function _localStateKeys(){
   const sess=getSession();
   const uid=(sess&&sess.id)||(typeof _supaUserId!=='undefined'&&_supaUserId)||(window.ORDO_CONFIG&&ORDO_CONFIG.DEFAULT_USER_ID)||'local_user';
-  const keys=[userKey(),'studioOS_v3_'+uid,'_ordo_cache_'+uid,'ordo_local_snapshot_v1','studioOS_v3_local_user'];
+  const keys=['studioOS_v3_'+uid,userKey(),'_ordo_cache_'+uid,'ordo_local_snapshot_v1','studioOS_v3_local_user'];
   return keys.filter((k,i)=>k&&keys.indexOf(k)===i);
 }
 function _normalizeLocalState(d){
@@ -211,16 +211,16 @@ function _localStateScore(d){
 }
 function _readBestLocalState(){
   let best=null,bestScore=-1,bestTime=0;
+  // The server snapshot is loaded through the regular async account flow.
+  // A synchronous XHR here blocked every refresh (and /api/local-state is not a deployed route).
+  const keys=_localStateKeys();
+  // A current scoped save is authoritative, even after tasks were deleted.
+  // Older fallback snapshots are read only once for migration.
   try{
-    const xhr=new XMLHttpRequest();
-    xhr.open('GET','/api/local-state?t='+Date.now(),false);
-    xhr.send(null);
-    if(xhr.status>=200&&xhr.status<300){
-      const serverState=_normalizeLocalState(xhr.responseText);
-      if(serverState){best=serverState;bestScore=_localStateScore(serverState);bestTime=Date.parse(serverState._savedAt||serverState.updated_at||'')||0;}
-    }
+    const current=_normalizeLocalState(localStorage.getItem(keys[0]));
+    if(current) return current;
   }catch(e){}
-  _localStateKeys().forEach(key=>{
+  keys.slice(1).forEach(key=>{
     try{
       const d=_normalizeLocalState(localStorage.getItem(key));
       if(!d)return;
@@ -242,13 +242,9 @@ function lsSave(){
     S=_normalizeLocalState(S)||S;
     S._savedAt=new Date().toISOString();
     const json=JSON.stringify(S);
-    _localStateKeys().forEach(key=>{try{localStorage.setItem(key,json);}catch(e){}});
-    try{
-      const xhr=new XMLHttpRequest();
-      xhr.open('POST','/api/local-state',false);
-      xhr.setRequestHeader('Content-Type','application/json');
-      xhr.send(json);
-    }catch(e){}
+    localStorage.setItem(_localStateKeys()[0],json);
+    // localStorage is durable immediately; network persistence runs in the
+    // existing asynchronous account flow. Never block a drag or theme switch.
     if(window.OrdoLocalPersistence&&typeof OrdoLocalPersistence.backupNow==='function'){
       try{OrdoLocalPersistence.backupNow('lsSave');}catch(e){}
     }
@@ -2409,15 +2405,15 @@ function setDisplayMode(mode, persist = true) {
   if(persist && typeof S !== 'undefined' && S){
     if(!S.settings) S.settings={};
     S.settings.displayMode = mode;
-    if(typeof lsSave==='function') lsSave();
     clearTimeout(window._modeCloudTimer);
     if(typeof cloudSaveNow==='function') cloudSaveNow(S);
+    else if(typeof lsSave==='function') lsSave();
   }
   if(persist){
     // Only a deliberate toggle needs the expensive follow-up UI work.
     var _staleEls = ['_toast','_autosave-dot','sync-indicator','mini-notif'];
     _staleEls.forEach(function(id){ var e=document.getElementById(id); if(e) e.remove(); });
-    applyStudioAppearance();
+    applyStudioAppearance(true);
     updateUserBadge(getSession()||{});
   }
 }
@@ -2491,7 +2487,7 @@ function installStudioFontScaleObserver(){
   });
   window.__studioFontScaleObserver.observe(document.body || document.documentElement, {childList:true, subtree:true});
 }
-function applyStudioAppearance(){
+function applyStudioAppearance(skipFontScan){
   var s = (typeof S !== 'undefined' && S && S.settings) || {};
   var mode = localStorage.getItem('studioDisplayMode') || s.displayMode || 'dark';
   var fontScale = Number(localStorage.getItem('studioFontScale') || s.fontScale || 1);
@@ -2501,8 +2497,14 @@ function applyStudioAppearance(){
   fontScale = Math.max(.86, Math.min(1.12, fontScale || 1));
   document.documentElement.style.setProperty('--app-font-scale', String(fontScale || 1));
   document.documentElement.style.setProperty('--app-font-scale-inverse', String(1 / (fontScale || 1)));
-  applyStudioInlineFontScale(fontScale);
-  installStudioFontScaleObserver();
+  if(!skipFontScan){
+    if(fontScale !== 1 || window.__studioFontScaleObserver) applyStudioInlineFontScale(fontScale);
+    if(fontScale !== 1) installStudioFontScaleObserver();
+    else if(window.__studioFontScaleObserver){
+      window.__studioFontScaleObserver.disconnect();
+      window.__studioFontScaleObserver = null;
+    }
+  }
   if(document.body){
     document.body.style.removeProperty('zoom');
     document.body.classList.toggle('studio-toned', !!tone);
@@ -8760,6 +8762,7 @@ function _renderFeaturesPanel(){
     if(action === 'view-list') return window.__tasksV2SetView('list');
     if(action === 'statuses' && typeof openStatusManagerModal === 'function') return openStatusManagerModal();
   });
+  window.__tasksV2Refresh = renderTasksV2;
   window.__tasksV2DragStart = function(ev, id){
     dragId = id;
     justDragged = false;
@@ -8807,9 +8810,8 @@ function _renderFeaturesPanel(){
         task.completedAt = null;
       }
       lsSave();
-      if(typeof cloudSave === 'function') cloudSave(S);
       if(typeof showMiniNotif === 'function') showMiniNotif('<i class="fa-solid fa-diagram-project" style="color:var(--accent)"></i> تم نقل مهمة المشروع');
-      renderAll();
+      refreshAfterKanbanMove();
       return;
     }
     task.status = status === 'done' ? 'done' : status;
@@ -8825,9 +8827,8 @@ function _renderFeaturesPanel(){
       task.archiveReminderAgainAt = null;
     }
     lsSave();
-    if(typeof cloudSave === 'function') cloudSave(S);
     if(typeof showMiniNotif === 'function') showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم نقل المهمة إلى '+getStatusLabel(status));
-    renderAll();
+    refreshAfterKanbanMove();
   };
 
   if(typeof renderTasks === 'function'){
@@ -18322,6 +18323,18 @@ function _saveCapacity(){
 // ============================================================
 let _kbDragId = null;
 
+function refreshAfterKanbanMove(){
+  const v2Shell = document.getElementById('tasks-v2-shell');
+  if(v2Shell && v2Shell.style.display !== 'none' && typeof window.__tasksV2Refresh === 'function'){
+    _updateScopeCounts();
+    window.__tasksV2Refresh();
+  } else {
+    renderTasks();
+  }
+  updateDash();
+  if(typeof renderDashKanbanMini === 'function') renderDashKanbanMini();
+}
+
 function kbDragStart(ev, taskId){
   _kbDragId = taskId;
   ev.dataTransfer.effectAllowed = 'move';
@@ -18365,7 +18378,7 @@ function kbDrop(ev){
     task.archiveReminderAgainAt = null;
   }
   lsSave();
-  renderAll();
+  refreshAfterKanbanMove();
   const statusLabels = {'new':'<i class="fa-solid fa-clipboard-list"></i> جديد','progress':'<i class="fa-solid fa-bolt"></i> قيد التنفيذ','review':'<i class="fa-solid fa-magnifying-glass"></i> مراجعة','paused':'âڈ¸ موقوف','done':'<i class="fa-solid fa-square-check"></i> مكتمل'};
   const customLabel = (S.customStatuses||[]).find(c=>c.id===newStatus)?.label||newStatus;
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> '+(statusLabels[newStatus]||customLabel));
@@ -18382,7 +18395,7 @@ function kbDropDone(ev){
   if(!task || task.done) return;
   _markTaskCompleted(task);
   lsSave();
-  renderAll();
+  refreshAfterKanbanMove();
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مكتمل');
   _kbDragId = null;
   document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));

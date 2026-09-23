@@ -34,7 +34,7 @@
   } catch(e) {}
 })();
 </script>
-<style>html.theme-loading *,html.theme-loading *::before,html.theme-loading *::after{transition:none!important;animation:none!important}</style>
+<style>html.theme-loading body,html.theme-loading .app-shell,html.theme-loading .sidebar,html.theme-loading .app-header{transition:none!important;animation:none!important}</style>
 <script>
 if(location.pathname==='/reviews' && new URLSearchParams(location.search).has('uid')){
   location.replace('/public-reviews'+location.search);
@@ -1095,7 +1095,7 @@ function getQRDataURL(text, size) {
 </script>
 <!-- Quill Rich Text Editor -->
 <link href="../Assets/vendor/quill/quill.snow.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../CSS/styles.css?v=storage-1">
+<link rel="stylesheet" href="../CSS/styles.css?v=theme-kanban-2">
 <script>
 (function(){
   try{
@@ -1202,7 +1202,7 @@ function getQRDataURL(text, size) {
 
 </head>
 <body style="visibility:hidden">
-<script>document.body.classList.toggle('light-mode', document.documentElement.classList.contains('light-mode'));document.documentElement.classList.remove('theme-loading');</script>
+<script>document.body.classList.toggle('light-mode', document.documentElement.classList.contains('light-mode'));</script>
 <!-- Offline indicator -->
 <div id="_offline-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(20,20,30,.94);backdrop-filter:blur(8px);padding:7px 16px;text-align:center;font-family:Cairo,Tajawal,sans-serif;font-size:12px;font-weight:400;color:#f7c948;letter-spacing:.3px;border-bottom:1px solid rgba(247,201,72,.15)">
   <i class="fa-solid fa-wifi" style="opacity:.6;margin-left:6px;font-size:11px"></i>لا يوجد اتصال بالإنترنت
@@ -1238,6 +1238,7 @@ window._loginDone = false; // يتحوّل لـ true لما اللوجين يك�
 window._showApp = function(){
   if(!window._cloudLoadDone) { window._appReady = false; } else { window._appReady = true; }
   document.body.style.visibility = 'visible';
+  document.documentElement.classList.remove('theme-loading');
   var _pp = new URLSearchParams(window.location.search);
   var isPublic = _pp.get('svcorder') || _pp.get('u') || (_pp.get('portal') && _pp.get('uid'));
   if(isPublic) {
@@ -1261,6 +1262,7 @@ setTimeout(function(){
   var authScreen = document.getElementById('auth-screen');
   if(authScreen && authScreen.classList.contains('hidden')) return; // اللوجين مخبي = في session
   document.body.style.visibility = 'visible';
+  document.documentElement.classList.remove('theme-loading');
 }, 4000);
 
 if(new URLSearchParams(window.location.search).get('svcorder')) setTimeout(window._showApp, 500);
@@ -1393,6 +1395,7 @@ try {
     document.body.classList.add('auth-booting');
     document.getElementById('auth-screen').classList.remove('hidden');
     document.body.style.visibility = 'visible';
+    document.documentElement.classList.remove('theme-loading');
   }
 } catch(e) {}
 </script>
@@ -5496,7 +5499,7 @@ try {
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=storage-1"></script>
+<script src="../JavaScript/app.js?v=theme-kanban-2"></script>
 <script>document.body.classList.remove('auth-booting');</script>
 <script src="../JavaScript/vercel_persistence.js?v=storage-1"></script>
 
@@ -9122,6 +9125,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var html = document.documentElement;
     if(body) {
       body.style.visibility = 'visible';
+      html.classList.remove('theme-loading');
       body.classList.add('app-loaded');
       body.classList.remove('auth-open');
     }
