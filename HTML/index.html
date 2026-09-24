@@ -5531,7 +5531,7 @@ try {
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=theme-sync-3"></script>
+<script src="../JavaScript/app.js?v=nav-perf-1"></script>
 <script>document.body.classList.remove('auth-booting');</script>
 <script src="../JavaScript/vercel_persistence.js?v=theme-sync-2"></script>
 
@@ -8951,11 +8951,12 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   if(!window.__ordoMojibakeObserver){
     window.__ordoMojibakeObserver = new MutationObserver(function(list){
-      var root = document.body;
       list.forEach(function(m){
-        if(m.target && m.target.nodeType === 1) root = m.target;
+        Array.prototype.forEach.call(m.addedNodes || [], function(node){
+          if(node.nodeType === 1) repairMojibakeText(node);
+          else if(node.nodeType === 3 && node.parentElement) repairMojibakeText(node.parentElement);
+        });
       });
-      repairMojibakeText(root);
     });
     setTimeout(function(){
       if(document.body) window.__ordoMojibakeObserver.observe(document.body, {childList:true, subtree:true});

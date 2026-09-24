@@ -495,7 +495,7 @@ function _goBackPage(){
   var bnmEl=document.getElementById("bnm-"+prev); if(bnmEl) bnmEl.classList.add("active");
   updateHeader(prev);
   if(window.innerWidth<=1024) closeSidebar();
-  renderAll();
+  renderVisiblePage(prev);
   window.scrollTo(0,0);
   _updateNavBtns();
 }
@@ -1228,19 +1228,13 @@ function showPage(id,el){
   if(bnmEl)bnmEl.classList.add('active');
   updateHeader(id);
   if(window.innerWidth<=1024) closeSidebar();
-  renderAll();
+  renderVisiblePage(id);
   if(id === 'schedule' && typeof switchScheduleTab === 'function') switchScheduleTab('day');
   if(typeof loadOrdoPageModule === 'function') loadOrdoPageModule(id).then(function(mod){ if(mod && typeof mod.mount === 'function') mod.mount(); }).catch(function(e){ console.warn('[Ordo] page module failed', id, e); });
   window.scrollTo(0,0);
-  applyPlatformConfig();
-  // When navigating to services page, show the stores home list
-  if(id === 'services'){
-    setTimeout(function(){
-      if(typeof renderStoresHomeList==='function') renderStoresHomeList();
-    }, 50);
-  }
+  // Theme is already active. Reapplying platform colors on each navigation
+  // caused a visible color flash and forced unnecessary style recalculation.
   if(id === 'reviews'){
-    setTimeout(renderReviewsPage, 50);
     // Auto-sync on page open ? silently (no button ref)
     setTimeout(function(){ if(typeof _syncReviewsNow==='function') _syncReviewsNow(null); }, 300);
   }
@@ -1798,7 +1792,6 @@ function removeExpenseCat(i) {
 // SETTINGS
 // ============================================================
 function loadSettings(){
-  applyPlatformConfig(); // re-apply on each settings load
   const s=S.settings||{};
   _renderLogoPreviews();
   renderExpenseCats();
@@ -1822,7 +1815,6 @@ function loadSettings(){
   const picker = document.getElementById('custom-accent-picker');
   if(picker) picker.value = color;
   installSettingsRedesign();
-  applyStudioAppearance();
   updateUserBadge(getSession()||{});
   const nd=document.getElementById('studio-name-disp');if(nd)nd.textContent=s.name||'صاحب العمل';
   renderPoliciesList('policies-list', s.policies||[], 'removePolicy');
@@ -12331,6 +12323,24 @@ function _updatePerfCard(done, pending, inc){
 // ============================================================
 // RENDER ALL
 // ============================================================
+function renderVisiblePage(id){
+  const pages={
+    dashboard:()=>{updateDash();renderDashTeamPay();renderDashKanbanMini();renderDashMeetings();renderSalaryReminders();renderFollowupReminders();},
+    tasks:()=>renderTasks(),projects:()=>renderProjects(),clients:()=>renderClients(),
+    finance:()=>renderFinance(),invoices:()=>renderInvoices(),settings:()=>loadSettings(),
+    schedule:()=>renderSchedule(),goals:()=>renderGoals(),team:()=>renderTeams(),
+    meetings:()=>renderMeetings(),timetracker:()=>renderTimeTracker(),contracts:()=>renderContractsList(),
+    services:()=>{renderServices();renderStoresHomeList();},support:()=>renderSupport(),
+    'freelancer-goals':()=>renderFreelancerGoalsPage(),reviews:()=>renderReviewsPage(),
+    proposals:()=>renderProposals(),
+    learning:()=>{},'project-detail':()=>{},vault:()=>{}
+  };
+  if(pages[id]) pages[id]();
+  else renderAll();
+  try{_updateNavBtns();}catch(e){}
+  if(typeof _updateInboxBadge==='function')_updateInboxBadge();
+  if(typeof _updateTeamInviteBadge==='function')_updateTeamInviteBadge();
+}
 function renderAll(){
   renderTasks();renderClients();renderFinance();renderInvoices();
   renderGoals();renderSchedule();updateDash();loadSettings();renderTeams();
