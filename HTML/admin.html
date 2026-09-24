@@ -2649,7 +2649,7 @@ const DEFAULT_PLANS = [
   }
 ];
 
-let PLANS = lsGet('plans', DEFAULT_PLANS);
+let PLANS = lsGet('plans', []);
 
 let SERIALS = lsGet('serials', []);
 let ACTIVITY_LOG = lsGet('activity_log', []);
@@ -2766,31 +2766,9 @@ async function syncPlansFromSupabase() {
       .order('price_monthly', { ascending: true });
     if(error) throw error;
 
-    const rows = data || [];
-    const canonicalDefaults = DEFAULT_PLANS.map(plan => ({
-      ...plan,
-      id: plan.id === 'starter' ? 'basic' : plan.id
-    }));
-    const byId = new Map(rows.map(row => [row.id, row]));
-    const missing = canonicalDefaults.filter(plan => !byId.has(plan.id));
-    const seedRows = rows.filter(row => ['basic', 'pro'].includes(row.id) && ['Basic', 'Pro'].includes(row.name));
-
-    if(missing.length || seedRows.length) {
-      const defaultsById = new Map(canonicalDefaults.map(plan => [plan.id, plan]));
-      const upserts = [
-        ...missing.map(_planToDb),
-        ...seedRows.map(row => _planToDb(defaultsById.get(row.id)))
-      ];
-      const { error: upsertError } = await supa.from('subscription_plans').upsert(upserts, { onConflict: 'id' });
-      if(upsertError) throw upsertError;
-      const { data: refreshed, error: refreshError } = await supa.from('subscription_plans')
-        .select('id,name,plan_name,price,price_monthly,duration_days,features,active,created_at,updated_at')
-        .order('price_monthly', { ascending: true });
-      if(refreshError) throw refreshError;
-      PLANS = (refreshed || []).filter(row => row.active !== false).map(_planFromDb);
-    } else {
-      PLANS = rows.filter(row => row.active !== false).map(_planFromDb);
-    }
+    // The database is authoritative. Restoring missing defaults here made a
+    // deliberately deleted plan reappear on every dashboard refresh.
+    PLANS = (data || []).filter(row => row.active !== false).map(_planFromDb);
     lsSet('plans', PLANS);
     renderPlans();
     return true;
@@ -4722,9 +4700,9 @@ async function deletePlan(id) {
   }
   const { error } = await supa.from('subscription_plans').delete().eq('id', id);
   if(error) { toast('⛔ تعذر حذف الباقة: ' + error.message); return; }
-  PLANS = PLANS.filter(plan => plan.id !== id);
-  lsSet('plans', PLANS);
-  renderPlans();
+  const { data: remaining, error: verifyError } = await supa.from('subscription_plans').select('id').eq('id', id).maybeSingle();
+  if(verifyError || remaining) { toast('⛔ لم يتأكد حذف الباقة من قاعدة البيانات'); return; }
+  if(!await syncPlansFromSupabase()) { toast('⚠ تم إرسال طلب الحذف لكن تعذر تأكيده؛ حدّث الصفحة للتحقق'); return; }
   toast('🗑 تم حذف الباقة من السحابة');
 }
 
