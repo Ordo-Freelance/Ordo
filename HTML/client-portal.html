@@ -243,7 +243,7 @@ function xeHtml(html) {
   });
   return safe;
 }
-function hideLs(){const l=document.getElementById('ls');l.style.opacity='0';l.style.transition='opacity .4s';setTimeout(()=>{l.style.display='none'},400);document.getElementById('root').style.display='block';}
+function hideLs(){const l=document.getElementById('ls');l.style.opacity='0';l.style.transition='opacity .4s';setTimeout(()=>{l.style.display='none'},400);document.getElementById('root').style.display='flex';}
 function showErr(m){document.getElementById('ls').style.display='none';const er=document.getElementById('er');er.style.display='flex';if(m)document.getElementById('er-msg').textContent=m;}
 function applyPortalIdentityBackground(settings){
   try{

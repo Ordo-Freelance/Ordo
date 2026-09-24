@@ -81,5 +81,6 @@ test('account tab shows unbilled task dues and footer stays at page bottom', () 
   assert.match(html,/إجمالي المستحق الآن[\s\S]*?EGP":3000/);
   assert.match(html,/أعمال مستحقة غير مفوترة/);
   assert.match(portalSource,/#root\{min-height:100vh;display:flex;flex-direction:column\}/);
+  assert.match(portalSource,/document\.getElementById\('root'\)\.style\.display='flex'/);
   assert.match(portalSource,/\.wrap\{[^}]*flex:1/);
 });
