@@ -1199,7 +1199,7 @@ function getQRDataURL(text, size) {
 </style>
 
 <script src="../Assets/vendor/quill/quill.min.js"></script>
-<link rel="stylesheet" href="../CSS/user-redesign.css?v=20260924-2">
+<link rel="stylesheet" href="../CSS/user-redesign.css?v=20260924-3">
 <link rel="stylesheet" href="../CSS/portal_chat.css?v=1">
 
 </head>
@@ -4732,8 +4732,10 @@ try {
       <div class="form-group"><label class="form-label">الأولوية</label><select class="form-select" id="t-priority"><option value="high"><i class="fa-solid fa-circle"></i> عالية — عاجل</option><option value="med" selected=""><i class="fa-solid fa-circle"></i> متوسطة</option><option value="low"><i class="fa-solid fa-circle"></i> منخفضة</option></select></div>
       <div class="form-group"><label class="form-label">الحالة</label><select class="form-select" id="t-status"><option value="new">جديد</option><option value="progress">قيد التنفيذ</option><option value="review">مراجعة</option><option value="paused">⏸ موقوف مؤقتاً</option><option value="done">مكتمل</option></select></div>
     </div>
+    <details class="task-form-optional" id="task-color-options">
+      <summary><i class="fa-solid fa-palette"></i> لون المهمة في التقويم <span>اختياري</span></summary>
     <div class="form-group">
-      <label class="form-label"><i class="fa-solid fa-palette"></i> لون المهمة في التقويم</label>
+      <label class="form-label">اختيار اللون</label>
       <div class="task-color-row">
         <input class="form-input" type="color" id="t-color" value="#7c6ff7" title="لون المهمة" oninput="_previewTaskCalendarColor(this.value)">
         <button type="button" class="task-color-swatch" style="--sw:#7c6ff7" onclick="_setTaskColor('#7c6ff7')" title="بنفسجي"></button>
@@ -4744,6 +4746,7 @@ try {
         <button type="button" class="task-color-swatch" style="--sw:#8e24aa" onclick="_setTaskColor('#8e24aa')" title="موف"></button>
       </div>
     </div>
+    </details>
     <div class="form-row" id="t-value-row">
       <div class="form-group"><label class="form-label" id="t-value-label">قيمة المشروع</label><input class="form-input" type="number" id="t-value" placeholder="0" oninput="calcTaskProfit()"></div>
       <div class="form-group" id="t-currency-wrap"><label class="form-label">عملة المهمة</label><select class="form-select" id="t-currency"><option value="EGP">جنيه مصري (ج.م)</option><option value="USD">دولار أمريكي ($)</option></select></div>
@@ -4751,6 +4754,8 @@ try {
     </div>
     <div class="form-group" id="deposit-row" style="display:none"><label class="form-label" id="t-deposit-label">قيمة العربون المدفوع</label><input class="form-input" type="number" id="t-deposit" placeholder="0"></div>
 
+    <details class="task-form-optional" id="task-extra-options">
+      <summary><i class="fa-solid fa-sliders"></i> تفاصيل إضافية <span>الفريق، الخطوات، الملاحظات والبريف</span></summary>
     <!-- ── من يعمل على المهمة؟ ── -->
     <div style="background:rgba(100,181,246,.07);border:1px solid rgba(100,181,246,.25);border-radius:10px;padding:12px 14px;margin-bottom:10px" id="t-worker-section">
       <div style="font-size:12px;font-weight:700;color:#64b5f6;margin-bottom:10px"><i class="fa-solid fa-user"></i> من يعمل على المهمة؟</div>
@@ -4834,6 +4839,7 @@ try {
       <div id="t-brief-editor"></div>
     </div>
 
+    </details>
     <!-- ── إصدار فاتورة اختياري ── -->
     <div id="task-inv-opt" style="background:rgba(124,111,247,.07);border:1.5px dashed rgba(124,111,247,.28);border-radius:10px;padding:11px 14px;margin-bottom:2px">
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;margin:0">
@@ -5508,7 +5514,7 @@ try {
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=team-coming-1"></script>
+<script src="../JavaScript/app.js?v=declutter-1"></script>
 <script>document.body.classList.remove('auth-booting');</script>
 <script src="../JavaScript/vercel_persistence.js?v=storage-1"></script>
 

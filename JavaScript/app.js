@@ -3288,6 +3288,10 @@ function openTaskDetail(id){
 }
 
 function openTaskModal(id){
+  const extraOptions=document.getElementById('task-extra-options');
+  const colorOptions=document.getElementById('task-color-options');
+  if(extraOptions) extraOptions.open=!!id;
+  if(colorOptions) colorOptions.open=false;
   fillDD('t-client');
   fillTaskTypesDD();
   fillWorkerMembersDD();
@@ -5282,7 +5286,7 @@ function _renderProfileTab(tab, id){
     const doneTasks = cTasks.filter(t=>t.done||t.status==='done').length;
     const reviews = (S.reviews||[]).filter(r=>String(r.client_id)===String(c.id)||r.client_name===c.name);
     const avg = reviews.length ? (reviews.reduce((s,r)=>s+(+r.stars||0),0)/reviews.length).toFixed(1) : '—';
-    const recentRows = sortedTasks.slice(0,6).map(t=>{
+    const recentRows = sortedTasks.slice(0,3).map(t=>{
       const due = _taskDue(t);
       const paid = _taskIsPaid(t);
       const st = t.done||t.status==='done' ? 'done' : (t.status||'new');

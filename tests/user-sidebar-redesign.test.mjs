@@ -65,3 +65,13 @@ test('reference screens retain their controls while receiving readable layouts',
   }
   assert.ok(app.includes('tasks-v2-shell'));
 });
+
+test('task form keeps secondary fields available without crowding a new task', () => {
+  assert.match(html, /<details class="task-form-optional" id="task-color-options">/);
+  assert.match(html, /<details class="task-form-optional" id="task-extra-options">/);
+  assert.match(app, /extraOptions\.open=!!id/);
+  for (const id of ['t-color', 't-worker-type', 't-notes', 't-steps-list', 't-brief-editor']) {
+    assert.ok(html.includes(`id="${id}"`), `missing ${id}`);
+  }
+  assert.match(app, /sortedTasks\.slice\(0,3\)/);
+});

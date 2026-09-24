@@ -298,6 +298,43 @@ body.app-loaded:not(.pub-page) #modal-task .modal > div:last-child {
 }
 body.app-loaded:not(.light-mode):not(.pub-page) #modal-task .modal > div:last-child { background: #152039; }
 
+/* Progressive disclosure keeps the task form focused on the fields used every time. */
+body.app-loaded:not(.pub-page) #modal-task .task-form-optional {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-block: 14px;
+  padding: 0 14px;
+  background: color-mix(in srgb, var(--surface2) 46%, var(--surface));
+}
+body.app-loaded:not(.pub-page) #modal-task .task-form-optional > summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 46px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 700;
+}
+body.app-loaded:not(.pub-page) #modal-task .task-form-optional > summary::-webkit-details-marker { display: none; }
+body.app-loaded:not(.pub-page) #modal-task .task-form-optional > summary::after {
+  content: '⌄';
+  margin-inline-start: auto;
+  color: var(--text3);
+  transition: transform .18s ease;
+}
+body.app-loaded:not(.pub-page) #modal-task .task-form-optional[open] > summary::after { transform: rotate(180deg); }
+body.app-loaded:not(.pub-page) #modal-task .task-form-optional > summary span {
+  color: var(--text3);
+  font-size: 11px;
+  font-weight: 500;
+}
+body.app-loaded:not(.pub-page) #modal-task .task-form-optional[open] > summary {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 15px;
+}
+body.app-loaded:not(.pub-page) #modal-task .task-form-optional > .form-group:last-child { margin-bottom: 16px; }
+
 /* Task list and kanban: improve hierarchy without altering drag/drop. */
 body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-hero { gap: 18px; margin-bottom: 22px; }
 body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-title { font-size: clamp(22px, 2vw, 29px); }
@@ -373,6 +410,65 @@ body.app-loaded:not(.pub-page) #modal-task-detail .tasks-v2-detail-section {
   background: var(--surface2);
 }
 body.app-loaded:not(.pub-page) #modal-task-detail .tasks-v2-detail-note { font-size: 13px; line-height: 1.9; }
+
+/* Reduce the number of competing visual boxes while leaving every action available. */
+body.app-loaded:not(.pub-page) #page-clients .client-card-simple {
+  min-height: 0 !important;
+  padding: 15px !important;
+  box-shadow: none !important;
+}
+body.app-loaded:not(.pub-page) #page-clients .client-simple-card-info span { font-weight: 500; }
+body.app-loaded:not(.pub-page) #page-clients .client-simple-card-contact { margin-top: 10px; }
+body.app-loaded:not(.pub-page) #page-clients .client-simple-card-contact span {
+  padding: 0;
+  background: transparent;
+  font-weight: 500;
+}
+body.app-loaded:not(.pub-page) #page-clients .client-simple-card-stats {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+body.app-loaded:not(.pub-page) #page-clients .client-simple-card-stats span {
+  min-height: 32px;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-metrics button {
+  min-height: 66px !important;
+  border: 1px solid var(--border);
+  box-shadow: none !important;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-section {
+  border: 1px solid var(--border);
+  background: var(--surface) !important;
+}
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-quick-card {
+  min-height: 70px;
+  padding: 13px 15px;
+  box-shadow: none !important;
+}
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-quick-card small {
+  color: var(--text3);
+  font-weight: 400;
+}
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-card { min-height: 0 !important; }
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-card-line.is-muted { color: var(--text3); }
+body.app-loaded:not(.pub-page) #modal-task-detail .tasks-v2-detail-hero,
+body.app-loaded:not(.pub-page) #modal-task-detail .tasks-v2-detail-grid button,
+body.app-loaded:not(.pub-page) #modal-task-detail .tasks-v2-detail-section {
+  box-shadow: none !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border);
+}
+@media (hover: hover) and (pointer: fine) {
+  body.app-loaded:not(.pub-page) #page-clients .client-simple-card-actions,
+  body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-card-actions { opacity: .42; transition: opacity .16s ease; }
+  body.app-loaded:not(.pub-page) #page-clients .client-card-simple:hover .client-simple-card-actions,
+  body.app-loaded:not(.pub-page) #page-clients .client-card-simple:focus-within .client-simple-card-actions,
+  body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-card:hover .tasks-v2-card-actions,
+  body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-card:focus-within .tasks-v2-card-actions { opacity: 1; }
+}
 @media (max-width: 700px) {
   body.app-loaded:not(.pub-page) #modal-task .modal,
   body.app-loaded:not(.pub-page) #modal-task-detail .modal,
