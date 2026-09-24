@@ -1568,7 +1568,7 @@ try {
 <!-- TOP HEADER -->
 <header class="app-header">
   <button class="header-toggle" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="فتح القائمة" style="display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:10px;min-width:0;max-width:180px">
-    <span id="toggle-icon" style="font-size:18px;flex-shrink:0"><i class="fa-solid fa-bars"></i></span>
+    <span id="toggle-icon" style="font-size:18px;flex-shrink:0"><i class="fa-solid fa-xmark"></i></span>
     <span id="_header-studio-name" data-platform-name style="font-size:13px;font-weight:800;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">Ordo</span>
   </button>
   <div class="header-page-title" id="header-page-title" data-i18n="nav_dashboard">لوحة التحكم</div>
@@ -5541,7 +5541,7 @@ try {
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=navy-theme-5"></script>
+<script src="../JavaScript/app.js?v=sidebar-currencies-1"></script>
 <script>document.body.classList.remove('auth-booting');</script>
 <script src="../JavaScript/vercel_persistence.js?v=theme-sync-2"></script>
 
@@ -7938,7 +7938,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 </script>
-<script src="../JavaScript/app_patch.js?v=team-coming-1"></script>
+<script src="../JavaScript/app_patch.js?v=sidebar-currencies-1"></script>
 <script>
 (function(){
   'use strict';
@@ -7946,7 +7946,7 @@ document.addEventListener('DOMContentLoaded', function(){
   var CURRENCIES = [
     {code:'EGP', symbol:'ج.م', label:'جنيه مصري', enabled:true},
     {code:'USD', symbol:'$', label:'دولار أمريكي', enabled:true},
-    {code:'SAR', symbol:'ر.س', label:'ريال سعودي', enabled:false},
+    {code:'SAR', symbol:'ر.س', label:'ريال سعودي', enabled:true},
     {code:'AED', symbol:'AED', label:'درهم إماراتي', enabled:false},
     {code:'EUR', symbol:'€', label:'يورو', enabled:false},
     {code:'KWD', symbol:'د.ك', label:'دينار كويتي', enabled:false},
@@ -7980,7 +7980,7 @@ document.addEventListener('DOMContentLoaded', function(){
       enabledByCode[m.code] = c.enabled !== false;
     });
     s.settings.enabled_currencies = CURRENCIES.map(function(c){
-      return Object.assign({}, c, {enabled: enabledByCode[c.code] !== undefined ? enabledByCode[c.code] : c.enabled !== false});
+      return Object.assign({}, c, {enabled: ['EGP','USD','SAR'].indexOf(c.code) >= 0 || (enabledByCode[c.code] !== undefined ? enabledByCode[c.code] : c.enabled !== false)});
     });
     var base = meta(s.settings.base_currency_code || s.settings.base_currency || s.settings.currency || 'EGP');
     s.settings.base_currency_code = base.code;
@@ -8224,7 +8224,7 @@ document.addEventListener('DOMContentLoaded', function(){
       checks.innerHTML = CURRENCIES.map(function(c){
         var saved = st().settings.enabled_currencies.find(function(x){ return meta(x.code).code === c.code; });
         var enabled = saved ? saved.enabled !== false : c.enabled !== false;
-        return '<label class="ordo-currency-check"><input type="checkbox" value="'+c.code+'" '+(enabled ? 'checked' : '')+'> <span>'+c.label+'</span><b>'+c.symbol+'</b></label>';
+        return '<label class="ordo-currency-check"><input type="checkbox" value="'+c.code+'" '+(enabled ? 'checked' : '')+(['EGP','USD','SAR'].indexOf(c.code) >= 0 ? ' disabled title="عملة أساسية متاحة دائمًا"' : '')+'> <span>'+c.label+'</span><b>'+c.symbol+'</b></label>';
       }).join('');
     }
   }
@@ -8233,6 +8233,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var base = (document.getElementById('studio-base-currency') || {}).value || 'EGP';
     var enabled = Array.prototype.slice.call(document.querySelectorAll('#studio-enabled-currencies input:checked')).map(function(i){ return i.value; });
     if(enabled.indexOf(base) === -1) enabled.push(base);
+    ['EGP','USD','SAR'].forEach(function(code){ if(enabled.indexOf(code) === -1) enabled.push(code); });
     st().settings.enabled_currencies = CURRENCIES.map(function(c){ return Object.assign({}, c, {enabled:enabled.indexOf(c.code) > -1}); });
     var b = meta(base);
     st().settings.base_currency_code = b.code;

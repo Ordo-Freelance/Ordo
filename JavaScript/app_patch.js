@@ -1460,7 +1460,7 @@ console.log('[Ordo Patch v2] ✅ Extended patches loaded — leads, contacts, ar
   var ORDO_DEFAULT_CURRENCIES = [
     { code:'EGP', symbol:'ج.م', label:'جنيه مصري', enabled:true },
     { code:'USD', symbol:'$', label:'دولار أمريكي', enabled:true },
-    { code:'SAR', symbol:'ر.س', label:'ريال سعودي', enabled:false },
+    { code:'SAR', symbol:'ر.س', label:'ريال سعودي', enabled:true },
     { code:'AED', symbol:'AED', label:'درهم إماراتي', enabled:false },
     { code:'EUR', symbol:'€', label:'يورو', enabled:false },
     { code:'KWD', symbol:'د.ك', label:'دينار كويتي', enabled:false },
@@ -1522,6 +1522,7 @@ console.log('[Ordo Patch v2] ✅ Extended patches loaded — leads, contacts, ar
         return Object.assign({}, def, found || {});
       });
     }
+    s.settings.enabled_currencies.forEach(function(c){ if(['EGP','USD','SAR'].indexOf(c.code) >= 0) c.enabled = true; });
     s.wallets = Array.isArray(s.wallets) ? s.wallets : [];
     s.wallet_transfers = Array.isArray(s.wallet_transfers) ? s.wallet_transfers : [];
     s.temp_todo_lists = Array.isArray(s.temp_todo_lists) ? s.temp_todo_lists : [];
@@ -6368,7 +6369,7 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
   var DEFAULT_CURRENCIES = [
     {code:'EGP', symbol:'ج.م', label:'جنيه مصري', enabled:true},
     {code:'USD', symbol:'$', label:'دولار أمريكي', enabled:true},
-    {code:'SAR', symbol:'ر.س', label:'ريال سعودي', enabled:false},
+    {code:'SAR', symbol:'ر.س', label:'ريال سعودي', enabled:true},
     {code:'AED', symbol:'AED', label:'درهم إماراتي', enabled:false},
     {code:'EUR', symbol:'€', label:'يورو', enabled:false},
     {code:'KWD', symbol:'د.ك', label:'دينار كويتي', enabled:false},
@@ -6392,7 +6393,10 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
       var code = c.code || c.currency_code;
       if(code) map[code] = Object.assign({}, map[code] || {}, c, {code:code});
     });
-    return Object.keys(map).map(function(k){ return map[k]; });
+    return Object.keys(map).map(function(k){
+      if(['EGP','USD','SAR'].indexOf(k) >= 0) map[k].enabled = true;
+      return map[k];
+    });
   }
   function meta(value){
     var s = st();
@@ -7162,7 +7166,7 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
   var CURRENCIES = [
     {code:'EGP', symbol:'\u062c.\u0645', label:'\u062c\u0646\u064a\u0647 \u0645\u0635\u0631\u064a', enabled:true},
     {code:'USD', symbol:'$', label:'\u062f\u0648\u0644\u0627\u0631 \u0623\u0645\u0631\u064a\u0643\u064a', enabled:true},
-    {code:'SAR', symbol:'\u0631.\u0633', label:'\u0631\u064a\u0627\u0644 \u0633\u0639\u0648\u062f\u064a', enabled:false},
+    {code:'SAR', symbol:'\u0631.\u0633', label:'\u0631\u064a\u0627\u0644 \u0633\u0639\u0648\u062f\u064a', enabled:true},
     {code:'AED', symbol:'AED', label:'\u062f\u0631\u0647\u0645 \u0625\u0645\u0627\u0631\u0627\u062a\u064a', enabled:false},
     {code:'EUR', symbol:'\u20ac', label:'\u064a\u0648\u0631\u0648', enabled:false},
     {code:'KWD', symbol:'\u062f.\u0643', label:'\u062f\u064a\u0646\u0627\u0631 \u0643\u0648\u064a\u062a\u064a', enabled:false},
@@ -7248,6 +7252,7 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
         enabled:c.enabled !== false
       });
     });
+    ['EGP','USD','SAR'].forEach(function(code){ byCode[code].enabled = true; });
     s.settings.enabled_currencies = Object.keys(byCode).map(function(code){ return byCode[code]; });
     return s.settings.enabled_currencies;
   }
@@ -7420,7 +7425,7 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
     if(checks){
       checks.innerHTML = all.map(function(c){
         var m = meta(c.code);
-        return '<label class="ordo-currency-check"><input type="checkbox" value="'+m.code+'" '+(c.enabled !== false ? 'checked' : '')+'> <span>'+m.label+'</span><b>'+m.symbol+'</b></label>';
+        return '<label class="ordo-currency-check"><input type="checkbox" value="'+m.code+'" '+(c.enabled !== false ? 'checked' : '')+(['EGP','USD','SAR'].indexOf(m.code) >= 0 ? ' disabled title="عملة أساسية متاحة دائمًا"' : '')+'> <span>'+m.label+'</span><b>'+m.symbol+'</b></label>';
       }).join('');
     }
   }
@@ -7429,6 +7434,7 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
     var base = (document.getElementById('studio-base-currency') || {}).value || baseCurrency().code;
     var enabled = Array.prototype.slice.call(document.querySelectorAll('#studio-enabled-currencies input:checked')).map(function(i){ return i.value; });
     if(enabled.indexOf(base) === -1) enabled.push(base);
+    ['EGP','USD','SAR'].forEach(function(code){ if(enabled.indexOf(code) === -1) enabled.push(code); });
     S().settings.enabled_currencies = CURRENCIES.map(function(c){ return Object.assign({}, c, {enabled:enabled.indexOf(c.code) > -1}); });
     var b = meta(base);
     S().settings.base_currency_code = b.code;

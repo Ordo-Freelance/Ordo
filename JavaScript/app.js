@@ -2829,8 +2829,10 @@ function _salaryCurrencyMeta(value){
 
 function _salaryEnabledCurrencies(){
   const saved = S.settings && Array.isArray(S.settings.enabled_currencies) ? S.settings.enabled_currencies : null;
-  const list = saved && saved.length ? saved.filter(c=>c && c.enabled !== false) : ['EGP','USD','SAR','AED','EUR'].map(code=>_salaryCurrencyMeta(code));
-  return list.map(c=>_salaryCurrencyMeta(c.code || c.currency_code || c.symbol || c.label));
+  const list = saved && saved.length ? saved.filter(c=>c && c.enabled !== false) : ['EGP','USD','SAR'].map(code=>_salaryCurrencyMeta(code));
+  const byCode = new Map(list.map(c=>{ const meta=_salaryCurrencyMeta(c.code || c.currency_code || c.symbol || c.label); return [meta.code,meta]; }));
+  ['EGP','USD','SAR'].forEach(code=>byCode.set(code,_salaryCurrencyMeta(code)));
+  return [...byCode.values()];
 }
 
 function _salaryCurrencyOptions(selected){
@@ -12413,9 +12415,15 @@ function openSidebar(){
     ov.getBoundingClientRect();
     ov.classList.add('visible');
   }
-  const ti = document.getElementById('toggle-icon');
-  if(ti) ti.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+  _setSidebarToggleIcon(true);
   localStorage.setItem('_sidebarOpen','1');
+}
+
+function _setSidebarToggleIcon(isOpen){
+  const ti = document.getElementById('toggle-icon');
+  const button = document.getElementById('sidebar-toggle');
+  if(ti) ti.innerHTML = '<i class="fa-solid fa-' + (isOpen ? 'xmark' : 'bars') + '"></i>';
+  if(button) button.setAttribute('aria-label', isOpen ? 'إغلاق القائمة' : 'فتح القائمة');
 }
 
 function closeSidebar(){
@@ -12432,8 +12440,7 @@ function closeSidebar(){
     ov.style.display = 'none';
     ov.style.pointerEvents = '';
   }, 300);
-  const ti = document.getElementById('toggle-icon');
-  if(ti) ti.textContent = 'âک°';
+  _setSidebarToggleIcon(false);
   localStorage.setItem('_sidebarOpen','0');
 }
 function toggleSidebar(){
@@ -12445,16 +12452,12 @@ function toggleSidebar(){
     s.classList.contains('open')?closeSidebar():openSidebar();
   }
 }
-// Restore sidebar state on load
+// Keep the desktop navigation open by default on each visit.
 (function(){
-  var saved = localStorage.getItem('_sidebarOpen');
   if(window.innerWidth > 1024){
-    if(saved === '0'){
-      document.body.classList.add('sidebar-collapsed');
-      var ti=document.getElementById('toggle-icon');
-      if(ti) ti.textContent='âک°';
-    }
-  }
+    document.body.classList.remove('sidebar-collapsed');
+    _setSidebarToggleIcon(true);
+  } else _setSidebarToggleIcon(false);
 })();
 // Update header title + CTA on page change
 function updateHeader(pageId){
@@ -19360,9 +19363,14 @@ async function initAuthFallback(){
 }
 
 initAuthFallback();
-// close sidebar on desktop resize
+// Only reset the drawer when crossing between mobile and desktop layouts.
+let _sidebarWasDesktop = window.innerWidth > 1024;
 window.addEventListener('resize',()=>{
-  if(window.innerWidth>1024) closeSidebar();
+  const isDesktop = window.innerWidth > 1024;
+  if(isDesktop === _sidebarWasDesktop) return;
+  _sidebarWasDesktop = isDesktop;
+  if(isDesktop) openSidebar();
+  else closeSidebar();
 });
 // Init backup system after auth
 setTimeout(()=>{ initBackupTimers(); }, 1500);
@@ -33061,7 +33069,7 @@ function _ptdSaveNote(taskId, projId){
   var DEFAULT_CURRENCIES = [
     {code:'EGP', symbol:'ج.م', label:'جنيه مصري', enabled:true},
     {code:'USD', symbol:'$', label:'دولار أمريكي', enabled:true},
-    {code:'SAR', symbol:'ر.س', label:'ريال سعودي', enabled:false},
+    {code:'SAR', symbol:'ر.س', label:'ريال سعودي', enabled:true},
     {code:'AED', symbol:'AED', label:'درهم إماراتي', enabled:false},
     {code:'EUR', symbol:'€', label:'يورو', enabled:false},
     {code:'KWD', symbol:'د.ك', label:'دينار كويتي', enabled:false},
@@ -33101,7 +33109,10 @@ function _ptdSaveNote(taskId, projId){
       if(!code) return;
       map[code] = Object.assign({}, map[code] || {}, c, {code:code});
     });
-    return Object.keys(map).map(function(k){ return map[k]; });
+    return Object.keys(map).map(function(k){
+      if(['EGP','USD','SAR'].includes(k)) map[k].enabled = true;
+      return map[k];
+    });
   }
   function _currencyMeta(value){
     var s = _state();
