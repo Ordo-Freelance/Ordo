@@ -1746,12 +1746,7 @@ body.sidebar-collapsed .sidebar-overlay {
     max-height:92dvh !important;
     overflow-y:auto !important;
     -webkit-overflow-scrolling:touch;
-    transform:translateY(100%) !important;
-    transition:transform .28s cubic-bezier(.4,0,.2,1) !important;
     box-shadow:0 -8px 40px rgba(0,0,0,.35) !important;
-  }
-  .modal-overlay.open .modal {
-    transform:translateY(0) !important;
   }
   /* مودال المهام — أطول شوية */
   #modal-task-detail .modal {

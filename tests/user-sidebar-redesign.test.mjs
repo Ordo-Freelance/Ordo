@@ -18,6 +18,13 @@ test('mobile viewport keeps the last page controls above the bottom navigation',
   assert.match(chatCss, /\.support-conversation-pane\{min-height:320px;max-height:min\(55dvh,520px\)\}/);
 });
 
+test('mobile modals opened with inline display stay in the visible viewport', () => {
+  const mobileModalCss = layoutCss.slice(layoutCss.indexOf('/* ══ Mobile: كل المودالات'), layoutCss.indexOf('/* ══ Mobile: كل المودالات') + 1200);
+  assert.doesNotMatch(mobileModalCss, /transform:\s*translateY\(100%\)/);
+  assert.match(html, /max-height:\s*88dvh\s*!important/);
+  assert.match(app, /over\.className='modal-overlay'; over\.style\.display='flex'/);
+});
+
 test('admin coming-soon sections open an informational screen instead of package upsell', () => {
   assert.match(appPatch, /_showPageLock\(match\[1\], item, 'coming'\)/);
   assert.match(appPatch, /_showPageLock\(id, arguments\[1\], 'coming'\)/);
