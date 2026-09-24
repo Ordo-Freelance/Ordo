@@ -15,7 +15,7 @@ function financeContext(data) {
     taskPendingAmount:t => Math.max(0, Number(t.value || 0) - Number(t.deposit || 0)),
     clientNameById:id => data.clients.find(c => String(c.id) === String(id))?.name || '',
     projectById:id => data.projects?.find(p => String(p.id) === String(id)),
-    taskCurrency:() => 'EGP',
+    taskCurrency:() => 'EGP', baseCurrencyCode:() => 'EGP',
     currency:() => 'EGP'
   };
   vm.runInNewContext(source,ctx);

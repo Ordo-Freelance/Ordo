@@ -161,6 +161,14 @@ if(!_pUname&&_shortStorePath) _pUname=decodeURIComponent(_shortStorePath[1]);
 
 // ── helpers ──
 function xe(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function storeMoney(price,entity){
+  var settings=window._pubSettings||{};
+  var value=entity&&(entity.currency_code||entity.currency||entity.currency_symbol)||settings.base_currency_code||settings.base_currency||settings.currency||'EGP';
+  var defaults={EGP:'ج.م',USD:'$',SAR:'ر.س',AED:'د.إ',EUR:'€',KWD:'د.ك',QAR:'ر.ق'};
+  var selected=(settings.enabled_currencies||[]).find(function(c){return c.code===value||c.symbol===value||c.label===value;});
+  var symbol=selected?.symbol||defaults[String(value).toUpperCase()]||value;
+  return Number(price).toLocaleString()+' '+symbol;
+}
 function hideLs(){var l=document.getElementById('_ls');l.style.opacity='0';setTimeout(function(){l.style.display='none';},420);}
 function showErr(m){document.getElementById('_ls').style.display='none';var e=document.getElementById('_er');e.style.display='flex';if(m)document.getElementById('_er-msg').textContent=m;}
 
@@ -286,7 +294,7 @@ async function buildPage(userId, preloadedData){
     var accent=settings.accentColor||settings.accent||settings.theme_color||'#7c6ff7';
     var isLight=(settings.displayMode||settings.display_mode||'dark')==='light';
     var logo=settings.store_logo||(isLight ? (settings.logoDark||settings.logo||settings.logoLight) : (settings.logoLight||settings.logo||settings.logoDark))||'';
-    var studioName=(settings.name||'Studio');
+    var studioName=(settings.svc_store_name||settings.name||'Studio');
     var phone=settings.phone||'';
     var email=settings.email||'';
     var socials=settings.socials||[];
@@ -338,6 +346,7 @@ async function buildPage(userId, preloadedData){
       if(storeObj.name) studioName=storeObj.name;
       if(storeObj.logo) logo=storeObj.logo;
       if(storeObj.desc) siteDesc=storeObj.desc;
+      if(Array.isArray(storeObj.socials)) socials=storeObj.socials;
     }
     // تحديث loading logo بعد تحديد هوية المتجر
     if(lsLogo){
@@ -350,9 +359,10 @@ async function buildPage(userId, preloadedData){
         lsLogo.innerHTML='<span style="font-size:22px;font-weight:900;color:#fff">'+(studioName||'S').charAt(0)+'</span>';
       }
     }
-    var banner=(storeObj&&storeObj.banner)||settings.svc_banner||'';
+    var banner=storeObj?(storeObj.banner||''):(settings.svc_banner||'');
     var bannerSize=(storeObj&&storeObj.banner_size)||settings.svc_banner_size||'md';
-    var bannerH={sm:'160px',md:'260px',lg:'400px'}[bannerSize]||'260px';
+    var customPx=storeObj?(storeObj.banner_custom_px||300):(settings.svc_banner_custom_px||300);
+    var bannerH={sm:'160px',md:'260px',lg:'400px',custom:Math.max(80,Math.min(800,+customPx||300))+'px'}[bannerSize]||'260px';
 
     // ═══════════════════════════════════════
     // ── FILTER: إظهار الكل لما مفيش store محدد ──
@@ -671,7 +681,7 @@ async function buildPage(userId, preloadedData){
     // ── SERVICE CARD builder ──
     // ══════════════════════════════════
     function buildSvcCard(s,i){
-      var pr=s.price&&+s.price?Number(s.price).toLocaleString()+' '+(s.currency||'ج.م'):'عند الطلب';
+      var pr=s.price&&+s.price?storeMoney(s.price,s):'عند الطلب';
       var img=s.image||s.img||s.photo||s.cover||'';
       var payBtn=s.payment_link
         ?'<a href="'+xe(s.payment_link)+'" target="_blank" class="_btn _btn-pay" onclick="event.stopPropagation()"><i class="fa-solid fa-credit-card"></i>ادفع</a>'
@@ -709,7 +719,7 @@ async function buildPage(userId, preloadedData){
     // ── PACKAGE CARD builder ──
     // ══════════════════════════════════
     function buildPkgCard(p,i){
-      var pr=p.price?Number(p.price).toLocaleString()+' '+(p.currency||'ج.م'):'عند الطلب';
+      var pr=p.price?storeMoney(p.price,p):'عند الطلب';
       var cvr=p.thumb||p.image||p.cover||p.thumbnail||p.img||'';
       var payBtn=p.payment_link
         ?'<a href="'+xe(p.payment_link)+'" target="_blank" class="_btn _btn-pay" onclick="event.stopPropagation()"><i class="fa-solid fa-credit-card"></i>ادفع</a>'
@@ -783,7 +793,7 @@ async function buildPage(userId, preloadedData){
       :'<div class="_empty"><div class="_empty-icon">🖼️</div><div class="_empty-t">لا توجد أعمال حالياً</div></div>';
 
     function buildSvcCardTagged(s,i){
-      var pr=s.price&&+s.price?Number(s.price).toLocaleString()+' '+(s.currency||'ج.م'):'عند الطلب';
+      var pr=s.price&&+s.price?storeMoney(s.price,s):'عند الطلب';
       var img=s.image||s.img||s.photo||s.cover||'';
       var payBtn=s.payment_link
         ?'<a href="'+xe(s.payment_link)+'" target="_blank" class="_btn _btn-pay" onclick="event.stopPropagation()"><i class="fa-solid fa-credit-card"></i>ادفع</a>'
@@ -809,7 +819,7 @@ async function buildPage(userId, preloadedData){
     }
 
     function buildPkgCardTagged(p,i){
-      var pr=p.price?Number(p.price).toLocaleString()+' '+(p.currency||'ج.م'):'عند الطلب';
+      var pr=p.price?storeMoney(p.price,p):'عند الطلب';
       var cvr=p.thumb||p.image||p.cover||p.thumbnail||p.img||'';
       var payBtn=p.payment_link
         ?'<a href="'+xe(p.payment_link)+'" target="_blank" class="_btn _btn-pay" onclick="event.stopPropagation()"><i class="fa-solid fa-credit-card"></i>ادفع</a>'
@@ -865,7 +875,7 @@ async function buildPage(userId, preloadedData){
           '</div>'+
           '<div class="_pkg-grid" id="_pkg-grid">'+
             standalonePkgs.map(function(p,i){
-              var pr=p.price?Number(p.price).toLocaleString()+' '+(p.currency||'ج.م'):'عند الطلب';
+              var pr=p.price?storeMoney(p.price,p):'عند الطلب';
               var cvr=p.thumb||p.image||p.cover||p.thumbnail||p.img||'';
               var payBtn=p.payment_link
                 ?'<a href="'+xe(p.payment_link)+'" target="_blank" class="_btn _btn-pay" onclick="event.stopPropagation()"><i class="fa-solid fa-credit-card"></i>ادفع</a>'
@@ -1048,7 +1058,7 @@ window._showAllSvcs=function(){
   var g=document.getElementById('_svc-grid');if(!g)return;
   var svcs=window._pubServices||[];
   g.innerHTML=svcs.map(function(s,i){
-    var pr=s.price&&+s.price?Number(s.price).toLocaleString()+' '+(s.currency||'ج.م'):'عند الطلب';
+    var pr=s.price&&+s.price?storeMoney(s.price,s):'عند الطلب';
     var img=s.image||s.img||'';
     return '<div class="_sc">'+
       (img?'<img class="_sc-img" src="'+xe(img)+'" alt="" loading="lazy" onclick="_openSvc('+i+')">':
@@ -1067,7 +1077,7 @@ window._showAllPkgs=function(){
   var g=document.getElementById('_pkg-grid');if(!g)return;
   var pkgs=window._pubPkgs||[];
   g.innerHTML=pkgs.map(function(p,i){
-    var pr=p.price?Number(p.price).toLocaleString()+' '+(p.currency||'ج.م'):'عند الطلب';
+    var pr=p.price?storeMoney(p.price,p):'عند الطلب';
     var cvr=p.thumb||p.image||p.cover||p.thumbnail||p.img||'';
     return '<div class="_pc">'+
       (cvr?'<img class="_pc-thumb" src="'+xe(cvr)+'" alt="" onclick="_openPkg('+i+')">':
@@ -1109,7 +1119,7 @@ window._showAllPf=function(){
 window._openSvc=function(i){
   var svcs=window._pubServices||[];var s=svcs[i];if(!s)return;
   var accent=window._pubAccent;var C=window._pubColors;var ud=window._pubUd;
-  var pr=s.price&&+s.price?Number(s.price).toLocaleString()+' '+(s.currency||'ج.م'):'عند الطلب';
+  var pr=s.price&&+s.price?storeMoney(s.price,s):'عند الطلب';
   var img=s.image||s.img||'';
   var termsHtml='';
   if(s.terms&&s.terms.length)termsHtml='<div class="_dtl-box"><div class="_dtl-box-title"><i class="fa-solid fa-list-check"></i>ماذا تحصل عليه</div>'+s.terms.map(function(t){return '<div class="_dtl-row"><i class="fa-solid fa-check"></i><span>'+xe(t)+'</span></div>';}).join('')+'</div>';
@@ -1142,7 +1152,7 @@ window._openPkg=function(i){
   var pkgs=window._pubPkgs||[];var p=pkgs[i];if(!p)return;
   var accent=window._pubAccent;
   var cvr=p.thumb||p.image||p.cover||'';
-  var pr=p.price?Number(p.price).toLocaleString()+' '+(p.currency||'ج.م'):'عند الطلب';
+  var pr=p.price?storeMoney(p.price,p):'عند الطلب';
   var ex=document.getElementById('_pdtl');if(ex)ex.remove();
   var pg=document.createElement('div');pg.id='_pdtl';pg.className='_dtl';
   pg.innerHTML='<div class="_dtl-in">'+

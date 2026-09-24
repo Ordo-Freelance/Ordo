@@ -32,7 +32,7 @@
       'standalone_packages','portfolio_projects','svc_orders','specializations',
       'client_portals','loans','budgets','statements','timeEntries','contracts',
       'stores','meetings','courses','reviews','wallets','wallet_transfers',
-      'temp_todo_lists','archivedTasks'
+      'temp_todo_lists','archivedTasks','brief_forms'
     ].forEach(function(k){ if(!Array.isArray(data[k])) data[k] = []; });
     return data;
   }
@@ -82,7 +82,7 @@
 
   function publicSettings(settings){
     settings=settings||{};
-    var allowed=['name','studio','bio','desc','phone','email','logo','logoDark','logoLight','store_logo','svc_banner','svc_banner_size','svc_banner_custom_px','svc_site_desc','svc_orders_open','username','store_slug','accent','accent2','accentColor','accentColor2','theme_color','displayMode','display_mode','fontScale','toneColor','hoverOverlayColor','socials'];
+    var allowed=['name','studio','bio','desc','phone','email','logo','logoDark','logoLight','svc_store_name','store_logo','svc_banner','svc_banner_size','svc_banner_custom_px','svc_site_desc','svc_orders_open','username','store_slug','accent','accent2','accentColor','accentColor2','theme_color','displayMode','display_mode','fontScale','toneColor','toneStyle','toneGradientEnd','toneAngle','hoverOverlayColor','socials','currency','base_currency','base_currency_code','enabled_currencies'];
     var out={}; allowed.forEach(function(key){if(settings[key]!==undefined)out[key]=settings[key];}); return out;
   }
   function publicStoreData(data,store){
@@ -94,7 +94,7 @@
     var projects=(data.projects||[]).filter(function(x){return String(x.client_id||'')===clientId||String(x.clientId||'')===clientId;});
     var projectIds=projects.map(function(x){return String(x.id);});
     function forClient(x){return String(x.client_id||x.clientId||'')===clientId||projectIds.indexOf(String(x.project_id||x.projectId||''))>=0;}
-    return {settings:publicSettings(data.settings),clients:(data.clients||[]).filter(function(x){return String(x.id)===clientId;}).map(function(x){return{id:x.id,name:x.name,email:x.email,phone:x.phone,company:x.company};}),projects:projects,project_tasks:(data.project_tasks||[]).filter(forClient),tasks:(data.tasks||[]).filter(forClient),invoices:(data.invoices||[]).filter(forClient),contracts:(data.contracts||[]).filter(forClient),proposals:(data.proposals||[]).filter(forClient),client_portals:(data.client_portals||[]).filter(function(x){return String(x.client_id||'')===clientId;}),svc_orders:(data.svc_orders||[]).filter(forClient)};
+    return {settings:publicSettings(data.settings),clients:(data.clients||[]).filter(function(x){return String(x.id)===clientId;}).map(function(x){return{id:x.id,name:x.name,email:x.email,phone:x.phone,company:x.company,currency_code:x.currency_code,currency_symbol:x.currency_symbol,openingBalance:x.openingBalance,openingBalanceType:x.openingBalanceType,openingBalanceCurrency:x.openingBalanceCurrency,openingBalanceNote:x.openingBalanceNote};}),projects:projects,project_tasks:(data.project_tasks||[]).filter(forClient),tasks:(data.tasks||[]).filter(forClient),invoices:(data.invoices||[]).filter(forClient),contracts:(data.contracts||[]).filter(forClient),proposals:(data.proposals||[]).filter(forClient),brief_forms:(data.brief_forms||[]).filter(function(x){return String(x.client_id)===clientId&&['sent','submitted','accepted'].includes(x.status);}).map(function(x){return{id:x.id,title:x.title,description:x.description,items:x.items,questions:x.questions,status:x.status,project_id:x.project_id};}),client_portals:(data.client_portals||[]).filter(function(x){return String(x.client_id||'')===clientId;}),svc_orders:(data.svc_orders||[]).filter(forClient)};
   }
   async function publishPublicData(db,userId,data){
     var settings=data.settings||{},mainSlug=ensureStoreSlug(settings,userId),stores=[null].concat(data.stores||[]);
@@ -158,7 +158,7 @@
         updated_at:root.S._savedAt
       }, {onConflict:'user_id'});
       if(result.error) throw result.error;
-      var publicFingerprint = userId+':'+fingerprint({settings:publicSettings(root.S.settings),stores:root.S.stores,services:root.S.services,standalone_packages:root.S.standalone_packages,portfolio_projects:root.S.portfolio_projects,reviews:root.S.reviews,public_tokens:root.S.public_tokens,projects:root.S.projects,project_tasks:root.S.project_tasks,tasks:root.S.tasks,invoices:root.S.invoices,contracts:root.S.contracts,proposals:root.S.proposals,client_portals:root.S.client_portals,svc_orders:root.S.svc_orders});
+      var publicFingerprint = userId+':'+fingerprint({settings:publicSettings(root.S.settings),stores:root.S.stores,services:root.S.services,standalone_packages:root.S.standalone_packages,portfolio_projects:root.S.portfolio_projects,reviews:root.S.reviews,public_tokens:root.S.public_tokens,projects:root.S.projects,project_tasks:root.S.project_tasks,tasks:root.S.tasks,invoices:root.S.invoices,contracts:root.S.contracts,proposals:root.S.proposals,brief_forms:root.S.brief_forms,client_portals:root.S.client_portals,svc_orders:root.S.svc_orders});
       if(publicFingerprint !== lastPublishedFingerprint){
         await publishPublicData(db,userId,root.S);
         lastPublishedFingerprint = publicFingerprint;

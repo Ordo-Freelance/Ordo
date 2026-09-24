@@ -38,7 +38,7 @@
     });
   }
   function fmt(v, code){
-    code = code || 'EGP';
+    code = currencyMeta(code || baseCurrencyCode()).code;
     try {
       return new Intl.NumberFormat('ar-EG',{style:'currency',currency:code,maximumFractionDigits:0}).format(num(v));
     } catch(e) {
@@ -47,7 +47,7 @@
   }
   function fmtMulti(map, key){
     var rows = Object.keys(map || {}).filter(function(code){ return num(map[code] && map[code][key]) !== 0; });
-    if(!rows.length) return fmt(0,'EGP');
+    if(!rows.length) return fmt(0,baseCurrencyCode());
     return '<span class="fv3-money-list">'+rows.sort().map(function(code){
       return '<span>'+fmt(map[code][key], code)+'</span>';
     }).join('')+'</span>';
@@ -60,7 +60,17 @@
   function txDate(tx){ return String(tx && (tx.isoDate || tx.date || '') || '').slice(0,10); }
   function txAmount(tx){ return Math.abs(num(tx && tx.amount)); }
   function currency(tx, account){
-    return (tx && (tx.currency_code || tx.currency)) || (account && account.currency_code) || 'EGP';
+    return (tx && (tx.currency_code || tx.currency)) || (account && account.currency_code) || baseCurrencyCode();
+  }
+  function baseCurrencyCode(){
+    var settings=state().settings||{};
+    return currencyMeta(settings.base_currency_code||settings.base_currency||settings.currency||'EGP').code;
+  }
+  function enabledCurrencyOptions(selected){
+    var list=root.OrdoData?.getEnabledCurrencies?.(false)||[currencyMeta(baseCurrencyCode())];
+    var chosen=currencyMeta(selected||baseCurrencyCode());
+    if(!list.some(function(c){return c.code===chosen.code;}))list=list.concat([chosen]);
+    return list.map(function(c){return '<option value="'+esc(c.code)+'"'+(c.code===chosen.code?' selected':'')+'>'+esc(c.label)+' ('+esc(c.symbol)+')</option>';}).join('');
   }
   function todayKey(){
     try { return new Date().toLocaleDateString('en-CA'); } catch(e){ return new Date().toISOString().slice(0,10); }
@@ -69,7 +79,7 @@
     return list(state().transactions).filter(function(t){ return t && !t.isLoan; });
   }
   function allLoans(){ return list(state().loans); }
-  function taskCurrency(task){ return (task && (task.currency_code || task.currency)) || 'EGP'; }
+  function taskCurrency(task){ return (task && (task.currency_code || task.currency)) || baseCurrencyCode(); }
   function isCollected(item){
     return !!(item && (item.paymentCollected || item.paymentStatus === 'collected' || item.pay === 'paid' || item.paid || item.status === 'paid' || item.status === 'مدفوعة'));
   }
@@ -156,7 +166,7 @@
         title:t.title || 'مهمة مشروع مكتملة',
         client:(proj && (proj.client || proj.clientName || proj.name)) || t.client || 'عميل غير محدد',
         amount:amount,
-        code:t.currency_code || t.currency || (proj && (proj.budgetCurrency || proj.currency_code || proj.currency)) || 'EGP',
+        code:t.currency_code || t.currency || (proj && (proj.budgetCurrency || proj.currency_code || proj.currency)) || baseCurrencyCode(),
         date:t.doneAt || t.completedAt || t.deadline || '',
         action:'window._askPtaskPayment&&window._askPtaskPayment('+JSON.stringify(String(t.id))+','+JSON.stringify(String(t.project_id || ''))+')',
         viewAction:'window.openProjTaskDetail&&window.openProjTaskDetail('+JSON.stringify(String(t.id))+','+JSON.stringify(String(t.project_id || ''))+')',
@@ -173,7 +183,7 @@
         title:'فاتورة '+(inv.num || inv.invoiceNo || inv.id || ''),
         client:inv.client || clientNameById(inv.clientId) || 'عميل غير محدد',
         amount:amount,
-        code:inv.currency_code || inv.currency || 'EGP',
+        code:inv.currency_code || inv.currency || baseCurrencyCode(),
         date:inv.due || inv.dueDate || inv.date || '',
         action:'window.previewInv&&window.previewInv('+JSON.stringify(inv.id)+')',
         viewAction:'window.previewInv&&window.previewInv('+JSON.stringify(inv.id)+')'
@@ -189,7 +199,7 @@
         title:'رصيد مستحق سابق',
         client:c.name || 'عميل غير محدد',
         amount:amount,
-        code:c.currency_code || c.currency || 'EGP',
+        code:c.currency_code || c.currency || baseCurrencyCode(),
         date:'',
         action:'window.openClientProfile&&window.openClientProfile('+JSON.stringify(c.id)+')',
         viewAction:'window.openClientProfile&&window.openClientProfile('+JSON.stringify(c.id)+')',
@@ -201,7 +211,7 @@
   function receivablesByCurrency(items){
     var map = {};
     (items || receivableItems()).forEach(function(item){
-      var code = item.code || 'EGP';
+      var code = item.code || baseCurrencyCode();
       map[code] = (map[code] || 0) + num(item.amount);
     });
     return map;
@@ -267,7 +277,7 @@
     function hasType(type){ return accounts.some(function(a){ return a && a.type === type && a.active !== false; }); }
     function add(name,type,color){
       accounts.push({
-        id:id(), name:name, type:type, currency_code:'EGP',
+        id:id(), name:name, type:type, currency_code:baseCurrencyCode(),
         opening_balance:0, color:color || TYPES[type].color,
         active:true, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()
       });
@@ -344,7 +354,7 @@
       r.net = r.income - r.profitExpense;
     });
     accounts(true).forEach(function(a){
-      var r = row(a.currency_code || 'EGP');
+      var r = row(a.currency_code || baseCurrencyCode());
       r.accounts += balance(a, allTxs);
     });
     return out;
@@ -415,8 +425,8 @@
     if(!acc) return;
     var select = document.getElementById(type === 'income' ? 'in-currency' : 'ex-currency');
     if(!select) return;
-    ensureCurrencyOption(select, acc.currency_code || 'EGP');
-    select.value = currencyMeta(acc.currency_code || 'EGP').code;
+    ensureCurrencyOption(select, acc.currency_code || baseCurrencyCode());
+    select.value = currencyMeta(acc.currency_code || baseCurrencyCode()).code;
     try { select.dispatchEvent(new Event('change', {bubbles:true})); } catch(e){}
   }
 
@@ -579,7 +589,7 @@
   function totalsToText(totals){
     return Object.keys(totals || {}).filter(function(code){ return num(totals[code]) > 0; }).sort().map(function(code){
       return fmt(totals[code], code);
-    }).join(' + ') || fmt(0,'EGP');
+    }).join(' + ') || fmt(0,baseCurrencyCode());
   }
   function collectionAlert(){
     var items = receivableItems();
@@ -966,7 +976,7 @@
       '<input type="hidden" id="fv3-acc-id" value="'+esc(a ? a.id : '')+'">'+
       '<div class="fv3-form-grid"><div class="fv3-field"><label>اسم الحساب</label><input id="fv3-acc-name" value="'+esc(a ? a.name : '')+'" placeholder="مثال: بنك CIB"></div>'+
       '<div class="fv3-field"><label>النوع</label><select id="fv3-acc-type">'+Object.keys(TYPES).map(function(k){ return '<option value="'+k+'" '+(type===k?'selected':'')+'>'+TYPES[k].label+'</option>'; }).join('')+'</select></div>'+
-      '<div class="fv3-field"><label>العملة</label><select id="fv3-acc-currency"><option value="EGP">جنيه مصري</option><option value="USD">دولار</option><option value="EUR">يورو</option><option value="SAR">ريال سعودي</option><option value="AED">درهم إماراتي</option></select></div>'+
+      '<div class="fv3-field"><label>العملة</label><select id="fv3-acc-currency">'+enabledCurrencyOptions(a&&a.currency_code)+'</select></div>'+
       '<div class="fv3-field"><label>الرصيد الافتتاحي</label><input id="fv3-acc-opening" type="number" value="'+esc(a ? a.opening_balance : 0)+'" placeholder="0"></div>'+
       '<div class="fv3-field"><label>لون الحساب</label><input id="fv3-acc-color" type="color" value="'+esc(a ? a.color : TYPES[type].color)+'"></div></div>'+
       '<div style="display:flex;justify-content:space-between;gap:10px;margin-top:8px">'+
@@ -975,7 +985,7 @@
       '</div>';
     document.body.appendChild(overlay);
     var cur = document.getElementById('fv3-acc-currency');
-    if(cur) cur.value = a ? a.currency_code : 'EGP';
+    if(cur) cur.value = a ? currencyMeta(a.currency_code).code : baseCurrencyCode();
   }
   function closeAccountModal(){
     var m = document.getElementById('finance-account-modal');
@@ -990,7 +1000,7 @@
     var data = {
       name:(document.getElementById('fv3-acc-name').value || '').trim() || TYPES[type].label,
       type:type,
-      currency_code:document.getElementById('fv3-acc-currency').value || 'EGP',
+      currency_code:document.getElementById('fv3-acc-currency').value || baseCurrencyCode(),
       opening_balance:num(document.getElementById('fv3-acc-opening').value),
       color:document.getElementById('fv3-acc-color').value || TYPES[type].color,
       active:true,
@@ -1124,7 +1134,7 @@
     if(!allowed('finance_currency_wallets'))return refuse();
     closeCurrencyWalletModal();
     var existingCodes = ensureCurrencyWallets().map(function(w){ return currencyMeta(w.currency_code).code; });
-    var defs = ['EGP','USD','EUR','SAR','AED'].map(currencyMeta).filter(function(c){ return existingCodes.indexOf(c.code) === -1; });
+    var defs = (root.OrdoData?.getEnabledCurrencies?.(false)||[currencyMeta(baseCurrencyCode())]).filter(function(c){ return existingCodes.indexOf(c.code) === -1; });
     var overlay = document.createElement('div');
     overlay.className = 'fv3-modal-backdrop';
     overlay.id = 'currency-wallet-modal';
@@ -1183,7 +1193,7 @@
     var amount = document.getElementById('loan-amount');
     var group = document.createElement('div');
     group.className = 'form-group';
-    group.innerHTML = '<label class="form-label">عملة القرض</label><select class="form-select" id="loan-currency"><option value="EGP">جنيه مصري</option><option value="USD">دولار أمريكي</option><option value="EUR">يورو</option><option value="SAR">ريال سعودي</option><option value="AED">درهم إماراتي</option></select>';
+    group.innerHTML = '<label class="form-label">عملة القرض</label><select class="form-select" id="loan-currency">'+enabledCurrencyOptions()+'</select>';
     if(amount && amount.closest('.form-row')) amount.closest('.form-row').appendChild(group);
   }
 
@@ -1193,6 +1203,8 @@
     if(!modal) return;
     var idField = document.getElementById(type === 'income' ? 'income-eid' : 'expense-eid');
     var tx = idField && idField.value ? txs().find(function(t){ return String(t.id) === String(idField.value); }) : null;
+    var currencySelect=document.getElementById(type === 'income' ? 'in-currency' : 'ex-currency');
+    if(currencySelect) currencySelect.innerHTML=enabledCurrencyOptions(tx&&(tx.currency_code||tx.currency));
     var selectId = type === 'income' ? 'in-account-id' : 'ex-account-id';
     var existing = document.getElementById(selectId);
     if(existing) {
@@ -1282,7 +1294,7 @@
           injectLoanCurrencyField();
           var loan = id ? allLoans().find(function(l){ return String(l.id) === String(id); }) : null;
           var el = document.getElementById('loan-currency');
-          if(el) el.value = loan ? (loan.currency_code || loan.currency || 'EGP') : 'EGP';
+          if(el) el.value = loan ? (loan.currency_code || loan.currency || baseCurrencyCode()) : baseCurrencyCode();
         }, 80);
         return r;
       };

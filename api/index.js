@@ -249,7 +249,7 @@ async function financeFeatureAccess(store,user){
 
 function publicView(data, type, token) {
   const settings = data.settings || {};
-  const publicSettings = Object.fromEntries(['name','studio','studioName','username','store_slug','logo','logoDark','logoLight','avatar','accent','accentColor','accent2','accentColor2','theme_color','displayMode','display_mode','fontScale','toneColor','hoverOverlayColor','phone','email','whatsapp','about','bio','currency','socialLinks','social_links'].filter(key => settings[key] !== undefined).map(key => [key, settings[key]]));
+  const publicSettings = Object.fromEntries(['name','studio','studioName','username','store_slug','svc_store_name','store_logo','svc_banner','svc_banner_size','svc_banner_custom_px','svc_site_desc','svc_orders_open','socials','logo','logoDark','logoLight','avatar','accent','accentColor','accent2','accentColor2','theme_color','displayMode','display_mode','fontScale','toneColor','toneStyle','toneGradientEnd','toneAngle','hoverOverlayColor','phone','email','whatsapp','about','bio','currency','base_currency','base_currency_code','enabled_currencies','socialLinks','social_links'].filter(key => settings[key] !== undefined).map(key => [key, settings[key]]));
   if (type === 'store') return { settings: publicSettings, services: data.services || [], standalone_packages: data.standalone_packages || [], portfolio_projects: data.portfolio_projects || [], stores: data.stores || [], reviews: (data.reviews || []).filter(row => row.public_visible !== false) };
   if (type === 'reviews_public') return { settings: publicSettings, reviews: (data.reviews || []).filter(row => row.public_visible !== false), public_tokens: (data.public_tokens || []).filter(item => ['review','store'].includes(item.entity_type) && !item.revoked && (!item.expires_at || new Date(item.expires_at) > new Date())).map(item => ({token:item.token,entity_type:item.entity_type})) };
   if (type === 'review') return { settings: publicSettings, reviews: (data.reviews || []).filter(row => row.public_visible !== false) };
@@ -265,6 +265,7 @@ function publicView(data, type, token) {
     project_tasks: (data.project_tasks || []).filter(row => belongs(row) && row.client_visibility !== false && row.is_internal !== true), invoices: (data.invoices || []).filter(belongs),
     team_tasks: (data.team_tasks || []).filter(row => row.client_visibility === true && belongs(row)),
     contracts: (data.contracts || []).filter(belongs), proposals: (data.proposals || []).filter(belongs),
+    brief_forms: (data.brief_forms || []).filter(row => belongs(row) && ['sent','submitted','accepted'].includes(row.status)).map(row => ({id:row.id,title:row.title,description:row.description,items:row.items,questions:row.questions,status:row.status,project_id:row.project_id})),
     reviews: (data.reviews || []).filter(belongs), svc_orders: (data.svc_orders || []).filter(belongs),
     services: data.services || [], standalone_packages: data.standalone_packages || [],
     portfolio_projects: data.portfolio_projects || [], client_portals: (data.client_portals || []).filter(belongs)
@@ -1305,9 +1306,35 @@ export default async function handler(req, res) {
       const snapshot = await publicSnapshot(store, {type:'client_portal', token:input.token});
       if (!snapshot) return fail(res, 'رابط البوابة غير صالح', 404, 'public_not_found');
       const eventType = String(input.event_type || '');
-      if (!['svc_order','meeting_request','task_received','revision_request','task_note'].includes(eventType)) return fail(res, 'نوع الطلب غير صحيح');
+      if (!['svc_order','meeting_request','task_received','revision_request','task_note','brief_submit'].includes(eventType)) return fail(res, 'نوع الطلب غير صحيح');
       const payload = input.event_data && typeof input.event_data === 'object' ? input.event_data : {};
       if (JSON.stringify(payload).length > 10000) return fail(res, 'الطلب كبير جداً', 413, 'too_large');
+      if(eventType==='brief_submit'){
+        const form=(snapshot.data.brief_forms||[]).find(item=>String(item.id)===String(payload.form_id));
+        if(!form||form.status!=='sent')return fail(res,'البريف غير متاح لهذا العميل',403,'brief_not_available');
+        const supplied=payload.answers&&typeof payload.answers==='object'&&!Array.isArray(payload.answers)?payload.answers:{};
+        const questions=Array.isArray(form.questions)?form.questions:[];
+        const answers={};
+        for(const q of questions){
+          const answer=supplied[q.id];
+          if(q.type==='checkbox'){
+            const allowed=new Set((q.options||[]).map(option=>String(option.label||option)));
+            const values=Array.isArray(answer)?answer.map(value=>String(value).slice(0,200)):[];
+            if(values.length>30||values.some(value=>!allowed.has(value)))return fail(res,'إجابة غير صحيحة',400,'invalid_brief_answer');
+            if(q.required&&!values.length)return fail(res,'أكمل الأسئلة المطلوبة',400,'brief_required');
+            answers[q.id]=values;
+          }else{
+            const value=typeof answer==='string'?answer.trim():'';
+            if(value.length>(q.type==='essay'?3000:200))return fail(res,'الإجابة طويلة جدًا',400,'brief_answer_too_long');
+            if(q.required&&!value)return fail(res,'أكمل الأسئلة المطلوبة',400,'brief_required');
+            if(q.type==='image'&&value&&!(q.options||[]).some(option=>String(option.label||option)===value))return fail(res,'اختيار الصورة غير صحيح',400,'invalid_brief_image');
+            answers[q.id]=value;
+          }
+        }
+        const previous=await store.query('public_client_portal_events',{op:'select',columns:'id,data',filters:[{op:'eq',column:'user_id',value:snapshot.uid}],limit:500});
+        if((previous||[]).some(row=>{const data=parseMaybe(row.data)||{};return data.event_type==='brief_submit'&&String(data.client_id)===String(snapshot.token.client_id)&&String(data.event_data?.form_id)===String(form.id);}))return fail(res,'تم إرسال هذا البريف من قبل',409,'brief_already_submitted');
+        payload.form_id=form.id;payload.answers=answers;payload.project_id=form.project_id||'';
+      }
       const taskId = String(payload.task_id || payload.taskId || '');
       if (['task_received','revision_request','task_note'].includes(eventType) && ![...(snapshot.data.tasks || []), ...(snapshot.data.project_tasks || []), ...(snapshot.data.team_tasks || [])].some(item => String(item.id) === taskId)) return fail(res, 'المهمة غير متاحة', 403, 'task_not_available');
       const row = await store.query('public_client_portal_events', {op:'insert', payload:{

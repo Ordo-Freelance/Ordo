@@ -395,6 +395,7 @@ function _getPlatformUserFeatures(){
 function _platformFeatureState(pageId){
   const map={
     invoices:'invoices',
+    subscriptions:'finance',
     contracts:'invoices',
     proposals:'invoices',
     services:'services',
@@ -445,9 +446,10 @@ function hasPageFeature(pageId){
   const f = _getPlanFeatures();
   // لو features فاضية ? افتح كل الصفحات
   if(!f || Object.keys(f).length === 0) return true;
+  if(pageId==='subscriptions' && f.fin_subscriptions===false) return false;
   const pageFlag = 'page_' + String(pageId).replace(/-/g, '_');
   if(f[pageFlag] === false) return false;
-  const map = { tasks:'tasks', projects:'tasks', clients:'clients', finance:'finance',
+  const map = { tasks:'tasks', projects:'tasks', clients:'clients', finance:'finance', subscriptions:'finance',
     invoices:'invoices', schedule:'schedule', team:'team',
     reports:'reports', meetings:'meetings', learning:'learning',
     timetracker:'timetracker', contracts:'contracts' };
@@ -2489,6 +2491,11 @@ function applyStudioAppearance(skipFontScan){
   var accent = (scoped && localStorage.getItem('studioAccentColor'+scoped)) || s.accentColor || localStorage.getItem('studioAccentColor') || '#7c6ff7';
   var hover = (scoped && localStorage.getItem('studioHoverOverlay'+scoped)) ?? s.hoverOverlayColor ?? localStorage.getItem('studioHoverOverlay') ?? '';
   var tone = (scoped && localStorage.getItem('studioToneColor'+scoped)) ?? s.toneColor ?? localStorage.getItem('studioToneColor') ?? '';
+  var toneEnd = (scoped && localStorage.getItem('studioToneGradientEnd'+scoped)) ?? s.toneGradientEnd ?? localStorage.getItem('studioToneGradientEnd') ?? '';
+  var toneStyle = (scoped && localStorage.getItem('studioToneStyle'+scoped)) ?? s.toneStyle ?? localStorage.getItem('studioToneStyle') ?? 'solid';
+  var toneAngle = Number((scoped && localStorage.getItem('studioToneAngle'+scoped)) ?? s.toneAngle ?? localStorage.getItem('studioToneAngle') ?? 135);
+  if(!Number.isFinite(toneAngle))toneAngle=135;
+  toneAngle=Math.max(0,Math.min(360,toneAngle));
   if(mode === 'dark' && /^#(?:0a0a0f|111118)$/i.test(tone)) tone = '';
   fontScale = Math.max(.86, Math.min(1.12, fontScale || 1));
   document.documentElement.style.setProperty('--app-font-scale', String(fontScale || 1));
@@ -2518,27 +2525,43 @@ function applyStudioAppearance(skipFontScan){
   }
   if(tone){
     var toneIsLight = _isLightHex(tone);
+    var gradient = toneStyle==='gradient' && /^#[0-9a-f]{6}$/i.test(toneEnd);
+    var pageBackground = gradient ? 'linear-gradient('+toneAngle+'deg, '+tone+', '+toneEnd+')' : tone;
     document.documentElement.style.setProperty('--bg', tone);
+    document.body.style.setProperty('--bg', tone);
+    document.body.style.setProperty('--studio-page-background',pageBackground);
     document.documentElement.style.setProperty('--surface', toneIsLight ? _mixHex(tone, .82) : _mixHex(tone, .10));
     document.documentElement.style.setProperty('--surface2', toneIsLight ? _mixHex(tone, .70) : _mixHex(tone, .17));
     document.documentElement.style.setProperty('--surface3', toneIsLight ? _mixHex(tone, .58) : _mixHex(tone, .25));
     document.documentElement.style.setProperty('--border', toneIsLight ? _mixHex(tone, -.18) : _mixHex(tone, .34));
-    document.body.style.background = tone;
+    document.body.style.background = pageBackground;
+    document.body.style.backgroundAttachment = 'fixed';
     document.documentElement.style.background = tone;
   } else if(document.body){
     document.body.classList.remove('studio-toned');
     document.body.style.background = '';
+    document.body.style.backgroundAttachment = '';
+    document.body.style.removeProperty('--bg');
+    document.body.style.removeProperty('--studio-page-background');
     document.documentElement.style.background = '';
+    ['--bg','--surface','--surface2','--surface3','--border'].forEach(function(k){document.documentElement.style.removeProperty(k);});
   }
-  ['studio-font-scale','studio-tone-color','studio-hover-color'].forEach(function(id){
+  ['studio-font-scale','studio-tone-color','studio-tone-end','studio-tone-style','studio-tone-angle','studio-hover-color'].forEach(function(id){
     var el = document.getElementById(id);
     if(!el) return;
     if(id === 'studio-font-scale') el.value = String(fontScale || 1);
     if(id === 'studio-tone-color') el.value = tone || (mode === 'light' ? '#f0f2f8' : '#0d1425');
+    if(id === 'studio-tone-end') el.value = toneEnd || (mode === 'light' ? '#ffffff' : '#172548');
+    if(id === 'studio-tone-style') el.value = toneStyle==='gradient'?'gradient':'solid';
+    if(id === 'studio-tone-angle') el.value = String(toneAngle);
     if(id === 'studio-hover-color') el.value = hover || accent;
   });
   var fsTxt = document.getElementById('studio-font-scale-value');
   if(fsTxt) fsTxt.textContent = Math.round((fontScale || 1) * 100) + '%';
+  var gradientControls=document.getElementById('studio-gradient-controls');
+  if(gradientControls)gradientControls.style.display=toneStyle==='gradient'?'flex':'none';
+  var tonePreview=document.getElementById('studio-tone-preview');
+  if(tonePreview)tonePreview.style.background=tone?((toneStyle==='gradient'&&toneEnd)?'linear-gradient('+toneAngle+'deg,'+tone+','+toneEnd+')':tone):'var(--bg)';
 }
 function setStudioFontScale(v){
   v = Math.max(.86, Math.min(1.12, Number(v) || 1));
@@ -2563,6 +2586,32 @@ function setStudioToneColor(color){
   }
   applyStudioAppearance();
 }
+function setStudioToneGradient(style,end,angle){
+  if(style!=='gradient')style='solid';
+  if(!/^#[0-9a-f]{6}$/i.test(end||''))end='';
+  angle=Math.max(0,Math.min(360,Number(angle)||0));
+  if(style==='gradient' && !((window._supaUserId&&localStorage.getItem('studioToneColor:'+window._supaUserId))||(S&&S.settings&&S.settings.toneColor)||localStorage.getItem('studioToneColor'))){
+    var first=document.getElementById('studio-tone-color')?.value||'#0d1425';
+    localStorage.setItem('studioToneColor',first);
+    if(window._supaUserId)localStorage.setItem('studioToneColor:'+window._supaUserId,first);
+    if(S){if(!S.settings)S.settings={};S.settings.toneColor=first;}
+  }
+  localStorage.setItem('studioToneStyle',style);
+  localStorage.setItem('studioToneGradientEnd',end);
+  localStorage.setItem('studioToneAngle',String(angle));
+  if(window._supaUserId){
+    localStorage.setItem('studioToneStyle:'+window._supaUserId,style);
+    localStorage.setItem('studioToneGradientEnd:'+window._supaUserId,end);
+    localStorage.setItem('studioToneAngle:'+window._supaUserId,String(angle));
+  }
+  if(typeof S!=='undefined'&&S){
+    if(!S.settings)S.settings={};
+    S.settings.toneStyle=style;S.settings.toneGradientEnd=end;S.settings.toneAngle=angle;
+    if(typeof lsSave==='function')lsSave();
+    if(typeof cloudSaveNow==='function')cloudSaveNow(S);
+  }
+  applyStudioAppearance();
+}
 function setStudioHoverOverlay(color){
   localStorage.setItem('studioHoverOverlay', color || '');
   if(window._supaUserId)localStorage.setItem('studioHoverOverlay:'+window._supaUserId,color || '');
@@ -2580,18 +2629,21 @@ function saveStudioAppearanceSettings(){
   var hover = document.getElementById('studio-hover-color')?.value || '';
   setStudioFontScale(font);
   setStudioToneColor(tone);
+  setStudioToneGradient(document.getElementById('studio-tone-style')?.value||'solid',document.getElementById('studio-tone-end')?.value||'',document.getElementById('studio-tone-angle')?.value||135);
   setStudioHoverOverlay(hover);
   if(typeof toast === 'function') toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ وتطبيق المظهر');
 }
 function resetStudioAppearanceSettings(){
   setStudioFontScale(1);
   setStudioToneColor('');
+  setStudioToneGradient('solid','',135);
   setStudioHoverOverlay('');
   applyStudioAppearance();
   if(typeof toast === 'function') toast('تمت إعادة المظهر للوضع الافتراضي');
 }
 window.setStudioFontScale = setStudioFontScale;
 window.setStudioToneColor = setStudioToneColor;
+window.setStudioToneGradient = setStudioToneGradient;
 window.setStudioHoverOverlay = setStudioHoverOverlay;
 window.saveStudioAppearanceSettings = saveStudioAppearanceSettings;
 window.resetStudioAppearanceSettings = resetStudioAppearanceSettings;
@@ -2610,7 +2662,7 @@ function installSettingsRedesign(){
     extra.className = 'settings-v2-appearance-grid';
     extra.innerHTML =
       '<div class="settings-v2-control settings-v2-control-wide"><h4><i class="fa-solid fa-text-height"></i> حجم خط الموقع بالكامل</h4><p>يصغر أو يكبر واجهة الموقع فورًا، ويُحفظ مع إعدادات الاستوديو.</p><div class="settings-v2-control-row"><input id="studio-font-scale" type="range" min="0.86" max="1.12" step="0.02" oninput="setStudioFontScale(this.value)"><b id="studio-font-scale-value">100%</b><button class="btn btn-ghost btn-sm" onclick="setStudioFontScale(1)">إعادة ضبط</button></div></div>'+
-      '<div class="settings-v2-control"><h4><i class="fa-solid fa-fill-drip"></i> درجة الخلفية العامة</h4><p>تحدد روح الصفحة في الليلي أو النهاري بدون خلطها مع العملات أو المالية.</p><div class="settings-v2-control-row"><input id="studio-tone-color" type="color" oninput="setStudioToneColor(this.value)" onchange="setStudioToneColor(this.value)"><button class="btn btn-ghost btn-sm" onclick="setStudioToneColor(&quot;&quot;)">افتراضي</button></div><div class="settings-v2-preview"><span></span><span style="background:var(--surface2)"></span></div></div>'+
+      '<div class="settings-v2-control"><h4><i class="fa-solid fa-fill-drip"></i> خلفية الموقع</h4><p>اختر لونًا ثابتًا أو جريديانت بلونين؛ التغيير يظهر فورًا.</p><div class="settings-v2-control-row"><label for="studio-tone-color">اللون الأول</label><input id="studio-tone-color" type="color" oninput="setStudioToneColor(this.value)"><select id="studio-tone-style" class="form-select" onchange="setStudioToneGradient(this.value,document.getElementById(\'studio-tone-end\').value,document.getElementById(\'studio-tone-angle\').value)"><option value="solid">لون ثابت</option><option value="gradient">جريديانت</option></select><button class="btn btn-ghost btn-sm" onclick="setStudioToneColor(&quot;&quot;);setStudioToneGradient(\'solid\',\'\',135)">افتراضي</button></div><div id="studio-gradient-controls" class="settings-v2-control-row" style="display:none;margin-top:10px"><label for="studio-tone-end">اللون الثاني</label><input id="studio-tone-end" type="color" oninput="setStudioToneGradient(\'gradient\',this.value,document.getElementById(\'studio-tone-angle\').value)"><label for="studio-tone-angle">الاتجاه</label><select id="studio-tone-angle" class="form-select" onchange="setStudioToneGradient(\'gradient\',document.getElementById(\'studio-tone-end\').value,this.value)"><option value="90">أفقي</option><option value="135">مائل</option><option value="180">رأسي</option><option value="270">أفقي عكسي</option></select></div><div class="settings-v2-preview"><span id="studio-tone-preview"></span><span style="background:var(--surface2)"></span></div></div>'+
       '<div class="settings-v2-control"><h4><i class="fa-solid fa-computer-mouse"></i> لون المرور على العناصر</h4><p>لون overlay عند مرور المؤشر على الأزرار والصفوف.</p><div class="settings-v2-control-row"><input id="studio-hover-color" type="color" oninput="setStudioHoverOverlay(this.value)" onchange="setStudioHoverOverlay(this.value)"><button class="btn btn-ghost btn-sm" onclick="setStudioHoverOverlay(&quot;&quot;)">حسب الهوية</button></div><div class="settings-v2-preview"><span style="background:var(--hover-overlay)"></span><span style="background:rgba(var(--accent-rgb,124,111,247),.18)"></span></div></div>'+
       '<div class="settings-v2-control settings-v2-control-wide" style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><button class="btn btn-ghost" onclick="resetStudioAppearanceSettings()"><i class="fa-solid fa-rotate-left"></i> إعادة افتراضي</button><button class="btn btn-primary" onclick="saveStudioAppearanceSettings()"><i class="fa-solid fa-floppy-disk"></i> حفظ وتطبيق المظهر</button></div>';
     appearance.appendChild(extra);
@@ -2831,13 +2883,26 @@ function _salaryEnabledCurrencies(){
   const saved = S.settings && Array.isArray(S.settings.enabled_currencies) ? S.settings.enabled_currencies : null;
   const list = saved && saved.length ? saved.filter(c=>c && c.enabled !== false) : ['EGP','USD','SAR'].map(code=>_salaryCurrencyMeta(code));
   const byCode = new Map(list.map(c=>{ const meta=_salaryCurrencyMeta(c.code || c.currency_code || c.symbol || c.label); return [meta.code,meta]; }));
-  ['EGP','USD','SAR'].forEach(code=>byCode.set(code,_salaryCurrencyMeta(code)));
+  const base=_salaryCurrencyMeta(S.settings?.base_currency_code || S.settings?.currency || 'EGP');
+  byCode.set(base.code,base);
   return [...byCode.values()];
 }
 
 function _salaryCurrencyOptions(selected){
   const cur = _salaryCurrencyMeta(selected || S.settings?.base_currency_code || S.settings?.currency || 'EGP').code;
-  return _salaryEnabledCurrencies().map(c=>`<option value="${c.code}" ${c.code===cur?'selected':''}>${c.label} (${c.symbol})</option>`).join('');
+  const list=_salaryEnabledCurrencies();
+  if(!list.some(c=>c.code===cur)) list.push(_salaryCurrencyMeta(cur));
+  return list.map(c=>`<option value="${c.code}" ${c.code===cur?'selected':''}>${c.label} (${c.symbol})</option>`).join('');
+}
+
+function _fillSharedCurrencySelect(id, selected, useSymbol){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const chosen=_salaryCurrencyMeta(selected || S.settings?.base_currency_code || S.settings?.currency || 'EGP');
+  const list=_salaryEnabledCurrencies();
+  if(!list.some(c=>c.code===chosen.code))list.push(chosen);
+  el.innerHTML=list.map(c=>`<option value="${useSymbol?c.symbol:c.code}">${c.label} (${c.symbol})</option>`).join('');
+  el.value=useSymbol?chosen.symbol:chosen.code;
 }
 
 function _salaryDestinationOptions(selected){
@@ -5065,6 +5130,9 @@ function openClientModal(id){
     if(document.getElementById('c-salary-currency')){
       document.getElementById('c-salary-currency').innerHTML = _salaryCurrencyOptions(c.salaryCurrency || c.currency_code || c.currency || 'EGP');
     }
+    if(document.getElementById('c-currency')){
+      document.getElementById('c-currency').innerHTML = _salaryCurrencyOptions(c.currency_code || c.openingBalanceCurrency || c.currency || S.settings?.base_currency_code || 'EGP');
+    }
     // Sub client: fill parent dropdown then set value
     if(c.workType==='sub'){
       _fillParentClientsDD();
@@ -5097,6 +5165,9 @@ function openClientModal(id){
     if(document.getElementById('c-salary-currency')){
       document.getElementById('c-salary-currency').innerHTML = _salaryCurrencyOptions(S.settings?.base_currency_code || 'EGP');
     }
+    if(document.getElementById('c-currency')){
+      document.getElementById('c-currency').innerHTML = _salaryCurrencyOptions(S.settings?.base_currency_code || 'EGP');
+    }
     document.getElementById('c-salary-day').value=1;
     document.getElementById('c-salary-lastpaid').value='';
     document.getElementById('c-followup-enabled').value='off';
@@ -5117,8 +5188,10 @@ function saveClient(){
   const isSal=wt==='fulltime'||wt==='parttime';
   const oldClient = eid ? S.clients.find(c=>String(c.id)===String(eid)) : null;
   const salCur = _salaryCurrencyMeta(document.getElementById('c-salary-currency')?.value || oldClient?.salaryCurrency || S.settings?.base_currency_code || 'EGP');
+  const clientCur = _salaryCurrencyMeta(document.getElementById('c-currency')?.value || oldClient?.currency_code || S.settings?.base_currency_code || 'EGP');
   const d={
     name,type:v('c-type'),phone:v('c-phone'),email:v('c-email'),
+    currency_code:clientCur.code,currency_symbol:clientCur.symbol,openingBalanceCurrency:clientCur.code,
     channel:v('c-channel'),field:v('c-field'),notes:v('c-notes'),
     color:COLORS[S.clients.length%COLORS.length],
     workType:wt,
@@ -12317,7 +12390,7 @@ function renderVisiblePage(id){
   const pages={
     dashboard:()=>{updateDash();renderDashTeamPay();renderDashKanbanMini();renderDashMeetings();renderSalaryReminders();renderFollowupReminders();},
     tasks:()=>renderTasks(),projects:()=>renderProjects(),clients:()=>renderClients(),
-    finance:()=>renderFinance(),invoices:()=>renderInvoices(),settings:()=>loadSettings(),
+    finance:()=>renderFinance(),subscriptions:()=>renderSubscriptionsPage(),invoices:()=>renderInvoices(),settings:()=>loadSettings(),
     schedule:()=>renderSchedule(),goals:()=>renderGoals(),team:()=>renderTeams(),
     meetings:()=>renderMeetings(),timetracker:()=>renderTimeTracker(),contracts:()=>renderContractsList(),
     services:()=>{renderServices();renderStoresHomeList();},support:()=>renderSupport(),
@@ -12333,6 +12406,7 @@ function renderVisiblePage(id){
 }
 function renderAll(){
   renderTasks();renderClients();renderFinance();renderInvoices();
+  renderSubscriptionsPage();
   renderGoals();renderSchedule();updateDash();loadSettings();renderTeams();
   renderMeetings();
   // renderCourses only if the grid exists in DOM (inside fg-panel-courses when active)
@@ -12375,6 +12449,7 @@ const PAGE_TITLES = {
   schedule    : '<i class="fa-solid fa-calendar-days"></i> تنظيم اليوم',
   clients     : '<i class="fa-solid fa-users"></i> قاعدة العملاء',
   finance     : '<i class="fa-solid fa-coins"></i> المالية والحسابات',
+  subscriptions: '<i class="fa-solid fa-rotate"></i> اشتراكاتي',
   invoices    : '<i class="fa-solid fa-file-invoice"></i> الفواتير والعقود',
   learning    : '<i class="fa-solid fa-bullseye"></i> الأهداف والإنجازات',
   'freelancer-goals': '<i class="fa-solid fa-bullseye"></i> الأهداف والإنجازات',
@@ -12391,6 +12466,7 @@ const PAGE_CTA = {
   tasks:     {label:'+ مهمة جديدة', fn:'openTaskModal()'},
   clients:   {label:'+ عميل جديد',  fn:'openClientModal()'},
   finance:   {label:'+ دخل',        fn:'openIncomeModal()'},
+  subscriptions: {label:'+ اشتراك', fn:'openSubscriptionModal()'},
   invoices:  {label:'+ فاتورة',     fn:'openInvoiceModal()'},
   learning:  {label:'+ هدف جديد',   fn:'openGoalModal()'},
   'freelancer-goals': {label:'+ هدف جديد', fn:'openFreelancerGoalModal()'},
@@ -15611,6 +15687,9 @@ function renderTeams(){
 // SUBSCRIPTIONS
 // ============================================================
 function openSubscriptionModal(){
+  const date=document.getElementById('sub-next-date');
+  if(date && !date.value) date.value=_subscriptionDateKey(new Date());
+  _fillSharedCurrencySelect('sub-currency',S.settings?.base_currency_code);
   renderSubsList();
   openM('modal-subscription');
 }
@@ -15622,32 +15701,41 @@ function renderSubsList(){
 function addSubscription(){
   const name = document.getElementById('sub-name')?.value.trim();
   const amount = +(document.getElementById('sub-amount')?.value)||0;
-  const day = +(document.getElementById('sub-day')?.value)||1;
+  const nextDate = document.getElementById('sub-next-date')?.value;
   const cat = document.getElementById('sub-cat')?.value||'برامج واشتراكات';
-  if(!name||!amount) return alert('أدخل اسم الاشتراك والمبلغ');
+  if(!name||amount<=0||!nextDate) return alert('أدخل اسم الاشتراك والمبلغ وموعد الاستحقاق');
   if(!S.subscriptions) S.subscriptions=[];
-  S.subscriptions.push({name,amount,day,cat});
+  S.subscriptions.push({id:'sub_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),name,amount,nextDate,day:+nextDate.slice(8,10),cat,cadence:document.getElementById('sub-cadence')?.value||'monthly',currency_code:document.getElementById('sub-currency')?.value||'EGP',remindDays:+document.getElementById('sub-remind-days')?.value||1,active:true});
   lsSave();
   renderSubsList();
-  ['sub-name','sub-amount','sub-day'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderSubscriptionsPage();
+  ['sub-name','sub-amount'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إضافة الاشتراك: '+name);
 }
 
 function renewSubscription(i){
   const s = S.subscriptions[i]; if(!s) return;
+  const due=_subscriptionDue(s);
+  const subId=s.id||(s.id='sub_legacy_'+i);
+  if((S.transactions||[]).some(t=>String(t.subscriptionId)===String(subId)&&t.subscriptionDue===due)) return alert('تم تسجيل سداد هذا الموعد بالفعل');
+  const currency_code=s.currency_code||'EGP';
   S.transactions.push({
-    id:Date.now(), type:'expense', amount:s.amount,
+    id:Date.now()+Math.random(), type:'expense', amount:s.amount,currency_code,
     source:s.cat||'برامج واشتراكات', desc:'تجديد اشتراك: '+s.name,
+    subscriptionId:subId,subscriptionDue:due,expCat:s.cat||'برامج واشتراكات',
     isoDate:new Date().toISOString().split('T')[0],
     date:new Date().toLocaleDateString('ar-EG')
   });
+  s.lastPaidDate=_subscriptionDateKey(new Date());
+  s.nextDate=_subscriptionAdvance(due,s.cadence||'monthly',s.day);
   lsSave(); renderAll();
-  showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تسجيل تجديد اشتراك '+s.name+': '+s.amount.toLocaleString()+' ج');
+  showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تسجيل سداد '+escapeHtml(s.name));
 }
 
 function delSubscription(i){
+  if(!confirm('حذف هذا الالتزام؟ سجل المصروفات المسددة سيبقى محفوظًا.'))return;
   S.subscriptions.splice(i,1);
-  lsSave(); renderSubsList();
+  lsSave(); renderSubsList(); renderSubscriptionsPage();
 }
 
 
@@ -16436,26 +16524,49 @@ async function _sendMemberMessage(memberName){
 // ============================================================
 function renderSubsWithReminder(){
   const el = document.getElementById('subs-list'); if(!el) return;
-  const subs = S.subscriptions||[];
-  if(!subs.length){ el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">لا اشتراكات مسجلة بعد</div>'; return; }
-  const today = new Date();
-  el.innerHTML = subs.map((s,i)=>{
-    const day = s.day||1;
-    let nextDate = new Date(today.getFullYear(), today.getMonth(), day);
-    if(nextDate <= today) nextDate = new Date(today.getFullYear(), today.getMonth()+1, day);
-    const diffMs = nextDate - today;
-    const diffDays = Math.ceil(diffMs/(1000*60*60*24));
-    const urgent = diffDays<=5;
-    return `<div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid ${urgent?'rgba(247,111,124,.4)':'var(--border)'};border-radius:8px;padding:10px 14px;margin-bottom:8px">
-      <div style="flex:1">
-        <div style="font-weight:700;font-size:13px"><i class="fa-solid fa-laptop"></i> ${s.name}</div>
-        <div style="font-size:11px;color:var(--text3)">${s.cat||'اشتراكات'} آ· ${s.amount.toLocaleString()} ج/شهر آ· يتجدد يوم ${s.day}</div>
-        <div style="font-size:11px;margin-top:3px;font-weight:700;color:${urgent?'var(--accent4)':'var(--accent3)'}">${urgent?'<i class="fa-solid fa-triangle-exclamation"></i> ':'<i class="fa-solid fa-alarm-clock"></i> '}يتجدد خلال ${diffDays} يوم (${nextDate.toLocaleDateString('ar-EG')})</div>
-      </div>
-      <button class="btn btn-success btn-sm" onclick="renewSubscription(${i})" title="تجديد الآن"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تجديد</button>
-      <button class="btn btn-danger btn-sm" onclick="delSubscription(${i})"><i class="fa-solid fa-trash"></i></button>
+  el.innerHTML=_subscriptionRows()||'<div style="font-size:12px;color:var(--text3);padding:8px 0">لا اشتراكات مسجلة بعد</div>';
+}
+function _subscriptionDateKey(date){return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');}
+function _subscriptionAdvance(key,cadence,billingDay){
+  const [y,m,d]=key.split('-').map(Number);
+  if(cadence==='weekly'){const date=new Date(y,m-1,d+7);return _subscriptionDateKey(date);}
+  const months=cadence==='yearly'?12:1;
+  const first=new Date(y,m-1+months,1);
+  const last=new Date(first.getFullYear(),first.getMonth()+1,0).getDate();
+  return _subscriptionDateKey(new Date(first.getFullYear(),first.getMonth(),Math.min(+billingDay||d,last)));
+}
+function _subscriptionDue(s){
+  if(s.nextDate&&/^\d{4}-\d{2}-\d{2}$/.test(s.nextDate))return s.nextDate;
+  const today=new Date(),day=Math.min(28,Math.max(1,+s.day||1));
+  let due=new Date(today.getFullYear(),today.getMonth(),day);
+  if(_subscriptionDateKey(due)<_subscriptionDateKey(today))due=new Date(today.getFullYear(),today.getMonth()+1,day);
+  return _subscriptionDateKey(due);
+}
+function _subscriptionDays(key){
+  const [y,m,d]=key.split('-').map(Number),today=new Date();
+  return Math.round((Date.UTC(y,m-1,d)-Date.UTC(today.getFullYear(),today.getMonth(),today.getDate()))/86400000);
+}
+function _subscriptionCurrency(s){
+  const code=s.currency_code||'EGP';
+  return {EGP:'ج.م',SAR:'ر.س',USD:'$'}[code]||code;
+}
+function _subscriptionRows(){
+  return (S.subscriptions||[]).map((s,i)=>{
+    const due=_subscriptionDue(s),days=_subscriptionDays(due),urgent=days<=Math.max(1,+s.remindDays||1);
+    const label=days<0?'متأخر '+Math.abs(days)+' يوم':days===0?'مستحق اليوم':'بعد '+days+' يوم';
+    const cadence={weekly:'أسبوعي',monthly:'شهري',yearly:'سنوي'}[s.cadence]||'شهري';
+    return `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;background:var(--surface2);border:1px solid ${urgent?'var(--accent4)':'var(--border)'};border-radius:10px;padding:12px;margin-bottom:8px">
+      <div style="flex:1;min-width:190px"><div style="font-weight:700">${escapeHtml(s.name||'اشتراك')}</div><div style="font-size:11px;color:var(--text3)">${escapeHtml(s.cat||'اشتراكات')} · ${cadence} · ${Number(s.amount||0).toLocaleString()} ${_subscriptionCurrency(s)}</div><div style="font-size:11px;color:${urgent?'var(--accent4)':'var(--text3)'}">${due} · ${label} · تذكير قبل ${+s.remindDays===2?'يومين':'يوم'}</div></div>
+      <button class="btn btn-success btn-sm" onclick="renewSubscription(${i})"><i class="fa-solid fa-check"></i> تسجيل السداد</button><button class="btn btn-danger btn-sm" onclick="delSubscription(${i})" aria-label="حذف الالتزام"><i class="fa-solid fa-trash"></i></button>
     </div>`;
   }).join('');
+}
+function renderSubscriptionsPage(){
+  const list=document.getElementById('subscriptions-page-list'),summary=document.getElementById('subscriptions-summary');
+  const subs=S.subscriptions||[],due=subs.filter(s=>_subscriptionDays(_subscriptionDue(s))<=0),soon=subs.filter(s=>{const n=_subscriptionDays(_subscriptionDue(s));return n>0&&n<=Math.max(1,+s.remindDays||1);});
+  if(list)list.innerHTML=_subscriptionRows()||'<div class="empty" style="padding:28px">لا توجد اشتراكات أو التزامات بعد. أضف أول التزام لتتبع موعده.</div>';
+  if(summary)summary.innerHTML=`<div class="card"><div class="stat-value">${subs.length}</div><div class="stat-label">إجمالي الالتزامات</div></div><div class="card"><div class="stat-value" style="color:var(--accent4)">${due.length}</div><div class="stat-label">مستحقة أو متأخرة</div></div><div class="card"><div class="stat-value" style="color:var(--accent2)">${soon.length}</div><div class="stat-label">تذكير خلال يوم أو يومين</div></div>`;
+  const badge=document.getElementById('subscriptions-badge');if(badge){badge.textContent=due.length+soon.length;badge.style.display=due.length+soon.length?'inline-flex':'none';}
 }
 
 // renderSubsList is now renderSubsWithReminder (merged above)
@@ -17367,19 +17478,13 @@ function renderDashAlerts(){
   const subsList = document.getElementById('dash-subs-list');
   if(subsList){
     const today = new Date();
-    const urgentSubs = (S.subscriptions||[]).filter(s=>{
-      let next = new Date(today.getFullYear(), today.getMonth(), s.day||1);
-      if(next <= today) next = new Date(today.getFullYear(), today.getMonth()+1, s.day||1);
-      return Math.ceil((next-today)/(1000*60*60*24)) <= 7;
-    });
+    const urgentSubs = (S.subscriptions||[]).filter(s=>_subscriptionDays(_subscriptionDue(s))<=Math.max(1,+s.remindDays||1));
     if(urgentSubs.length){
       subsList.innerHTML = urgentSubs.map(s=>{
-        let next = new Date(today.getFullYear(), today.getMonth(), s.day||1);
-        if(next<=today) next = new Date(today.getFullYear(), today.getMonth()+1, s.day||1);
-        const days = Math.ceil((next-today)/(1000*60*60*24));
+        const days = _subscriptionDays(_subscriptionDue(s));
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(42,42,58,.25)">
-          <div><div style="font-size:12px;font-weight:700"><i class="fa-solid fa-laptop"></i> ${s.name}</div><div style="font-size:11px;color:var(--text3)">${s.amount.toLocaleString()} ج/شهر</div></div>
-          <span style="font-size:11px;font-weight:700;color:${days<=3?'var(--accent4)':'var(--accent2)'}; background:${days<=3?'rgba(247,111,124,.12)':'rgba(247,201,72,.12)'};padding:2px 8px;border-radius:10px">${days===0?'اليوم!':days+' أيام'}</span>
+          <div><div style="font-size:12px;font-weight:700"><i class="fa-solid fa-rotate"></i> ${escapeHtml(s.name)}</div><div style="font-size:11px;color:var(--text3)">${Number(s.amount||0).toLocaleString()} ${_subscriptionCurrency(s)}</div></div>
+          <span style="font-size:11px;font-weight:700;color:var(--accent4);padding:2px 8px;border-radius:10px">${days<0?'متأخر '+Math.abs(days)+' يوم':days===0?'اليوم':'بعد '+days+' يوم'}</span>
         </div>`;
       }).join('');
     } else {
@@ -19393,6 +19498,7 @@ function renderTimeTracker(){
   if(!document.getElementById('page-timetracker'))return;
   ttUpdateStats();ttRenderEntries();ttRenderBreakdown();ttRenderCompare();ttFillDL();
   const ri=document.getElementById('tt-rate-input');if(ri)ri.value=_ttRate;
+  _fillSharedCurrencySelect('tt-currency',_ttCur);
   const rs=document.getElementById('tt-stat-rate');if(rs)rs.textContent=_ttRate+' '+ttSym();
 }
 function ttUpdateStats(){
@@ -19676,7 +19782,7 @@ function ttExportCSV(){
 }
 function openRateSettings(){
   const ri=document.getElementById('rs-rate');if(ri)ri.value=_ttRate;
-  const ci=document.getElementById('rs-currency');if(ci)ci.value=_ttCur;
+  _fillSharedCurrencySelect('rs-currency',_ttCur);
   openM('modal-rate-settings');
 }
 function saveRateSettings(){
@@ -21816,9 +21922,10 @@ function getSvcLink(storeId){
   var un=S&&S.settings&&S.settings.username;
   var mainSlug=_getShortStoreSlug();
   if(window.location.protocol!=='file:'){
-    var storeBase=uid ? window.location.origin+'/store?uid='+encodeURIComponent(uid)
+    var storeBase=un ? window.location.origin+'/store/'+encodeURIComponent(mainSlug)
+      : uid ? window.location.origin+'/store?uid='+encodeURIComponent(uid)
       : window.location.origin+'/store/'+encodeURIComponent(mainSlug);
-    return storeId ? storeBase+(uid?'&':'?')+'store='+encodeURIComponent(storeId) : storeBase;
+    return storeId ? storeBase+(storeBase.includes('?')?'&':'?')+'store='+encodeURIComponent(storeId) : storeBase;
   }
   var _spp=window.location.pathname,_sps=_spp.split('/').filter(function(x){return x!=='';});
   if(_sps.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_sps[_sps.length-1])>=0)_sps.pop();
@@ -21901,7 +22008,7 @@ function _openStoreInner(idx){
   _currentStoreIdx = idx;
   var stores = _getStores();
   var st = (idx != null) ? stores[idx] : null;
-  var storeName = st ? st.name : (S.settings&&S.settings.name||'المتجر الرئيسي');
+  var storeName = st ? st.name : (S.settings&&(S.settings.svc_store_name||S.settings.name)||'المتجر الرئيسي');
   var storeLink = getSvcLink(st ? st.id : null);
   var nameEl = document.getElementById('svc-inner-store-name');
   if(nameEl) nameEl.textContent = storeName;
@@ -21941,7 +22048,7 @@ function renderStoresHomeList(){
   if(!listEl) return;
   var stores = _getStores();
   // Always show main store + extra stores as cards
-  var mainName = (S.settings&&S.settings.name) || 'المتجر الرئيسي';
+  var mainName = (S.settings&&(S.settings.svc_store_name||S.settings.name)) || 'المتجر الرئيسي';
   var mainDesc = (S.settings&&S.settings.svc_site_desc) || '';
   var mainLink = getSvcLink(null);
 
@@ -22218,6 +22325,8 @@ function initWebsiteTab(){
   renderMultiStoresList();
   var _stIdx = _currentStoreIdx;
   var _curSt = (_stIdx != null) ? (_getStores()[_stIdx] || null) : null;
+  var storeNameEl=document.getElementById('svc-store-name');
+  if(storeNameEl)storeNameEl.value=_curSt?(_curSt.name||''):((S.settings&&S.settings.svc_store_name)||'');
   // رابط الموقع
   try{
     var wl=document.getElementById('svc-website-link-preview');
@@ -22231,7 +22340,7 @@ function initWebsiteTab(){
   var isOpen=(S.settings&&S.settings.svc_orders_open!==false);
   _setOrdersOpenUI(isOpen);
   // سوشيال ميديا
-  var socs=(S.settings&&S.settings.socials)||[];
+  var socs=(_curSt?_curSt.socials:(S.settings&&S.settings.socials))||[];
   ['instagram','behance','tiktok','twitter','whatsapp'].forEach(function(k){
     var el=document.getElementById('social-'+k); if(!el) return;
     var found=socs.find(function(s){return s.type===k||s.platform===k;});
@@ -22239,8 +22348,8 @@ function initWebsiteTab(){
   });
   // يوزرنيم الموقع
   var unInp=document.getElementById('svc-main-username');
-  var un=(S.settings&&S.settings.username)||'';
-  if(unInp) unInp.value=un;
+  var un=_curSt?(_curSt.username||''):((S.settings&&S.settings.username)||'');
+  if(unInp){unInp.value=un;unInp.disabled=!!_curSt;unInp.title=_curSt?'عدّل رابط هذا المتجر من بيانات المتجر':'';}
   var unPv=document.getElementById('svc-un-live-preview'); if(unPv) unPv.textContent=un||'...';
   // لوجو المتجر (محفوظ في store_logo - للمتجر والتاب فقط)
   _svcLogoData='';
@@ -22286,10 +22395,26 @@ function toggleOrdersOpen(){
   _setOrdersOpenUI(S.settings.svc_orders_open);
   lsSave(); cloudSaveNow(S); toast(S.settings.svc_orders_open?'? فُتح الاستقبال':'⏸ أُغلق الاستقبال');
 }
-function saveSiteDesc(){
-  if(!S.settings) S.settings={};
-  S.settings.svc_site_desc=(document.getElementById('svc-site-desc')||{}).value||'';
-  lsSave(); cloudSaveNow(S); toast('? تم حفظ الوصف');
+async function _saveStorefrontChange(success){
+  lsSave();
+  await cloudSaveNow(S);
+  toast(window._lastCloudSaveOk?success:'تعذر نشر التغيير في المتجر الآن؛ البيانات محفوظة محليًا فقط');
+  return !!window._lastCloudSaveOk;
+}
+async function saveSiteDesc(){
+  var store=_currentStoreIdx!=null?_getStores()[_currentStoreIdx]:null;
+  if(store)store.desc=(document.getElementById('svc-site-desc')||{}).value||'';
+  else {if(!S.settings) S.settings={};S.settings.svc_site_desc=(document.getElementById('svc-site-desc')||{}).value||'';}
+  await _saveStorefrontChange('تم حفظ وصف المتجر');
+}
+async function saveSvcStoreName(){
+  var name=(document.getElementById('svc-store-name')?.value||'').trim();
+  if(!name){toast('أدخل اسم المتجر');return;}
+  var store=_currentStoreIdx!=null?_getStores()[_currentStoreIdx]:null;
+  if(store)store.name=name;
+  else {if(!S.settings)S.settings={};S.settings.svc_store_name=name;}
+  await _saveStorefrontChange('تم حفظ اسم المتجر');renderMultiStoresList();renderStoresHomeList();
+  var label=document.getElementById('svc-inner-store-name');if(label)label.textContent=name;
 }
 
 // â”€â”€ لوجو الموقع الرئيسي â”€â”€
@@ -22328,6 +22453,7 @@ function saveSvcLogo(){
 
 // â”€â”€ يوزرنيم الموقع â”€â”€
 async function saveSvcUsername(){
+  if(_currentStoreIdx!=null){toast('عدّل رابط المتجر الفرعي من بيانات المتجر');return;}
   var inp=document.getElementById('svc-main-username'); if(!inp) return;
   var un=inp.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
   if(!un){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل يوزرنيم أولاً');return;}
@@ -22351,24 +22477,26 @@ async function saveSvcUsername(){
   toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ رابط المتجر: @'+un);
   // تحديث الرابط في الـ header
   try{ var lnk=document.getElementById('svc-inner-store-link'); if(lnk) lnk.textContent=getSvcLink(_getCurrentStoreId()); }catch(e){}
+  initWebsiteTab();
 }
 
 // â”€â”€ حفظ البانر â”€â”€
-function saveSvcBannerNow(){
-  var banner=(_currentStoreIdx!=null&&_getStores()[_currentStoreIdx]&&_getStores()[_currentStoreIdx].banner)||S.settings&&S.settings.svc_banner||'';
+async function saveSvcBannerNow(){
+  var store=_currentStoreIdx!=null?_getStores()[_currentStoreIdx]:null;
+  var banner=store?(store.banner||''):((S.settings&&S.settings.svc_banner)||'');
   if(!banner){toast('<i class="fa-solid fa-triangle-exclamation"></i> ارفع بانر أولاً');return;}
-  lsSave(); cloudSaveNow(S);
-  toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ البانر');
+  await _saveStorefrontChange('تم حفظ بانر المتجر');
 }
-function saveSocials(){
+async function saveSocials(){
   if(!S.settings) S.settings={};
   var socs=[];
   ['instagram','behance','tiktok','twitter','whatsapp'].forEach(function(k){
     var el=document.getElementById('social-'+k); if(!el) return;
     var v=(el.value||'').trim(); if(v) socs.push({type:k,url:v});
   });
-  S.settings.socials=socs;
-  lsSave(); cloudSaveNow(S); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ الروابط');
+  var store=_currentStoreIdx!=null?_getStores()[_currentStoreIdx]:null;
+  if(store)store.socials=socs;else S.settings.socials=socs;
+  await _saveStorefrontChange('تم حفظ روابط المتجر');
 }
 function setSvcBannerSize(sz){
   var _stIdx=_currentStoreIdx;
@@ -22385,10 +22513,11 @@ function setSvcBannerSize(sz){
   lsSave(); cloudSaveNow(S); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم تغيير حجم البانر');
 }
 function saveBannerCustomPx(){
-  if(!S.settings) S.settings={};
   var v=parseInt((document.getElementById('banner-custom-px')||{}).value)||300;
   if(v<80) v=80; if(v>800) v=800;
-  S.settings.svc_banner_custom_px=v;
+  var store=_currentStoreIdx!=null?_getStores()[_currentStoreIdx]:null;
+  if(store)store.banner_custom_px=v;
+  else {if(!S.settings) S.settings={};S.settings.svc_banner_custom_px=v;}
   lsSave(); cloudSaveNow(S);
 }
 
@@ -22405,7 +22534,7 @@ function openPkgStandaloneModal(id){
   document.getElementById('pkg-standalone-title').innerHTML=id?'<i class="fa-solid fa-box"></i> تعديل الباقة':'<i class="fa-solid fa-box"></i> باقة جديدة';
   document.getElementById('pkg-st-id').value=id||'';
   ['pkg-st-name','pkg-st-price','pkg-st-desc','pkg-st-delivery','pkg-st-revisions','pkg-st-payment-link'].forEach(function(i){ var el=document.getElementById(i); if(el) el.value=''; });
-  var curSel=document.getElementById('pkg-st-currency'); if(curSel) curSel.value='ج.م';
+  var curSel=document.getElementById('pkg-st-currency');
   document.getElementById('pkg-st-items').value='';
   // populate portfolio cats
   var pfCatSel=document.getElementById('pkg-st-portfolio-cat');
@@ -22418,7 +22547,7 @@ function openPkgStandaloneModal(id){
     if(pkg){
       document.getElementById('pkg-st-name').value=pkg.name||'';
       document.getElementById('pkg-st-price').value=pkg.price||'';
-      if(curSel) curSel.value=pkg.currency||'ج.م';
+      if(curSel) curSel.value=pkg.currency||S.settings?.base_currency_code||'EGP';
       document.getElementById('pkg-st-desc').value=pkg.desc||'';
       document.getElementById('pkg-st-delivery').value=pkg.delivery||'';
       document.getElementById('pkg-st-revisions').value=pkg.revisions||'';
@@ -22430,6 +22559,7 @@ function openPkgStandaloneModal(id){
     }
   }
   _updatePkgStToggle();
+  _fillSharedCurrencySelect('pkg-st-currency',id&&pkg?pkg.currency:S.settings?.base_currency_code,true);
   openM('modal-pkg-standalone');
 }
 function togglePkgStActive(){ _pkgStActive=!_pkgStActive; _updatePkgStToggle(); }
@@ -22704,14 +22834,14 @@ function handleSvcBanner(input){
   var file=input.files[0]; if(!file) return;
   if(file.size>5*1024*1024){ toast('<i class="fa-solid fa-triangle-exclamation"></i> حجم البانر أكبر من 5 ميجا'); input.value=''; return; }
   toast('<i class="fa-solid fa-spinner fa-spin"></i> جاري رفع البانر...');
-  uploadToStorage(file,'banners',function(url){
+  uploadToStorage(file,'banners',async function(url){
     var _stIdx=_currentStoreIdx;
     var _curSt=(_stIdx!=null)?(_getStores()[_stIdx]||null):null;
     if(_curSt){ _curSt.banner=url; }
     else { if(!S.settings) S.settings={}; S.settings.svc_banner=url; }
     var prev=document.getElementById('svc-banner-preview'); var img=document.getElementById('svc-banner-img'); var clr=document.getElementById('svc-banner-clear-btn');
     if(prev) prev.style.display=''; if(img) img.src=url; if(clr) clr.style.display='';
-    lsSave(); cloudSaveNow(S); toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم رفع البانر');
+    await _saveStorefrontChange('تم رفع البانر ونشره في المتجر');
   },function(){ toast('<i class="fa-solid fa-triangle-exclamation"></i> فشل رفع البانر'); });
 }
 function clearSvcBanner(){
@@ -22839,16 +22969,17 @@ function openSvcModal(id){
       if(lbl) lbl.textContent=_svcModalActive?'â—ڈ نشطة':'○ موقوفة';
       if(flag) flag.value=_svcModalActive?'1':'0';
       // load currency
-      var curSel=document.getElementById('svc-currency'); if(curSel) curSel.value=svc.currency||'ج.م';
+      var curSel=document.getElementById('svc-currency'); if(curSel) curSel.value=svc.currency||S.settings?.base_currency_code||'EGP';
       // load payment link
       var payLinkEl=document.getElementById('svc-payment-link'); if(payLinkEl) payLinkEl.value=svc.payment_link||'';
     }
   }
   // reset currency+payment for new service
   if(!id){
-    var curSelN=document.getElementById('svc-currency'); if(curSelN) curSelN.value='ج.م';
+    var curSelN=document.getElementById('svc-currency'); if(curSelN) curSelN.value=S.settings?.base_currency_code||'EGP';
     var payLinkN=document.getElementById('svc-payment-link'); if(payLinkN) payLinkN.value='';
   }
+  _fillSharedCurrencySelect('svc-currency',id&&svc?svc.currency:S.settings?.base_currency_code,true);
   openM('modal-svc');
 }
 function handleSvcImg(input){
@@ -25404,8 +25535,8 @@ window.addEventListener('load', function(){
 // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function switchInvTab(tab){
   _mergeStandalonePagesIntoTabs();
-  const panels = {invoices:'inv-panel-invoices', contracts:'inv-panel-contracts', proposals:'inv-panel-proposals', statements:'inv-panel-statements'};
-  const btns   = {invoices:'inv-tab-inv', contracts:'inv-tab-ct', proposals:'inv-tab-proposals', statements:'inv-tab-stmt'};
+  const panels = {invoices:'inv-panel-invoices', contracts:'inv-panel-contracts', proposals:'inv-panel-proposals', briefs:'inv-panel-briefs', statements:'inv-panel-statements'};
+  const btns   = {invoices:'inv-tab-inv', contracts:'inv-tab-ct', proposals:'inv-tab-proposals', briefs:'inv-tab-briefs', statements:'inv-tab-stmt'};
   Object.keys(panels).forEach(k=>{
     const p = document.getElementById(panels[k]);
     const b = document.getElementById(btns[k]);
@@ -25416,11 +25547,13 @@ function switchInvTab(tab){
   if(addBtn){
     if(tab==='contracts'){ addBtn.textContent='+ عقد جديد'; addBtn.onclick=()=>openContractModal(); }
     else if(tab==='proposals'){ addBtn.textContent='+ عرض جديد'; addBtn.onclick=()=>openProposalModal(); }
+    else if(tab==='briefs'){ addBtn.textContent='+ بريف جديد'; addBtn.onclick=()=>openBriefForm(); }
     else if(tab==='statements'){ addBtn.textContent='+ كشف حساب'; addBtn.onclick=()=>_stmtNewDialog(); }
     else { addBtn.textContent='+ فاتورة جديدة'; addBtn.onclick=()=>openInvoiceModal(); }
   }
   if(tab==='contracts') renderContractsList();
   if(tab==='proposals' && typeof renderProposals==='function') renderProposals();
+  if(tab==='briefs' && typeof renderBriefForms==='function') renderBriefForms();
   if(tab==='statements') _initStatementsPanel();
 }
 
@@ -26977,11 +27110,20 @@ async function _pollPublicInbox(){
         S._inbox=S._inbox||[];
         S._inbox.unshift({id:row.id,type:'note',taskId:taskId,note:payload.note||'',createdAt:row.created_at,read:false});
       }
+      if(type==='brief_submit'){
+        const brief=(S.brief_forms||[]).find(item=>String(item.id)===String(payload.form_id)&&String(item.client_id)===String(row.data?.client_id));
+        if(brief&&brief.status==='sent'){
+          brief.answers=payload.answers||{};
+          brief.submittedAt=row.created_at||new Date().toISOString();
+          brief.status='submitted';brief.updatedAt=brief.submittedAt;
+          if(typeof window.renderBriefForms==='function')renderBriefForms();
+        }
+      }
       S._publicEventIds.push(row.id);
       changed=true;
     }
     if(S._publicEventIds.length>500) S._publicEventIds=S._publicEventIds.slice(-500);
-    if(changed){ lsSave(); toast('وصل تحديث جديد من بوابة العميل أو المتجر'); }
+    if(changed){ lsSave(); if(typeof cloudSave==='function')cloudSave(S); toast('وصل تحديث جديد من بوابة العميل أو المتجر'); }
   }catch(error){ console.warn('Public inbox sync failed:',error); }
 }
 setTimeout(_pollPublicInbox,7000);
@@ -27829,19 +27971,21 @@ function _checkAutoNotifications(){
   if(typeof S === 'undefined') return;
   var today = new Date().toISOString().split('T')[0];
   var todayKey = 'notif_check_'+today;
+  // Check each subscription even if the daily general notification check already ran.
+  (S.subscriptions||[]).forEach(function(s){
+    var due=_subscriptionDue(s),days=_subscriptionDays(due);
+    if(days>Math.max(1,+s.remindDays||1))return;
+    var key='sub_reminder_'+String(s.id||s.name)+'_'+due;
+    if(localStorage.getItem(key))return;
+    addNotification('<i class="fa-solid fa-bell"></i> '+escapeHtml(s.name||'اشتراك')+' '+(days<0?'متأخر':days===0?'مستحق اليوم':'مستحق بعد '+days+' يوم'),days<=0?'warning':'info','subscriptions');
+    localStorage.setItem(key,'1');
+  });
   if(localStorage.getItem(todayKey)) return;
   localStorage.setItem(todayKey, '1');
   // Overdue tasks
   var overdue = (S.tasks||[]).filter(function(t){ return !t.done && t.deadline && t.deadline < today; });
   if(overdue.length > 0){
     addNotification('<i class="fa-solid fa-triangle-exclamation"></i> لديك ' + overdue.length + ' مهمة متأخرة عن موعدها', 'warning');
-  }
-  // Subscriptions expiring in 7 days
-  var soon = new Date(); soon.setDate(soon.getDate()+7);
-  var soonStr = soon.toISOString().split('T')[0];
-  var expiring = (S.subscriptions||[]).filter(function(s){ return s.nextDate && s.nextDate <= soonStr && s.nextDate >= today; });
-  if(expiring.length > 0){
-    addNotification('<i class="fa-solid fa-bell"></i> ' + expiring.length + ' اشتراك قريب من التجديد', 'info');
   }
   // â”€â”€â”€ تذكير يومي بالتحصيل المتأخر â”€â”€â”€
   var pendingInvs = (S.invoices||[]).filter(function(i){
@@ -28338,7 +28482,7 @@ function _loadThemeFromCloud(){
     localStorage.setItem('studioDisplayMode',mode);
     setDisplayMode(mode, false);
   }
-  for(const [key,field] of [['studioFontScale','fontScale'],['studioToneColor','toneColor'],['studioHoverOverlay','hoverOverlayColor']]){
+  for(const [key,field] of [['studioFontScale','fontScale'],['studioToneColor','toneColor'],['studioToneStyle','toneStyle'],['studioToneGradientEnd','toneGradientEnd'],['studioToneAngle','toneAngle'],['studioHoverOverlay','hoverOverlayColor']]){
     const value=(scoped && localStorage.getItem(key+scoped)) ?? S.settings[field];
     if(value!==undefined && value!==null){localStorage.setItem(key,String(value));if(scoped)localStorage.setItem(key+scoped,String(value));}
   }
@@ -30466,7 +30610,7 @@ function openProjTaskModal(projId, taskId, defaultStatus){
   document.getElementById('ptask-deadline').value=t?t.deadline||'':'';
   var odEl=document.getElementById('ptask-orderdate'); if(odEl) odEl.value=t?t.orderDate||'':'';
   document.getElementById('ptask-value').value=t?t.value||'':'';
-  document.getElementById('ptask-currency').value=t?t.currency||'ج.م':'ج.م';
+  _fillSharedCurrencySelect('ptask-currency',t?t.currency:(_getProjById(projId)?.budgetCurrency||S.settings?.base_currency_code),true);
   // Payment status: map old boolean to new 3-state
   var payStatus='pending';
   if(t){
@@ -33110,7 +33254,7 @@ function _ptdSaveNote(taskId, projId){
       map[code] = Object.assign({}, map[code] || {}, c, {code:code});
     });
     return Object.keys(map).map(function(k){
-      if(['EGP','USD','SAR'].includes(k)) map[k].enabled = true;
+      if(k === (s.settings && s.settings.base_currency_code)) map[k].enabled = true;
       return map[k];
     });
   }
@@ -34730,7 +34874,7 @@ window.OrdoCurrencyPatch = {
         '<div class="form-group"><label class="form-label">أعضاء الفريق</label><div id="proj-members-select" class="project-modal-v4-members"></div></div>'+
       '</section>'+
       '<section class="project-modal-v4-section"><div class="project-modal-v4-title"><i class="fa-solid fa-coins"></i><b>المالية</b></div>'+
-        '<div class="form-row"><div class="form-group"><label class="form-label">ميزانية المشروع</label><input class="form-input" id="proj-budget" type="number" min="0" value="'+esc(p?p.budget:'')+'" placeholder="0"></div><div class="form-group"><label class="form-label">العملة</label><select class="form-select" id="proj-budget-currency"><option value="ج.م">ج.م</option><option value="EGP">EGP</option><option value="$">$</option><option value="SAR">SAR</option><option value="AED">AED</option></select></div></div>'+
+        '<div class="form-row"><div class="form-group"><label class="form-label">ميزانية المشروع</label><input class="form-input" id="proj-budget" type="number" min="0" value="'+esc(p?p.budget:'')+'" placeholder="0"></div><div class="form-group"><label class="form-label">العملة</label><select class="form-select" id="proj-budget-currency">'+_salaryCurrencyOptions(p?p.budgetCurrency:S.settings?.base_currency_code)+'</select></div></div>'+
         '<div class="form-row"><div class="form-group"><label class="form-label">نوع التسعير</label><select class="form-select" id="proj-pricing-type"><option value="fixed">سعر ثابت</option><option value="hourly">بالساعة</option><option value="monthly">شهري</option><option value="milestone">مراحل</option></select></div><div class="form-group"><label class="form-label">حالة الدفع</label><select class="form-select" id="proj-payment-status" onchange="toggleProjectDepositField()"><option value="none">لم يتم التحصيل</option><option value="deposit">تم أخذ عربون</option><option value="full">تم التحصيل كامل</option></select></div></div>'+
         '<div class="form-group" id="proj-deposit-wrap" style="display:none"><label class="form-label">قيمة العربون</label><input class="form-input" id="proj-deposit-amount" type="number" min="0" value="'+esc(p?p.depositAmount:'')+'" placeholder="0"></div>'+
       '</section>'+
@@ -34739,7 +34883,7 @@ window.OrdoCurrencyPatch = {
     '<div class="project-modal-v4-footer"><button class="btn btn-ghost" onclick="closeM(&quot;modal-project&quot;)">إلغاء</button><button class="btn btn-primary" onclick="saveProject()"><i class="fa-solid fa-floppy-disk"></i> حفظ المشروع</button></div>';
     if(p){
       var status=document.getElementById('proj-status'); if(status) status.value=p.status||'active';
-      var currency=document.getElementById('proj-budget-currency'); if(currency) currency.value=p.budgetCurrency||'ج.م';
+      var currency=document.getElementById('proj-budget-currency'); if(currency) currency.value=_salaryCurrencyMeta(p.budgetCurrency||S.settings?.base_currency_code).code;
       var pricing=document.getElementById('proj-pricing-type'); if(pricing) pricing.value=p.pricingType||'fixed';
       var pay=document.getElementById('proj-payment-status'); if(pay) pay.value=p.paymentStatus||'none';
     }

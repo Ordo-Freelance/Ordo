@@ -1113,7 +1113,7 @@ function getQRDataURL(text, size) {
 </script>
 <!-- Quill Rich Text Editor -->
 <link href="../Assets/vendor/quill/quill.snow.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../CSS/styles.css?v=mobile-modals-1">
+<link rel="stylesheet" href="../CSS/styles.css?v=studio-gradient-1">
 <script>
 (function(){
   try{
@@ -1449,6 +1449,7 @@ try {
   
   <div class="nav-item" onclick="showPage('clients',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nav-label" data-ar="قاعدة العملاء" data-i18n="nav_clients">قاعدة العملاء</span></div>
   <div class="nav-item" onclick="showPage('finance',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="nav-label" data-ar="المالية" data-i18n="nav_finance">المالية</span></div>
+  <div class="nav-item" onclick="showPage('subscriptions',this)"><span class="nav-icon"><i class="fa-solid fa-rotate"></i></span><span class="nav-label">اشتراكاتي</span><span class="nav-badge" id="subscriptions-badge" style="display:none;background:var(--accent4)"></span></div>
   <div class="nav-item" onclick="showPage('invoices',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><span class="nav-label" data-ar="الفواتير والعقود والعروض" data-i18n="nav_invoices">الفواتير والعقود والعروض</span></div>
   <div class="nav-item" onclick="showPage('proposals',this)" id="nav-proposals" style="display:none"><span class="nav-icon"><i class="fa-solid fa-file-contract"></i></span><span class="nav-label">عروض الأسعار</span><span class="nav-badge" id="proposals-nav-badge" style="display:none;background:#f7c948;color:#1a1a2e;font-size:10px;padding:2px 6px;border-radius:10px;font-weight:900"></span></div>
   <div class="nav-item" onclick="showPage('services',this)" id="nav-services">
@@ -1541,7 +1542,7 @@ try {
   var dashboard=item('dashboard');if(dashboard)sidebar.insertBefore(dashboard,user);
   group('projects','المشاريع','fa-folder-open',['tasks','projects','schedule','meetings']);
   group('clients','إدارة العمل والعملاء','fa-briefcase',['clients','services','reviews']);
-  group('finance','المالية','fa-coins',['finance','invoices','proposals']);
+  group('finance','المالية','fa-coins',['finance','subscriptions','invoices','proposals']);
   group('team','الفريق','fa-users',['team']);
   group('system','النظام والمساحة','fa-layer-group',['timetracker','freelancer-goals','vault']);
   var utility=document.createElement('div');
@@ -2732,19 +2733,19 @@ try {
 <div class="modal-overlay" id="modal-subscription">
   <div class="modal" style="max-width:540px">
     <div class="modal-header">
-      <div class="modal-title"><i class="fa-solid fa-rotate"></i> إدارة الاشتراكات الشهرية</div>
+      <div class="modal-title"><i class="fa-solid fa-rotate"></i> إدارة الاشتراكات والالتزامات</div>
       <button class="close-btn" onclick="closeM('modal-subscription')"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:14px">سجّل اشتراكاتك الشهرية وهتتسجل تلقائياً في المصروفات وهتجدد كل شهر</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px">سجّل التزاماتك، واختر موعد التذكير. لن تُحسب كمصروف إلا عند تسجيل السداد.</div>
     <div id="subs-list" style="max-height:300px;overflow-y:auto;margin-bottom:14px"></div>
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px">
       <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">إضافة اشتراك جديد</div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">اسم الاشتراك</label><input class="form-input" id="sub-name" placeholder="مثال: Adobe CC"></div>
-        <div class="form-group"><label class="form-label">المبلغ الشهري (ج)</label><input class="form-input" type="number" id="sub-amount" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">المبلغ</label><input class="form-input" type="number" min="0.01" step="0.01" id="sub-amount" placeholder="0"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">يوم التجديد من الشهر</label><input class="form-input" type="number" id="sub-day" placeholder="مثال: 1" min="1" max="28"></div>
+        <div class="form-group"><label class="form-label">موعد الاستحقاق القادم</label><input class="form-input" type="date" id="sub-next-date"></div>
         <div class="form-group"><label class="form-label">الفئة</label>
           <select class="form-select" id="sub-cat">
             <option value="برامج واشتراكات"><i class="fa-solid fa-laptop"></i> برامج واشتراكات</option>
@@ -2753,6 +2754,11 @@ try {
             <option value="أخرى"><i class="fa-solid fa-thumbtack"></i> أخرى</option>
           </select>
         </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">التكرار</label><select class="form-select" id="sub-cadence"><option value="monthly">شهري</option><option value="weekly">أسبوعي</option><option value="yearly">سنوي</option></select></div>
+        <div class="form-group"><label class="form-label">العملة</label><select class="form-select" id="sub-currency"><option value="EGP">جنيه مصري</option><option value="SAR">ريال سعودي</option><option value="USD">دولار أمريكي</option></select></div>
+        <div class="form-group"><label class="form-label">ذكّرني قبل الموعد</label><select class="form-select" id="sub-remind-days"><option value="1">بيوم</option><option value="2">بيومين</option></select></div>
       </div>
       <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="addSubscription()">+ إضافة الاشتراك</button>
     </div>
@@ -2868,6 +2874,11 @@ try {
 </div>
 
 <!-- FINANCE -->
+<div class="page" id="page-subscriptions">
+  <div class="page-header"><div><div class="page-title"><i class="fa-solid fa-rotate"></i> اشتراكاتي والتزاماتي</div><div class="page-subtitle">مواعيد الاستحقاق والتنبيهات مرتبطة بسجل المصروفات في المالية</div></div><button class="btn btn-primary" onclick="openSubscriptionModal()"><i class="fa-solid fa-plus"></i> إضافة التزام</button></div>
+  <div id="subscriptions-summary" class="grid grid-3" style="margin-bottom:16px"></div>
+  <div class="card"><div class="section-title" style="margin-bottom:12px">الاشتراكات والالتزامات</div><div id="subscriptions-page-list"></div></div>
+</div>
 <div class="page" id="page-finance">
   <div class="page-header">
     <div><div class="page-title"><span data-i18n="title_finance">المالية</span> <span data-i18n="title_finance2">والحسابات</span></div><div class="page-subtitle" data-i18n="sub_finance">تتبع الدخل والمصروفات</div></div>
@@ -3281,6 +3292,7 @@ try {
     <button class="filter-chip active" id="inv-tab-inv" onclick="switchInvTab('invoices')"><i class="fa-solid fa-square"></i> الفواتير</button>
     <button class="filter-chip" id="inv-tab-ct" onclick="switchInvTab('contracts')"><i class="fa-solid fa-pen-to-square"></i> العقود</button>
     <button class="filter-chip" id="inv-tab-proposals" onclick="switchInvTab('proposals')"><i class="fa-solid fa-file-contract"></i> عروض الأسعار</button>
+    <button class="filter-chip" id="inv-tab-briefs" onclick="switchInvTab('briefs')"><i class="fa-solid fa-clipboard-question"></i> البريفات والاستبيانات</button>
     <button class="filter-chip" id="inv-tab-stmt" onclick="switchInvTab('statements')"><i class="fa-solid fa-file-lines"></i> كشوفات الحساب</button>
   </div>
   <div id="inv-panel-invoices">
@@ -3318,6 +3330,7 @@ try {
       </div>
     </div>
   </div>
+  <div id="inv-panel-briefs" style="display:none"></div>
   <!-- STATEMENTS PANEL -->
   <div id="inv-panel-statements" style="display:none">
     <div style="display:grid;grid-template-columns:300px 1fr;gap:20px">
@@ -4186,6 +4199,12 @@ try {
           </div>
         </div>
 
+        <div class="card" style="padding:16px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:8px"><i class="fa-solid fa-store"></i> اسم المتجر الظاهر للزوار</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:9px">مستقل عن اسم الموقع والتطبيق في إعدادات النظام.</div>
+          <div style="display:flex;gap:8px"><input class="form-input" id="svc-store-name" placeholder="اسم المتجر" style="flex:1"><button class="btn btn-primary btn-sm" onclick="saveSvcStoreName()"><i class="fa-solid fa-floppy-disk"></i> حفظ</button></div>
+        </div>
+
         <!-- Site Description -->
         <div class="card" style="padding:16px">
           <div style="font-size:13px;font-weight:800;margin-bottom:10px"><i class="fa-solid fa-pen-to-square"></i> وصف الموقع</div>
@@ -4909,6 +4928,7 @@ try {
       <div class="form-group"><label class="form-label">قناة التواصل</label><select class="form-select" id="c-channel"><option>واتساب</option><option>إيميل</option><option>فيسبوك</option><option>إنستقرام</option><option>لينكدإن</option></select></div>
       <div class="form-group"><label class="form-label">المجال</label><input class="form-input" id="c-field" placeholder="مثال: مطاعم، تقنية..."></div>
     </div>
+    <div class="form-group"><label class="form-label">عملة التعامل مع العميل</label><select class="form-select" id="c-currency"><option value="EGP">جنيه مصري (ج.م)</option><option value="SAR">ريال سعودي (ر.س)</option><option value="USD">دولار أمريكي ($)</option></select><div style="font-size:11px;color:var(--text3);margin-top:4px">تُستخدم في بوابة العميل عندما لا يكون للمشروع أو المبلغ عملة محددة.</div></div>
 
     <!-- ── طبيعة التعامل ── -->
     <div class="form-row">
@@ -5541,9 +5561,9 @@ try {
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=sidebar-currencies-1"></script>
+<script src="../JavaScript/app.js?v=studio-gradient-1"></script>
 <script>document.body.classList.remove('auth-booting');</script>
-<script src="../JavaScript/vercel_persistence.js?v=theme-sync-2"></script>
+<script src="../JavaScript/vercel_persistence.js?v=storefront-sync-1"></script>
 
 <!-- ═══ BACKUP MODAL ═══ -->
 <div class="modal-overlay" id="modal-backup">
@@ -6536,7 +6556,7 @@ function openProposalModal(id) {
     document.getElementById('prop-discount-type').value = p.discountType || 'percent';
     document.getElementById('prop-tax').value           = p.tax || 0;
     document.getElementById('prop-payment-terms').value = p.paymentTerms || 'full';
-    document.getElementById('prop-currency').value      = p.currency || 'ج.م';
+    _fillSharedCurrencySelect('prop-currency',p.currency,true);
     document.getElementById('prop-notes').value         = p.notes || '';
     document.getElementById('prop-intro').value         = p.intro || '';
     (p.items||[]).forEach(function(item){ _addPropItem(item); });
@@ -6551,7 +6571,7 @@ function openProposalModal(id) {
     document.getElementById('prop-discount').value      = 0;
     document.getElementById('prop-tax').value           = 0;
     document.getElementById('prop-payment-terms').value = 'full';
-    document.getElementById('prop-currency').value      = 'ج.م';
+    _fillSharedCurrencySelect('prop-currency',S.settings?.base_currency_code,true);
     _addPropItem(); _addPropItem(); _addPropItem();
   }
   _calcPropTotal();
@@ -9230,5 +9250,6 @@ document.addEventListener('DOMContentLoaded', function(){
 <script src="../JavaScript/portal_chat.js?v=chat-clear-4"></script>
 <script src="../JavaScript/support_center.js?v=challenge-tabs-1"></script>
 <script src="../JavaScript/storage_usage.js?v=storage-files-2"></script>
+<script src="../JavaScript/brief_forms.js?v=1"></script>
 
 </body></html>

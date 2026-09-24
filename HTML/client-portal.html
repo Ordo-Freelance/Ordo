@@ -278,12 +278,33 @@ function _curMeta(value){
   const list=(_settings&&_settings.enabled_currencies)||[];
   const found=list.find(c=>[c.code,c.symbol,c.label,c.currency_code].map(x=>String(x||'').trim()).includes(raw));
   if(found) return {code:found.code||found.currency_code||raw,symbol:found.symbol||found.code||raw,label:found.label||found.code||raw};
-  if(defaults[raw]) return defaults[raw];
-  if(raw==='ج' || raw==='ج.م' || raw==='EGP') return defaults.EGP;
-  return defaults[(_settings&&(_settings.base_currency_code||_settings.base_currency))]||defaults.EGP;
+  if(defaults[raw.toUpperCase()]) return defaults[raw.toUpperCase()];
+  if(['ج','ج.م','جنيه','جنيه مصري'].includes(raw)) return defaults.EGP;
+  if(['ر.س','ر.س.','ريال','ريال سعودي'].includes(raw)) return defaults.SAR;
+  if(['$','دولار','دولار أمريكي'].includes(raw)) return defaults.USD;
+  if(['د.إ','درهم','درهم إماراتي'].includes(raw)) return defaults.AED;
+  if(raw==='€'||raw==='يورو') return defaults.EUR;
+  if(raw==='د.ك') return defaults.KWD;
+  if(raw==='ر.ق') return defaults.QAR;
+  const siteBase=_settings&&(_settings.base_currency_code||_settings.base_currency||_settings.currency);
+  return siteBase&&siteBase!==raw?_curMeta(siteBase):defaults.EGP;
+}
+function _preferredCurrency(){
+  const client=(_ud?.clients||[]).find(c=>String(c.id)===String(_clientId));
+  const clientCurrency=client&&(client.currency_code||client.currency||client.openingBalanceCurrency||client.salaryCurrency);
+  if(clientCurrency)return _curMeta(clientCurrency);
+  const project=(_clientProjects||[]).find(p=>p.currency_code||p.budgetCurrency||p.currency);
+  if(project)return _curMeta(project.currency_code||project.budgetCurrency||project.currency);
+  const item=[...(_clientTasks||[]),...(_clientInvoices||[])].find(x=>x.currency_code||x.currency||x.currency_symbol);
+  return _curMeta(item&&(item.currency_code||item.currency||item.currency_symbol));
 }
 function _entityCur(entity){
-  return _curMeta(entity&&(entity.currency_code||entity.currency||entity.currency_symbol));
+  const explicit=entity&&(entity.currency_code||entity.currency||entity.currency_symbol||entity.budgetCurrency);
+  if(explicit)return _curMeta(explicit);
+  const projectId=entity&&(entity.project_id||entity.projectId);
+  const project=projectId&&(_clientProjects||[]).find(p=>String(p.id)===String(projectId));
+  if(project)return _curMeta(project.currency_code||project.budgetCurrency||project.currency);
+  return _preferredCurrency();
 }
 function _money(amount, entityOrCurrency){
   const c=typeof entityOrCurrency==='string'?_curMeta(entityOrCurrency):_entityCur(entityOrCurrency);
@@ -317,7 +338,7 @@ function _subtractCurrencyTotal(map, code, amount){
 }
 function _currencyRows(map, color){
   const codes=Object.keys(map||{}).filter(k=>Math.abs(map[k]||0)>0.0001);
-  if(!codes.length) return '<div style="font-size:13px;color:var(--t3);font-weight:800">0 '+_curMeta().symbol+'</div>';
+  if(!codes.length) return '<div style="font-size:13px;color:var(--t3);font-weight:800">0 '+_preferredCurrency().symbol+'</div>';
   return codes.map(code=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px solid var(--bd)"><span style="font-size:10px;color:var(--t3);font-weight:800">'+_curMeta(code).label+'</span><b style="font-size:14px;color:'+(color||'var(--t1)')+'">'+_money(map[code],code)+'</b></div>').join('');
 }
 function _clientTransactions(){
@@ -534,7 +555,7 @@ function renderPage(){
   const openingBal=clientObj?.openingBalance||0;
   const openingType=clientObj?.openingBalanceType||'receivable';
   const openingNote=clientObj?.openingBalanceNote||'';
-  const openingCur=_curMeta(clientObj?.openingBalanceCurrency||clientObj?.currency_code||clientObj?.currency);
+  const openingCur=_entityCur(clientObj);
   // حساب الرصيد الكلي: مدفوع + رصيد افتتاحي (مستحقات)
   const totalReceivable = unpaid + (openingType==='receivable'?openingBal:0);
 
@@ -674,6 +695,7 @@ function renderPage(){
       <button class="tab on" onclick="switchTab('tasks')" id="tab-tasks"><i class="fa-solid fa-clipboard-list"></i>طلباتي (${_clientTasks.length})</button>
       <button class="tab" onclick="switchTab('projects')" id="tab-projects"><i class="fa-solid fa-folder-open"></i>المشاريع (${_clientProjects.length})</button>
       <button class="tab" onclick="switchTab('invoices')" id="tab-invoices"><i class="fa-solid fa-file-invoice"></i>الفواتير (${_clientInvoices.length})</button>
+      <button class="tab" onclick="switchTab('briefs')" id="tab-briefs"><i class="fa-solid fa-clipboard-question"></i>البريفات (${(_ud.brief_forms||[]).length})</button>
       <button class="tab" onclick="switchTab('accounts')" id="tab-accounts"><i class="fa-solid fa-coins"></i>حسابي</button>
       <button class="tab" onclick="switchTab('reviews')" id="tab-reviews"><i class="fa-solid fa-star"></i>تقييماتي</button>
       <button class="tab" onclick="switchTab('chat')" id="tab-chat"><i class="fa-solid fa-comments"></i>الرسائل</button>
@@ -685,6 +707,7 @@ function renderPage(){
     <div class="tab-panel" id="tp-projects">${renderProjects()}</div>
     <!-- INVOICES PANEL -->
     <div class="tab-panel" id="tp-invoices">${renderInvoices()}</div>
+    <div class="tab-panel" id="tp-briefs">${renderBriefForms()}</div>
     <!-- ACCOUNTS PANEL -->
     <div class="tab-panel" id="tp-accounts">${renderAccounts()}</div>
     <!-- REVIEWS PANEL -->
@@ -875,7 +898,7 @@ function renderStoreSection(){
         </div>`:''}
         <div class="svc-foot">
           ${price
-            ? `<div><div class="svc-price" style="color:${acc}">${Number(price).toLocaleString()}</div><div class="svc-price-lbl">ج.م</div></div>`
+            ? `<div><div class="svc-price" style="color:${acc}">${Number(price).toLocaleString()}</div><div class="svc-price-lbl">${_curMeta(s.currency_code||s.currency||_settings?.base_currency_code).symbol}</div></div>`
             : `<div style="font-size:11px;color:var(--t3)">تواصل للسعر</div>`}
           <button class="svc-order-btn" style="background:${acc}" onclick="event.stopPropagation();_openSvcOrder('${type}',${idx})">
             <i class="fa-solid fa-cart-plus"></i> اطلب
@@ -1069,7 +1092,7 @@ function renderServices(){
           ${price
             ? `<div>
                  <div style="font-size:19px;font-weight:900;color:${acc};line-height:1">${Number(price).toLocaleString()}</div>
-                 <div style="font-size:10px;color:var(--t3)">ج.م</div>
+                 <div style="font-size:10px;color:var(--t3)">${_curMeta(s.currency_code||s.currency||_settings?.base_currency_code).symbol}</div>
                </div>`
             : `<div style="font-size:12px;color:var(--t3)">تواصل للسعر</div>`}
           <button onclick="event.stopPropagation();_openSvcOrder('${type}',${idx})"
@@ -1218,7 +1241,7 @@ function _openSvcDetail(type, idx){
 
     <div style="font-size:21px;font-weight:900;color:var(--t1);margin-bottom:4px">${xe(s.name)}</div>
     ${price?`<div style="font-size:28px;font-weight:900;color:${acc};margin-bottom:16px">
-               ${Number(price).toLocaleString()} <span style="font-size:14px;font-weight:700">ج.م</span>
+               ${Number(price).toLocaleString()} <span style="font-size:14px;font-weight:700">${_curMeta(s.currency_code||s.currency||_settings?.base_currency_code).symbol}</span>
              </div>`:'<div style="margin-bottom:16px"></div>'}
 
     ${s.desc||s.description
@@ -1598,12 +1621,59 @@ function openProjectDetail(projId){
   document.body.appendChild(ov);
 }
 
+function renderBriefForms(){
+  const forms=(_ud?.brief_forms||[]).filter(f=>f&&['sent','submitted','accepted'].includes(f.status));
+  if(!forms.length)return '<div class="empty"><i class="fa-solid fa-clipboard-question" style="font-size:30px"></i><h3>لا توجد بريفات حاليًا</h3><p>ستظهر هنا النماذج التي يرسلها لك صاحب العمل.</p></div>';
+  return '<div style="display:grid;gap:12px">'+forms.map(f=>'<div class="card" style="display:flex;justify-content:space-between;gap:15px;align-items:center;flex-wrap:wrap"><div><strong>'+xe(f.title||'بريف')+'</strong><p style="margin:5px 0;color:var(--t3);font-size:12px">'+xe(f.description||'')+'</p><small style="color:var(--t3)">'+(f.status==='sent'?'في انتظار إجاباتك':f.status==='accepted'?'تم اعتماد البريف':'تم إرسال إجاباتك')+'</small></div><button class="btn '+(f.status==='sent'?'btn-primary':'btn-ghost')+'" data-id="'+xe(f.id)+'" onclick="openBriefSheet(this.dataset.id)">'+(f.status==='sent'?'فتح البريف':'عرض البريف')+'</button></div>').join('')+'</div>';
+}
+function openBriefSheet(formId){
+  const form=(_ud?.brief_forms||[]).find(f=>String(f.id)===String(formId));if(!form)return;
+  document.getElementById('brief-portal-overlay')?.remove();
+  const overlay=document.createElement('div');overlay.className='overlay';overlay.id='brief-portal-overlay';
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  const fields=(form.questions||[]).map((q,index)=>{
+    const label='<label style="font-weight:800;display:block;margin-bottom:6px">'+(index+1)+'. '+xe(q.label||'سؤال')+(q.required?' <span style="color:var(--r)">*</span>':'')+'</label>';
+    const desc=q.description?'<p style="color:var(--t3);font-size:12px;margin:0 0 8px">'+xe(q.description)+'</p>':'';
+    const options=(q.options||[]).map(o=>typeof o==='string'?{label:o}:o);
+    let control='';
+    if(q.type==='checkbox')control=options.map(o=>'<label style="display:flex;align-items:center;gap:8px;padding:9px;border:1px solid var(--bd);border-radius:9px;margin:5px 0"><input type="checkbox" value="'+xe(o.label)+'"> '+xe(o.label)+'</label>').join('');
+    else if(q.type==='image')control='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px">'+options.map(o=>{const imageUrl=/^https?:\/\//i.test(o.image_url||'')?o.image_url:'';return '<label style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;cursor:pointer"><img src="'+xe(imageUrl)+'" alt="" style="width:100%;height:90px;object-fit:cover"><span style="display:flex;gap:5px;align-items:center;padding:8px"><input type="radio" name="brief-image-'+index+'" value="'+xe(o.label)+'">'+xe(o.label)+'</span></label>';}).join('')+'</div>';
+    else control='<textarea class="form-input" rows="4" maxlength="3000" placeholder="اكتب إجابتك هنا..." style="width:100%;resize:vertical"></textarea>';
+    return '<div class="brief-portal-question" data-id="'+xe(q.id)+'" data-type="'+xe(q.type)+'" data-required="'+(q.required?'1':'0')+'" style="padding:14px 0;border-bottom:1px solid var(--bd)">'+label+desc+control+'</div>';
+  }).join('');
+  overlay.innerHTML='<div class="sheet" style="width:min(680px,100%);max-height:90dvh;overflow:auto"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><div><h2 style="margin:0">'+xe(form.title||'بريف')+'</h2><small style="color:var(--t3)">نموذج تفاصيل المشروع</small></div><button class="btn btn-ghost" onclick="document.getElementById(\'brief-portal-overlay\').remove()" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div>'+
+    (form.description?'<p style="color:var(--t2)">'+xe(form.description)+'</p>':'')+
+    ((form.items||[]).length?'<div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:16px 0"><h3 style="margin:0 0 9px">البنود</h3>'+(form.items||[]).map(item=>'<div style="padding:8px 0;border-bottom:1px solid var(--bd)"><b>'+xe(item.title)+'</b><p style="margin:3px 0;color:var(--t3);font-size:12px">'+xe(item.description)+'</p></div>').join('')+'</div>':'')+
+    '<div id="brief-portal-fields">'+fields+'</div>'+(form.status==='sent'?'<button class="btn btn-primary" style="width:100%;margin-top:16px" data-id="'+xe(form.id)+'" onclick="submitBriefSheet(this.dataset.id,this)"><i class="fa-solid fa-paper-plane"></i> إرسال الإجابات</button>':'<p style="color:var(--g);margin-top:16px">تم إرسال هذا البريف.</p>')+'</div>';
+  document.body.appendChild(overlay);
+  if(form.status!=='sent')overlay.querySelectorAll('textarea,input').forEach(el=>el.disabled=true);
+}
+async function submitBriefSheet(formId,button){
+  const form=(_ud?.brief_forms||[]).find(f=>String(f.id)===String(formId));if(!form||form.status!=='sent')return;
+  const wrap=document.getElementById('brief-portal-fields');const answers={};
+  for(const q of form.questions||[]){
+    const el=[...wrap.querySelectorAll('.brief-portal-question')].find(node=>node.dataset.id===String(q.id));if(!el)continue;
+    let answer='';
+    if(q.type==='checkbox')answer=[...el.querySelectorAll('input:checked')].map(input=>input.value);
+    else if(q.type==='image')answer=el.querySelector('input:checked')?.value||'';
+    else answer=el.querySelector('textarea')?.value.trim()||'';
+    if(q.required&&(!answer||Array.isArray(answer)&&!answer.length)){alert('أكمل السؤال المطلوب: '+q.label);el.scrollIntoView({block:'center'});return;}
+    answers[q.id]=answer;
+  }
+  button.disabled=true;button.textContent='جارٍ إرسال الإجابات...';
+  try{
+    await sendPortalEvent('brief_submit',{form_id:form.id,answers:answers});
+    form.status='submitted';document.getElementById('brief-portal-overlay')?.remove();
+    const panel=document.getElementById('tp-briefs');if(panel)panel.innerHTML=renderBriefForms();
+    alert('تم إرسال البريف بنجاح');
+  }catch(error){button.disabled=false;button.textContent='إرسال الإجابات';alert(error?.message||'تعذر إرسال البريف، حاول مجددًا');}
+}
 function renderAccounts(){
   const clientObj=(_ud.clients||[]).find(c=>String(c.id)===String(_clientId));
   const openingBal=+(clientObj?.openingBalance||0);
   const openingType=clientObj?.openingBalanceType||'receivable';
   const openingNote=clientObj?.openingBalanceNote||'';
-  const openingCur=_curMeta(clientObj?.openingBalanceCurrency||clientObj?.currency_code||clientObj?.currency);
+  const openingCur=_entityCur(clientObj);
 
   const trans=_clientTransactions();
   const incomeTotals={};
@@ -2287,7 +2357,7 @@ function _openHawaPopup(){
   const clientObj=(_ud.clients||[]).find(c=>String(c.id)===String(_clientId));
   const openingType=clientObj?.openingBalanceType||'receivable';
   const openingBal=clientObj?.openingBalance||0;
-  const openingCur=_curMeta(clientObj?.openingBalanceCurrency||clientObj?.currency_code||clientObj?.currency);
+  const openingCur=_entityCur(clientObj);
   if(openingBal>0 && openingType==='prepaid') _addCurrencyTotal(paidByCurrency,openingCur.code,openingBal);
   const prepaidByCurrency = {};
   Object.keys(paidByCurrency).forEach(code=>{

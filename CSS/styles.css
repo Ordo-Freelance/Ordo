@@ -4725,6 +4725,17 @@ body.studio-toned .page,
 body.studio-toned .content{
   background:var(--bg)!important;
 }
+/* Keep one continuous user-selected background behind the workspace. */
+body.app-loaded.studio-toned:not(.pub-page){
+  background:var(--studio-page-background,var(--bg)) fixed!important;
+}
+body.app-loaded.studio-toned:not(.pub-page) .app-body,
+body.app-loaded.studio-toned:not(.pub-page) .main,
+body.app-loaded.studio-toned:not(.pub-page) .main-content,
+body.app-loaded.studio-toned:not(.pub-page) .page,
+body.app-loaded.studio-toned:not(.pub-page) .content{
+  background:transparent!important;
+}
 body.studio-toned .card,
 body.studio-toned .modal,
 body.studio-toned .sidebar,

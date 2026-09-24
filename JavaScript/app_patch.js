@@ -1509,7 +1509,7 @@ console.log('[Ordo Patch v2] ✅ Extended patches loaded — leads, contacts, ar
   function _ensureCurrencySettings(s){
     s = s || _S();
     if(!s.settings) s.settings = {};
-    var currentBase = s.settings.base_currency || s.settings.currency || 'ج.م';
+    var currentBase = s.settings.base_currency_code || s.settings.base_currency || s.settings.currency || 'ج.م';
     var baseMeta = _currencyByAny(currentBase) || _currencyByAny('EGP');
     s.settings.base_currency = baseMeta.symbol;
     s.settings.base_currency_code = baseMeta.code;
@@ -1522,7 +1522,8 @@ console.log('[Ordo Patch v2] ✅ Extended patches loaded — leads, contacts, ar
         return Object.assign({}, def, found || {});
       });
     }
-    s.settings.enabled_currencies.forEach(function(c){ if(['EGP','USD','SAR'].indexOf(c.code) >= 0) c.enabled = true; });
+    var activeBase = s.settings.base_currency_code;
+    s.settings.enabled_currencies.forEach(function(c){ if(c.code === activeBase) c.enabled = true; });
     s.wallets = Array.isArray(s.wallets) ? s.wallets : [];
     s.wallet_transfers = Array.isArray(s.wallet_transfers) ? s.wallet_transfers : [];
     s.temp_todo_lists = Array.isArray(s.temp_todo_lists) ? s.temp_todo_lists : [];
@@ -6394,7 +6395,7 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
       if(code) map[code] = Object.assign({}, map[code] || {}, c, {code:code});
     });
     return Object.keys(map).map(function(k){
-      if(['EGP','USD','SAR'].indexOf(k) >= 0) map[k].enabled = true;
+      if(k === (s.settings && s.settings.base_currency_code)) map[k].enabled = true;
       return map[k];
     });
   }
@@ -7252,7 +7253,8 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
         enabled:c.enabled !== false
       });
     });
-    ['EGP','USD','SAR'].forEach(function(code){ byCode[code].enabled = true; });
+    var base = s.settings.base_currency_code || meta(s.settings.base_currency || s.settings.currency || 'EGP').code;
+    if(byCode[base]) byCode[base].enabled = true;
     s.settings.enabled_currencies = Object.keys(byCode).map(function(code){ return byCode[code]; });
     return s.settings.enabled_currencies;
   }
@@ -7425,7 +7427,7 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
     if(checks){
       checks.innerHTML = all.map(function(c){
         var m = meta(c.code);
-        return '<label class="ordo-currency-check"><input type="checkbox" value="'+m.code+'" '+(c.enabled !== false ? 'checked' : '')+(['EGP','USD','SAR'].indexOf(m.code) >= 0 ? ' disabled title="عملة أساسية متاحة دائمًا"' : '')+'> <span>'+m.label+'</span><b>'+m.symbol+'</b></label>';
+        return '<label class="ordo-currency-check"><input type="checkbox" value="'+m.code+'" '+(c.enabled !== false ? 'checked' : '')+(m.code === current ? ' disabled title="العملة الأساسية متاحة دائمًا"' : '')+'> <span>'+m.label+'</span><b>'+m.symbol+'</b></label>';
       }).join('');
     }
   }
@@ -7434,7 +7436,6 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
     var base = (document.getElementById('studio-base-currency') || {}).value || baseCurrency().code;
     var enabled = Array.prototype.slice.call(document.querySelectorAll('#studio-enabled-currencies input:checked')).map(function(i){ return i.value; });
     if(enabled.indexOf(base) === -1) enabled.push(base);
-    ['EGP','USD','SAR'].forEach(function(code){ if(enabled.indexOf(code) === -1) enabled.push(code); });
     S().settings.enabled_currencies = CURRENCIES.map(function(c){ return Object.assign({}, c, {enabled:enabled.indexOf(c.code) > -1}); });
     var b = meta(base);
     S().settings.base_currency_code = b.code;
