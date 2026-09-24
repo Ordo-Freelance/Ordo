@@ -5169,11 +5169,9 @@ function openClientProfile(id){
   // Header action buttons
   const hdr = document.getElementById('profile-header-actions');
   if(hdr) hdr.innerHTML=
-    (c.phone?`<a href="https://wa.me/${c.phone.replace(/[^\d]/g,'')}" target="_blank" class="client-profile-action is-whatsapp"><i class="fa-brands fa-whatsapp"></i> واتساب</a>`:'') +
-    `<button class="client-profile-action" title="تعديل العميل" onclick="openClientModal(${c.id});closeM('modal-client-profile')"><i class="fa-solid fa-pen"></i> تعديل</button>`+
-    `<button class="client-profile-action" title="بوابة العميل" onclick="openClientPortal(${c.id})"><i class="fa-solid fa-link"></i> بوابة</button>`+
-    `<button class="client-profile-action is-primary" onclick="_showClientPortalLink(${c.id})"><i class="fa-solid fa-id-card"></i> رابط البوابة</button>`+
-    `<button class="client-profile-action" onclick="_profileShowStatement(${c.id})"><i class="fa-solid fa-file-lines"></i> كشف</button>`;
+    `<button class="client-profile-action" title="تعديل بيانات العميل" onclick="openClientModal(${c.id});closeM('modal-client-profile')"><i class="fa-solid fa-pen"></i> تعديل</button>`+
+    `<button class="client-profile-action" onclick="_profileShowStatement(${c.id})"><i class="fa-solid fa-file-lines"></i> كشف حساب</button>`+
+    `<button class="client-profile-action is-primary" onclick="_showClientPortalLink(${c.id})"><i class="fa-solid fa-link"></i> بوابة العميل</button>`;
 
   // Reset tabs
   document.querySelectorAll('.profile-tab').forEach(t=>t.classList.remove('active'));
@@ -5262,7 +5260,6 @@ function _renderProfileTab(tab, id){
   const body=document.getElementById('profile-body');
   if(tab === 'overview'){
     const sortedTasks=[...cTasks].filter(t=>_taskDate(t)).sort((a,b)=>_taskDate(b).localeCompare(_taskDate(a)));
-    const lastTask=sortedTasks[0];
     const _taskIsPaid = t => !!(t.paymentCollected || t.paid || t.pay==='full' || t.pay==='paid' || t.paymentStatus==='collected' || t.paymentStatus==='paid');
     const invoicedTaskIds = _invoicedTaskIds(cInvs);
 	    const _taskDue = t => invoicedTaskIds.has(String(t.id)) || _taskIsPaid(t) ? 0 : Math.max(0, _taskValue(t) - _taskPaidAmount(t));
@@ -5275,8 +5272,6 @@ function _renderProfileTab(tab, id){
     const owed = Math.max(0, unpaidInv + taskDue + (openType==='receivable'?openBal:0) - (openType==='prepaid'?openBal:0));
     const activeTasks = cTasks.filter(t=>!(t.done||t.status==='done')).length;
     const doneTasks = cTasks.filter(t=>t.done||t.status==='done').length;
-    const reviews = (S.reviews||[]).filter(r=>String(r.client_id)===String(c.id)||r.client_name===c.name);
-    const avg = reviews.length ? (reviews.reduce((s,r)=>s+(+r.stars||0),0)/reviews.length).toFixed(1) : '—';
     const recentRows = sortedTasks.slice(0,3).map(t=>{
       const due = _taskDue(t);
       const paid = _taskIsPaid(t);
@@ -5294,35 +5289,27 @@ function _renderProfileTab(tab, id){
     }).join('') : '';
     body.innerHTML =
       '<div class="client-profile-overview client-profile-simple" style="--client-color:'+(c.color||'var(--accent)')+'">'+
-        '<section class="client-simple-head">'+
-          '<div class="client-simple-avatar" style="background:'+(c.color||'var(--accent)')+'">'+escapeHtml((c.name||'?')[0])+'</div>'+
-          '<div class="client-simple-main"><h2>'+escapeHtml(c.name||'عميل')+'</h2><div>'+
-            '<span>'+escapeHtml(c.type||'عميل')+'</span>'+
-            '<span>'+escapeHtml(c.channel||'غير محدد')+'</span>'+
-            (c.field?'<span>'+escapeHtml(c.field)+'</span>':'')+
-          '</div></div>'+
+        '<div class="client-profile-context">'+
+          '<div class="client-profile-tags"><span>'+escapeHtml(c.type||'عميل')+'</span>'+(c.channel?'<span>'+escapeHtml(c.channel)+'</span>':'')+(c.field?'<span>'+escapeHtml(c.field)+'</span>':'')+'</div>'+
           '<div class="client-simple-contact">'+
             (c.phone?'<a href="tel:'+escapeHtml(c.phone)+'"><i class="fa-solid fa-phone"></i> '+escapeHtml(c.phone)+'</a>':'')+
             (c.email?'<a href="mailto:'+escapeHtml(c.email)+'"><i class="fa-solid fa-envelope"></i> '+escapeHtml(c.email)+'</a>':'')+
-          '</div>'+
-        '</section>'+
-        (owed>0?'<button type="button" class="client-simple-alert" onclick="switchProfileTab(&quot;accounts&quot;,document.querySelector(&quot;[data-tab=accounts]&quot;));setTimeout(()=>_collectFromClient('+c.id+','+owed+'),160)"><span><i class="fa-solid fa-triangle-exclamation"></i> مستحق على العميل</span><b>'+owed.toLocaleString('ar-EG')+' ج</b><small>تحصيل</small></button>':'')+
-        (cProjectDueTotal>0?'<button type="button" class="client-simple-alert" style="background:linear-gradient(135deg,rgba(124,111,247,.12),rgba(124,111,247,.05));border-color:rgba(124,111,247,.35)" onclick="switchProfileTab(&quot;projects&quot;,document.querySelector(&quot;[data-tab=projects]&quot;))"><span><i class="fa-solid fa-folder-open"></i> يوجد مشروع مستحق</span><b>'+cProjectDueTotal.toLocaleString('ar-EG')+' ج</b><small>'+escapeHtml(cProjectDueNames || 'مشروع')+'</small></button>':'')+
+            (c.phone?'<a href="https://wa.me/'+c.phone.replace(/[^\d]/g,'')+'" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-whatsapp"></i> واتساب</a>':'')+
+          '</div></div>'+
+        (owed>0?'<button type="button" class="client-simple-alert" onclick="switchProfileTab(&quot;accounts&quot;,document.querySelector(&quot;[data-tab=accounts]&quot;));setTimeout(()=>_collectFromClient('+c.id+','+owed+'),160)"><span><i class="fa-solid fa-triangle-exclamation"></i> مستحق على العميل</span><b>'+owed.toLocaleString('ar-EG')+' ج</b><small>تحصيل ←</small></button>':'')+
         '<div class="client-simple-metrics">'+
-          '<button onclick="switchProfileTab(&quot;projects&quot;,document.querySelector(&quot;[data-tab=projects]&quot;))"><b>'+activeTasks+'</b><span>نشطة</span></button>'+
-          '<button onclick="switchProfileTab(&quot;history&quot;,document.querySelector(&quot;[data-tab=history]&quot;))"><b>'+cTasks.length+'</b><span>كل المهام</span></button>'+
-          '<button onclick="switchProfileTab(&quot;invoices&quot;,document.querySelector(&quot;[data-tab=invoices]&quot;))"><b>'+unpaidInv.toLocaleString('ar-EG')+'</b><span>غير مسدد</span></button>'+
-          '<button onclick="switchProfileTab(&quot;accounts&quot;,document.querySelector(&quot;[data-tab=accounts]&quot;))"><b>'+totalInc.toLocaleString('ar-EG')+'</b><span>محصل</span></button>'+
+          '<button onclick="switchProfileTab(&quot;history&quot;,document.querySelector(&quot;[data-tab=history]&quot;))"><b>'+activeTasks+'</b><span>مهام جارية</span></button>'+
+          '<button onclick="switchProfileTab(&quot;history&quot;,document.querySelector(&quot;[data-tab=history]&quot;))"><b>'+doneTasks+'</b><span>مهام مكتملة</span></button>'+
+          '<button onclick="switchProfileTab(&quot;accounts&quot;,document.querySelector(&quot;[data-tab=accounts]&quot;))"><b>'+totalInc.toLocaleString('ar-EG')+' ج</b><span>تم تحصيله</span></button>'+
         '</div>'+
+        (cProjectDueTotal>0?'<div class="client-profile-project-due"><i class="fa-solid fa-folder-open"></i> مستحقات مشاريع: '+cProjectDueTotal.toLocaleString('ar-EG')+' ج <button onclick="switchProfileTab(&quot;projects&quot;,document.querySelector(&quot;[data-tab=projects]&quot;))">عرض المشاريع ←</button></div>':'')+
         '<section class="client-simple-section">'+
-          '<div class="client-simple-section-head"><b><i class="fa-solid fa-list-check"></i> آخر المهام</b><button onclick="switchProfileTab(&quot;history&quot;,document.querySelector(&quot;[data-tab=history]&quot;))">عرض الكل</button></div>'+
+          '<div class="client-simple-section-head"><b><i class="fa-solid fa-list-check"></i> أحدث المهام <small>('+cTasks.length+')</small></b><button onclick="switchProfileTab(&quot;history&quot;,document.querySelector(&quot;[data-tab=history]&quot;))">عرض الكل</button></div>'+
           (recentRows || '<div class="client-profile-empty">لا توجد مهام بعد</div>')+
         '</section>'+
-        '<section class="client-simple-section is-note">'+
+        (c.notes?'<section class="client-simple-section is-note">'+
           '<div class="client-simple-section-head"><b><i class="fa-solid fa-note-sticky"></i> ملاحظة العميل</b><button onclick="closeM(&quot;modal-client-profile&quot;);openClientModal('+c.id+')">تعديل</button></div>'+
-          '<p>'+(c.notes?escapeHtml(c.notes):'لا توجد ملاحظات مسجلة لهذا العميل')+'</p>'+
-          '<div class="client-simple-foot"><span>آخر طلب: '+escapeHtml(lastTask?(_taskDate(lastTask).slice(0,10)||'—'):'لا يوجد')+'</span><span>مكتمل: '+doneTasks+'</span><span>تقييم: '+avg+'</span></div>'+
-        '</section>'+
+          '<p>'+escapeHtml(c.notes)+'</p></section>':'')+
         (subRows?'<section class="client-simple-section"><div class="client-simple-section-head"><b><i class="fa-solid fa-building"></i> الفروع</b></div><div class="client-sub-grid">'+subRows+'</div></section>':'')+
       '</div>';
     return;

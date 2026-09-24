@@ -67,6 +67,16 @@ test('reference screens retain their controls while receiving readable layouts',
   assert.ok(app.includes('tasks-v2-shell'));
 });
 
+test('client profile shows identity once and keeps one working portal action', () => {
+  const profile = app.slice(app.indexOf('function openClientProfile(id){'), app.indexOf('function switchProfileTab(', app.indexOf('function openClientProfile(id){')));
+  const overview = app.slice(app.indexOf("if(tab === 'overview'){", app.indexOf('function _renderProfileTab(')), app.indexOf("if(tab==='overview'){", app.indexOf('function _renderProfileTab(')));
+  assert.match(profile, /_showClientPortalLink/);
+  assert.doesNotMatch(profile, /openClientPortal\(\$\{c\.id\}\)/);
+  assert.doesNotMatch(overview, /client-simple-avatar|client-simple-main/);
+  assert.match(overview, /client-profile-context/);
+  assert.match(overview, /\(c\.notes\?'<section/);
+});
+
 test('task form keeps secondary fields available without crowding a new task', () => {
   assert.match(html, /<details class="task-form-optional" id="task-color-options">/);
   assert.match(html, /<details class="task-form-optional" id="task-extra-options">/);

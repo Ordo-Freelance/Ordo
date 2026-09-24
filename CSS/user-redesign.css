@@ -251,6 +251,34 @@ body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-section {
   padding: 17px !important;
   background: var(--surface2) !important;
 }
+/* Client profile overview: one identity, one financial callout, progressive detail. */
+body.app-loaded:not(.pub-page) #modal-client-profile .client-profile-simple { gap: 13px !important; }
+body.app-loaded:not(.pub-page) #modal-client-profile .client-profile-context {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  padding: 12px 15px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface2);
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .client-profile-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+body.app-loaded:not(.pub-page) #modal-client-profile .client-profile-tags span {
+  padding: 5px 10px; border-radius: 7px; background: var(--surface3); color: var(--text2); font-size: 11px;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-contact { gap: 7px; }
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-contact a { min-height: 32px; font-size: 11px; }
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-metrics button { min-height: 64px !important; }
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-metrics b { font-size: 19px !important; }
+body.app-loaded:not(.pub-page) #modal-client-profile .client-profile-project-due {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap; padding: 10px 14px;
+  border: 1px solid var(--border); border-radius: 10px; color: var(--text2); font-size: 12px;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .client-profile-project-due button {
+  margin-inline-start: auto; border: 0; background: none; color: var(--accent); font: inherit; cursor: pointer;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-section-head small { color: var(--text3); font-size: 11px; font-weight: 500; }
+@media (max-width: 680px) {
+  body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-metrics button { padding: 9px !important; }
+  body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-metrics b { font-size: 15px !important; }
+}
 
 /* Create task: its existing fields stay in place, but read as distinct groups. */
 body.app-loaded:not(.pub-page) #modal-task .modal {
