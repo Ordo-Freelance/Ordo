@@ -17953,6 +17953,12 @@ function _updateWeeklyChallengeProgress(){
     // حفظ التقدم محلياً لتحدي الأدمن
     const saved = { done, progress };
     localStorage.setItem(ch._localKey, JSON.stringify(saved));
+    S._adminChallengeStats=S._adminChallengeStats||{};
+    const previous=S._adminChallengeStats[ch.id];
+    if(!previous||previous.progress!==progress||previous.done!==done){
+      S._adminChallengeStats[ch.id]={progress,done,updated_at:new Date().toISOString()};
+      if(typeof _queueCloudSave==='function')_queueCloudSave();
+    }
   } else {
     localStorage.setItem('_weekChallenge',JSON.stringify(ch));
   }

@@ -17,7 +17,7 @@
     if(typeof row.data === 'object' && row.data) return row.data;
     try { return JSON.parse(row.data || '{}'); } catch(_) { return {}; }
   }
-  function threadId(row){ const data=dataOf(row); return String(data.request_id || data.thread_id || row.id); }
+  function threadId(row){ const data=dataOf(row); if(row.type==='support_request'||row.type==='support_reply')return 'support-account';return String(data.request_id || data.thread_id || row.id); }
   function conversations(list){
     const groups=new Map();
     list.slice().reverse().forEach(row => {
@@ -29,7 +29,8 @@
   }
   function visible(row){ return !dataOf(row).hidden_for_user; }
   function inTab(row, tab){
-    return tab === 'updates' ? notices.has(row.type)
+    return tab === 'updates' ? row.type === 'admin_update'
+      : tab === 'challenges' ? row.type === 'challenge'
       : tab === 'requests' ? row.type === 'support_request'
       : messages.has(row.type);
   }
@@ -54,11 +55,12 @@
     const tabs = [
       ['messages','الرسائل', messageThreads.length],
       ['updates','التحديثات والإشعارات', rows.filter(row => inTab(row,'updates')).length],
+      ['challenges','التحديات', rows.filter(row => inTab(row,'challenges')).length],
       ['requests','طلبات المساعدة', requestThreads.length],
       ['clients','رسائل العملاء', clients.length]
     ];
     const visible = activeTab === 'clients' ? clientRows.map(row=>({id:row.id,items:[row]}))
-      : activeTab === 'updates' ? rows.filter(row=>inTab(row,'updates')).map(row=>({id:row.id,items:[row]}))
+      : activeTab === 'updates'||activeTab==='challenges' ? rows.filter(row=>inTab(row,activeTab)).map(row=>({id:row.id,items:[row]}))
       : activeTab === 'requests' ? requestThreads : messageThreads;
     el.style.display = 'block';
     el.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">'+
@@ -74,11 +76,13 @@
         return '<div class="card support-thread-card" style="position:relative;border-color:'+(thread.items.some(item=>!item.read)?'var(--accent)':'var(--border)')+'"><button type="button" data-support-id="'+esc(thread.id)+'" style="display:flex;gap:12px;align-items:center;width:100%;border:0;background:transparent;text-align:right;cursor:pointer;color:var(--text);font-family:inherit;padding:0">'+avatarHtml(first.type==='support_request'?(window.S?.settings?._avatarUrl||''):'',first.type==='support_request'?'أنت':'الإدارة',first.type!=='support_request')+'<span style="min-width:0;flex:1">'+
           '<div style="display:flex;justify-content:space-between;gap:10px"><strong>'+esc(first.title||title)+'</strong>'+(thread.items.some(item=>!item.read)?'<span style="color:var(--accent)">● جديد</span>':'')+'</div>'+
           '<div style="color:var(--text2);font-size:12px;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(cleanBody(row.body))+'</div>'+
+          (activeTab==='challenges'?challengeProgress(row):'')+
           '<div style="color:var(--text3);font-size:11px;margin-top:10px">'+esc(date)+(thread.items.length>1?' · '+thread.items.length+' رسائل':'')+'</div></span></button>'+
           (canDelete?'<button type="button" data-support-delete="'+esc(thread.id)+'" aria-label="حذف سجل المحادثة" title="حذف السجل من حسابي" style="position:absolute;left:14px;bottom:13px;background:transparent;border:0;color:var(--accent4);cursor:pointer"><i class="fa-solid fa-trash"></i></button>':'')+'</div>';
       }).join('')+'</div>' : '<div class="card" style="text-align:center;padding:45px;color:var(--text3)">'+(loading?'جاري تحميل الرسائل...':'لا توجد عناصر في هذا القسم بعد')+'</div>')+'</div><section id="support-conversation-pane" class="support-conversation-pane"><div class="support-conversation-empty"><i class="fa-solid fa-comments"></i><b>اختر محادثة</b><span>هتظهر الرسائل والردود هنا في مكان واحد</span></div></section></div>');
     if(activeTab==='clients'&&selectedClientId) mountClientChat();
   }
+  function challengeProgress(row){const meta=dataOf(row),id=meta.challengeId||row.id,stats=window.S?._adminChallengeStats?.[id],target=Math.max(1,Number(meta.target)||1),pct=stats?Math.min(100,Math.round(Number(stats.progress||0)/target*100)):0;return '<div role="progressbar" aria-label="تقدم التحدي" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'" style="height:8px;background:var(--surface2);border-radius:8px;margin-top:9px;overflow:hidden"><span style="display:block;width:'+pct+'%;height:100%;background:var(--accent3)"></span></div><small style="color:var(--text3)">'+pct+'% · '+(stats?Number(stats.progress||0):0)+' / '+target+'</small>';}
   function avatarHtml(src,name,system){return '<span class="support-avatar '+(system?'system':'')+'">'+(src?'<img src="'+esc(src)+'" alt="'+esc(name)+'">':system?'⚡':esc((name||'؟').slice(0,1)))+'</span>';}
   function clientAvatar(client){return client?.avatar||client?.avatar_url||client?.photo||client?.photo_url||client?.profile_image||client?.image||'';}
   function mountClientChat(){const client=(window.S?.clients||[]).find(c=>String(c.id)===selectedClientId);if(!client)return;window.OrdoPortalChat?.mount(document.getElementById('support-client-chat'),{public:false,clientId:String(client.id),peerName:client.name,peerAvatar:clientAvatar(client),selfName:'أنت',selfAvatar:window.S?.settings?._avatarUrl||''});}
@@ -128,7 +132,7 @@
     localStorage.setItem(key, JSON.stringify([...new Set([...seen,...eligible.map(row => String(row.id))])].slice(-150)));
     const latest = eligible.slice(0,5);
     const overlay = modal('<div class="modal-header"><div class="modal-title"><i class="fa-solid fa-bell" style="color:var(--accent)"></i> لديك '+eligible.length+' '+(eligible.length === 1 ? 'رسالة أو تحديث جديد' : 'رسائل وتحديثات جديدة')+'</div><button type="button" class="close-btn" data-support-close aria-label="إغلاق">✕</button></div>'+
-      '<div style="display:grid;gap:9px;max-height:55vh;overflow:auto">'+latest.map(row => '<button type="button" class="card" data-incoming-id="'+esc(row.id)+'" data-incoming-tab="'+(notices.has(row.type)?'updates':row.type==='support_reply'?'requests':'messages')+'" style="text-align:right;cursor:pointer;font-family:inherit;color:var(--text);padding:13px"><strong>'+esc(row.title || 'رسالة من الإدارة')+'</strong><div style="color:var(--text2);font-size:12px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(cleanBody(row.body))+'</div></button>').join('')+'</div>'+
+      '<div style="display:grid;gap:9px;max-height:55vh;overflow:auto">'+latest.map(row => '<button type="button" class="card" data-incoming-id="'+esc(row.id)+'" data-incoming-tab="'+(row.type==='challenge'?'challenges':notices.has(row.type)?'updates':row.type==='support_reply'?'requests':'messages')+'" style="text-align:right;cursor:pointer;font-family:inherit;color:var(--text);padding:13px"><strong>'+esc(row.title || 'رسالة من الإدارة')+'</strong><div style="color:var(--text2);font-size:12px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(cleanBody(row.body))+'</div></button>').join('')+'</div>'+
       '<button type="button" class="btn btn-ghost" data-incoming-all style="margin-top:14px;width:100%">عرض الكل في الدعم والرسائل</button>');
     overlay.addEventListener('click', async event => {
       const chosen = event.target.closest('[data-incoming-id]');
@@ -149,6 +153,8 @@
     selectedThreadId=thread.id;
     const first=thread.items[0];
     if(first.type==='support_request'||first.type==='support_reply') activeTab='requests';
+    else if(first.type==='challenge')activeTab='challenges';
+    else if(first.type==='admin_update')activeTab='updates';
     else if(messages.has(first.type)) activeTab='messages';
     for(const row of thread.items.filter(item=>!item.read && item.type!=='support_request')) {
       row.read=true;

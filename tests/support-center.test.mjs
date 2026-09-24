@@ -34,8 +34,11 @@ test('support center loads only the signed-in user and separates updates from me
   assert.doesNotMatch(grid.innerHTML,/ميزة جديدة<\/strong>/);
   handler({target:{closest(selector) { return selector === '[data-support-tab]' ? {dataset:{supportTab:'updates'}} : null; }}});
   assert.match(grid.innerHTML,/ميزة جديدة/);
-  assert.match(grid.innerHTML,/تحدي الأسبوع/);
+  assert.doesNotMatch(grid.innerHTML,/تحدي الأسبوع<\/strong>/);
   assert.doesNotMatch(grid.innerHTML,/من الإدارة<\/strong>/);
+  handler({target:{closest(selector) { return selector === '[data-support-tab]' ? {dataset:{supportTab:'challenges'}} : null; }}});
+  assert.match(grid.innerHTML,/تحدي الأسبوع/);
+  assert.match(grid.innerHTML,/role="progressbar"/);
 });
 
 test('incoming admin items open one popup per user and are not repeated after refresh', () => {

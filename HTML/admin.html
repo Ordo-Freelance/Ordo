@@ -1029,10 +1029,17 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
         </div>
       </div>
 
+      <div class="admin-message-tabs" id="admin-message-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+        <button type="button" class="btn btn-primary btn-sm" data-admin-msg-tab="chats" onclick="setAdminMessageTab('chats')">💬 المحادثات</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-admin-msg-tab="complaints" onclick="setAdminMessageTab('complaints')">🆘 المشاكل والشكاوى</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-admin-msg-tab="updates" onclick="setAdminMessageTab('updates')">📣 التحديثات والإعلانات</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-admin-msg-tab="challenges" onclick="setAdminMessageTab('challenges')">🏆 التحديات والإنجاز</button>
+      </div>
+      <div id="admin-message-challenge-analysis" class="card" style="display:none;margin-bottom:16px"></div>
       <!-- Messages list and conversation pane -->
       <div class="admin-chat-layout"><div class="card admin-chat-inbox" style="padding:0">
         <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
-          <div style="font-size:13px;font-weight:700">رسائل الإدارة وطلبات المستخدمين</div>
+          <div style="font-size:13px;font-weight:700" id="admin-message-list-title">محادثات المستخدمين</div>
           <div style="flex:1"></div>
           <select id="msgs-filter-type" onchange="filterMessages()" style="height:32px;padding:0 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:12px">
             <option value="">كل الأنواع</option>
@@ -6649,6 +6656,52 @@ async function doSendMessage() {
 }
 
 let _adminChatSelectedId = '';
+let _adminMessageTab = 'chats';
+function adminMessageCategory(row){
+  if(row.type==='challenge')return 'challenges';
+  if(['admin_update','broadcast'].includes(row.type))return 'updates';
+  if(row.type==='support_request')return 'complaints';
+  return 'chats';
+}
+function setAdminMessageTab(tab){
+  _adminMessageTab=tab;
+  const typeFilter=document.getElementById('msgs-filter-type');if(typeFilter)typeFilter.value='';
+  document.querySelectorAll('[data-admin-msg-tab]').forEach(button=>{
+    button.classList.toggle('btn-primary',button.dataset.adminMsgTab===tab);
+    button.classList.toggle('btn-ghost',button.dataset.adminMsgTab!==tab);
+  });
+  const labels={chats:'محادثات المستخدمين',complaints:'المشاكل والشكاوى',updates:'التحديثات والإعلانات',challenges:'التحديات والإنجاز'};
+  const title=document.getElementById('admin-message-list-title');if(title)title.textContent=labels[tab];
+  const analysis=document.getElementById('admin-message-challenge-analysis');
+  if(analysis)analysis.style.display=tab==='challenges'?'block':'none';
+  _adminChatSelectedId='';
+  const pane=document.getElementById('admin-chat-pane');if(pane)pane.innerHTML='<div class="admin-chat-empty"><i class="fa-solid fa-comments"></i><strong>اختر عنصرًا لعرض التفاصيل</strong></div>';
+  filterMessages();
+  if(tab==='challenges')renderAdminMessageChallengeAnalysis();
+}
+async function renderAdminMessageChallengeAnalysis(){
+  const el=document.getElementById('admin-message-challenge-analysis');if(!el)return;
+  el.innerHTML='<div style="color:var(--text3)">جارٍ تحميل تقدم المستخدمين...</div>';
+  let challengeSource=_challenges;
+  try{
+    const [settings]=await Promise.all([
+      supa.from('platform_settings').select('config').eq('id',1).maybeSingle(),
+      loadStudioData()
+    ]);
+    const config=typeof settings.data?.config==='string'?JSON.parse(settings.data.config):settings.data?.config;
+    if(Array.isArray(config?.admin_challenges))challengeSource=config.admin_challenges;
+  }catch(_){}
+  if(_adminMessageTab!=='challenges')return;
+  const challenges=challengeSource.filter(ch=>ch.sent).slice().reverse();
+  if(!challenges.length){el.textContent='لا توجد تحديات مرسلة بعد';return;}
+  el.innerHTML=challenges.map(ch=>{
+    const users=Object.entries(ALL_STUDIO_DATA).map(([uid,user])=>({uid,user,progress:user.parsed?._adminChallengeStats?.[ch.id]}));
+    const completed=users.filter(({progress})=>progress?.done).length;
+    const active=users.filter(({progress})=>progress&&!progress.done).length;
+    const unknown=users.length-completed-active;
+    return '<div style="padding:14px 0;border-bottom:1px solid var(--border)"><strong>'+adminMsgEscape(ch.title)+'</strong><div style="margin:9px 0;color:var(--text2)">✅ أكمل: '+completed+' · ⏳ قيد الإنجاز: '+active+' · — لم يرسل تقدمًا: '+unknown+'</div>'+users.map(({uid,user,progress})=>{const name=user.parsed?.settings?.name||user.profile?.name||uid.slice(0,8);const pct=progress?Math.min(100,Math.round(Number(progress.progress||0)/Math.max(1,Number(ch.target||1))*100)):0;return '<div style="display:flex;align-items:center;gap:10px;margin:8px 0"><span style="min-width:120px">'+adminMsgEscape(name)+'</span><div style="height:8px;flex:1;background:var(--surface2);border-radius:8px;overflow:hidden"><span style="display:block;width:'+pct+'%;height:100%;background:var(--accent3)"></span></div><span>'+pct+'%</span></div>';}).join('')+'</div>';
+  }).join('');
+}
 async function loadMessagesPage() {
   const bodyEl = document.getElementById('msgs-list-body');
   const previous = JSON.stringify(_allMessages);
@@ -6665,15 +6718,16 @@ async function loadMessagesPage() {
     const map = new Map();
     (data || []).concat(fallback || []).forEach(m => map.set(String(m.id || m.created_at || Math.random()), m));
     _allMessages = Array.from(map.values()).filter(m => !adminMessageData(m).hidden_for_admin).sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
-    if(JSON.stringify(_allMessages)!==previous) renderMessagesList(_allMessages);
+    if(JSON.stringify(_allMessages)!==previous) filterMessages();
     updateMsgStats(_allMessages);
   } catch(e) {
     _allMessages = JSON.parse(localStorage.getItem('admin_messages_fallback') || '[]');
-    renderMessagesList(_allMessages);
+    filterMessages();
     updateMsgStats(_allMessages);
     if(!_allMessages.length && bodyEl) bodyEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--accent4)">تعذّر تحميل جدول الرسائل، وسيتم استخدام الحفظ الاحتياطي عند الإرسال.</div>';
   }
   if(JSON.stringify(_allMessages)!==previous && _adminChatSelectedId && adminConversations(_allMessages).some(thread=>thread.id===_adminChatSelectedId)) await openAdminMessageDetail(_adminChatSelectedId);
+  if(_adminMessageTab==='challenges'&&JSON.stringify(_allMessages)!==previous)renderAdminMessageChallengeAnalysis();
 }
 
 function updateMsgStats(msgs) {
@@ -6692,7 +6746,7 @@ function updateMsgStats(msgs) {
 
 function filterMessages() {
   const type = document.getElementById('msgs-filter-type')?.value || '';
-  const filtered = type ? _allMessages.filter(m => m.type === type) : _allMessages;
+  const filtered = _allMessages.filter(m => adminMessageCategory(m)===_adminMessageTab && (!type||m.type===type));
   renderMessagesList(filtered);
 }
 
@@ -6702,6 +6756,7 @@ function adminMessageData(row) {
 }
 function adminThreadId(row) {
   const meta = adminMessageData(row);
+  if(row.user_id && ['support_request','support_reply','message','direct_message'].includes(row.type))return 'user:'+row.user_id;
   return String(meta.request_id || meta.thread_id || row.id);
 }
 function adminConversations(rows) {
@@ -6780,7 +6835,7 @@ async function openAdminMessageDetail(id) {
   const overlay = document.getElementById('admin-chat-pane');
   if(!overlay) return;
   const name = message.user_id ? (ALL_STUDIO_DATA[message.user_id]?.parsed?.settings?.name || message.user_id) : 'جميع المستخدمين';
-  const canReply = thread.items.some(row=>row.type==='support_request');
+  const canReply = !!message.user_id && thread.items.some(row=>['support_request','support_reply','message','direct_message'].includes(row.type));
   overlay.innerHTML = `<div class="admin-chat-head"><div class="admin-chat-avatar">${adminMsgEscape(name.slice(0,1))}</div><div><strong>${adminMsgEscape(first.title || 'محادثة')}</strong><small>${adminMsgEscape(name)}</small></div></div><div class="admin-chat-dialog">${thread.items.map(row=>`<div class="admin-chat-line ${row.type==='support_request'?'theirs':'mine'}"><div class="admin-chat-bubble"><strong>${row.type==='support_request'?adminMsgEscape(name):'الإدارة'}</strong><p>${adminMsgEscape((row.body||'').replace(/\n__page__:.+$/,''))}</p><small>${adminMsgEscape(new Date(row.created_at).toLocaleString('ar-EG'))}</small></div></div>`).join('')}</div>${canReply ? '<div class="admin-chat-compose"><textarea id="admin-support-reply" class="form-input" rows="2" placeholder="اكتب الرد على المستخدم"></textarea><button type="button" class="btn btn-primary" data-reply>إرسال</button></div>' : ''}`;
   overlay.onclick = async event => {
     if(event.target.closest('[data-reply]')) {
@@ -6809,7 +6864,7 @@ async function deleteMessage(id) {
     }
     _allMessages = _allMessages.filter(m => adminThreadId(m)!==thread.id);
     if(_adminChatSelectedId===thread.id){_adminChatSelectedId='';const pane=document.getElementById('admin-chat-pane');if(pane)pane.innerHTML='<div class="admin-chat-empty"><i class="fa-solid fa-comments"></i><strong>اختر محادثة</strong></div>';}
-    renderMessagesList(_allMessages);
+    filterMessages();
     updateMsgStats(_allMessages);
     toast('🗑 تم حذف الرسالة');
   } catch(e) { toast('❌ '+e.message); }

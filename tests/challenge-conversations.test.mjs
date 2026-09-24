@@ -45,6 +45,24 @@ test('admin groups messages by the original request and keeps user-side deletion
   assert.equal(context.adminMessageData(rows[1]).hidden_for_admin,undefined);
 });
 
+test('admin keeps one support chat per user and separates challenge analytics', () => {
+  const helpers = admin.slice(admin.indexOf('function adminMessageCategory('), admin.indexOf('function renderMessagesList('));
+  const context = {};
+  vm.runInNewContext(helpers,context);
+  const rows = [
+    {id:'request-a',user_id:'user-1',type:'support_request',created_at:'2026-09-24T09:00:00Z'},
+    {id:'request-b',user_id:'user-1',type:'support_request',created_at:'2026-09-24T10:00:00Z'},
+    {id:'reply-a',user_id:'user-1',type:'support_reply',created_at:'2026-09-24T11:00:00Z'},
+    {id:'request-c',user_id:'user-2',type:'support_request',created_at:'2026-09-24T12:00:00Z'}
+  ];
+  const threads=context.adminConversations(rows);
+  assert.equal(threads.length,2);
+  assert.equal(threads.find(thread=>thread.id==='user:user-1').items.length,3);
+  assert.equal(context.adminMessageCategory({type:'challenge'}),'challenges');
+  assert.equal(context.adminMessageCategory({type:'admin_update'}),'updates');
+  assert.equal(context.adminMessageCategory(rows[0]),'complaints');
+});
+
 test('user support center offers per-user hide and threaded replies', () => {
   assert.match(support,/hidden_for_user:true/);
   assert.match(support,/data:\{request_id:thread\.id,category:'reply'\}/);
