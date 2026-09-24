@@ -2,6 +2,23 @@
   'use strict';
 
   var TAB = 'dashboard';
+  var financeFeatures = null;
+  var featureLoad = null;
+  var featureError = false;
+  var featureUserId = null;
+  var TAB_FEATURES = {dashboard:'finance_dashboard',accounts:'finance_accounts','currency-wallets':'finance_currency_wallets',loans:'loans',reports:'finance_reports',transactions:'finance_transactions'};
+  function allowed(key){ return !!(financeFeatures && financeFeatures[key]); }
+  function refuse(){ if(typeof root.toast==='function') root.toast('هذه الميزة غير متاحة في باقتك'); }
+  function loadFinanceFeatures(){
+    if(featureLoad)return featureLoad;
+    if(typeof root.ORDO_API_REQUEST!=='function')return Promise.resolve();
+    var forUser=featureUserId;
+    var request=root.ORDO_API_REQUEST('finance.features').then(function(result){if(forUser!==featureUserId)return;featureError=false;financeFeatures=(result.data||result).features||{};scheduleRender(0);})
+      .catch(function(error){if(forUser!==featureUserId)return;console.warn('[Ordo] finance permissions:',error);featureError=true;financeFeatures={};scheduleRender(0);})
+      .finally(function(){if(featureLoad===request)featureLoad=null;});
+    featureLoad=request;
+    return featureLoad;
+  }
   var charts = {flow:null, split:null};
   var TYPES = {
     cash:   {label:'كاش', icon:'fa-money-bill-wave', color:'#2f80ed'},
@@ -492,7 +509,7 @@
       ['reports','التقارير والنسب','fa-chart-pie'],
       ['transactions','الحركات','fa-list']
     ];
-    return '<div class="fv3-tabs">'+items.map(function(x){
+    return '<div class="fv3-tabs">'+items.filter(function(x){return allowed(TAB_FEATURES[x[0]]);}).map(function(x){
       return '<button class="fv3-tab '+(TAB===x[0]?'active':'')+'" onclick="switchFinanceV3Tab(\''+x[0]+'\')"><i class="fa-solid '+x[2]+'"></i> '+x[1]+'</button>';
     }).join('')+'</div>';
   }
@@ -500,17 +517,17 @@
     return '<div class="fv3-head">'+
       '<div class="fv3-title"><h1>المالية</h1><p>حسابات وبنوك ومحافظ برصيد افتتاحي، تقارير مباشرة، ونسب أداء من نفس الحركات المسجلة.</p></div>'+
       '<div class="fv3-actions">'+
-      '<button class="btn btn-success" onclick="financeV3Income()"><i class="fa-solid fa-plus"></i> دخل</button>'+
-      '<button class="btn btn-danger" onclick="financeV3Expense()"><i class="fa-solid fa-minus"></i> مصروف</button>'+
-      '<button class="btn btn-ghost" onclick="openLoanModal && openLoanModal()"><i class="fa-solid fa-handshake"></i> قرض</button>'+
-      '<button class="btn btn-primary" onclick="openFinanceAccountModal()"><i class="fa-solid fa-building-columns"></i> حساب/بنك</button>'+
+      (allowed('fin_income')?'<button class="btn btn-success" onclick="financeV3Income()"><i class="fa-solid fa-plus"></i> دخل</button>':'')+
+      (allowed('fin_expense')?'<button class="btn btn-danger" onclick="financeV3Expense()"><i class="fa-solid fa-minus"></i> مصروف</button>':'')+
+      (allowed('loans')?'<button class="btn btn-ghost" onclick="openLoanModal && openLoanModal()"><i class="fa-solid fa-handshake"></i> قرض</button>':'')+
+      (allowed('finance_account_manage')?'<button class="btn btn-primary" onclick="openFinanceAccountModal()"><i class="fa-solid fa-building-columns"></i> حساب/بنك</button>':'')+
       '</div></div>';
   }
   function accountCard(a, allTxs){
     var type = TYPES[a.type] || TYPES.other;
     return '<div class="fv3-account" style="--acc:'+esc(a.color || type.color)+'">'+
       '<div class="fv3-account-top"><div class="fv3-account-name"><span class="fv3-icon"><i class="fa-solid '+esc(type.icon)+'"></i></span><span>'+esc(a.name)+'</span></div>'+
-      '<button class="btn btn-ghost btn-sm" onclick="openFinanceAccountModal(\''+esc(a.id)+'\')"><i class="fa-solid fa-pen"></i></button></div>'+
+      (allowed('finance_account_manage')?'<button class="btn btn-ghost btn-sm" onclick="openFinanceAccountModal(\''+esc(a.id)+'\')"><i class="fa-solid fa-pen"></i></button>':'')+'</div>'+
       '<div class="fv3-account-balance">'+fmt(balance(a,allTxs), a.currency_code)+'</div>'+
       '<div class="fv3-account-meta"><span class="fv3-pill">'+esc(type.label)+'</span><span class="fv3-pill">افتتاحي: '+fmt(a.opening_balance,a.currency_code)+'</span><button class="btn btn-ghost btn-sm" onclick="openFinanceStatement(\'account\',\''+esc(a.id)+'\')">كشف حساب</button></div>'+
       '</div>';
@@ -519,7 +536,7 @@
     var allTxs = txs();
     var accs = accounts(true);
     if(limit) accs = accs.slice(0,limit);
-    return '<section class="fv3-panel"><div class="fv3-section-head"><h2>الحسابات والبنوك</h2><button class="btn btn-ghost btn-sm" onclick="openFinanceAccountModal()"><i class="fa-solid fa-plus"></i> إضافة</button></div>'+
+    return '<section class="fv3-panel"><div class="fv3-section-head"><h2>الحسابات والبنوك</h2>'+(allowed('finance_account_manage')?'<button class="btn btn-ghost btn-sm" onclick="openFinanceAccountModal()"><i class="fa-solid fa-plus"></i> إضافة</button>':'')+'</div>'+
       '<div class="fv3-accounts">'+accs.map(function(a){ return accountCard(a, allTxs); }).join('')+'</div></section>';
   }
   function ratiosHtml(allTxs, total){
@@ -595,9 +612,9 @@
       kpi('صافي الربح', fmtMarginMulti(byCur), 'هامش الربح كنسبة: الدخل ناقص مصروفات الشغل')+
       '</div>'+
       '<div class="fv3-row"><section class="fv3-panel"><div class="fv3-section-head"><h2>الدخل والمصروف آخر 6 شهور</h2></div><div class="fv3-chart"><canvas id="fv3-flow-chart"></canvas></div></section>'+
-      '<section class="fv3-panel"><div class="fv3-section-head"><h2>توزيع الأرصدة</h2></div><div class="fv3-chart"><canvas id="fv3-split-chart"></canvas></div></section></div>'+
-      '<div style="margin-bottom:16px">'+accountsSection(3)+'</div>'+
-      '<section class="fv3-panel"><div class="fv3-section-head"><h2>النسب السريعة</h2><button class="btn btn-ghost btn-sm" onclick="switchFinanceV3Tab(\'reports\')">كل التقارير</button></div>'+ratiosHtml(allTxs,total)+'</section>';
+      (allowed('finance_accounts')?'<section class="fv3-panel"><div class="fv3-section-head"><h2>توزيع الأرصدة</h2></div><div class="fv3-chart"><canvas id="fv3-split-chart"></canvas></div></section>':'')+'</div>'+
+      (allowed('finance_accounts')?'<div style="margin-bottom:16px">'+accountsSection(3)+'</div>':'')+
+      (allowed('finance_reports')?'<section class="fv3-panel"><div class="fv3-section-head"><h2>النسب السريعة</h2><button class="btn btn-ghost btn-sm" onclick="switchFinanceV3Tab(\'reports\')">كل التقارير</button></div>'+ratiosHtml(allTxs,total)+'</section>':'');
   }
   function accountsPage(){
     return accountsSection(0);
@@ -868,6 +885,10 @@
     var page = document.getElementById('page-finance');
     if(!page) return;
     if(!page.classList.contains('active')) return;
+    if(featureUserId!==root._supaUserId){featureUserId=root._supaUserId;financeFeatures=null;featureLoad=null;featureError=false;}
+    if(!financeFeatures){page.innerHTML='<div class="fv3-empty" style="margin:24px">جاري تحميل صلاحيات المالية...</div>';loadFinanceFeatures();return;}
+    if(!allowed(TAB_FEATURES[TAB])) TAB=Object.keys(TAB_FEATURES).find(function(tab){return allowed(TAB_FEATURES[tab]);})||'';
+    if(!TAB){page.innerHTML='<div class="fv3-empty" style="margin:24px">'+(featureError?'تعذر تحميل صلاحيات المالية. <button class="btn btn-ghost" onclick="refreshFinancePermissions()">إعادة المحاولة</button>':'الميزات المالية غير متاحة في باقتك الحالية')+'</div>';return;}
     if(root.loadOrdoPageModule && !(root.OrdoPageModules && root.OrdoPageModules.finance)){
       root.loadOrdoPageModule('finance').catch(function(e){ console.warn('[Ordo] finance page module failed', e); });
     }
@@ -932,6 +953,7 @@
   }
 
   function openAccountModal(accountId){
+    if(!allowed('finance_account_manage'))return refuse();
     ensureAccounts();
     var a = accountId ? accountById(accountId) : null;
     var type = a ? a.type : 'cash';
@@ -960,6 +982,7 @@
     if(m) m.remove();
   }
   function saveAccount(){
+    if(!allowed('finance_account_manage'))return refuse();
     var s = state();
     var accs = ensureAccounts();
     var accountId = document.getElementById('fv3-acc-id').value;
@@ -982,6 +1005,7 @@
     render();
   }
   function archiveAccount(){
+    if(!allowed('finance_account_manage'))return refuse();
     var accountId = document.getElementById('fv3-acc-id').value;
     var a = accountById(accountId);
     if(!a) return;
@@ -993,6 +1017,7 @@
     render();
   }
   function deleteTransaction(txId){
+    if(!allowed('finance_transactions'))return refuse();
     if(!confirm('حذف هذه المعاملة؟')) return;
     if(typeof root.delTrans === 'function') {
       try { root.delTrans(txId); return; } catch(e){}
@@ -1066,6 +1091,7 @@
     w.document.close();
   }
   function openWalletBalanceAdjust(code){
+    if(!allowed('finance_currency_wallets'))return refuse();
     var meta = currencyMeta(code);
     var summary = walletSummary(meta.code);
     var raw = prompt('الرصيد الحالي ' + fmt(summary.balance, meta.code) + '\nاكتب الرصيد الصحيح لمحفظة ' + meta.label, String(summary.balance));
@@ -1095,6 +1121,7 @@
     render();
   }
   function openCurrencyWalletModal(){
+    if(!allowed('finance_currency_wallets'))return refuse();
     closeCurrencyWalletModal();
     var existingCodes = ensureCurrencyWallets().map(function(w){ return currencyMeta(w.currency_code).code; });
     var defs = ['EGP','USD','EUR','SAR','AED'].map(currencyMeta).filter(function(c){ return existingCodes.indexOf(c.code) === -1; });
@@ -1118,6 +1145,7 @@
     if(m) m.remove();
   }
   function saveCurrencyWallet(){
+    if(!allowed('finance_currency_wallets'))return refuse();
     var code = document.getElementById('cw-code') ? document.getElementById('cw-code').value : '';
     if(!code) return alert('اختر العملة');
     var s = state();
@@ -1132,6 +1160,7 @@
     render();
   }
   function deleteCurrencyWallet(walletId){
+    if(!allowed('finance_currency_wallets'))return refuse();
     var s = state();
     s.wallets = Array.isArray(s.wallets) ? s.wallets : [];
     var wallet = s.wallets.find(function(w){ return String(w.id || w.currency_code) === String(walletId); });
@@ -1197,6 +1226,7 @@
     var oldIncome = root.openIncomeModal;
     if(typeof oldIncome === 'function'){
       root.openIncomeModal = function(){
+        if(!allowed('fin_income'))return refuse();
         var r = oldIncome.apply(this, arguments);
         setTimeout(function(){ injectAccountField('income'); }, 80);
         return r;
@@ -1205,6 +1235,7 @@
     var oldExpense = root.openExpenseModal;
     if(typeof oldExpense === 'function'){
       root.openExpenseModal = function(){
+        if(!allowed('fin_expense'))return refuse();
         var r = oldExpense.apply(this, arguments);
         setTimeout(function(){ injectAccountField('expense'); }, 80);
         return r;
@@ -1213,6 +1244,7 @@
     var oldSave = root.saveTrans;
     if(typeof oldSave === 'function'){
       root.saveTrans = function(type){
+        if(!allowed(type==='expense'?'fin_expense':'fin_income'))return refuse();
         var select = document.getElementById(type === 'income' ? 'in-account-id' : 'ex-account-id');
         var chosen = select && select.value;
         if(chosen) syncCurrencyWithAccount(type, chosen);
@@ -1244,6 +1276,7 @@
     var oldLoan = root.openLoanModal;
     if(typeof oldLoan === 'function'){
       root.openLoanModal = function(id){
+        if(!allowed('loans'))return refuse();
         var r = oldLoan.apply(this, arguments);
         setTimeout(function(){
           injectLoanCurrencyField();
@@ -1257,6 +1290,7 @@
     var oldSaveLoan = root.saveLoan;
     if(typeof oldSaveLoan === 'function'){
       root.saveLoan = function(){
+        if(!allowed('loans'))return refuse();
         injectLoanCurrencyField();
         var before = {};
         allLoans().forEach(function(l){ before[String(l.id)] = true; });
@@ -1279,7 +1313,8 @@
     }
   }
 
-  root.switchFinanceV3Tab = function(tab){ TAB = tab || 'dashboard'; scheduleRender(0); };
+  root.switchFinanceV3Tab = function(tab){if(!allowed(TAB_FEATURES[tab]))return refuse();TAB=tab;scheduleRender(0);};
+  root.refreshFinancePermissions=function(){financeFeatures=null;featureError=false;scheduleRender(0);};
   root.openFinanceAccountModal = openAccountModal;
   root.closeFinanceAccountModal = closeAccountModal;
   root.saveFinanceAccount = saveAccount;
@@ -1291,8 +1326,8 @@
   root.closeCurrencyWalletModal = closeCurrencyWalletModal;
   root.saveCurrencyWallet = saveCurrencyWallet;
   root.deleteCurrencyWallet = deleteCurrencyWallet;
-  root.financeV3Income = function(){ if(typeof root.openIncomeModal === 'function') root.openIncomeModal(); };
-  root.financeV3Expense = function(){ if(typeof root.openExpenseModal === 'function') root.openExpenseModal(); };
+  root.financeV3Income = function(){if(!allowed('fin_income'))return refuse();if(typeof root.openIncomeModal === 'function')root.openIncomeModal();};
+  root.financeV3Expense = function(){if(!allowed('fin_expense'))return refuse();if(typeof root.openExpenseModal === 'function')root.openExpenseModal();};
   root.openFinanceReceivablesModal = openReceivablesModal;
   root.dismissFinanceReceivableAlert = dismissReceivableAlert;
   root.openFinanceReceivableInvoice = openReceivableInvoice;

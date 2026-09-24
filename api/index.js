@@ -206,7 +206,7 @@ async function portalChatAccess(store, userId) {
   const config=parseMaybe(settings?.config)||{};
   const data=unwrapStudio(studio?.data);
   // Chat permissions are read only from admin-owned platform settings; studio_data is user writable.
-  const states={...config.user_features,...(config.portal_chat_overrides?.[userId]||{})};
+  const states={...config.user_features,...(config.portal_chat_overrides?.[userId]||{}),...(config.protected_feature_overrides?.[userId]||{})};
   const allowed=key=>features[key]!==false&&states[key]!=='disabled'&&states[key]!=='coming';
   return {enabled:allowed('portal_chat')&&allowed('client_portal'),images:allowed('portal_chat_images')&&features.image_uploads!==false,voice:allowed('portal_chat_voice'),data};
 }
@@ -229,6 +229,21 @@ function portalChatPublicRow(row) {
   const info=parseMaybe(row.data)||{};
   const msg=info.event_data||{};
   return {id:row.id,client_id:info.client_id,sender:msg.sender==='client'?'client':'owner',body:msg.body||'',attachment:msg.attachment?{kind:msg.attachment.kind,mime:msg.attachment.mime,name:msg.attachment.name,bytes:msg.attachment.bytes}:null,created_at:row.created_at};
+}
+
+const FINANCE_FEATURE_KEYS=['finance_dashboard','finance_accounts','finance_account_manage','finance_currency_wallets','loans','finance_reports','finance_transactions','fin_income','fin_expense'];
+async function financeFeatureAccess(store,user){
+  if(user.is_admin)return Object.fromEntries(FINANCE_FEATURE_KEYS.map(key=>[key,true]));
+  const [serials,settings]=await Promise.all([
+    store.query('serial_keys',{op:'select',columns:'plan_id,status,expires_at,activated_at',filters:[{op:'eq',column:'user_id',value:user.id}]}),
+    store.query('platform_settings',{op:'select',columns:'config',filters:[{op:'eq',column:'id',value:1}],single:true})
+  ]);
+  const active=(serials||[]).filter(s=>s.plan_id&&['active','assigned'].includes(s.status)&&(!s.expires_at||new Date(s.expires_at)>new Date())).sort((a,b)=>String(b.activated_at||'').localeCompare(String(a.activated_at||'')))[0];
+  const plan=active?await store.query('subscription_plans',{op:'select',columns:'features',filters:[{op:'eq',column:'id',value:active.plan_id}],single:true}):null;
+  const features=parseMaybe(plan?.features)||{};
+  const config=parseMaybe(settings?.config)||{};
+  const states={...config.user_features,...(config.portal_chat_overrides?.[user.id]||{}),...(config.protected_feature_overrides?.[user.id]||{})};
+  return Object.fromEntries(FINANCE_FEATURE_KEYS.map(key=>[key,features.finance!==false&&features[key]!==false&&!['disabled','coming'].includes(states.finance)&&!['disabled','coming'].includes(states[key])]));
 }
 
 function publicView(data, type, token) {
@@ -1186,6 +1201,12 @@ export default async function handler(req, res) {
       return ok(res, snapshot);
     }
 
+    if(postAction==='finance.features'){
+      const {user}=await currentUser(req,store);
+      if(!user)return fail(res,'يلزم تسجيل الدخول',401,'login_required');
+      return ok(res,{features:await financeFeatureAccess(store,user)});
+    }
+
     if (['public.portalChat.list','public.portalChat.send','public.portalChat.media','portalChat.list','portalChat.send','portalChat.media','portalChat.inbox'].includes(postAction)) {
       const isPublic=postAction.startsWith('public.');
       const snapshot=isPublic ? await publicSnapshot(store,{type:'client_portal',token:input.token}) : null;
@@ -1365,7 +1386,7 @@ export default async function handler(req, res) {
         const publicRow = row => {
           if(!row) return row;
           const config = parseMaybe(row.config) || {};
-          const {storage_overrides, portal_chat_overrides, ...publicConfig} = config;
+          const {storage_overrides, portal_chat_overrides, protected_feature_overrides, ...publicConfig} = config;
           return {...row,config:publicConfig};
         };
         return ok(res,Array.isArray(data) ? data.map(publicRow) : publicRow(data));
@@ -1384,4 +1405,4 @@ export default async function handler(req, res) {
   }
 }
 
-export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo, portalChatAccess, portalChatAttachment, portalChatPublicRow };
+export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo, portalChatAccess, portalChatAttachment, portalChatPublicRow, financeFeatureAccess };

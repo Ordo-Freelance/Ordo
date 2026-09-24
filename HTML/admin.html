@@ -2016,6 +2016,12 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
           <div class="perm-row"><label>الحد الأقصى للمعاملات الشهرية</label><input type="number" class="form-input perm-num" id="feat-max-transactions" placeholder="0=∞" min="0"></div>
           <div class="perm-sub-label">العمليات المالية</div>
           <div class="perm-grid">
+            <div class="perm-row" style="border:none;padding:3px 0"><label>لوحة تحكم المالية</label><input type="checkbox" id="feat-finance-dashboard" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>الحسابات والبنوك</label><input type="checkbox" id="feat-finance-accounts" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>إدارة الحسابات والبنوك</label><input type="checkbox" id="feat-finance-account-manage" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>محافظ العملات</label><input type="checkbox" id="feat-finance-currency-wallets" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>التقارير والنسب</label><input type="checkbox" id="feat-finance-reports" checked></div>
+            <div class="perm-row" style="border:none;padding:3px 0"><label>سجل الحركات</label><input type="checkbox" id="feat-finance-transactions" checked></div>
             <div class="perm-row" style="border:none;padding:3px 0"><label>تسجيل الدخل</label><input type="checkbox" id="feat-fin-income" checked></div>
             <div class="perm-row" style="border:none;padding:3px 0"><label>تسجيل المصروفات</label><input type="checkbox" id="feat-fin-expense" checked></div>
             <div class="perm-row" style="border:none;padding:3px 0"><label>هامش الربح</label><input type="checkbox" id="feat-fin-profit" checked></div>
@@ -4215,7 +4221,8 @@ function _copyPlanPerms(fromId) {
     'tasks','clients','finance','invoices','schedule','reports','team','meetings','learning','cloud',
     'task-attachments','task-steps','task-client-link','task-kanban','task-dates','task-mentions',
     'clients-freelance','clients-fulltime','clients-profile','clients-leads','clients-contacts','clients-import',
-    'client-portal','statements',
+    'client-portal','portal-chat','portal-chat-images','portal-chat-voice','statements',
+    'finance-dashboard','finance-accounts','finance-account-manage','finance-currency-wallets','finance-reports','finance-transactions',
     'fin-income','fin-expense','fin-profit','fin-receipt','fin-subscriptions','fin-charts','fin-edit','fin-goals',
     'loans','budgets',
     'pay-cash','pay-instapay','pay-vodafone','pay-etisalat','pay-bank','pay-card',
@@ -4269,7 +4276,7 @@ function openCreatePlanModal() {
   const defaultOn = ['feat-tasks','feat-clients','feat-finance','feat-invoices','feat-other-on',
     'feat-task-attachments','feat-task-steps','feat-task-client-link','feat-task-kanban','feat-task-dates','feat-task-mentions',
     'feat-clients-freelance','feat-clients-fulltime','feat-clients-profile','feat-clients-leads','feat-clients-contacts',
-    'feat-client-portal','feat-portal-chat','feat-portal-chat-images','feat-portal-chat-voice','feat-fin-income','feat-fin-expense','feat-fin-profit','feat-fin-receipt','feat-fin-charts','feat-fin-edit',
+    'feat-client-portal','feat-portal-chat','feat-portal-chat-images','feat-portal-chat-voice','feat-finance-dashboard','feat-finance-accounts','feat-finance-account-manage','feat-finance-currency-wallets','feat-finance-reports','feat-finance-transactions','feat-fin-income','feat-fin-expense','feat-fin-profit','feat-fin-receipt','feat-fin-charts','feat-fin-edit',
     'feat-pay-cash','feat-pay-instapay','feat-pay-vodafone',
     'feat-inv-create','feat-inv-pdf','feat-inv-whatsapp','feat-inv-policies',
     'feat-contracts','feat-proposals','feat-proposals-pdf',
@@ -4324,7 +4331,7 @@ function editPlan(id) {
     'tasks','clients','finance','invoices','cloud','other-on',
     'task-attachments','task-steps','task-client-link','task-kanban','task-dates','task-mentions',
     'clients-freelance','clients-fulltime','clients-profile','clients-leads','clients-contacts',
-    'client-portal','portal-chat','portal-chat-images','portal-chat-voice','fin-income','fin-expense','fin-profit','fin-receipt','fin-charts','fin-edit',
+    'client-portal','portal-chat','portal-chat-images','portal-chat-voice','finance-dashboard','finance-accounts','finance-account-manage','finance-currency-wallets','finance-reports','finance-transactions','fin-income','fin-expense','fin-profit','fin-receipt','fin-charts','fin-edit',
     'pay-cash','pay-instapay','pay-vodafone',
     'inv-create','inv-pdf','inv-whatsapp','inv-policies',
     'contracts','proposals','proposals-pdf',
@@ -4340,6 +4347,7 @@ function editPlan(id) {
     'task-attachments','task-steps','task-client-link','task-kanban','task-dates','task-mentions',
     'clients-freelance','clients-fulltime','clients-profile','clients-leads','clients-contacts','clients-import',
     'client-portal','portal-chat','portal-chat-images','portal-chat-voice','statements',
+    'finance-dashboard','finance-accounts','finance-account-manage','finance-currency-wallets','finance-reports','finance-transactions',
     'fin-income','fin-expense','fin-profit','fin-receipt','fin-subscriptions','fin-charts','fin-edit','fin-goals',
     'loans','budgets',
     'pay-cash','pay-instapay','pay-vodafone','pay-etisalat','pay-bank','pay-card',
@@ -4553,6 +4561,12 @@ async function savePlan() {
     // المالية
     finance:            _chk('feat-finance'),
     max_transactions:   _num('feat-max-transactions'),
+    finance_dashboard:      _chk('feat-finance-dashboard'),
+    finance_accounts:       _chk('feat-finance-accounts'),
+    finance_account_manage: _chk('feat-finance-account-manage'),
+    finance_currency_wallets: _chk('feat-finance-currency-wallets'),
+    finance_reports:        _chk('feat-finance-reports'),
+    finance_transactions:   _chk('feat-finance-transactions'),
     fin_income:         _chk('feat-fin-income'),
     fin_expense:        _chk('feat-fin-expense'),
     fin_profit:         _chk('feat-fin-profit'),
@@ -5216,6 +5230,15 @@ const USER_FEATURE_CONTROLS = [
   {key:'store', label:'المتجر', group:'إدارة العمل والعملاء'},
   {key:'reviews', label:'التقييمات', group:'إدارة العمل والعملاء'},
   {key:'finance', label:'المالية', group:'المالية'},
+  {key:'finance_dashboard', label:'لوحة تحكم المالية', group:'المالية', isPage:false},
+  {key:'finance_accounts', label:'الحسابات والبنوك', group:'المالية', isPage:false},
+  {key:'finance_account_manage', label:'إدارة الحسابات والبنوك', group:'المالية', isPage:false},
+  {key:'finance_currency_wallets', label:'محافظ العملات', group:'المالية', isPage:false},
+  {key:'loans', label:'القروض', group:'المالية', isPage:false},
+  {key:'finance_reports', label:'التقارير والنسب', group:'المالية', isPage:false},
+  {key:'finance_transactions', label:'الحركات', group:'المالية', isPage:false},
+  {key:'fin_income', label:'إضافة دخل', group:'المالية', isPage:false},
+  {key:'fin_expense', label:'إضافة مصروف', group:'المالية', isPage:false},
   {key:'invoices', label:'الفواتير', group:'المالية'},
   {key:'contracts', label:'العقود', group:'المالية'},
   {key:'proposals', label:'عروض الأسعار', group:'المالية'},
@@ -5224,9 +5247,9 @@ const USER_FEATURE_CONTROLS = [
   {key:'freelancer-goals', label:'الأهداف والإنجازات', group:'النظام والمساحة'},
   {key:'vault', label:'حساباتي', group:'النظام والمساحة'},
   {key:'support', label:'الدعم والرسائل', group:'التواصل'},
-  {key:'portal_chat', label:'محادثات بوابة العميل', group:'التواصل'},
-  {key:'portal_chat_images', label:'صور محادثات بوابة العميل', group:'التواصل'},
-  {key:'portal_chat_voice', label:'الرسائل الصوتية في بوابة العميل', group:'التواصل'}
+  {key:'portal_chat', label:'محادثات بوابة العميل', group:'التواصل', isPage:false},
+  {key:'portal_chat_images', label:'صور محادثات بوابة العميل', group:'التواصل', isPage:false},
+  {key:'portal_chat_voice', label:'الرسائل الصوتية في بوابة العميل', group:'التواصل', isPage:false}
 ];
 const USER_FEATURE_GROUPS = [...new Set(USER_FEATURE_CONTROLS.map(f => f.group))];
 
@@ -5236,7 +5259,7 @@ function renderPlanPageFeatures(features={}){
   if(!box) return;
   box.innerHTML = USER_FEATURE_GROUPS.map(group => `<div style="margin-top:12px">
     <div style="font-size:12px;font-weight:850;margin-bottom:7px;color:var(--text2)"><i class="fa-solid fa-folder"></i> ${group}</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:7px">${USER_FEATURE_CONTROLS.filter(f=>f.group===group).map(f =>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:7px">${USER_FEATURE_CONTROLS.filter(f=>f.group===group&&f.isPage!==false).map(f =>
       `<label style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer"><input type="checkbox" data-plan-page="${f.key}" ${features[_planPageFeatureKey(f.key)]!==false?'checked':''}>${f.label}</label>`
     ).join('')}</div>
   </div>`).join('');
@@ -5438,7 +5461,7 @@ async function saveInlineUserFeatureOverrides(uid){
         .update({ data: JSON.stringify(data), updated_at: new Date().toISOString() })
         .eq('user_id', uid);
       if(error) throw error;
-      await savePortalChatPermissionConfig(uid,next);
+      await saveProtectedFeatureConfig(uid,next);
     }
     row.parsed = data;
     toast('✅ تم حفظ تحكم المستخدم');
@@ -5448,15 +5471,16 @@ async function saveInlineUserFeatureOverrides(uid){
   }
 }
 
-async function savePortalChatPermissionConfig(uid,overrides){
+async function saveProtectedFeatureConfig(uid,overrides){
   const current=await supa.from('platform_settings').select('config').eq('id',1).maybeSingle();
   if(current.error) throw current.error;
   const cfg=typeof current.data?.config==='string'?JSON.parse(current.data.config):{...(current.data?.config||{})};
-  cfg.portal_chat_overrides={...(cfg.portal_chat_overrides||{})};
+  cfg.protected_feature_overrides={...(cfg.portal_chat_overrides||{}),...(cfg.protected_feature_overrides||{})};
+  delete cfg.portal_chat_overrides;
   const chat={};
-  ['portal_chat','portal_chat_images','portal_chat_voice'].forEach(key=>{if(overrides[key])chat[key]=overrides[key];});
-  if(Object.keys(chat).length)cfg.portal_chat_overrides[uid]=chat;
-  else delete cfg.portal_chat_overrides[uid];
+  ['portal_chat','portal_chat_images','portal_chat_voice','finance_dashboard','finance_accounts','finance_account_manage','finance_currency_wallets','loans','finance_reports','finance_transactions','fin_income','fin_expense'].forEach(key=>{if(overrides[key])chat[key]=overrides[key];});
+  if(Object.keys(chat).length)cfg.protected_feature_overrides[uid]=chat;
+  else delete cfg.protected_feature_overrides[uid];
   const result=await supa.from('platform_settings').upsert({id:1,config:cfg,updated_at:new Date().toISOString()},{onConflict:'id'});
   if(result.error)throw result.error;
   _platformConfig=cfg;
@@ -5894,7 +5918,7 @@ async function saveUserFeatureOverrides(uid){
         .update({ data: JSON.stringify(data), updated_at: new Date().toISOString() })
         .eq('user_id', uid);
       if(saved.error)throw saved.error;
-      await savePortalChatPermissionConfig(uid,overrides);
+      await saveProtectedFeatureConfig(uid,overrides);
     }
     toast('✅ تم حفظ تحكم المميزات لهذا المستخدم');
     logActivity('تحكم مستخدم', 'تم تحديث مميزات مستخدم محدد', 'var(--accent3)');
