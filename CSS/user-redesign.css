@@ -1,4 +1,6 @@
 /* Ordo user workspace: a consistent, lightweight visual layer. */
+.storage-file-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;margin-top:6px;background:var(--surface2)}
+.storage-file-row span{min-width:0;overflow-wrap:anywhere}.storage-file-row small{color:var(--text3);margin-inline-start:8px}
 body.app-loaded:not(.light-mode):not(.pub-page) {
   --bg: #0d1425;
   --surface: #151e32;

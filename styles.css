@@ -310,19 +310,19 @@
    DESIGN TOKENS
 ═══════════════════════════════════════════════════ */
 :root {
-  --bg:        #0a0a0f;
-  --surface:   #111118;
-  --surface2:  #16161f;
-  --surface3:  #1c1c28;
-  --border:    #2a2a3a;
+  --bg:        #0d1425;
+  --surface:   #151e32;
+  --surface2:  #1b2640;
+  --surface3:  #22304e;
+  --border:    #303d59;
   --accent:    #7c6ff7;
   --accent-rgb: 124,111,247;
   --accent2:   #f7c948;
   --accent3:   #4fd1a5;
   --accent4:   #f76f7c;
-  --text:      #e8e8f0;
-  --text2:     #9090a8;
-  --text3:     #5a5a70;
+  --text:      #f3f6ff;
+  --text2:     #bdc7e4;
+  --text3:     #8493b5;
   --font:      'Cairo', sans-serif;
   --mono:      'Cairo', sans-serif;
   --radius:    12px;

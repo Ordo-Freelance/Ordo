@@ -26,9 +26,17 @@
       document.documentElement.style.setProperty('--text3',   '#9090b0');
     } else {
       document.documentElement.classList.remove('light-mode');
+      document.documentElement.style.setProperty('--bg', '#0d1425');
+      document.documentElement.style.setProperty('--surface', '#151e32');
+      document.documentElement.style.setProperty('--surface2', '#1b2640');
+      document.documentElement.style.setProperty('--surface3', '#22304e');
+      document.documentElement.style.setProperty('--border', '#303d59');
+      document.documentElement.style.setProperty('--text', '#f3f6ff');
+      document.documentElement.style.setProperty('--text2', '#bdc7e4');
+      document.documentElement.style.setProperty('--text3', '#8493b5');
     }
     document.documentElement.style.setProperty('--accent', accent);
-    var bg = mode === 'light' ? '#f0f2f8' : '#0a0a0f';
+    var bg = mode === 'light' ? '#f0f2f8' : '#0d1425';
     document.documentElement.style.background = bg;
     document.documentElement.style.colorScheme = mode;
   } catch(e) {}
@@ -355,16 +363,16 @@ function applyPlatformConfig() {
     document.documentElement.style.background = '#f0f2f8';
     if(document.body){ document.body.style.background = '#f0f2f8'; document.body.style.color = '#1a1a2e'; }
   } else {
-    document.documentElement.style.setProperty('--bg',      '#0a0a0f');
-    document.documentElement.style.setProperty('--surface', '#111118');
-    document.documentElement.style.setProperty('--surface2','#16161f');
-    document.documentElement.style.setProperty('--surface3','#1c1c28');
-    document.documentElement.style.setProperty('--border',  '#2a2a3a');
-    document.documentElement.style.setProperty('--text',    '#e8e8f0');
-    document.documentElement.style.setProperty('--text2',   '#9090a8');
-    document.documentElement.style.setProperty('--text3',   '#5a5a70');
-    document.documentElement.style.background = '#0a0a0f';
-    if(document.body){ document.body.style.background = '#0a0a0f'; document.body.style.color = '#e8e8f0'; }
+    document.documentElement.style.setProperty('--bg',      '#0d1425');
+    document.documentElement.style.setProperty('--surface', '#151e32');
+    document.documentElement.style.setProperty('--surface2','#1b2640');
+    document.documentElement.style.setProperty('--surface3','#22304e');
+    document.documentElement.style.setProperty('--border',  '#303d59');
+    document.documentElement.style.setProperty('--text',    '#f3f6ff');
+    document.documentElement.style.setProperty('--text2',   '#bdc7e4');
+    document.documentElement.style.setProperty('--text3',   '#8493b5');
+    document.documentElement.style.background = '#0d1425';
+    if(document.body){ document.body.style.background = ''; document.body.style.color = '#f3f6ff'; }
   }
   if(typeof _updateNavLocks === 'function') _updateNavLocks();
   try{
@@ -1105,7 +1113,7 @@ function getQRDataURL(text, size) {
 </script>
 <!-- Quill Rich Text Editor -->
 <link href="../Assets/vendor/quill/quill.snow.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../CSS/styles.css?v=theme-kanban-2">
+<link rel="stylesheet" href="../CSS/styles.css?v=navy-theme-3">
 <script>
 (function(){
   try{
@@ -1209,9 +1217,9 @@ function getQRDataURL(text, size) {
 </style>
 
 <script src="../Assets/vendor/quill/quill.min.js"></script>
-<link rel="stylesheet" href="../CSS/user-redesign.css?v=client-profile-4">
+<link rel="stylesheet" href="../CSS/user-redesign.css?v=storage-files-5">
 <link rel="stylesheet" href="../CSS/settings-workspace.css?v=1">
-<link rel="stylesheet" href="../CSS/portal_chat.css?v=voice-delete-3">
+<link rel="stylesheet" href="../CSS/portal_chat.css?v=chat-clear-4">
 
 </head>
 <body style="visibility:hidden">
@@ -3635,10 +3643,12 @@ try {
   </div>
 
   <div class="card" style="margin-bottom:18px;padding:16px" id="user-storage-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><strong><i class="fa-solid fa-hard-drive"></i> مساحة الصور</strong><button type="button" class="btn btn-ghost btn-sm" onclick="refreshUserStorageUsage()">تحديث</button></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><strong><i class="fa-solid fa-hard-drive"></i> إدارة المساحة والملفات</strong><button type="button" class="btn btn-ghost btn-sm" onclick="refreshUserStorageUsage()">تحديث</button></div>
     <div id="user-storage-summary" style="font-size:12px;color:var(--text2);margin-top:9px">جاري حساب المساحة...</div>
     <div style="height:7px;background:var(--surface3);border-radius:10px;overflow:hidden;margin-top:10px"><div id="user-storage-progress" style="height:100%;width:0;background:var(--accent);border-radius:10px"></div></div>
-    <div style="font-size:11px;color:var(--text3);margin-top:8px">تشمل الصور المحفوظة في الحساب. الروابط الخارجية لا تُحتسب.</div>
+    <div id="user-storage-breakdown" style="font-size:11px;color:var(--text3);margin-top:8px">تُحتسب الصور والتسجيلات الصوتية في الشات مع صور الحساب. الروابط الخارجية لا تُحتسب.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="btn btn-ghost btn-sm" onclick="toggleUserStorageFiles()"><i class="fa-solid fa-folder-open"></i> ملفات الشات</button><button type="button" class="btn btn-primary btn-sm" onclick="openSubscriptionInfo();switchSubTab('plans')"><i class="fa-solid fa-arrow-up-right-dots"></i> شراء مساحة إضافية</button></div>
+    <div id="user-storage-files" hidden style="margin-top:12px"></div>
   </div>
 
   
@@ -5531,7 +5541,7 @@ try {
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=client-profile-4"></script>
+<script src="../JavaScript/app.js?v=navy-theme-5"></script>
 <script>document.body.classList.remove('auth-booting');</script>
 <script src="../JavaScript/vercel_persistence.js?v=theme-sync-2"></script>
 
@@ -9216,8 +9226,8 @@ document.addEventListener('DOMContentLoaded', function(){
 <link rel="stylesheet" href="../CSS/cairo_global_fix.css?v=1">
 <script src="../JavaScript/text_repair.js?v=1"></script>
 <script src="../JavaScript/client_finance_fix.js?v=2"></script>
-<script src="../JavaScript/portal_chat.js?v=voice-delete-3"></script>
+<script src="../JavaScript/portal_chat.js?v=chat-clear-4"></script>
 <script src="../JavaScript/support_center.js?v=challenge-tabs-1"></script>
-<script src="../JavaScript/storage_usage.js?v=storage-1"></script>
+<script src="../JavaScript/storage_usage.js?v=storage-files-2"></script>
 
 </body></html>

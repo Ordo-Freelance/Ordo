@@ -65,3 +65,21 @@ test('client portal excludes invoiced project tasks from task dues', () => {
   assert.equal(context._unbilledPortalTasks(tasks,[]).length,1);
   assert.equal(portalSource.includes('(_ud.project_tasks||[])\n    .filter(t=>_clientProjects.some(p=>String(p.id)===String(t.project_id))&&(t.value||0)>0'),false);
 });
+
+test('account tab shows unbilled task dues and footer stays at page bottom', () => {
+  const start=portalSource.indexOf('function renderAccounts(){');
+  const end=portalSource.indexOf('function renderInvoices(){',start);
+  const context={
+    _ud:{clients:[{id:'c1'}]},_clientId:'c1',_clientTasks:[{id:'t1',title:'تصميم',value:3000}],_clientInvoices:[],
+    _clientTransactions:()=>[],_unbilledPortalTasks:tasks=>tasks,
+    _curMeta:()=>({code:'EGP'}),_entityCur:()=>({code:'EGP'}),
+    _addCurrencyTotal:(totals,code,amount)=>{totals[code]=(totals[code]||0)+amount;},
+    _currencyRows:totals=>JSON.stringify(totals),_money:value=>String(value),xe:value=>String(value)
+  };
+  vm.runInNewContext(portalSource.slice(start,end),context);
+  const html=context.renderAccounts();
+  assert.match(html,/إجمالي المستحق الآن[\s\S]*?EGP":3000/);
+  assert.match(html,/أعمال مستحقة غير مفوترة/);
+  assert.match(portalSource,/#root\{min-height:100vh;display:flex;flex-direction:column\}/);
+  assert.match(portalSource,/\.wrap\{[^}]*flex:1/);
+});

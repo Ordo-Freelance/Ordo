@@ -36,7 +36,7 @@ test('deleted chat messages hide content and attachments from both participants'
   assert.equal(row.attachment,null);
   assert.equal(row.deleted,true);
   assert.match(apiSource,/message\.sender!==actor/);
-  assert.match(apiSource,/mediaMessage\.deleted\?null:mediaMessage\.attachment/);
+  assert.match(apiSource,/mediaMessage\.deleted\|\|mediaMessage\.hidden_for\?\.includes/);
 });
 
 test('chat keeps images and audio in the thread and previews voice before sending',()=>{
@@ -62,4 +62,14 @@ test('chat supports private hiding and sender-only deletion for everyone',()=>{
   assert.match(apiSource,/message\.sender!==actor/);
   assert.match(chatSource,/data-pc-scope="me"/);
   assert.match(chatSource,/data-pc-scope="everyone"/);
+});
+
+test('chat can be cleared privately, owner can remove it permanently, and deleted rows do not render',()=>{
+  assert.match(apiSource,/verb==='clear'/);
+  assert.match(apiSource,/permanent&&isPublic/);
+  assert.match(apiSource,/message\.deleted&&/);
+  assert.match(chatSource,/data-pc-clear-scope="me"/);
+  assert.match(chatSource,/data-pc-clear-scope="everyone"/);
+  assert.match(chatSource,/fa-solid fa-trash-can/);
+  assert.doesNotMatch(chatSource,/تم حذف هذه الرسالة للطرفين/);
 });

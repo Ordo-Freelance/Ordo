@@ -2374,17 +2374,17 @@ function setDisplayMode(mode, persist = true) {
     document.body.style.background = '#f0f2f8';
     document.body.style.color = '#1a1a2e';
   } else {
-    document.documentElement.style.setProperty('--bg',      '#0a0a0f');
-    document.documentElement.style.setProperty('--surface', '#111118');
-    document.documentElement.style.setProperty('--surface2','#16161f');
-    document.documentElement.style.setProperty('--surface3','#1c1c28');
-    document.documentElement.style.setProperty('--border',  '#2a2a3a');
-    document.documentElement.style.setProperty('--text',    '#e8e8f0');
-    document.documentElement.style.setProperty('--text2',   '#9090a8');
-    document.documentElement.style.setProperty('--text3',   '#5a5a70');
-    document.documentElement.style.background = '#0a0a0f';
-    document.body.style.background = '#0a0a0f';
-    document.body.style.color = '#e8e8f0';
+    document.documentElement.style.setProperty('--bg',      '#0d1425');
+    document.documentElement.style.setProperty('--surface', '#151e32');
+    document.documentElement.style.setProperty('--surface2','#1b2640');
+    document.documentElement.style.setProperty('--surface3','#22304e');
+    document.documentElement.style.setProperty('--border',  '#303d59');
+    document.documentElement.style.setProperty('--text',    '#f3f6ff');
+    document.documentElement.style.setProperty('--text2',   '#bdc7e4');
+    document.documentElement.style.setProperty('--text3',   '#8493b5');
+    document.documentElement.style.background = '#0d1425';
+    document.body.style.background = '';
+    document.body.style.color = '#f3f6ff';
   }
 
   const btnDark  = document.getElementById('btn-dark-mode');
@@ -2489,6 +2489,7 @@ function applyStudioAppearance(skipFontScan){
   var accent = (scoped && localStorage.getItem('studioAccentColor'+scoped)) || s.accentColor || localStorage.getItem('studioAccentColor') || '#7c6ff7';
   var hover = (scoped && localStorage.getItem('studioHoverOverlay'+scoped)) ?? s.hoverOverlayColor ?? localStorage.getItem('studioHoverOverlay') ?? '';
   var tone = (scoped && localStorage.getItem('studioToneColor'+scoped)) ?? s.toneColor ?? localStorage.getItem('studioToneColor') ?? '';
+  if(mode === 'dark' && /^#(?:0a0a0f|111118)$/i.test(tone)) tone = '';
   fontScale = Math.max(.86, Math.min(1.12, fontScale || 1));
   document.documentElement.style.setProperty('--app-font-scale', String(fontScale || 1));
   document.documentElement.style.setProperty('--app-font-scale-inverse', String(1 / (fontScale || 1)));
@@ -2533,7 +2534,7 @@ function applyStudioAppearance(skipFontScan){
     var el = document.getElementById(id);
     if(!el) return;
     if(id === 'studio-font-scale') el.value = String(fontScale || 1);
-    if(id === 'studio-tone-color') el.value = tone || (mode === 'light' ? '#f0f2f8' : '#0a0a0f');
+    if(id === 'studio-tone-color') el.value = tone || (mode === 'light' ? '#f0f2f8' : '#0d1425');
     if(id === 'studio-hover-color') el.value = hover || accent;
   });
   var fsTxt = document.getElementById('studio-font-scale-value');

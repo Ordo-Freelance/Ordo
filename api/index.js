@@ -191,7 +191,7 @@ async function storageInfo(store, userId) {
   const enabled = override.uploads_enabled ?? features.image_uploads ?? true;
   const otherBytes = imageBytes(account?.avatar_url) + (requests || []).reduce((sum,row) => sum + imageBytes(row.receipt_url) + imageBytes(row.data), 0) + chatBytes;
   const studioBytes = imageBytes(studio?.data);
-  return {user_id:userId,used_bytes:studioBytes + otherBytes,studio_bytes:studioBytes,other_bytes:otherBytes,limit_bytes:storageLimitBytes(features,override),uploads_enabled:!!enabled,plan_id:planId || null};
+  return {user_id:userId,used_bytes:studioBytes + otherBytes,studio_bytes:studioBytes,other_bytes:otherBytes,chat_bytes:chatBytes,limit_bytes:storageLimitBytes(features,override),uploads_enabled:!!enabled,plan_id:planId || null};
 }
 
 async function portalChatAccess(store, userId) {
@@ -510,6 +510,10 @@ function enforceAccess(table, input, user) {
 }
 
 class LocalStore {
+  async chatMediaFiles(userId) {
+    const db=await readLocalDb();
+    return (db.public_client_portal_events||[]).filter(row=>String(row.user_id)===String(userId)).filter(row=>{const data=parseMaybe(row.data)||{};return data.event_type==='portal_chat'&&data.event_data?.attachment;}).map(row=>{const data=parseMaybe(row.data);const file=data.event_data.attachment;return {id:row.id,client_id:data.client_id,kind:file.kind,name:file.name||'',bytes:Number(file.bytes||0),created_at:row.created_at};});
+  }
   async chatMediaBytes(userId) {
     const db=await readLocalDb();
     return (db.public_client_portal_events||[]).filter(row=>String(row.user_id)===String(userId)).reduce((sum,row)=>sum+Number((parseMaybe(row.data)||{}).event_data?.attachment?.bytes||0),0);
@@ -797,6 +801,10 @@ async function makePostgresStore() {
   }
   await postgresSchemaReady;
   return {
+    async chatMediaFiles(userId) {
+      const rows=await query("SELECT id, created_at, data::jsonb #>> '{client_id}' AS client_id, data::jsonb #>> '{event_data,attachment,kind}' AS kind, data::jsonb #>> '{event_data,attachment,name}' AS name, data::jsonb #>> '{event_data,attachment,bytes}' AS bytes FROM public_client_portal_events WHERE user_id=$1 AND data::jsonb #>> '{event_type}'='portal_chat' AND data::jsonb #>> '{event_data,attachment,kind}' IS NOT NULL ORDER BY created_at DESC LIMIT 500",[userId]);
+      return rows.map(row=>({...row,bytes:Number(row.bytes||0)}));
+    },
     async chatMediaBytes(userId) {
       const rows=await query("SELECT COALESCE(SUM(CASE WHEN (data::jsonb #>> '{event_data,attachment,bytes}') ~ '^[0-9]+$' THEN (data::jsonb #>> '{event_data,attachment,bytes}')::bigint ELSE 0 END),0) AS bytes FROM public_client_portal_events WHERE user_id=$1",[userId]);
       return Number(rows[0]?.bytes||0);
@@ -1208,7 +1216,7 @@ export default async function handler(req, res) {
       return ok(res,{features:await financeFeatureAccess(store,user)});
     }
 
-    if (['public.portalChat.list','public.portalChat.send','public.portalChat.media','public.portalChat.delete','portalChat.list','portalChat.send','portalChat.media','portalChat.delete','portalChat.inbox'].includes(postAction)) {
+    if (['public.portalChat.list','public.portalChat.send','public.portalChat.media','public.portalChat.delete','public.portalChat.clear','portalChat.list','portalChat.send','portalChat.media','portalChat.delete','portalChat.clear','portalChat.inbox'].includes(postAction)) {
       const isPublic=postAction.startsWith('public.');
       const snapshot=isPublic ? await publicSnapshot(store,{type:'client_portal',token:input.token}) : null;
       const account=isPublic ? null : await currentUser(req,store);
@@ -1246,6 +1254,22 @@ export default async function handler(req, res) {
       }
       const rows=await store.query('public_client_portal_events',{op:'select',columns:'id,data,created_at',filters:[{op:'eq',column:'user_id',value:uid}],order:{column:'created_at',ascending:false},limit:500});
       const filtered=(rows||[]).filter(row=>{const data=parseMaybe(row.data)||{};return data.event_type==='portal_chat'&&String(data.client_id)===clientId;});
+      if(verb==='clear') {
+        const actor=isPublic?'client':'owner';
+        const permanent=input.scope==='everyone';
+        if(permanent&&isPublic)return fail(res,'الحذف النهائي للمحادثة متاح لصاحب الحساب فقط',403,'forbidden');
+        for(const row of filtered){
+          const data=parseMaybe(row.data)||{};
+          const message=data.event_data||{};
+          if(permanent){
+            await store.query('public_client_portal_events',{op:'delete',filters:[{op:'eq',column:'id',value:row.id},{op:'eq',column:'user_id',value:uid}]});
+          } else if(!message.hidden_for?.includes(actor)) {
+            const updated={...data,event_data:{...message,hidden_for:[...new Set([...(message.hidden_for||[]),actor])]}};
+            await store.query('public_client_portal_events',{op:'update',payload:{data:updated},filters:[{op:'eq',column:'id',value:row.id},{op:'eq',column:'user_id',value:uid}]});
+          }
+        }
+        return ok(res,{cleared:true,scope:permanent?'everyone':'me'});
+      }
       if(verb==='delete') {
         const row=filtered.find(item=>String(item.id)===String(input.message_id));
         if(!row)return fail(res,'الرسالة غير موجودة',404,'message_not_found');
@@ -1270,11 +1294,11 @@ export default async function handler(req, res) {
       if(verb==='media') {
         const row=filtered.find(item=>String(item.id)===String(input.message_id));
         const mediaMessage=(parseMaybe(row?.data)||{}).event_data||{};
-        const attachment=mediaMessage.deleted?null:mediaMessage.attachment;
+        const attachment=mediaMessage.deleted||mediaMessage.hidden_for?.includes(isPublic?'client':'owner')?null:mediaMessage.attachment;
         if(!attachment) return fail(res,'المرفق غير موجود',404,'media_not_found');
         return ok(res,{data:attachment.data,mime:attachment.mime,name:attachment.name});
       }
-      return ok(res,{messages:filtered.filter(row=>!((parseMaybe(row.data)||{}).event_data?.hidden_for||[]).includes(isPublic?'client':'owner')).slice(0,100).reverse().map(portalChatPublicRow),features:{images:access.images,voice:access.voice}});
+      return ok(res,{messages:filtered.filter(row=>{const message=(parseMaybe(row.data)||{}).event_data||{};return !message.deleted&&!(message.hidden_for||[]).includes(isPublic?'client':'owner');}).slice(0,100).reverse().map(portalChatPublicRow),features:{images:access.images,voice:access.voice}});
     }
 
     if (postAction === 'public.portalEvent') {
@@ -1379,6 +1403,19 @@ export default async function handler(req, res) {
       if (!user) return fail(res, 'Login required', 401, 'login_required');
       const target = user.is_admin && input.user_id ? String(input.user_id) : user.id;
       return ok(res, await storageInfo(store, target));
+    }
+
+    if (postAction === 'storage.files' || postAction === 'storage.deleteFile') {
+      const { user } = await currentUser(req, store);
+      if (!user) return fail(res, 'يلزم تسجيل الدخول', 401, 'login_required');
+      const filters=[{op:'eq',column:'user_id',value:user.id}];
+      if(postAction === 'storage.files') return ok(res,{files:await store.chatMediaFiles(user.id)});
+      const file=await store.query('public_client_portal_events',{op:'select',columns:'id,data',filters:[...filters,{op:'eq',column:'id',value:String(input.file_id||'')}],single:true});
+      const data=parseMaybe(file?.data)||{};
+      if(data.event_type!=='portal_chat'||!data.event_data?.attachment)return fail(res,'الملف غير موجود',404,'file_not_found');
+      const updated={...data,event_data:{...data.event_data,attachment:null}};
+      await store.query('public_client_portal_events',{op:'update',payload:{data:updated},filters:[...filters,{op:'eq',column:'id',value:file.id}]});
+      return ok(res,{deleted:true});
     }
 
     if (postAction === 'db.query') {
