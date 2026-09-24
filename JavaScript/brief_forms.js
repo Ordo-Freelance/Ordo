@@ -10,7 +10,7 @@
   }
   function notice(text){ if(typeof window.toast==='function') toast(text); else alert(text.replace(/<[^>]+>/g,'')); }
   function clientOptions(selected){
-    return '<option value="">اختر العميل</option>'+(state().clients||[]).map(function(c){return '<option value="'+esc(c.id)+'"'+(String(c.id)===String(selected)?' selected':'')+'>'+esc(c.name||'عميل')+'</option>';}).join('');
+    return '<option value="">قالب عام — اختر العميل عند الإرسال</option>'+(state().clients||[]).map(function(c){return '<option value="'+esc(c.id)+'"'+(String(c.id)===String(selected)?' selected':'')+'>'+esc(c.name||'عميل')+'</option>';}).join('');
   }
   function projectOptions(clientId,selected){
     return '<option value="">بدون مشروع مرتبط</option>'+(state().projects||[]).filter(function(p){return String(p.client_id||p.clientId||'')===String(clientId||'');}).map(function(p){return '<option value="'+esc(p.id)+'"'+(String(p.id)===String(selected)?' selected':'')+'>'+esc(p.name||'مشروع')+'</option>';}).join('');
@@ -43,19 +43,53 @@
     var project=document.getElementById('brief-project');
     if(project)project.innerHTML=projectOptions(clientId,'');
   };
+  window.openVisualIdentityBrief=function(){
+    var questions=[
+      ['اسم النشاط والاسم المطلوب ظهوره على الهوية بالعربية والإنجليزية؟','essay','اذكر الصياغة الدقيقة، وأي شعار لفظي أو سطر تعريفي.',true],
+      ['صف نشاطك ومنتجاتك أو خدماتك وأهم مصادر الدخل.','essay','ما الذي تقدمه اليوم؟ وما الذي تخطط لإطلاقه قريبًا؟',true],
+      ['ما قصة العلامة ورسالتها ورؤيتها والقيم التي تريد أن يشعر بها العميل؟','essay','اذكر 3–5 كلمات تصف الشخصية المطلوبة.',true],
+      ['من جمهورك المستهدف؟','essay','الفئات العمرية، المواقع الجغرافية، اللغة، مستوى السعر، وطريقة الشراء.',true],
+      ['من أهم منافسيك؟ وما الذي يميزك عنهم؟','essay','ضع روابط 2–5 منافسين إن أمكن، وما الذي يعجبك أو لا يعجبك في هوياتهم.',true],
+      ['ما الانطباع الذي يجب أن تتركه الهوية؟','checkbox','يمكن اختيار أكثر من اتجاه؛ أضف تفاصيل في السؤال التالي.',true,'احترافي|فاخر|ودود|جريء|بسيط|عصري|تراثي|مرح'],
+      ['هل توجد ألوان أو رموز أو عناصر يجب استخدامها أو تجنبها؟ ولماذا؟','essay','اذكر معاني ثقافية أو اعتبارات دينية/قانونية إن وجدت.',false],
+      ['هل لديك شعار أو هوية حالية؟ وما سبب التغيير؟','essay','ضع روابط الملفات الحالية أو دليل الهوية إن وجد.',false],
+      ['ما العناصر المطلوبة في المشروع؟','checkbox','اختر كل ما تحتاجه الآن؛ سيتحدد عرض السعر وفقًا للنطاق.',true,'بحث واستراتيجية العلامة|تصميم الشعار|نظام الألوان والخطوط|العناصر والأنماط البصرية|دليل استخدام الهوية|قوالب السوشيال ميديا|قرطاسية ومطبوعات|تغليف ومنتجات|لافتات وواجهات|عروض تقديمية|تصميمات رقمية أو واجهة موقع'],
+      ['ما تفاصيل كل عنصر اخترته وعدد النماذج أو المقاسات المطلوبة؟','essay','مثال: 10 قوالب سوشيال، بطاقة عمل، ورق مراسلات، 3 مقاسات تغليف. هذا السؤال أساسي لتسعير دقيق.',true],
+      ['أين ستُستخدم الهوية غالبًا؟','checkbox','يساعدنا على اختيار الصيغ والمقاسات المناسبة.',true,'مواقع وتطبيقات|منصات التواصل|طباعة ورقية|تغليف|واجهات ولافتات|فيديو وموشن|زيّ أو منتجات'],
+      ['ما اللغات المطلوبة في الشعار والمواد؟','checkbox','اختر كل اللغات اللازمة.',true,'العربية|الإنجليزية|لغة أخرى'],
+      ['هل تحتاج ملفات مفتوحة قابلة للتعديل أم ملفات استخدام نهائية فقط؟','checkbox','اختر ما تحتاج تسليمه.',true,'ملفات مفتوحة قابلة للتعديل|SVG أو PDF متجهي|PNG بخلفية شفافة|ملفات جاهزة للطباعة|دليل استخدام PDF'],
+      ['اذكر 3 أمثلة لهويات تعجبك و3 أمثلة لا تناسبك مع السبب.','essay','روابط أو أسماء العلامات تكفي كبداية.',false],
+      ['من أصحاب القرار في مراجعة التصميم؟ وكيف تتم الموافقة النهائية؟','essay','عدد المراجعين، مسؤول الاتصال، ومراحل الاعتماد.',true],
+      ['هل توجد متطلبات قانونية أو ملكية أو تسجيل علامة؟','essay','اذكر أي أسماء أو رموز محجوزة، أو متطلبات حصرية للخطوط والصور.',false],
+      ['متى تريد بدء المشروع؟ وما الموعد النهائي المطلوب؟','essay','اذكر إن كان هناك إطلاق أو حملة مرتبطة بتاريخ ثابت.',true],
+      ['ما الميزانية التقريبية المخصصة للهوية؟','checkbox','النطاق استرشادي لضبط حجم العرض، وليس سعرًا نهائيًا.',false,'أقل من 5,000|5,000–10,000|10,000–25,000|25,000–50,000|أكثر من 50,000|أفضّل استلام عرض حسب النطاق'],
+      ['هل لديك ملفات أو محتوى جاهز، وما الذي ستوفره أنت؟','essay','نصوص، صور، خطوط، مقاسات، قوالب، حسابات، أو أي أصول موجودة.',false],
+      ['أي ملاحظات إضافية أو أولويات لو اضطررنا لتقسيم المشروع إلى مراحل؟','essay','حدد ما يجب إنجازه أولًا وما يمكن تأجيله.',false]
+    ].map(function(row){return {id:id(),label:row[0],type:row[1],description:row[2],required:row[3],options:row[4]?row[4].split('|').map(function(label){return {label:label};}):[]};});
+    var now=new Date().toISOString();
+    var form={id:id(),title:'استبيان الهوية البصرية الكاملة',description:'بريف تأسيسي لجمع نطاق العمل والمتطلبات والتسليمات والجدول والميزانية، تمهيدًا لإعداد عرض سعر واضح ومخصص.',client_id:'',project_id:'',status:'draft',createdAt:now,updatedAt:now,
+      items:[
+        {id:id(),title:'هدف الاستبيان',description:'نستخدم الإجابات لفهم العلامة والجمهور والمنافسين، ثم تحديد نطاق الهوية ومخرجاتها ومدة التنفيذ والتكلفة.'},
+        {id:id(),title:'ما يشمله عرض السعر',description:'سيُفصّل العرض المخرجات المطلوبة، عدد المقترحات وجولات التعديل، الملفات النهائية، الجدول الزمني، وشروط الدفع والحقوق.'},
+        {id:id(),title:'روابط وملفات مرجعية',description:'يمكن إضافة روابط الملفات والهوية الحالية والأمثلة المرجعية داخل الإجابات. لا تشارك كلمات مرور أو معلومات حساسة.'},
+        {id:id(),title:'ملاحظة التسعير',description:'الميزانية المذكورة استرشادية فقط؛ السعر النهائي يتحدد بعد مراجعة عدد العناصر والمقاسات والتسليمات والتوقيت.'}
+      ],questions:questions};
+    forms().push(form);persist();renderBriefForms();openBriefForm(form.id);notice('تم إنشاء قالب الهوية البصرية الكاملة');
+  };
   window.renderBriefForms=function(){
     var panel=document.getElementById('inv-panel-briefs');
     if(!panel)return;
     var rows=forms().slice().sort(function(a,b){return String(b.createdAt||'').localeCompare(String(a.createdAt||''));});
-    panel.innerHTML='<div class="brief-panel-heading"><div><h3>البريفات والاستبيانات</h3><p>أنشئ بنودًا وأسئلة وأرسلها من بوابة العميل. بعد وصول الإجابات يمكنك اعتمادها وربطها بالمشروع.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" onclick="_pollPublicInbox().then(renderBriefForms)"><i class="fa-solid fa-rotate"></i> تحديث الردود</button><button class="btn btn-primary" onclick="openBriefForm()"><i class="fa-solid fa-plus"></i> بريف جديد</button></div></div>'+
+    panel.innerHTML='<div class="brief-panel-heading"><div><h3>البريفات والاستبيانات</h3><p>أنشئ بنودًا وأسئلة وأرسلها من بوابة العميل. بعد وصول الإجابات يمكنك اعتمادها وربطها بالمشروع.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" onclick="_pollPublicInbox().then(renderBriefForms)"><i class="fa-solid fa-rotate"></i> تحديث الردود</button><button class="btn btn-ghost" onclick="openVisualIdentityBrief()"><i class="fa-solid fa-palette"></i> قالب هوية بصرية كاملة</button><button class="btn btn-primary" onclick="openBriefForm()"><i class="fa-solid fa-plus"></i> بريف جديد</button></div></div>'+
       (rows.length?'<div class="brief-list">'+rows.map(function(f){
         var client=(state().clients||[]).find(function(c){return String(c.id)===String(f.client_id);});
         var project=(state().projects||[]).find(function(p){return String(p.id)===String(f.project_id);});
         var labels={draft:'مسودة',sent:'أُرسل للعميل',submitted:'وصل الرد',accepted:'معتمد'};
         var formId=esc(f.id);
-        return '<article class="card brief-card"><div class="brief-card-top"><div><h4>'+esc(f.title||'بريف بدون عنوان')+'</h4><small>'+esc(client?.name||'بدون عميل')+(project?' · '+esc(project.name):'')+'</small></div><span class="brief-status brief-status-'+esc(f.status||'draft')+'">'+(labels[f.status]||'مسودة')+'</span></div><p>'+esc(f.description||'')+'</p><div class="brief-card-actions">'+
+        return '<article class="card brief-card"><div class="brief-card-top"><div><h4>'+esc(f.title||'بريف بدون عنوان')+'</h4><small>'+esc(client?.name||'قالب عام')+(project?' · '+esc(project.name):'')+'</small></div><span class="brief-status brief-status-'+esc(f.status||'draft')+'">'+(labels[f.status]||'مسودة')+'</span></div><p>'+esc(f.description||'')+'</p><div class="brief-card-actions">'+
           '<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="openBriefForm(this.dataset.id)"><i class="fa-solid fa-eye"></i> '+(f.status==='draft'?'تعديل':'عرض')+'</button>'+
-          (f.status==='draft'?'<button class="btn btn-primary btn-sm" data-id="'+formId+'" onclick="sendBriefForm(this.dataset.id)"><i class="fa-solid fa-paper-plane"></i> إرسال للعميل</button>':'')+
+          (f.status==='draft'&&f.client_id?'<button class="btn btn-primary btn-sm" data-id="'+formId+'" onclick="sendBriefForm(this.dataset.id)"><i class="fa-solid fa-paper-plane"></i> إرسال للعميل</button>':'')+
+          (!f.client_id?'<button class="btn btn-primary btn-sm" data-id="'+formId+'" onclick="useBriefTemplate(this.dataset.id)"><i class="fa-solid fa-copy"></i> استخدام مع عميل</button>':'')+
           (f.status==='sent'?'<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="copyBriefLink(this.dataset.id)"><i class="fa-solid fa-link"></i> نسخ الرابط</button>':'')+
           (f.status==='submitted'?'<button class="btn btn-success btn-sm" data-id="'+formId+'" onclick="acceptBriefForm(this.dataset.id)"><i class="fa-solid fa-check"></i> اعتماد وربط بالمشروع</button>':'')+
           '</div></article>';
@@ -68,7 +102,7 @@
     var overlay=document.createElement('div');overlay.id='brief-editor-overlay';overlay.className='modal-overlay';overlay.style.display='flex';
     overlay.onclick=function(event){if(event.target===overlay)overlay.remove();};
     var readonly=form&&form.status!=='draft';
-    var fields='<div class="brief-grid"><div class="form-group"><label class="form-label">اسم النموذج *</label><input class="form-input" id="brief-title" maxlength="160" value="'+esc(form?.title||'')+'" placeholder="مثال: بريف تصميم الهوية"></div><div class="form-group"><label class="form-label">العميل *</label><select class="form-select" id="brief-client" onchange="briefClientChanged()">'+clientOptions(form?.client_id)+'</select></div></div>'+
+    var fields='<div class="brief-grid"><div class="form-group"><label class="form-label">اسم النموذج *</label><input class="form-input" id="brief-title" maxlength="160" value="'+esc(form?.title||'')+'" placeholder="مثال: بريف تصميم الهوية"></div><div class="form-group"><label class="form-label">العميل (اختياري للقالب العام)</label><select class="form-select" id="brief-client" onchange="briefClientChanged()">'+clientOptions(form?.client_id)+'</select></div></div>'+
       '<div class="brief-grid"><div class="form-group"><label class="form-label">المشروع المرتبط</label><select class="form-select" id="brief-project">'+projectOptions(form?.client_id,form?.project_id)+'</select></div><div class="form-group"><label class="form-label">وصف مختصر</label><input class="form-input" id="brief-description" value="'+esc(form?.description||'')+'" placeholder="ما المطلوب من العميل؟"></div></div>'+
       '<section class="brief-editor-section"><div class="brief-section-head"><h4>البنود والتوضيحات</h4>'+(!readonly?'<button class="btn btn-ghost btn-sm" onclick="briefAddItem()">+ بند</button>':'')+'</div><div id="brief-items">'+(form?.items||[]).map(itemMarkup).join('')+'</div></section>'+
       '<section class="brief-editor-section"><div class="brief-section-head"><h4>الأسئلة</h4>'+(!readonly?'<button class="btn btn-ghost btn-sm" onclick="briefAddQuestion()">+ سؤال</button>':'')+'</div><div id="brief-questions">'+(form?.questions||[]).map(questionMarkup).join('')+'</div></section>';
@@ -87,7 +121,7 @@
     if(form&&form.status!=='draft')return;
     var title=document.getElementById('brief-title').value.trim();
     var clientId=document.getElementById('brief-client').value;
-    if(!title||!clientId){notice('أدخل اسم النموذج واختر العميل');return;}
+    if(!title){notice('أدخل اسم النموذج');return;}
     var items=[...body.querySelectorAll('.brief-item')].map(function(el){return {id:el.dataset.id,title:el.querySelector('.brief-item-title').value.trim(),description:el.querySelector('.brief-item-desc').value.trim()};}).filter(function(item){return item.title;});
     var questions=[...body.querySelectorAll('.brief-question')].map(function(el){
       var type=el.querySelector('.brief-q-type').value;
@@ -115,6 +149,21 @@
     if(!url||url.endsWith('/clients')){notice('أنشئ بوابة للعميل أولًا');return;}
     form.status='sent';form.sentAt=new Date().toISOString();form.updatedAt=form.sentAt;persist();renderBriefForms();copyBriefLink(formId);
   };
+  window.useBriefTemplate=function(formId){
+    var template=find(formId);if(!template||template.client_id)return;
+    var overlay=document.createElement('div');overlay.id='brief-use-template-overlay';overlay.className='modal-overlay';overlay.style.display='flex';
+    overlay.onclick=function(event){if(event.target===overlay)overlay.remove();};
+    overlay.innerHTML='<div class="modal brief-use-template" dir="rtl"><div class="modal-header"><div class="modal-title">استخدام القالب مع عميل</div><button class="close-btn" onclick="document.getElementById(\'brief-use-template-overlay\').remove()"><i class="fa-solid fa-xmark"></i></button></div><div style="padding:18px"><label class="form-label">العميل *</label><select class="form-select" id="brief-template-client">'+clientOptions('')+'</select><p style="color:var(--text3);font-size:12px">سيُنشأ بريف مستقل للعميل، ويبقى القالب العام كما هو.</p></div><div class="brief-editor-footer"><button class="btn btn-primary" data-id="'+esc(formId)+'" onclick="createBriefFromTemplate(this.dataset.id)">إنشاء بريف للعميل</button></div></div>';
+    document.body.appendChild(overlay);
+  };
+  window.createBriefFromTemplate=function(formId){
+    var template=find(formId),clientId=document.getElementById('brief-template-client')?.value||'';
+    if(!template||!clientId){notice('اختر العميل أولًا');return;}
+    var copy=JSON.parse(JSON.stringify(template));
+    copy.id=id();copy.client_id=clientId;copy.project_id='';copy.status='draft';copy.createdAt=new Date().toISOString();copy.updatedAt=copy.createdAt;
+    delete copy.answers;delete copy.submittedAt;delete copy.sentAt;delete copy.acceptedAt;
+    forms().push(copy);persist();document.getElementById('brief-use-template-overlay')?.remove();renderBriefForms();notice('تم إنشاء نسخة للعميل؛ راجعها ثم أرسلها');
+  };
   window.briefAssignProject=function(formId){
     var form=find(formId);if(!form||form.status!=='submitted')return;
     var projectId=document.getElementById('brief-project')?.value||'';
@@ -134,6 +183,6 @@
     persist();renderBriefForms();notice('تم اعتماد البريف وإضافته إلى بيانات المشروع');
   };
   var style=document.createElement('style');
-  style.textContent='.brief-panel-heading{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:16px}.brief-panel-heading h3{margin:0;font-size:18px}.brief-panel-heading p{margin:4px 0 0;color:var(--text3);font-size:12px}.brief-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}.brief-card h4{margin:0 0 4px}.brief-card p{color:var(--text3);font-size:12px}.brief-card-top,.brief-card-actions,.brief-section-head,.brief-editor-line,.brief-editor-footer{display:flex;align-items:center;justify-content:space-between;gap:10px}.brief-card-actions{justify-content:flex-start;flex-wrap:wrap}.brief-status{font-size:11px;padding:5px 10px;border-radius:20px;background:var(--surface2);white-space:nowrap}.brief-status-submitted{color:var(--accent3)}.brief-status-accepted{color:var(--accent3)}.brief-editor{width:min(820px,96vw);max-height:min(90dvh,900px);display:flex;flex-direction:column}.brief-editor-content{overflow:auto;padding:18px}.brief-editor-footer{justify-content:flex-start;padding:14px 18px;border-top:1px solid var(--border)}.brief-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.brief-editor-section{border-top:1px solid var(--border);padding-top:15px;margin-top:15px}.brief-editor-section h4{margin:0 0 12px}.brief-editor-block{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin:10px 0}.brief-editor-block .form-input,.brief-editor-block .form-textarea{margin-bottom:8px}.brief-editor-line .form-input{flex:1}.brief-q-type{width:170px}.brief-required{font-size:12px;display:flex;align-items:center;gap:6px;margin-bottom:8px}.brief-options small{display:block;color:var(--text3);margin-bottom:5px}.brief-answer{border-bottom:1px solid var(--border);padding:8px 0}.brief-answer p{white-space:pre-wrap}.brief-empty{text-align:center;padding:40px}.brief-empty i{font-size:30px;color:var(--text3)}@media(max-width:650px){.brief-grid{grid-template-columns:1fr}.brief-panel-heading{align-items:flex-start;flex-direction:column}.brief-editor-line{flex-wrap:wrap}.brief-q-type{width:auto}}';
+  style.textContent='.brief-panel-heading{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:16px}.brief-panel-heading h3{margin:0;font-size:18px}.brief-panel-heading p{margin:4px 0 0;color:var(--text3);font-size:12px}.brief-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}.brief-card h4{margin:0 0 4px}.brief-card p{color:var(--text3);font-size:12px}.brief-card-top,.brief-card-actions,.brief-section-head,.brief-editor-line,.brief-editor-footer{display:flex;align-items:center;justify-content:space-between;gap:10px}.brief-card-actions{justify-content:flex-start;flex-wrap:wrap}.brief-status{font-size:11px;padding:5px 10px;border-radius:20px;background:var(--surface2);white-space:nowrap}.brief-status-submitted{color:var(--accent3)}.brief-status-accepted{color:var(--accent3)}.brief-editor,.brief-use-template{width:min(820px,96vw);max-height:min(90dvh,900px);display:flex;flex-direction:column}.brief-use-template{width:min(450px,96vw)}.brief-editor-content{overflow:auto;padding:18px}.brief-editor-footer{justify-content:flex-start;padding:14px 18px;border-top:1px solid var(--border)}.brief-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.brief-editor-section{border-top:1px solid var(--border);padding-top:15px;margin-top:15px}.brief-editor-section h4{margin:0 0 12px}.brief-editor-block{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin:10px 0}.brief-editor-block .form-input,.brief-editor-block .form-textarea{margin-bottom:8px}.brief-editor-line .form-input{flex:1}.brief-q-type{width:170px}.brief-required{font-size:12px;display:flex;align-items:center;gap:6px;margin-bottom:8px}.brief-options small{display:block;color:var(--text3);margin-bottom:5px}.brief-answer{border-bottom:1px solid var(--border);padding:8px 0}.brief-answer p{white-space:pre-wrap}.brief-empty{text-align:center;padding:40px}.brief-empty i{font-size:30px;color:var(--text3)}@media(max-width:650px){.brief-grid{grid-template-columns:1fr}.brief-panel-heading{align-items:flex-start;flex-direction:column}.brief-editor-line{flex-wrap:wrap}.brief-q-type{width:auto}}';
   document.head.appendChild(style);
 })();
