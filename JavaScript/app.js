@@ -3662,6 +3662,7 @@ function confirmComplete(){
   });
 
   lsSave(); closeM('modal-complete'); renderAll();
+  if(typeof renderWeeklyChallengeWidget === 'function') renderWeeklyChallengeWidget();
   // اطلب رابط التسليم بعد إغلاق المودال
   setTimeout(function(){ _askRegularTaskProjectLink(id); }, 300);
   if(!payCollected && t.value>0){
@@ -17819,12 +17820,12 @@ function _getWeeklyChallenge(){
   const adminCh = S._adminChallenge;
   if(adminCh && adminCh.weekKey === weekKey){
     // استرجع حالة التقدم المحفوظة محلياً لهذا التحدي
-    const localKey = '_wkch_' + adminCh.id;
+    const localKey = '_wkch_' + (typeof _supaUserId !== 'undefined' && _supaUserId ? _supaUserId : 'local') + '_' + adminCh.id;
     const saved = JSON.parse(localStorage.getItem(localKey)||'{}');
     return {
       ...adminCh,
       done:     saved.done     || false,
-      progress: saved.progress || 0,
+      progress: Number(saved.progress) || 0,
       isAdmin:  true,
       _localKey: localKey
     };
@@ -17852,6 +17853,7 @@ function _getWeeklyChallenge(){
 // â”€â”€ احتفال إتمام التحدي â”€â”€
 function _fireChallengeConfetti(){
   if(typeof document === 'undefined') return;
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
   const canvas = document.createElement('canvas');
   canvas.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;pointer-events:none';
   document.body.appendChild(canvas);
@@ -17859,7 +17861,7 @@ function _fireChallengeConfetti(){
   const ctx = canvas.getContext('2d');
   const pieces = [];
   const colors = ['#7c6ff7','#4fd1a5','#f7c948','#f76f7c','#fff','#a89cff'];
-  for(let i=0;i<140;i++){
+  for(let i=0;i<48;i++){
     pieces.push({
       x: Math.random()*canvas.width, y: -20,
       w: 8+Math.random()*8, h: 14+Math.random()*8,
@@ -17914,7 +17916,7 @@ function _showChallengeDoneModal(ch){
 }
 
 function _updateWeeklyChallengeProgress(){
-  const ch=_getWeeklyChallenge(); if(ch.done) return;
+  const ch=_getWeeklyChallenge();
   const weekKey=_getWeekKey();
   const weekStart=new Date(weekKey);
   let progress=0;
@@ -17929,15 +17931,16 @@ function _updateWeeklyChallengeProgress(){
   } else if(ch.type==='client'){
     progress=(S.clients||[]).filter(cl=>new Date(cl.createdAt||0)>=weekStart).length;
   }
-  const done=progress>=ch.target;
+  const done=progress>=Number(ch.target||1);
   const wasDone = ch.done;
+  ch.progress=progress;
+  ch.done=done;
 
   if(ch.isAdmin){
     // حفظ التقدم محلياً لتحدي الأدمن
     const saved = { done, progress };
     localStorage.setItem(ch._localKey, JSON.stringify(saved));
   } else {
-    ch.progress=progress; ch.done=done;
     localStorage.setItem('_weekChallenge',JSON.stringify(ch));
   }
 
@@ -17951,7 +17954,7 @@ function renderWeeklyChallengeWidget(){
   const el=document.getElementById('dash-challenge-inner');if(!el)return;
   _updateWeeklyChallengeProgress();
   const ch=_getWeeklyChallenge();
-  const pct=Math.min(100,Math.round((ch.progress/ch.target)*100));
+  const pct=Math.min(100,Math.round((ch.progress/Math.max(1,Number(ch.target)||1))*100));
   const isAdmin = ch.isAdmin ? `<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:rgba(247,201,72,.15);color:var(--accent2);font-weight:700;margin-right:4px"><i class="fa-solid fa-star"></i> من الأدمن</span>` : '';
   el.innerHTML=`
     <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">
@@ -17961,8 +17964,8 @@ function renderWeeklyChallengeWidget(){
         <div style="font-size:10px;color:var(--text3);margin-top:2px">${isAdmin}تحدي هذا الأسبوع آ· ${ch.done?'<span style="color:var(--accent3)"><i class="fa-solid fa-square-check"></i> مكتمل! ًںژ‰</span>':'جارٍ'}</div>
       </div>
     </div>
-    <div style="height:7px;background:var(--surface2);border-radius:8px;overflow:hidden;margin-bottom:5px">
-      <div style="height:100%;width:${pct}%;background:${ch.done?'linear-gradient(90deg,var(--accent3),#38b99a)':'linear-gradient(90deg,var(--accent),#a89cff)'};border-radius:8px;transition:width .6s cubic-bezier(.34,1.56,.64,1)"></div>
+    <div role="progressbar" aria-label="تقدم تحدي الأسبوع" aria-valuemin="0" aria-valuemax="${ch.target}" aria-valuenow="${Math.min(ch.progress,ch.target)}" style="height:9px;background:var(--surface2);border-radius:8px;overflow:hidden;margin-bottom:5px">
+      <div style="height:100%;width:${pct}%;background:${ch.done?'linear-gradient(90deg,var(--accent3),#38b99a)':'linear-gradient(90deg,var(--accent),#a89cff)'};border-radius:8px;transition:width .6s ease"></div>
     </div>
     <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3)">
       <span>${ch.progress} / ${ch.target} ${ch.unit||''}</span>
@@ -26759,11 +26762,27 @@ async function _loadServerNotifications(){
     }
     _notifTableExists = true;
     if(res.data){
-      if(typeof window._showAdminIncomingPopup === 'function') window._showAdminIncomingPopup(res.data);
+      var ownVisibleRows=res.data.filter(function(row){
+        var meta=row.data;
+        if(typeof meta==='string'){try{meta=JSON.parse(meta);}catch(e){meta={};}}
+        return !meta?.hidden_for_user;
+      });
+      var currentChallenge=ownVisibleRows.find(function(row){
+        var meta=row.data;
+        if(typeof meta==='string'){try{meta=JSON.parse(meta);}catch(e){meta={};}}
+        return row.type==='challenge' && meta?.weekKey===_getWeekKey();
+      });
+      if(currentChallenge){
+        var challengeMeta=currentChallenge.data;
+        if(typeof challengeMeta==='string'){try{challengeMeta=JSON.parse(challengeMeta);}catch(e){challengeMeta={};}}
+        S._adminChallenge={id:challengeMeta.challengeId||currentChallenge.id,title:challengeMeta.title||currentChallenge.body,type:challengeMeta.type||'complete',target:Number(challengeMeta.target)||1,unit:challengeMeta.unit||'مهمة',emoji:challengeMeta.emoji||'🏆',desc:challengeMeta.desc||'',reward:challengeMeta.reward||'',weekKey:challengeMeta.weekKey};
+        if(typeof renderWeeklyChallengeWidget==='function') renderWeeklyChallengeWidget();
+      }
+      if(typeof window._showAdminIncomingPopup === 'function') window._showAdminIncomingPopup(ownVisibleRows);
       // Remove cached server notifications that belonged to other users.
       // Older builds used an unsupported OR filter and showed all users' rows to admins.
-      var ownIds = new Set(res.data.map(function(row){ return String(row.id); }));
-      var updateTitles = res.data.filter(function(row){ return row.type === 'admin_update'; }).map(function(row){ return row.title || ''; }).filter(Boolean);
+      var ownIds = new Set(ownVisibleRows.map(function(row){ return String(row.id); }));
+      var updateTitles = ownVisibleRows.filter(function(row){ return row.type === 'admin_update'; }).map(function(row){ return row.title || ''; }).filter(Boolean);
       _notifications = _notifications.filter(function(item){
         if(item.supaId) return ownIds.has(String(item.supaId));
         // Older builds also cached a second dashboard notification for updates.
@@ -26771,7 +26790,7 @@ async function _loadServerNotifications(){
         return true;
       });
       var newCount2 = 0;
-      res.data.forEach(function(n){
+      ownVisibleRows.forEach(function(n){
         if(n.type === 'support_request') return; // sent request, not an incoming alert
         var exists = _notifications.find(function(x){ return x.id === 'srv_'+n.id; });
         if(exists) { if(n.read) exists.read = true; return; }

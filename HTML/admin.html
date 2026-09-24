@@ -6634,7 +6634,7 @@ async function loadMessagesPage() {
     const fallback = JSON.parse(localStorage.getItem('admin_messages_fallback') || '[]').filter(m => m.local);
     const map = new Map();
     (data || []).concat(fallback || []).forEach(m => map.set(String(m.id || m.created_at || Math.random()), m));
-    _allMessages = Array.from(map.values()).sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
+    _allMessages = Array.from(map.values()).filter(m => !adminMessageData(m).hidden_for_admin).sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
     renderMessagesList(_allMessages);
     updateMsgStats(_allMessages);
   } catch(e) {
@@ -6665,6 +6665,24 @@ function filterMessages() {
   renderMessagesList(filtered);
 }
 
+function adminMessageData(row) {
+  if(row?.data && typeof row.data === 'object') return row.data;
+  try { return JSON.parse(row?.data || '{}'); } catch(_) { return {}; }
+}
+function adminThreadId(row) {
+  const meta = adminMessageData(row);
+  return String(meta.request_id || meta.thread_id || row.id);
+}
+function adminConversations(rows) {
+  const threads = new Map();
+  [...rows].reverse().forEach(row => {
+    const id = adminThreadId(row);
+    if(!threads.has(id)) threads.set(id,{id,items:[]});
+    threads.get(id).items.push(row);
+  });
+  return [...threads.values()].sort((a,b) => new Date(b.items.at(-1)?.created_at||0)-new Date(a.items.at(-1)?.created_at||0));
+}
+
 function renderMessagesList(msgs) {
   const bodyEl = document.getElementById('msgs-list-body');
   if(!bodyEl) return;
@@ -6677,32 +6695,34 @@ function renderMessagesList(msgs) {
     return;
   }
 
-  bodyEl.innerHTML = msgs.map(m => {
+  bodyEl.innerHTML = adminConversations(msgs).map(thread => {
+    const m = thread.items.at(-1);
+    const first = thread.items[0];
     const icon  = TYPE_ICONS[m.type]  || '💬';
     const color = TYPE_COLORS[m.type] || 'var(--accent)';
     const date  = m.created_at ? new Date(m.created_at).toLocaleString('ar-EG', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
     const target = m.user_id
       ? (ALL_STUDIO_DATA[m.user_id]?.parsed?.settings?.name || m.user_id.substring(0,8)+'...')
       : '📢 جميع المستخدمين';
-    const readBadge = m.read
+    const readBadge = thread.items.every(row=>row.read)
       ? '<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(79,209,165,.15);color:var(--accent3)">✓ مقروءة</span>'
       : '<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(247,111,124,.15);color:var(--accent4)">● جديدة</span>';
 
-    return `<div data-message-id="${m.id}" style="display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);transition:.15s;cursor:pointer" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+    return `<div data-message-id="${adminMsgEscape(thread.id)}" style="display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);transition:.15s;cursor:pointer" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
       <div style="width:36px;height:36px;border-radius:50%;background:${color}18;border:1.5px solid ${color}44;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${icon}</div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
-          ${m.title ? `<div style="font-size:13px;font-weight:700">${adminMsgEscape(m.title)}</div>` : ''}
+          ${first.title ? `<div style="font-size:13px;font-weight:700">${adminMsgEscape(first.title)}</div>` : ''}
           ${readBadge}
           <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${color}15;color:${color};font-weight:700">${icon} ${m.type||'message'}</span>
         </div>
         <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:6px">${adminMsgEscape((m.body||'').replace(/\n__page__:.+$/, '')).slice(0,240)}</div>
         <div style="display:flex;gap:12px;font-size:10px;color:var(--text3)">
           <span>👤 ${adminMsgEscape(target)}</span>
-          <span>🕐 ${date}</span>
+          <span>🕐 ${date}</span>${thread.items.length>1?`<span>💬 ${thread.items.length} رسائل</span>`:''}
         </div>
       </div>
-      <button type="button" data-message-delete="${m.id}" title="حذف" style="width:28px;height:28px;border-radius:7px;background:rgba(247,111,124,.1);border:none;cursor:pointer;color:var(--accent4);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <button type="button" data-message-delete="${adminMsgEscape(thread.id)}" title="حذف سجل المحادثة من الإدارة" style="width:28px;height:28px;border-radius:7px;background:rgba(247,111,124,.1);border:none;cursor:pointer;color:var(--accent4);display:flex;align-items:center;justify-content:center;flex-shrink:0">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
       </button>
     </div>`;
@@ -6721,37 +6741,45 @@ document.getElementById('msgs-list-body')?.addEventListener('click', event => {
 });
 
 async function openAdminMessageDetail(id) {
-  const message = _allMessages.find(m => String(m.id) === String(id));
-  if(!message) return;
+  const thread = adminConversations(_allMessages).find(item=>item.id===String(id)||item.items.some(row=>String(row.id)===String(id)));
+  if(!thread) return;
+  const message = thread.items.at(-1);
+  const first = thread.items[0];
   document.getElementById('admin-message-detail')?.remove();
   const overlay = document.createElement('div');
   overlay.id = 'admin-message-detail';
   overlay.className = 'modal-overlay open';
   const name = message.user_id ? (ALL_STUDIO_DATA[message.user_id]?.parsed?.settings?.name || message.user_id) : 'جميع المستخدمين';
-  overlay.innerHTML = `<div class="modal" style="max-width:560px"><div class="modal-header"><div class="modal-title">${adminMsgEscape(message.title || 'رسالة')}</div><button type="button" class="close-btn" data-close>✕</button></div><div style="font-size:12px;color:var(--text2);margin-bottom:12px">${message.type === 'support_request' ? 'من' : 'إلى'}: ${adminMsgEscape(name)}</div><div style="white-space:pre-wrap;line-height:1.9;background:var(--surface2);border-radius:10px;padding:16px">${adminMsgEscape((message.body || '').replace(/\n__page__:.+$/, ''))}</div>${message.type === 'support_request' ? '<div class="form-group" style="margin-top:16px"><div class="form-label">رد الإدارة</div><textarea id="admin-support-reply" class="form-input" rows="4" placeholder="اكتب الرد على طلب المستخدم"></textarea></div><button type="button" class="btn btn-primary" data-reply>إرسال الرد</button>' : ''}</div>`;
+  const canReply = thread.items.some(row=>row.type==='support_request');
+  overlay.innerHTML = `<div class="modal" style="max-width:590px"><div class="modal-header"><div class="modal-title">${adminMsgEscape(first.title || 'محادثة')}</div><button type="button" class="close-btn" data-close>✕</button></div><div style="font-size:12px;color:var(--text2);margin-bottom:12px">المستخدم: ${adminMsgEscape(name)}</div><div style="display:grid;gap:10px;max-height:55vh;overflow:auto">${thread.items.map(row=>`<div style="white-space:pre-wrap;line-height:1.8;background:var(--surface2);border-radius:10px;padding:13px;border-inline-start:3px solid ${row.type==='support_request'?'var(--accent3)':'var(--accent)'}"><strong style="font-size:11px">${row.type==='support_request'?'المستخدم':'الإدارة'}</strong><div>${adminMsgEscape((row.body||'').replace(/\n__page__:.+$/,''))}</div></div>`).join('')}</div>${canReply ? '<div class="form-group" style="margin-top:16px"><div class="form-label">رد الإدارة</div><textarea id="admin-support-reply" class="form-input" rows="4" placeholder="اكتب الرد على المستخدم"></textarea></div><button type="button" class="btn btn-primary" data-reply>إرسال الرد</button>' : ''}</div>`;
   overlay.addEventListener('click', async event => {
     if(event.target === overlay || event.target.closest('[data-close]')) { overlay.remove(); return; }
     if(event.target.closest('[data-reply]')) {
       const reply = overlay.querySelector('#admin-support-reply')?.value.trim();
       if(!reply) { toast('⚠ اكتب الرد أولاً'); return; }
       const button = overlay.querySelector('[data-reply]'); button.disabled = true;
-      const { error } = await supa.from('user_notifications').insert([{user_id:message.user_id,title:'رد على: '+(message.title || 'طلب مساعدة'),body:reply,type:'support_reply',read:false,data:{request_id:message.id},created_at:new Date().toISOString()}]);
+      const { error } = await supa.from('user_notifications').insert([{user_id:message.user_id,title:first.title || 'رد الإدارة',body:reply,type:'support_reply',read:false,data:{request_id:thread.id},created_at:new Date().toISOString()}]);
       if(error) { button.disabled = false; toast('⛔ تعذر إرسال الرد: '+error.message); return; }
       overlay.remove(); toast('✅ تم إرسال الرد للمستخدم'); loadMessagesPage();
     }
   });
   document.body.appendChild(overlay);
-  if(message.type === 'support_request' && !message.read) {
-    message.read = true;
-    await supa.from('user_notifications').update({read:true}).eq('id',message.id);
-    updateMsgStats(_allMessages);
+  for(const row of thread.items.filter(item=>item.type==='support_request'&&!item.read)) {
+    const {error}=await supa.from('user_notifications').update({read:true}).eq('id',row.id);
+    if(!error) row.read=true;
   }
+  updateMsgStats(_allMessages);
 }
 
 async function deleteMessage(id) {
+  const thread=adminConversations(_allMessages).find(item=>item.id===String(id));
+  if(!thread || !confirm('حذف سجل هذه المحادثة من لوحة الإدارة؟')) return;
   try {
-    await supa.from('user_notifications').delete().eq('id', id);
-    _allMessages = _allMessages.filter(m => m.id != id);
+    for(const row of thread.items){
+      const {error}=await supa.from('user_notifications').update({data:{...adminMessageData(row),hidden_for_admin:true}}).eq('id',row.id);
+      if(error) throw error;
+    }
+    _allMessages = _allMessages.filter(m => adminThreadId(m)!==thread.id);
     renderMessagesList(_allMessages);
     updateMsgStats(_allMessages);
     toast('🗑 تم حذف الرسالة');
@@ -7479,7 +7507,7 @@ async function sendChallenge(id) {
           body: ch.title,
           type: 'challenge',
           read: false,
-          data: {challengeId:ch.id, emoji:ch.emoji, target:ch.target, unit:ch.unit, desc:ch.desc, reward:ch.reward, weekKey:ch.weekKey},
+          data: {challengeId:ch.id, emoji:ch.emoji, title:ch.title, type:ch.type, target:ch.target, unit:ch.unit, desc:ch.desc, reward:ch.reward, weekKey:ch.weekKey},
           created_at: new Date().toISOString()
         }]);
         if(error) fail++; else ok++;
