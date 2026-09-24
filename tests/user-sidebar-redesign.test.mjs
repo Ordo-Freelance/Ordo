@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 const html = fs.readFileSync(new URL('../HTML/index.html', import.meta.url), 'utf8');
 const css = fs.readFileSync(new URL('../CSS/user-redesign.css', import.meta.url), 'utf8');
+const app = fs.readFileSync(new URL('../JavaScript/app.js', import.meta.url), 'utf8');
 
 test('user sidebar keeps the existing group order and opens only one group', () => {
   const script = html.slice(html.indexOf('(function organizeSidebar(){'), html.indexOf('})();', html.indexOf('(function organizeSidebar(){')) + 5);
@@ -42,4 +43,17 @@ test('user visual layer covers dark, light, modal, kanban and compact layouts', 
   for (const selector of ['body.app-loaded:not(.light-mode)', 'body.app-loaded.light-mode', '.modal-overlay', '#page-tasks .tasks-v2-card', '@media (max-width: 700px)']) {
     assert.ok(css.includes(selector), `missing ${selector}`);
   }
+});
+
+test('reference screens retain their controls while receiving readable layouts', () => {
+  for (const selector of [
+    '#page-clients #clients-grid', '#modal-client-profile #profile-tabs',
+    '#modal-task #_tt-kind-bar', '#modal-task #t-brief-editor',
+    '#page-tasks .tasks-v2-board', '#page-tasks .tasks-v2-card',
+    '#modal-task-detail .tasks-v2-detail-grid'
+  ]) assert.ok(css.includes(selector), `missing ${selector}`);
+  for (const control of ['_clients-add-btn','profile-tabs','t-title','t-client','t-deadline','td-body']) {
+    assert.ok(html.includes(control), `missing control ${control}`);
+  }
+  assert.ok(app.includes('tasks-v2-shell'));
 });

@@ -130,6 +130,264 @@ body.app-loaded:not(.pub-page) .modal-header {
   line-height: 1.5 !important;
 }
 body.app-loaded:not(.pub-page) .tasks-v2-stat { border-radius: 14px; }
+
+/* Customers: readable cards and calmer controls. */
+body.app-loaded:not(.pub-page) #page-clients.clients-v2-page .page-header {
+  padding: 4px 0 20px !important;
+  margin-bottom: 20px;
+  border-bottom-color: var(--border);
+}
+body.app-loaded:not(.pub-page) #page-clients .clients-tabs-bar {
+  gap: 9px !important;
+  padding-bottom: 16px !important;
+  margin-bottom: 18px !important;
+}
+body.app-loaded:not(.pub-page) #page-clients .clients-tabs-bar button,
+body.app-loaded:not(.pub-page) #page-clients .clients-view-toggle button {
+  min-height: 38px !important;
+  padding: 8px 14px !important;
+  font-size: 12px !important;
+  border-radius: 10px !important;
+}
+body.app-loaded:not(.pub-page) #page-clients .clients-view-row { margin-bottom: 18px !important; }
+body.app-loaded:not(.pub-page) #page-clients #clients-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)) !important;
+  gap: 16px !important;
+}
+body.app-loaded:not(.pub-page) #page-clients .client-card-simple {
+  min-height: 164px !important;
+  padding: 17px !important;
+  border: 1px solid var(--border) !important;
+  border-inline-start: 3px solid var(--client-color, var(--accent)) !important;
+  border-radius: 15px !important;
+  background: var(--surface) !important;
+  box-shadow: 0 8px 24px rgba(4, 9, 25, .08) !important;
+  transition: border-color .18s ease, box-shadow .18s ease !important;
+}
+body.app-loaded:not(.pub-page) #page-clients .client-card-simple:hover {
+  border-color: color-mix(in srgb, var(--client-color, var(--accent)) 48%, var(--border)) !important;
+  box-shadow: 0 12px 30px rgba(4, 9, 25, .16) !important;
+}
+body.app-loaded:not(.pub-page) .client-simple-card-main { gap: 11px; }
+body.app-loaded:not(.pub-page) .client-simple-card-avatar {
+  width: 43px; height: 43px; border-radius: 12px; font-size: 16px;
+}
+body.app-loaded:not(.pub-page) .client-simple-card-info b { font-size: 14px; line-height: 1.5; }
+body.app-loaded:not(.pub-page) .client-simple-card-info span { font-size: 11px; font-weight: 600; }
+body.app-loaded:not(.pub-page) .client-simple-card-actions button {
+  width: 31px; height: 31px; border-radius: 9px; font-size: 11px;
+}
+body.app-loaded:not(.pub-page) .client-simple-card-contact { margin-top: 14px; gap: 7px; }
+body.app-loaded:not(.pub-page) .client-simple-card-contact span {
+  padding: 4px 8px; font-size: 10.5px; font-weight: 600;
+}
+body.app-loaded:not(.pub-page) .client-simple-card-stats { margin-top: 13px; gap: 9px; }
+body.app-loaded:not(.pub-page) .client-simple-card-stats span {
+  min-height: 42px; padding: 9px 11px; border-radius: 10px;
+}
+body.app-loaded:not(.pub-page) .client-simple-card-stats b { font-size: 14px; }
+body.app-loaded:not(.pub-page) .client-simple-card-stats small { font-size: 10.5px; }
+
+/* Customer profile: spacious header, navigable tabs and clear sections. */
+body.app-loaded:not(.pub-page) #modal-client-profile .modal.client-profile-v2 {
+  width: min(1060px, 95vw) !important;
+  max-height: min(92vh, 1020px);
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .modal-header {
+  padding: 18px 22px !important;
+  margin: 0;
+  flex-shrink: 0;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .modal-title {
+  font-size: 17px;
+  font-weight: 800;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile #profile-tabs {
+  padding: 10px 20px 0 !important;
+  gap: 5px !important;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .profile-tab {
+  min-height: 42px !important;
+  padding: 8px 12px !important;
+  font-size: 11.5px !important;
+  border-radius: 9px 9px 0 0;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .profile-tab.active {
+  background: color-mix(in srgb, var(--accent) 11%, transparent);
+}
+body.app-loaded:not(.pub-page) #modal-client-profile #profile-body {
+  max-height: none !important;
+  min-height: 0;
+  padding: 20px 22px 28px !important;
+  overscroll-behavior: contain;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .client-profile-simple,
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-section {
+  border-radius: 13px;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-head {
+  padding: 19px !important;
+  border: 1px solid var(--border);
+  border-radius: 13px !important;
+  background: var(--surface2) !important;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-avatar {
+  width: 54px !important; height: 54px !important; border-radius: 13px !important;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-metrics { gap: 11px !important; }
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-metrics button {
+  min-height: 81px !important;
+  padding: 14px !important;
+  border-radius: 12px !important;
+  background: var(--surface2) !important;
+}
+body.app-loaded:not(.pub-page) #modal-client-profile .client-simple-section {
+  padding: 17px !important;
+  background: var(--surface2) !important;
+}
+
+/* Create task: its existing fields stay in place, but read as distinct groups. */
+body.app-loaded:not(.pub-page) #modal-task .modal {
+  width: min(760px, 95vw);
+  max-height: 92vh;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+body.app-loaded:not(.pub-page) #modal-task .modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  margin: 0 0 18px;
+  padding: 18px 24px;
+  background: var(--surface);
+}
+body.app-loaded:not(.light-mode):not(.pub-page) #modal-task .modal-header { background: #1b2741; }
+body.app-loaded:not(.pub-page) #modal-task .modal > :not(.modal-header) { margin-inline: 24px; }
+body.app-loaded:not(.pub-page) #modal-task #_tt-kind-bar { margin-bottom: 22px !important; border-radius: 12px !important; }
+body.app-loaded:not(.pub-page) #modal-task #_tt-kind-bar button { min-height: 42px; }
+body.app-loaded:not(.pub-page) #modal-task .form-row { gap: 15px; }
+body.app-loaded:not(.pub-page) #modal-task .form-group { margin-bottom: 16px; }
+body.app-loaded:not(.pub-page) #modal-task .form-label { margin-bottom: 7px; font-size: 12px; font-weight: 700; }
+body.app-loaded:not(.pub-page) #modal-task .form-input,
+body.app-loaded:not(.pub-page) #modal-task .form-select { min-height: 42px; }
+body.app-loaded:not(.pub-page) #modal-task #t-worker-section,
+body.app-loaded:not(.pub-page) #modal-task #task-inv-opt {
+  border-radius: 12px !important;
+  padding: 16px !important;
+  margin-bottom: 16px !important;
+}
+body.app-loaded:not(.pub-page) #modal-task #t-brief-editor {
+  min-height: 145px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+body.app-loaded:not(.pub-page) #modal-task .modal > div:last-child {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  padding: 14px 0 18px;
+  background: var(--surface);
+}
+body.app-loaded:not(.light-mode):not(.pub-page) #modal-task .modal > div:last-child { background: #152039; }
+
+/* Task list and kanban: improve hierarchy without altering drag/drop. */
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-hero { gap: 18px; margin-bottom: 22px; }
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-title { font-size: clamp(22px, 2vw, 29px); }
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-quick-stats { gap: 13px; }
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-quick-card {
+  min-height: 92px;
+  padding: 17px;
+  border-radius: 14px;
+  background: var(--surface);
+}
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-quick-card b { font-size: 25px; }
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-quick-card span { font-size: 12px; }
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-board-wrap {
+  border-radius: 17px !important;
+  overflow: hidden;
+}
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-board-head {
+  min-height: 62px;
+  padding: 16px 18px !important;
+}
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-board {
+  gap: 12px !important;
+  padding: 13px !important;
+  background: color-mix(in srgb, var(--surface2) 65%, var(--bg)) !important;
+  grid-auto-columns: minmax(245px, 1fr) !important;
+}
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-col-head {
+  min-height: 50px !important;
+  padding-inline: 13px !important;
+}
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-col-title { font-size: 12.5px !important; }
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-col-body {
+  padding: 11px !important;
+  gap: 10px !important;
+}
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-card { min-height: 128px !important; }
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-card-sub,
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-card-line { font-size: 10.5px !important; }
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-card-actions { gap: 6px !important; margin-top: 7px !important; }
+body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-icon-btn {
+  width: 29px !important; height: 29px !important; border-radius: 8px !important;
+}
+
+/* Task details: a stronger title, useful summary cards, and legible notes. */
+body.app-loaded:not(.pub-page) #modal-task-detail .modal {
+  width: min(980px, 95vw);
+  max-height: 92vh;
+  padding: 0;
+  overflow-y: auto;
+}
+body.app-loaded:not(.pub-page) #modal-task-detail .modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  margin: 0;
+  padding: 17px 22px;
+  background: var(--surface);
+}
+body.app-loaded:not(.light-mode):not(.pub-page) #modal-task-detail .modal-header { background: #1b2741; }
+body.app-loaded:not(.pub-page) #modal-task-detail #td-body { padding: 22px; }
+body.app-loaded:not(.pub-page) #modal-task-detail .tasks-v2-detail { gap: 15px; }
+body.app-loaded:not(.pub-page) #modal-task-detail .tasks-v2-detail-hero {
+  padding: 20px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface2));
+}
+body.app-loaded:not(.pub-page) #modal-task-detail .tasks-v2-detail-hero h2 { font-size: clamp(18px, 2.2vw, 24px); }
+body.app-loaded:not(.pub-page) #modal-task-detail .tasks-v2-detail-grid { gap: 11px; }
+body.app-loaded:not(.pub-page) #modal-task-detail .tasks-v2-detail-grid button,
+body.app-loaded:not(.pub-page) #modal-task-detail .tasks-v2-detail-section {
+  padding: 15px;
+  border-radius: 12px;
+  background: var(--surface2);
+}
+body.app-loaded:not(.pub-page) #modal-task-detail .tasks-v2-detail-note { font-size: 13px; line-height: 1.9; }
+@media (max-width: 700px) {
+  body.app-loaded:not(.pub-page) #modal-task .modal,
+  body.app-loaded:not(.pub-page) #modal-task-detail .modal,
+  body.app-loaded:not(.pub-page) #modal-client-profile .modal.client-profile-v2 {
+    width: 100%; max-width: 100%; max-height: 96vh;
+    border-radius: 16px 16px 0 0;
+  }
+  body.app-loaded:not(.pub-page) #modal-task .modal > :not(.modal-header) { margin-inline: 16px; }
+  body.app-loaded:not(.pub-page) #modal-task .modal-header,
+  body.app-loaded:not(.pub-page) #modal-task-detail .modal-header { padding: 15px 16px; }
+  body.app-loaded:not(.pub-page) #modal-task-detail #td-body { padding: 16px; }
+  body.app-loaded:not(.pub-page) #modal-task-detail .tasks-v2-detail-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  body.app-loaded:not(.pub-page) #page-tasks .tasks-v2-board { grid-auto-columns: minmax(245px, 82vw) !important; }
+  body.app-loaded:not(.pub-page) #page-clients #clients-grid { grid-template-columns: 1fr !important; }
+}
 @media (max-width: 700px) {
   body.app-loaded:not(.pub-page) .sidebar-group { margin-top: 5px; padding-top: 8px; }
   body.app-loaded:not(.pub-page) .page-header { margin-bottom: 18px; }
