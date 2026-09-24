@@ -1,0 +1,151 @@
+/* Settings workspace: grouped navigation and a single focused content area. */
+#page-settings.settings-v3.active {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  grid-template-areas:
+    "header header"
+    "nav content"
+    "nav storage";
+  align-items: start;
+  column-gap: 24px;
+  row-gap: 16px;
+  max-width: 1440px;
+  margin-inline: auto;
+}
+#page-settings.settings-v3 > .page-header {
+  grid-area: header;
+  margin-bottom: 0;
+  padding: 0 0 18px;
+}
+#page-settings.settings-v3 #settings-tabs-row {
+  grid-area: nav;
+  position: sticky;
+  top: 82px;
+  display: flex !important;
+  flex-direction: column;
+  gap: 0 !important;
+  margin: 0 !important;
+  padding: 12px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px;
+  background: var(--surface) !important;
+  overflow: visible !important;
+}
+#page-settings.settings-v3 .settings-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 0 12px;
+}
+#page-settings.settings-v3 .settings-nav-group + .settings-nav-group {
+  border-top: 1px solid var(--border);
+  padding-top: 15px;
+}
+#page-settings.settings-v3 .settings-nav-heading {
+  padding: 0 11px 8px;
+  color: var(--text3);
+  font-size: 11px;
+  font-weight: 700;
+}
+#page-settings.settings-v3 #settings-tabs-row .stab {
+  justify-content: flex-start;
+  min-height: 43px;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  font-size: 12px;
+  font-weight: 650;
+  text-align: right;
+}
+#page-settings.settings-v3 #settings-tabs-row .stab i {
+  width: 18px;
+  text-align: center;
+  color: var(--text3);
+}
+#page-settings.settings-v3 #settings-tabs-row .stab.active {
+  color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 11%, var(--surface2)) !important;
+  box-shadow: inset -3px 0 var(--accent);
+}
+#page-settings.settings-v3 #settings-tabs-row .stab.active i { color: var(--accent); }
+#page-settings.settings-v3 > .stab-panel { grid-area: content; min-width: 0; }
+#page-settings.settings-v3 > .stab-panel.active { display: block; }
+#page-settings.settings-v3 #user-storage-card {
+  grid-area: storage;
+  margin: 0 !important;
+  padding: 15px 18px !important;
+  border-radius: 14px;
+}
+#page-settings.settings-v3 #user-storage-card[hidden] { display: none !important; }
+#page-settings.settings-v3 #user-storage-card strong { font-size: 13px; }
+#page-settings.settings-v3 .stab-panel > .card,
+#page-settings.settings-v3 .stab-panel .grid > .card {
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--surface);
+  box-shadow: none;
+}
+#page-settings.settings-v3 .stab-panel .section-title {
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+}
+#page-settings.settings-v3 #stabp-general > .grid.grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+#page-settings.settings-v3 #stabp-general .form-group { margin-bottom: 15px; }
+#page-settings.settings-v3 #stabp-general .form-label {
+  font-size: 11.5px;
+  font-weight: 650;
+}
+#page-settings.settings-v3 #stabp-general .form-input,
+#page-settings.settings-v3 #stabp-general .form-textarea {
+  min-height: 42px;
+  background: var(--surface2);
+}
+#page-settings.settings-v3 #stabp-general #logo-dark-preview,
+#page-settings.settings-v3 #stabp-general #logo-light-preview { min-height: 104px !important; }
+#page-settings.settings-v3 #stabp-general #cloud-diag-card { grid-column: 1 / -1; }
+#page-settings.settings-v3 .stab-panel .btn { min-height: 38px; }
+
+@media (max-width: 1050px) {
+  #page-settings.settings-v3.active { grid-template-columns: 185px minmax(0, 1fr); column-gap: 16px; }
+  #page-settings.settings-v3 #stabp-general > .grid.grid-2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  #page-settings.settings-v3.active {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "header" "nav" "content" "storage";
+    row-gap: 12px;
+  }
+  #page-settings.settings-v3 #settings-tabs-row {
+    position: static;
+    flex-direction: row;
+    gap: 8px !important;
+    padding: 8px !important;
+    overflow-x: auto !important;
+    scrollbar-width: thin;
+  }
+  #page-settings.settings-v3 .settings-nav-group,
+  #page-settings.settings-v3 .settings-nav-group + .settings-nav-group {
+    flex-direction: row;
+    flex: none;
+    padding: 0;
+    border: 0;
+    gap: 4px;
+  }
+  #page-settings.settings-v3 .settings-nav-heading { display: none; }
+  #page-settings.settings-v3 #settings-tabs-row .stab {
+    min-height: 38px;
+    padding: 0 10px !important;
+    white-space: nowrap;
+  }
+  #page-settings.settings-v3 #stabp-general > .grid.grid-2 { grid-template-columns: 1fr; }
+  #page-settings.settings-v3 .stab-panel > .card,
+  #page-settings.settings-v3 .stab-panel .grid > .card { padding: 16px; }
+}

@@ -1731,6 +1731,8 @@ function switchSettingsTab(tab) {
   const btn = document.getElementById('stab-' + tab);
   const panel = document.getElementById('stabp-' + tab);
   if(btn) btn.classList.add('active');
+  const storageCard = document.getElementById('user-storage-card');
+  if(storageCard) storageCard.hidden = tab !== 'general';
   if(panel){
     panel.classList.add('active');
     panel.style.display = 'block'; // force display in case CSS specificity issue
@@ -2601,14 +2603,7 @@ function installSettingsRedesign(){
   var page = document.getElementById('page-settings');
   if(!page) return;
   page.classList.add('settings-v2');
-  var tabs = document.getElementById('settings-tabs-row');
-  if(tabs && !tabs.dataset.reordered){
-    ['general','appearance','tasks','finance','currencies','team-specs','whatsapp','features','danger'].forEach(function(id){
-      var btn = document.getElementById('stab-'+id);
-      if(btn) tabs.appendChild(btn);
-    });
-    tabs.dataset.reordered = '1';
-  }
+  // The navigation is grouped in the page markup; keep its section headings intact.
   var quick = document.getElementById('settings-v2-quick');
   if(quick) quick.remove();
   var appearance = document.getElementById('stabp-appearance');

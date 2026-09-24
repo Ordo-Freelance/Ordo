@@ -7,6 +7,7 @@ const html = fs.readFileSync(new URL('../HTML/index.html', import.meta.url), 'ut
 const css = fs.readFileSync(new URL('../CSS/user-redesign.css', import.meta.url), 'utf8');
 const app = fs.readFileSync(new URL('../JavaScript/app.js', import.meta.url), 'utf8');
 const appPatch = fs.readFileSync(new URL('../JavaScript/app_patch.js', import.meta.url), 'utf8');
+const settingsCss = fs.readFileSync(new URL('../CSS/settings-workspace.css', import.meta.url), 'utf8');
 
 test('admin coming-soon sections open an informational screen instead of package upsell', () => {
   assert.match(appPatch, /_showPageLock\(match\[1\], item, 'coming'\)/);
@@ -74,4 +75,16 @@ test('task form keeps secondary fields available without crowding a new task', (
     assert.ok(html.includes(`id="${id}"`), `missing ${id}`);
   }
   assert.match(app, /sortedTasks\.slice\(0,3\)/);
+});
+
+test('settings use grouped navigation without moving existing tab controls', () => {
+  assert.match(html, /CSS\/settings-workspace\.css\?v=/);
+  assert.match(html, /class="page settings-v3" id="page-settings"/);
+  for (const id of ['general', 'appearance', 'team-specs', 'tasks', 'finance', 'currencies', 'whatsapp', 'features', 'danger']) {
+    assert.ok(html.includes(`id="stab-${id}"`), `missing settings tab ${id}`);
+    assert.ok(html.includes(`id="stabp-${id}"`), `missing settings panel ${id}`);
+  }
+  assert.match(settingsCss, /grid-template-areas:/);
+  assert.match(app, /storageCard\.hidden = tab !== 'general'/);
+  assert.doesNotMatch(app, /tabs\.appendChild\(btn\)/);
 });

@@ -1200,6 +1200,7 @@ function getQRDataURL(text, size) {
 
 <script src="../Assets/vendor/quill/quill.min.js"></script>
 <link rel="stylesheet" href="../CSS/user-redesign.css?v=20260924-3">
+<link rel="stylesheet" href="../CSS/settings-workspace.css?v=1">
 <link rel="stylesheet" href="../CSS/portal_chat.css?v=1">
 
 </head>
@@ -3615,7 +3616,7 @@ try {
 </div>
 
 <!-- SETTINGS -->
-<div class="page" id="page-settings">
+<div class="page settings-v3" id="page-settings">
   <div class="page-header">
     <div>
       <div class="page-title"><span data-i18n="title_settings">إعدادات</span> <span data-i18n="title_settings2">النظام</span></div>
@@ -3632,18 +3633,24 @@ try {
 
   
 
-  <!-- Settings Tabs Row -->
-  <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px;overflow-x:auto" id="settings-tabs-row">
-    <button class="stab active" onclick="switchSettingsTab('general')"   id="stab-general"><i class="fa-solid fa-building"></i> عام</button>
-    <button class="stab"        onclick="switchSettingsTab('appearance')" id="stab-appearance"><i class="fa-solid fa-palette"></i> المظهر</button>
-    <button class="stab"        onclick="switchSettingsTab('team-specs')" id="stab-team-specs"><i class="fa-solid fa-tag"></i> الفريق والتخصصات</button>
-    <button class="stab"        onclick="switchSettingsTab('finance')"    id="stab-finance"><i class="fa-solid fa-coins"></i> المالية</button>
-    <button class="stab"        onclick="switchSettingsTab('currencies')" id="stab-currencies"><i class="fa-solid fa-wallet"></i> العملات والمحافظ</button>
-    <button class="stab"        onclick="switchSettingsTab('tasks')"      id="stab-tasks"><i class="fa-solid fa-clipboard-list"></i> المهام</button>
-    <button class="stab"        onclick="switchSettingsTab('whatsapp')"   id="stab-whatsapp"><i class="fa-solid fa-comments"></i> واتساب</button>
-    <button class="stab"        onclick="switchSettingsTab('features')"   id="stab-features"><i class="fa-solid fa-rocket"></i> التحديثات <span id="stab-features-badge" style="display:none;background:var(--accent4);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;margin-right:3px">جديد</span></button>
-    <button class="stab"        onclick="switchSettingsTab('danger')"     id="stab-danger"><i class="fa-solid fa-triangle-exclamation"></i> خطر</button>
-  </div>
+  <!-- Grouped settings navigation; original tab IDs and handlers stay intact. -->
+  <nav id="settings-tabs-row" aria-label="أقسام إعدادات النظام">
+    <div class="settings-nav-group"><span class="settings-nav-heading">الهوية والتخصيص</span>
+      <button class="stab active" onclick="switchSettingsTab('general')" id="stab-general"><i class="fa-solid fa-building"></i> عام</button>
+      <button class="stab" onclick="switchSettingsTab('appearance')" id="stab-appearance"><i class="fa-solid fa-palette"></i> المظهر</button>
+      <button class="stab" onclick="switchSettingsTab('team-specs')" id="stab-team-specs"><i class="fa-solid fa-tag"></i> الفريق والتخصصات</button>
+    </div>
+    <div class="settings-nav-group"><span class="settings-nav-heading">إدارة العمل</span>
+      <button class="stab" onclick="switchSettingsTab('tasks')" id="stab-tasks"><i class="fa-solid fa-clipboard-list"></i> المهام</button>
+      <button class="stab" onclick="switchSettingsTab('finance')" id="stab-finance"><i class="fa-solid fa-coins"></i> المالية</button>
+      <button class="stab" onclick="switchSettingsTab('currencies')" id="stab-currencies"><i class="fa-solid fa-wallet"></i> العملات والمحافظ</button>
+      <button class="stab" onclick="switchSettingsTab('whatsapp')" id="stab-whatsapp"><i class="fa-solid fa-comments"></i> واتساب</button>
+    </div>
+    <div class="settings-nav-group"><span class="settings-nav-heading">النظام</span>
+      <button class="stab" onclick="switchSettingsTab('features')" id="stab-features"><i class="fa-solid fa-rocket"></i> التحديثات <span id="stab-features-badge" style="display:none;background:var(--accent4);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;margin-right:3px">جديد</span></button>
+      <button class="stab" onclick="switchSettingsTab('danger')" id="stab-danger"><i class="fa-solid fa-triangle-exclamation"></i> خطر</button>
+    </div>
+  </nav>
 
 
   <div class="stab-panel" id="stabp-currencies">
