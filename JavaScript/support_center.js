@@ -3,6 +3,8 @@
   let rows = [];
   let activeTab = 'messages';
   let loading = false;
+  let selectedClientId = '';
+  let clientInbox = {};
   const notices = new Set(['admin_update','challenge']);
   const messages = new Set(['message','broadcast','info','success','warning','error','direct_message']);
 
@@ -41,6 +43,7 @@
     const el = document.getElementById('support-grid');
     if(!el) return;
     const clientRows = (window.S?.support_msgs || []).slice().reverse().map(item => ({...item,id:'local_'+item.id,title:item.subject || item.client_name || 'رسالة عميل',body:item.message || item.body || '',type:'client_message'}));
+    const clients=(window.S?.clients||[]).filter(c=>c?.id&&c?.name);
     const unread = rows.filter(row => !row.read && (messages.has(row.type)||row.type==='support_reply')).length + clientRows.filter(row => !row.read).length;
     const badge = document.getElementById('support-badge');
     if(badge){ badge.textContent = unread; badge.style.display = unread ? '' : 'none'; }
@@ -51,7 +54,7 @@
       ['messages','الرسائل', messageThreads.length],
       ['updates','التحديثات والإشعارات', rows.filter(row => inTab(row,'updates')).length],
       ['requests','طلبات المساعدة', requestThreads.length],
-      ['clients','رسائل العملاء', clientRows.length]
+      ['clients','رسائل العملاء', clients.length]
     ];
     const visible = activeTab === 'clients' ? clientRows.map(row=>({id:row.id,items:[row]}))
       : activeTab === 'updates' ? rows.filter(row=>inTab(row,'updates')).map(row=>({id:row.id,items:[row]}))
@@ -60,18 +63,27 @@
     el.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">'+
       tabs.map(([id,label,count]) => '<button type="button" data-support-tab="'+id+'" class="btn '+(activeTab===id?'btn-primary':'btn-ghost')+'">'+label+' ('+count+')</button>').join('')+
       '<button type="button" data-support-compose class="btn btn-ghost" style="margin-inline-start:auto">✉ طلب مساعدة أو شكوى</button></div>'+
-      (visible.length ? '<div class="grid grid-2" style="gap:12px">'+visible.map(thread => {
+      (activeTab==='clients' ? '<div class="support-chat-layout"><div class="support-chat-list">'+clients.map(c=>'<button type="button" class="support-chat-contact '+(String(c.id)===selectedClientId?'active':'')+'" data-support-client="'+esc(c.id)+'">'+avatarHtml(clientAvatar(c),c.name,false)+'<span><strong>'+esc(c.name)+'</strong><small>'+esc(clientInbox[c.id]?.body|| (clientInbox[c.id]?.attachment?'مرفق جديد':'محادثة بوابة العميل'))+'</small></span></button>').join('')+'</div><div id="support-client-chat" class="support-chat-main">'+(selectedClientId?'':'<div class="card" style="padding:50px;text-align:center">اختر عميلاً لفتح المحادثة</div>')+'</div></div>' :
+      (visible.length ? '<div class="support-thread-list">'+visible.map(thread => {
         const row = thread.items.at(-1);
         const first = thread.items[0];
         const title = row.title || (row.type === 'support_reply' ? 'رد من الإدارة' : 'رسالة من الإدارة');
         const date = row.created_at ? new Date(row.created_at).toLocaleString('ar-EG') : '';
         const canDelete = activeTab !== 'clients';
-        return '<div class="card" style="position:relative;border-color:'+(thread.items.some(item=>!item.read)?'var(--accent)':'var(--border)')+'"><button type="button" data-support-id="'+esc(thread.id)+'" style="display:block;width:100%;border:0;background:transparent;text-align:right;cursor:pointer;color:var(--text);font-family:inherit;padding:0">'+
+        return '<div class="card support-thread-card" style="position:relative;border-color:'+(thread.items.some(item=>!item.read)?'var(--accent)':'var(--border)')+'"><button type="button" data-support-id="'+esc(thread.id)+'" style="display:flex;gap:12px;align-items:center;width:100%;border:0;background:transparent;text-align:right;cursor:pointer;color:var(--text);font-family:inherit;padding:0">'+avatarHtml(first.type==='support_request'?(window.S?.settings?._avatarUrl||''):'',first.type==='support_request'?'أنت':'الإدارة',first.type!=='support_request')+'<span style="min-width:0;flex:1">'+
           '<div style="display:flex;justify-content:space-between;gap:10px"><strong>'+esc(first.title||title)+'</strong>'+(thread.items.some(item=>!item.read)?'<span style="color:var(--accent)">● جديد</span>':'')+'</div>'+
           '<div style="color:var(--text2);font-size:12px;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(cleanBody(row.body))+'</div>'+
-          '<div style="color:var(--text3);font-size:11px;margin-top:10px">'+esc(date)+(thread.items.length>1?' · '+thread.items.length+' رسائل':'')+'</div></button>'+
+          '<div style="color:var(--text3);font-size:11px;margin-top:10px">'+esc(date)+(thread.items.length>1?' · '+thread.items.length+' رسائل':'')+'</div></span></button>'+
           (canDelete?'<button type="button" data-support-delete="'+esc(thread.id)+'" aria-label="حذف سجل المحادثة" title="حذف السجل من حسابي" style="position:absolute;left:14px;bottom:13px;background:transparent;border:0;color:var(--accent4);cursor:pointer"><i class="fa-solid fa-trash"></i></button>':'')+'</div>';
-      }).join('')+'</div>' : '<div class="card" style="text-align:center;padding:45px;color:var(--text3)">'+(loading?'جاري تحميل الرسائل...':'لا توجد عناصر في هذا القسم بعد')+'</div>');
+      }).join('')+'</div>' : '<div class="card" style="text-align:center;padding:45px;color:var(--text3)">'+(loading?'جاري تحميل الرسائل...':'لا توجد عناصر في هذا القسم بعد')+'</div>'));
+    if(activeTab==='clients'&&selectedClientId) mountClientChat();
+  }
+  function avatarHtml(src,name,system){return '<span class="support-avatar '+(system?'system':'')+'">'+(src?'<img src="'+esc(src)+'" alt="'+esc(name)+'">':system?'⚡':esc((name||'؟').slice(0,1)))+'</span>';}
+  function clientAvatar(client){return client?.avatar||client?.avatar_url||client?.photo||client?.photo_url||client?.profile_image||client?.image||'';}
+  function mountClientChat(){const client=(window.S?.clients||[]).find(c=>String(c.id)===selectedClientId);if(!client)return;window.OrdoPortalChat?.mount(document.getElementById('support-client-chat'),{public:false,clientId:String(client.id),peerName:client.name,peerAvatar:clientAvatar(client),selfName:'أنت',selfAvatar:window.S?.settings?._avatarUrl||''});}
+  async function loadClientInbox(){
+    if(typeof window.ORDO_API_REQUEST!=='function')return;
+    try{const result=await ORDO_API_REQUEST('portalChat.inbox');clientInbox=(result.data||result).items||{};if(activeTab==='clients')document.querySelectorAll('[data-support-client]').forEach(button=>{const item=clientInbox[button.dataset.supportClient];button.querySelector('small').textContent=item?.body||(item?.attachment?'مرفق جديد':'محادثة بوابة العميل');});}catch(e){console.warn('Client chat inbox:',e.message);}
   }
   async function load(tab, openId){
     if(tab) activeTab = tab;
@@ -85,6 +97,7 @@
       rows = (data || []).filter(visible);
     } catch(error) { console.warn('support center load:',error.message); }
     loading = false; render();
+    loadClientInbox();
     if(openId) openDetail(openId);
   }
   function modal(content){
@@ -140,7 +153,7 @@
     }
     render();
     const overlay=modal('<div class="modal-header"><div class="modal-title">'+esc(first.title || 'محادثة')+'</div><button type="button" class="close-btn" data-support-close>✕</button></div>'+
-      '<div style="display:grid;gap:10px;max-height:55vh;overflow:auto;margin-bottom:15px">'+thread.items.map(row=>'<div style="background:var(--surface2);border-radius:12px;padding:13px;border-inline-start:3px solid '+(row.type==='support_request'?'var(--accent)':'var(--accent3)')+'"><strong style="font-size:11px">'+(row.type==='support_request'?'أنت':'الإدارة')+'</strong><div style="font-size:11px;color:var(--text3)">'+esc(new Date(row.created_at).toLocaleString('ar-EG'))+'</div><div style="line-height:1.8;margin-top:7px;overflow-wrap:anywhere">'+bodyWithLinks(row.body)+'</div></div>').join('')+'</div>'+
+      '<div class="support-thread-dialog">'+thread.items.map(row=>'<div class="support-thread-line '+(row.type==='support_request'?'mine':'theirs')+'">'+avatarHtml(row.type==='support_request'?(window.S?.settings?._avatarUrl||''):'',row.type==='support_request'?'أنت':'الإدارة',row.type!=='support_request')+'<div class="support-thread-bubble"><strong style="font-size:11px">'+(row.type==='support_request'?'أنت':'الإدارة')+'</strong><div style="font-size:11px;opacity:.7">'+esc(new Date(row.created_at).toLocaleString('ar-EG'))+'</div><div style="line-height:1.8;margin-top:7px;overflow-wrap:anywhere">'+bodyWithLinks(row.body)+'</div></div></div>').join('')+'</div>'+
       (activeTab==='requests'||first.type==='message'||first.type==='direct_message' ? '<div class="form-group"><textarea class="form-input" data-support-reply-text rows="3" maxlength="5000" placeholder="اكتب ردك هنا..."></textarea></div><button type="button" class="btn btn-primary" data-support-reply>إرسال الرد</button>' : ''));
     overlay.querySelector('[data-support-reply]')?.addEventListener('click',async event=>{
       const body=overlay.querySelector('[data-support-reply-text]').value.trim();
@@ -181,6 +194,8 @@
   document.getElementById('support-grid')?.addEventListener('click', event => {
     const tab = event.target.closest('[data-support-tab]');
     if(tab){ activeTab = tab.dataset.supportTab; render(); return; }
+    const client=event.target.closest('[data-support-client]');
+    if(client){selectedClientId=client.dataset.supportClient;render();return;}
     const deleteButton=event.target.closest('[data-support-delete]');
     if(deleteButton){deleteThread(deleteButton.dataset.supportDelete);return;}
     if(event.target.closest('[data-support-compose]')){ compose(); return; }
@@ -201,4 +216,5 @@
     return result;
   };
   if(document.getElementById('page-support')?.classList.contains('active')) load();
+  if(typeof setInterval==='function')setInterval(()=>{if(!document.hidden&&document.getElementById('page-support')?.classList.contains('active'))loadClientInbox();},15000);
 })();

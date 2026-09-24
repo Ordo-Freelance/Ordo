@@ -173,12 +173,13 @@ function unwrapStudio(value) {
 
 async function storageInfo(store, userId) {
   const filter = [{op:'eq',column:'user_id',value:userId}];
-  const [studio, serials, settings, requests, account] = await Promise.all([
+  const [studio, serials, settings, requests, account, chatBytes] = await Promise.all([
     store.query('studio_data',{op:'select',columns:'user_id,data',filters:filter,single:true}),
     store.query('serial_keys',{op:'select',columns:'user_id,plan_id,status,expires_at,activated_at',filters:filter}),
     store.query('platform_settings',{op:'select',columns:'id,config',filters:[{op:'eq',column:'id',value:1}],single:true}),
     store.query('subscription_requests',{op:'select',columns:'user_id,receipt_url,data',filters:filter}),
-    store.userById(userId)
+    store.userById(userId),
+    store.chatMediaBytes ? store.chatMediaBytes(userId) : store.query('public_client_portal_events',{op:'select',columns:'data',filters:filter,limit:500}).then(rows=>(rows||[]).reduce((sum,row)=>sum+Number((parseMaybe(row.data)||{}).event_data?.attachment?.bytes||0),0))
   ]);
   const active = (serials || []).filter(item => item.plan_id && ['active','assigned'].includes(item.status) && (!item.expires_at || new Date(item.expires_at) > new Date())).sort((a,b) => String(b.activated_at||'').localeCompare(String(a.activated_at||'')))[0];
   // Only serial_keys is authoritative here: studio_data is writable by the user.
@@ -188,9 +189,46 @@ async function storageInfo(store, userId) {
   const override = config.storage_overrides?.[userId] || {};
   const features = parseMaybe(plan?.features) || {};
   const enabled = override.uploads_enabled ?? features.image_uploads ?? true;
-  const otherBytes = imageBytes(account?.avatar_url) + (requests || []).reduce((sum,row) => sum + imageBytes(row.receipt_url) + imageBytes(row.data), 0);
+  const otherBytes = imageBytes(account?.avatar_url) + (requests || []).reduce((sum,row) => sum + imageBytes(row.receipt_url) + imageBytes(row.data), 0) + chatBytes;
   const studioBytes = imageBytes(studio?.data);
   return {user_id:userId,used_bytes:studioBytes + otherBytes,studio_bytes:studioBytes,other_bytes:otherBytes,limit_bytes:storageLimitBytes(features,override),uploads_enabled:!!enabled,plan_id:planId || null};
+}
+
+async function portalChatAccess(store, userId) {
+  const [studio, serials, settings] = await Promise.all([
+    store.query('studio_data',{op:'select',columns:'data',filters:[{op:'eq',column:'user_id',value:userId}],single:true}),
+    store.query('serial_keys',{op:'select',columns:'plan_id,status,expires_at,activated_at',filters:[{op:'eq',column:'user_id',value:userId}]}),
+    store.query('platform_settings',{op:'select',columns:'config',filters:[{op:'eq',column:'id',value:1}],single:true})
+  ]);
+  const active=(serials||[]).filter(s=>s.plan_id&&['active','assigned'].includes(s.status)&&(!s.expires_at||new Date(s.expires_at)>new Date())).sort((a,b)=>String(b.activated_at||'').localeCompare(String(a.activated_at||'')))[0];
+  const plan=active ? await store.query('subscription_plans',{op:'select',columns:'features',filters:[{op:'eq',column:'id',value:active.plan_id}],single:true}) : null;
+  const features=parseMaybe(plan?.features)||{};
+  const config=parseMaybe(settings?.config)||{};
+  const data=unwrapStudio(studio?.data);
+  // Chat permissions are read only from admin-owned platform settings; studio_data is user writable.
+  const states={...config.user_features,...(config.portal_chat_overrides?.[userId]||{})};
+  const allowed=key=>features[key]!==false&&states[key]!=='disabled'&&states[key]!=='coming';
+  return {enabled:allowed('portal_chat')&&allowed('client_portal'),images:allowed('portal_chat_images')&&features.image_uploads!==false,voice:allowed('portal_chat_voice'),data};
+}
+
+function portalChatAttachment(input, access) {
+  if(!input) return null;
+  const kind=String(input.kind||'');
+  const mime=String(input.mime||'');
+  const allowed=kind==='image'&&access.images&&['image/jpeg','image/png','image/webp'].includes(mime) || kind==='voice'&&access.voice&&['audio/webm','audio/ogg','audio/mp4','audio/mpeg'].includes(mime);
+  if(!allowed) throw Object.assign(new Error('نوع المرفق غير مسموح في باقتك'),{code:'attachment_not_allowed',status:403});
+  const content=String(input.data||'');
+  const prefix=`data:${mime};base64,`;
+  const encoded=content.startsWith(prefix)?content.slice(prefix.length):'';
+  const max=kind==='image'?700000:1500000;
+  if(!encoded||encoded.length>Math.ceil(max*4/3)||!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw Object.assign(new Error('حجم أو صيغة الملف غير صالحة'),{code:'invalid_attachment',status:413});
+  return {kind,mime,data:content,name:String(input.name||'').slice(0,100),bytes:Math.floor(encoded.length*3/4)};
+}
+
+function portalChatPublicRow(row) {
+  const info=parseMaybe(row.data)||{};
+  const msg=info.event_data||{};
+  return {id:row.id,client_id:info.client_id,sender:msg.sender==='client'?'client':'owner',body:msg.body||'',attachment:msg.attachment?{kind:msg.attachment.kind,mime:msg.attachment.mime,name:msg.attachment.name,bytes:msg.attachment.bytes}:null,created_at:row.created_at};
 }
 
 function publicView(data, type, token) {
@@ -456,6 +494,10 @@ function enforceAccess(table, input, user) {
 }
 
 class LocalStore {
+  async chatMediaBytes(userId) {
+    const db=await readLocalDb();
+    return (db.public_client_portal_events||[]).filter(row=>String(row.user_id)===String(userId)).reduce((sum,row)=>sum+Number((parseMaybe(row.data)||{}).event_data?.attachment?.bytes||0),0);
+  }
   async publicStudioCandidates({ token, username, uid }) {
     const db = await readLocalDb();
     return (db.studio_data || []).filter(row =>
@@ -739,6 +781,10 @@ async function makePostgresStore() {
   }
   await postgresSchemaReady;
   return {
+    async chatMediaBytes(userId) {
+      const rows=await query("SELECT COALESCE(SUM(CASE WHEN (data::jsonb #>> '{event_data,attachment,bytes}') ~ '^[0-9]+$' THEN (data::jsonb #>> '{event_data,attachment,bytes}')::bigint ELSE 0 END),0) AS bytes FROM public_client_portal_events WHERE user_id=$1",[userId]);
+      return Number(rows[0]?.bytes||0);
+    },
     async publicStudioCandidates({ token, username, uid }) {
       const clauses = [];
       const params = [];
@@ -1140,6 +1186,53 @@ export default async function handler(req, res) {
       return ok(res, snapshot);
     }
 
+    if (['public.portalChat.list','public.portalChat.send','public.portalChat.media','portalChat.list','portalChat.send','portalChat.media','portalChat.inbox'].includes(postAction)) {
+      const isPublic=postAction.startsWith('public.');
+      const snapshot=isPublic ? await publicSnapshot(store,{type:'client_portal',token:input.token}) : null;
+      const account=isPublic ? null : await currentUser(req,store);
+      const uid=isPublic ? snapshot?.uid : account?.user?.id;
+      if(!uid) return fail(res,isPublic?'رابط البوابة غير صالح':'يلزم تسجيل الدخول',isPublic?404:401,'chat_auth_required');
+      const access=await portalChatAccess(store,uid);
+      if(!access.enabled) return fail(res,'مراسلة بوابة العميل غير متاحة لهذه الباقة أو الحساب',403,'chat_disabled');
+      const verb=postAction.split('.').at(-1);
+      if(verb==='inbox'){
+        if(isPublic)return fail(res,'غير مسموح',403,'forbidden');
+        const rows=await store.query('public_client_portal_events',{op:'select',columns:'id,data,created_at',filters:[{op:'eq',column:'user_id',value:uid}],order:{column:'created_at',ascending:false},limit:500});
+        const items={};
+        for(const row of rows||[]){const data=parseMaybe(row.data)||{};const id=String(data.client_id||'');if(data.event_type==='portal_chat'&&id&&!items[id])items[id]=portalChatPublicRow(row);}
+        return ok(res,{items});
+      }
+      const clientId=String(isPublic?snapshot.token.client_id:input.client_id||'');
+      if(!clientId) return fail(res,'اختر العميل',400,'client_required');
+      if(!isPublic && !(access.data.clients||[]).some(client=>String(client.id)===clientId)) return fail(res,'العميل غير موجود',403,'client_not_found');
+      if(verb==='send') {
+        const body=String(input.body||'').trim().slice(0,5000);
+        let attachment;
+        try { attachment=portalChatAttachment(input.attachment,access); }
+        catch(error){return fail(res,error.message,error.status||400,error.code||'invalid_attachment');}
+        if(!body&&!attachment) return fail(res,'اكتب رسالة أو أرفق ملفاً',400,'empty_message');
+        const recentRows=await store.query('public_client_portal_events',{op:'select',columns:'data,created_at',filters:[{op:'eq',column:'user_id',value:uid}],order:{column:'created_at',ascending:false},limit:500});
+        const cutoff=Date.now()-60000;
+        const recentCount=(recentRows||[]).filter(item=>{const row=parseMaybe(item.data)||{};return row.event_type==='portal_chat'&&String(row.client_id)===clientId&&row.event_data?.sender===(isPublic?'client':'owner')&&new Date(item.created_at).getTime()>cutoff;}).length;
+        if(recentCount>=15)return fail(res,'انتظر قليلاً قبل إرسال رسائل إضافية',429,'chat_rate_limited');
+        if(attachment){
+          const info=await storageInfo(store,uid);
+          if(!info.uploads_enabled||info.used_bytes+attachment.bytes>info.limit_bytes)return fail(res,'مساحة التخزين غير كافية للمرفق',413,'storage_quota_exceeded');
+        }
+        const row=await store.query('public_client_portal_events',{op:'insert',payload:{id:uuid(),user_id:uid,data:{client_id:clientId,event_type:'portal_chat',event_data:{sender:isPublic?'client':'owner',body,attachment}},created_at:now()},single:true});
+        return ok(res,{message:portalChatPublicRow(row)});
+      }
+      const rows=await store.query('public_client_portal_events',{op:'select',columns:'id,data,created_at',filters:[{op:'eq',column:'user_id',value:uid}],order:{column:'created_at',ascending:false},limit:500});
+      const filtered=(rows||[]).filter(row=>{const data=parseMaybe(row.data)||{};return data.event_type==='portal_chat'&&String(data.client_id)===clientId;});
+      if(verb==='media') {
+        const row=filtered.find(item=>String(item.id)===String(input.message_id));
+        const attachment=(parseMaybe(row?.data)||{}).event_data?.attachment;
+        if(!attachment) return fail(res,'المرفق غير موجود',404,'media_not_found');
+        return ok(res,{data:attachment.data,mime:attachment.mime,name:attachment.name});
+      }
+      return ok(res,{messages:filtered.slice(0,100).reverse().map(portalChatPublicRow),features:{images:access.images,voice:access.voice}});
+    }
+
     if (postAction === 'public.portalEvent') {
       const snapshot = await publicSnapshot(store, {type:'client_portal', token:input.token});
       if (!snapshot) return fail(res, 'رابط البوابة غير صالح', 404, 'public_not_found');
@@ -1272,7 +1365,7 @@ export default async function handler(req, res) {
         const publicRow = row => {
           if(!row) return row;
           const config = parseMaybe(row.config) || {};
-          const {storage_overrides, ...publicConfig} = config;
+          const {storage_overrides, portal_chat_overrides, ...publicConfig} = config;
           return {...row,config:publicConfig};
         };
         return ok(res,Array.isArray(data) ? data.map(publicRow) : publicRow(data));
@@ -1291,4 +1384,4 @@ export default async function handler(req, res) {
   }
 }
 
-export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo };
+export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo, portalChatAccess, portalChatAttachment, portalChatPublicRow };

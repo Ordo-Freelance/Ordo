@@ -645,6 +645,7 @@ function renderPage(){
       <button class="tab" onclick="switchTab('invoices')" id="tab-invoices"><i class="fa-solid fa-file-invoice"></i>الفواتير (${_clientInvoices.length})</button>
       <button class="tab" onclick="switchTab('accounts')" id="tab-accounts"><i class="fa-solid fa-coins"></i>حسابي</button>
       <button class="tab" onclick="switchTab('reviews')" id="tab-reviews"><i class="fa-solid fa-star"></i>تقييماتي</button>
+      <button class="tab" onclick="switchTab('chat')" id="tab-chat"><i class="fa-solid fa-comments"></i>الرسائل</button>
     </div>
 
     <!-- TASKS PANEL (الطلبات العادية) -->
@@ -657,6 +658,7 @@ function renderPage(){
     <div class="tab-panel" id="tp-accounts">${renderAccounts()}</div>
     <!-- REVIEWS PANEL -->
     <div class="tab-panel" id="tp-reviews">${renderMyReviews()}</div>
+    <div class="tab-panel" id="tp-chat"><div id="client-portal-chat"></div></div>
 
   ${renderStoreSection()}
   ${_renderFreelancerReviews()}
@@ -2011,6 +2013,11 @@ function switchTab(id){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('on'));
   document.getElementById('tab-'+id)?.classList.add('on');
   document.getElementById('tp-'+id)?.classList.add('on');
+  if(id==='chat'){
+    const peerLogo=_settings?.logoLight||_settings?.logo||_settings?.logoDark||'';
+    const profile=(_ud?.clients||[]).find(c=>String(c.id)===String(_clientId))||{};
+    OrdoPortalChat.mount(document.getElementById('client-portal-chat'),{public:true,token:pPublicToken,peerName:_settings?.name||'مقدم الخدمة',peerAvatar:peerLogo,peerSystem:true,selfName:_clientName||'العميل',selfAvatar:profile.avatar||profile.avatar_url||profile.photo||profile.photo_url||profile.profile_image||''});
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -2580,6 +2587,8 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 <link rel="stylesheet" href="../CSS/cairo_global_fix.css?v=1">
+<link rel="stylesheet" href="../CSS/portal_chat.css?v=1">
+<script src="../JavaScript/portal_chat.js?v=1"></script>
 <script src="../JavaScript/text_repair.js?v=1"></script>
 </body>
 </html>
