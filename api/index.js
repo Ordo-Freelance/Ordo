@@ -228,7 +228,7 @@ function portalChatAttachment(input, access) {
 function portalChatPublicRow(row) {
   const info=parseMaybe(row.data)||{};
   const msg=info.event_data||{};
-  return {id:row.id,client_id:info.client_id,sender:msg.sender==='client'?'client':'owner',body:msg.body||'',attachment:msg.attachment?{kind:msg.attachment.kind,mime:msg.attachment.mime,name:msg.attachment.name,bytes:msg.attachment.bytes}:null,created_at:row.created_at};
+  return {id:row.id,client_id:info.client_id,sender:msg.sender==='client'?'client':'owner',body:msg.deleted?'':msg.body||'',attachment:msg.deleted?null:msg.attachment?{kind:msg.attachment.kind,mime:msg.attachment.mime,name:msg.attachment.name,bytes:msg.attachment.bytes}:null,deleted:!!msg.deleted,created_at:row.created_at};
 }
 
 const FINANCE_FEATURE_KEYS=['finance_dashboard','finance_accounts','finance_account_manage','finance_currency_wallets','loans','finance_reports','finance_transactions','fin_income','fin_expense'];
@@ -1207,7 +1207,7 @@ export default async function handler(req, res) {
       return ok(res,{features:await financeFeatureAccess(store,user)});
     }
 
-    if (['public.portalChat.list','public.portalChat.send','public.portalChat.media','portalChat.list','portalChat.send','portalChat.media','portalChat.inbox'].includes(postAction)) {
+    if (['public.portalChat.list','public.portalChat.send','public.portalChat.media','public.portalChat.delete','portalChat.list','portalChat.send','portalChat.media','portalChat.delete','portalChat.inbox'].includes(postAction)) {
       const isPublic=postAction.startsWith('public.');
       const snapshot=isPublic ? await publicSnapshot(store,{type:'client_portal',token:input.token}) : null;
       const account=isPublic ? null : await currentUser(req,store);
@@ -1220,7 +1220,7 @@ export default async function handler(req, res) {
         if(isPublic)return fail(res,'غير مسموح',403,'forbidden');
         const rows=await store.query('public_client_portal_events',{op:'select',columns:'id,data,created_at',filters:[{op:'eq',column:'user_id',value:uid}],order:{column:'created_at',ascending:false},limit:500});
         const items={};
-        for(const row of rows||[]){const data=parseMaybe(row.data)||{};const id=String(data.client_id||'');if(data.event_type==='portal_chat'&&id&&!items[id])items[id]=portalChatPublicRow(row);}
+        for(const row of rows||[]){const data=parseMaybe(row.data)||{};const id=String(data.client_id||'');if(data.event_type==='portal_chat'&&!data.event_data?.deleted&&id&&!items[id])items[id]=portalChatPublicRow(row);}
         return ok(res,{items});
       }
       const clientId=String(isPublic?snapshot.token.client_id:input.client_id||'');
@@ -1245,9 +1245,22 @@ export default async function handler(req, res) {
       }
       const rows=await store.query('public_client_portal_events',{op:'select',columns:'id,data,created_at',filters:[{op:'eq',column:'user_id',value:uid}],order:{column:'created_at',ascending:false},limit:500});
       const filtered=(rows||[]).filter(row=>{const data=parseMaybe(row.data)||{};return data.event_type==='portal_chat'&&String(data.client_id)===clientId;});
+      if(verb==='delete') {
+        const row=filtered.find(item=>String(item.id)===String(input.message_id));
+        if(!row)return fail(res,'الرسالة غير موجودة',404,'message_not_found');
+        const data=parseMaybe(row.data)||{};
+        const message=data.event_data||{};
+        if(message.sender!==(isPublic?'client':'owner'))return fail(res,'يمكنك حذف رسائلك فقط',403,'forbidden');
+        if(message.deleted)return ok(res,{deleted:true});
+        const updated={...data,event_data:{sender:message.sender,body:'',attachment:null,deleted:true,deleted_at:now()}};
+        const deleted=await store.query('public_client_portal_events',{op:'update',payload:{data:updated},filters:[{op:'eq',column:'id',value:row.id},{op:'eq',column:'user_id',value:uid}],single:true});
+        if(!deleted)return fail(res,'تعذر حذف الرسالة',404,'message_not_found');
+        return ok(res,{deleted:true});
+      }
       if(verb==='media') {
         const row=filtered.find(item=>String(item.id)===String(input.message_id));
-        const attachment=(parseMaybe(row?.data)||{}).event_data?.attachment;
+        const mediaMessage=(parseMaybe(row?.data)||{}).event_data||{};
+        const attachment=mediaMessage.deleted?null:mediaMessage.attachment;
         if(!attachment) return fail(res,'المرفق غير موجود',404,'media_not_found');
         return ok(res,{data:attachment.data,mime:attachment.mime,name:attachment.name});
       }

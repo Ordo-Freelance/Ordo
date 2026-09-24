@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {portalChatAccess,portalChatAttachment,portalChatPublicRow} from '../api/index.js';
+import fs from 'node:fs';
+
+const chatSource=fs.readFileSync(new URL('../JavaScript/portal_chat.js',import.meta.url),'utf8');
+const apiSource=fs.readFileSync(new URL('../api/index.js',import.meta.url),'utf8');
 
 test('portal chat obeys plan and admin-owned user overrides',async()=>{
   const store={async query(table){
@@ -24,4 +28,22 @@ test('chat attachment accepts only allowed compact media and never includes data
   const row=portalChatPublicRow({id:'m1',created_at:'2026-01-01',data:{client_id:'one',event_data:{sender:'client',body:'Hi',attachment}}});
   assert.equal(row.attachment.kind,'image');
   assert.equal(row.attachment.data,undefined);
+});
+
+test('deleted chat messages hide content and attachments from both participants',()=>{
+  const row=portalChatPublicRow({id:'m2',data:{client_id:'one',event_data:{sender:'owner',body:'private',deleted:true,attachment:{kind:'image',data:'secret'}}}});
+  assert.equal(row.body,'');
+  assert.equal(row.attachment,null);
+  assert.equal(row.deleted,true);
+  assert.match(apiSource,/message\.sender!==\(isPublic\?'client':'owner'\)/);
+  assert.match(apiSource,/mediaMessage\.deleted\?null:mediaMessage\.attachment/);
+});
+
+test('chat keeps images and audio in the thread and previews voice before sending',()=>{
+  assert.match(chatSource,/data-pc-inline/);
+  assert.match(chatSource,/node\.appendChild\(img\)/);
+  assert.match(chatSource,/node\.appendChild\(audio\)/);
+  assert.match(chatSource,/pc-wave/);
+  assert.match(chatSource,/data-pc-send-voice/);
+  assert.match(chatSource,/api\(s,'delete',\{message_id:id\}\)/);
 });

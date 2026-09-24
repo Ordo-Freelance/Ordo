@@ -54,3 +54,9 @@ test('incoming admin items open one popup per user and are not repeated after re
   assert.equal(popups,1);
   assert.match(values.get('_admin_popup_seen_owner-1'),/challenge-1/);
 });
+
+test('user support inbox offers a side-by-side conversation pane',()=>{
+  assert.match(source,/support-conversation-layout/);
+  assert.match(source,/support-conversation-pane/);
+  assert.match(source,/data-support-reply/);
+});

@@ -4,6 +4,7 @@
   let activeTab = 'messages';
   let loading = false;
   let selectedClientId = '';
+  let selectedThreadId = '';
   let clientInbox = {};
   const notices = new Set(['admin_update','challenge']);
   const messages = new Set(['message','broadcast','info','success','warning','error','direct_message']);
@@ -64,7 +65,7 @@
       tabs.map(([id,label,count]) => '<button type="button" data-support-tab="'+id+'" class="btn '+(activeTab===id?'btn-primary':'btn-ghost')+'">'+label+' ('+count+')</button>').join('')+
       '<button type="button" data-support-compose class="btn btn-ghost" style="margin-inline-start:auto">✉ طلب مساعدة أو شكوى</button></div>'+
       (activeTab==='clients' ? '<div class="support-chat-layout"><div class="support-chat-list">'+clients.map(c=>'<button type="button" class="support-chat-contact '+(String(c.id)===selectedClientId?'active':'')+'" data-support-client="'+esc(c.id)+'">'+avatarHtml(clientAvatar(c),c.name,false)+'<span><strong>'+esc(c.name)+'</strong><small>'+esc(clientInbox[c.id]?.body|| (clientInbox[c.id]?.attachment?'مرفق جديد':'محادثة بوابة العميل'))+'</small></span></button>').join('')+'</div><div id="support-client-chat" class="support-chat-main">'+(selectedClientId?'':'<div class="card" style="padding:50px;text-align:center">اختر عميلاً لفتح المحادثة</div>')+'</div></div>' :
-      (visible.length ? '<div class="support-thread-list">'+visible.map(thread => {
+      '<div class="support-conversation-layout"><div class="support-conversation-list">'+(visible.length ? '<div class="support-thread-list">'+visible.map(thread => {
         const row = thread.items.at(-1);
         const first = thread.items[0];
         const title = row.title || (row.type === 'support_reply' ? 'رد من الإدارة' : 'رسالة من الإدارة');
@@ -75,7 +76,7 @@
           '<div style="color:var(--text2);font-size:12px;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(cleanBody(row.body))+'</div>'+
           '<div style="color:var(--text3);font-size:11px;margin-top:10px">'+esc(date)+(thread.items.length>1?' · '+thread.items.length+' رسائل':'')+'</div></span></button>'+
           (canDelete?'<button type="button" data-support-delete="'+esc(thread.id)+'" aria-label="حذف سجل المحادثة" title="حذف السجل من حسابي" style="position:absolute;left:14px;bottom:13px;background:transparent;border:0;color:var(--accent4);cursor:pointer"><i class="fa-solid fa-trash"></i></button>':'')+'</div>';
-      }).join('')+'</div>' : '<div class="card" style="text-align:center;padding:45px;color:var(--text3)">'+(loading?'جاري تحميل الرسائل...':'لا توجد عناصر في هذا القسم بعد')+'</div>'));
+      }).join('')+'</div>' : '<div class="card" style="text-align:center;padding:45px;color:var(--text3)">'+(loading?'جاري تحميل الرسائل...':'لا توجد عناصر في هذا القسم بعد')+'</div>')+'</div><section id="support-conversation-pane" class="support-conversation-pane"><div class="support-conversation-empty"><i class="fa-solid fa-comments"></i><b>اختر محادثة</b><span>هتظهر الرسائل والردود هنا في مكان واحد</span></div></section></div>');
     if(activeTab==='clients'&&selectedClientId) mountClientChat();
   }
   function avatarHtml(src,name,system){return '<span class="support-avatar '+(system?'system':'')+'">'+(src?'<img src="'+esc(src)+'" alt="'+esc(name)+'">':system?'⚡':esc((name||'؟').slice(0,1)))+'</span>';}
@@ -88,7 +89,8 @@
   async function load(tab, openId){
     if(tab) activeTab = tab;
     if(typeof _supaUserId === 'undefined' || !_supaUserId || typeof supa === 'undefined'){ render(); return; }
-    loading = true; render();
+    const previous = JSON.stringify(rows);
+    if(!rows.length){loading = true; render();}
     try {
       const {data,error} = await supa.from('user_notifications')
         .select('id,user_id,title,body,type,read,data,created_at')
@@ -96,9 +98,11 @@
       if(error) throw error;
       rows = (data || []).filter(visible);
     } catch(error) { console.warn('support center load:',error.message); }
-    loading = false; render();
+    loading = false;
+    if(JSON.stringify(rows)!==previous || tab || openId)render();
     loadClientInbox();
-    if(openId) openDetail(openId);
+    if(openId) await openDetail(openId);
+    else if(selectedThreadId && activeTab !== 'clients' && JSON.stringify(rows)!==previous) await openDetail(selectedThreadId);
   }
   function modal(content){
     document.getElementById('support-center-modal')?.remove();
@@ -142,6 +146,7 @@
     }
     const thread=conversations(rows).find(item=>item.id===String(id) || item.items.some(row=>String(row.id)===String(id)));
     if(!thread) return;
+    selectedThreadId=thread.id;
     const first=thread.items[0];
     if(first.type==='support_request'||first.type==='support_reply') activeTab='requests';
     else if(messages.has(first.type)) activeTab='messages';
@@ -152,16 +157,18 @@
       else if(typeof _markSingleNotifRead === 'function') _markSingleNotifRead('srv_'+row.id);
     }
     render();
-    const overlay=modal('<div class="modal-header"><div class="modal-title">'+esc(first.title || 'محادثة')+'</div><button type="button" class="close-btn" data-support-close>✕</button></div>'+
+    const overlay=document.getElementById('support-conversation-pane');
+    if(!overlay)return;
+    overlay.innerHTML='<div class="support-conversation-head">'+avatarHtml('','الإدارة',true)+'<div><strong>'+esc(first.title || 'محادثة')+'</strong><small>مراسلة الإدارة</small></div></div>'+
       '<div class="support-thread-dialog">'+thread.items.map(row=>'<div class="support-thread-line '+(row.type==='support_request'?'mine':'theirs')+'">'+avatarHtml(row.type==='support_request'?(window.S?.settings?._avatarUrl||''):'',row.type==='support_request'?'أنت':'الإدارة',row.type!=='support_request')+'<div class="support-thread-bubble"><strong style="font-size:11px">'+(row.type==='support_request'?'أنت':'الإدارة')+'</strong><div style="font-size:11px;opacity:.7">'+esc(new Date(row.created_at).toLocaleString('ar-EG'))+'</div><div style="line-height:1.8;margin-top:7px;overflow-wrap:anywhere">'+bodyWithLinks(row.body)+'</div></div></div>').join('')+'</div>'+
-      (activeTab==='requests'||first.type==='message'||first.type==='direct_message' ? '<div class="form-group"><textarea class="form-input" data-support-reply-text rows="3" maxlength="5000" placeholder="اكتب ردك هنا..."></textarea></div><button type="button" class="btn btn-primary" data-support-reply>إرسال الرد</button>' : ''));
+      (activeTab==='requests'||first.type==='message'||first.type==='direct_message' ? '<div class="support-conversation-compose"><textarea class="form-input" data-support-reply-text rows="2" maxlength="5000" placeholder="اكتب ردك هنا..."></textarea><button type="button" class="btn btn-primary" data-support-reply>إرسال</button></div>' : '');
     overlay.querySelector('[data-support-reply]')?.addEventListener('click',async event=>{
       const body=overlay.querySelector('[data-support-reply-text]').value.trim();
       if(!body) return;
       event.currentTarget.disabled=true;
       const {error}=await supa.from('user_notifications').insert([{user_id:_supaUserId,title:first.title||'محادثة',body,type:'support_request',read:false,data:{request_id:thread.id,category:'reply'},created_at:new Date().toISOString()}]);
       if(error){event.currentTarget.disabled=false;if(typeof toast==='function')toast('تعذر إرسال الرد: '+error.message);return;}
-      overlay.remove();await load();if(typeof toast==='function')toast('تم إرسال الرد');
+      await load();await openDetail(thread.id);if(typeof toast==='function')toast('تم إرسال الرد');
     });
   }
   async function deleteThread(id){
@@ -171,7 +178,7 @@
       const {error}=await supa.from('user_notifications').update({data:{...dataOf(row),hidden_for_user:true}}).eq('id',row.id).eq('user_id',_supaUserId);
       if(error){if(typeof toast==='function')toast('تعذر حذف السجل: '+error.message);return;}
     }
-    rows=rows.filter(row=>threadId(row)!==thread.id);render();
+    rows=rows.filter(row=>threadId(row)!==thread.id);if(selectedThreadId===thread.id)selectedThreadId='';render();
   }
   function compose(){
     const overlay = modal('<div class="modal-header"><div class="modal-title">✉ مراسلة الإدارة</div><button type="button" class="close-btn" data-support-close>✕</button></div>'+
@@ -193,7 +200,7 @@
   }
   document.getElementById('support-grid')?.addEventListener('click', event => {
     const tab = event.target.closest('[data-support-tab]');
-    if(tab){ activeTab = tab.dataset.supportTab; render(); return; }
+    if(tab){ activeTab = tab.dataset.supportTab; selectedThreadId=''; render(); return; }
     const client=event.target.closest('[data-support-client]');
     if(client){selectedClientId=client.dataset.supportClient;render();return;}
     const deleteButton=event.target.closest('[data-support-delete]');
@@ -216,5 +223,5 @@
     return result;
   };
   if(document.getElementById('page-support')?.classList.contains('active')) load();
-  if(typeof setInterval==='function')setInterval(()=>{if(!document.hidden&&document.getElementById('page-support')?.classList.contains('active'))loadClientInbox();},15000);
+  if(typeof setInterval==='function')setInterval(()=>{if(!document.hidden&&document.getElementById('page-support')?.classList.contains('active')){loadClientInbox();if(activeTab!=='clients'&&!document.querySelector('[data-support-reply-text]')?.value.trim())load();}},15000);
 })();

@@ -40,3 +40,10 @@ test('direct message inserts exactly one row for the selected user', async () =>
   assert.equal(inserted[0].user_id,'user-1');
   assert.equal(inserted[0].type,'message');
 });
+
+test('admin inbox keeps its conversation pane and reply control',()=>{
+  assert.match(html,/class="admin-chat-layout"/);
+  assert.match(html,/id="admin-chat-pane"/);
+  assert.match(html,/class="admin-chat-dialog"/);
+  assert.match(html,/data-reply/);
+});
