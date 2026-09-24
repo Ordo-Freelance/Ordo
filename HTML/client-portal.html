@@ -378,6 +378,14 @@ async function _bootWithData(userId, clientId, ud){
     applyPortalIdentityBackground(_settings);
     document.documentElement.style.setProperty('--ac',accent);
     document.documentElement.style.setProperty('--ac2',accent2);
+    const fontScale=Math.max(.86,Math.min(1.12,Number(_settings.fontScale)||1));
+    document.documentElement.style.fontSize=(16*fontScale)+'px';
+    if(/^#[0-9a-f]{6}$/i.test(_settings.toneColor||'')){
+      document.documentElement.style.setProperty('--bg',_settings.toneColor);
+      document.body.style.background=_settings.toneColor;
+    }
+    if(/^#[0-9a-f]{6}$/i.test(_settings.hoverOverlayColor||''))
+      document.documentElement.style.setProperty('--portal-hover',_settings.hoverOverlayColor);
     // ── تحديث شاشة اللود بلون ولوجو المستخدم فوراً ──
     (function(){
       var lsEl=document.getElementById('ls');

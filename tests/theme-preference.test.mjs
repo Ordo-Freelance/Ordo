@@ -39,6 +39,22 @@ test('a new device adopts the saved cloud theme once without writing it back', (
   assert.equal(values.get('studioDisplayMode'),'light');
 });
 
+test('a signed-in account uses its own theme instead of a previous account local preference', () => {
+  const values = new Map([['studioDisplayMode','light'],['studioAccentColor','#abcdef']]);
+  const calls = [];
+  const context = {
+    window:{_supaUserId:'user-two'},S:{settings:{displayMode:'dark',accentColor:'#123456'}},
+    localStorage:{getItem:key=>values.get(key) ?? null,setItem:(key,value)=>values.set(key,value)},
+    setDisplayMode:(mode,persist)=>calls.push(['mode',mode,persist]),
+    setThemeColor:(color,persist)=>calls.push(['accent',color,persist]),applyStudioAppearance(){}
+  };
+  vm.runInNewContext(cloudThemeSource,context);
+  context._loadThemeFromCloud();
+  assert.deepEqual(calls,[['accent','#123456',false],['mode','dark',false]]);
+  assert.equal(values.get('studioDisplayMode:user-two'),'dark');
+  assert.equal(values.get('studioAccentColor:user-two'),'#123456');
+});
+
 test('restoring the initial theme does not save to cloud or rebuild UI', () => {
   const values = new Map([['studioDisplayMode','dark']]);
   let writes = 0;

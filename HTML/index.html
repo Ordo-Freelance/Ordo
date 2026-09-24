@@ -730,8 +730,9 @@ function _mergeUiSettingsIntoS(){
   try{
     if(!S || !S.settings) return;
     // ── إعدادات الواجهة ──
-    S.settings.displayMode  = localStorage.getItem('studioDisplayMode') || S.settings.displayMode || 'dark';
-    S.settings.accentColor  = localStorage.getItem('studioAccentColor') || S.settings.accentColor || '#7c6ff7';
+    var scopedTheme = window._supaUserId ? ':'+window._supaUserId : '';
+    S.settings.displayMode  = (scopedTheme && localStorage.getItem('studioDisplayMode'+scopedTheme)) || S.settings.displayMode || 'dark';
+    S.settings.accentColor  = (scopedTheme && localStorage.getItem('studioAccentColor'+scopedTheme)) || S.settings.accentColor || '#7c6ff7';
     S.settings.lang         = localStorage.getItem('studioLang')        || S.settings.lang        || 'ar';
     // ── تصنيفات الخدمات والبورتفوليو ──
     try{
@@ -5521,9 +5522,9 @@ try {
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=declutter-1"></script>
+<script src="../JavaScript/app.js?v=theme-sync-2"></script>
 <script>document.body.classList.remove('auth-booting');</script>
-<script src="../JavaScript/vercel_persistence.js?v=storage-1"></script>
+<script src="../JavaScript/vercel_persistence.js?v=theme-sync-2"></script>
 
 <!-- ═══ BACKUP MODAL ═══ -->
 <div class="modal-overlay" id="modal-backup">

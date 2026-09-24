@@ -2365,7 +2365,7 @@ function setDisplayMode(mode, persist = true) {
   if(mode !== 'light' && mode !== 'dark') mode = 'dark';
   document.body.classList.toggle('light-mode', mode === 'light');
   document.documentElement.classList.toggle('light-mode', mode === 'light');
-  if(persist) localStorage.setItem('studioDisplayMode', mode);
+  if(persist){ localStorage.setItem('studioDisplayMode', mode); if(window._supaUserId)localStorage.setItem('studioDisplayMode:'+window._supaUserId,mode); }
   document.documentElement.style.colorScheme = mode;
 
   // â”€â”€ Fix: Update inline CSS variables + background that anti-flash script sets â”€â”€
@@ -2424,7 +2424,7 @@ function setThemeColor(color, persist = true) {
   document.documentElement.style.setProperty('--accent', color);
   var rgb = _hexToRgbObj(color);
   if(rgb) document.documentElement.style.setProperty('--accent-rgb', rgb.r+','+rgb.g+','+rgb.b);
-  if(persist) localStorage.setItem('studioAccentColor', color);
+  if(persist){ localStorage.setItem('studioAccentColor', color); if(window._supaUserId)localStorage.setItem('studioAccentColor:'+window._supaUserId,color); }
   // update swatches
   document.querySelectorAll('.theme-swatch').forEach(s => {
     s.classList.toggle('active', s.dataset.color === color);
@@ -2491,11 +2491,12 @@ function installStudioFontScaleObserver(){
 }
 function applyStudioAppearance(skipFontScan){
   var s = (typeof S !== 'undefined' && S && S.settings) || {};
-  var mode = localStorage.getItem('studioDisplayMode') || s.displayMode || 'dark';
-  var fontScale = Number(localStorage.getItem('studioFontScale') || s.fontScale || 1);
-  var accent = localStorage.getItem('studioAccentColor') || s.accentColor || '#7c6ff7';
-  var hover = localStorage.getItem('studioHoverOverlay') || s.hoverOverlayColor || '';
-  var tone = localStorage.getItem('studioToneColor') || s.toneColor || '';
+  var scoped = window._supaUserId ? ':'+window._supaUserId : '';
+  var mode = (scoped && localStorage.getItem('studioDisplayMode'+scoped)) || s.displayMode || localStorage.getItem('studioDisplayMode') || 'dark';
+  var fontScale = Number((scoped && localStorage.getItem('studioFontScale'+scoped)) || s.fontScale || localStorage.getItem('studioFontScale') || 1);
+  var accent = (scoped && localStorage.getItem('studioAccentColor'+scoped)) || s.accentColor || localStorage.getItem('studioAccentColor') || '#7c6ff7';
+  var hover = (scoped && localStorage.getItem('studioHoverOverlay'+scoped)) ?? s.hoverOverlayColor ?? localStorage.getItem('studioHoverOverlay') ?? '';
+  var tone = (scoped && localStorage.getItem('studioToneColor'+scoped)) ?? s.toneColor ?? localStorage.getItem('studioToneColor') ?? '';
   fontScale = Math.max(.86, Math.min(1.12, fontScale || 1));
   document.documentElement.style.setProperty('--app-font-scale', String(fontScale || 1));
   document.documentElement.style.setProperty('--app-font-scale-inverse', String(1 / (fontScale || 1)));
@@ -2549,6 +2550,7 @@ function applyStudioAppearance(skipFontScan){
 function setStudioFontScale(v){
   v = Math.max(.86, Math.min(1.12, Number(v) || 1));
   localStorage.setItem('studioFontScale', String(v));
+  if(window._supaUserId)localStorage.setItem('studioFontScale:'+window._supaUserId,String(v));
   if(typeof S !== 'undefined' && S){
     if(!S.settings) S.settings = {};
     S.settings.fontScale = v;
@@ -2559,6 +2561,7 @@ function setStudioFontScale(v){
 }
 function setStudioToneColor(color){
   localStorage.setItem('studioToneColor', color || '');
+  if(window._supaUserId)localStorage.setItem('studioToneColor:'+window._supaUserId,color || '');
   if(typeof S !== 'undefined' && S){
     if(!S.settings) S.settings = {};
     S.settings.toneColor = color || '';
@@ -2569,6 +2572,7 @@ function setStudioToneColor(color){
 }
 function setStudioHoverOverlay(color){
   localStorage.setItem('studioHoverOverlay', color || '');
+  if(window._supaUserId)localStorage.setItem('studioHoverOverlay:'+window._supaUserId,color || '');
   if(typeof S !== 'undefined' && S){
     if(!S.settings) S.settings = {};
     S.settings.hoverOverlayColor = color || '';
@@ -28306,17 +28310,23 @@ function _syncThemeToCloud(){
 // Load theme from cloud when logging in
 function _loadThemeFromCloud(){
   if(!S?.settings) return;
+  const scoped = typeof window!=='undefined' && window._supaUserId ? ':'+window._supaUserId : '';
   if(S.settings.accentColor){
-    if(!localStorage.getItem('studioAccentColor')) localStorage.setItem('studioAccentColor', S.settings.accentColor);
-    setThemeColor(localStorage.getItem('studioAccentColor'), false);
+    const color = (scoped && localStorage.getItem('studioAccentColor'+scoped)) || (scoped ? S.settings.accentColor : localStorage.getItem('studioAccentColor') || S.settings.accentColor);
+    if(scoped) localStorage.setItem('studioAccentColor'+scoped,color);
+    localStorage.setItem('studioAccentColor',color);
+    setThemeColor(color, false);
   }
   if(S.settings.displayMode){
-    if(!localStorage.getItem('studioDisplayMode')) localStorage.setItem('studioDisplayMode', S.settings.displayMode);
-    setDisplayMode(localStorage.getItem('studioDisplayMode'), false);
+    const mode = (scoped && localStorage.getItem('studioDisplayMode'+scoped)) || (scoped ? S.settings.displayMode : localStorage.getItem('studioDisplayMode') || S.settings.displayMode);
+    if(scoped) localStorage.setItem('studioDisplayMode'+scoped,mode);
+    localStorage.setItem('studioDisplayMode',mode);
+    setDisplayMode(mode, false);
   }
-  if(S.settings.fontScale) localStorage.setItem('studioFontScale', S.settings.fontScale);
-  if(S.settings.toneColor) localStorage.setItem('studioToneColor', S.settings.toneColor);
-  if(S.settings.hoverOverlayColor) localStorage.setItem('studioHoverOverlay', S.settings.hoverOverlayColor);
+  for(const [key,field] of [['studioFontScale','fontScale'],['studioToneColor','toneColor'],['studioHoverOverlay','hoverOverlayColor']]){
+    const value=(scoped && localStorage.getItem(key+scoped)) ?? S.settings[field];
+    if(value!==undefined && value!==null){localStorage.setItem(key,String(value));if(scoped)localStorage.setItem(key+scoped,String(value));}
+  }
   applyStudioAppearance();
   if(S.settings.lang) {
     try{ localStorage.setItem('studioLang', S.settings.lang); }catch(e){}
