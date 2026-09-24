@@ -261,7 +261,7 @@ const pUid=P.get('uid'),pCid=P.get('cid'),pOrderId=P.get('order'),pTaskId=P.get(
 const pPathToken=(location.pathname.match(/^\/portal\/([^/?#]+)\/?$/i)||[])[1]||'';
 const pPublicToken=P.get('token')||P.get('public_token')||P.get('t')||(pPathToken?decodeURIComponent(pPathToken):'');
 const pUsername=P.get('u'), pClientSlug=P.get('p');
-const pTab=P.get('tab')||'', pProjId=P.get('pid')||'';
+const pTab=P.get('tab')||'', pProjId=P.get('pid')||'', pBriefId=P.get('brief')||'';
 let _ud,_settings,_clientName,_clientPhone,_clientId,_clientTasks,_clientProjects,_clientInvoices,_clientOrders;
 
 function _curMeta(value){
@@ -521,6 +521,7 @@ async function _bootWithData(userId, clientId, ud){
       // فتح تاب محدد مباشرة (مثلاً المشاريع)
       setTimeout(()=>{
         switchTab(pTab);
+        if(pTab==='briefs'&&pBriefId&&(_ud.brief_forms||[]).some(form=>String(form.id)===String(pBriefId)))setTimeout(()=>openBriefSheet(pBriefId),100);
         // لو في project id محدد — نعمل scroll ليه
         if(pProjId){
           setTimeout(()=>{
@@ -1632,16 +1633,22 @@ function openBriefSheet(formId){
   const overlay=document.createElement('div');overlay.className='overlay';overlay.id='brief-portal-overlay';
   overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
   const fields=(form.questions||[]).map((q,index)=>{
+    if(q.type==='section')return '<div class="brief-portal-section" style="margin:26px 0 8px;padding:15px;border-radius:12px;background:var(--s2);border-inline-start:3px solid var(--g)"><h3 style="margin:0 0 5px">'+xe(q.label||'قسم جديد')+'</h3>'+(q.description?'<p style="margin:0;color:var(--t3);font-size:12px">'+xe(q.description)+'</p>':'')+'</div>';
     const label='<label style="font-weight:800;display:block;margin-bottom:6px">'+(index+1)+'. '+xe(q.label||'سؤال')+(q.required?' <span style="color:var(--r)">*</span>':'')+'</label>';
     const desc=q.description?'<p style="color:var(--t3);font-size:12px;margin:0 0 8px">'+xe(q.description)+'</p>':'';
     const options=(q.options||[]).map(o=>typeof o==='string'?{label:o}:o);
     let control='';
     if(q.type==='checkbox')control=options.map(o=>'<label style="display:flex;align-items:center;gap:8px;padding:9px;border:1px solid var(--bd);border-radius:9px;margin:5px 0"><input type="checkbox" value="'+xe(o.label)+'"> '+xe(o.label)+'</label>').join('');
-    else if(q.type==='image')control='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px">'+options.map(o=>{const imageUrl=/^https?:\/\//i.test(o.image_url||'')?o.image_url:'';return '<label style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;cursor:pointer"><img src="'+xe(imageUrl)+'" alt="" style="width:100%;height:90px;object-fit:cover"><span style="display:flex;gap:5px;align-items:center;padding:8px"><input type="radio" name="brief-image-'+index+'" value="'+xe(o.label)+'">'+xe(o.label)+'</span></label>';}).join('')+'</div>';
+    else if(q.type==='radio')control=options.map(o=>'<label style="display:flex;align-items:center;gap:8px;padding:9px;border:1px solid var(--bd);border-radius:9px;margin:5px 0"><input type="radio" name="brief-radio-'+index+'" value="'+xe(o.label)+'"> '+xe(o.label)+'</label>').join('');
+    else if(q.type==='select')control='<select class="form-input" style="width:100%"><option value="">اختر إجابة</option>'+options.map(o=>'<option value="'+xe(o.label)+'">'+xe(o.label)+'</option>').join('')+'</select>';
+    else if(q.type==='toggle')control='<div style="display:flex;gap:8px"><label class="btn btn-ghost"><input type="radio" name="brief-toggle-'+index+'" value="نعم"> نعم</label><label class="btn btn-ghost"><input type="radio" name="brief-toggle-'+index+'" value="لا"> لا</label></div>';
+    else if(q.type==='scale')control='<div style="display:flex;gap:7px;flex-wrap:wrap">'+[1,2,3,4,5].map(v=>'<label style="border:1px solid var(--bd);border-radius:9px;padding:8px 13px"><input type="radio" name="brief-scale-'+index+'" value="'+v+'"> '+v+'</label>').join('')+'</div>';
+    else if(q.type==='image')control='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px">'+options.map(o=>{const imageUrl=/^(data:image\/(?:png|jpeg|webp);base64,|https:\/\/)/i.test(o.image_url||'')?o.image_url:'';return '<label style="border:1px solid var(--bd);border-radius:10px;overflow:hidden;cursor:pointer"><img src="'+xe(imageUrl)+'" alt="" style="width:100%;height:90px;object-fit:cover"><span style="display:flex;gap:5px;align-items:center;padding:8px"><input type="radio" name="brief-image-'+index+'" value="'+xe(o.label)+'">'+xe(o.label)+'</span></label>';}).join('')+'</div>';
+    else if(q.type==='short')control='<input class="form-input" maxlength="500" placeholder="اكتب إجابتك هنا..." style="width:100%">';
     else control='<textarea class="form-input" rows="4" maxlength="3000" placeholder="اكتب إجابتك هنا..." style="width:100%;resize:vertical"></textarea>';
     return '<div class="brief-portal-question" data-id="'+xe(q.id)+'" data-type="'+xe(q.type)+'" data-required="'+(q.required?'1':'0')+'" style="padding:14px 0;border-bottom:1px solid var(--bd)">'+label+desc+control+'</div>';
   }).join('');
-  overlay.innerHTML='<div class="sheet" style="width:min(680px,100%);max-height:90dvh;overflow:auto"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><div><h2 style="margin:0">'+xe(form.title||'بريف')+'</h2><small style="color:var(--t3)">نموذج تفاصيل المشروع</small></div><button class="btn btn-ghost" onclick="document.getElementById(\'brief-portal-overlay\').remove()" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div>'+
+  overlay.innerHTML='<div class="sheet" style="--s1:#fff;--s2:#f6f7f9;--s3:#edf0f4;--bd:#d8dce3;--t1:#20242b;--t2:#343a40;--t3:#667085;width:min(760px,100%);max-height:90dvh;overflow:auto;background:#fff;color:#20242b">'+(form.banner?'<img src="'+xe(form.banner)+'" alt="بانر الاستبيان" style="width:100%;max-height:220px;object-fit:cover;border-radius:13px;margin-bottom:14px">':'')+'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--bd);padding-bottom:14px"><div><small style="font-weight:800;letter-spacing:.08em;color:#555">'+(String(form.title||'').includes('الهوية')?'BRAND QUESTIONNAIRE':'CLIENT BRIEF')+'</small><h2 style="margin:4px 0">'+xe(form.title||'بريف')+'</h2><small style="color:var(--t3)">نموذج تفاصيل المشروع</small></div><button class="btn btn-ghost" onclick="document.getElementById(\'brief-portal-overlay\').remove()" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div>'+
     (form.description?'<p style="color:var(--t2)">'+xe(form.description)+'</p>':'')+
     ((form.items||[]).length?'<div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:16px 0"><h3 style="margin:0 0 9px">البنود</h3>'+(form.items||[]).map(item=>'<div style="padding:8px 0;border-bottom:1px solid var(--bd)"><b>'+xe(item.title)+'</b><p style="margin:3px 0;color:var(--t3);font-size:12px">'+xe(item.description)+'</p></div>').join('')+'</div>':'')+
     '<div id="brief-portal-fields">'+fields+'</div>'+(form.status==='sent'?'<button class="btn btn-primary" style="width:100%;margin-top:16px" data-id="'+xe(form.id)+'" onclick="submitBriefSheet(this.dataset.id,this)"><i class="fa-solid fa-paper-plane"></i> إرسال الإجابات</button>':'<p style="color:var(--g);margin-top:16px">تم إرسال هذا البريف.</p>')+'</div>';
@@ -1652,11 +1659,13 @@ async function submitBriefSheet(formId,button){
   const form=(_ud?.brief_forms||[]).find(f=>String(f.id)===String(formId));if(!form||form.status!=='sent')return;
   const wrap=document.getElementById('brief-portal-fields');const answers={};
   for(const q of form.questions||[]){
+    if(q.type==='section')continue;
     const el=[...wrap.querySelectorAll('.brief-portal-question')].find(node=>node.dataset.id===String(q.id));if(!el)continue;
     let answer='';
     if(q.type==='checkbox')answer=[...el.querySelectorAll('input:checked')].map(input=>input.value);
-    else if(q.type==='image')answer=el.querySelector('input:checked')?.value||'';
-    else answer=el.querySelector('textarea')?.value.trim()||'';
+    else if(['image','radio','scale','toggle'].includes(q.type))answer=el.querySelector('input:checked')?.value||'';
+    else if(q.type==='select')answer=el.querySelector('select')?.value||'';
+    else answer=(el.querySelector('textarea,input')?.value||'').trim();
     if(q.required&&(!answer||Array.isArray(answer)&&!answer.length)){alert('أكمل السؤال المطلوب: '+q.label);el.scrollIntoView({block:'center'});return;}
     answers[q.id]=answer;
   }

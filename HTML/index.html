@@ -6018,6 +6018,7 @@ try {
       <button class="close-btn" onclick="closeM('modal-proposal')"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <input type="hidden" id="prop-eid">
+    <input type="hidden" id="prop-brief-id">
 
     <div class="form-row">
       <div class="form-group">
@@ -6531,6 +6532,7 @@ function openProposalModal(id) {
     ? '<i class="fa-solid fa-pen" style="color:var(--accent)"></i> تعديل العرض'
     : '<i class="fa-solid fa-file-contract" style="color:var(--accent)"></i> عرض سعر جديد';
   document.getElementById('prop-eid').value = id || '';
+  document.getElementById('prop-brief-id').value = '';
   document.getElementById('prop-items-wrap').innerHTML = '';
 
   // Fill clients dropdown
@@ -6559,6 +6561,7 @@ function openProposalModal(id) {
     _fillSharedCurrencySelect('prop-currency',p.currency,true);
     document.getElementById('prop-notes').value         = p.notes || '';
     document.getElementById('prop-intro').value         = p.intro || '';
+    document.getElementById('prop-brief-id').value      = p.brief_form_id || '';
     (p.items||[]).forEach(function(item){ _addPropItem(item); });
     if (!p.items || !p.items.length) _addPropItem();
   } else {
@@ -6605,6 +6608,7 @@ async function saveProposal(saveStatus) {
     token:        existingProp ? existingProp.token : ('prp_' + Date.now() + '_' + Math.random().toString(36).slice(2,8)),
     clientName:   (document.getElementById('prop-client')||{value:''}).value,
     client_id:    (()=>{ var cn=(document.getElementById('prop-client')||{value:''}).value; var c=(S.clients||[]).find(function(x){return x.name===cn;}); return c?String(c.id):''; })(),
+    brief_form_id:(document.getElementById('prop-brief-id')||{value:''}).value,
     title:        title,
     date:         document.getElementById('prop-date').value || today,
     expiry:       document.getElementById('prop-expiry').value || '',
@@ -9250,6 +9254,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <script src="../JavaScript/portal_chat.js?v=chat-clear-4"></script>
 <script src="../JavaScript/support_center.js?v=challenge-tabs-1"></script>
 <script src="../JavaScript/storage_usage.js?v=storage-files-2"></script>
-<script src="../JavaScript/brief_forms.js?v=2"></script>
+<script src="../JavaScript/brief_templates.js?v=1"></script>
+<script src="../JavaScript/brief_forms.js?v=3"></script>
 
 </body></html>

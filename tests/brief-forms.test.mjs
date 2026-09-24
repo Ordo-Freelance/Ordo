@@ -10,6 +10,38 @@ const app=fs.readFileSync(new URL('../JavaScript/app.js',import.meta.url),'utf8'
 const owner=fs.readFileSync(new URL('../JavaScript/brief_forms.js',import.meta.url),'utf8');
 const api=fs.readFileSync(new URL('../api/index.js',import.meta.url),'utf8');
 const persistence=fs.readFileSync(new URL('../JavaScript/vercel_persistence.js',import.meta.url),'utf8');
+const templates=fs.readFileSync(new URL('../JavaScript/brief_templates.js',import.meta.url),'utf8');
+
+test('three reusable templates include the full identity questionnaire and internal-only pricing',()=>{
+  const context={window:{}};
+  vm.runInNewContext(templates,context);
+  const build=context.window.OrdoBriefTemplates.build;
+  for(const kind of ['identity','logo','social']){
+    const form=build(kind);
+    assert.equal(form.client_id,'');
+    assert.equal(form.status,'draft');
+    assert.ok(form.questions.length>=10);
+  }
+  const identity=build('identity');
+  assert.equal(identity.questions.filter(q=>q.type==='section').length,13);
+  assert.ok(identity.questions.some(q=>q.label.includes('Brand Essence')));
+  assert.ok(identity.questions.some(q=>q.label.includes('الميزانية')));
+  assert.ok(identity.questions.some(q=>q.label.includes('المخرجات المطلوبة')));
+  assert.ok(identity.internalPricing.factors);
+  assert.match(html,/brief_templates\.js/);
+});
+
+test('form editor and portal support banner, uploaded image choices and varied answers',()=>{
+  for(const type of ['section','short','essay','radio','checkbox','select','toggle','scale','image'])assert.match(owner,new RegExp(`${type}:`));
+  assert.match(owner,/briefUploadImageOption/);
+  assert.match(owner,/briefUploadBanner/);
+  assert.match(owner,/openBriefQuoteBuilder/);
+  assert.match(portal,/form\.banner/);
+  assert.match(portal,/pBriefId/);
+  assert.match(api,/q\.type==='section'/);
+  assert.match(api,/\['image','radio','select'\]/);
+  assert.match(html,/prop-brief-id/);
+});
 
 test('briefs sit beside invoices and contracts with editable items and question types',()=>{
   assert.match(html,/id="inv-tab-briefs"/);
@@ -25,13 +57,15 @@ test('briefs sit beside invoices and contracts with editable items and question 
 test('portal snapshot exposes only sent briefs for its client and not private answers',async()=>{
   const data={settings:{name:'Studio'},clients:[{id:'a',name:'A'},{id:'b',name:'B'}],client_portals:[{id:'p',client_id:'a'}],public_tokens:[{token:'portal-a',entity_type:'client_portal',entity_id:'p',client_id:'a'}],brief_forms:[
     {id:'draft',client_id:'a',status:'draft'},
-    {id:'sent',client_id:'a',status:'sent',title:'بريف',questions:[{id:'q',type:'essay',label:'سؤال'}],answers:{q:'private'}},
+    {id:'sent',client_id:'a',status:'sent',title:'بريف',banner:'data:image/webp;base64,AA',questions:[{id:'q',type:'essay',label:'سؤال'}],answers:{q:'private'},internalPricing:{lines:{base:1000}}},
     {id:'other',client_id:'b',status:'sent'}
   ]};
   const store={async publicStudioCandidates(){return [{user_id:'owner',data}];},async query(){return [];}};
   const snapshot=await publicSnapshot(store,{type:'client_portal',token:'portal-a'});
   assert.deepEqual(snapshot.data.brief_forms.map(x=>x.id),['sent']);
   assert.equal(snapshot.data.brief_forms[0].answers,undefined);
+  assert.equal(snapshot.data.brief_forms[0].internalPricing,undefined);
+  assert.equal(snapshot.data.brief_forms[0].banner,'data:image/webp;base64,AA');
 });
 
 test('brief submissions are validated server-side and owner imports answers into project',()=>{

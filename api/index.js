@@ -265,7 +265,7 @@ function publicView(data, type, token) {
     project_tasks: (data.project_tasks || []).filter(row => belongs(row) && row.client_visibility !== false && row.is_internal !== true), invoices: (data.invoices || []).filter(belongs),
     team_tasks: (data.team_tasks || []).filter(row => row.client_visibility === true && belongs(row)),
     contracts: (data.contracts || []).filter(belongs), proposals: (data.proposals || []).filter(belongs),
-    brief_forms: (data.brief_forms || []).filter(row => belongs(row) && ['sent','submitted','accepted'].includes(row.status)).map(row => ({id:row.id,title:row.title,description:row.description,items:row.items,questions:row.questions,status:row.status,project_id:row.project_id})),
+    brief_forms: (data.brief_forms || []).filter(row => belongs(row) && ['sent','submitted','accepted'].includes(row.status)).map(row => ({id:row.id,title:row.title,description:row.description,banner:row.banner,items:row.items,questions:row.questions,status:row.status,project_id:row.project_id})),
     reviews: (data.reviews || []).filter(belongs), svc_orders: (data.svc_orders || []).filter(belongs),
     services: data.services || [], standalone_packages: data.standalone_packages || [],
     portfolio_projects: data.portfolio_projects || [], client_portals: (data.client_portals || []).filter(belongs)
@@ -1308,7 +1308,7 @@ export default async function handler(req, res) {
       const eventType = String(input.event_type || '');
       if (!['svc_order','meeting_request','task_received','revision_request','task_note','brief_submit'].includes(eventType)) return fail(res, 'نوع الطلب غير صحيح');
       const payload = input.event_data && typeof input.event_data === 'object' ? input.event_data : {};
-      if (JSON.stringify(payload).length > 10000) return fail(res, 'الطلب كبير جداً', 413, 'too_large');
+      if (JSON.stringify(payload).length > (eventType==='brief_submit'?250000:10000)) return fail(res, 'الطلب كبير جداً', 413, 'too_large');
       if(eventType==='brief_submit'){
         const form=(snapshot.data.brief_forms||[]).find(item=>String(item.id)===String(payload.form_id));
         if(!form||form.status!=='sent')return fail(res,'البريف غير متاح لهذا العميل',403,'brief_not_available');
@@ -1316,6 +1316,7 @@ export default async function handler(req, res) {
         const questions=Array.isArray(form.questions)?form.questions:[];
         const answers={};
         for(const q of questions){
+          if(q.type==='section')continue;
           const answer=supplied[q.id];
           if(q.type==='checkbox'){
             const allowed=new Set((q.options||[]).map(option=>String(option.label||option)));
@@ -1325,9 +1326,11 @@ export default async function handler(req, res) {
             answers[q.id]=values;
           }else{
             const value=typeof answer==='string'?answer.trim():'';
-            if(value.length>(q.type==='essay'?3000:200))return fail(res,'الإجابة طويلة جدًا',400,'brief_answer_too_long');
+            if(value.length>(q.type==='essay'?3000:q.type==='short'?500:200))return fail(res,'الإجابة طويلة جدًا',400,'brief_answer_too_long');
             if(q.required&&!value)return fail(res,'أكمل الأسئلة المطلوبة',400,'brief_required');
-            if(q.type==='image'&&value&&!(q.options||[]).some(option=>String(option.label||option)===value))return fail(res,'اختيار الصورة غير صحيح',400,'invalid_brief_image');
+            if(['image','radio','select'].includes(q.type)&&value&&!(q.options||[]).some(option=>String(option.label||option)===value))return fail(res,'اختيار غير صحيح',400,'invalid_brief_answer');
+            if(q.type==='toggle'&&value&&!['نعم','لا'].includes(value))return fail(res,'إجابة غير صحيحة',400,'invalid_brief_answer');
+            if(q.type==='scale'&&value&&!['1','2','3','4','5'].includes(value))return fail(res,'اختيار المقياس غير صحيح',400,'invalid_brief_answer');
             answers[q.id]=value;
           }
         }
