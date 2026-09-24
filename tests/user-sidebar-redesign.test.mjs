@@ -8,6 +8,15 @@ const css = fs.readFileSync(new URL('../CSS/user-redesign.css', import.meta.url)
 const app = fs.readFileSync(new URL('../JavaScript/app.js', import.meta.url), 'utf8');
 const appPatch = fs.readFileSync(new URL('../JavaScript/app_patch.js', import.meta.url), 'utf8');
 const settingsCss = fs.readFileSync(new URL('../CSS/settings-workspace.css', import.meta.url), 'utf8');
+const layoutCss = fs.readFileSync(new URL('../CSS/styles.css', import.meta.url), 'utf8');
+const chatCss = fs.readFileSync(new URL('../CSS/portal_chat.css', import.meta.url), 'utf8');
+
+test('mobile viewport keeps the last page controls above the bottom navigation', () => {
+  assert.match(layoutCss, /\.app-shell\s*\{[^}]*height:\s*100dvh/s);
+  assert.match(layoutCss, /\.app-body\s*\{[^}]*height:\s*100%/s);
+  assert.match(layoutCss, /padding-bottom:\s*calc\(84px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+  assert.match(chatCss, /\.support-conversation-pane\{min-height:320px;max-height:min\(55dvh,520px\)\}/);
+});
 
 test('admin coming-soon sections open an informational screen instead of package upsell', () => {
   assert.match(appPatch, /_showPageLock\(match\[1\], item, 'coming'\)/);
