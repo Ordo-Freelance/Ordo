@@ -35,7 +35,7 @@ test('deleted chat messages hide content and attachments from both participants'
   assert.equal(row.body,'');
   assert.equal(row.attachment,null);
   assert.equal(row.deleted,true);
-  assert.match(apiSource,/message\.sender!==\(isPublic\?'client':'owner'\)/);
+  assert.match(apiSource,/message\.sender!==actor/);
   assert.match(apiSource,/mediaMessage\.deleted\?null:mediaMessage\.attachment/);
 });
 
@@ -45,5 +45,21 @@ test('chat keeps images and audio in the thread and previews voice before sendin
   assert.match(chatSource,/node\.appendChild\(audio\)/);
   assert.match(chatSource,/pc-wave/);
   assert.match(chatSource,/data-pc-send-voice/);
-  assert.match(chatSource,/api\(s,'delete',\{message_id:id\}\)/);
+  assert.match(chatSource,/api\(s,'delete',\{message_id:id,scope:button\.dataset\.pcScope\}\)/);
+});
+
+test('voice data URL accepts recorder codec parameters but rejects a mismatched MIME',()=>{
+  const access={images:false,voice:true};
+  assert.equal(portalChatAttachment({kind:'voice',mime:'audio/webm',data:'data:audio/webm;codecs=opus;base64,AAAA'},access).bytes,3);
+  assert.throws(()=>portalChatAttachment({kind:'voice',mime:'audio/webm',data:'data:audio/ogg;base64,AAAA'},access));
+  assert.match(chatSource,/s\.sendWhenStopped=true;stopVoice\(el,false\)/);
+  assert.match(chatSource,/if\(!attachment&&s\.preview\)return sendVoicePreview\(el\)/);
+});
+
+test('chat supports private hiding and sender-only deletion for everyone',()=>{
+  assert.match(apiSource,/scope=input\.scope==='everyone'\?'everyone':'me'/);
+  assert.match(apiSource,/hidden_for:\[\.\.\.new Set/);
+  assert.match(apiSource,/message\.sender!==actor/);
+  assert.match(chatSource,/data-pc-scope="me"/);
+  assert.match(chatSource,/data-pc-scope="everyone"/);
 });

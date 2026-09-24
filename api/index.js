@@ -218,8 +218,9 @@ function portalChatAttachment(input, access) {
   const allowed=kind==='image'&&access.images&&['image/jpeg','image/png','image/webp'].includes(mime) || kind==='voice'&&access.voice&&['audio/webm','audio/ogg','audio/mp4','audio/mpeg'].includes(mime);
   if(!allowed) throw Object.assign(new Error('نوع المرفق غير مسموح في باقتك'),{code:'attachment_not_allowed',status:403});
   const content=String(input.data||'');
-  const prefix=`data:${mime};base64,`;
-  const encoded=content.startsWith(prefix)?content.slice(prefix.length):'';
+  // MediaRecorder may add codec parameters (such as codecs=opus) to the URL.
+  const header=content.match(/^data:([^;,]+)(?:;[^,]*)?;base64,/i);
+  const encoded=header?.[1]===mime?content.slice(header[0].length):'';
   const max=kind==='image'?700000:1500000;
   if(!encoded||encoded.length>Math.ceil(max*4/3)||!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw Object.assign(new Error('حجم أو صيغة الملف غير صالحة'),{code:'invalid_attachment',status:413});
   return {kind,mime,data:content,name:String(input.name||'').slice(0,100),bytes:Math.floor(encoded.length*3/4)};
@@ -1220,7 +1221,7 @@ export default async function handler(req, res) {
         if(isPublic)return fail(res,'غير مسموح',403,'forbidden');
         const rows=await store.query('public_client_portal_events',{op:'select',columns:'id,data,created_at',filters:[{op:'eq',column:'user_id',value:uid}],order:{column:'created_at',ascending:false},limit:500});
         const items={};
-        for(const row of rows||[]){const data=parseMaybe(row.data)||{};const id=String(data.client_id||'');if(data.event_type==='portal_chat'&&!data.event_data?.deleted&&id&&!items[id])items[id]=portalChatPublicRow(row);}
+        for(const row of rows||[]){const data=parseMaybe(row.data)||{};const id=String(data.client_id||'');if(data.event_type==='portal_chat'&&!data.event_data?.deleted&&!data.event_data?.hidden_for?.includes('owner')&&id&&!items[id])items[id]=portalChatPublicRow(row);}
         return ok(res,{items});
       }
       const clientId=String(isPublic?snapshot.token.client_id:input.client_id||'');
@@ -1250,9 +1251,18 @@ export default async function handler(req, res) {
         if(!row)return fail(res,'الرسالة غير موجودة',404,'message_not_found');
         const data=parseMaybe(row.data)||{};
         const message=data.event_data||{};
-        if(message.sender!==(isPublic?'client':'owner'))return fail(res,'يمكنك حذف رسائلك فقط',403,'forbidden');
+        const actor=isPublic?'client':'owner';
+        const scope=input.scope==='everyone'?'everyone':'me';
+        if(scope==='me'){
+          if(message.hidden_for?.includes(actor))return ok(res,{deleted:true,scope});
+          const updated={...data,event_data:{...message,hidden_for:[...new Set([...(message.hidden_for||[]),actor])]}};
+          const hidden=await store.query('public_client_portal_events',{op:'update',payload:{data:updated},filters:[{op:'eq',column:'id',value:row.id},{op:'eq',column:'user_id',value:uid}],single:true});
+          if(!hidden)return fail(res,'تعذر حذف الرسالة',404,'message_not_found');
+          return ok(res,{deleted:true,scope});
+        }
+        if(message.sender!==actor)return fail(res,'يمكنك حذف رسائلك فقط لدى الجميع',403,'forbidden');
         if(message.deleted)return ok(res,{deleted:true});
-        const updated={...data,event_data:{sender:message.sender,body:'',attachment:null,deleted:true,deleted_at:now()}};
+        const updated={...data,event_data:{...message,body:'',attachment:null,deleted:true,deleted_at:now()}};
         const deleted=await store.query('public_client_portal_events',{op:'update',payload:{data:updated},filters:[{op:'eq',column:'id',value:row.id},{op:'eq',column:'user_id',value:uid}],single:true});
         if(!deleted)return fail(res,'تعذر حذف الرسالة',404,'message_not_found');
         return ok(res,{deleted:true});
@@ -1264,7 +1274,7 @@ export default async function handler(req, res) {
         if(!attachment) return fail(res,'المرفق غير موجود',404,'media_not_found');
         return ok(res,{data:attachment.data,mime:attachment.mime,name:attachment.name});
       }
-      return ok(res,{messages:filtered.slice(0,100).reverse().map(portalChatPublicRow),features:{images:access.images,voice:access.voice}});
+      return ok(res,{messages:filtered.filter(row=>!((parseMaybe(row.data)||{}).event_data?.hidden_for||[]).includes(isPublic?'client':'owner')).slice(0,100).reverse().map(portalChatPublicRow),features:{images:access.images,voice:access.voice}});
     }
 
     if (postAction === 'public.portalEvent') {
