@@ -6,6 +6,18 @@ import vm from 'node:vm';
 const app = fs.readFileSync(new URL('../JavaScript/app.js', import.meta.url), 'utf8');
 const cloudThemeSource = app.slice(app.indexOf('function _loadThemeFromCloud(){'), app.indexOf('// PLATFORM NAME', app.indexOf('function _loadThemeFromCloud(){')));
 const modeSource = app.slice(app.indexOf('function setDisplayMode(mode, persist = true) {'), app.indexOf('function setThemeColor(', app.indexOf('function setDisplayMode(mode, persist = true) {')));
+const portal = fs.readFileSync(new URL('../HTML/client-portal.html', import.meta.url), 'utf8');
+
+test('client portal shares the workspace palette and account accent without stale secondary orange', () => {
+  for (const token of ['--bg:#0d1425', '--s1:#151e32', '--s2:#1b2640', '--s3:#22304e', '--bd:#303d59']) {
+    assert.ok(portal.includes(token), `missing portal palette token ${token}`);
+  }
+  assert.match(portal, /_settings\.accent2=_settings\.accent;/);
+  assert.match(portal, /ownerPreview=String\(session\?\.supaId\|\|session\?\.id\|\|''\)===String\(userId\)/);
+  assert.match(portal, /ownerPref\('studioAccentColor'\)/);
+  assert.match(portal, /ownerPref\('studioDisplayMode'\)/);
+  assert.match(portal, /ownerPref\('studioToneColor'\)/);
+});
 
 test('locally chosen dark mode wins over an older light setting from cloud', () => {
   const values = new Map([['studioDisplayMode','dark'],['studioAccentColor','#123456']]);
