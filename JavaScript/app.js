@@ -28311,14 +28311,17 @@ function _syncThemeToCloud(){
 function _loadThemeFromCloud(){
   if(!S?.settings) return;
   const scoped = typeof window!=='undefined' && window._supaUserId ? ':'+window._supaUserId : '';
+  let needsPublish=false;
   if(S.settings.accentColor){
     const color = (scoped && localStorage.getItem('studioAccentColor'+scoped)) || (scoped ? S.settings.accentColor : localStorage.getItem('studioAccentColor') || S.settings.accentColor);
+    if(scoped && S.settings.accentColor!==color){S.settings.accentColor=color;needsPublish=true;}
     if(scoped) localStorage.setItem('studioAccentColor'+scoped,color);
     localStorage.setItem('studioAccentColor',color);
     setThemeColor(color, false);
   }
   if(S.settings.displayMode){
     const mode = (scoped && localStorage.getItem('studioDisplayMode'+scoped)) || (scoped ? S.settings.displayMode : localStorage.getItem('studioDisplayMode') || S.settings.displayMode);
+    if(scoped && S.settings.displayMode!==mode){S.settings.displayMode=mode;needsPublish=true;}
     if(scoped) localStorage.setItem('studioDisplayMode'+scoped,mode);
     localStorage.setItem('studioDisplayMode',mode);
     setDisplayMode(mode, false);
@@ -28328,6 +28331,7 @@ function _loadThemeFromCloud(){
     if(value!==undefined && value!==null){localStorage.setItem(key,String(value));if(scoped)localStorage.setItem(key+scoped,String(value));}
   }
   applyStudioAppearance();
+  if(needsPublish && typeof cloudSaveNow==='function') cloudSaveNow(S);
   if(S.settings.lang) {
     try{ localStorage.setItem('studioLang', S.settings.lang); }catch(e){}
   }

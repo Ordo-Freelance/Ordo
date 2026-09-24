@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 const financeSource = fs.readFileSync(new URL('../JavaScript/finance_rebuild.js', import.meta.url), 'utf8');
 const clientSource = fs.readFileSync(new URL('../JavaScript/client_finance_fix.js', import.meta.url), 'utf8');
+const portalSource = fs.readFileSync(new URL('../HTML/client-portal.html', import.meta.url), 'utf8');
 
 function financeContext(data) {
   const source = financeSource.slice(financeSource.indexOf('  function receivableItems(){'), financeSource.indexOf('  function receivablesByCurrency('));
@@ -51,4 +52,16 @@ test('unbilled tasks remain payable and task linkage aliases prevent duplicates'
   const summary = root.OrdoClientFinanceFix.summary('c1').EGP;
   assert.equal(summary.unpaidInvoices,1000);
   assert.equal(summary.unpaidTasks,2000);
+});
+
+test('client portal excludes invoiced project tasks from task dues', () => {
+  const start = portalSource.indexOf('function _invoicedPortalTaskIds(');
+  const end = portalSource.indexOf('function _subtractCurrencyTotal(', start);
+  const context = {};
+  vm.runInNewContext(portalSource.slice(start,end),context);
+  const tasks=[{id:'pt1',value:3000,project_id:'p1',paymentStatus:'pending'}];
+  const invoices=[{id:'i1',total:3000,items:[{_projectTaskId:'pt1',price:3000}]}];
+  assert.equal(context._unbilledPortalTasks(tasks,invoices).length,0);
+  assert.equal(context._unbilledPortalTasks(tasks,[]).length,1);
+  assert.equal(portalSource.includes('(_ud.project_tasks||[])\n    .filter(t=>_clientProjects.some(p=>String(p.id)===String(t.project_id))&&(t.value||0)>0'),false);
 });
