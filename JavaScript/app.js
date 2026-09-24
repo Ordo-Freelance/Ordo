@@ -1303,15 +1303,15 @@ function _showPageLock(id, el, reason){
   if(!lock){ lock=document.createElement('div'); lock.id='_page_lock_el'; document.body.appendChild(lock); }
   lock.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(7,8,15,.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px';
 
-  if(reason === 'platform'){
-    const coming = _platformFeatureState(id) === 'coming';
+  if(reason === 'platform' || reason === 'coming'){
+    const coming = reason === 'coming' || _platformFeatureState(id) === 'coming';
     lock.innerHTML=`
       <div style="max-width:360px;width:100%;text-align:center;position:relative">
         <button onclick="_hideLock();showPage('dashboard')" style="position:absolute;top:-40px;left:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:var(--text2);width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-xmark"></i></button>
         <div style="width:76px;height:76px;background:rgba(247,201,72,.12);border:1.5px solid rgba(247,201,72,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px"><i class="fa-solid ${coming?'fa-hourglass-half':'fa-lock'}"></i></div>
         <div style="font-size:20px;font-weight:900;margin-bottom:6px">${names[id]||id}</div>
-        <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:8px">${coming?'الميزة قادمة قريباً':'القسم غير متاح حالياً'}</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.7">${coming?'قريبا سيتم اطلاق هذه الميزه':'هذا القسم غير متاح حالياً.'}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:8px">${coming?'هذه الميزة متاحة قريباً':'القسم غير متاح حالياً'}</div>
+        <div style="font-size:12px;color:var(--text3);line-height:1.7">${coming?'نعمل على تجهيزها لتكون متاحة لك قريباً.':'هذا القسم غير متاح حالياً.'}</div>
       </div>`;
     lock.style.display='flex';
     return;

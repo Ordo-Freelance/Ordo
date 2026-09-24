@@ -6,6 +6,14 @@ import vm from 'node:vm';
 const html = fs.readFileSync(new URL('../HTML/index.html', import.meta.url), 'utf8');
 const css = fs.readFileSync(new URL('../CSS/user-redesign.css', import.meta.url), 'utf8');
 const app = fs.readFileSync(new URL('../JavaScript/app.js', import.meta.url), 'utf8');
+const appPatch = fs.readFileSync(new URL('../JavaScript/app_patch.js', import.meta.url), 'utf8');
+
+test('admin coming-soon sections open an informational screen instead of package upsell', () => {
+  assert.match(appPatch, /_showPageLock\(match\[1\], item, 'coming'\)/);
+  assert.match(appPatch, /_showPageLock\(id, arguments\[1\], 'coming'\)/);
+  assert.match(app, /reason === 'platform' \|\| reason === 'coming'/);
+  assert.match(app, /هذه الميزة متاحة قريباً/);
+});
 
 test('user sidebar keeps the existing group order and opens only one group', () => {
   const script = html.slice(html.indexOf('(function organizeSidebar(){'), html.indexOf('})();', html.indexOf('(function organizeSidebar(){')) + 5);

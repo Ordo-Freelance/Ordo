@@ -704,7 +704,8 @@ if(!window.__ordoAdminSectionClickGuard) {
     if(!item) return;
     e.preventDefault();
     e.stopImmediatePropagation();
-    if(typeof toast === 'function') toast('القسم قريباً');
+    const match = (item.getAttribute('onclick') || '').match(/showPage\(['"]([^'"]+)['"]/);
+    if(match && typeof _showPageLock === 'function') _showPageLock(match[1], item, 'coming');
   }, true);
 }
 
@@ -718,7 +719,7 @@ if(!window.__ordoAdminSectionShowGuard && typeof window.showPage === 'function')
       return false;
     }
     if(state === 'coming') {
-      if(typeof toast === 'function') toast('القسم قريباً');
+      if(typeof _showPageLock === 'function') _showPageLock(id, arguments[1], 'coming');
       return false;
     }
     return _origShowPageSections.apply(this, arguments);
