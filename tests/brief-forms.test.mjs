@@ -58,7 +58,7 @@ test('briefs sit beside invoices and contracts with editable items and question 
 test('portal snapshot exposes only sent briefs for its client and not private answers',async()=>{
   const data={settings:{name:'Studio'},clients:[{id:'a',name:'A'},{id:'b',name:'B'}],client_portals:[{id:'p',client_id:'a'}],public_tokens:[{token:'portal-a',entity_type:'client_portal',entity_id:'p',client_id:'a'}],brief_forms:[
     {id:'draft',client_id:'a',status:'draft'},
-    {id:'sent',client_id:'a',status:'sent',title:'بريف',banner:'data:image/webp;base64,AA',questions:[{id:'q',type:'essay',label:'سؤال'}],answers:{q:'private'},internalPricing:{lines:{base:1000}}},
+    {id:'sent',client_id:'a',status:'sent',title:'بريف',share_token:'brf_a',banner:'data:image/webp;base64,AA',questions:[{id:'q',type:'essay',label:'سؤال'}],answers:{q:'private'},internalPricing:{lines:{base:1000}}},
     {id:'other',client_id:'b',status:'sent'}
   ]};
   const store={async publicStudioCandidates(){return [{user_id:'owner',data}];},async query(){return [];}};
@@ -67,6 +67,25 @@ test('portal snapshot exposes only sent briefs for its client and not private an
   assert.equal(snapshot.data.brief_forms[0].answers,undefined);
   assert.equal(snapshot.data.brief_forms[0].internalPricing,undefined);
   assert.equal(snapshot.data.brief_forms[0].banner,'data:image/webp;base64,AA');
+  assert.equal(snapshot.data.brief_forms[0].share_token,'brf_a');
+});
+
+test('older portal briefs open separately using a client-scoped fallback token',async()=>{
+  const data={settings:{username:'designer'},public_tokens:[{token:'portal-a',entity_type:'client_portal',client_id:'a'}],brief_forms:[{id:'old',client_id:'a',status:'sent',title:'قديم',questions:[{id:'q',type:'short',label:'الاسم'}]},{id:'other',client_id:'b',status:'sent',title:'خاص'}]};
+  const store={async publicStudioCandidates(){return [{user_id:'owner',username_index:'designer',data}];}};
+  const ok=await publicSnapshot(store,{type:'brief',username:'designer',token:'portal-a',form_id:'old'});
+  assert.equal(ok.data.brief_forms[0].id,'old');
+  assert.equal(await publicSnapshot(store,{type:'brief',username:'designer',token:'portal-a',form_id:'other'}),null);
+  assert.equal(await publicSnapshot(store,{type:'brief',username:'designer',token:'portal-a'}),null);
+});
+
+test('a submitted brief remains viewable through its separate link but cannot be resubmitted',async()=>{
+  const data={settings:{username:'designer'},brief_forms:[{id:'b1',share_token:'brf_secret',status:'submitted',title:'بريف مكتمل',answers:{q:'private'},questions:[{id:'q',type:'short',label:'الاسم'}]}]};
+  const store={async publicStudioCandidates(){return [{user_id:'owner',username_index:'designer',data}];}};
+  const snapshot=await publicSnapshot(store,{type:'brief',username:'designer',token:'brf_secret'});
+  assert.equal(snapshot.data.brief_forms[0].status,'submitted');
+  assert.equal(snapshot.data.brief_forms[0].answers,undefined);
+  assert.match(standalone,/if\(form\.status!=='sent'\)/);
 });
 
 test('standalone brief link uses username and private share token without exposing client data',async()=>{
@@ -119,8 +138,44 @@ test('portal brief renderer shows a sent form and submission entry point',()=>{
   vm.runInNewContext(portal.slice(start,end),context);
   const rendered=context.renderBriefForms();
   assert.match(rendered,/Design/);
-  assert.match(rendered,/فتح البريف/);
+  assert.match(rendered,/فتح صفحة البريف/);
+  assert.match(rendered,/openBriefPage/);
   assert.doesNotMatch(rendered,/لا توجد بريفات/);
+});
+
+test('client portal and standalone brief have separate navigation and page chrome',()=>{
+  assert.match(portal,/function openBriefPage\(formId\)/);
+  assert.match(portal,/location\.assign\(url\)/);
+  assert.match(portal,/form\.share_token\|\|pPublicToken/);
+  assert.match(owner,/نسخ رابط البوابة/);
+  assert.match(owner,/نسخ رابط الاستبيان/);
+  assert.match(standalone,/<header class="top-band">/);
+  assert.match(standalone,/<footer class="site-footer">/);
+  assert.match(standalone,/form_id:formId/);
+  assert.match(standalone,/form\.status!=='sent'/);
+  assert.match(portal,/\.brief-open-btn\.primary/);
+});
+
+test('owner can recover a brief response even when its event was previously seen',()=>{
+  const start=app.indexOf('function _applyBriefSubmissionEvent(row){');
+  const end=app.indexOf('async function _pollPublicInbox()',start);
+  assert.ok(start>0&&end>start);
+  const context={S:{brief_forms:[{id:'b1',client_id:'a',status:'sent'}],clients:[{id:'a',name:'عميل'}],support_msgs:[]},window:{},renderBriefForms(){},renderSupport(){}};
+  vm.runInNewContext(app.slice(start,end),context);
+  const row={id:'old-event',created_at:'2026-09-25T10:00:00Z',data:{client_id:'a',event_data:{form_id:'b1',answers:{q:'الإجابة'}}}};
+  assert.equal(context._applyBriefSubmissionEvent(row),'applied');
+  assert.equal(context.S.brief_forms[0].status,'submitted');
+  assert.equal(context.S.brief_forms[0].answers.q,'الإجابة');
+  assert.equal(context.S.support_msgs.length,1);
+  assert.equal(context._applyBriefSubmissionEvent(row),'known');
+  assert.equal(context.S.support_msgs.length,1);
+  context.S.brief_forms.push({id:'prospect',client_id:'new-client',status:'sent'});
+  const prospect={id:'prospect-event',created_at:'2026-09-25T11:00:00Z',data:{client_id:'',event_data:{form_id:'prospect',answers:{q:'عميل جديد'}}}};
+  assert.equal(context._applyBriefSubmissionEvent(prospect),'applied');
+  assert.equal(context.S.brief_forms[1].answers.q,'عميل جديد');
+  assert.match(app,/if\(alreadySeen&&type!=='brief_submit'\)continue/);
+  assert.match(app,/if\(result==='missing'\)continue/);
+  assert.match(app,/public_client_portal_events'\)\.select\('id,data,created_at'\).*limit\(500\)/);
 });
 
 test('brief builder keeps templates in the editor and permits stage navigation and image multi-selection',()=>{

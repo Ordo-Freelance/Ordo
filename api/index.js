@@ -254,7 +254,7 @@ function publicView(data, type, token) {
   if (type === 'reviews_public') return { settings: publicSettings, reviews: (data.reviews || []).filter(row => row.public_visible !== false), public_tokens: (data.public_tokens || []).filter(item => ['review','store'].includes(item.entity_type) && !item.revoked && (!item.expires_at || new Date(item.expires_at) > new Date())).map(item => ({token:item.token,entity_type:item.entity_type})) };
   if (type === 'review') return { settings: publicSettings, reviews: (data.reviews || []).filter(row => row.public_visible !== false) };
   if (type === 'brief') {
-    const form=(data.brief_forms||[]).find(row=>String(row.id)===String(token?.entity_id)&&row.status==='sent'&&row.share_token===token?.token);
+    const form=(data.brief_forms||[]).find(row=>String(row.id)===String(token?.entity_id)&&['sent','submitted','accepted'].includes(row.status)&&(row.share_token===token?.token||token?.via_portal&&String(row.client_id)===String(token.client_id)));
     return {settings:publicSettings,brief_forms:form?[{id:form.id,title:form.title,description:form.description,banner:form.banner,items:form.items,questions:form.questions,status:form.status}]:[]};
   }
   const clientId = String(token?.client_id || '');
@@ -269,7 +269,7 @@ function publicView(data, type, token) {
     project_tasks: (data.project_tasks || []).filter(row => belongs(row) && row.client_visibility !== false && row.is_internal !== true), invoices: (data.invoices || []).filter(belongs),
     team_tasks: (data.team_tasks || []).filter(row => row.client_visibility === true && belongs(row)),
     contracts: (data.contracts || []).filter(belongs), proposals: (data.proposals || []).filter(belongs),
-    brief_forms: (data.brief_forms || []).filter(row => belongs(row) && ['sent','submitted','accepted'].includes(row.status)).map(row => ({id:row.id,title:row.title,description:row.description,banner:row.banner,items:row.items,questions:row.questions,status:row.status,project_id:row.project_id})),
+    brief_forms: (data.brief_forms || []).filter(row => belongs(row) && ['sent','submitted','accepted'].includes(row.status)).map(row => ({id:row.id,title:row.title,description:row.description,banner:row.banner,items:row.items,questions:row.questions,status:row.status,project_id:row.project_id,share_token:row.share_token})),
     reviews: (data.reviews || []).filter(belongs), svc_orders: (data.svc_orders || []).filter(belongs),
     services: data.services || [], standalone_packages: data.standalone_packages || [],
     portfolio_projects: data.portfolio_projects || [], client_portals: (data.client_portals || []).filter(belongs)
@@ -291,8 +291,13 @@ async function publicSnapshot(store, input) {
     let matching = token ? tokens.find(item => item?.token === token && !item.revoked && (!item.expires_at || new Date(item.expires_at) > new Date()) && (item.entity_type === type || (type === 'reviews_public' && item.entity_type === 'review'))) : null;
     if(type==='brief'){
       if(![row.username_index,data.settings?.username].some(value=>String(value||'').toLowerCase()===username))continue;
-      const form=(data.brief_forms||[]).find(item=>item?.share_token===token&&item.status==='sent');
+      const form=(data.brief_forms||[]).find(item=>item?.share_token===token&&['sent','submitted','accepted'].includes(item.status));
       matching=form?{token,entity_type:'brief',entity_id:form.id,client_id:form.client_id||''}:null;
+      if(!matching&&input.form_id){
+        const portal=tokens.find(item=>item?.token===token&&item.entity_type==='client_portal'&&!item.revoked&&(!item.expires_at||new Date(item.expires_at)>new Date()));
+        const linked=(data.brief_forms||[]).find(item=>String(item.id)===String(input.form_id)&&['sent','submitted','accepted'].includes(item.status)&&String(item.client_id)===String(portal?.client_id||''));
+        if(portal?.client_id&&linked)matching={token,entity_type:'brief',entity_id:linked.id,client_id:portal.client_id,via_portal:true};
+      }
     }
     if (token && !matching) {
       const collection = type === 'client_portal' ? data.client_portals : type === 'review' ? data.reviews : type === 'store' ? data.stores : [];
@@ -1228,7 +1233,7 @@ export default async function handler(req, res) {
     }
 
     if(postAction==='public.brief.submit'){
-      const snapshot=await publicSnapshot(store,{type:'brief',username:input.username,token:input.token});
+      const snapshot=await publicSnapshot(store,{type:'brief',username:input.username,token:input.token,form_id:input.form_id});
       if(!snapshot)return fail(res,'رابط الاستبيان غير صالح',404,'brief_not_found');
       const form=snapshot.data.brief_forms?.[0];
       if(!form||form.status!=='sent')return fail(res,'الاستبيان غير متاح',403,'brief_not_available');

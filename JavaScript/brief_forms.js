@@ -97,9 +97,9 @@
           '<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="openBriefForm(this.dataset.id)"><i class="fa-solid fa-pen"></i> تعديل وعرض</button>'+
           (f.status==='draft'?'<button class="btn btn-primary btn-sm" data-id="'+formId+'" onclick="sendBriefForm(this.dataset.id)"><i class="fa-solid fa-paper-plane"></i> إرسال للعميل</button>':'')+
           (f.status==='draft'||f.status==='sent'&&!f.share_token?'<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="publishStandaloneBrief(this.dataset.id)"><i class="fa-solid fa-link"></i> رابط استبيان مستقل</button>':'')+
-          (f.share_token&&f.status==='sent'?'<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="copyStandaloneBriefLink(this.dataset.id)"><i class="fa-solid fa-copy"></i> نسخ رابط الاستبيان</button>':'')+
+          (f.share_token&&['sent','submitted','accepted'].includes(f.status)?'<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="copyStandaloneBriefLink(this.dataset.id)"><i class="fa-solid fa-copy"></i> نسخ رابط الاستبيان</button>':'')+
           (!f.client_id?'<button class="btn btn-primary btn-sm" data-id="'+formId+'" onclick="useBriefTemplate(this.dataset.id)"><i class="fa-solid fa-copy"></i> استخدام مع عميل</button>':'')+
-          (f.status==='sent'?'<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="copyBriefLink(this.dataset.id)"><i class="fa-solid fa-link"></i> نسخ الرابط</button>':'')+
+          (['sent','submitted','accepted'].includes(f.status)&&f.client_id?'<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="copyBriefLink(this.dataset.id)"><i class="fa-solid fa-link"></i> نسخ رابط البوابة</button>':'')+
           '<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="deleteBriefForm(this.dataset.id)" aria-label="حذف البريف"><i class="fa-solid fa-trash"></i></button>'+
           (f.status==='submitted'?'<button class="btn btn-success btn-sm" data-id="'+formId+'" onclick="acceptBriefForm(this.dataset.id)"><i class="fa-solid fa-check"></i> اعتماد وربط بالمشروع</button>':'')+
           (['submitted','accepted'].includes(f.status)?'<button class="btn btn-primary btn-sm" data-id="'+formId+'" onclick="openBriefQuoteBuilder(this.dataset.id)"><i class="fa-solid fa-file-invoice-dollar"></i> عرض سعر من البريف</button>':'')+
@@ -179,7 +179,7 @@
     persist();document.getElementById('brief-editor-overlay').remove();renderBriefForms();notice('تم حفظ البريف');
   };
   window.copyBriefLink=function(formId){
-    var form=find(formId);if(!form)return;
+    var form=find(formId);if(!form?.client_id)return;
     var url=typeof window._shortPortalUrl==='function'?_shortPortalUrl(form.client_id):location.origin+'/clients';
     url+=(url.includes('?')?'&':'?')+'tab=briefs&brief='+encodeURIComponent(form.id);
     if(navigator.clipboard?.writeText)navigator.clipboard.writeText(url).then(function(){notice('تم نسخ رابط البريف');}).catch(function(){window.prompt('رابط البريف',url);});
@@ -207,9 +207,11 @@
     if(!form.client_id){useBriefTemplate(formId);return;}
     var url=typeof window._shortPortalUrl==='function'?_shortPortalUrl(form.client_id):'';
     if(!url||url.endsWith('/clients')){notice('أنشئ بوابة للعميل أولًا');return;}
+    var oldToken=form.share_token;
+    if(!form.share_token)form.share_token='brf_'+(window.crypto?.randomUUID?.().replace(/-/g,'')||id().replace(/[^a-z0-9]/gi,''));
     form.status='sent';form.sentAt=new Date().toISOString();form.updatedAt=form.sentAt;
     if(typeof window.cloudSave==='function')await cloudSave(state());
-    if(!window._lastCloudSaveOk){form.status='draft';delete form.sentAt;persist();renderBriefForms();notice('لم يُنشر البريف بعد؛ تحقق من الاتصال أو المساحة ثم حاول مرة أخرى');return;}
+    if(!window._lastCloudSaveOk){form.status='draft';form.share_token=oldToken;delete form.sentAt;persist();renderBriefForms();notice('لم يُنشر البريف بعد؛ تحقق من الاتصال أو المساحة ثم حاول مرة أخرى');return;}
     renderBriefForms();copyBriefLink(formId);
   };
   window.deleteBriefForm=function(formId){

@@ -22,6 +22,7 @@
     { "source": "/store", "destination": "/HTML/store.html" },
     { "source": "/store/:username", "destination": "/HTML/store.html?u=:username" },
     { "source": "/portal/:token", "destination": "/HTML/client-portal.html?token=:token" },
+    { "source": "/brief/:username/:token/:formId", "destination": "/HTML/brief.html?u=:username&t=:token&f=:formId" },
     { "source": "/brief/:username/:token", "destination": "/HTML/brief.html?u=:username&t=:token" },
     { "source": "/proposal/:token", "destination": "/HTML/proposal.html?token=:token" },
     { "source": "/review/:token", "destination": "/HTML/review.html?token=:token" },

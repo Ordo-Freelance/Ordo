@@ -101,6 +101,11 @@ body.lm .brief-portal-sheet{color-scheme:light}
 .brief-image-choice input{position:absolute;inset-inline-start:18px;top:18px;width:18px;height:18px;accent-color:var(--g)}
 .brief-image-choice img{width:100%;height:115px;object-fit:contain;border-radius:8px;background:var(--s1)}
 .brief-image-choice span{text-align:center;font-weight:700}.brief-stage-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:18px;flex-wrap:wrap}.brief-stage-nav span{color:var(--t3);font-size:12px}
+.brief-open-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:43px;padding:9px 18px;border:1px solid var(--bd);border-radius:11px;background:var(--s2);color:var(--t1);font:700 13px var(--font);line-height:1.4;cursor:pointer;transition:background .18s,border-color .18s,transform .18s;white-space:nowrap}
+.brief-open-btn.primary{background:var(--ac);border-color:var(--ac);color:#111827}
+.brief-open-btn:hover{border-color:var(--ac);transform:translateY(-1px)}
+.brief-open-btn:focus-visible{outline:3px solid color-mix(in srgb,var(--ac) 35%,transparent);outline-offset:2px}
+@media(max-width:520px){.brief-open-btn{width:100%}}
 @media(min-width:640px){.overlay{align-items:center;padding:20px}.sheet{border-radius:20px;border:1.5px solid var(--bd);max-height:86vh}}
 @keyframes shUp{from{transform:translateY(50px);opacity:0}to{transform:none;opacity:1}}
 @keyframes pulse-green{0%,100%{box-shadow:0 0 0 0 rgba(79,209,165,.4)}50%{box-shadow:0 0 0 8px rgba(79,209,165,0)}}
@@ -542,7 +547,7 @@ async function _bootWithData(userId, clientId, ud){
       // فتح تاب محدد مباشرة (مثلاً المشاريع)
       setTimeout(()=>{
         switchTab(pTab);
-        if(pTab==='briefs'&&pBriefId&&(_ud.brief_forms||[]).some(form=>String(form.id)===String(pBriefId)))setTimeout(()=>openBriefSheet(pBriefId),100);
+        if(pTab==='briefs'&&pBriefId)setTimeout(()=>document.getElementById('brief-card-'+pBriefId)?.scrollIntoView({block:'center',behavior:'smooth'}),100);
         // لو في project id محدد — نعمل scroll ليه
         if(pProjId){
           setTimeout(()=>{
@@ -1646,9 +1651,19 @@ function openProjectDetail(projId){
 function renderBriefForms(){
   const forms=(_ud?.brief_forms||[]).filter(f=>f&&['sent','submitted','accepted'].includes(f.status));
   if(!forms.length)return '<div class="empty"><i class="fa-solid fa-clipboard-question" style="font-size:30px"></i><h3>لا توجد بريفات حاليًا</h3><p>ستظهر هنا النماذج التي يرسلها لك صاحب العمل.</p></div>';
-  return '<div style="display:grid;gap:12px">'+forms.map(f=>'<div class="card" style="display:flex;justify-content:space-between;gap:15px;align-items:center;flex-wrap:wrap"><div><strong>'+xe(f.title||'بريف')+'</strong><p style="margin:5px 0;color:var(--t3);font-size:12px">'+xe(f.description||'')+'</p><small style="color:var(--t3)">'+(f.status==='sent'?'في انتظار إجاباتك':f.status==='accepted'?'تم اعتماد البريف':'تم إرسال إجاباتك')+'</small></div><button class="btn '+(f.status==='sent'?'btn-primary':'btn-ghost')+'" data-id="'+xe(f.id)+'" onclick="openBriefSheet(this.dataset.id)">'+(f.status==='sent'?'فتح البريف':'عرض البريف')+'</button></div>').join('')+'</div>';
+  return '<div style="display:grid;gap:12px">'+forms.map(f=>'<div class="card" id="brief-card-'+xe(f.id)+'" style="display:flex;justify-content:space-between;gap:15px;align-items:center;flex-wrap:wrap"><div><strong>'+xe(f.title||'بريف')+'</strong><p style="margin:5px 0;color:var(--t3);font-size:12px">'+xe(f.description||'')+'</p><small style="color:var(--t3)">'+(f.status==='sent'?'في انتظار إجاباتك':f.status==='accepted'?'تم اعتماد البريف':'تم إرسال إجاباتك')+'</small></div><button type="button" class="brief-open-btn '+(f.status==='sent'?'primary':'')+'" data-id="'+xe(f.id)+'" onclick="openBriefPage(this.dataset.id)"><i class="fa-solid fa-arrow-up-right-from-square"></i> '+(f.status==='sent'?'فتح صفحة البريف':'عرض صفحة البريف')+'</button></div>').join('')+'</div>';
+}
+function openBriefPage(formId){
+  const form=(_ud?.brief_forms||[]).find(f=>String(f.id)===String(formId));if(!form)return;
+  const username=String(_settings?.username||'').trim().toLowerCase();
+  if(!username){alert('رابط الاستبيان غير متاح: اسم المستخدم غير محدد. تواصل مع صاحب العمل.');return;}
+  const token=form.share_token||pPublicToken;
+  if(!token){alert('رابط الاستبيان غير متاح حاليًا.');return;}
+  const url='/brief/'+encodeURIComponent(username)+'/'+encodeURIComponent(token)+(form.share_token?'':'/'+encodeURIComponent(form.id));
+  location.assign(url);
 }
 function openBriefSheet(formId){
+  openBriefPage(formId);return;
   const form=(_ud?.brief_forms||[]).find(f=>String(f.id)===String(formId));if(!form)return;
   document.getElementById('brief-portal-overlay')?.remove();
   const overlay=document.createElement('div');overlay.className='overlay';overlay.id='brief-portal-overlay';
