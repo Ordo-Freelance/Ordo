@@ -27114,11 +27114,13 @@ async function _pollPublicInbox(){
         const brief=(S.brief_forms||[]).find(item=>String(item.id)===String(payload.form_id)&&String(item.client_id)===String(row.data?.client_id));
         if(brief&&brief.status==='sent'){
           brief.answers=payload.answers||{};
+          brief.respondent_name=payload.respondent_name||brief.respondent_name||'';
+          brief.respondent_contact=payload.respondent_contact||brief.respondent_contact||'';
           brief.submittedAt=row.created_at||new Date().toISOString();
           brief.status='submitted';brief.updatedAt=brief.submittedAt;
           S.support_msgs=S.support_msgs||[];
           const supportId='brief_received_'+brief.id;
-          if(!S.support_msgs.some(item=>String(item.id)===supportId))S.support_msgs.push({id:supportId,type:'brief',client_id:brief.client_id,client_name:(S.clients||[]).find(c=>String(c.id)===String(brief.client_id))?.name||'عميل',subject:'استلام بريف',message:'وصلت إجابات البريف: '+(brief.title||'استبيان'),brief_id:brief.id,created_at:brief.submittedAt,read:false});
+          if(!S.support_msgs.some(item=>String(item.id)===supportId))S.support_msgs.push({id:supportId,type:'brief',client_id:brief.client_id,client_name:(S.clients||[]).find(c=>String(c.id)===String(brief.client_id))?.name||brief.respondent_name||'عميل',subject:'استلام بريف',message:'وصلت إجابات البريف: '+(brief.title||'استبيان'),brief_id:brief.id,created_at:brief.submittedAt,read:false});
           if(typeof window.renderBriefForms==='function')renderBriefForms();
           if(typeof window.renderSupport==='function')renderSupport();
         }

@@ -6,6 +6,7 @@ import {publicSnapshot} from '../api/index.js';
 
 const html=fs.readFileSync(new URL('../HTML/index.html',import.meta.url),'utf8');
 const portal=fs.readFileSync(new URL('../HTML/client-portal.html',import.meta.url),'utf8');
+const standalone=fs.readFileSync(new URL('../HTML/brief.html',import.meta.url),'utf8');
 const app=fs.readFileSync(new URL('../JavaScript/app.js',import.meta.url),'utf8');
 const owner=fs.readFileSync(new URL('../JavaScript/brief_forms.js',import.meta.url),'utf8');
 const api=fs.readFileSync(new URL('../api/index.js',import.meta.url),'utf8');
@@ -66,6 +67,38 @@ test('portal snapshot exposes only sent briefs for its client and not private an
   assert.equal(snapshot.data.brief_forms[0].answers,undefined);
   assert.equal(snapshot.data.brief_forms[0].internalPricing,undefined);
   assert.equal(snapshot.data.brief_forms[0].banner,'data:image/webp;base64,AA');
+});
+
+test('standalone brief link uses username and private share token without exposing client data',async()=>{
+  const form={id:'b1',title:'هوية بصرية',description:'وصف',status:'sent',share_token:'brf_secret',client_id:'a',questions:[{id:'q1',type:'checkbox',label:'المخرجات',options:[{label:'شعار'}]}],answers:{q1:['private']},internalPricing:{base:4000}};
+  const data={settings:{username:'designer',name:'Studio'},clients:[{id:'a',name:'Client'}],brief_forms:[form],invoices:[{id:'inv',client_id:'a'}]};
+  const store={async publicStudioCandidates(){return [{user_id:'owner',username_index:'designer',data}];}};
+  const snapshot=await publicSnapshot(store,{type:'brief',username:'designer',token:'brf_secret'});
+  assert.equal(snapshot.data.brief_forms[0].title,'هوية بصرية');
+  assert.equal(snapshot.data.brief_forms[0].answers,undefined);
+  assert.equal(snapshot.data.brief_forms[0].internalPricing,undefined);
+  assert.equal(snapshot.data.clients,undefined);
+  assert.equal(snapshot.data.invoices,undefined);
+  assert.equal(await publicSnapshot(store,{type:'brief',username:'designer',token:'wrong'}),null);
+  form.status='draft';
+  assert.equal(await publicSnapshot(store,{type:'brief',username:'designer',token:'brf_secret'}),null);
+  form.status='sent';
+  assert.match(standalone,/public\.brief\.submit/);
+  assert.match(api,/postAction==='public\.brief\.submit'/);
+  assert.match(owner,/publishStandaloneBrief/);
+  assert.match(owner,/copyStandaloneBriefLink/);
+});
+
+test('proposal draft receives ordered brief answers and keeps the brief reference',()=>{
+  assert.match(owner,/function quoteCandidates\(form\)/);
+  assert.match(owner,/form\.questions\|\|\[\]/);
+  assert.match(owner,/selected\.forEach\(function\(label\)\{_addPropItem/);
+  assert.match(owner,/document\.getElementById\('prop-brief-id'\)\.value=form\.id/);
+  assert.match(owner,/ملخص البريف:/);
+  const context={window:{S:{}},document:{createElement:()=>({}),head:{appendChild(){}}}};
+  vm.runInNewContext(owner.replace('  document.head.appendChild(style);','  window._quoteCandidates=quoteCandidates; document.head.appendChild(style);'),context);
+  const rows=context.window._quoteCandidates({questions:[{id:'section',type:'section',label:'الهوية'},{id:'a',type:'short',label:'اسم العلامة'},{id:'b',type:'checkbox',label:'المخرجات'}],answers:{a:'نورس',b:['شعار','دليل هوية']}});
+  assert.deepEqual(Array.from(rows,r=>r.label),['الهوية — اسم العلامة: نورس','الهوية — المخرجات: شعار','الهوية — المخرجات: دليل هوية']);
 });
 
 test('brief submissions are validated server-side and owner imports answers into project',()=>{

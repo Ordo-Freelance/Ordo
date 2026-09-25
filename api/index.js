@@ -253,6 +253,10 @@ function publicView(data, type, token) {
   if (type === 'store') return { settings: publicSettings, services: data.services || [], standalone_packages: data.standalone_packages || [], portfolio_projects: data.portfolio_projects || [], stores: data.stores || [], reviews: (data.reviews || []).filter(row => row.public_visible !== false) };
   if (type === 'reviews_public') return { settings: publicSettings, reviews: (data.reviews || []).filter(row => row.public_visible !== false), public_tokens: (data.public_tokens || []).filter(item => ['review','store'].includes(item.entity_type) && !item.revoked && (!item.expires_at || new Date(item.expires_at) > new Date())).map(item => ({token:item.token,entity_type:item.entity_type})) };
   if (type === 'review') return { settings: publicSettings, reviews: (data.reviews || []).filter(row => row.public_visible !== false) };
+  if (type === 'brief') {
+    const form=(data.brief_forms||[]).find(row=>String(row.id)===String(token?.entity_id)&&row.status==='sent'&&row.share_token===token?.token);
+    return {settings:publicSettings,brief_forms:form?[{id:form.id,title:form.title,description:form.description,banner:form.banner,items:form.items,questions:form.questions,status:form.status}]:[]};
+  }
   const clientId = String(token?.client_id || '');
   const clientName = String(token?.client_name || '').trim().toLowerCase();
   const belongs = row => String(row?.client_id ?? row?.clientId ?? '') === clientId || (!!clientName && String(row?.client_name || row?.client || '').trim().toLowerCase() === clientName);
@@ -274,16 +278,22 @@ function publicView(data, type, token) {
 
 async function publicSnapshot(store, input) {
   const type = String(input.type || '');
-  if (!['store','reviews_public','review','client_portal'].includes(type)) return null;
+  if (!['store','reviews_public','review','client_portal','brief'].includes(type)) return null;
   const token = String(input.token || '').trim();
   const username = String(input.username || '').trim().toLowerCase();
   const uid = String(input.uid || '').trim();
-  if ((type === 'review' || type === 'client_portal') && !token) return null;
-  const candidates = await store.publicStudioCandidates({ token, username, uid: token ? uid : (type === 'store' || type === 'reviews_public' ? uid : '') });
+  if ((type === 'review' || type === 'client_portal' || type === 'brief') && !token) return null;
+  if(type==='brief'&&!username)return null;
+  const candidates = await store.publicStudioCandidates({ token:type==='brief'?'':token, username, uid: token&&type!=='brief' ? uid : (type === 'store' || type === 'reviews_public' ? uid : '') });
   for (const row of candidates) {
     const data = unwrapStudio(row.data);
     const tokens = Array.isArray(data.public_tokens) ? data.public_tokens : [];
     let matching = token ? tokens.find(item => item?.token === token && !item.revoked && (!item.expires_at || new Date(item.expires_at) > new Date()) && (item.entity_type === type || (type === 'reviews_public' && item.entity_type === 'review'))) : null;
+    if(type==='brief'){
+      if(![row.username_index,data.settings?.username].some(value=>String(value||'').toLowerCase()===username))continue;
+      const form=(data.brief_forms||[]).find(item=>item?.share_token===token&&item.status==='sent');
+      matching=form?{token,entity_type:'brief',entity_id:form.id,client_id:form.client_id||''}:null;
+    }
     if (token && !matching) {
       const collection = type === 'client_portal' ? data.client_portals : type === 'review' ? data.reviews : type === 'store' ? data.stores : [];
       const entity = (collection || []).find(item => [item?.token, item?.public_token, item?.shareToken].includes(token));
@@ -1215,6 +1225,46 @@ export default async function handler(req, res) {
       const {user}=await currentUser(req,store);
       if(!user)return fail(res,'يلزم تسجيل الدخول',401,'login_required');
       return ok(res,{features:await financeFeatureAccess(store,user)});
+    }
+
+    if(postAction==='public.brief.submit'){
+      const snapshot=await publicSnapshot(store,{type:'brief',username:input.username,token:input.token});
+      if(!snapshot)return fail(res,'رابط الاستبيان غير صالح',404,'brief_not_found');
+      const form=snapshot.data.brief_forms?.[0];
+      if(!form||form.status!=='sent')return fail(res,'الاستبيان غير متاح',403,'brief_not_available');
+      const supplied=input.answers&&typeof input.answers==='object'&&!Array.isArray(input.answers)?input.answers:{};
+      if(JSON.stringify(supplied).length>250000)return fail(res,'الإجابات كبيرة جدًا',413,'too_large');
+      const name=String(input.respondent_name||'').trim().slice(0,120);
+      const contact=String(input.respondent_contact||'').trim().slice(0,160);
+      if(!snapshot.token.client_id&&(!name||!contact))return fail(res,'أدخل اسمك ووسيلة تواصل',400,'respondent_required');
+      const answers={};
+      for(const q of form.questions||[]){
+        if(q.type==='section')continue;
+        const answer=supplied[q.id];
+        if(q.type==='checkbox'||q.type==='image'&&Array.isArray(answer)){
+          const allowed=new Set((q.options||[]).map(option=>String(option.label||option)));
+          const values=Array.isArray(answer)?answer.map(value=>String(value).slice(0,200)):[];
+          if(values.length>30||values.some(value=>!allowed.has(value)))return fail(res,'اختيار غير صحيح',400,'invalid_brief_answer');
+          if(q.required&&!values.length)return fail(res,'أكمل الأسئلة المطلوبة',400,'brief_required');
+          answers[q.id]=values;
+        }else{
+          const value=typeof answer==='string'?answer.trim():'';
+          if(value.length>(q.type==='essay'?3000:q.type==='short'?500:200))return fail(res,'الإجابة طويلة جدًا',400,'brief_answer_too_long');
+          if(q.required&&!value)return fail(res,'أكمل الأسئلة المطلوبة',400,'brief_required');
+          if(['image','radio','select'].includes(q.type)&&value&&!(q.options||[]).some(option=>String(option.label||option)===value))return fail(res,'اختيار غير صحيح',400,'invalid_brief_answer');
+          if(q.type==='toggle'&&value&&!['نعم','لا'].includes(value))return fail(res,'إجابة غير صحيحة',400,'invalid_brief_answer');
+          if(q.type==='scale'&&value&&!['1','2','3','4','5'].includes(value))return fail(res,'اختيار المقياس غير صحيح',400,'invalid_brief_answer');
+          answers[q.id]=value;
+        }
+      }
+      const previous=await store.query('public_client_portal_events',{op:'select',columns:'id,data',filters:[{op:'eq',column:'user_id',value:snapshot.uid}],limit:500});
+      if((previous||[]).some(row=>{const data=parseMaybe(row.data)||{};return data.event_type==='brief_submit'&&String(data.event_data?.form_id)===String(form.id);}))return fail(res,'تم إرسال هذا البريف من قبل',409,'brief_already_submitted');
+      const payload={form_id:form.id,answers,respondent_name:name,respondent_contact:contact,source:'standalone'};
+      const row=await store.query('public_client_portal_events',{op:'insert',payload:{id:uuid(),user_id:snapshot.uid,data:{client_id:snapshot.token.client_id||'',event_type:'brief_submit',event_data:payload},created_at:now()},single:true});
+      if(snapshot.token.client_id){
+        try{await store.query('public_client_portal_events',{op:'insert',payload:{id:uuid(),user_id:snapshot.uid,data:{client_id:snapshot.token.client_id,event_type:'portal_chat',event_data:{sender:'client',body:'تم إرسال إجابات البريف: '+String(form.title||'استبيان').slice(0,160),brief_id:form.id}},created_at:now()},single:true});}catch(error){console.warn('Brief chat notification failed:',error);}
+      }
+      return ok(res,{id:row.id});
     }
 
     if (['public.portalChat.list','public.portalChat.send','public.portalChat.media','public.portalChat.delete','public.portalChat.clear','portalChat.list','portalChat.send','portalChat.media','portalChat.delete','portalChat.clear','portalChat.inbox'].includes(postAction)) {
