@@ -89,3 +89,17 @@ test('portal brief renderer shows a sent form and submission entry point',()=>{
   assert.match(rendered,/فتح البريف/);
   assert.doesNotMatch(rendered,/لا توجد بريفات/);
 });
+
+test('brief builder keeps templates in the editor and permits stage navigation and image multi-selection',()=>{
+  assert.match(owner,/id="brief-template-select"/);
+  assert.match(owner,/briefApplyTemplate/);
+  assert.match(owner,/briefAddQuestion\(\\'section\\'\)/);
+  assert.match(owner,/deleteBriefForm/);
+  assert.match(portal,/function briefStageMove\(direction\)/);
+  assert.match(portal,/brief-portal-stage/);
+  assert.match(portal,/class="brief-image-choice"/);
+  assert.match(portal,/type="checkbox" value="'\+xe\(o\.label\)/);
+  assert.doesNotMatch(portal,/--s1:#fff;--s2:#f6f7f9/);
+  assert.match(api,/q\.type==='checkbox'\|\|q\.type==='image'&&Array\.isArray\(answer\)/);
+  assert.match(api,/event_type:'portal_chat'.*brief_id:payload\.form_id/);
+});

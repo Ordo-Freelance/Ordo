@@ -9,6 +9,14 @@ test('counts only stored image data, including nested invoice receipts', () => {
   assert.equal(imageBytes(JSON.stringify({logo:image})),4);
 });
 
+test('brief banners and uploaded answer-choice pictures consume account storage',()=>{
+  const image='data:image/png;base64,YWJjZA==';
+  const snapshot={brief_forms:[{banner:image,questions:[{type:'image',options:[{label:'شعار كتابي',image_url:image},{label:'شعار رمزي',image_url:image}]}]}]};
+  assert.equal(imageBytes(snapshot),12);
+  snapshot.brief_forms[0].questions[0].options.pop();
+  assert.equal(imageBytes(snapshot),8);
+});
+
 test('storage policy ignores user-writable subscription claims and honors admin overrides', async () => {
   const logo = 'data:image/png;base64,YWJjZA==';
   const store = {async userById(){return {avatar_url:''};},async query(table){

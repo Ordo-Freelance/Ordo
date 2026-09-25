@@ -46,7 +46,7 @@
     var images=block&&block.querySelector('.brief-image-options');if(images)images.style.display=select.value==='image'?'':'none';
     var required=block&&block.querySelector('.brief-required');if(required)required.style.display=select.value==='section'?'none':'';
   };
-  window.briefAddQuestion=function(){ var wrap=document.getElementById('brief-questions'); if(wrap)wrap.insertAdjacentHTML('beforeend',questionMarkup()); };
+  window.briefAddQuestion=function(type){ var wrap=document.getElementById('brief-questions'); if(wrap)wrap.insertAdjacentHTML('beforeend',questionMarkup(type==='section'?{type:'section',label:'مرحلة جديدة'}:{})); };
   window.briefMoveQuestion=function(button,direction){var block=button.closest('.brief-question');if(!block)return;if(direction<0&&block.previousElementSibling)block.parentNode.insertBefore(block,block.previousElementSibling);else if(direction>0&&block.nextElementSibling)block.parentNode.insertBefore(block.nextElementSibling,block);};
   window.briefAddItem=function(){ var wrap=document.getElementById('brief-items'); if(wrap)wrap.insertAdjacentHTML('beforeend',itemMarkup()); };
   window.briefClientChanged=function(){
@@ -59,22 +59,34 @@
     if(!form){notice('تعذر تجهيز القالب');return;}
     forms().push(form);persist();renderBriefForms();openBriefForm(form.id);notice('تم إنشاء القالب؛ يمكنك مراجعته وتخصيصه');
   };
+  window.briefApplyTemplate=function(kind){
+    if(!kind)return;
+    var template=window.OrdoBriefTemplates?.build(kind),wrap=document.getElementById('brief-questions');
+    if(!template||!wrap)return;
+    if(wrap.children.length&&!window.confirm('سيتم استبدال الأسئلة والبنود الحالية بالقالب المختار. هل تريد المتابعة؟')){document.getElementById('brief-template-select').value='';return;}
+    document.getElementById('brief-title').value=template.title||'';
+    document.getElementById('brief-description').value=template.description||'';
+    document.getElementById('brief-items').innerHTML=(template.items||[]).map(itemMarkup).join('');
+    wrap.innerHTML=(template.questions||[]).map(questionMarkup).join('');
+    notice('تم تحميل القالب داخل النموذج؛ راجعه ثم احفظه');
+  };
   window.openVisualIdentityBrief=function(){openBriefTemplate('identity');};
   window.renderBriefForms=function(){
     var panel=document.getElementById('inv-panel-briefs');
     if(!panel)return;
     var rows=forms().slice().sort(function(a,b){return String(b.createdAt||'').localeCompare(String(a.createdAt||''));});
-    panel.innerHTML='<div class="brief-panel-heading"><div><h3>البريفات والاستبيانات</h3><p>أنشئ بنودًا وأسئلة وأرسلها من بوابة العميل. بعد وصول الإجابات يمكنك اعتمادها وربطها بالمشروع.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" onclick="_pollPublicInbox().then(renderBriefForms)"><i class="fa-solid fa-rotate"></i> تحديث الردود</button><button class="btn btn-ghost" onclick="openBriefTemplate(\'logo\')"><i class="fa-solid fa-signature"></i> قالب شعار</button><button class="btn btn-ghost" onclick="openBriefTemplate(\'identity\')"><i class="fa-solid fa-palette"></i> قالب هوية بصرية</button><button class="btn btn-ghost" onclick="openBriefTemplate(\'social\')"><i class="fa-solid fa-hashtag"></i> قالب سوشيال ميديا</button><button class="btn btn-primary" onclick="openBriefForm()"><i class="fa-solid fa-plus"></i> بريف جديد</button></div></div>'+
+    panel.innerHTML='<div class="brief-panel-heading"><div><h3>البريفات والاستبيانات</h3><p>أنشئ بنودًا وأسئلة وأرسلها من بوابة العميل. بعد وصول الإجابات يمكنك اعتمادها وربطها بالمشروع.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" onclick="_pollPublicInbox().then(renderBriefForms)"><i class="fa-solid fa-rotate"></i> تحديث الردود</button><button class="btn btn-primary" onclick="openBriefForm()"><i class="fa-solid fa-plus"></i> بريف جديد</button></div></div>'+
       (rows.length?'<div class="brief-list">'+rows.map(function(f){
         var client=(state().clients||[]).find(function(c){return String(c.id)===String(f.client_id);});
         var project=(state().projects||[]).find(function(p){return String(p.id)===String(f.project_id);});
         var labels={draft:'مسودة',sent:'أُرسل للعميل',submitted:'وصل الرد',accepted:'معتمد'};
         var formId=esc(f.id);
         return '<article class="card brief-card"><div class="brief-card-top"><div><h4>'+esc(f.title||'بريف بدون عنوان')+'</h4><small>'+esc(client?.name||'قالب عام')+(project?' · '+esc(project.name):'')+'</small></div><span class="brief-status brief-status-'+esc(f.status||'draft')+'">'+(labels[f.status]||'مسودة')+'</span></div><p>'+esc(f.description||'')+'</p><div class="brief-card-actions">'+
-          '<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="openBriefForm(this.dataset.id)"><i class="fa-solid fa-eye"></i> '+(f.status==='draft'?'تعديل':'عرض')+'</button>'+
-          (f.status==='draft'&&f.client_id?'<button class="btn btn-primary btn-sm" data-id="'+formId+'" onclick="sendBriefForm(this.dataset.id)"><i class="fa-solid fa-paper-plane"></i> إرسال للعميل</button>':'')+
+          '<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="openBriefForm(this.dataset.id)"><i class="fa-solid fa-pen"></i> تعديل وعرض</button>'+
+          (f.status==='draft'?'<button class="btn btn-primary btn-sm" data-id="'+formId+'" onclick="sendBriefForm(this.dataset.id)"><i class="fa-solid fa-paper-plane"></i> إرسال للعميل</button>':'')+
           (!f.client_id?'<button class="btn btn-primary btn-sm" data-id="'+formId+'" onclick="useBriefTemplate(this.dataset.id)"><i class="fa-solid fa-copy"></i> استخدام مع عميل</button>':'')+
           (f.status==='sent'?'<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="copyBriefLink(this.dataset.id)"><i class="fa-solid fa-link"></i> نسخ الرابط</button>':'')+
+          '<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="deleteBriefForm(this.dataset.id)" aria-label="حذف البريف"><i class="fa-solid fa-trash"></i></button>'+
           (f.status==='submitted'?'<button class="btn btn-success btn-sm" data-id="'+formId+'" onclick="acceptBriefForm(this.dataset.id)"><i class="fa-solid fa-check"></i> اعتماد وربط بالمشروع</button>':'')+
           (['submitted','accepted'].includes(f.status)?'<button class="btn btn-primary btn-sm" data-id="'+formId+'" onclick="openBriefQuoteBuilder(this.dataset.id)"><i class="fa-solid fa-file-invoice-dollar"></i> عرض سعر من البريف</button>':'')+
           '</div></article>';
@@ -86,12 +98,12 @@
     document.getElementById('brief-editor-overlay')?.remove();
     var overlay=document.createElement('div');overlay.id='brief-editor-overlay';overlay.className='modal-overlay';overlay.style.display='flex';
     overlay.onclick=function(event){if(event.target===overlay)overlay.remove();};
-    var readonly=form&&form.status!=='draft';
+    var readonly=false;
     var fields='<div class="brief-banner-editor"><img id="brief-banner-preview" src="'+esc(form?.banner||'')+'" alt="بانر الاستبيان" style="'+(form?.banner?'':'display:none')+'"><input type="hidden" id="brief-banner-data" value="'+esc(form?.banner||'')+'"><label class="btn btn-ghost btn-sm"><i class="fa-solid fa-image"></i> رفع بانر<input type="file" accept="image/png,image/jpeg,image/webp" hidden onchange="briefUploadBanner(this)"></label><button class="btn btn-ghost btn-sm" type="button" onclick="briefRemoveBanner()">إزالة البانر</button></div>'+
-      '<div class="brief-grid"><div class="form-group"><label class="form-label">اسم النموذج *</label><input class="form-input" id="brief-title" maxlength="160" value="'+esc(form?.title||'')+'" placeholder="مثال: بريف تصميم الهوية"></div><div class="form-group"><label class="form-label">العميل (اختياري للقالب العام)</label><select class="form-select" id="brief-client" onchange="briefClientChanged()">'+clientOptions(form?.client_id)+'</select></div></div>'+
+      '<div class="brief-grid"><div class="form-group"><label class="form-label">اسم النموذج *</label><input class="form-input" id="brief-title" maxlength="160" value="'+esc(form?.title||'')+'" placeholder="مثال: بريف تصميم الهوية"></div><div class="form-group"><label class="form-label">ابدأ من قالب جاهز</label><select class="form-select" id="brief-template-select" onchange="briefApplyTemplate(this.value)"><option value="">نموذج مخصص</option><option value="logo">قالب شعار</option><option value="identity">قالب هوية بصرية</option><option value="social">قالب سوشيال ميديا</option></select></div></div>'+
       '<div class="brief-grid"><div class="form-group"><label class="form-label">المشروع المرتبط</label><select class="form-select" id="brief-project">'+projectOptions(form?.client_id,form?.project_id)+'</select></div><div class="form-group"><label class="form-label">وصف مختصر</label><input class="form-input" id="brief-description" value="'+esc(form?.description||'')+'" placeholder="ما المطلوب من العميل؟"></div></div>'+
       '<section class="brief-editor-section"><div class="brief-section-head"><h4>البنود والتوضيحات</h4>'+(!readonly?'<button class="btn btn-ghost btn-sm" onclick="briefAddItem()">+ بند</button>':'')+'</div><div id="brief-items">'+(form?.items||[]).map(itemMarkup).join('')+'</div></section>'+
-      '<section class="brief-editor-section"><div class="brief-section-head"><h4>الأسئلة</h4>'+(!readonly?'<button class="btn btn-ghost btn-sm" onclick="briefAddQuestion()">+ سؤال</button>':'')+'</div><div id="brief-questions">'+(form?.questions||[]).map(questionMarkup).join('')+'</div></section>';
+      '<section class="brief-editor-section"><div class="brief-section-head"><h4>مراحل الاستبيان وأسئلته</h4><div><button class="btn btn-ghost btn-sm" onclick="briefAddQuestion(\'section\')">+ مرحلة</button> <button class="btn btn-ghost btn-sm" onclick="briefAddQuestion()">+ سؤال</button></div></div><p class="brief-help">كل عنوان مرحلة يبدأ صفحة مستقلة للعميل، ويمكنه التنقل بالسابق والتالي.</p><div id="brief-questions">'+(form?.questions||[]).map(questionMarkup).join('')+'</div></section>';
     var answers='';
     if(form?.answers){
       answers='<section class="brief-editor-section"><h4>إجابات العميل</h4>'+(form.questions||[]).map(function(q){if(q.type==='section')return '<h4 class="brief-answer-section">'+esc(q.label)+'</h4>';var answer=form.answers[q.id];var choice=Array.isArray(answer)?answer.join('، '):answer;return '<div class="brief-answer"><b>'+esc(q.label)+'</b><p>'+esc(choice||'—')+'</p></div>';}).join('')+'</section>';
@@ -99,7 +111,6 @@
     }
     overlay.innerHTML='<div class="modal brief-editor" dir="rtl"><div class="modal-header"><div class="modal-title"><i class="fa-solid fa-clipboard-question"></i> '+(form?'البريف':'بريف جديد')+'</div><button class="close-btn" onclick="document.getElementById(\'brief-editor-overlay\').remove()"><i class="fa-solid fa-xmark"></i></button></div><div class="brief-editor-content" id="brief-editor-content" data-id="'+esc(form?.id||'')+'">'+fields+answers+'</div><div class="brief-editor-footer">'+(!readonly?'<button class="btn btn-primary" onclick="saveBriefForm()"><i class="fa-solid fa-floppy-disk"></i> حفظ البريف</button>':'')+(form?.status==='submitted'?'<button class="btn btn-primary" data-id="'+esc(form.id)+'" onclick="briefAssignProject(this.dataset.id)">حفظ ربط المشروع</button>':'')+(form?.answers?'<button class="btn btn-ghost" data-id="'+esc(form.id)+'" onclick="saveBriefPricing(this.dataset.id)">حفظ تقييم التسعير</button>':'')+'<button class="btn btn-ghost" onclick="document.getElementById(\'brief-editor-overlay\').remove()">إغلاق</button></div></div>';
     document.body.appendChild(overlay);
-    if(readonly)overlay.querySelectorAll('#brief-editor-content input,#brief-editor-content select,#brief-editor-content textarea,#brief-editor-content .brief-editor-block button').forEach(function(el){if(!el.closest('.brief-pricing')&&(form.status!=='submitted'||el.id!=='brief-project'))el.disabled=true;});
     briefPricingTotal();
     if(!form)briefAddQuestion();
   };
@@ -108,7 +119,7 @@
   function pricingMarkup(form){var pricing=form.internalPricing||{},factors=pricing.factors||{},lines=pricing.lines||{};return '<section class="brief-editor-section brief-pricing"><h4><i class="fa-solid fa-lock"></i> تقييم داخلي للتسعير — لا يظهر للعميل</h4><p style="color:var(--text3);font-size:12px">قيّم درجة التعقيد، ثم سجّل تقدير التكلفة. هذه الأرقام لا تُرسل تلقائيًا في عرض السعر.</p><div class="brief-pricing-factors">'+pricingFactors.map(function(label,index){return '<label><span>'+esc(label)+'</span><select class="form-select brief-pricing-factor" data-index="'+index+'"><option value="">غير مقيّم</option>'+['بسيط','متوسط','مرتفع'].map(function(v){return '<option value="'+v+'"'+(factors[index]===v?' selected':'')+'>'+v+'</option>';}).join('')+'</select></label>';}).join('')+'</div><div class="brief-grid">'+Object.keys(pricingLines).map(function(key){return '<label class="form-group"><span class="form-label">'+pricingLines[key]+'</span><input class="form-input brief-pricing-line" data-key="'+key+'" type="number" min="0" value="'+esc(lines[key]||0)+'" oninput="briefPricingTotal()"></label>';}).join('')+'</div><p class="brief-pricing-total">السعر النهائي المقترح: <strong id="brief-pricing-total">0</strong></p><div class="brief-grid">'+[['duration','مدة التنفيذ'],['paymentTerms','شروط الدفع'],['revisions','عدد جولات التعديل'],['extraDeliverable','سعر المخرج الإضافي'],['extraRevision','سعر الجولة الإضافية']].map(function(pair){return '<label class="form-group"><span class="form-label">'+pair[1]+'</span><input class="form-input brief-pricing-meta" data-key="'+pair[0]+'" value="'+esc(pricing[pair[0]]||'')+'"></label>';}).join('')+'</div></section>';}
   window.briefPricingTotal=function(){var total=[...document.querySelectorAll('.brief-pricing-line')].reduce(function(sum,el){return sum+Math.max(0,Number(el.value)||0);},0);var target=document.getElementById('brief-pricing-total');if(target)target.textContent=total.toLocaleString();};
   window.saveBriefPricing=function(formId){var form=find(formId),wrap=document.querySelector('.brief-pricing');if(!form||!wrap)return;var factors={},lines={},meta={};wrap.querySelectorAll('.brief-pricing-factor').forEach(function(el){factors[el.dataset.index]=el.value;});wrap.querySelectorAll('.brief-pricing-line').forEach(function(el){lines[el.dataset.key]=Math.max(0,Number(el.value)||0);});wrap.querySelectorAll('.brief-pricing-meta').forEach(function(el){meta[el.dataset.key]=el.value.trim();});form.internalPricing=Object.assign({factors:factors,lines:lines},meta);form.updatedAt=new Date().toISOString();persist();notice('تم حفظ تقييم التسعير الداخلي');};
-  function quoteCandidates(form){var section='',rows=[];(form.questions||[]).forEach(function(q){if(q.type==='section'){section=q.label||'';return;}var answer=form.answers?.[q.id];if(!Array.isArray(answer)||!answer.length)return;if(!/(المخرجات|النطاق|التطبيقات|الملفات|التصميمات)/.test(section+' '+q.label))return;answer.forEach(function(value){rows.push({label:String(value),group:q.label});});});return rows;}
+  function quoteCandidates(form){var section='',rows=[];(form.questions||[]).forEach(function(q){if(q.type==='section'){section=q.label||'';return;}var answer=form.answers?.[q.id];if(!answer)return;var values=Array.isArray(answer)?answer:[answer];if(!values.length)return;if(!/(المخرجات|النطاق|التطبيقات|الملفات|التصميمات|الخدمات|نوع الشعار)/.test(section+' '+q.label)&&!['checkbox','image'].includes(q.type))return;values.forEach(function(value){rows.push({label:String(value),group:q.label});});});return rows;}
   window.openBriefQuoteBuilder=function(formId){var form=find(formId);if(!form||!form.answers)return;document.getElementById('brief-quote-overlay')?.remove();var rows=quoteCandidates(form),overlay=document.createElement('div');overlay.className='modal-overlay';overlay.id='brief-quote-overlay';overlay.style.display='flex';overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};overlay.innerHTML='<div class="modal brief-quote-modal" dir="rtl"><div class="modal-header"><div class="modal-title"><i class="fa-solid fa-file-invoice-dollar"></i> تحويل البريف إلى عرض سعر</div><button class="close-btn" onclick="document.getElementById(\'brief-quote-overlay\').remove()"><i class="fa-solid fa-xmark"></i></button></div><div class="brief-editor-content"><p>اختر المخرجات التي ستظهر كبنود في العرض، ثم أضف سعر كل بند في شاشة عرض السعر. لا يُرسل شيء للعميل قبل الحفظ وإنشاء الرابط.</p><div class="brief-quote-rows">'+(rows.length?rows.map(function(row){return '<label class="brief-quote-row"><input type="checkbox" checked value="'+esc(row.label)+'"><span><b>'+esc(row.label)+'</b><small>'+esc(row.group)+'</small></span></label>';}).join(''):'<p>لم تُحدّد مخرجات في إجابات العميل. يمكنك إضافة البنود يدويًا في عرض السعر.</p>')+'</div></div><div class="brief-editor-footer"><button class="btn btn-primary" data-id="'+esc(formId)+'" onclick="createProposalFromBrief(this.dataset.id)">إنشاء مسودة عرض سعر</button></div></div>';document.body.appendChild(overlay);};
   window.createProposalFromBrief=function(formId){
     var form=find(formId),client=(state().clients||[]).find(function(c){return String(c.id)===String(form?.client_id);});
@@ -130,9 +141,9 @@
   window.saveBriefForm=function(){
     var body=document.getElementById('brief-editor-content');if(!body)return;
     var form=body.dataset.id?find(body.dataset.id):null;
-    if(form&&form.status!=='draft')return;
+    if(form&&form.status==='accepted'&&!window.confirm('هذا البريف معتمد ومربوط بمشروع. سيؤدي تعديل النموذج إلى تحديث نسخة الاستبيان فقط، مع بقاء نسخة المشروع المعتمدة. متابعة؟'))return;
     var title=document.getElementById('brief-title').value.trim();
-    var clientId=document.getElementById('brief-client').value;
+    var clientId=form?.client_id||'';
     if(!title){notice('أدخل اسم النموذج');return;}
     var items=[...body.querySelectorAll('.brief-item')].map(function(el){return {id:el.dataset.id,title:el.querySelector('.brief-item-title').value.trim(),description:el.querySelector('.brief-item-desc').value.trim()};}).filter(function(item){return item.title;});
     var questions=[...body.querySelectorAll('.brief-question')].map(function(el){
@@ -158,13 +169,19 @@
   };
   window.sendBriefForm=async function(formId){
     var form=find(formId);if(!form||form.status!=='draft')return;
-    if(!form.client_id){notice('اختر العميل أولًا');return;}
+    if(!form.client_id){useBriefTemplate(formId);return;}
     var url=typeof window._shortPortalUrl==='function'?_shortPortalUrl(form.client_id):'';
     if(!url||url.endsWith('/clients')){notice('أنشئ بوابة للعميل أولًا');return;}
     form.status='sent';form.sentAt=new Date().toISOString();form.updatedAt=form.sentAt;
     if(typeof window.cloudSave==='function')await cloudSave(state());
     if(!window._lastCloudSaveOk){form.status='draft';delete form.sentAt;persist();renderBriefForms();notice('لم يُنشر البريف بعد؛ تحقق من الاتصال أو المساحة ثم حاول مرة أخرى');return;}
     renderBriefForms();copyBriefLink(formId);
+  };
+  window.deleteBriefForm=function(formId){
+    var form=find(formId);if(!form)return;
+    if(!window.confirm('حذف البريف «'+(form.title||'بدون عنوان')+'» نهائيًا؟ سيتوقف رابط العميل وتُزال الصور من مساحة حسابك.'))return;
+    var index=forms().indexOf(form);if(index<0)return;
+    forms().splice(index,1);persist();renderBriefForms();notice('تم حذف البريف');
   };
   window.useBriefTemplate=function(formId){
     var template=find(formId);if(!template||template.client_id)return;
@@ -202,5 +219,6 @@
   var style=document.createElement('style');
   style.textContent='.brief-panel-heading{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:16px}.brief-panel-heading h3{margin:0;font-size:18px}.brief-panel-heading p{margin:4px 0 0;color:var(--text3);font-size:12px}.brief-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}.brief-card h4{margin:0 0 4px}.brief-card p{color:var(--text3);font-size:12px}.brief-card-top,.brief-card-actions,.brief-section-head,.brief-editor-line,.brief-editor-footer{display:flex;align-items:center;justify-content:space-between;gap:10px}.brief-card-actions{justify-content:flex-start;flex-wrap:wrap}.brief-status{font-size:11px;padding:5px 10px;border-radius:20px;background:var(--surface2);white-space:nowrap}.brief-status-submitted{color:var(--accent3)}.brief-status-accepted{color:var(--accent3)}.brief-editor,.brief-use-template{width:min(820px,96vw);max-height:min(90dvh,900px);display:flex;flex-direction:column}.brief-use-template{width:min(450px,96vw)}.brief-editor-content{overflow:auto;padding:18px}.brief-editor-footer{justify-content:flex-start;padding:14px 18px;border-top:1px solid var(--border)}.brief-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.brief-editor-section{border-top:1px solid var(--border);padding-top:15px;margin-top:15px}.brief-editor-section h4{margin:0 0 12px}.brief-editor-block{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin:10px 0}.brief-editor-block .form-input,.brief-editor-block .form-textarea{margin-bottom:8px}.brief-editor-line .form-input{flex:1}.brief-q-type{width:170px}.brief-required{font-size:12px;display:flex;align-items:center;gap:6px;margin-bottom:8px}.brief-options small{display:block;color:var(--text3);margin-bottom:5px}.brief-answer{border-bottom:1px solid var(--border);padding:8px 0}.brief-answer p{white-space:pre-wrap}.brief-empty{text-align:center;padding:40px}.brief-empty i{font-size:30px;color:var(--text3)}@media(max-width:650px){.brief-grid{grid-template-columns:1fr}.brief-panel-heading{align-items:flex-start;flex-direction:column}.brief-editor-line{flex-wrap:wrap}.brief-q-type{width:auto}}';
   style.textContent+='.brief-banner-editor{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}.brief-banner-editor img{width:100%;max-height:180px;object-fit:cover;border-radius:12px}.brief-image-option{display:flex;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap}.brief-image-option .form-input{flex:1;min-width:160px}.brief-image-preview{width:72px;height:56px;object-fit:cover;border-radius:7px}.brief-image-options small{display:block;color:var(--text3);margin-bottom:6px}.brief-answer-section{margin:18px 0 4px;color:var(--accent3)}.brief-pricing{background:var(--surface2);padding:15px;border-radius:12px}.brief-pricing-factors{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0}.brief-pricing-factors label{display:flex;align-items:center;justify-content:space-between;gap:7px;font-size:12px}.brief-pricing-factors select{width:120px}.brief-pricing-total{font-size:14px;font-weight:800;color:var(--accent3)}.brief-quote-modal{width:min(650px,96vw);max-height:90dvh;display:flex;flex-direction:column}.brief-quote-row{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--border);border-radius:9px;margin:7px 0}.brief-quote-row span{display:flex;flex-direction:column;gap:3px}.brief-quote-row small{color:var(--text3)}@media(max-width:650px){.brief-pricing-factors{grid-template-columns:1fr}}';
+  style.textContent+='.brief-help{font-size:12px;color:var(--text3)}.brief-question:has(.brief-q-type option[value="section"]:checked){border-inline-start:3px solid var(--accent3)}';
   document.head.appendChild(style);
 })();

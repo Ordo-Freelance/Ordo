@@ -1318,7 +1318,7 @@ export default async function handler(req, res) {
         for(const q of questions){
           if(q.type==='section')continue;
           const answer=supplied[q.id];
-          if(q.type==='checkbox'){
+          if(q.type==='checkbox'||q.type==='image'&&Array.isArray(answer)){
             const allowed=new Set((q.options||[]).map(option=>String(option.label||option)));
             const values=Array.isArray(answer)?answer.map(value=>String(value).slice(0,200)):[];
             if(values.length>30||values.some(value=>!allowed.has(value)))return fail(res,'إجابة غير صحيحة',400,'invalid_brief_answer');
@@ -1343,6 +1343,12 @@ export default async function handler(req, res) {
       const row = await store.query('public_client_portal_events', {op:'insert', payload:{
         id:uuid(), user_id:snapshot.uid, data:{client_id:snapshot.token.client_id,event_type:eventType,event_data:payload}, created_at:now()
       }, single:true});
+      if(eventType==='brief_submit'){
+        try{
+          const brief=(snapshot.data.brief_forms||[]).find(item=>String(item.id)===String(payload.form_id));
+          await store.query('public_client_portal_events',{op:'insert',payload:{id:uuid(),user_id:snapshot.uid,data:{client_id:snapshot.token.client_id,event_type:'portal_chat',event_data:{sender:'client',body:'تم إرسال إجابات البريف: '+String(brief?.title||'استبيان').slice(0,160),brief_id:payload.form_id}},created_at:now()},single:true});
+        }catch(error){console.warn('Brief chat notification failed:',error);}
+      }
       return ok(res, {id:row.id});
     }
 

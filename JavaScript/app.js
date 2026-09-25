@@ -25426,8 +25426,8 @@ function renderSupport(){
     return;
   }
   el.innerHTML=msgs.map(function(m){
-    var typeIcon={meeting:'<i class="fa-solid fa-calendar-days"></i>',support:'ًں†ک',message:'<i class="fa-solid fa-comments"></i>',svc_order:'<i class="fa-solid fa-inbox"></i>',contact:'<i class="fa-solid fa-envelope-open-text"></i>',meeting_request:'<i class="fa-solid fa-calendar-days"></i>',direct_message:'<i class="fa-solid fa-envelope" style="color:var(--accent)"></i>'}[m.type]||'<i class="fa-solid fa-comments"></i>';
-    var typeLabel={meeting:'طلب اجتماع',support:'طلب دعم',message:'رسالة',svc_order:'طلب خدمة',meeting_request:'طلب اجتماع',contact:'رسالة تواصل',direct_message:'رسالة داخلية'}[m.type]||m.type||'رسالة';
+    var typeIcon={meeting:'<i class="fa-solid fa-calendar-days"></i>',support:'ًں†ک',message:'<i class="fa-solid fa-comments"></i>',svc_order:'<i class="fa-solid fa-inbox"></i>',contact:'<i class="fa-solid fa-envelope-open-text"></i>',meeting_request:'<i class="fa-solid fa-calendar-days"></i>',direct_message:'<i class="fa-solid fa-envelope" style="color:var(--accent)"></i>',brief:'<i class="fa-solid fa-clipboard-question"></i>'}[m.type]||'<i class="fa-solid fa-comments"></i>';
+    var typeLabel={meeting:'طلب اجتماع',support:'طلب دعم',message:'رسالة',svc_order:'طلب خدمة',meeting_request:'طلب اجتماع',contact:'رسالة تواصل',direct_message:'رسالة داخلية',brief:'بريف عميل'}[m.type]||m.type||'رسالة';
     var senderName = m.client_name || m.from || 'عضو';
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
         '<div style="display:flex;align-items:center;gap:8px">'+
@@ -25441,7 +25441,7 @@ function renderSupport(){
       (m.preferred_time?'<div style="font-size:11px;color:var(--text3)"><i class="fa-solid fa-alarm-clock"></i> '+escapeHtml(m.preferred_time)+'</div>':'')+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">'+
         '<div style="font-size:10px;color:var(--text3)">'+(m.created_at?new Date(m.created_at).toLocaleDateString('ar-EG'):'')+'</div>'+
-        '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openSupportReply(\''+m.id+'\')">â†© رد</button>'+
+        (m.brief_id?'<button class="btn btn-primary btn-sm" data-brief-id="'+escapeHtml(m.brief_id)+'" onclick="event.stopPropagation();switchInvTab(\'briefs\');openBriefForm(this.dataset.briefId)">عرض البريف</button>':'<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openSupportReply(\''+m.id+'\')">â†© رد</button>')+
       '</div>'+
     '</div>';
   }).join('');
@@ -27116,7 +27116,11 @@ async function _pollPublicInbox(){
           brief.answers=payload.answers||{};
           brief.submittedAt=row.created_at||new Date().toISOString();
           brief.status='submitted';brief.updatedAt=brief.submittedAt;
+          S.support_msgs=S.support_msgs||[];
+          const supportId='brief_received_'+brief.id;
+          if(!S.support_msgs.some(item=>String(item.id)===supportId))S.support_msgs.push({id:supportId,type:'brief',client_id:brief.client_id,client_name:(S.clients||[]).find(c=>String(c.id)===String(brief.client_id))?.name||'عميل',subject:'استلام بريف',message:'وصلت إجابات البريف: '+(brief.title||'استبيان'),brief_id:brief.id,created_at:brief.submittedAt,read:false});
           if(typeof window.renderBriefForms==='function')renderBriefForms();
+          if(typeof window.renderSupport==='function')renderSupport();
         }
       }
       S._publicEventIds.push(row.id);
