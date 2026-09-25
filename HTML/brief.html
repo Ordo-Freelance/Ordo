@@ -10,20 +10,27 @@
 <style>
 :root{--bg:#111827;--card:#1c2840;--card2:#22314d;--line:#364766;--text:#f4f7ff;--muted:#a8b6d3;--accent:#50c9a8;font-family:'Cairo',sans-serif}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);min-height:100dvh}button,input,textarea,select{font:inherit}button{cursor:pointer}.wrap{max-width:850px;margin:auto;padding:30px 18px 80px}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px;color:var(--muted)}.brand{font-weight:800;color:var(--accent)}.card{border:1px solid var(--line);border-radius:18px;background:var(--card);padding:22px;margin-bottom:14px;box-shadow:0 12px 30px #0002}.hero{border-top:4px solid var(--accent)}.hero img{width:100%;max-height:240px;object-fit:cover;border-radius:12px}.hero h1{font-size:clamp(22px,4vw,32px);margin:14px 0 6px}.muted{color:var(--muted)}.intro-item{padding:12px 0;border-bottom:1px solid var(--line)}.intro-item:last-child{border:0}.intro-item p{margin:3px 0;color:var(--muted)}.stage-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.stage-head small{color:var(--accent)}.question{margin:14px 0;padding:20px}.question strong{display:block;font-size:16px;margin-bottom:4px}.question p{color:var(--muted);margin:0 0 12px;font-size:13px}.required{color:#ff7373}.field{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:11px;padding:12px 14px;outline:none}.field:focus{border-color:var(--accent)}textarea.field{resize:vertical}.choices,.images{display:grid;gap:10px}.choices.two{grid-template-columns:repeat(2,minmax(0,1fr))}.choice,.image-choice{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--card2);border-radius:11px;padding:13px;cursor:pointer}.choice:has(input:checked),.image-choice:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,var(--card2))}.choice input,.image-choice input{accent-color:var(--accent);width:17px;height:17px}.images{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}.image-choice{flex-direction:column;position:relative}.image-choice input{position:absolute;top:15px;right:15px}.image-choice img{width:100%;height:125px;object-fit:contain;background:var(--card);border-radius:8px}.scale{display:flex;gap:8px;flex-wrap:wrap}.scale .choice{min-width:55px;justify-content:center}.nav{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px}.btn{border:1px solid var(--line);background:var(--card2);color:var(--text);padding:10px 18px;border-radius:10px}.btn.primary{background:var(--accent);border-color:var(--accent);color:#102128;font-weight:800}.btn:disabled{opacity:.6;cursor:wait}.error{color:#ff8585;margin:12px 0}.hidden,[hidden]{display:none!important}@media(max-width:600px){.wrap{padding:14px 12px 70px}.card{padding:16px}.choices.two{grid-template-columns:1fr}.nav{flex-wrap:wrap}}
 body{display:flex;flex-direction:column}
-.top-band{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:linear-gradient(135deg,#1a1d2e,#2d2f4a);border-bottom:1px solid var(--line);padding:16px max(20px,calc((100vw - 850px)/2))}
+:root[data-mode="light"]{--bg:#f4f7fc;--card:#fff;--card2:#f0f4fa;--line:#d7e0ed;--text:#18243b;--muted:#586984}
+.top-band{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 14%,#111827),#202b41);border-bottom:1px solid var(--line);padding:16px max(20px,calc((100vw - 850px)/2))}
+:root[data-mode="light"] .top-band{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 10%,#fff),#fff)}
 .top-band-label{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:800}
 .top-band-label i{color:var(--accent)}
-.top-band-tag{color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:30px;padding:5px 13px;font-size:12px;font-weight:800}
+.top-band-tag{color:color-mix(in srgb,var(--accent) 75%,var(--text));border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:30px;padding:5px 13px;font-size:12px;font-weight:800}
 .wrap{width:100%;flex:1}
 .head{justify-content:flex-start;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:18px}
-.brand-logo{width:52px;height:52px;object-fit:contain;border-radius:12px;background:var(--card2);padding:5px}
+.brand-logo{width:72px;height:58px;object-fit:contain;flex-shrink:0}
+.brand-logo.is-monochrome{filter:brightness(0) invert(1)}
+:root[data-mode="light"] .brand-logo.is-monochrome{filter:brightness(0)}
+.brand{color:color-mix(in srgb,var(--accent) 72%,var(--text))}
 .brand-title{display:flex;flex-direction:column;gap:2px}
-.site-footer{border-top:1px solid var(--line);background:#192338;color:var(--muted);text-align:center;font-size:12px;padding:22px 16px}
+.site-footer{border-top:1px solid var(--line);background:color-mix(in srgb,var(--accent) 7%,var(--card));color:var(--muted);text-align:center;font-size:12px;padding:22px 16px}
 .btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;min-height:46px;min-width:110px;gap:8px;padding:10px 22px;font-weight:800;line-height:1.4;box-shadow:0 4px 14px #0002;transition:background .18s,border-color .18s,transform .18s}
 .btn:hover:not(:disabled){border-color:var(--accent);transform:translateY(-1px)}
 .btn.primary:hover:not(:disabled){background:color-mix(in srgb,var(--accent) 85%,white)}
+.btn.primary{color:var(--accent-ink)}
 .btn:focus-visible,.field:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 40%,transparent);outline-offset:2px}
-.field{color-scheme:dark}
+:root[data-mode="dark"] .field{color-scheme:dark}
+:root[data-mode="light"] .field{color-scheme:light}
 .nav{padding-top:8px}
 @media(max-width:600px){.top-band{padding:14px 16px}.head{padding:12px}.site-footer{padding-bottom:max(22px,env(safe-area-inset-bottom))}}
 </style>
@@ -38,6 +45,28 @@ const username=(query.get('u')||parts[1]||'').toLowerCase(),token=query.get('t')
 let form=null,stages=[],stageIndex=0;
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeImage=value=>/^(data:image\/(?:png|jpeg|webp);base64,|https:\/\/)/i.test(value||'')?esc(value):'';
+function applyBriefIdentity(settings){
+  const mode=(settings.displayMode||settings.display_mode)==='light'?'light':'dark';
+  const root=document.documentElement;root.dataset.mode=mode;
+  const color=settings.accentColor||settings.accent||settings.theme_color||'#50c9a8';
+  if(/^#[0-9a-f]{6}$/i.test(color)){
+    root.style.setProperty('--accent',color);
+    const rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));
+    const brightness=(rgb[0]*299+rgb[1]*587+rgb[2]*114)/1000;
+    root.style.setProperty('--accent-ink',brightness>150?'#111827':'#ffffff');
+  }
+  const tone=settings.toneColor||'';
+  if(/^#[0-9a-f]{6}$/i.test(tone)){
+    const rgb=[1,3,5].map(i=>parseInt(tone.slice(i,i+2),16));
+    const brightness=(rgb[0]*299+rgb[1]*587+rgb[2]*114)/1000;
+    if((mode==='light'&&brightness>180)||(mode==='dark'&&brightness<80))root.style.setProperty('--bg',tone);
+  }
+  const logo=safeImage(mode==='light'
+    ? (settings.logoDark||settings.logo||settings.logoLight||'')
+    : (settings.logoLight||settings.logo||settings.logoDark||''));
+  const image=document.getElementById('brand-logo');
+  if(logo){image.src=logo;image.hidden=false;image.classList.add('is-monochrome');}
+}
 function questionHtml(q,index){
   const type=q.type||'essay',opts=(q.options||[]).map(o=>typeof o==='string'?{label:o}:o);
   let control='';
@@ -68,6 +97,6 @@ function move(direction){const error=document.getElementById('error');try{Object
 }
 function restore(){for(const el of document.querySelectorAll('.question')){const value=saved[el.dataset.id];if(value===undefined)continue;if(Array.isArray(value))el.querySelectorAll('input').forEach(i=>i.checked=value.includes(i.value));else if(['radio','scale','toggle'].includes(el.dataset.type))el.querySelectorAll('input').forEach(i=>i.checked=i.value===value);else{const input=el.querySelector('select,input,textarea');if(input)input.value=value;}}if(stageIndex===0){const n=document.getElementById('respondent-name'),c=document.getElementById('respondent-contact');if(n)n.value=respondentName;if(c)c.value=respondentContact;}}
 async function submit(){const btn=document.getElementById('next');btn.disabled=true;btn.textContent='جارٍ الإرسال...';try{await ORDO_API_REQUEST('public.brief.submit',{username,token,form_id:formId,answers:saved,respondent_name:respondentName,respondent_contact:respondentContact});document.getElementById('app').innerHTML='<div class="card" style="text-align:center;padding:50px"><i class="fa-solid fa-circle-check" style="font-size:42px;color:var(--accent)"></i><h1>تم إرسال البريف بنجاح</h1><p class="muted">شكرًا لك، سنراجع إجاباتك ونجهز عرض السعر.</p></div>';}catch(e){btn.disabled=false;btn.textContent='إرسال البريف';document.getElementById('error').textContent=e.message||'تعذر إرسال الاستبيان، حاول مجددًا';}}
-async function init(){try{if(!username||!token)throw Error('رابط الاستبيان غير مكتمل');const snap=(await ORDO_API_REQUEST('public.snapshot',{type:'brief',username,token,form_id:formId})).data;form=snap.data.brief_forms?.[0];if(!form)throw Error('الاستبيان غير متاح');form.client_id=snap.token?.client_id||'';document.title=form.title||'استبيان المشروع';const settings=snap.data.settings||{};document.getElementById('brand').textContent=settings.name||settings.studioName||'استبيان المشروع';const logo=safeImage(settings.logoDark||settings.logo||settings.logoLight||'');if(logo){const img=document.getElementById('brand-logo');img.src=logo;img.hidden=false;}const color=settings.accent||settings.accentColor||settings.theme_color;if(/^#[0-9a-f]{6}$/i.test(color||''))document.documentElement.style.setProperty('--accent',color);let stage={title:'معلومات المشروع',questions:[]};for(const q of form.questions||[]){if(q.type==='section'){if(stage.questions.length)stages.push(stage);stage={title:q.label||'مرحلة جديدة',questions:[]};}else stage.questions.push(q);}if(stage.questions.length||!stages.length)stages.push(stage);render();}catch(e){document.getElementById('app').innerHTML='<div class="error">'+esc(e.message||'تعذر فتح الاستبيان')+'</div>';}}
+async function init(){try{if(!username||!token)throw Error('رابط الاستبيان غير مكتمل');const snap=(await ORDO_API_REQUEST('public.snapshot',{type:'brief',username,token,form_id:formId})).data;form=snap.data.brief_forms?.[0];if(!form)throw Error('الاستبيان غير متاح');form.client_id=snap.token?.client_id||'';document.title=form.title||'استبيان المشروع';const settings=snap.data.settings||{};document.getElementById('brand').textContent=settings.name||settings.studioName||'استبيان المشروع';applyBriefIdentity(settings);let stage={title:'معلومات المشروع',questions:[]};for(const q of form.questions||[]){if(q.type==='section'){if(stage.questions.length)stages.push(stage);stage={title:q.label||'مرحلة جديدة',questions:[]};}else stage.questions.push(q);}if(stage.questions.length||!stages.length)stages.push(stage);render();}catch(e){document.getElementById('app').innerHTML='<div class="error">'+esc(e.message||'تعذر فتح الاستبيان')+'</div>';}}
 init();
 </script></body></html>

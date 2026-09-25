@@ -158,6 +158,27 @@ test('portal opens an inline brief sheet while the owner retains a separate shar
   assert.doesNotMatch(standalone,/(?:src|href)="\.\.\/(?:JavaScript|Assets)\//);
 });
 
+test('standalone brief follows owner mode, accent, and monochrome logo variant',()=>{
+  const start=standalone.indexOf('function applyBriefIdentity(settings){');
+  const end=standalone.indexOf('function questionHtml(',start);
+  assert.ok(start>0&&end>start);
+  const vars={},image={hidden:true,classList:{add(name){image.className=name;}}};
+  const root={dataset:{},style:{setProperty(name,value){vars[name]=value;}}};
+  const context={document:{documentElement:root,getElementById(){return image;}},safeImage:value=>value};
+  vm.runInNewContext(standalone.slice(start,end),context);
+  context.applyBriefIdentity({displayMode:'dark',logoDark:'black.png',logoLight:'white.png',accentColor:'#317fa8'});
+  assert.equal(root.dataset.mode,'dark');
+  assert.equal(image.src,'white.png');
+  assert.equal(image.className,'is-monochrome');
+  assert.equal(vars['--accent'],'#317fa8');
+  assert.equal(vars['--accent-ink'],'#ffffff');
+  context.applyBriefIdentity({displayMode:'light',logoDark:'black.png',logoLight:'white.png',toneColor:'#f4f4f4'});
+  assert.equal(root.dataset.mode,'light');
+  assert.equal(image.src,'black.png');
+  assert.equal(vars['--bg'],'#f4f4f4');
+  assert.match(standalone,/:root\[data-mode="light"\] .brand-logo\.is-monochrome\{filter:brightness\(0\)\}/);
+});
+
 test('owner can recover a brief response even when its event was previously seen',()=>{
   const start=app.indexOf('function _applyBriefSubmissionEvent(row){');
   const end=app.indexOf('async function _pollPublicInbox()',start);
