@@ -103,3 +103,14 @@ test('brief builder keeps templates in the editor and permits stage navigation a
   assert.match(api,/q\.type==='checkbox'\|\|q\.type==='image'&&Array\.isArray\(answer\)/);
   assert.match(api,/event_type:'portal_chat'.*brief_id:payload\.form_id/);
 });
+
+test('question editor uses individual choice inputs and type-specific previews instead of an essay options box',()=>{
+  assert.match(owner,/class="brief-option-list"/);
+  assert.match(owner,/class="form-input brief-option-label"/);
+  assert.match(owner,/briefAddOption\(this\)/);
+  assert.match(owner,/brief-select-preview/);
+  assert.match(owner,/brief-preview-scale/);
+  assert.match(owner,/brief-preview-toggle/);
+  assert.match(owner,/querySelectorAll\('\.brief-option-label'\)/);
+  assert.doesNotMatch(owner,/class="form-textarea brief-q-options"/);
+});
