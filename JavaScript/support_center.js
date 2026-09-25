@@ -166,7 +166,7 @@
     const overlay=document.getElementById('support-conversation-pane');
     if(!overlay)return;
     overlay.innerHTML='<div class="support-conversation-head">'+avatarHtml('','الإدارة',true)+'<div><strong>'+esc(first.title || 'محادثة')+'</strong><small>مراسلة الإدارة</small></div></div>'+
-      '<div class="support-thread-dialog">'+thread.items.map(row=>'<div class="support-thread-line '+(row.type==='support_request'?'mine':'theirs')+'">'+avatarHtml(row.type==='support_request'?(window.S?.settings?._avatarUrl||''):'',row.type==='support_request'?'أنت':'الإدارة',row.type!=='support_request')+'<div class="support-thread-bubble"><strong style="font-size:11px">'+(row.type==='support_request'?'أنت':'الإدارة')+'</strong><div style="font-size:11px;opacity:.7">'+esc(new Date(row.created_at).toLocaleString('ar-EG'))+'</div><div style="line-height:1.8;margin-top:7px;overflow-wrap:anywhere">'+bodyWithLinks(row.body)+'</div></div></div>').join('')+'</div>'+
+      '<div class="support-thread-dialog">'+thread.items.map(row=>'<div class="support-thread-line '+(row.type==='support_request'?'mine':'theirs')+'">'+avatarHtml(row.type==='support_request'?(window.S?.settings?._avatarUrl||''):'',row.type==='support_request'?'أنت':'الإدارة',row.type!=='support_request')+'<div class="support-thread-bubble"><strong style="font-size:11px">'+(row.type==='support_request'?'أنت':'الإدارة')+'</strong><div style="font-size:11px;opacity:.7">'+esc(new Date(row.created_at).toLocaleString('ar-EG'))+'</div><div style="line-height:1.8;margin-top:7px;overflow-wrap:anywhere">'+bodyWithLinks(row.body)+'</div>'+(row.type==='challenge'?'<div class="support-challenge-progress"><strong>تقدمك في التحدي</strong>'+challengeProgress(row)+'</div>':'')+'</div></div>').join('')+'</div>'+
       (activeTab==='requests'||first.type==='message'||first.type==='direct_message' ? '<div class="support-conversation-compose"><textarea class="form-input" data-support-reply-text rows="2" maxlength="5000" placeholder="اكتب ردك هنا..."></textarea><button type="button" class="btn btn-primary" data-support-reply>إرسال</button></div>' : '');
     overlay.querySelector('[data-support-reply]')?.addEventListener('click',async event=>{
       const body=overlay.querySelector('[data-support-reply-text]').value.trim();
@@ -177,6 +177,7 @@
       await load();await openDetail(thread.id);if(typeof toast==='function')toast('تم إرسال الرد');
     });
   }
+  if(document.head){const progressStyle=document.createElement('style');progressStyle.textContent='.support-challenge-progress{margin-top:14px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface2);min-width:min(280px,75vw)}.support-challenge-progress>strong{display:block;font-size:12px;color:var(--accent3)}.support-challenge-progress [role="progressbar"]{background:var(--surface3)!important}';document.head.appendChild(progressStyle);}
   async function deleteThread(id){
     const thread=conversations(rows).find(item=>item.id===String(id));
     if(!thread || !confirm('حذف سجل هذه المحادثة من حسابك؟')) return;

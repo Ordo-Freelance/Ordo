@@ -69,3 +69,9 @@ test('user support center offers per-user hide and threaded replies', () => {
   assert.match(support,/const allThreads=conversations\(rows\)/);
   assert.match(support,/data-support-delete/);
 });
+
+test('challenge progress appears in the conversation bubble as well as the list',()=>{
+  assert.match(support,/activeTab==='challenges'\?challengeProgress\(row\)/);
+  assert.match(support,/row\.type==='challenge'\?'<div class="support-challenge-progress">/);
+  assert.match(support,/challengeProgress\(row\)/);
+});
