@@ -2055,6 +2055,13 @@ try {
       <button class="btn btn-primary" onclick="openProjectModal()"><i class="fa-solid fa-plus" style="margin-left:5px"></i> مشروع جديد</button>
     </div>
   </div>
+  <div class="project-workflow" aria-label="مراحل إدارة المشروع">
+    <span><i class="fa-solid fa-user"></i> العميل</span><i class="fa-solid fa-chevron-left"></i>
+    <span><i class="fa-solid fa-diagram-project"></i> المشروع</span><i class="fa-solid fa-chevron-left"></i>
+    <span><i class="fa-solid fa-list-check"></i> المهام والتسليم</span><i class="fa-solid fa-chevron-left"></i>
+    <span><i class="fa-solid fa-wallet"></i> التحصيل والمالية</span>
+    <small>كل دفعة جديدة تتسجل مرة واحدة وترتبط بالمشروع والعميل</small>
+  </div>
 
   <!-- Stats Bar -->
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px" id="proj-stats-bar">
@@ -2174,7 +2181,7 @@ try {
     <div class="project-form-v3-band">
       <div>
         <b><i class="fa-solid fa-wallet"></i> تحصيل المشروع</b>
-        <span>سجل العربون أو التحصيل الأولي داخل محفظة المشروع المعلقة، ولا يترحل للمالية الرئيسية إلا يدويًا.</span>
+          <span>العربون والتحصيل يُسجّلان تلقائيًا في دخل المالية ويرتبطان بالمشروع والعميل، بدون ترحيل يدوي مكرر.</span>
       </div>
       <div class="form-row" style="grid-template-columns:1fr 1fr">
         <div class="form-group">
@@ -5562,6 +5569,7 @@ try {
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
 <script src="../JavaScript/app.js?v=studio-gradient-1"></script>
+<script src="../JavaScript/project-finance-integration.js?v=1"></script>
 <script>document.body.classList.remove('auth-booting');</script>
 <script src="../JavaScript/vercel_persistence.js?v=storefront-sync-1"></script>
 

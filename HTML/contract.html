@@ -9,6 +9,7 @@
 <script src="../JavaScript/config.js?v=vercel-1"></script>
 <script src="../JavaScript/vercel_backend.js?v=1"></script>
 <script src="../JavaScript/ordo_public_core.js"></script>
+<script src="../JavaScript/public-appearance.js?v=1"></script>
 
 <!-- تطبيق ثيم اليوزر فوراً من localStorage -->
 <script>
@@ -190,6 +191,7 @@ async function loadContract(){
         _ctData=resolved.entity; _ownerUid=resolved.uid||resolved.token.user_id||null;
         _ctData.public_token=_ctToken;
         _applyTheme(resolved.data.settings?.accentColor||resolved.data.settings?.accent, resolved.data.settings?.displayMode);
+        window.applyOrdoPublicAppearance(resolved.data.settings);
         renderContract(_ctData); return;
       } else if(resolved.reason==='revoked'||resolved.reason==='expired') {
         showError(); return;
@@ -224,12 +226,14 @@ async function loadContract(){
 }
 
 async function _loadOwnerTheme(uid){
+  var hasTheme=false;
   try{
     var r=await supa.from('user_settings').select('data').eq('user_id',uid).single();
     if(r.data&&r.data.data){
       var us=typeof r.data.data==='string'?JSON.parse(r.data.data):r.data.data;
       _applyTheme(us.accentColor||us.accent, us.displayMode);
-      return;
+      window.applyOrdoPublicAppearance(us);
+      hasTheme=true;
     }
   }catch(e){}
   // fallback to studio_data settings
@@ -237,7 +241,8 @@ async function _loadOwnerTheme(uid){
     var r2=await supa.from('studio_data').select('data').eq('user_id',uid).single();
     if(r2.data&&r2.data.data){
       var sd2=typeof r2.data.data==='string'?JSON.parse(r2.data.data):r2.data.data;
-      _applyTheme(sd2.settings?.accentColor||sd2.settings?.accent, sd2.settings?.displayMode);
+      if(!hasTheme)_applyTheme(sd2.settings?.accentColor||sd2.settings?.accent, sd2.settings?.displayMode);
+      window.applyOrdoPublicAppearance(sd2.settings);
     }
   }catch(e){}
 }

@@ -4756,6 +4756,18 @@ body.studio-toned .settings-v2-control{
   background:var(--surface2)!important;
   border-color:var(--border)!important;
 }
+.project-workflow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 18px;padding:13px 16px;border:1px solid var(--border);border-radius:16px;background:color-mix(in srgb,var(--accent) 5%,var(--surface));color:var(--text3)}
+.project-workflow>span{display:inline-flex;align-items:center;gap:7px;color:var(--text2);font-size:12px;font-weight:800}
+.project-workflow>span i{color:var(--accent)}
+.project-workflow>i{font-size:10px;opacity:.5}
+.project-workflow small{margin-inline-start:auto;font-size:11px;color:var(--text3)}
+#page-projects .project-v2-card{border-radius:18px;box-shadow:0 10px 28px rgba(0,0,0,.08);transition:transform .18s,border-color .18s,box-shadow .18s}
+#page-projects .project-v2-card:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--project-color,var(--accent)) 55%,var(--border));box-shadow:0 18px 32px rgba(0,0,0,.14)}
+#page-projects .project-v2-progress{height:8px}
+#page-projects .project-v2-metrics span{border-radius:11px;background:var(--surface2);border:1px solid var(--border)}
+.settings-v2-theme-help{grid-column:1/-1;margin:0;padding:10px 14px;border:1px solid var(--border);border-radius:11px;background:color-mix(in srgb,var(--accent) 7%,var(--surface));color:var(--text2);font-size:12px}
+body.studio-toned .sb-footer,body.studio-toned .bottom-nav{background:var(--surface)!important;border-color:var(--border)!important}
+@media(max-width:700px){.project-workflow small{width:100%;margin:0}.project-workflow>span{font-size:11px}}
 .btn-primary:hover{
   background:color-mix(in srgb,var(--accent) 82%, white)!important;
 }

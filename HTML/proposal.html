@@ -9,6 +9,7 @@
 <script src="../JavaScript/config.js?v=vercel-1"></script>
 <script src="../JavaScript/vercel_backend.js?v=1"></script>
 <script src="../JavaScript/ordo_public_core.js"></script>
+<script src="../JavaScript/public-appearance.js?v=1"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -730,6 +731,7 @@ function renderPage(settings) {
     var topBand = document.querySelector('.top-band');
     if(topBand) topBand.style.background = 'linear-gradient(135deg,#0d1017 0%,#1a1e2b 100%)';
   }
+  window.applyOrdoPublicAppearance(settings);
 
   // Freelancer info
   if (proposalLogo) {

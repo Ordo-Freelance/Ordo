@@ -2494,9 +2494,17 @@ function applyStudioAppearance(skipFontScan){
   var toneEnd = (scoped && localStorage.getItem('studioToneGradientEnd'+scoped)) ?? s.toneGradientEnd ?? localStorage.getItem('studioToneGradientEnd') ?? '';
   var toneStyle = (scoped && localStorage.getItem('studioToneStyle'+scoped)) ?? s.toneStyle ?? localStorage.getItem('studioToneStyle') ?? 'solid';
   var toneAngle = Number((scoped && localStorage.getItem('studioToneAngle'+scoped)) ?? s.toneAngle ?? localStorage.getItem('studioToneAngle') ?? 135);
+  var modeTone=s.appearanceThemes&&s.appearanceThemes[mode];
+  if(modeTone){
+    tone=modeTone.toneColor||'';
+    toneEnd=modeTone.toneGradientEnd||'';
+    toneStyle=modeTone.toneStyle||'solid';
+    toneAngle=Number(modeTone.toneAngle??135);
+  } else if(s.appearanceThemes){
+    tone='';toneEnd='';toneStyle='solid';toneAngle=135;
+  }
   if(!Number.isFinite(toneAngle))toneAngle=135;
   toneAngle=Math.max(0,Math.min(360,toneAngle));
-  if(mode === 'dark' && /^#(?:0a0a0f|111118)$/i.test(tone)) tone = '';
   fontScale = Math.max(.86, Math.min(1.12, fontScale || 1));
   document.documentElement.style.setProperty('--app-font-scale', String(fontScale || 1));
   document.documentElement.style.setProperty('--app-font-scale-inverse', String(1 / (fontScale || 1)));
@@ -2581,6 +2589,9 @@ function setStudioToneColor(color){
   if(typeof S !== 'undefined' && S){
     if(!S.settings) S.settings = {};
     S.settings.toneColor = color || '';
+    var mode=S.settings.displayMode||'dark';
+    S.settings.appearanceThemes=S.settings.appearanceThemes||{};
+    S.settings.appearanceThemes[mode]=Object.assign({},S.settings.appearanceThemes[mode],{toneColor:color||''});
     if(typeof lsSave === 'function') lsSave();
     if(typeof cloudSaveNow === 'function') cloudSaveNow(S);
   }
@@ -2590,11 +2601,10 @@ function setStudioToneGradient(style,end,angle){
   if(style!=='gradient')style='solid';
   if(!/^#[0-9a-f]{6}$/i.test(end||''))end='';
   angle=Math.max(0,Math.min(360,Number(angle)||0));
-  if(style==='gradient' && !((window._supaUserId&&localStorage.getItem('studioToneColor:'+window._supaUserId))||(S&&S.settings&&S.settings.toneColor)||localStorage.getItem('studioToneColor'))){
-    var first=document.getElementById('studio-tone-color')?.value||'#0d1425';
-    localStorage.setItem('studioToneColor',first);
-    if(window._supaUserId)localStorage.setItem('studioToneColor:'+window._supaUserId,first);
-    if(S){if(!S.settings)S.settings={};S.settings.toneColor=first;}
+  var activeMode=(S&&S.settings&&S.settings.displayMode)||'dark';
+  var activeTheme=S&&S.settings&&S.settings.appearanceThemes&&S.settings.appearanceThemes[activeMode];
+  if(style==='gradient' && !(activeTheme&&activeTheme.toneColor)){
+    setStudioToneColor(document.getElementById('studio-tone-color')?.value||(activeMode==='light'?'#f0f2f8':'#0d1425'));
   }
   localStorage.setItem('studioToneStyle',style);
   localStorage.setItem('studioToneGradientEnd',end);
@@ -2607,6 +2617,9 @@ function setStudioToneGradient(style,end,angle){
   if(typeof S!=='undefined'&&S){
     if(!S.settings)S.settings={};
     S.settings.toneStyle=style;S.settings.toneGradientEnd=end;S.settings.toneAngle=angle;
+    var mode=S.settings.displayMode||'dark';
+    S.settings.appearanceThemes=S.settings.appearanceThemes||{};
+    S.settings.appearanceThemes[mode]=Object.assign({},S.settings.appearanceThemes[mode],{toneStyle:style,toneGradientEnd:end,toneAngle:angle});
     if(typeof lsSave==='function')lsSave();
     if(typeof cloudSaveNow==='function')cloudSaveNow(S);
   }
@@ -2666,6 +2679,10 @@ function installSettingsRedesign(){
       '<div class="settings-v2-control"><h4><i class="fa-solid fa-computer-mouse"></i> لون المرور على العناصر</h4><p>لون overlay عند مرور المؤشر على الأزرار والصفوف.</p><div class="settings-v2-control-row"><input id="studio-hover-color" type="color" oninput="setStudioHoverOverlay(this.value)" onchange="setStudioHoverOverlay(this.value)"><button class="btn btn-ghost btn-sm" onclick="setStudioHoverOverlay(&quot;&quot;)">حسب الهوية</button></div><div class="settings-v2-preview"><span style="background:var(--hover-overlay)"></span><span style="background:rgba(var(--accent-rgb,124,111,247),.18)"></span></div></div>'+
       '<div class="settings-v2-control settings-v2-control-wide" style="display:flex;align-items:center;justify-content:flex-end;gap:10px"><button class="btn btn-ghost" onclick="resetStudioAppearanceSettings()"><i class="fa-solid fa-rotate-left"></i> إعادة افتراضي</button><button class="btn btn-primary" onclick="saveStudioAppearanceSettings()"><i class="fa-solid fa-floppy-disk"></i> حفظ وتطبيق المظهر</button></div>';
     appearance.appendChild(extra);
+    var themeHelp=document.createElement('p');
+    themeHelp.className='settings-v2-theme-help';
+    themeHelp.textContent='المظهر المتقدم: خصص الخلفية للنهاري والليلي كلًا على حدة. اختر الوضع بالأعلى، ثم اضبط اللون الثابت أو الجريديانت. التنسيق يطبق على بوابة العميل والصفحات المستقلة.';
+    extra.prepend(themeHelp);
   }
   applyStudioAppearance();
 }
@@ -30846,53 +30863,12 @@ function toggleProjTaskDone(taskId,projId,done){
   // Ask for project link when newly marked done
   if(done && !prevDone){
     _askProjectLinkForTask(taskId, projId, function(){
-      // Auto-record income when task marked done and has value
-      if(t.value>0 && !t.paymentCollected){
-        var proj=_getProjById(projId);
-        if(!S.transactions) S.transactions=[];
-        S.transactions.push({
-          id:Date.now()+Math.random(),
-          type:'income',
-          amount:t.value,
-          currency:t.currency||'ج.م',
-          desc:'إتمام مهمة: '+(t.title||'')+(proj?' ? مشروع: '+proj.name:''),
-          date:new Date().toISOString().slice(0,10),
-          isoDate:new Date().toISOString().slice(0,10),
-          linkedProjTaskId:t.id,
-          project_id: proj ? String(proj.id) : '',
-          project_name: proj ? proj.name : '',
-          source:'project_task',
-          createdAt:new Date().toISOString()
-        });
-        _markTaskPaymentCollectedMeta(t);
-        if(typeof renderFinance==='function') setTimeout(renderFinance,200);
-      }
       lsSave(); cloudSave(S); renderProjectDetail();
     });
     lsSave(); cloudSave(S); renderProjectDetail();
     return;
   }
-  // Auto-record income when task marked done and has value
-  if(done && t.value>0 && !t.paymentCollected){
-    var proj=_getProjById(projId);
-    if(!S.transactions) S.transactions=[];
-    S.transactions.push({
-      id:Date.now()+Math.random(),
-      type:'income',
-      amount:t.value,
-      currency:t.currency||'ج.م',
-      desc:'إتمام مهمة: '+(t.title||'')+(proj?' ? مشروع: '+proj.name:''),
-      date:new Date().toISOString().slice(0,10),
-      isoDate:new Date().toISOString().slice(0,10),
-      linkedProjTaskId:t.id,
-      project_id: proj ? String(proj.id) : '',
-      project_name: proj ? proj.name : '',
-      source:'project_task',
-      createdAt:new Date().toISOString()
-    });
-    _markTaskPaymentCollectedMeta(t);
-    if(typeof renderFinance==='function') setTimeout(renderFinance,200);
-  }
+  // Completion is not a cash receipt; collection is recorded separately.
   lsSave(); cloudSave(S); renderProjectDetail();
 }
 function deleteProjTask(taskId,projId){
@@ -33840,7 +33816,7 @@ window.OrdoCurrencyPatch = {
     var received = rows.filter(function(r){ return r.kind === 'client_payment'; }).reduce(function(s,r){ return s + num(r.amount); },0);
     var paidTeam = rows.filter(function(r){ return r.kind === 'team_payout'; }).reduce(function(s,r){ return s + num(r.amount); },0);
     var expenses = rows.filter(function(r){ return r.kind === 'project_expense'; }).reduce(function(s,r){ return s + num(r.amount); },0);
-    var posted = rows.filter(function(r){ return r.posted; }).reduce(function(s,r){ return s + num(r.amount); },0);
+    var posted = rows.filter(function(r){ return r.kind === 'main_post'; }).reduce(function(s,r){ return s + num(r.amount); },0);
     return {currency:cur,received:received,paidTeam:paidTeam,expenses:expenses,posted:posted,balance:received-paidTeam-expenses-posted};
   }
   function taskCostSummary(tasks){
@@ -33872,12 +33848,16 @@ window.OrdoCurrencyPatch = {
     stat('ps-active-count', all.filter(function(p){return (p.status||'active')==='active';}).length);
     stat('ps-hold-count', all.filter(function(p){return p.status==='hold';}).length);
     stat('ps-done-count', all.filter(function(p){return p.status==='done';}).length);
-    var totalBudget = all.reduce(function(s,p){ return s + num(p.budget); },0);
+    var budgetsByCurrency={};
+    all.forEach(function(p){
+      var currency=p.budgetCurrency||'ج.م';
+      budgetsByCurrency[currency]=(budgetsByCurrency[currency]||0)+num(p.budget);
+    });
     var topLevelIds = {};
     all.forEach(function(p){ topLevelIds[String(p.id)] = true; });
     var activeTasks = (S.project_tasks || []).filter(function(t){ return t.status !== 'done' && topLevelIds[String(t.project_id)]; }).length;
     var header = document.getElementById('projects-sub');
-    if(header) header.textContent = all.length+' مشروع · '+activeTasks+' مهمة مفتوحة · ميزانيات '+money(totalBudget, 'ج.م');
+    if(header) header.textContent = all.length+' مشروع · '+activeTasks+' مهمة مفتوحة · ميزانيات '+(Object.keys(budgetsByCurrency).map(function(currency){return money(budgetsByCurrency[currency],currency);}).join(' + ')||'0');
     container.className = 'projects-v2-grid '+(_projView === 'list' ? 'is-list' : '');
     container.style.gridTemplateColumns = '';
     if(!list.length){
@@ -33891,6 +33871,8 @@ window.OrdoCurrencyPatch = {
       var client = projClient(p);
       var clr = p.color || '#7c6ff7';
       var sum = ledgerSummary(p);
+      var taskReceipts=window.OrdoProjectFinance?
+        window.OrdoProjectFinance.projectIncomeNotInLedger(S,p).reduce(function(total,tx){return total+num(tx.amount);},0):0;
       var cost = taskCostSummary(tasks);
       var members = (p.members || []).slice(0,4);
       return '<article class="project-v2-card" style="--project-color:'+clr+'" onclick="openProjectDetail(&quot;'+esc(p.id)+'&quot;)">'+
@@ -33903,7 +33885,7 @@ window.OrdoCurrencyPatch = {
           '<span><b>'+tasks.length+'</b><small>مهام</small></span>'+
           '<span><b>'+pct+'%</b><small>إنجاز</small></span>'+
           '<span><b>'+money(p.budget || cost.total, p.budgetCurrency)+'</b><small>ميزانية</small></span>'+
-          '<span><b>'+money(sum.balance, p.budgetCurrency)+'</b><small>رصيد معلق</small></span>'+
+          '<span><b>'+money(sum.received+taskReceipts, p.budgetCurrency)+'</b><small>محصل من العميل</small></span>'+
         '</div>'+
         '<div class="project-v2-footer">'+
           '<div class="project-v2-people">'+(members.length?members.map(function(m){return '<span title="'+esc(m.name||'')+'">'+esc((m.name||'?').slice(0,1))+'</span>';}).join(''):'<em>لا فريق</em>')+'</div>'+
@@ -34328,6 +34310,7 @@ window.OrdoCurrencyPatch = {
     if(!S.projects) S.projects = [];
     var st = (document.getElementById('proj-payment-status')||{}).value || 'none';
     var amount = st === 'none' ? 0 : num((document.getElementById('proj-deposit-amount')||{}).value);
+    if(st!=='none'&&amount<=0){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل مبلغ تحصيل موجب أو اختر بدون تحصيل');return;}
     var tsel = document.getElementById('proj-team-select');
     var data = Object.assign({}, old || {}, {
       id: old ? old.id : Date.now(),
@@ -34411,6 +34394,7 @@ window.OrdoCurrencyPatch = {
     var asel=document.getElementById('ptask-assignee'), opt=asel&&asel.options[asel.selectedIndex];
     var pay=(document.getElementById('ptask-payment-status')||{}).value || 'pending';
     var dep=pay==='deposit' ? num((document.getElementById('ptask-deposit')||{}).value) : 0;
+    if(pay==='deposit'&&dep<=0){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل عربون المهمة بمبلغ موجب');return;}
     var old=eid ? S.project_tasks.find(function(t){ return String(t.id)===String(eid); }) : null;
     var d=Object.assign({}, old||{}, {
       id:old?old.id:Date.now(), title:title, desc:strip((document.getElementById('ptask-desc')||{}).value || ''), project_id:projId,
@@ -35599,6 +35583,7 @@ window.OrdoCurrencyPatch = {
     rows.forEach(function(r){if(r.kind!=='team_payout'&&r.kind!=='partner_profit')return;var n=strip(r.assignee_name||r.member||'');if(!n)return;var k=key(n);members[k]=members[k]||{name:n,tasks:0,done:0,active:0,assigned:0,paid:0,due:0,items:[]};members[k].paid+=num(r.amount);});
     var memberList=Object.keys(members).map(function(k){members[k].due=members[k].assigned-members[k].paid;return members[k];}).sort(function(a,b){return b.due-a.due;});
     var collected=rows.filter(function(r){return isIn(r.kind);}).reduce(function(s,r){return s+num(r.amount);},0);
+    if(window.OrdoProjectFinance)collected+=window.OrdoProjectFinance.projectIncomeNotInLedger(S,p).reduce(function(s,tx){return s+num(tx.amount);},0);
     var outflows=rows.filter(function(r){return isOut(r.kind);}).reduce(function(s,r){return s+num(r.amount);},0);
     var paidMembers=rows.filter(function(r){return r.kind==='team_payout';}).reduce(function(s,r){return s+num(r.amount);},0);
     var partnerProfitPaid=rows.filter(function(r){return r.kind==='partner_profit';}).reduce(function(s,r){return s+num(r.amount);},0);
@@ -35646,6 +35631,7 @@ window.OrdoCurrencyPatch = {
     clean(p);
     var rows=p.projectLedger||[], tasks=tasksFor(p.id), budget=num(p.budget);
     var collected=rows.filter(function(r){return isIn(r.kind);}).reduce(function(s,r){return s+num(r.amount);},0);
+    if(window.OrdoProjectFinance)collected+=window.OrdoProjectFinance.projectIncomeNotInLedger(S,p).reduce(function(s,tx){return s+num(tx.amount);},0);
     var outflows=rows.filter(function(r){return isOut(r.kind);}).reduce(function(s,r){return s+num(r.amount);},0);
     var paidMembers=rows.filter(function(r){return r.kind==='team_payout';}).reduce(function(s,r){return s+num(r.amount);},0);
     var partnerProfitPaid=rows.filter(function(r){return r.kind==='partner_profit';}).reduce(function(s,r){return s+num(r.amount);},0);

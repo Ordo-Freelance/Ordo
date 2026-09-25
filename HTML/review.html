@@ -8,6 +8,7 @@
 <script src="../JavaScript/config.js?v=vercel-1"></script>
 <script src="../JavaScript/vercel_backend.js?v=1"></script>
 <script src="../JavaScript/ordo_public_core.js"></script>
+<script src="../JavaScript/public-appearance.js?v=1"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -328,6 +329,7 @@ function applyReviewIdentity(s){
   document.documentElement.style.setProperty('--t3',light?'#888899':'#5a6380');
   document.body.style.backgroundColor='var(--bg)';
   document.body.style.color='var(--t1)';
+  window.applyOrdoPublicAppearance(s);
   document.body.style.backgroundImage=`radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in srgb, ${accent} ${light?'7':'12'}%, transparent) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 80% 80%, color-mix(in srgb, ${secondary} ${light?'5':'8'}%, transparent) 0%, transparent 60%)`;
 }
 

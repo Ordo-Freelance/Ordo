@@ -15,6 +15,7 @@
     <script src="../JavaScript/config.js?v=vercel-1"></script>
     <script src="../JavaScript/vercel_backend.js?v=1"></script>
     <script src="../JavaScript/ordo_public_core.js"></script>
+    <script src="../JavaScript/public-appearance.js?v=1"></script>
     <style>
       * {
         box-sizing: border-box;
@@ -650,6 +651,7 @@
           document.documentElement.style.setProperty("--ac", ac);
           document.documentElement.style.setProperty("--ac2", ac2);
           if (isL) document.body.classList.add("light");
+          window.applyOrdoPublicAppearance(s);
           document.title = nm + " — تقييمات العملاء";
           $("fy").textContent = new Date().getFullYear();
           var storeUrl = (location.protocol !== "file:" ? location.origin + "/store" : BASE + "store.html") + "?uid=" + encodeURIComponent(uid);
