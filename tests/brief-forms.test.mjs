@@ -67,7 +67,7 @@ test('portal snapshot exposes only sent briefs for its client and not private an
   assert.equal(snapshot.data.brief_forms[0].answers,undefined);
   assert.equal(snapshot.data.brief_forms[0].internalPricing,undefined);
   assert.equal(snapshot.data.brief_forms[0].banner,'data:image/webp;base64,AA');
-  assert.equal(snapshot.data.brief_forms[0].share_token,'brf_a');
+  assert.equal(snapshot.data.brief_forms[0].share_token,undefined);
 });
 
 test('older portal briefs open separately using a client-scoped fallback token',async()=>{
@@ -138,22 +138,24 @@ test('portal brief renderer shows a sent form and submission entry point',()=>{
   vm.runInNewContext(portal.slice(start,end),context);
   const rendered=context.renderBriefForms();
   assert.match(rendered,/Design/);
-  assert.match(rendered,/فتح صفحة البريف/);
-  assert.match(rendered,/openBriefPage/);
+  assert.match(rendered,/فتح البريف/);
+  assert.match(rendered,/openBriefSheet/);
   assert.doesNotMatch(rendered,/لا توجد بريفات/);
 });
 
-test('client portal and standalone brief have separate navigation and page chrome',()=>{
-  assert.match(portal,/function openBriefPage\(formId\)/);
-  assert.match(portal,/location\.assign\(url\)/);
-  assert.match(portal,/form\.share_token\|\|pPublicToken/);
+test('portal opens an inline brief sheet while the owner retains a separate share link',()=>{
+  assert.match(portal,/function openBriefSheet\(formId\)/);
+  assert.doesNotMatch(portal,/function openBriefPage\(formId\)/);
+  assert.match(portal,/id='brief-portal-overlay'/);
+  assert.match(portal,/\.brief-portal-sheet \.btn-primary/);
   assert.match(owner,/نسخ رابط البوابة/);
   assert.match(owner,/نسخ رابط الاستبيان/);
   assert.match(standalone,/<header class="top-band">/);
   assert.match(standalone,/<footer class="site-footer">/);
   assert.match(standalone,/form_id:formId/);
   assert.match(standalone,/form\.status!=='sent'/);
-  assert.match(portal,/\.brief-open-btn\.primary/);
+  for(const asset of ['/JavaScript/config.js','/JavaScript/vercel_backend.js','/Assets/vendor/fonts/offline-fonts.css'])assert.ok(standalone.includes('="'+asset));
+  assert.doesNotMatch(standalone,/(?:src|href)="\.\.\/(?:JavaScript|Assets)\//);
 });
 
 test('owner can recover a brief response even when its event was previously seen',()=>{
