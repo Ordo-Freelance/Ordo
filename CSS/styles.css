@@ -64,6 +64,25 @@ body.auth-booting #auth-screen button { pointer-events:none; opacity:.65; }
 }
 .auth-card-body::-webkit-scrollbar { width: 3px; }
 .auth-card-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.auth-home-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  margin: -12px auto 18px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  color: var(--text3);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color .2s, background .2s;
+}
+.auth-home-link:hover, .auth-home-link:focus-visible {
+  color: var(--accent);
+  background: var(--surface2);
+}
 
 @keyframes authIn {
   from { opacity:0; transform: translateY(24px) scale(.97); }
