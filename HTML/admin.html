@@ -993,6 +993,12 @@ select.filter-sel:focus { outline:none; border-color:var(--accent); }
       <div id="plans-grid" class="grid grid-3">
         <div class="loading-wrap" style="grid-column:1/-1"><div class="spinner"></div> جاري التحميل...</div>
       </div>
+      <div class="card" style="margin-top:20px;padding:18px" id="storage-packages-admin">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h3 style="margin:0">باقات مساحة الصور الإضافية</h3><p style="color:var(--text3);font-size:12px;margin:4px 0">شراء مستقل عن اشتراك المنصة. تُضاف المساحة بعد مراجعة الطلب، وتشمل صور الموقع كلها.</p></div><button class="btn btn-ghost btn-sm" onclick="loadStoragePackagesAdmin()">تحديث</button></div>
+        <div id="storage-admin-list" style="margin:12px 0"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end"><label>اسم الباقة<input class="form-input" id="spa-name" placeholder="مثال: 500 ميجابايت"></label><label>المساحة MB<input class="form-input" id="spa-mb" type="number" min="1" max="10240"></label><label>السعر بالجنيه<input class="form-input" id="spa-price" type="number" min="0"></label><button class="btn btn-primary btn-sm" onclick="saveStoragePackageAdmin()">إضافة باقة مساحة</button></div>
+        <h4 style="margin:18px 0 8px">طلبات المساحة المعلقة</h4><div id="storage-admin-requests"></div>
+      </div>
     </div>
 
     <!-- ═══ ACTIVITY PAGE ═══ -->
@@ -4145,6 +4151,7 @@ function renderPlans() {
   if(!el) return;
   if(!PLANS.length) {
     el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📦</div><p>لا توجد باقات</p></div>`;
+    loadStoragePackagesAdmin();
     return;
   }
   el.innerHTML = PLANS.map(p => {
@@ -4181,6 +4188,44 @@ function renderPlans() {
         </div>
       </div>`;
   }).join('');
+  if(typeof loadStoragePackagesAdmin==='function') loadStoragePackagesAdmin();
+}
+
+async function loadStoragePackagesAdmin(){
+  const list=document.getElementById('storage-admin-list'),pending=document.getElementById('storage-admin-requests');
+  if(!list||!pending||typeof ORDO_API_REQUEST!=='function')return;
+  try{
+    const [row,requests]=await Promise.all([supa.from('platform_settings').select('config').eq('id',1).maybeSingle(),ORDO_API_REQUEST('storage.requests')]);
+    if(row.error)throw row.error;
+    const cfg=typeof row.data?.config==='string'?JSON.parse(row.data.config):(row.data?.config||{});
+    const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    list.innerHTML=(cfg.storage_packages||[]).map(p=>'<div class="storage-file-row"><span><b>'+esc(p.name)+'</b> · '+Number(p.mb)+' MB · '+Number(p.price||0)+' ج.م · '+(p.active===false?'موقوفة':'نشطة')+'</span><button class="btn btn-ghost btn-sm" onclick="toggleStoragePackageAdmin(&quot;'+esc(p.id)+'&quot;)">'+(p.active===false?'تفعيل':'إيقاف')+'</button></div>').join('')||'<p>لم تُنشأ باقات مساحة بعد.</p>';
+    pending.innerHTML=(requests.data||[]).map(r=>'<div class="storage-file-row"><span>مستخدم '+esc(r.user_id)+' · '+esc(r.data?.package?.name||r.plan_id)+' · '+Number(r.data?.package?.mb||0)+' MB</span><span><button class="btn btn-primary btn-sm" onclick="decideStorageRequestAdmin(&quot;'+esc(r.id)+'&quot;,true)">اعتماد بعد التحقق من الدفع</button> <button class="btn btn-ghost btn-sm" onclick="decideStorageRequestAdmin(&quot;'+esc(r.id)+'&quot;,false)">رفض</button></span></div>').join('')||'<p>لا توجد طلبات معلقة.</p>';
+  }catch(error){list.textContent='تعذر تحميل باقات المساحة: '+(error.message||error);}
+}
+async function _editStoragePackagesAdmin(change){
+  const row=await supa.from('platform_settings').select('config').eq('id',1).maybeSingle();
+  if(row.error)throw row.error;
+  const cfg=typeof row.data?.config==='string'?JSON.parse(row.data.config):{...(row.data?.config||{})};
+  cfg.storage_packages=change([...(cfg.storage_packages||[])]);
+  const result=await supa.from('platform_settings').upsert({id:1,config:cfg,updated_at:new Date().toISOString()},{onConflict:'id'});
+  if(result.error)throw result.error;
+  await loadStoragePackagesAdmin();
+}
+async function saveStoragePackageAdmin(){
+  const name=document.getElementById('spa-name').value.trim(),mb=Number(document.getElementById('spa-mb').value),price=Number(document.getElementById('spa-price').value);
+  if(!name||!Number.isInteger(mb)||mb<1||mb>10240||!Number.isFinite(price)||price<0)return toast('أدخل اسمًا ومساحة وسعرًا صحيحين');
+  try{await _editStoragePackagesAdmin(packages=>{packages.push({id:'storage_'+Date.now(),name,mb,price,currency:'EGP',active:true});return packages;});toast('تمت إضافة باقة المساحة');}
+  catch(error){toast('تعذر حفظ الباقة: '+(error.message||error));}
+}
+async function toggleStoragePackageAdmin(id){
+  try{await _editStoragePackagesAdmin(packages=>packages.map(p=>p.id===id?{...p,active:p.active===false}:p));}
+  catch(error){toast('تعذر تحديث الباقة: '+(error.message||error));}
+}
+async function decideStorageRequestAdmin(id,approve){
+  if(approve&&!confirm('هل تحققت من السداد؟ ستُضاف المساحة فورًا لحساب المستخدم.'))return;
+  try{await ORDO_API_REQUEST('storage.approve',{request_id:id,approve});toast(approve?'تمت إضافة المساحة':'تم رفض الطلب');loadStoragePackagesAdmin();}
+  catch(error){toast('تعذر معالجة الطلب: '+(error.message||error));}
 }
 
 // ── Copy permissions from existing plan ──
@@ -5834,9 +5879,11 @@ async function saveUserStorageOverride(uid){
     if(existing.error) throw existing.error;
     const cfg = typeof existing.data?.config === 'string' ? JSON.parse(existing.data.config) : {...(existing.data?.config || {})};
     cfg.storage_overrides = {...(cfg.storage_overrides || {})};
-    const override = {};
+    const override = {...(cfg.storage_overrides[uid]||{})};
     if(raw !== '') override.quota_mb = Number(raw);
+    else delete override.quota_mb;
     if(upload) override.uploads_enabled = upload === 'yes';
+    else delete override.uploads_enabled;
     if(Object.keys(override).length) cfg.storage_overrides[uid] = override;
     else delete cfg.storage_overrides[uid];
     const saved = await supa.from('platform_settings').upsert({id:1,config:cfg,updated_at:new Date().toISOString()},{onConflict:'id'});

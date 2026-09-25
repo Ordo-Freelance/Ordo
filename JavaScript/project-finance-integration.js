@@ -46,9 +46,12 @@
     var status=task.paymentStatus||'pending';
     var paid=status==='collected'||status==='paid'||task.paymentCollected===true;
     var total=paid?amount(task.value):(status==='deposit'?amount(task.deposit):0);
-    if(total<=0)return null;
     state.transactions=Array.isArray(state.transactions)?state.transactions:[];
     var existing=state.transactions.find(function(tx){return tx.type==='income'&&asId(tx.linkedProjTaskId)===asId(task.id)&&asId(tx.project_id)===asId(project.id);});
+    if(total<=0){
+      if(existing && existing.source_type==='project_task_payment') state.transactions=state.transactions.filter(function(tx){return tx!==existing;});
+      return null;
+    }
     var invoiced=(state.invoices||[]).some(function(inv){
       if(!(inv.paid||['paid','مدفوعة','مدفوع'].includes(inv.status)))return false;
       return (inv.items||[]).some(function(item){

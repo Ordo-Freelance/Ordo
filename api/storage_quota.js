@@ -13,7 +13,7 @@ export function imageBytes(value) {
 }
 
 export function storageLimitBytes(planFeatures = {}, override = {}) {
-  const candidate = override.quota_mb ?? planFeatures.storage_mb ?? 25;
+  const candidate = Number(override.quota_mb ?? planFeatures.storage_mb ?? 25) + Number(override.purchased_mb || 0);
   const mb = Number(candidate);
   return Math.max(0, Math.min(Number.isFinite(mb) ? mb : 25, 10240)) * 1024 * 1024;
 }

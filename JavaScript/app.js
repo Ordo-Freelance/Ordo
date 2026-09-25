@@ -5294,6 +5294,10 @@ function _toggleProfileTaskPayment(taskId, sourceType, clientId){
   } else {
     _markTaskPaymentCollectedMeta(t);
   }
+  if(t.project_id && window.OrdoProjectFinance){
+    const project=(S.projects||[]).find(p=>String(p.id)===String(t.project_id));
+    if(project) window.OrdoProjectFinance.taskPaymentTransaction(S,project,t);
+  }
   lsSave(); renderAll();
   if(clientId) setTimeout(()=>_renderProfileTab('overview', clientId),50);
   if(typeof showMiniNotif==='function') showMiniNotif(paid?'تم تحويل المهمة إلى غير مدفوعة':'تم تحويل المهمة إلى مدفوعة');
@@ -9392,9 +9396,19 @@ function delTrans(id){
   confirmDel('هل تريد حذف هذه المعاملة؟',()=>{
     // لو المعاملة مرتبطة بـ project_task، ضع flag عشان الـ sync مش يرجعها
     var tx=S.transactions.find(t=>String(t.id)===String(id));
+    if(tx && tx.source_type==='project_ledger' && tx.project_ledger_id){
+      var owner=(S.projects||[]).find(p=>String(p.id)===String(tx.project_id));
+      if(owner) owner.projectLedger=(owner.projectLedger||[]).filter(r=>String(r.id)!==String(tx.project_ledger_id));
+    }
     if(tx && tx.linkedProjTaskId){
       var pt=(S.project_tasks||[]).find(t=>String(t.id)===String(tx.linkedProjTaskId));
-      if(pt) pt._txDeleted=true;
+      if(pt){
+        pt._txDeleted=true;
+        if(tx.source_type==='project_task_payment'){
+          pt.paymentCollected=false;pt.paid=false;pt.paymentStatus='pending';pt.pay='none';
+          pt.deposit=0;pt.paidAmount=0;pt.amountPaid=0;pt.collectedAt=null;
+        }
+      }
     }
     S.transactions=S.transactions.filter(t=>String(t.id)!==String(id));
     lsSave();cloudSave(S);renderAll();
@@ -12625,6 +12639,12 @@ function switchAuthTab(tab){
   clearAuthMessages();
 }
 
+// Landing-page links open the requested auth panel without changing the auth flow.
+if(new URLSearchParams(window.location.search).get('auth')==='register'){
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>switchAuthTab('register'),{once:true});
+  else switchAuthTab('register');
+}
+
 function clearAuthMessages(){
   ['login-error','register-error','register-success'].forEach(id=>{
     const el=document.getElementById(id);
@@ -12949,6 +12969,11 @@ async function loginWithSupaSession(supaUser, session, userMeta){
   // أظهر التطبيق واخبي اللوجين
   window._loginDone = true;
   if(window._showApp) window._showApp();
+  const landingPlanId=new URLSearchParams(window.location.search).get('plan');
+  if(landingPlanId && !sessionStorage.getItem('ordo_plan_prompted_'+landingPlanId)){
+    sessionStorage.setItem('ordo_plan_prompted_'+landingPlanId,'1');
+    setTimeout(()=>{ if(typeof openSubscriptionInfo==='function'){ openSubscriptionInfo(); switchSubTab('plans'); } },1100);
+  }
   document.body.style.visibility = 'visible';
   document.body.style.opacity = '1';
   const _authScreenEl = document.getElementById('auth-screen');

@@ -3666,8 +3666,9 @@ try {
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><strong><i class="fa-solid fa-hard-drive"></i> إدارة المساحة والملفات</strong><button type="button" class="btn btn-ghost btn-sm" onclick="refreshUserStorageUsage()">تحديث</button></div>
     <div id="user-storage-summary" style="font-size:12px;color:var(--text2);margin-top:9px">جاري حساب المساحة...</div>
     <div style="height:7px;background:var(--surface3);border-radius:10px;overflow:hidden;margin-top:10px"><div id="user-storage-progress" style="height:100%;width:0;background:var(--accent);border-radius:10px"></div></div>
-    <div id="user-storage-breakdown" style="font-size:11px;color:var(--text3);margin-top:8px">تُحتسب الصور والتسجيلات الصوتية في الشات مع صور الحساب. الروابط الخارجية لا تُحتسب.</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="btn btn-ghost btn-sm" onclick="toggleUserStorageFiles()"><i class="fa-solid fa-folder-open"></i> ملفات الشات</button><button type="button" class="btn btn-primary btn-sm" onclick="openSubscriptionInfo();switchSubTab('plans')"><i class="fa-solid fa-arrow-up-right-dots"></i> شراء مساحة إضافية</button></div>
+    <div id="user-storage-breakdown" style="font-size:11px;color:var(--text3);margin-top:8px">تشمل المساحة جميع الصور المخزنة: اللوجوهات والبنرات وصور البريف والمرفقات والصور في الشات. الروابط الخارجية لا تُحتسب.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="btn btn-ghost btn-sm" onclick="toggleUserStorageFiles()"><i class="fa-solid fa-folder-open"></i> ملفات الشات</button><button type="button" class="btn btn-primary btn-sm" onclick="openStoragePackages()"><i class="fa-solid fa-arrow-up-right-dots"></i> شراء مساحة إضافية</button></div>
+    <div id="user-storage-packages" hidden style="margin-top:14px"></div>
     <div id="user-storage-files" hidden style="margin-top:12px"></div>
   </div>
 
@@ -5683,6 +5684,7 @@ try {
       <div id="plans-listing-body">
         <div style="text-align:center;padding:20px;color:var(--text3)">جاري تحميل الباقات...</div>
       </div>
+      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px"><strong><i class="fa-solid fa-hard-drive"></i> مساحة إضافية مستقلة</strong><p style="font-size:11px;color:var(--text3)">لجميع الصور المخزنة في الموقع؛ لا تغيّر باقة اشتراكك.</p><button type="button" class="btn btn-ghost btn-sm" onclick="openStoragePackages('subscription-storage-packages')">عرض باقات المساحة</button><div id="subscription-storage-packages" hidden style="margin-top:10px"></div></div>
       <!-- Code activation at bottom -->
       <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:14px;text-align:center">
         <div style="font-size:12px;color:var(--text3);margin-bottom:10px">أو فعّل كود اشتراك لديك مباشرة</div>

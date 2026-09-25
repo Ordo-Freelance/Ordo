@@ -51,6 +51,9 @@ test('task deposit and final collection share one cumulative transaction',()=>{
   finance.taskPaymentTransaction(state,project,task);
   assert.equal(state.transactions.length,1);
   assert.equal(state.transactions[0].amount,500);
+  task.paymentStatus='pending';task.paymentCollected=false;task.deposit=0;
+  finance.taskPaymentTransaction(state,project,task);
+  assert.equal(state.transactions.length,0);
 });
 
 test('a paid invoice is not imported again when its project task is edited',()=>{

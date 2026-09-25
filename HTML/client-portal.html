@@ -499,7 +499,7 @@ async function _bootWithData(userId, clientId, ud){
         : (_settings.logoLight||_settings.logo||_settings.logoDark||'');
       var studioName=_settings.name||'';
       if(lsEl){
-        var bgMode=tone&&toneLight===(_userMode==='light')?tone:(_userMode==='light'?'#f5f7ff':'#0d1425');
+        var bgMode=getComputedStyle(document.body).getPropertyValue('--bg').trim()||(_userMode==='light'?'#f5f7ff':'#0d1425');
         lsEl.style.background=bgMode;
       }
       if(lsLogo){

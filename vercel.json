@@ -1,7 +1,7 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/", "destination": "/HTML/index.html" },
+    { "source": "/", "destination": "/HTML/landing.html" },
     { "source": "/dashboard", "destination": "/HTML/index.html" },
     { "source": "/tasks", "destination": "/HTML/index.html" },
     { "source": "/projects", "destination": "/HTML/index.html" },

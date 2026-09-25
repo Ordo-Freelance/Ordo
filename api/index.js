@@ -191,7 +191,13 @@ async function storageInfo(store, userId) {
   const enabled = override.uploads_enabled ?? features.image_uploads ?? true;
   const otherBytes = imageBytes(account?.avatar_url) + (requests || []).reduce((sum,row) => sum + imageBytes(row.receipt_url) + imageBytes(row.data), 0) + chatBytes;
   const studioBytes = imageBytes(studio?.data);
-  return {user_id:userId,used_bytes:studioBytes + otherBytes,studio_bytes:studioBytes,other_bytes:otherBytes,chat_bytes:chatBytes,limit_bytes:storageLimitBytes(features,override),uploads_enabled:!!enabled,plan_id:planId || null};
+  return {user_id:userId,used_bytes:studioBytes + otherBytes,studio_bytes:studioBytes,other_bytes:otherBytes,chat_bytes:chatBytes,limit_bytes:storageLimitBytes(features,override),base_limit_bytes:storageLimitBytes(features,{quota_mb:override.quota_mb}),purchased_mb:Number(override.purchased_mb||0),uploads_enabled:!!enabled,plan_id:planId || null};
+}
+
+function publicStoragePackages(config) {
+  return (Array.isArray(config?.storage_packages) ? config.storage_packages : [])
+    .filter(item => item && item.active !== false && /^[a-z0-9_-]{1,50}$/i.test(String(item.id||'')) && Number(item.mb)>0)
+    .map(item => ({id:String(item.id),name:String(item.name||''),mb:Math.min(10240,Number(item.mb)),price:Number(item.price||0),currency:String(item.currency||'EGP'),description:String(item.description||'')}));
 }
 
 async function portalChatAccess(store, userId) {
@@ -1116,6 +1122,24 @@ export default async function handler(req, res) {
   const action = url.searchParams.get('action') || '';
 
   try {
+    if (action === 'public.plans' && req.method === 'GET') {
+      const store = await makePostgresStore();
+      const rows = await store.query('subscription_plans', { op:'select', columns:'id,name,plan_name,price,price_monthly,duration_days,features,active' });
+      const plans = (rows || []).filter(row => row.active !== false && row.active !== 0).map(row => {
+        const features = parseMaybe(row.features) || {};
+        return {
+          id:String(row.id), name:String(row.name || row.plan_name || row.id),
+          description:String(features._plan_desc || ''),
+          price_monthly:Number(row.price_monthly ?? row.price ?? 0),
+          price_annual:Number(features._price_annual || 0),
+          duration_days:Number(row.duration_days || 30),
+          features:Object.fromEntries(Object.entries(features).filter(([key]) => !key.startsWith('_') && key !== 'admin').map(([key,value]) => [key,value]))
+        };
+      }).sort((a,b) => a.price_monthly - b.price_monthly);
+      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+      return ok(res, plans);
+    }
+
     if (action === 'auth.google.start') {
       const clientId = process.env.GOOGLE_CLIENT_ID || '';
       if (!clientId || !process.env.GOOGLE_CLIENT_SECRET) return fail(res, 'Google login is not configured yet.', 500, 'google_not_configured');
@@ -1494,6 +1518,54 @@ export default async function handler(req, res) {
       if (!user) return fail(res, 'Login required', 401, 'login_required');
       const target = user.is_admin && input.user_id ? String(input.user_id) : user.id;
       return ok(res, await storageInfo(store, target));
+    }
+
+    if (postAction === 'storage.packages') {
+      const row=await store.query('platform_settings',{op:'select',columns:'config',filters:[{op:'eq',column:'id',value:1}],single:true});
+      const config=parseMaybe(row?.config)||{};
+      return ok(res,{packages:publicStoragePackages(config),whatsapp:String(config.whatsapp||'')});
+    }
+
+    if (postAction === 'storage.request') {
+      const {user}=await currentUser(req,store);
+      if(!user)return fail(res,'يلزم تسجيل الدخول',401,'login_required');
+      const row=await store.query('platform_settings',{op:'select',columns:'config',filters:[{op:'eq',column:'id',value:1}],single:true});
+      const chosen=publicStoragePackages(parseMaybe(row?.config)||{}).find(p=>p.id===String(input.package_id||''));
+      if(!chosen)return fail(res,'باقة المساحة غير متاحة',404,'storage_package_not_found');
+      const existing=await store.query('subscription_requests',{op:'select',columns:'id,user_id,plan_id,status',filters:[{op:'eq',column:'user_id',value:user.id}]});
+      if((existing||[]).some(r=>r.plan_id==='storage:'+chosen.id&&r.status==='pending'))return fail(res,'طلب هذه الباقة قيد المراجعة بالفعل',409,'storage_request_pending');
+      const request={id:uuid(),user_id:user.id,plan_id:'storage:'+chosen.id,status:'pending',data:{type:'storage',package:chosen},created_at:now(),updated_at:now()};
+      await store.query('subscription_requests',{op:'insert',payload:request});
+      return ok(res,{id:request.id,status:request.status,package:chosen});
+    }
+
+    if (postAction === 'storage.requests') {
+      const {user}=await currentUser(req,store);
+      if(!user?.is_admin)return fail(res,'Admin only',403,'admin_only');
+      const rows=await store.query('subscription_requests',{op:'select',columns:'id,user_id,plan_id,status,data,created_at',filters:[{op:'eq',column:'status',value:'pending'}]});
+      return ok(res,(rows||[]).filter(r=>String(r.plan_id||'').startsWith('storage:')));
+    }
+
+    if (postAction === 'storage.approve') {
+      const {user}=await currentUser(req,store);
+      if(!user?.is_admin)return fail(res,'Admin only',403,'admin_only');
+      const request=await store.query('subscription_requests',{op:'select',columns:'id,user_id,plan_id,status,data',filters:[{op:'eq',column:'id',value:String(input.request_id||'')}],single:true});
+      if(!request||!String(request.plan_id||'').startsWith('storage:'))return fail(res,'الطلب غير موجود',404,'request_not_found');
+      if(request.status!=='pending')return fail(res,'تم التعامل مع الطلب بالفعل',409,'request_processed');
+      const configRow=await store.query('platform_settings',{op:'select',columns:'id,config',filters:[{op:'eq',column:'id',value:1}],single:true});
+      const config=parseMaybe(configRow?.config)||{};
+      const packageId=String(request.plan_id).slice(8);
+      const chosen=publicStoragePackages(config).find(p=>p.id===packageId);
+      if(!chosen)return fail(res,'الباقة لم تعد متاحة',409,'storage_package_unavailable');
+      const status=input.approve===false?'rejected':'approved';
+      if(status==='approved'){
+        config.storage_overrides={...(config.storage_overrides||{})};
+        const prior=config.storage_overrides[request.user_id]||{};
+        config.storage_overrides[request.user_id]={...prior,purchased_mb:Number(prior.purchased_mb||0)+chosen.mb};
+        await store.query('platform_settings',{op:'upsert',payload:{id:1,config,updated_at:now()}});
+      }
+      await store.query('subscription_requests',{op:'update',payload:{status,updated_at:now()},filters:[{op:'eq',column:'id',value:request.id}]});
+      return ok(res,{id:request.id,status});
     }
 
     if (postAction === 'storage.files' || postAction === 'storage.deleteFile') {

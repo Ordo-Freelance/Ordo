@@ -32,8 +32,22 @@ test('storage policy ignores user-writable subscription claims and honors admin 
   assert.equal(info.plan_id,null);
 });
 
+test('approved storage add-on expands the same quota used by logos and chat images', async()=>{
+  const store={async userById(){return {avatar_url:''};},async query(table){
+    if(table==='studio_data')return {data:{settings:{logo:'data:image/png;base64,YWJjZA=='}}};
+    if(table==='serial_keys'||table==='subscription_requests')return [];
+    if(table==='platform_settings')return {config:{storage_overrides:{u:{purchased_mb:100}}}};
+  }};
+  const info=await storageInfo(store,'u');
+  assert.equal(info.used_bytes,4);
+  assert.equal(info.purchased_mb,100);
+  assert.equal(info.limit_bytes,125*1024*1024);
+});
+
 test('plan space can be overridden per account and disabling uploads permits deletions', () => {
   assert.equal(storageLimitBytes({storage_mb:25},{quota_mb:100}),100*1024*1024);
+  assert.equal(storageLimitBytes({storage_mb:25},{purchased_mb:100}),125*1024*1024);
+  assert.equal(storageLimitBytes({storage_mb:25},{quota_mb:100,purchased_mb:50}),150*1024*1024);
   assert.equal(storageLimitBytes({},{}),25*1024*1024);
   assert.equal(mayIncreaseImageUsage(100,90,50,false),true);
   assert.equal(mayIncreaseImageUsage(100,101,200,false),false);
