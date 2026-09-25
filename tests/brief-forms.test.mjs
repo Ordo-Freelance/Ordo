@@ -147,3 +147,10 @@ test('question editor uses individual choice inputs and type-specific previews i
   assert.match(owner,/querySelectorAll\('\.brief-option-label'\)/);
   assert.doesNotMatch(owner,/class="form-textarea brief-q-options"/);
 });
+
+test('client portal answer controls inherit its dark and light surface tokens',()=>{
+  assert.match(portal,/\.brief-portal-question textarea\.form-input\{min-height:120px/);
+  assert.match(portal,/\.brief-portal-question \.form-input:focus\{border-color:var\(--ac\)/);
+  assert.match(portal,/\.brief-portal-question select\.form-input option\{background:var\(--s2\)/);
+  assert.match(portal,/body\.lm \.brief-portal-sheet\{color-scheme:light\}/);
+});
