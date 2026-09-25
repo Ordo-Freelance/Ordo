@@ -41,5 +41,22 @@
       render(payload.data);
     }catch(error){showMessage('تعذّر تحميل الباقات الآن. الأسعار لا تُعرض إلا بعد التحقق من النظام.',true);}
   }
-  load();
+  async function redirectSignedInVisitor(){
+    if(window.location.pathname!=='/')return false;
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),5000);
+    try{
+      const response=await fetch('/api/index?action=auth.session',{
+        method:'POST',credentials:'include',cache:'no-store',
+        headers:{'Content-Type':'application/json',Accept:'application/json'},
+        body:JSON.stringify({action:'auth.session'}),signal:controller.signal
+      });
+      if(!response.ok)return false;
+      const payload=await response.json();
+      if(payload?.data?.session){window.location.replace('/dashboard');return true;}
+    }catch(error){/* The public page remains available when session verification fails. */}
+    finally{clearTimeout(timeout);}
+    return false;
+  }
+  redirectSignedInVisitor().then(redirecting=>{if(!redirecting)load();});
 })();

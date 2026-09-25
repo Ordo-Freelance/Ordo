@@ -22,7 +22,7 @@ const types = new Map([
 function safePath(urlPath) {
   let decoded = decodeURIComponent(urlPath.split('?')[0]);
   const appRoutes = new Set(['/dashboard','/tasks','/projects','/schedule','/meetings','/clients','/finance','/invoices','/services','/support','/team','/timetracker','/goals','/settings','/reports','/vault','/reviews']);
-  if (decoded === '/') decoded = '/HTML/landing.html';
+  if (decoded === '/' || decoded === '/landing' || decoded === '/landing/') decoded = '/HTML/landing.html';
   else if (appRoutes.has(decoded)) decoded = '/HTML/index.html';
   else if (decoded === '/privacy') decoded = '/HTML/privacy.html';
   else if (decoded === '/terms') decoded = '/HTML/terms.html';
