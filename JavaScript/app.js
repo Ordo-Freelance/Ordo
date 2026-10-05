@@ -27511,7 +27511,7 @@ function _widgetInnerHTML(id){
       '<div id="dash-team-pay-list"><div class="empty" style="padding:8px 0"><div class="empty-icon" style="font-size:18px">\u2705</div><div style="font-size:12px">\u0644\u0627 \u0645\u0633\u062A\u062D\u0642\u0627\u062A \u0645\u062A\u0623\u062E\u0631\u0629</div></div></div></div>';
   }
   if(id==='tasks'){
-    return '<div class="card" style="height:100%"><div class="section-title">\uD83D\uDCCB \u0622\u062E\u0631 \u0627\u0644\u0645\u0647\u0627\u0645</div>' +
+    return '<div class="card" style="height:100%"><div class="section-title">\uD83D\uDCCB \u0622\u062E\u0631 10 \u0645\u0647\u0627\u0645</div>' +
       '<div id="dash-tasks-list"><div class="empty"><div class="empty-icon">\u2746</div>\u0644\u0627 \u0645\u0647\u0627\u0645</div></div></div>';
   }
   if(id==='schedule'){
