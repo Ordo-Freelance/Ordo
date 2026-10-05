@@ -516,7 +516,7 @@ function _updateNavBtns(){
 // أفضل لـ static HTML files - مش محتاج server config
 // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 var _PAGE_SLUGS = {
-  'dashboard':'dashboard','tasks':'tasks','projects':'projects',
+  'dashboard':'dashboard','tasks':'tasks','projects':'projects','workflow-board':'workflow-board',
   'schedule':'schedule','meetings':'meetings','clients':'clients',
   'finance':'finance','invoices':'invoices','proposals':'invoices','services':'services',
   'support':'support','team':'team','timetracker':'timetracker',

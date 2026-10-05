@@ -235,7 +235,7 @@ function _buildPortalLink(clientName, portalId){
   // ── حساب الـ base path الصح بغض النظر عن الـ URL routing ──
   var _pathname = window.location.pathname;
   // شيل الـ page slug اللي ممكن يكون اتضاف من الـ URL routing
-  var _knownSlugs = ['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'];
+  var _knownSlugs = ['dashboard','tasks','projects','workflow-board','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'];
   var _parts = _pathname.split('/').filter(function(p){return p!=='';});
   // لو آخر جزء هو page slug، شيله
   if(_parts.length && _knownSlugs.indexOf(_parts[_parts.length-1]) >= 0){
@@ -1542,7 +1542,7 @@ try {
     return section;
   }
   var dashboard=item('dashboard');if(dashboard)sidebar.insertBefore(dashboard,user);
-  group('projects','المشاريع','fa-folder-open',['tasks','projects','schedule','meetings']);
+  group('projects','المشاريع','fa-folder-open',['tasks','projects','workflow-board','schedule','meetings']);
   group('clients','إدارة العمل والعملاء','fa-briefcase',['clients','services','reviews']);
   group('finance','المالية','fa-coins',['finance','subscriptions','invoices','proposals']);
   group('team','الفريق','fa-users',['team']);

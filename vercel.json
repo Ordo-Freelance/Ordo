@@ -6,6 +6,7 @@
     { "source": "/dashboard", "destination": "/HTML/index.html" },
     { "source": "/tasks", "destination": "/HTML/index.html" },
     { "source": "/projects", "destination": "/HTML/index.html" },
+    { "source": "/workflow-board", "destination": "/HTML/index.html" },
     { "source": "/schedule", "destination": "/HTML/index.html" },
     { "source": "/meetings", "destination": "/HTML/index.html" },
     { "source": "/clients", "destination": "/HTML/index.html" },

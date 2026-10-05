@@ -5,10 +5,13 @@ import fs from 'node:fs';
 const app=fs.readFileSync(new URL('../JavaScript/app.js',import.meta.url),'utf8');
 const html=fs.readFileSync(new URL('../HTML/index.html',import.meta.url),'utf8');
 const css=fs.readFileSync(new URL('../CSS/styles.css',import.meta.url),'utf8');
+const vercel=fs.readFileSync(new URL('../vercel.json',import.meta.url),'utf8');
 
 test('experimental workflow board is reachable and persisted',()=>{
   assert.match(html,/id="nav-workflow-board"/);
   assert.match(html,/id="page-workflow-board"/);
+  assert.match(html,/\['tasks','projects','workflow-board','schedule','meetings'\]/);
+  assert.match(vercel,/"source": "\/workflow-board"/);
   assert.match(app,/workflow_boards/);
   assert.match(app,/window\.renderWorkflowBoard/);
   assert.match(app,/workflowBoardIds/);
