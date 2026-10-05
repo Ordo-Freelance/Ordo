@@ -27504,7 +27504,7 @@ function _widgetInnerHTML(id){
         '<div class="card ordo-home-stat-card orange"><div class="ordo-home-stat-icon"><i class="fa-solid fa-clipboard-list"></i></div><div class="stat-label">المهام النشطة</div><div class="stat-value" id="dash-projects">0</div><div class="stat-change">قيد التنفيذ حالياً</div></div>' +
         '<div class="card ordo-home-stat-card green"><div class="ordo-home-stat-icon"><i class="fa-solid fa-circle-check"></i></div><div class="stat-label">المهام المكتملة هذا الشهر</div><div class="stat-value" id="dash-done">0</div><div class="stat-change" id="dash-pending-txt">0 معلقة</div></div>' +
         '<div class="card ordo-home-stat-card purple"><div class="ordo-home-stat-icon"><i class="fa-solid fa-users"></i></div><div class="stat-label">العملاء الحاليون</div><div class="stat-value" id="dash-clients">0</div><div class="stat-change">عميل لديهم مشاريع أو خدمات نشطة</div></div>' +
-        '<div class="card ordo-home-stat-card income"><div class="ordo-home-stat-icon"><i class="fa-solid fa-sack-dollar"></i></div><div class="stat-label"><i class="fa-solid fa-wallet" style="color:var(--accent3)"></i> آخر دخل</div><div class="stat-value green" id="dash-income">0 ج</div><div class="stat-change" style="display:none"></div></div>' +
+        '<div class="card ordo-home-stat-card income"><div class="ordo-home-stat-icon"><i class="fa-solid fa-sack-dollar"></i></div><div class="stat-label"><i class="fa-solid fa-wallet" style="color:var(--accent3)"></i> دخل الشهر الحالي</div><div class="stat-value green" id="dash-income">0 ج</div><div class="stat-change">إجمالي التحصيل حتى اليوم</div></div>' +
       '</div>' +
     '</div>';
   }
