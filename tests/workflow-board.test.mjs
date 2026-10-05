@@ -31,3 +31,16 @@ test('workflow board supports linked tasks, notes, todos, images, links and conn
   assert.match(css,/\.wf-node/);
   assert.match(css,/\.wf-links/);
 });
+
+test('workflow board provides automatic naming, rich briefs and full image viewing',()=>{
+  assert.match(app,/var title=workflowEntityName\(draft\)/);
+  assert.match(app,/workflowAddBrief/);
+  assert.match(app,/new Quill\('#wf-brief-editor'/);
+  assert.match(app,/workflowSaveBrief/);
+  assert.match(app,/workflowOpenImage/);
+  assert.match(app,/workflowToggleNodeExpand/);
+  assert.match(app,/wf-connect-hint/);
+  assert.match(css,/\.wf-brief-modal/);
+  assert.match(css,/\.wf-viewer/);
+  assert.match(css,/object-fit:contain/);
+});
