@@ -3184,6 +3184,16 @@ function filterClientProfileTasks(clientName){
 
 /* â”€â”€ Quill editor instance â”€â”€ */
 let taskQuill = null;
+function normalizeTaskBriefHTML(html){
+  html=String(html||'').trim();
+  return (html==='<p><br></p>' || html==='<p></p>' || html==='<br>') ? '' : html;
+}
+function mirrorTaskBrief(html, dirty){
+  const mirror=document.getElementById('t-brief-value');
+  if(!mirror) return;
+  mirror.value=normalizeTaskBriefHTML(html);
+  mirror.dataset.dirty=dirty?'1':'0';
+}
 function initTaskQuill(){
   if(taskQuill && taskQuill.root && taskQuill.root.isConnected) return;
   taskQuill = null;
@@ -3200,11 +3210,16 @@ function initTaskQuill(){
       ]
     }
   });
+  const syncBrief=function(){ mirrorTaskBrief(taskQuill.root.innerHTML, true); };
+  taskQuill.on('text-change', syncBrief);
+  taskQuill.root.addEventListener('input', syncBrief);
 }
 function readTaskBriefHTML(){
   const liveEditor=document.querySelector('#t-brief-editor .ql-editor');
-  const html=(liveEditor?.innerHTML || taskQuill?.root?.innerHTML || '').trim();
-  return (html==='<p><br></p>' || html==='<p></p>' || html==='<br>') ? '' : html;
+  const mirror=document.getElementById('t-brief-value');
+  const live=normalizeTaskBriefHTML(liveEditor?.innerHTML || taskQuill?.root?.innerHTML || '');
+  if(mirror && mirror.dataset.dirty==='1') return normalizeTaskBriefHTML(mirror.value);
+  return live || normalizeTaskBriefHTML(mirror?.value || '');
 }
 
 /* â”€â”€ Task Detail Modal â”€â”€ */
@@ -3425,6 +3440,7 @@ function openTaskModal(id){
       initTaskQuill();
       if(t.brief) taskQuill.clipboard.dangerouslyPasteHTML(t.brief);
       else taskQuill.setText('');
+      mirrorTaskBrief(t.brief||'', false);
     }, 80);
   } else {
     const visibilityInput=document.getElementById('t-client-visibility');
@@ -3446,7 +3462,7 @@ function openTaskModal(id){
     toggleWorkerFields();
     fillWorkerMembersDD();
     renderTaskStepsForm([]);
-    setTimeout(()=>{ initTaskQuill(); taskQuill.setText(''); }, 80);
+    setTimeout(()=>{ initTaskQuill(); taskQuill.setText(''); mirrorTaskBrief('', false); }, 80);
   }
   openM('modal-task');
 }
