@@ -1879,6 +1879,14 @@ body.sidebar-collapsed .sidebar-overlay {
 .td-info-cell .val{font-size:13px;font-weight:700;color:var(--text);}
 .task-clickable{cursor:pointer;}
 .task-clickable:hover{filter:brightness(1.06);}
+.dash-recent-task{display:grid;grid-template-columns:8px minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(42,42,58,.3)}
+.dash-recent-task:last-child{border-bottom:0}
+.dash-recent-task-main{min-width:0}
+.dash-recent-task-title{font-size:13px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-recent-task-meta{margin-top:2px;font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-task-status{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:color-mix(in srgb,var(--dash-status) 13%,transparent);color:var(--dash-status);border:1px solid color-mix(in srgb,var(--dash-status) 32%,transparent);font-size:10px;font-weight:900;white-space:nowrap}
+.dash-task-status i{font-size:6px}
+@media (max-width:650px){.dash-recent-task{grid-template-columns:8px minmax(0,1fr) auto}.dash-recent-task>.pay-badge{grid-column:2/4;justify-self:start}.dash-task-status{font-size:9px}}
 
 /* ── Filter bar ── */
 .filter-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:16px;padding:10px 14px;background:var(--surface2);border-radius:14px;border:1px solid var(--border);}

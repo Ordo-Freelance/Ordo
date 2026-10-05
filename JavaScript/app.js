@@ -12265,7 +12265,7 @@ var _WIDGET_DEFS = [
   {id:'momentum',    label:'<i class="fa-solid fa-bolt"></i> مقياس الزخم',                  full:false, visible:true,  row:1},
   {id:'charts',      label:'<i class="fa-solid fa-chart-line"></i> الرسوم البيانية',        full:true,  visible:true,  row:2},
   {id:'challenge',   label:'<i class="fa-solid fa-trophy"></i> تحدي الأسبوع',               full:true,  visible:true,  row:3},
-  {id:'tasks',       label:'<i class="fa-solid fa-clipboard-list"></i> آخر المهام',         full:false, visible:true,  row:4},
+  {id:'tasks',       label:'<i class="fa-solid fa-clipboard-list"></i> آخر 10 مهام',      full:false, visible:true,  row:4},
   {id:'expected',    label:'<i class="fa-solid fa-coins"></i> الدخل المتوقع وسعة العمل',   full:false, visible:true,  row:4},
   {id:'upcoming',    label:'<i class="fa-solid fa-alarm-clock"></i> مواعيد قريبة',          full:false, visible:false, row:9},
   {id:'overdue',     label:'<i class="fa-solid fa-triangle-exclamation"></i> مهام متأخرة', full:false, visible:false, row:9},
@@ -12299,6 +12299,28 @@ function _ordoAllDashboardTasks(){
     try { return window.OrdoReports.getDashboardSummary().tasks || []; } catch(e) {}
   }
   return [].concat(S.tasks || [], S.project_tasks || [], S.team_tasks || []);
+}
+
+function _dashboardTaskTimestamp(task){
+  var raw = task.updatedAt || task.updated_at || task.createdAt || task.created_at || task.orderDate || task.date || '';
+  var parsed = raw ? Date.parse(raw) : NaN;
+  if(Number.isFinite(parsed)) return parsed;
+  var numericId = Number(String(task.id || '').replace(/\D/g,''));
+  return Number.isFinite(numericId) ? numericId : 0;
+}
+
+function _dashboardTaskStatus(task){
+  var status = task.status || (task.done ? 'done' : 'todo');
+  var labels = {todo:'جديد',new:'جديد',progress:'قيد التنفيذ',in_progress:'قيد التنفيذ',review:'مراجعة',revision:'تعديلات',hold:'موقوف',paused:'موقوف',done:'مكتمل',completed:'مكتمل'};
+  var colors = {todo:'#94a3b8',new:'#94a3b8',progress:'#f7c948',in_progress:'#f7c948',review:'#f59e0b',revision:'#f97316',hold:'#64b5f6',paused:'#64b5f6',done:'#4fd1a5',completed:'#4fd1a5'};
+  return {key:status,label:labels[status] || (typeof getStatusLabel==='function' ? getStatusLabel(status) : status),color:colors[status] || '#94a3b8'};
+}
+
+function _dashboardTaskPayment(task){
+  var pay = task.pay || task.paymentStatus || task.payment_status || 'none';
+  if(task.paymentCollected || task.paid || pay==='collected' || pay==='paid') pay='full';
+  if((Number(task.deposit)||0)>0 && pay!=='full') pay='deposit';
+  return payBadge[pay] || payBadge.none;
 }
 
 function _openDashboardTask(id, kind){
@@ -12363,18 +12385,22 @@ function updateDash(){
   _updatePerfCard(done, pending, inc);
 
   const dtl=document.getElementById('dash-tasks-list');
-  if(dtl)dtl.innerHTML=dashTasks.slice(0,5).map(t=>{
+  const recentDashTasks=dashTasks.slice().sort((a,b)=>_dashboardTaskTimestamp(b)-_dashboardTaskTimestamp(a)).slice(0,10);
+  if(dtl)dtl.innerHTML=recentDashTasks.map(t=>{
     const kind=(t.source_type==='team_task'||t.team_id)?'team_task':(t.project_id?'project_task':'task');
     const tid=String(t.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const statusInfo=_dashboardTaskStatus(t);
     return `
-    <div class="task-clickable" onclick="_openDashboardTask('${tid}','${kind}')" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,42,58,.3)">
+    <div class="task-clickable dash-recent-task" onclick="_openDashboardTask('${tid}','${kind}')">
       <div class="task-priority priority-${t.priority}"></div>
-      <div style="flex:1;font-size:13px;${t.done?'text-decoration:line-through;color:var(--text3)':''}">
-        ${t.title||t.name||'Task'}
+      <div class="dash-recent-task-main">
+        <div class="dash-recent-task-title" style="${(t.done||statusInfo.key==='done'||statusInfo.key==='completed')?'text-decoration:line-through;color:var(--text3)':''}">${t.title||t.name||'Task'}</div>
+        <div class="dash-recent-task-meta">${t.client||t.projectName||t.assignee_name||kind.replace('_',' ')}</div>
         ${kind==='team_task'?'<span style="font-size:10px;color:var(--accent3);margin-right:6px"><i class="fa-solid fa-users"></i></span>':''}
         ${t.brief?'<span style="font-size:10px;color:var(--accent);margin-right:4px"><i class="fa-solid fa-file-lines"></i></span>':''}
       </div>
-      ${payBadge[t.pay||'none']}
+      <span class="dash-task-status" style="--dash-status:${statusInfo.color}"><i class="fa-solid fa-circle"></i> ${statusInfo.label}</span>
+      ${_dashboardTaskPayment(t)}
     </div>`;}).join('')||'<div class="empty"><div class="empty-icon"><i class="fa-solid fa-star-of-life"></i></div>لا مهام</div>';
   const dsl=document.getElementById('dash-sched-list');
   if(dsl)dsl.innerHTML=S.schedule.slice(0,5).map(s=>`
