@@ -4357,8 +4357,8 @@ body.sidebar-collapsed .sidebar-overlay {
   background:var(--hover-overlay);
 }
 .tasks-v2-flow-main .td-brief{
-  min-height:190px;
-  max-height:clamp(260px,38vh,430px);
+  min-height:0;
+  max-height:clamp(220px,34vh,380px);
   overflow:auto;
   padding:18px 20px;
   border-color:color-mix(in srgb,var(--accent) 18%,var(--border));
@@ -4414,7 +4414,7 @@ body.sidebar-collapsed .sidebar-overlay {
   line-height:2;
 }
 @media (max-width:760px){
-  .tasks-v2-flow-main .td-brief{min-height:180px;max-height:46vh;padding:15px;font-size:13.5px}
+  .tasks-v2-flow-main .td-brief{min-height:0;max-height:42vh;padding:15px;font-size:13.5px}
   .tasks-v2-brief-expand b{display:none}
   .modal-overlay.brief-expanded .tasks-v2-flow-main{inset:8px;padding:12px;border-radius:12px}
   .modal-overlay.brief-expanded .tasks-v2-flow-main .td-brief{padding:14px;font-size:14px}

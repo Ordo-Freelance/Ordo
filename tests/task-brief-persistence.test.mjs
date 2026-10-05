@@ -34,7 +34,8 @@ test('task details provide a dedicated large brief view',()=>{
 
 test('the default task brief view exposes a substantial polished reading area',()=>{
   assert.match(css,/grid-template-columns:minmax\(0,1\.55fr\)/);
-  assert.match(css,/min-height:190px/);
-  assert.match(css,/max-height:clamp\(260px,38vh,430px\)/);
+  assert.match(css,/\.tasks-v2-flow-main \.td-brief\{[\s\S]*?min-height:0/);
+  assert.match(css,/max-height:clamp\(220px,34vh,380px\)/);
+  assert.match(css,/overflow:auto/);
   assert.match(css,/\.tasks-v2-flow-main \.td-brief img/);
 });
