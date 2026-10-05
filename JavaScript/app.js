@@ -8189,6 +8189,7 @@ function _renderFeaturesPanel(){
   var STORE_FILTERS = 'ordo_tasks_v2_filters';
   var STORE_FILTER_OPEN = 'ordo_tasks_v2_filter_open';
   var STORE_VIEW = 'ordo_tasks_v2_view';
+  var STORE_GROUP_ORDER = 'ordo_tasks_v2_group_order';
   var dragId = null;
   var justDragged = false;
 
@@ -8204,7 +8205,7 @@ function _renderFeaturesPanel(){
     return localStorage.getItem(STORE_VIEW) || 'kanban';
   }
   window.__tasksV2SetView = function(view){
-    localStorage.setItem(STORE_VIEW, view === 'list' ? 'list' : 'kanban');
+    localStorage.setItem(STORE_VIEW, ['list','group','kanban'].includes(view) ? view : 'kanban');
     renderTasks();
   };
 
@@ -8306,6 +8307,30 @@ function _renderFeaturesPanel(){
     });
     return base.filter(function(s){ return !hidden.includes(s.id); });
   }
+  function orderedGroupStatuses(){
+    var statuses = visibleStatuses();
+    var saved = [];
+    try { saved = JSON.parse(localStorage.getItem(STORE_GROUP_ORDER) || '[]') || []; } catch(e) {}
+    var ids = saved.filter(function(id){ return statuses.some(function(s){ return s.id === id; }); });
+    statuses.forEach(function(s){ if(!ids.includes(s.id)) ids.push(s.id); });
+    return ids.map(function(id){ return statuses.find(function(s){ return s.id === id; }); }).filter(Boolean);
+  }
+  window.__tasksV2SortGroups = function(mode){
+    var statuses = visibleStatuses().slice();
+    if(mode === 'done-first') statuses.sort(function(a,b){ return Number(b.id === 'done') - Number(a.id === 'done'); });
+    else if(mode === 'open-first') statuses.sort(function(a,b){ return Number(a.id === 'done') - Number(b.id === 'done'); });
+    else if(mode === 'alpha') statuses.sort(function(a,b){ return String(a.label).localeCompare(String(b.label), 'ar'); });
+    localStorage.setItem(STORE_GROUP_ORDER, JSON.stringify(statuses.map(function(s){ return s.id; })));
+    renderTasks();
+  };
+  window.__tasksV2MoveGroup = function(id, direction){
+    var ids = orderedGroupStatuses().map(function(s){ return s.id; });
+    var index = ids.indexOf(id), next = index + Number(direction || 0);
+    if(index < 0 || next < 0 || next >= ids.length) return;
+    var temp = ids[index]; ids[index] = ids[next]; ids[next] = temp;
+    localStorage.setItem(STORE_GROUP_ORDER, JSON.stringify(ids));
+    renderTasks();
+  };
   function readFilters(){
     var saved = {};
     try { saved = JSON.parse(localStorage.getItem(STORE_FILTERS) || '{}') || {}; } catch(e) {}
@@ -8379,6 +8404,23 @@ function _renderFeaturesPanel(){
       return Object.assign({_isProjectTask:true,_v2Key:'p_'+t.id,projectName:p.name || t.projectName || 'مشروع',projectColor:p.color || t.color || '#7c6ff7',client:p.client_name || t.client || ''}, t);
     });
     return regular.concat(projectTasks);
+  }
+  function taskOrder(t){
+    var order = Number(t && (t.taskOrder !== undefined ? t.taskOrder : t.sortOrder));
+    return Number.isFinite(order) ? order : Number.MAX_SAFE_INTEGER;
+  }
+  function orderedTasks(items){
+    return items.slice().sort(function(a,b){
+      var orderDiff = taskOrder(a) - taskOrder(b);
+      if(orderDiff) return orderDiff;
+      return String(b.updatedAt || b.createdAt || b.id || '').localeCompare(String(a.updatedAt || a.createdAt || a.id || ''));
+    });
+  }
+  function rawTaskByKey(key){
+    key = String(key || '');
+    var isProject = key.indexOf('p_') === 0;
+    var id = key.replace(/^p_/, '').replace(/^t_/, '');
+    return (isProject ? (S.project_tasks || []) : (S.tasks || [])).find(function(t){ return String(t.id) === id; }) || null;
   }
   function taskSearchText(t){
     return [
@@ -8523,6 +8565,41 @@ function _renderFeaturesPanel(){
       (openRows || '<div class="tasks-v2-list-empty">لا توجد مهام مفتوحة حسب الفلتر الحالي</div>')+
       (doneRows ? '<div class="tasks-v2-completed-block"><button type="button" class="tasks-v2-completed-head" onclick="this.closest(&quot;.tasks-v2-completed-block&quot;).classList.toggle(&quot;is-collapsed&quot;)"><span><i class="fa-solid fa-square-check"></i> المهام المكتملة</span><b>'+doneItems.length+'</b><i class="fa-solid fa-chevron-down"></i></button><div class="tasks-v2-completed-body">'+doneRows+'</div></div>' : '')+
     '</div>';
+  }
+  function groupRowsHtml(items){
+    if(!items.length) return '<div class="tasks-v2-group-empty">اسحب مهمة هنا</div>';
+    return orderedTasks(items).map(function(t){
+      var color = taskColor(t);
+      var late = t.deadline && t.deadline < todayIso() && taskStatus(t) !== 'done';
+      var key = t._v2Key || ('t_'+t.id);
+      var openCall = t._isProjectTask ? 'openProjectDetail(&quot;'+esc(t.project_id || '')+'&quot;)' : 'openTaskDetail('+t.id+')';
+      var editCall = t._isProjectTask ? 'openProjTaskModal(&quot;'+esc(t.project_id || '')+'&quot;,&quot;'+esc(t.id)+'&quot;)' : 'openTaskModal('+t.id+')';
+      return '<div class="tasks-v2-group-row task-clickable" draggable="true" data-task-key="'+key+'" data-task-id="'+t.id+'" ondragstart="__tasksV2DragStart(event,&quot;'+key+'&quot;)" ondragend="__tasksV2DragEnd(event)" onclick="'+openCall+'">'+
+        '<div class="tasks-v2-group-main"><i class="fa-solid fa-grip-vertical tasks-v2-drag-handle"></i><span class="tasks-v2-dot" style="background:'+color+'"></span><div><b>'+esc(t.title || 'مهمة بدون اسم')+'</b><small>'+(t._isProjectTask?'مشروع: '+esc(t.projectName):esc(t.client || 'بدون عميل'))+'</small></div></div>'+
+        '<span>'+esc(t._isProjectTask ? t.projectName : (t.client || 'بدون عميل'))+'</span>'+
+        '<span style="color:'+priorityColor(t.priority)+'"><i class="fa-solid fa-circle"></i> '+priorityLabel(t.priority)+'</span>'+
+        '<span class="'+(late?'is-late':'')+'">'+(t.deadline ? niceDate(t.deadline) : 'بدون موعد')+'</span>'+
+        '<span>'+payText(t)+'</span>'+
+        '<div class="tasks-v2-list-actions" onclick="event.stopPropagation()">'+
+          '<button class="tasks-v2-icon-btn" onclick="'+openCall+'" title="تفاصيل"><i class="fa-regular fa-eye"></i></button>'+
+          '<button class="tasks-v2-icon-btn" onclick="'+editCall+'" title="تعديل"><i class="fa-solid fa-pen"></i></button>'+
+          (taskStatus(t) !== 'done' ? '<button class="tasks-v2-icon-btn" onclick="'+(t._isProjectTask?'_completeProjTask(&quot;'+esc(t.id)+'&quot;)':'completeTask('+t.id+')')+'" title="إكمال"><i class="fa-solid fa-check"></i></button>' : '')+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+  function groupedHtml(items){
+    var statuses = orderedGroupStatuses();
+    return '<div class="tasks-v2-groups">'+statuses.map(function(st, index){
+      var rows = items.filter(function(t){ return taskStatus(t) === st.id; });
+      return '<section class="tasks-v2-group" data-status="'+st.id+'" ondragover="__tasksV2DragOver(event)" ondragleave="__tasksV2DragLeave(event)" ondrop="__tasksV2Drop(event)">'+
+        '<div class="tasks-v2-group-head" style="--group-color:'+st.color+'"><div><i class="fa-solid fa-grip-lines"></i><span class="tasks-v2-dot" style="background:'+st.color+'"></span><b>'+esc(st.label)+'</b><em>'+rows.length+'</em></div><div class="tasks-v2-group-order">'+
+          '<button onclick="__tasksV2MoveGroup(&quot;'+st.id+'&quot;,-1)" '+(index===0?'disabled':'')+' title="رفع الجروب"><i class="fa-solid fa-arrow-up"></i></button>'+
+          '<button onclick="__tasksV2MoveGroup(&quot;'+st.id+'&quot;,1)" '+(index===statuses.length-1?'disabled':'')+' title="خفض الجروب"><i class="fa-solid fa-arrow-down"></i></button>'+
+        '</div></div>'+
+        '<div class="tasks-v2-group-table"><div class="tasks-v2-group-labels"><span>المهمة</span><span>العميل / المشروع</span><span>الأولوية</span><span>التسليم</span><span>الدفع</span><span>إجراءات</span></div>'+groupRowsHtml(rows)+'</div>'+
+      '</section>';
+    }).join('')+'</div>';
   }
   function modernTaskStatusOptions(t){
     var hidden = S.hiddenStatuses || [];
@@ -8808,7 +8885,7 @@ function _renderFeaturesPanel(){
 
     var boardStatuses = visibleStatuses();
     var board = boardStatuses.map(function(st){
-      var items = filtered.filter(function(t){ return taskStatus(t) === st.id; });
+      var items = orderedTasks(filtered.filter(function(t){ return taskStatus(t) === st.id; }));
       return '<section class="tasks-v2-col" data-status="'+st.id+'" ondragover="__tasksV2DragOver(event)" ondragleave="__tasksV2DragLeave(event)" ondrop="__tasksV2Drop(event)">'+
         '<div class="tasks-v2-col-head"><div class="tasks-v2-col-title"><span class="tasks-v2-dot" style="background:'+st.color+'"></span><span>'+esc(st.label)+'</span></div><span class="tasks-v2-count">'+items.length+'</span></div>'+
         '<div class="tasks-v2-col-body">'+(items.length ? items.map(cardHtml).join('') : '<div class="tasks-v2-empty">اسحب مهمة هنا</div>')+'</div>'+
@@ -8849,10 +8926,12 @@ function _renderFeaturesPanel(){
         '<select class="tasks-v2-select" onchange="__tasksV2SetFilter(\'date\',this.value)"><option value="">كل المواعيد</option><option value="late" '+(f.date==='late'?'selected':'')+'>متأخر</option><option value="today" '+(f.date==='today'?'selected':'')+'>اليوم</option><option value="tomorrow" '+(f.date==='tomorrow'?'selected':'')+'>بكرة</option><option value="week" '+(f.date==='week'?'selected':'')+'>خلال أسبوع</option></select>'+
         '<button class="btn btn-ghost" onclick="localStorage.removeItem(\''+STORE_FILTERS+'\');renderTasks()"><i class="fa-solid fa-xmark"></i> مسح</button>'+
       '</div>'+
-      '<div class="tasks-v2-layout '+(view==='list'?'is-list':'is-kanban')+'">'+
+      '<div class="tasks-v2-layout '+(view==='list'?'is-list':view==='group'?'is-group':'is-kanban')+'">'+
         '<div class="tasks-v2-board-wrap">'+
-          '<div class="tasks-v2-board-head"><div><b>'+(view==='list'?'قائمة المهام':'كانبان المهام')+'</b><div style="font-size:12px;color:var(--text3);margin-top:2px">'+filtered.length+' مهمة حسب الفلتر الحالي</div></div><div class="tasks-v2-board-tools"><button class="tasks-v2-action-icon '+(view==='kanban'?'is-active':'')+'" data-tasks-v2-action="view-kanban" title="عرض كانبان"><i class="fa-solid fa-table-columns"></i></button><button class="tasks-v2-action-icon '+(view==='list'?'is-active':'')+'" data-tasks-v2-action="view-list" title="عرض القائمة"><i class="fa-solid fa-list"></i></button><span>'+pct+'%</span><div class="tasks-v2-progress"><span style="width:'+pct+'%"></span></div></div></div>'+
-          (view==='list' ? listHtml(filtered) : '<div class="tasks-v2-board">'+board+'</div>')+
+          '<div class="tasks-v2-board-head"><div><b>'+(view==='list'?'قائمة المهام':view==='group'?'جروبات المهام':'كانبان المهام')+'</b><div style="font-size:12px;color:var(--text3);margin-top:2px">'+filtered.length+' مهمة حسب الفلتر الحالي</div></div><div class="tasks-v2-board-tools">'+
+            (view==='group'?'<select class="tasks-v2-group-sort" onchange="__tasksV2SortGroups(this.value)" title="ترتيب الجروبات"><option value="">ترتيب الجروبات</option><option value="open-first">غير المكتمل أولاً</option><option value="done-first">المكتمل أولاً</option><option value="alpha">أبجديًا</option></select>':'')+
+            '<button class="tasks-v2-action-icon '+(view==='kanban'?'is-active':'')+'" data-tasks-v2-action="view-kanban" title="عرض كانبان"><i class="fa-solid fa-table-columns"></i></button><button class="tasks-v2-action-icon '+(view==='list'?'is-active':'')+'" data-tasks-v2-action="view-list" title="عرض القائمة"><i class="fa-solid fa-list"></i></button><button class="tasks-v2-action-icon '+(view==='group'?'is-active':'')+'" data-tasks-v2-action="view-group" title="عرض جروبات"><i class="fa-solid fa-layer-group"></i></button><span>'+pct+'%</span><div class="tasks-v2-progress"><span style="width:'+pct+'%"></span></div></div></div>'+
+          (view==='list' ? listHtml(filtered) : view==='group' ? groupedHtml(filtered) : '<div class="tasks-v2-board">'+board+'</div>')+
         '</div>'+
       '</div>';
     setTimeout(function(){ if(typeof runDailyArchive === 'function') runDailyArchive(); }, 300);
@@ -8877,6 +8956,7 @@ function _renderFeaturesPanel(){
     if(action === 'classic') return setTasksV2Mode('classic');
     if(action === 'view-kanban') return window.__tasksV2SetView('kanban');
     if(action === 'view-list') return window.__tasksV2SetView('list');
+    if(action === 'view-group') return window.__tasksV2SetView('group');
     if(action === 'statuses' && typeof openStatusManagerModal === 'function') return openStatusManagerModal();
   });
   window.__tasksV2Refresh = renderTasksV2;
@@ -8886,7 +8966,7 @@ function _renderFeaturesPanel(){
     ev.dataTransfer.effectAllowed = 'move';
     ev.dataTransfer.setData('text/plain', String(id));
     setTimeout(function(){
-      var el = document.querySelector('#tasks-v2-shell [data-task-id="'+id+'"]');
+      var el = document.querySelector('#tasks-v2-shell [data-task-key="'+id+'"]');
       if(el) el.classList.add('dragging');
     }, 0);
   };
@@ -8926,25 +9006,40 @@ function _renderFeaturesPanel(){
         task.doneAt = null;
         task.completedAt = null;
       }
-      lsSave();
-      if(typeof showMiniNotif === 'function') showMiniNotif('<i class="fa-solid fa-diagram-project" style="color:var(--accent)"></i> تم نقل مهمة المشروع');
-      refreshAfterKanbanMove();
-      return;
-    }
-    task.status = status === 'done' ? 'done' : status;
-    if(status === 'done'){
-      _markTaskCompleted(task);
     } else {
-      task.done = false;
-      task.doneAt = null;
-      task.completedAt = null;
-      task.archiveReminder24ShownAt = null;
-      task.archiveReminder48ShownAt = null;
-      task.archiveReminderShownAt = null;
-      task.archiveReminderAgainAt = null;
+      task.status = status === 'done' ? 'done' : status;
+      if(status === 'done'){
+        _markTaskCompleted(task);
+      } else {
+        task.done = false;
+        task.doneAt = null;
+        task.completedAt = null;
+        task.archiveReminder24ShownAt = null;
+        task.archiveReminder48ShownAt = null;
+        task.archiveReminderShownAt = null;
+        task.archiveReminderAgainAt = null;
+      }
     }
+
+    var targetEl = ev.target && ev.target.closest ? ev.target.closest('[data-task-key]') : null;
+    var targetKey = targetEl && col.contains(targetEl) ? targetEl.getAttribute('data-task-key') : '';
+    var ordered = orderedTasks(tasksV2Source().filter(function(t){ return taskStatus(t) === status && String(t._v2Key) !== rawId; }));
+    var insertAt = ordered.length;
+    if(targetKey){
+      var targetIndex = ordered.findIndex(function(t){ return String(t._v2Key) === String(targetKey); });
+      if(targetIndex >= 0){
+        var rect = targetEl.getBoundingClientRect();
+        insertAt = targetIndex + (ev.clientY > rect.top + rect.height / 2 ? 1 : 0);
+      }
+    }
+    ordered.splice(insertAt, 0, Object.assign({_v2Key:rawId}, task));
+    ordered.forEach(function(item, index){
+      var raw = rawTaskByKey(item._v2Key);
+      if(raw) raw.taskOrder = (index + 1) * 100;
+    });
     lsSave();
-    if(typeof showMiniNotif === 'function') showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم نقل المهمة إلى '+getStatusLabel(status));
+    if(typeof cloudSave === 'function') cloudSave(S);
+    if(typeof showMiniNotif === 'function') showMiniNotif('<i class="fa-solid fa-arrows-up-down" style="color:var(--accent3)"></i> تم حفظ الحالة والترتيب');
     refreshAfterKanbanMove();
   };
 
