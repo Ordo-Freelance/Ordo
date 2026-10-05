@@ -8211,7 +8211,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var label = card && card.querySelector('.stat-label');
     var change = card && card.querySelector('.stat-change');
     if(label) label.innerHTML = '<i class="fa-solid fa-wallet" style="color:var(--accent3)"></i> دخل الشهر الحالي';
-    if(change) change.textContent = hiddenCount ? 'من يوم 1 لآخر الشهر · اضغط + للباقي' : 'من يوم 1 حتى آخر يوم في الشهر';
+    if(change){ change.textContent = ''; change.style.display = 'none'; }
     target.classList.remove('green');
     target.classList.add('ordo-dash-wallet-mini');
     target.innerHTML = shownWallets.map(function(w){

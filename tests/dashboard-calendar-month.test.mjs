@@ -17,5 +17,6 @@ test('dashboard income card totals only income from the current calendar month',
   assert.match(html,/function monthlyIncome\(code\)/);
   assert.match(html,/d\.getFullYear\(\) === year && d\.getMonth\(\) === month/);
   assert.match(html,/دخل الشهر الحالي/);
-  assert.match(html,/من يوم 1 حتى آخر يوم في الشهر/);
+  assert.match(html,/change\.style\.display = 'none'/);
+  assert.doesNotMatch(html,/من يوم 1 حتى آخر يوم في الشهر/);
 });
