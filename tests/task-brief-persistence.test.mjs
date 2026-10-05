@@ -17,3 +17,9 @@ test('opening an existing or new task resets the brief mirror deterministically'
   assert.match(app,/mirrorTaskBrief\(t\.brief\|\|'', false\)/);
   assert.match(app,/mirrorTaskBrief\('', false\)/);
 });
+
+test('the production safe-save path persists the live rich brief',()=>{
+  assert.match(html,/var liveBrief = typeof window\.readTaskBriefHTML === 'function'/);
+  assert.match(html,/brief:liveBrief/);
+  assert.match(html,/steps:typeof window\.collectTaskSteps === 'function'/);
+});

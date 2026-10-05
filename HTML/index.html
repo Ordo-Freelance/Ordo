@@ -8307,6 +8307,10 @@ document.addEventListener('DOMContentLoaded', function(){
     var oldTask = eid ? st().tasks.find(function(t){ return String(t.id) === String(eid); }) : null;
     var clientName = read('t-client');
     var selectedClient = (st().clients || []).find(function(item){ return item.name === clientName && !item._isPersonal; });
+    var liveBrief = typeof window.readTaskBriefHTML === 'function'
+      ? window.readTaskBriefHTML()
+      : String((document.querySelector('#t-brief-editor .ql-editor') || {}).innerHTML || '').trim();
+    if(liveBrief === '<p><br></p>' || liveBrief === '<p></p>' || liveBrief === '<br>') liveBrief = '';
     var task = Object.assign({}, oldTask || {}, {
       id: oldTask ? oldTask.id : Date.now(),
       title:title,
@@ -8324,6 +8328,8 @@ document.addEventListener('DOMContentLoaded', function(){
       pay:read('t-pay') || 'none',
       deposit:num(read('t-deposit')),
       notes:read('t-notes'),
+      brief:liveBrief,
+      steps:typeof window.collectTaskSteps === 'function' ? window.collectTaskSteps() : ((oldTask && oldTask.steps) || []),
       done:oldTask ? !!oldTask.done : false,
       currency_code:c.code,
       currency_symbol:c.symbol,
