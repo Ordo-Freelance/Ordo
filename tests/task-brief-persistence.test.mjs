@@ -31,3 +31,10 @@ test('task details provide a dedicated large brief view',()=>{
   assert.match(css,/\.modal-overlay\.brief-expanded \.tasks-v2-flow-main/);
   assert.match(css,/\.modal-overlay\.brief-expanded \.tasks-v2-flow-main \.td-brief/);
 });
+
+test('the default task brief view exposes a substantial polished reading area',()=>{
+  assert.match(css,/grid-template-columns:minmax\(0,1\.55fr\)/);
+  assert.match(css,/min-height:190px/);
+  assert.match(css,/max-height:clamp\(260px,38vh,430px\)/);
+  assert.match(css,/\.tasks-v2-flow-main \.td-brief img/);
+});

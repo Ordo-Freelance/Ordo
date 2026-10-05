@@ -4301,12 +4301,12 @@ body.sidebar-collapsed .sidebar-overlay {
 }
 .tasks-v2-flow-grid{
   display:grid;
-  grid-template-columns:minmax(0,1fr) 245px;
-  gap:8px;
+  grid-template-columns:minmax(0,1.55fr) minmax(220px,.55fr);
+  gap:12px;
 }
 .tasks-v2-flow-panel{
-  padding:10px;
-  border-radius:11px;
+  padding:12px;
+  border-radius:13px;
 }
 .tasks-v2-flow-panel h3,
 .tasks-v2-flow-link h3{
@@ -4319,6 +4319,22 @@ body.sidebar-collapsed .sidebar-overlay {
   align-items:center;
   justify-content:space-between;
   gap:10px;
+  margin-bottom:10px;
+  font-size:13px;
+}
+.tasks-v2-flow-main{
+  position:relative;
+  overflow:hidden;
+  border-color:color-mix(in srgb,var(--accent) 28%,var(--border));
+  background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 6%,var(--surface2)),var(--surface2) 44%);
+  box-shadow:0 10px 26px rgba(3,10,26,.16),inset 0 1px rgba(255,255,255,.025);
+}
+.tasks-v2-flow-main::before{
+  content:"";
+  position:absolute;
+  inset:0 0 auto;
+  height:3px;
+  background:linear-gradient(90deg,var(--task-detail-color,var(--accent)),transparent 82%);
 }
 .tasks-v2-brief-expand{
   min-height:30px;
@@ -4341,9 +4357,35 @@ body.sidebar-collapsed .sidebar-overlay {
   background:var(--hover-overlay);
 }
 .tasks-v2-flow-main .td-brief{
-  min-height:58px;
-  max-height:150px;
+  min-height:190px;
+  max-height:clamp(260px,38vh,430px);
   overflow:auto;
+  padding:18px 20px;
+  border-color:color-mix(in srgb,var(--accent) 18%,var(--border));
+  border-radius:11px;
+  background:color-mix(in srgb,var(--surface) 92%,transparent);
+  font-size:14px;
+  line-height:1.95;
+  scrollbar-width:thin;
+  scrollbar-color:color-mix(in srgb,var(--accent) 48%,transparent) transparent;
+}
+.tasks-v2-flow-main .td-brief > :first-child{margin-top:0}
+.tasks-v2-flow-main .td-brief > :last-child{margin-bottom:0}
+.tasks-v2-flow-main .td-brief p{margin:0 0 10px}
+.tasks-v2-flow-main .td-brief img{
+  display:block;
+  width:auto;
+  max-width:100%;
+  max-height:320px;
+  object-fit:contain;
+  margin:14px auto;
+  border:1px solid var(--border);
+  border-radius:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,.22);
+}
+.tasks-v2-flow-main .td-brief a{
+  text-decoration:none;
+  border-bottom:1px dashed currentColor;
 }
 .modal-overlay.brief-expanded .tasks-v2-flow-main{
   position:fixed;
@@ -4372,6 +4414,8 @@ body.sidebar-collapsed .sidebar-overlay {
   line-height:2;
 }
 @media (max-width:760px){
+  .tasks-v2-flow-main .td-brief{min-height:180px;max-height:46vh;padding:15px;font-size:13.5px}
+  .tasks-v2-brief-expand b{display:none}
   .modal-overlay.brief-expanded .tasks-v2-flow-main{inset:8px;padding:12px;border-radius:12px}
   .modal-overlay.brief-expanded .tasks-v2-flow-main .td-brief{padding:14px;font-size:14px}
 }
