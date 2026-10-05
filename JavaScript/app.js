@@ -8492,6 +8492,7 @@ function _renderFeaturesPanel(){
       'data-task-key="'+taskKey+'" ondragstart="__tasksV2DragStart(event,&quot;'+taskKey+'&quot;)" ondragend="__tasksV2DragEnd(event)" '+
       'onclick="__tasksV2OpenTask(event,&quot;'+taskKey+'&quot;)" style="border-right-color:'+(t._isProjectTask ? t.projectColor : color)+'">'+
       '<div class="tasks-v2-card-top">'+
+        '<i class="fa-solid fa-grip-vertical tasks-v2-drag-handle" title="اسحب لترتيب المهمة أو تغيير حالتها"></i>'+
         '<span class="tasks-v2-card-color" style="background:'+(t._isProjectTask ? t.projectColor : color)+'"></span>'+
         '<div class="tasks-v2-card-title">'+esc(t.title || 'مهمة بدون اسم')+'</div>'+
       '</div>'+
@@ -8536,8 +8537,10 @@ function _renderFeaturesPanel(){
       var late = t.deadline && t.deadline < todayIso() && st !== 'done';
       var openCall = t._isProjectTask ? 'openProjectDetail(&quot;'+esc(t.project_id || '')+'&quot;)' : 'openTaskDetail('+t.id+')';
       var editCall = t._isProjectTask ? 'openProjTaskModal(&quot;'+esc(t.project_id || '')+'&quot;,&quot;'+esc(t.id)+'&quot;)' : 'openTaskModal('+t.id+')';
-      return '<div class="tasks-v2-list-row task-clickable" onclick="'+openCall+'" data-task-id="'+t.id+'">'+
+      var taskKey = t._v2Key || ('t_'+t.id);
+      return '<div class="tasks-v2-list-row task-clickable" draggable="true" data-task-key="'+taskKey+'" data-task-id="'+t.id+'" data-status="'+st+'" ondragstart="__tasksV2DragStart(event,&quot;'+taskKey+'&quot;)" ondragend="__tasksV2DragEnd(event)" ondragover="__tasksV2DragOver(event)" ondragleave="__tasksV2DragLeave(event)" ondrop="__tasksV2Drop(event)" onclick="__tasksV2OpenTask(event,&quot;'+taskKey+'&quot;)">'+
         '<div class="tasks-v2-list-main">'+
+          '<i class="fa-solid fa-grip-vertical tasks-v2-drag-handle" title="اسحب لترتيب المهمة أو نقلها للمكتمل"></i>'+
           '<span class="tasks-v2-dot" style="background:'+color+'"></span>'+
           '<div><b>'+esc(t.title || 'مهمة بدون اسم')+'</b><div>'+(t._isProjectTask ? 'مهمة مرتبطة بمشروع: '+esc(t.projectName) : esc(t.client || 'بدون عميل'))+'</div></div>'+
         '</div>'+

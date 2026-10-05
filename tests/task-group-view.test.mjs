@@ -21,4 +21,7 @@ test('dragging a task persists both its status and its order',()=>{
   assert.match(app,/targetEl\.getBoundingClientRect/);
   assert.match(app,/raw\.taskOrder = \(index \+ 1\) \* 100/);
   assert.match(app,/تم حفظ الحالة والترتيب/);
+  assert.match(app,/tasks-v2-list-row task-clickable" draggable="true"/);
+  assert.match(app,/data-status="'\+st\+'" ondragstart/);
+  assert.match(css,/\.tasks-v2-list-row\[draggable="true"\]/);
 });
