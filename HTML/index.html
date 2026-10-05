@@ -5571,7 +5571,7 @@ try {
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=dashboard-recent-tasks-4"></script>
+<script src="../JavaScript/app.js?v=dashboard-calendar-month-1"></script>
 <script src="../JavaScript/project-finance-integration.js?v=2"></script>
 <script>document.body.classList.remove('auth-booting');</script>
 <script src="../JavaScript/vercel_persistence.js?v=storefront-sync-1"></script>
@@ -8170,10 +8170,25 @@ document.addEventListener('DOMContentLoaded', function(){
     var target = document.getElementById('dash-income');
     if(!target) return;
     recalcWallets();
+    var now = new Date(), year = now.getFullYear(), month = now.getMonth();
+    function txDate(tx){
+      var d = new Date(tx.isoDate || tx.date || tx.createdAt || tx.created_at || '');
+      return isNaN(d.getTime()) ? null : d;
+    }
+    function isCurrentMonth(tx){
+      var d = txDate(tx);
+      return d && d.getFullYear() === year && d.getMonth() === month;
+    }
+    function monthlyIncome(code){
+      var c = meta(code);
+      return (st().transactions || []).reduce(function(total, tx){
+        return total + (tx.type === 'income' && entityCurrency(tx).code === c.code && isCurrentMonth(tx) ? num(tx.amount) : 0);
+      }, 0);
+    }
     var wallets = (st().wallets || []).filter(function(w){
-      var s = walletSummary(w.currency_code);
+      var income = monthlyIncome(w.currency_code);
       var c = meta(w.currency_code);
-      return enabledCurrencies().some(function(x){ return x.code === c.code; }) || num(s.balance) !== 0 || num(s.income) !== 0 || num(s.expense) !== 0;
+      return income !== 0 || c.code === baseCurrency().code;
     });
     if(!wallets.length) wallets = [ensureWallet(baseCurrency().code)];
     wallets = wallets.slice().sort(function(a,b){
@@ -8181,6 +8196,7 @@ document.addEventListener('DOMContentLoaded', function(){
         var code = meta(w.currency_code).code;
         var latest = '';
         (st().transactions || []).forEach(function(tx){
+          if(!isCurrentMonth(tx) || tx.type !== 'income') return;
           if(entityCurrency(tx).code !== code) return;
           var d = String(tx.updatedAt || tx.createdAt || tx.isoDate || tx.date || '');
           if(d > latest) latest = d;
@@ -8194,17 +8210,15 @@ document.addEventListener('DOMContentLoaded', function(){
     var card = target.closest ? target.closest('.card') : null;
     var label = card && card.querySelector('.stat-label');
     var change = card && card.querySelector('.stat-change');
-    if(label) label.innerHTML = '<i class="fa-solid fa-wallet" style="color:var(--accent3)"></i> آخر دخل';
-    if(change) change.textContent = hiddenCount ? 'اضغط + لعرض باقي المحافظ' : 'آخر 3 محافظ حسب الحركة';
+    if(label) label.innerHTML = '<i class="fa-solid fa-wallet" style="color:var(--accent3)"></i> دخل الشهر الحالي';
+    if(change) change.textContent = hiddenCount ? 'من يوم 1 لآخر الشهر · اضغط + للباقي' : 'من يوم 1 حتى آخر يوم في الشهر';
     target.classList.remove('green');
     target.classList.add('ordo-dash-wallet-mini');
     target.innerHTML = shownWallets.map(function(w){
-      var c = meta(w.currency_code), s = walletSummary(c.code);
-      var pct = s.income ? Math.round((s.balance / Math.max(s.income, 1)) * 100) : 0;
+      var c = meta(w.currency_code), income = monthlyIncome(c.code);
       return '<div class="ordo-dash-income-line">'+
-        '<span class="ordo-dash-income-title">آخر دخل '+c.label+':</span>'+
-        '<b>'+money(s.income,c.code)+'</b>'+
-        '<em>'+(pct >= 0 ? '▲ ' : '▼ ')+Math.abs(pct)+'%</em>'+
+        '<span class="ordo-dash-income-title">دخل '+c.label+':</span>'+
+        '<b>'+money(income,c.code)+'</b>'+
       '</div>';
     }).join('') + (hiddenCount ? '<button type="button" class="ordo-dash-income-more" onclick="showPage(\'finance\')">+ '+hiddenCount+' محافظ أخرى</button>' : '');
     forceEnglishDigits(target);

@@ -12309,6 +12309,26 @@ function _dashboardTaskTimestamp(task){
   return Number.isFinite(numericId) ? numericId : 0;
 }
 
+function _dashboardParseDate(raw){
+  if(raw === null || raw === undefined || raw === '') return null;
+  var value = raw;
+  if(typeof value === 'string' && /^\d{11,}$/.test(value.trim())) value = Number(value);
+  var date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function _dashboardTaskCreatedDate(task){
+  return _dashboardParseDate(task.createdAt || task.created_at || task.orderDate || task.isoDate || task.date || task.start || task.id);
+}
+
+function _dashboardTaskCompletedDate(task){
+  return _dashboardParseDate(task.completedAt || task.completed_at || task.doneAt || task.done_at || task.updatedAt || task.updated_at);
+}
+
+function _dashboardDateInMonth(date, year, month){
+  return !!date && date.getFullYear() === year && date.getMonth() === month;
+}
+
 function _dashboardTaskStatus(task){
   var status = task.status || (task.done ? 'done' : 'todo');
   var labels = {todo:'جديد',new:'جديد',progress:'قيد التنفيذ',in_progress:'قيد التنفيذ',review:'مراجعة',revision:'تعديلات',hold:'موقوف',paused:'موقوف',done:'مكتمل',completed:'مكتمل'};
@@ -12345,9 +12365,10 @@ function updateDash(){
   const grid = document.getElementById('_dash-grid');
   if(grid && !grid.querySelector('[data-widget-card]')) _renderDashGrid();
 
-  const inc=S.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const dashNow=new Date(), dashYear=dashNow.getFullYear(), dashMonth=dashNow.getMonth();
+  const inc=S.transactions.filter(t=>t.type==='income'&&_dashboardDateInMonth(_dashboardParseDate(t.isoDate||t.date||t.createdAt||t.created_at),dashYear,dashMonth)).reduce((s,t)=>s+(Number(t.amount)||0),0);
   const dashTasks=_ordoAllDashboardTasks();
-  const done=dashTasks.filter(t=>t.done||t.status==='done').length, pending=dashTasks.filter(t=>!t.done&&t.status!=='done').length;
+  const done=dashTasks.filter(t=>_dashboardTaskIsDone(t)&&_dashboardDateInMonth(_dashboardTaskCompletedDate(t),dashYear,dashMonth)).length, pending=dashTasks.filter(t=>!_dashboardTaskIsDone(t)).length;
 
   // Animated number counter with counting effect
   function setAnim(id, val, suffix){
@@ -25886,17 +25907,17 @@ function _renderDashCharts(){
     }
   });
 
-  // Tasks: new and completed per day this month
-  (S.tasks||[]).forEach(function(t){
+  // Tasks: new and completed per calendar day this month, across all task sources.
+  _ordoAllDashboardTasks().forEach(function(t){
     // Created
-    var created = new Date(t.id ? new Date(t.id) : 0);
-    if(created.getFullYear()===year && created.getMonth()===month){
+    var created = _dashboardTaskCreatedDate(t);
+    if(_dashboardDateInMonth(created, year, month)){
       ordersNewByDay[created.getDate()-1]++;
     }
     // Completed
-    if(t.done && t.doneAt){
-      var done = new Date(t.doneAt);
-      if(done.getFullYear()===year && done.getMonth()===month){
+    if(_dashboardTaskIsDone(t)){
+      var done = _dashboardTaskCompletedDate(t);
+      if(_dashboardDateInMonth(done, year, month)){
         ordersComplByDay[done.getDate()-1]++;
       }
     }
