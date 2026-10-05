@@ -86,6 +86,25 @@ test('project save and ledger delete keep Finance in sync',()=>{
   assert.equal(state.transactions.length,0);
 });
 
+test('an existing project deposit is backfilled into Finance once',()=>{
+  const project={id:'p1',name:'هوية',client_id:'c1',paymentStatus:'deposit',depositAmount:250,budgetCurrency:'EGP',projectLedger:[]};
+  const state={projects:[project],clients:[{id:'c1',name:'عميل'}],transactions:[]};
+  const window={
+    S:state,
+    document:{getElementById(){return null;}},
+    setTimeout(fn){fn();},
+    lsSave(){},cloudSave(){},renderProjectDetail(){},renderFinance(){}
+  };
+  vm.runInNewContext(code,{window});
+  assert.equal(project.projectLedger.length,1);
+  assert.equal(state.transactions.length,1);
+  assert.equal(state.transactions[0].amount,250);
+  assert.equal(state.transactions[0].source_type,'project_ledger');
+  vm.runInNewContext(code,{window});
+  assert.equal(project.projectLedger.length,1);
+  assert.equal(state.transactions.length,1);
+});
+
 test('legacy receipt import stops when Finance may already contain that payment',()=>{
   const row={id:'r1',kind:'client_payment',amount:200,date:'2026-09-25'};
   const state={

@@ -95,6 +95,32 @@
   if(typeof root.document==='undefined' || typeof root.S==='undefined')return;
   function persist(){try{root.lsSave();}catch(e){}try{root.cloudSave(root.S);}catch(e){}}
   function project(id){return (root.S.projects||[]).find(function(p){return asId(p.id)===asId(id);});}
+  function ensureProjectDeposit(p){
+    if(!p)return false;
+    var rows=Array.isArray(p.projectLedger)?p.projectLedger:(p.projectLedger=[]);
+    var row=rows.find(function(item){return item&&item.kind==='client_payment'&&item.source==='project_initial_payment';});
+    var before=JSON.stringify({row:row||null,transactions:(root.S.transactions||[]).filter(function(tx){return asId(tx.project_id)===asId(p.id)&&tx.source_type==='project_ledger';})});
+    var status=p.paymentStatus||p.payment_status||(amount(p.depositAmount||p.deposit)>0?'deposit':'none');
+    var paidAmount=amount(p.depositAmount||p.deposit);
+    if(status==='full'&&paidAmount<=0)paidAmount=amount(p.budget||p.value);
+    if(status==='none'||paidAmount<=0){
+      if(!row)return false;
+      removePaymentTransaction(root.S,p,row);
+      p.projectLedger=rows.filter(function(item){return item!==row;});
+      return true;
+    }
+    if(!row){
+      row={id:'project-deposit:'+asId(p.id),kind:'client_payment',source:'project_initial_payment',posted:false,createdAt:new Date().toISOString()};
+      rows.push(row);
+    }
+    row.amount=paidAmount;
+    row.currency=row.currency||p.budgetCurrency||p.currency||'ج.م';
+    row.date=row.date||new Date().toISOString().slice(0,10);
+    row.desc=status==='full'?'تحصيل كامل عند إنشاء المشروع':'عربون مشروع';
+    paymentTransaction(root.S,p,row);
+    var after=JSON.stringify({row:row,transactions:(root.S.transactions||[]).filter(function(tx){return asId(tx.project_id)===asId(p.id)&&tx.source_type==='project_ledger';})});
+    return before!==after;
+  }
   function syncNewRows(p,existingIds){
     if(!p)return false;
     var changed=false;
@@ -130,7 +156,8 @@
       var result=saveProject.apply(this,arguments);
       var updated=editId?project(editId):(root.S.projects||[]).find(function(p){return !oldProjectIds.has(asId(p.id));});
       if(!updated)return result;
-      var changed=syncNewRows(updated,existingIds);
+      var changed=ensureProjectDeposit(updated);
+      changed=syncNewRows(updated,existingIds)||changed;
       oldRows.forEach(function(row){
         if(row.financeTransactionId && !(updated.projectLedger||[]).some(function(r){return asId(r.id)===asId(row.id);})){
           changed=removePaymentTransaction(root.S,updated,row)||changed;
@@ -226,4 +253,13 @@
     }
     return post.apply(this,arguments);
   };
+  if(typeof root.setTimeout==='function')root.setTimeout(function(){
+      var changed=false;
+      (root.S.projects||[]).forEach(function(p){changed=ensureProjectDeposit(p)||changed;});
+      if(changed){
+        persist();
+        if(typeof root.renderFinance==='function')root.renderFinance();
+        if(typeof root.renderProjectDetail==='function')root.renderProjectDetail();
+      }
+    },350);
 })(window);

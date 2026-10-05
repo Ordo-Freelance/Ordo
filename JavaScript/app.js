@@ -3512,7 +3512,7 @@ function saveTask(){
     workerDepositAmount: isTeam ? (+(document.getElementById('t-worker-deposit-amount')?.value)||0) : 0,
     paymentCollected: false,
   };
-  if(eid){const i=S.tasks.findIndex(t=>t.id==eid);if(i>-1){var oldTask=S.tasks[i];d.id=+eid;d.done=oldTask.done;d.doneAt=oldTask.doneAt||null;d.completedAt=oldTask.completedAt||null;d.archiveReminder24ShownAt=oldTask.archiveReminder24ShownAt||null;d.archiveReminder48ShownAt=oldTask.archiveReminder48ShownAt||null;d.archiveReminderShownAt=oldTask.archiveReminderShownAt||null;d.archiveReminderAgainAt=oldTask.archiveReminderAgainAt||null;d.paymentCollected=oldTask.paymentCollected||false;d.paymentStatus=oldTask.paymentStatus||d.paymentStatus;d.paid=oldTask.paid||false;d.pay=oldTask.pay||d.pay;d.paidAmount=oldTask.paidAmount||0;d.collectedAt=oldTask.collectedAt||null;d.collectedAtIso=oldTask.collectedAtIso||null;d.steps=mergeSteps(oldTask.steps||[],steps);S.tasks[i]=d;}}
+  if(eid){const i=S.tasks.findIndex(t=>t.id==eid);if(i>-1){var oldTask=S.tasks[i];d.id=+eid;d.done=oldTask.done;d.doneAt=oldTask.doneAt||null;d.completedAt=oldTask.completedAt||null;d.createdAt=oldTask.createdAt||oldTask.created_at||null;d.comments=Array.isArray(oldTask.comments)?oldTask.comments:[];d.projectLink=oldTask.projectLink||'';d.driveLink=oldTask.driveLink||'';d.clientReceived=!!oldTask.clientReceived;d.archiveReminder24ShownAt=oldTask.archiveReminder24ShownAt||null;d.archiveReminder48ShownAt=oldTask.archiveReminder48ShownAt||null;d.archiveReminderShownAt=oldTask.archiveReminderShownAt||null;d.archiveReminderAgainAt=oldTask.archiveReminderAgainAt||null;d.paymentCollected=oldTask.paymentCollected||false;d.paymentStatus=oldTask.paymentStatus||d.paymentStatus;d.paid=oldTask.paid||false;d.pay=oldTask.pay||d.pay;d.paidAmount=oldTask.paidAmount||0;d.collectedAt=oldTask.collectedAt||null;d.collectedAtIso=oldTask.collectedAtIso||null;d.steps=mergeSteps(oldTask.steps||[],steps);S.tasks[i]=d;}}
   else{ if(!checkLimit('max_tasks', S.tasks.length)) return; d.id=Date.now();S.tasks.push(d);}
   lsSave(); cloudSave(S); closeM('modal-task');
   setTimeout(()=>{ renderAll(); buildDynamicStatusDropdowns(); }, 30);
@@ -8527,13 +8527,17 @@ function _renderFeaturesPanel(){
   }
   function commentsHtml(t){
     var comments = (t.comments || []).filter(function(c){ return c.stepIdx === null || c.stepIdx === undefined; });
-    if(!comments.length) return '<div class="tasks-v2-detail-empty">لا ملاحظات بعد</div>';
-    return comments.map(function(c, idx){
+    var initialNote = String(t.notes || '').trim();
+    var initialHtml = initialNote ? '<div class="tasks-v2-detail-comment tasks-v2-initial-note"><div><b><i class="fa-solid fa-pen-to-square"></i> ملاحظة إنشاء المهمة</b><span></span></div><p>'+esc(initialNote)+'</p></div>' : '';
+    if(!comments.length && !initialNote) return '<div class="tasks-v2-detail-empty">لا ملاحظات بعد</div>';
+    return initialHtml + comments.map(function(c, idx){
       return '<div class="tasks-v2-detail-comment"><div><b><i class="fa-solid fa-note-sticky"></i> '+esc(c.author || 'ملاحظة')+'</b><span>'+esc((c.at || '').slice(0,16).replace('T',' '))+'</span><button type="button" title="حذف الملاحظة" onclick="__tasksV2DeleteComment('+t.id+','+idx+')"><i class="fa-solid fa-trash"></i></button></div><p>'+esc(c.text || '')+'</p></div>';
     }).join('');
   }
   function taskNotes(t){
-    return (t.comments || []).filter(function(c){ return c.stepIdx === null || c.stepIdx === undefined; });
+    var notes = (t.comments || []).filter(function(c){ return c.stepIdx === null || c.stepIdx === undefined; });
+    if(String(t.notes || '').trim()) notes = [{text:t.notes, author:'ملاحظة إنشاء المهمة', initial:true}].concat(notes);
+    return notes;
   }
   function taskDetailMessage(t, recipient){
     var defaults = typeof getWaTemplateDefaults === 'function' ? getWaTemplateDefaults() : {};
@@ -20881,8 +20885,13 @@ window.openMyMemberTeamProfile = function(ownerId){
 
         // Task comments
         var taskComments = (t.comments||[]).filter(function(c){return c.stepIdx===null||c.stepIdx===undefined;});
+        var creationNote = String(t.notes||'').trim();
+        var creationNoteHTML = creationNote ? '<div style="background:rgba(124,111,247,.1);border:1px solid rgba(124,111,247,.25);border-radius:10px;padding:10px 14px;margin-bottom:8px">'
+          +'<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px"><i class="fa-solid fa-pen-to-square"></i> ملاحظة إنشاء المهمة</div>'
+          +'<div style="font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap">'+escapeHtml(creationNote)+'</div></div>' : '';
         var commentsHTML = '<div style="margin:14px 0;padding:14px;background:var(--surface2);border-radius:12px;border:1px solid var(--border)">'
-          +'<div style="font-size:13px;font-weight:700;margin-bottom:10px"><i class="fa-solid fa-comments" style="color:var(--accent)"></i> ملاحظات وتعليقات <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:2px 8px;border-radius:8px">'+taskComments.length+'</span></div>'
+          +'<div style="font-size:13px;font-weight:700;margin-bottom:10px"><i class="fa-solid fa-comments" style="color:var(--accent)"></i> ملاحظات وتعليقات <span style="font-size:10px;background:rgba(124,111,247,.15);color:var(--accent);padding:2px 8px;border-radius:8px">'+(taskComments.length+(creationNote?1:0))+'</span></div>'
+          +creationNoteHTML
           +(taskComments.length ? taskComments.map(function(c){
             var d=new Date(c.at);
             var ts=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
@@ -20893,7 +20902,7 @@ window.openMyMemberTeamProfile = function(ownerId){
               +'</div>'
               +'<div style="font-size:13px;color:var(--text2);line-height:1.6">'+escapeHtml(c.text)+'</div>'
             +'</div>';
-          }).join('') : '<div style="text-align:center;font-size:12px;color:var(--text3);padding:8px">لا ملاحظات بعد</div>')
+          }).join('') : (creationNote ? '' : '<div style="text-align:center;font-size:12px;color:var(--text3);padding:8px">لا ملاحظات بعد</div>'))
           +'<div style="display:flex;gap:8px;margin-top:10px">'
             +'<textarea id="_mtc-main-'+tid+'" rows="2" style="flex:1;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:13px;color:var(--text);resize:none;font-family:var(--font)" placeholder="أضف ملاحظة..."></textarea>'
             +'<button id="_mtc-submit-'+tid+'" style="padding:10px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;align-self:flex-end"><i class="fa-solid fa-paper-plane"></i></button>'
