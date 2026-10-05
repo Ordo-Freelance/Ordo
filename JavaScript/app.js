@@ -8629,7 +8629,7 @@ function _renderFeaturesPanel(){
       '</div>'+
       '<section class="tasks-v2-status-row-flow"><div><b>حالة المهمة</b><span>غيّر الحالة بضغطة واحدة</span></div><div>'+taskStatusButtonsHtml(t)+'</div></section>'+
       '<div class="tasks-v2-flow-grid">'+
-        '<section class="tasks-v2-detail-section tasks-v2-flow-panel tasks-v2-flow-main"><h3><i class="fa-solid fa-file-lines"></i> التفاصيل</h3><div class="td-brief">'+(t.brief || t.desc || '<span style="color:var(--text3)">لا توجد تفاصيل مكتوبة لهذه المهمة</span>')+'</div></section>'+
+        '<section class="tasks-v2-detail-section tasks-v2-flow-panel tasks-v2-flow-main"><h3><span><i class="fa-solid fa-file-lines"></i> التفاصيل</span><button type="button" class="tasks-v2-brief-expand" onclick="__tasksV2ToggleBriefExpand(this)" title="تكبير تفاصيل المشروع"><i class="fa-solid fa-expand"></i><b>تكبير</b></button></h3><div class="td-brief">'+(t.brief || t.desc || '<span style="color:var(--text3)">لا توجد تفاصيل مكتوبة لهذه المهمة</span>')+'</div></section>'+
         '<section class="tasks-v2-detail-section tasks-v2-flow-panel">'+
           '<h3><i class="fa-solid fa-address-card"></i> الأطراف</h3>'+
           '<div class="tasks-v2-flow-people">'+(client?'<span><i class="fa-solid fa-user"></i><b>العميل</b><em>'+esc(client.name || t.client)+'</em><small>'+(client.phone?esc(client.phone):'لا يوجد رقم')+'</small></span>':(t.client?'<span><i class="fa-solid fa-user"></i><b>العميل</b><em>'+esc(t.client)+'</em><small>غير محفوظ</small></span>':''))+(memberName?'<span><i class="fa-solid fa-user-gear"></i><b>المنفذ</b><em>'+esc(memberName)+'</em><small>'+(member&&member.phone?esc(member.phone):'لا يوجد رقم')+'</small></span>':'')+'</div>'+
@@ -8652,6 +8652,18 @@ function _renderFeaturesPanel(){
     '</div>';
     openM('modal-task-detail');
   }
+  window.__tasksV2ToggleBriefExpand = function(btn){
+    var overlay = document.getElementById('modal-task-detail');
+    if(!overlay) return;
+    var expanded = !overlay.classList.contains('brief-expanded');
+    overlay.classList.toggle('brief-expanded', expanded);
+    if(btn){
+      btn.title = expanded ? 'تصغير تفاصيل المشروع' : 'تكبير تفاصيل المشروع';
+      btn.innerHTML = expanded
+        ? '<i class="fa-solid fa-compress"></i><b>تصغير</b>'
+        : '<i class="fa-solid fa-expand"></i><b>تكبير</b>';
+    }
+  };
   function renderTaskNotesModal(id){
     var t = (S.tasks || []).find(function(x){ return Number(x.id) === Number(id) || String(x.id) === String(id); });
     if(!t) return;
