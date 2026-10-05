@@ -25,3 +25,11 @@ test('dragging a task persists both its status and its order',()=>{
   assert.match(app,/data-status="'\+st\+'" ondragstart/);
   assert.match(css,/\.tasks-v2-list-row\[draggable="true"\]/);
 });
+
+test('kanban cards keep drag behavior without rendering a drag handle',()=>{
+  const cardBlock=app.slice(app.indexOf('function cardHtml(t)'),app.indexOf('function agendaHtml'));
+  assert.match(cardBlock,/draggable="true"/);
+  assert.doesNotMatch(cardBlock,/tasks-v2-drag-handle/);
+  assert.match(app,/tasks-v2-list-main[\s\S]{0,300}tasks-v2-drag-handle/);
+  assert.match(app,/tasks-v2-group-main[\s\S]{0,300}tasks-v2-drag-handle/);
+});

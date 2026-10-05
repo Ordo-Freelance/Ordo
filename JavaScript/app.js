@@ -8493,7 +8493,6 @@ function _renderFeaturesPanel(){
       'data-task-key="'+taskKey+'" ondragstart="__tasksV2DragStart(event,&quot;'+taskKey+'&quot;)" ondragend="__tasksV2DragEnd(event)" '+
       'onclick="__tasksV2OpenTask(event,&quot;'+taskKey+'&quot;)" style="border-right-color:'+(t._isProjectTask ? t.projectColor : color)+'">'+
       '<div class="tasks-v2-card-top">'+
-        '<i class="fa-solid fa-grip-vertical tasks-v2-drag-handle" title="اسحب لترتيب المهمة أو تغيير حالتها"></i>'+
         '<span class="tasks-v2-card-color" style="background:'+(t._isProjectTask ? t.projectColor : color)+'"></span>'+
         '<div class="tasks-v2-card-title">'+esc(t.title || 'مهمة بدون اسم')+'</div>'+
       '</div>'+
