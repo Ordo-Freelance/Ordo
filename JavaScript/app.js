@@ -3185,7 +3185,8 @@ function filterClientProfileTasks(clientName){
 /* â”€â”€ Quill editor instance â”€â”€ */
 let taskQuill = null;
 function initTaskQuill(){
-  if(taskQuill) return; // already initialized
+  if(taskQuill && taskQuill.root && taskQuill.root.isConnected) return;
+  taskQuill = null;
   taskQuill = new Quill('#t-brief-editor', {
     theme: 'snow',
     placeholder: 'اكتب تفاصيل المهمة هنا ? يمكنك إضافة روابء قوائم، وتنسيق النص...',
@@ -3199,6 +3200,11 @@ function initTaskQuill(){
       ]
     }
   });
+}
+function readTaskBriefHTML(){
+  const liveEditor=document.querySelector('#t-brief-editor .ql-editor');
+  const html=(liveEditor?.innerHTML || taskQuill?.root?.innerHTML || '').trim();
+  return (html==='<p><br></p>' || html==='<p></p>' || html==='<br>') ? '' : html;
 }
 
 /* â”€â”€ Task Detail Modal â”€â”€ */
@@ -3473,8 +3479,7 @@ function saveTask(){
   const eid=v('task-eid');
   const selectedClient=(S.clients||[]).find(c=>c.name===client&&!c._isPersonal);
   const issueInv=document.getElementById('t-issue-inv')?.checked;
-  const briefHTML = taskQuill ? taskQuill.root.innerHTML.trim() : '';
-  const briefContent = (briefHTML === '<p><br></p>' || briefHTML === '<p></p>') ? '' : briefHTML;
+  const briefContent = readTaskBriefHTML();
   const jobType = v('t-jobtype')||'freelance';
   const isFulltime = jobType==='fulltime';
   const taskType = document.getElementById('t-tasktype')?.value||'';
@@ -20843,6 +20848,10 @@ window.openMyMemberTeamProfile = function(ownerId){
         var stepsTotal = (t.steps||[]).length;
         var stepsDone  = (t.steps||[]).filter(function(s){return s.done;}).length;
         var pct = stepsTotal ? Math.round(stepsDone/stepsTotal*100) : (t.done?100:0);
+        var taskBrief = String(t.brief||'').trim();
+        var briefHTML = taskBrief ? '<div style="margin:14px 0;padding:14px;background:var(--surface2);border-radius:12px;border:1px solid var(--border)">'
+          +'<div style="font-size:13px;font-weight:700;margin-bottom:10px"><i class="fa-solid fa-file-lines" style="color:var(--accent)"></i> تفاصيل المشروع / البريف</div>'
+          +'<div class="td-brief" style="font-size:13px;color:var(--text2);line-height:1.8">'+taskBrief+'</div></div>' : '';
 
         // Steps with per-step comments + toggle
         var stepsHTML = '';
@@ -20939,6 +20948,7 @@ window.openMyMemberTeamProfile = function(ownerId){
           +'</div>'
           // Body
           +'<div style="padding:16px 20px">'
+            +briefHTML
             +stepsHTML
             +commentsHTML
             +statusBtns
