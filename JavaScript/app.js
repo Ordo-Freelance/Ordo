@@ -202,7 +202,7 @@ function _normalizeLocalState(d){
   d.settings=d.settings||{name:'',phone:'',email:'',address:'',terms:'',logo:'',logoDark:'',logoLight:''};
   if(d.settings.logoDark === undefined) d.settings.logoDark='';
   if(d.settings.logoLight === undefined) d.settings.logoLight='';
-  ['tasks','clients','transactions','invoices','goals','schedule','teams','subscriptions','projects','project_tasks','task_collections','services','standalone_packages','portfolio_projects','svc_orders','specializations','client_portals','loans','budgets','statements','timeEntries','contracts','stores','reviews','meetings','courses','wallets','wallet_transfers','temp_todo_lists','archivedTasks'].forEach(k=>{if(!Array.isArray(d[k]))d[k]=[];});
+  ['tasks','clients','transactions','invoices','goals','schedule','teams','subscriptions','projects','project_tasks','task_collections','services','standalone_packages','portfolio_projects','svc_orders','specializations','client_portals','loans','budgets','statements','timeEntries','contracts','stores','reviews','meetings','courses','wallets','wallet_transfers','temp_todo_lists','archivedTasks','workflow_boards'].forEach(k=>{if(!Array.isArray(d[k]))d[k]=[];});
   return d;
 }
 function _localStateScore(d){
@@ -409,6 +409,7 @@ function _platformFeatureState(pageId){
     reports:'reports',
     reviews:'reviews',
     timetracker:'timetracker',
+    'workflow-board':'tasks',
     support:'support'
   };
   const key=map[pageId]||pageId;
@@ -449,7 +450,7 @@ function hasPageFeature(pageId){
   if(pageId==='subscriptions' && f.fin_subscriptions===false) return false;
   const pageFlag = 'page_' + String(pageId).replace(/-/g, '_');
   if(f[pageFlag] === false) return false;
-  const map = { tasks:'tasks', projects:'tasks', clients:'clients', finance:'finance', subscriptions:'finance',
+  const map = { tasks:'tasks', projects:'tasks', 'workflow-board':'tasks', clients:'clients', finance:'finance', subscriptions:'finance',
     invoices:'invoices', schedule:'schedule', team:'team',
     reports:'reports', meetings:'meetings', learning:'learning',
     timetracker:'timetracker', contracts:'contracts' };
@@ -9057,6 +9058,118 @@ function _renderFeaturesPanel(){
   window.addEventListener('DOMContentLoaded', function(){ setTimeout(renderTasksV2, 180); });
 })();
 
+// ============================================================
+// WORKFLOW BOARD PROTOTYPE
+// ============================================================
+(function(){
+  var activeBoardId = '';
+  var connectFrom = '';
+  var saveTimer = null;
+  var dragState = null;
+
+  function escW(v){ return typeof escapeHtml === 'function' ? escapeHtml(String(v || '')) : String(v || '').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function boards(){ S.workflow_boards = Array.isArray(S.workflow_boards) ? S.workflow_boards : []; return S.workflow_boards; }
+  function activeBoard(){ return boards().find(function(b){ return String(b.id) === String(activeBoardId); }) || null; }
+  function uid(prefix){ return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7); }
+  function allWorkflowTasks(){
+    var projectNames={}; (S.projects||[]).forEach(function(p){projectNames[String(p.id)]=p.name||'مشروع';});
+    var regular=(S.tasks||[]).map(function(t){return {id:'t_'+t.id,title:t.title||'مهمة',status:t.status||(t.done?'done':'new'),project:'',rawId:t.id};});
+    var project=(S.project_tasks||[]).map(function(t){return {id:'p_'+t.id,title:t.title||'مهمة مشروع',status:t.status||'todo',project:projectNames[String(t.project_id)]||t.projectName||'',rawId:t.id,projectId:t.project_id};});
+    return regular.concat(project);
+  }
+  function workflowEntity(board){
+    if(!board||!board.linkId)return null;
+    if(board.linkType==='project') return (S.projects||[]).find(function(x){return String(x.id)===String(board.linkId);})||null;
+    var key=String(board.linkId), isProjectTask=key.indexOf('p_')===0, rawId=key.replace(/^[tp]_/, '');
+    var pool=isProjectTask?(S.project_tasks||[]):(S.tasks||[]);
+    return pool.find(function(x){return String(x.id)===rawId;})||null;
+  }
+  function workflowEntityName(board){var entity=workflowEntity(board);return entity?(entity.name||entity.title||'بدون اسم'):'غير مرتبط بعنصر محدد';}
+  function persist(){
+    var b=activeBoard(); if(b) b.updatedAt=new Date().toISOString();
+    lsSave();
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(function(){ if(typeof cloudSave==='function') cloudSave(S); },450);
+    var state=document.getElementById('wf-save-state'); if(state) state.innerHTML='<i class="fa-solid fa-check"></i> محفوظ';
+  }
+  function linkBoard(board){
+    var entity=workflowEntity(board);
+    if(entity){ entity.workflowBoardIds=Array.isArray(entity.workflowBoardIds)?entity.workflowBoardIds:[]; if(!entity.workflowBoardIds.includes(board.id)) entity.workflowBoardIds.push(board.id); }
+  }
+  function createBoard(){
+    var type=(document.getElementById('wf-link-type')||{}).value||'task';
+    var linkId=(document.getElementById('wf-link-entity')||{}).value||'';
+    var title=(document.getElementById('wf-new-title')||{}).value.trim()||'لوحة تنفيذ جديدة';
+    var board={id:uid('wfb'),title:title,linkType:type,linkId:linkId,nodes:[],edges:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+    boards().push(board); activeBoardId=board.id; linkBoard(board); persist(); renderWorkflowBoard();
+  }
+  window.createWorkflowBoard=createBoard;
+  window.selectWorkflowBoard=function(id){activeBoardId=id;connectFrom='';renderWorkflowBoard();};
+  window.workflowLinkTypeChanged=function(){fillWorkflowEntities();};
+  function fillWorkflowEntities(){
+    var type=(document.getElementById('wf-link-type')||{}).value||'task';
+    var select=document.getElementById('wf-link-entity'); if(!select)return;
+    var items=type==='project'?(S.projects||[]):allWorkflowTasks();
+    select.innerHTML='<option value="">بدون ربط محدد</option>'+items.map(function(x){return '<option value="'+escW(type==='project'?x.id:x.id)+'">'+escW(x.name||x.title||'بدون اسم')+(type==='task'&&x.project?' — '+escW(x.project):'')+'</option>';}).join('');
+  }
+  function nodeTemplate(node){
+    var body='';
+    if(node.type==='todo') body='<div class="wf-todos">'+(node.items||[]).map(function(item,i){return '<label><input type="checkbox" '+(item.done?'checked':'')+' onchange="workflowToggleTodo(&quot;'+node.id+'&quot;,'+i+',this.checked)"><span contenteditable="true" oninput="workflowTodoText(&quot;'+node.id+'&quot;,'+i+',this.textContent)">'+escW(item.text)+'</span></label>';}).join('')+'<button onclick="workflowAddTodo(&quot;'+node.id+'&quot;)"><i class="fa-solid fa-plus"></i> بند</button></div>';
+    else if(node.type==='image') body='<img class="wf-node-image" src="'+node.src+'" alt="صورة مرفقة">'+(node.caption?'<div class="wf-caption" contenteditable="true" oninput="workflowEditNode(&quot;'+node.id+'&quot;,&quot;caption&quot;,this.textContent)">'+escW(node.caption)+'</div>':'');
+    else if(node.type==='link') body='<a href="'+escW(node.url)+'" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> '+escW(node.label||node.url)+'</a>';
+    else if(node.type==='task') body='<div class="wf-task-ref"><i class="fa-solid fa-list-check"></i><div><b>'+escW(node.text)+'</b><small>'+escW(node.meta||'مهمة مرتبطة')+'</small></div></div>';
+    else body='<div class="wf-editable" contenteditable="true" data-placeholder="اكتب أفكارك..." oninput="workflowEditNode(&quot;'+node.id+'&quot;,&quot;text&quot;,this.innerText)">'+escW(node.text||'')+'</div>';
+    return '<article class="wf-node wf-node-'+node.type+(connectFrom===node.id?' is-connecting':'')+'" data-node-id="'+node.id+'" style="left:'+Number(node.x||40)+'px;top:'+Number(node.y||40)+'px;width:'+Number(node.w||230)+'px">'+
+      '<div class="wf-node-head" onpointerdown="workflowNodeDragStart(event,&quot;'+node.id+'&quot;)"><span><i class="fa-solid '+({text:'fa-note-sticky',todo:'fa-square-check',image:'fa-image',link:'fa-link',task:'fa-list-check'}[node.type]||'fa-circle')+'"></i> '+escW(node.title||({text:'ملاحظة',todo:'قائمة تنفيذ',image:'صورة',link:'رابط',task:'مهمة'}[node.type]))+'</span><div><button onclick="workflowConnectNode(event,&quot;'+node.id+'&quot;)" title="ربط"><i class="fa-solid fa-share-nodes"></i></button><button onclick="workflowDeleteNode(event,&quot;'+node.id+'&quot;)" title="حذف"><i class="fa-solid fa-xmark"></i></button></div></div><div class="wf-node-body">'+body+'</div></article>';
+  }
+  function renderConnections(board){
+    var svg=document.getElementById('wf-links'); if(!svg)return;
+    svg.innerHTML=(board.edges||[]).map(function(edge){
+      var a=(board.nodes||[]).find(function(n){return n.id===edge.from;}), b=(board.nodes||[]).find(function(n){return n.id===edge.to;}); if(!a||!b)return '';
+      var x1=Number(a.x||0)+Number(a.w||230)/2,y1=Number(a.y||0)+80,x2=Number(b.x||0)+Number(b.w||230)/2,y2=Number(b.y||0)+80;
+      return '<path d="M '+x1+' '+y1+' C '+x1+' '+((y1+y2)/2)+', '+x2+' '+((y1+y2)/2)+', '+x2+' '+y2+'" marker-end="url(#wf-arrow)"></path>';
+    }).join('');
+  }
+  function renderCanvas(){
+    var board=activeBoard(), canvas=document.getElementById('wf-canvas'); if(!canvas)return;
+    if(!board){canvas.innerHTML='<div class="wf-empty"><i class="fa-solid fa-pen-ruler"></i><b>ابدأ لوحة تنفيذ جديدة</b><span>اختر مهمة أو مشروع، ثم ارسم خطوات التنفيذ بحرية.</span></div>';return;}
+    canvas.innerHTML='<svg id="wf-links" class="wf-links"><defs><marker id="wf-arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z"></path></marker></defs></svg><div id="wf-nodes">'+(board.nodes||[]).map(nodeTemplate).join('')+'</div>';
+    renderConnections(board);
+  }
+  function addNode(type,data){
+    var board=activeBoard(); if(!board)return alert('أنشئ أو اختر لوحة أولاً');
+    board.nodes=board.nodes||[];
+    var count=board.nodes.length;
+    board.nodes.push(Object.assign({id:uid('wfn'),type:type,x:50+(count%4)*260,y:50+Math.floor(count/4)*190,w:230,title:''},data||{}));
+    persist();renderCanvas();
+  }
+  window.workflowAddText=function(){addNode('text',{text:'',title:'ملاحظة'});};
+  window.workflowAddTodo=function(nodeId){var b=activeBoard();if(!b)return;if(nodeId){var n=b.nodes.find(function(x){return x.id===nodeId;});if(n){n.items=n.items||[];n.items.push({text:'خطوة جديدة',done:false});persist();renderCanvas();}}else addNode('todo',{items:[{text:'الخطوة الأولى',done:false}],title:'قائمة تنفيذ'});};
+  window.workflowAddLink=function(){var url=prompt('الصق الرابط');if(!url)return;var label=prompt('اسم الرابط (اختياري)')||url;addNode('link',{url:url,label:label,title:'رابط'});};
+  window.workflowPickImage=function(){var input=document.getElementById('wf-image-input');if(input)input.click();};
+  window.workflowImageSelected=function(input){var file=input.files&&input.files[0];if(!file)return;if(file.size>1600000){alert('الصورة كبيرة. الحد التجريبي 1.6MB');input.value='';return;}var r=new FileReader();r.onload=function(){addNode('image',{src:r.result,caption:'',title:'صورة'});input.value='';};r.readAsDataURL(file);};
+  window.workflowAddTask=function(key){var t=allWorkflowTasks().find(function(x){return x.id===key;});if(t)addNode('task',{text:t.title,meta:t.project||t.status||'مهمة',taskKey:key,title:'مهمة مرتبطة'});};
+  window.workflowEditNode=function(id,key,value){var b=activeBoard(),n=b&&b.nodes.find(function(x){return x.id===id;});if(n){n[key]=value;persist();}};
+  window.workflowToggleTodo=function(id,index,done){var b=activeBoard(),n=b&&b.nodes.find(function(x){return x.id===id;});if(n&&n.items[index]){n.items[index].done=done;persist();}};
+  window.workflowTodoText=function(id,index,text){var b=activeBoard(),n=b&&b.nodes.find(function(x){return x.id===id;});if(n&&n.items[index]){n.items[index].text=text;persist();}};
+  window.workflowDeleteNode=function(ev,id){ev.stopPropagation();var b=activeBoard();if(!b)return;b.nodes=b.nodes.filter(function(n){return n.id!==id;});b.edges=(b.edges||[]).filter(function(e){return e.from!==id&&e.to!==id;});if(connectFrom===id)connectFrom='';persist();renderCanvas();};
+  window.workflowConnectNode=function(ev,id){ev.stopPropagation();var b=activeBoard();if(!b)return;if(!connectFrom){connectFrom=id;renderCanvas();return;}if(connectFrom!==id&&!b.edges.some(function(e){return e.from===connectFrom&&e.to===id;}))b.edges.push({id:uid('wfe'),from:connectFrom,to:id});connectFrom='';persist();renderCanvas();};
+  window.workflowNodeDragStart=function(ev,id){if(ev.target.closest('button'))return;var b=activeBoard(),n=b&&b.nodes.find(function(x){return x.id===id;});if(!n)return;dragState={id:id,startX:ev.clientX,startY:ev.clientY,x:Number(n.x||0),y:Number(n.y||0)};ev.currentTarget.setPointerCapture(ev.pointerId);ev.preventDefault();};
+  window.addEventListener('pointermove',function(ev){if(!dragState)return;var b=activeBoard(),n=b&&b.nodes.find(function(x){return x.id===dragState.id;});if(!n)return;n.x=Math.max(8,dragState.x+ev.clientX-dragState.startX);n.y=Math.max(8,dragState.y+ev.clientY-dragState.startY);var el=document.querySelector('[data-node-id="'+n.id+'"]');if(el){el.style.left=n.x+'px';el.style.top=n.y+'px';}renderConnections(b);});
+  window.addEventListener('pointerup',function(){if(dragState){dragState=null;persist();}});
+  window.deleteWorkflowBoard=function(){var b=activeBoard();if(!b)return;if(!confirm('حذف اللوحة التجريبية؟'))return;S.workflow_boards=boards().filter(function(x){return x.id!==b.id;});activeBoardId=(S.workflow_boards[0]||{}).id||'';persist();renderWorkflowBoard();};
+
+  window.renderWorkflowBoard=function(){
+    var root=document.getElementById('workflow-board-root');if(!root)return;
+    if(!activeBoardId&&boards().length)activeBoardId=boards()[0].id;
+    var board=activeBoard();
+    root.innerHTML='<div class="wf-page-head"><div><h1><i class="fa-solid fa-diagram-project"></i> لوحة التنفيذ <em>تجريبي</em></h1><p>فكّر وارسم خطوات التنفيذ واربطها بالمهمة أو المشروع.</p></div><div><span id="wf-save-state"><i class="fa-solid fa-check"></i> محفوظ</span>'+(board?'<button class="btn btn-danger btn-sm" onclick="deleteWorkflowBoard()"><i class="fa-solid fa-trash"></i></button>':'')+'</div></div>'+
+      '<div class="wf-create"><input id="wf-new-title" class="form-input" placeholder="اسم اللوحة"><select id="wf-link-type" class="form-select" onchange="workflowLinkTypeChanged()"><option value="task">مرتبطة بمهمة</option><option value="project">مرتبطة بمشروع</option></select><select id="wf-link-entity" class="form-select"></select><button class="btn btn-primary" onclick="createWorkflowBoard()"><i class="fa-solid fa-plus"></i> لوحة جديدة</button></div>'+
+      '<div class="wf-workspace"><aside class="wf-side"><label>لوحاتي</label><select class="form-select" onchange="selectWorkflowBoard(this.value)"><option value="">اختر لوحة</option>'+boards().map(function(b){return '<option value="'+b.id+'" '+(b.id===activeBoardId?'selected':'')+'>'+escW(b.title)+'</option>';}).join('')+'</select><div class="wf-linked">'+(board?'<b>'+escW(board.title)+'</b><small><i class="fa-solid fa-link"></i> '+escW(board.linkType==='project'?'مشروع: ':'مهمة: ')+escW(workflowEntityName(board))+'</small>':'<span>لا توجد لوحة محددة</span>')+'</div><label>المهام — أضفها للوحة</label><div class="wf-task-picker">'+allWorkflowTasks().map(function(t){return '<button onclick="workflowAddTask(&quot;'+t.id+'&quot;)"><i class="fa-solid fa-plus"></i><span><b>'+escW(t.title)+'</b><small>'+escW(t.project||t.status)+'</small></span></button>';}).join('')+'</div></aside><main class="wf-main"><div class="wf-toolbar"><button onclick="workflowAddText()"><i class="fa-solid fa-note-sticky"></i> نص</button><button onclick="workflowAddTodo()"><i class="fa-solid fa-square-check"></i> To‑Do</button><button onclick="workflowPickImage()"><i class="fa-solid fa-image"></i> صورة</button><button onclick="workflowAddLink()"><i class="fa-solid fa-link"></i> رابط</button><span><i class="fa-solid fa-share-nodes"></i> للربط: اضغط أيقونة الربط في عنصرين</span><input id="wf-image-input" type="file" accept="image/*" hidden onchange="workflowImageSelected(this)"></div><div id="wf-canvas" class="wf-canvas"></div></main></div>';
+    fillWorkflowEntities();renderCanvas();
+  };
+})();
+
 // â”€â”€â”€ Admin-sent Updates Renderer â”€â”€â”€
 function _renderAdminUpdates(container){
   // Admin updates stored in S._platform_updates (array injected by admin into studio_data)
@@ -12611,7 +12724,7 @@ function _updatePerfCard(done, pending, inc){
 function renderVisiblePage(id){
   const pages={
     dashboard:()=>{updateDash();renderDashTeamPay();renderDashKanbanMini();renderDashMeetings();renderSalaryReminders();renderFollowupReminders();},
-    tasks:()=>renderTasks(),projects:()=>renderProjects(),clients:()=>renderClients(),
+    tasks:()=>renderTasks(),projects:()=>renderProjects(),clients:()=>renderClients(),'workflow-board':()=>renderWorkflowBoard(),
     finance:()=>renderFinance(),subscriptions:()=>renderSubscriptionsPage(),invoices:()=>renderInvoices(),settings:()=>loadSettings(),
     schedule:()=>renderSchedule(),goals:()=>renderGoals(),team:()=>renderTeams(),
     meetings:()=>renderMeetings(),timetracker:()=>renderTimeTracker(),contracts:()=>renderContractsList(),
@@ -12668,6 +12781,7 @@ const PAGE_TITLES = {
   support     : '<i class="fa-solid fa-comments"></i> الدعم والرسائل',
   dashboard   : 'لوحة التحكم',
   tasks       : '<i class="fa-solid fa-list-check"></i> المهام والمشاريع',
+  'workflow-board': '<i class="fa-solid fa-diagram-project"></i> لوحة التنفيذ',
   schedule    : '<i class="fa-solid fa-calendar-days"></i> تنظيم اليوم',
   clients     : '<i class="fa-solid fa-users"></i> قاعدة العملاء',
   finance     : '<i class="fa-solid fa-coins"></i> المالية والحسابات',
