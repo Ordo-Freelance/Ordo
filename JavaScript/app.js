@@ -12323,6 +12323,11 @@ function _dashboardTaskPayment(task){
   return payBadge[pay] || payBadge.none;
 }
 
+function _dashboardTaskIsDone(task){
+  var status = String(task.status || '').toLowerCase();
+  return !!task.done || status==='done' || status==='completed';
+}
+
 function _openDashboardTask(id, kind){
   var regular = (S.tasks || []).find(function(t){ return String(t.id) === String(id); });
   if(regular){ openTaskDetail(regular.id); return; }
@@ -12385,7 +12390,10 @@ function updateDash(){
   _updatePerfCard(done, pending, inc);
 
   const dtl=document.getElementById('dash-tasks-list');
-  const recentDashTasks=dashTasks.slice().sort((a,b)=>_dashboardTaskTimestamp(b)-_dashboardTaskTimestamp(a)).slice(0,10);
+  const recentDashTasks=dashTasks.slice().sort((a,b)=>{
+    const completionOrder=Number(_dashboardTaskIsDone(a))-Number(_dashboardTaskIsDone(b));
+    return completionOrder || (_dashboardTaskTimestamp(b)-_dashboardTaskTimestamp(a));
+  }).slice(0,10);
   if(dtl)dtl.innerHTML=recentDashTasks.map(t=>{
     const kind=(t.source_type==='team_task'||t.team_id)?'team_task':(t.project_id?'project_task':'task');
     const tid=String(t.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
