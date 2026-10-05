@@ -12325,7 +12325,8 @@ function _dashboardTaskPayment(task){
 
 function _dashboardTaskIsDone(task){
   var status = String(task.status || '').toLowerCase();
-  return !!task.done || status==='done' || status==='completed';
+  var statusMeta = _dashboardTaskStatus(task);
+  return !!task.done || !!task.completed || status==='done' || status==='completed' || status==='مكتمل' || String(statusMeta.label || '').indexOf('مكتمل') !== -1;
 }
 
 function _openDashboardTask(id, kind){
