@@ -47,7 +47,7 @@ test('mobile layer reduces density while retaining all three task views',()=>{
   assert.match(css,/body\.mobile-header-tools-open \.header-page-tools:not\(:empty\)\{display:grid!important\}/);
   assert.match(css,/max-height:92dvh!important/);
   assert.match(css,/#_dash-stats-inner\{display:grid!important;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
-  assert.match(css,/grid-template-areas:"icon label" "icon value" "footer footer"!important/);
+  assert.match(css,/grid-template-areas:"icon label value" "footer footer footer"!important/);
   assert.match(css,/\.invoices-section-tabs\{gap:7px!important/);
   assert.match(css,/#header-cta\{display:none!important\}/);
   assert.match(css,/#page-finance \.fv3-tabs\{display:flex!important;flex-wrap:nowrap!important/);
