@@ -182,12 +182,6 @@
       entity_type: type || expectedType,
       entity_id: tokenRow && tokenRow.entity_id || token,
       allowed_sections: tokenRow && tokenRow.allowed_sections || [],
-      client_id: tokenRow && tokenRow.client_id || null,
-      client_ids: tokenRow && tokenRow.client_ids || [],
-      scope_mode: tokenRow && tokenRow.scope_mode || '',
-      all_clients: !!(tokenRow && tokenRow.all_clients),
-      portal_kind: tokenRow && tokenRow.portal_kind || '',
-      portal_name: tokenRow && tokenRow.portal_name || '',
       expires_at: tokenRow && tokenRow.expires_at || entityRow && entityRow.expires_at || null,
       revoked: false,
       createdAt: tokenRow && tokenRow.created_at || entityRow && entityRow.created_at || ''

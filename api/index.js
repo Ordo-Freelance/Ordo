@@ -263,14 +263,10 @@ function publicView(data, type, token) {
     const form=(data.brief_forms||[]).find(row=>String(row.id)===String(token?.entity_id)&&['sent','submitted','accepted'].includes(row.status)&&(row.share_token===token?.token||token?.via_portal&&String(row.client_id)===String(token.client_id)));
     return {settings:publicSettings,brief_forms:form?[{id:form.id,title:form.title,description:form.description,banner:form.banner,items:form.items,questions:form.questions,status:form.status}]:[]};
   }
-  const requestedIds = Array.isArray(token?.client_ids) ? token.client_ids.map(id => String(id)).filter(Boolean) : [];
-  const allClients = token?.all_clients === true || token?.scope_mode === 'all';
   const clientId = String(token?.client_id || '');
-  const allowedIds = new Set(allClients ? (data.clients || []).map(row => String(row.id)) : (requestedIds.length ? requestedIds : [clientId].filter(Boolean)));
   const clientName = String(token?.client_name || '').trim().toLowerCase();
-  const projectIds = new Set((data.projects || []).filter(row => allowedIds.has(String(row?.client_id ?? row?.clientId ?? ''))).map(row => String(row.id)));
-  const belongs = row => allowedIds.has(String(row?.client_id ?? row?.clientId ?? '')) || projectIds.has(String(row?.project_id ?? row?.projectId ?? '')) || (!requestedIds.length && !allClients && !!clientName && String(row?.client_name || row?.client || '').trim().toLowerCase() === clientName);
-  const clients = (data.clients || []).filter(row => allowedIds.has(String(row.id)));
+  const belongs = row => String(row?.client_id ?? row?.clientId ?? '') === clientId || (!!clientName && String(row?.client_name || row?.client || '').trim().toLowerCase() === clientName);
+  const clients = (data.clients || []).filter(row => String(row.id) === clientId);
   if (!clients.length && clientName) clients.push({id:clientId,name:token.client_name});
   return {
     settings: publicSettings,
@@ -282,8 +278,7 @@ function publicView(data, type, token) {
     brief_forms: (data.brief_forms || []).filter(row => belongs(row) && ['sent','submitted','accepted'].includes(row.status)).map(row => ({id:row.id,title:row.title,description:row.description,banner:row.banner,items:row.items,questions:row.questions,status:row.status,project_id:row.project_id})),
     reviews: (data.reviews || []).filter(belongs), svc_orders: (data.svc_orders || []).filter(belongs),
     services: data.services || [], standalone_packages: data.standalone_packages || [],
-    ...(token?.portal_kind === 'freelancer' ? {transactions: (data.transactions || []).filter(belongs).map(row => ({id:row.id,client_id:row.client_id||row.clientId||'',project_id:row.project_id||row.projectId||'',type:row.type,amount:row.amount,currency:row.currency||row.currency_code||'',date:row.date||row.createdAt||row.created_at||''}))} : {}),
-    portfolio_projects: data.portfolio_projects || [], client_portals: (data.client_portals || []).filter(row => String(row.id)===String(token?.entity_id)||belongs(row))
+    portfolio_projects: data.portfolio_projects || [], client_portals: (data.client_portals || []).filter(belongs)
   };
 }
 
@@ -321,13 +316,8 @@ async function publicSnapshot(store, input) {
       const portal = (data.client_portals || []).find(item => String(item.id) === String(matching?.entity_id));
       if (portal?.client_id && !matching.client_id) matching.client_id = portal.client_id;
       if (portal?.client_name && !matching.client_name) matching.client_name = portal.client_name;
-      if (Array.isArray(portal?.client_ids)) matching.client_ids = portal.client_ids;
-      if (portal?.scope_mode) matching.scope_mode = portal.scope_mode;
-      if (portal?.all_clients === true || portal?.scope_mode === 'all') matching.all_clients = true;
-      if (portal?.portal_kind) matching.portal_kind = portal.portal_kind;
-      if (portal?.name) matching.portal_name = portal.name;
     }
-    if (type === 'client_portal' && !matching?.client_id && !matching?.client_ids?.length && !matching?.all_clients) continue;
+    if (type === 'client_portal' && !matching?.client_id) continue;
     const view = publicView(data, type, matching);
     if (type === 'store' || type === 'reviews_public') {
       try {
