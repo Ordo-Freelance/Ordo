@@ -12920,7 +12920,8 @@ function updateHeader(pageId){
   document.body.classList.toggle('unified-tasks-header',pageId==='tasks');
   const btn=document.getElementById('header-cta');
   if(btn){
-    btn.innerHTML=cta?.label||'';
+    var ctaLabel=(cta&&cta.label)||'';
+    btn.innerHTML=ctaLabel?'<i class="fa-solid fa-plus"></i><span>'+ctaLabel.replace(/^\+\s*/, '')+'</span>':'';
     btn.style.display=cta?.label?'inline-flex':'none';
     btn.setAttribute('onclick',cta?.fn||'');
   }
