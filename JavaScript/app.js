@@ -8920,8 +8920,9 @@ function _renderFeaturesPanel(){
       '</div>';
     var headerTools=document.getElementById('header-page-tools');
     var headerCta=document.getElementById('header-cta');
-    if(headerCta)headerCta.style.display='none';
-    if(headerTools){
+    var tasksPageActive=document.getElementById('page-tasks')&&document.getElementById('page-tasks').classList.contains('active');
+    if(tasksPageActive&&headerCta)headerCta.style.display='none';
+    if(tasksPageActive&&headerTools){
       headerTools.innerHTML='<div class="tasks-header-search '+(f.search?'has-value':'')+'"><button class="tasks-v2-action-icon" onclick="__tasksV2ToggleHeaderSearch()" title="بحث"><i class="fa-solid fa-magnifying-glass"></i></button><div class="tasks-header-search-pop"><i class="fa-solid fa-magnifying-glass"></i><input value="'+esc(f.search)+'" placeholder="ابحث عن مهمة…" oninput="__tasksV2SetFilter(\'search\',this.value)">'+(f.search?'<button onclick="__tasksV2SetFilter(&quot;search&quot;,&quot;&quot;)" title="مسح"><i class="fa-solid fa-xmark"></i></button>':'')+'</div></div>'+
         '<button class="tasks-v2-action-icon" onclick="openTasksArchivePage()" title="أرشيف المهام"><i class="fa-solid fa-box-archive"></i>'+((S.archivedTasks||[]).length?'<span>'+(S.archivedTasks||[]).length+'</span>':'')+'</button>'+
         '<button class="tasks-v2-action-icon '+(activeFilters?'is-active':'')+'" data-tasks-v2-action="filters" title="فلترة"><i class="fa-solid fa-filter"></i>'+(activeFilters?'<span>'+activeFilters+'</span>':'')+'</button>'+

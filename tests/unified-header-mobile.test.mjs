@@ -21,6 +21,7 @@ test('task page moves its controls and compact search into the app header',()=>{
   assert.match(app,/__tasksV2ToggleHeaderSearch/);
   assert.match(app,/openTasksArchivePage/);
   assert.match(app,/tasks-header-new/);
+  assert.match(app,/tasksPageActive&&headerTools/);
   assert.doesNotMatch(app,/tasks-v2-title">المهام والتاسكات/);
   assert.doesNotMatch(app,/tasks-v2-search-block">/);
 });
