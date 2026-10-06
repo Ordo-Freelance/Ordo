@@ -13,7 +13,17 @@ test('one adaptive app header owns page titles and page actions',()=>{
   assert.match(app,/unified-header-tool/);
   assert.match(app,/head\.querySelectorAll\('button'\)/);
   assert.match(app,/button\.classList\.contains\('btn-primary'\)/);
-  assert.match(css,/\.page\.active>\.page-header\{display:none!important\}/);
+  assert.match(css,/\.page\.active \.page-header\{display:none!important\}/);
+  assert.match(css,/\.page\.active>\.fv3-head/);
+  assert.match(css,/#page-clients\.active>\.clients-tabs-bar\{display:none!important\}/);
+  assert.match(app,/header-client-tabs/);
+});
+
+test('dynamic finance page uses the shared app header',()=>{
+  const finance=fs.readFileSync(new URL('../JavaScript/finance_rebuild.js',import.meta.url),'utf8');
+  assert.match(finance,/function syncUnifiedHeader\(\)/);
+  assert.match(finance,/page\.innerHTML = tabs\(\) \+ collectionAlert\(\) \+ body\(\)/);
+  assert.doesNotMatch(finance,/page\.innerHTML = header\(\) \+ tabs\(\)/);
 });
 
 test('task page moves its controls and compact search into the app header',()=>{

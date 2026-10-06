@@ -533,6 +533,20 @@
       (allowed('finance_account_manage')?'<button class="btn btn-primary" onclick="openFinanceAccountModal()"><i class="fa-solid fa-building-columns"></i> حساب/بنك</button>':'')+
       '</div></div>';
   }
+  function syncUnifiedHeader(){
+    var page=document.getElementById('page-finance');
+    var tools=document.getElementById('header-page-tools');
+    if(!page||!page.classList.contains('active')||!tools)return;
+    tools.innerHTML='';
+    var actions=document.createElement('div');
+    actions.className='fv3-actions';
+    actions.innerHTML=
+      (allowed('fin_income')?'<button class="btn btn-success unified-header-tool" onclick="financeV3Income()"><i class="fa-solid fa-plus"></i> دخل</button>':'')+
+      (allowed('fin_expense')?'<button class="btn btn-danger unified-header-tool" onclick="financeV3Expense()"><i class="fa-solid fa-minus"></i> مصروف</button>':'')+
+      (allowed('loans')?'<button class="btn btn-ghost unified-header-tool" onclick="openLoanModal && openLoanModal()"><i class="fa-solid fa-handshake"></i> قرض</button>':'')+
+      (allowed('finance_account_manage')?'<button class="btn btn-primary unified-header-tool" onclick="openFinanceAccountModal()"><i class="fa-solid fa-building-columns"></i> حساب/بنك</button>':'');
+    tools.appendChild(actions);
+  }
   function accountCard(a, allTxs){
     var type = TYPES[a.type] || TYPES.other;
     return '<div class="fv3-account" style="--acc:'+esc(a.color || type.color)+'">'+
@@ -906,7 +920,8 @@
     injectStyle();
     var active = page.classList.contains('active');
     page.className = 'page ordo-finance-v3' + (active ? ' active' : '');
-    page.innerHTML = header() + tabs() + collectionAlert() + body();
+    page.innerHTML = tabs() + collectionAlert() + body();
+    syncUnifiedHeader();
     if(TAB === 'dashboard' || TAB === 'reports') setTimeout(renderCharts, 60);
   }
 

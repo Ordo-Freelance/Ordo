@@ -12889,8 +12889,27 @@ function updateHeader(pageId){
   const tools=document.getElementById('header-page-tools');
   if(tools){
     tools.innerHTML='';
+    if(pageId==='clients'){
+      var activeClientTab=(typeof _activeClientsTab==='string'&&_activeClientsTab)||'clients';
+      var clientTabs=document.createElement('div');
+      clientTabs.className='header-client-tabs';
+      [['clients','fa-users','العملاء'],['leads','fa-user-plus','المحتملون'],['contacts','fa-address-book','جهات الاتصال']].forEach(function(item){
+        var tab=document.createElement('button');
+        tab.type='button';
+        tab.className='header-client-tab'+(activeClientTab===item[0]?' is-active':'');
+        tab.setAttribute('data-client-tab',item[0]);
+        tab.innerHTML='<i class="fa-solid '+item[1]+'"></i><span>'+item[2]+'</span>';
+        tab.onclick=function(){
+          if(typeof _switchClientsTab==='function') _switchClientsTab(item[0],document.getElementById('_ctab-'+item[0]));
+          document.querySelectorAll('.header-client-tab').forEach(function(button){button.classList.toggle('is-active',button.getAttribute('data-client-tab')===item[0]);});
+          updateHeader('clients');
+        };
+        clientTabs.appendChild(tab);
+      });
+      tools.appendChild(clientTabs);
+    }
     if(pageId!=='tasks'){
-      var page=document.getElementById('page-'+pageId),head=page&&page.querySelector(':scope > .page-header');
+      var page=document.getElementById('page-'+pageId),head=page&&page.querySelector(':scope > .page-header, .page-header');
       var buttons=head?Array.from(head.querySelectorAll('button')).filter(function(button){return !(cta&&cta.label&&button.classList.contains('btn-primary'));}).slice(0,5):[];
       buttons.forEach(function(source){var clone=source.cloneNode(true);clone.querySelectorAll('[id]').forEach(function(node){node.removeAttribute('id');});clone.removeAttribute('id');clone.classList.add('unified-header-tool');tools.appendChild(clone);});
     }
