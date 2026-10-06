@@ -8896,30 +8896,11 @@ function _renderFeaturesPanel(){
     }).join('');
 
     shell.innerHTML =
-      '<div class="tasks-v2-hero">'+
-        '<div><div class="tasks-v2-title">المهام والتاسكات</div><div class="tasks-v2-subtitle">كانبان بعرض الصفحة، واسحب المهمة بين الحالات لتحديثها.</div></div>'+
-        '<div class="tasks-v2-actions">'+
-          '<button class="btn btn-primary tasks-v2-new-btn" onclick="openTaskModal()"><i class="fa-solid fa-plus"></i> مهمة جديدة</button>'+
-          '<button class="tasks-v2-action-icon" onclick="openTasksArchivePage()" title="أرشيف المهام"><i class="fa-solid fa-box-archive"></i>'+((S.archivedTasks||[]).length?'<span>'+(S.archivedTasks||[]).length+'</span>':'')+'</button>'+
-          '<button class="tasks-v2-action-icon '+(activeFilters?'is-active':'')+'" data-tasks-v2-action="filters" title="فلترة"><i class="fa-solid fa-filter"></i>'+(activeFilters?'<span>'+activeFilters+'</span>':'')+'</button>'+
-          '<button class="tasks-v2-action-icon" data-tasks-v2-action="classic" title="الشكل الحالي"><i class="fa-solid fa-rotate-left"></i></button>'+
-          '<button class="tasks-v2-action-icon" data-tasks-v2-action="statuses" title="إدارة الحالات"><i class="fa-solid fa-sliders"></i></button>'+
-        '</div>'+
-      '</div>'+
       '<div class="tasks-v2-quick-stats">'+
         '<button class="tasks-v2-quick-card is-danger" onclick="__tasksV2SetFilter(&quot;date&quot;,&quot;late&quot;)"><b>'+late.length+'</b><span>مهام متأخرة</span><small>عرض التفاصيل</small></button>'+
         '<button class="tasks-v2-quick-card" onclick="__tasksV2SetFilter(&quot;status&quot;,&quot;&quot;)"><b>'+open.length+'</b><span>غير مكتملة</span><small>كل النشط والموقوف والجديد</small></button>'+
         '<div class="tasks-v2-quick-card is-progress"><b>'+pct+'%</b><span>نسبة الإنجاز</span><small>'+done.length+' مكتملة من '+all.length+'</small></div>'+
         '<button class="tasks-v2-quick-card is-warn" onclick="__tasksV2SetFilter(&quot;date&quot;,&quot;tomorrow&quot;)"><b>'+dueTomorrow.length+'</b><span>تسليم بكرة</span><small>تنبيه قبل الميعاد</small></button>'+
-      '</div>'+
-      '<div class="tasks-v2-search-block">'+
-        '<div class="tasks-v2-search-box">'+
-          '<i class="fa-solid fa-magnifying-glass"></i>'+
-          '<input value="'+esc(f.search)+'" placeholder="ابحث عن تاسك في المهام أو مهام المشاريع..." oninput="__tasksV2SetFilter(\'search\',this.value)">'+
-          (f.search?'<button type="button" onclick="__tasksV2SetFilter(&quot;search&quot;,&quot;&quot;)" title="مسح البحث"><i class="fa-solid fa-xmark"></i></button>':'')+
-        '</div>'+
-        (f.search?'<div class="tasks-v2-search-meta">'+filtered.length+' نتيجة مطابقة لكلمة البحث</div>':'')+
-        (suggestions.length?'<div class="tasks-v2-suggestions">'+suggestions.map(function(t){return '<button type="button" onclick="__tasksV2PickSuggestion(&quot;'+esc(t._v2Key)+'&quot;)"><span style="background:'+(t._isProjectTask?t.projectColor:taskColor(t))+'"></span><b>'+esc(t.title||'مهمة بدون اسم')+'</b><small>'+(t._isProjectTask?'مشروع: '+esc(t.projectName):esc(t.client||'بدون عميل'))+'</small></button>';}).join('')+'</div>':'')+
       '</div>'+
       '<div class="tasks-v2-toolbar '+(filtersOpen?'is-open':'')+'">'+
         '<input class="tasks-v2-input" value="'+esc(f.search)+'" placeholder="بحث باسم المهمة أو العميل..." oninput="__tasksV2SetFilter(\'search\',this.value)">'+
@@ -8937,8 +8918,21 @@ function _renderFeaturesPanel(){
           (view==='list' ? listHtml(filtered) : view==='group' ? groupedHtml(filtered) : '<div class="tasks-v2-board">'+board+'</div>')+
         '</div>'+
       '</div>';
+    var headerTools=document.getElementById('header-page-tools');
+    var headerCta=document.getElementById('header-cta');
+    if(headerCta)headerCta.style.display='none';
+    if(headerTools){
+      headerTools.innerHTML='<div class="tasks-header-search '+(f.search?'has-value':'')+'"><button class="tasks-v2-action-icon" onclick="__tasksV2ToggleHeaderSearch()" title="بحث"><i class="fa-solid fa-magnifying-glass"></i></button><div class="tasks-header-search-pop"><i class="fa-solid fa-magnifying-glass"></i><input value="'+esc(f.search)+'" placeholder="ابحث عن مهمة…" oninput="__tasksV2SetFilter(\'search\',this.value)">'+(f.search?'<button onclick="__tasksV2SetFilter(&quot;search&quot;,&quot;&quot;)" title="مسح"><i class="fa-solid fa-xmark"></i></button>':'')+'</div></div>'+
+        '<button class="tasks-v2-action-icon" onclick="openTasksArchivePage()" title="أرشيف المهام"><i class="fa-solid fa-box-archive"></i>'+((S.archivedTasks||[]).length?'<span>'+(S.archivedTasks||[]).length+'</span>':'')+'</button>'+
+        '<button class="tasks-v2-action-icon '+(activeFilters?'is-active':'')+'" data-tasks-v2-action="filters" title="فلترة"><i class="fa-solid fa-filter"></i>'+(activeFilters?'<span>'+activeFilters+'</span>':'')+'</button>'+
+        '<button class="tasks-v2-action-icon" data-tasks-v2-action="classic" title="تغيير الشكل"><i class="fa-solid fa-rotate-left"></i></button>'+
+        '<button class="tasks-v2-action-icon" data-tasks-v2-action="statuses" title="إدارة الحالات"><i class="fa-solid fa-sliders"></i></button>'+
+        '<button class="btn btn-primary tasks-header-new" onclick="openTaskModal()"><i class="fa-solid fa-plus"></i><span>مهمة جديدة</span></button>';
+    }
     setTimeout(function(){ if(typeof runDailyArchive === 'function') runDailyArchive(); }, 300);
   }
+
+  window.__tasksV2ToggleHeaderSearch=function(){var box=document.querySelector('.tasks-header-search');if(!box)return;box.classList.toggle('is-open');if(box.classList.contains('is-open')){var input=box.querySelector('input');if(input)setTimeout(function(){input.focus();},30);}};
 
   window.__tasksV2OpenTask = function(ev, id){
     if(justDragged){ ev && ev.stopPropagation(); return; }
@@ -12884,7 +12878,22 @@ function toggleSidebar(){
 // Update header title + CTA on page change
 function updateHeader(pageId){
   const el=document.getElementById('header-page-title');
-  if(el) el.innerHTML=PAGE_TITLES[pageId]||'';
+  if(el){
+    var raw=PAGE_TITLES[pageId]||'';
+    var temp=document.createElement('span');temp.innerHTML=raw;
+    var nav=document.querySelector('.nav-item[onclick*="showPage(\''+pageId+'\'"] .nav-label');
+    el.textContent=(nav&&nav.textContent.trim())||(temp.textContent||temp.innerText||raw).trim();
+  }
+  const tools=document.getElementById('header-page-tools');
+  if(tools){
+    tools.innerHTML='';
+    if(pageId!=='tasks'){
+      var page=document.getElementById('page-'+pageId),head=page&&page.querySelector(':scope > .page-header');
+      var buttons=head?Array.from(head.querySelectorAll('button:not(.btn-primary)')).slice(0,5):[];
+      buttons.forEach(function(source){var clone=source.cloneNode(true);clone.querySelectorAll('[id]').forEach(function(node){node.removeAttribute('id');});clone.removeAttribute('id');clone.classList.add('unified-header-tool');tools.appendChild(clone);});
+    }
+  }
+  document.body.classList.toggle('unified-tasks-header',pageId==='tasks');
   const cta=PAGE_CTA[pageId];
   const btn=document.getElementById('header-cta');
   if(btn){
