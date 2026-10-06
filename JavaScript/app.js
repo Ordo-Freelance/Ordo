@@ -12884,17 +12884,17 @@ function updateHeader(pageId){
     var nav=document.querySelector('.nav-item[onclick*="showPage(\''+pageId+'\'"] .nav-label');
     el.textContent=(nav&&nav.textContent.trim())||(temp.textContent||temp.innerText||raw).trim();
   }
+  const cta=PAGE_CTA[pageId];
   const tools=document.getElementById('header-page-tools');
   if(tools){
     tools.innerHTML='';
     if(pageId!=='tasks'){
       var page=document.getElementById('page-'+pageId),head=page&&page.querySelector(':scope > .page-header');
-      var buttons=head?Array.from(head.querySelectorAll('button:not(.btn-primary)')).slice(0,5):[];
+      var buttons=head?Array.from(head.querySelectorAll('button')).filter(function(button){return !(cta&&cta.label&&button.classList.contains('btn-primary'));}).slice(0,5):[];
       buttons.forEach(function(source){var clone=source.cloneNode(true);clone.querySelectorAll('[id]').forEach(function(node){node.removeAttribute('id');});clone.removeAttribute('id');clone.classList.add('unified-header-tool');tools.appendChild(clone);});
     }
   }
   document.body.classList.toggle('unified-tasks-header',pageId==='tasks');
-  const cta=PAGE_CTA[pageId];
   const btn=document.getElementById('header-cta');
   if(btn){
     btn.innerHTML=cta?.label||'';

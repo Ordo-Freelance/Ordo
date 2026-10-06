@@ -11,6 +11,8 @@ test('one adaptive app header owns page titles and page actions',()=>{
   assert.doesNotMatch(html,/id="_header-studio-name"/);
   assert.match(app,/nav&&nav\.textContent\.trim\(\)/);
   assert.match(app,/unified-header-tool/);
+  assert.match(app,/head\.querySelectorAll\('button'\)/);
+  assert.match(app,/button\.classList\.contains\('btn-primary'\)/);
   assert.match(css,/\.page\.active>\.page-header\{display:none!important\}/);
 });
 
