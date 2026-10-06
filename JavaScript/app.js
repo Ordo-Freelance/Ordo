@@ -12584,7 +12584,8 @@ function updateDash(){
   const dashNow=new Date(), dashYear=dashNow.getFullYear(), dashMonth=dashNow.getMonth();
   const inc=S.transactions.filter(t=>t.type==='income'&&_dashboardDateInMonth(_dashboardParseDate(t.isoDate||t.date||t.createdAt||t.created_at),dashYear,dashMonth)).reduce((s,t)=>s+(Number(t.amount)||0),0);
   const dashTasks=_ordoAllDashboardTasks();
-  const done=dashTasks.filter(t=>_dashboardTaskIsDone(t)&&_dashboardDateInMonth(_dashboardTaskCompletedDate(t),dashYear,dashMonth)).length, pending=dashTasks.filter(t=>!_dashboardTaskIsDone(t)).length;
+  const doneThisMonth=dashTasks.filter(t=>_dashboardTaskIsDone(t)&&_dashboardDateInMonth(_dashboardTaskCompletedDate(t),dashYear,dashMonth)).length;
+  const done=dashTasks.filter(t=>_dashboardTaskIsDone(t)).length, pending=dashTasks.filter(t=>!_dashboardTaskIsDone(t)).length;
 
   // Animated number counter with counting effect
   function setAnim(id, val, suffix){
@@ -12621,11 +12622,11 @@ function updateDash(){
   setAnim('dash-projects', pending);
   setAnim('dash-done', done);
   const pendTxt = document.getElementById('dash-pending-txt');
-  if(pendTxt) pendTxt.textContent = pending+' معلقة';
+  if(pendTxt) pendTxt.textContent = pending+' غير مكتملة';
   setAnim('dash-clients', S.clients.length);
 
   // Update performance ring card
-  _updatePerfCard(done, pending, inc);
+  _updatePerfCard(doneThisMonth, pending, inc);
 
   const dtl=document.getElementById('dash-tasks-list');
   const recentDashTasks=dashTasks.slice().sort((a,b)=>{
@@ -27846,7 +27847,7 @@ function _widgetInnerHTML(id){
     return '<div>' +
       '<div class="grid grid-4 ordo-stagger ordo-home-stats" id="_dash-stats-inner">' +
         '<div class="card ordo-home-stat-card orange"><div class="ordo-home-stat-icon"><i class="fa-solid fa-clipboard-list"></i></div><div class="stat-label">المهام النشطة</div><div class="stat-value" id="dash-projects">0</div><div class="stat-change">قيد التنفيذ حالياً</div></div>' +
-        '<div class="card ordo-home-stat-card green"><div class="ordo-home-stat-icon"><i class="fa-solid fa-circle-check"></i></div><div class="stat-label">المهام المكتملة هذا الشهر</div><div class="stat-value" id="dash-done">0</div><div class="stat-change" id="dash-pending-txt">0 معلقة</div></div>' +
+        '<div class="card ordo-home-stat-card green"><div class="ordo-home-stat-icon"><i class="fa-solid fa-circle-check"></i></div><div class="stat-label">المهام المكتملة</div><div class="stat-value" id="dash-done">0</div><div class="stat-change" id="dash-pending-txt">0 غير مكتملة</div></div>' +
         '<div class="card ordo-home-stat-card purple"><div class="ordo-home-stat-icon"><i class="fa-solid fa-users"></i></div><div class="stat-label">العملاء الحاليون</div><div class="stat-value" id="dash-clients">0</div><div class="stat-change">عميل لديهم مشاريع أو خدمات نشطة</div></div>' +
         '<div class="card ordo-home-stat-card income"><div class="ordo-home-stat-icon"><i class="fa-solid fa-sack-dollar"></i></div><div class="stat-label"><i class="fa-solid fa-wallet" style="color:var(--accent3)"></i> دخل الشهر الحالي</div><div class="stat-value green" id="dash-income">0 ج</div><div class="stat-change">إجمالي التحصيل حتى اليوم</div></div>' +
       '</div>' +

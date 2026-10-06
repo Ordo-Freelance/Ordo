@@ -20,3 +20,11 @@ test('dashboard income card totals only income from the current calendar month',
   assert.match(html,/إجمالي التحصيل حتى اليوم/);
   assert.doesNotMatch(html,/من يوم 1 حتى آخر يوم في الشهر/);
 });
+
+test('dashboard completed card shows all completed tasks while performance stays monthly',()=>{
+  assert.match(app,/const doneThisMonth=dashTasks\.filter/);
+  assert.match(app,/const done=dashTasks\.filter\(t=>_dashboardTaskIsDone\(t\)\)\.length/);
+  assert.match(app,/_updatePerfCard\(doneThisMonth, pending, inc\)/);
+  assert.match(app,/class="stat-label">المهام المكتملة<\/div>/);
+  assert.doesNotMatch(app,/class="stat-label">المهام المكتملة هذا الشهر<\/div>/);
+});
