@@ -12918,6 +12918,12 @@ function updateHeader(pageId){
         clientTabs.appendChild(tab);
       });
       tools.appendChild(clientTabs);
+      var workspacePortal=document.createElement('button');
+      workspacePortal.type='button';
+      workspacePortal.className='btn btn-ghost unified-header-tool';
+      workspacePortal.onclick=function(){ openFreelancerPortalManager(); };
+      workspacePortal.innerHTML='<i class="fa-solid fa-people-roof"></i><span>بورتال مجمّع</span>';
+      tools.appendChild(workspacePortal);
     }
     if(pageId!=='tasks'){
       var page=document.getElementById('page-'+pageId),head=page&&page.querySelector(':scope > .page-header, .page-header');
@@ -24234,7 +24240,7 @@ function openOrderFullDetail(orderId){
 // â”€â”€ Client Portals â”€â”€
 function renderClientPortals(){
   var el=document.getElementById('svc-portals-grid'); if(!el) return;
-  var portals=S.client_portals||[];
+  var portals=(S.client_portals||[]).filter(function(p){return p.portal_kind!=='freelancer';});
   if(!portals.length){ el.innerHTML='<div class="empty card" style="grid-column:span 3;text-align:center;padding:40px"><div style="font-size:36px;margin-bottom:12px"><i class="fa-solid fa-key"></i></div><div>لا توجد بوابات عملاء بعد</div><div style="font-size:12px;color:var(--text3);margin-top:8px">تُنشأ تلقائياً عند قبول طلب</div></div>'; return; }
   el.innerHTML=portals.map(function(p){
     var task=(S.tasks||[]).find(function(t){return String(t.id)===String(p.task_id);});
@@ -24281,6 +24287,67 @@ function _ordoClientPortalToken(clientId, taskId, portal) {
   }
   return portal && (portal.public_token || portal.token) || '';
 }
+
+function _freelancerPortals(){
+  return (S.client_portals||[]).filter(function(p){return p&&p.portal_kind==='freelancer';});
+}
+function _freelancerPortalToken(portal){
+  if(!portal) return '';
+  var token=null;
+  try{
+    token=window.OrdoData&&window.OrdoData.createPublicToken('client_portal',portal.id,{
+      entity:portal,allowed_sections:['clients','projects','tasks','invoices','finance']
+    });
+  }catch(e){}
+  if(token){
+    token.client_id=null;
+    token.client_ids=(portal.client_ids||[]).map(String);
+    token.scope_mode=portal.scope_mode||'selected';
+    token.all_clients=token.scope_mode==='all';
+    token.portal_kind='freelancer';
+    token.portal_name=portal.name||'بوابة متابعة الأعمال';
+    token.updatedAt=new Date().toISOString(); token._dirty=true;
+    portal.public_token=token.token;
+  }
+  return token&&token.token||portal.public_token||'';
+}
+function _freelancerPortalUrl(portal){
+  var token=_freelancerPortalToken(portal);
+  return token?(window.location.origin+'/workspace-portal/'+encodeURIComponent(token)):'';
+}
+function openFreelancerPortalManager(editId){
+  var portal=editId?_freelancerPortals().find(function(p){return String(p.id)===String(editId);}):null;
+  var selected=new Set((portal&&portal.client_ids||[]).map(String));
+  var over=document.createElement('div'); over.className='modal-overlay'; over.style.display='flex'; over.id='freelancer-portal-manager';
+  var clients=(S.clients||[]).filter(function(c){return c&&!c.archived;});
+  over.innerHTML='<div class="modal" style="max-width:720px">'+
+    '<div class="modal-header"><div class="modal-title"><i class="fa-solid fa-people-roof" style="color:var(--accent3)"></i> بورتال متابعة مجمّع</div><button class="close-btn" onclick="this.closest(\'.modal-overlay\').remove()"><i class="fa-solid fa-xmark"></i></button></div>'+
+    '<div style="color:var(--text2);font-size:13px;margin-bottom:16px">رابط واحد يعرض العملاء المختارين ومشاريعهم ومهامهم وملخصهم المالي — للعرض فقط.</div>'+
+    '<input id="fp-edit-id" type="hidden" value="'+escapeHtml(portal&&portal.id||'')+'">'+
+    '<label class="form-label">اسم البورتال</label><input id="fp-name" class="form-input" value="'+escapeHtml(portal&&portal.name||'بوابة متابعة الأعمال')+'" placeholder="مثال: متابعة عملاء شركة النور">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:15px 0">'+
+      '<label class="card" style="padding:12px;cursor:pointer"><input type="radio" name="fp-scope" value="all" '+((portal&&portal.scope_mode==='all')?'checked':'')+'> <strong>كل العملاء</strong><div style="font-size:11px;color:var(--text3);margin-right:22px">يشمل العملاء الحاليين والجدد</div></label>'+
+      '<label class="card" style="padding:12px;cursor:pointer"><input type="radio" name="fp-scope" value="selected" '+((!portal||portal.scope_mode!=='all')?'checked':'')+'> <strong>عملاء محددون</strong><div style="font-size:11px;color:var(--text3);margin-right:22px">تحكم كامل في الظاهر بالرابط</div></label>'+
+    '</div><div id="fp-client-list" style="max-height:250px;overflow:auto;border:1px solid var(--border);border-radius:12px;padding:8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">'+
+      (clients.length?clients.map(function(c){return '<label style="display:flex;align-items:center;gap:9px;padding:10px;background:var(--surface2);border-radius:9px;cursor:pointer"><input type="checkbox" class="fp-client" value="'+escapeHtml(c.id)+'" '+(selected.has(String(c.id))?'checked':'')+'><span style="min-width:0"><strong style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escapeHtml(c.name||c.company||'عميل')+'</strong><small style="color:var(--text3)">'+escapeHtml(c.company||'')+'</small></span></label>';}).join(''):'<div class="empty" style="grid-column:1/-1">لا يوجد عملاء بعد</div>')+
+    '</div><div style="display:flex;gap:8px;margin-top:16px"><button class="btn btn-primary" onclick="saveFreelancerPortal()"><i class="fa-solid fa-link"></i> حفظ وإنشاء الرابط</button><button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">إلغاء</button></div>'+
+    (_freelancerPortals().length?'<div style="border-top:1px solid var(--border);margin-top:20px;padding-top:15px"><strong>الروابط الحالية</strong><div style="display:grid;gap:8px;margin-top:10px">'+_freelancerPortals().map(function(p){return '<div style="display:flex;align-items:center;gap:8px;background:var(--surface2);padding:10px;border-radius:10px"><span style="flex:1;font-weight:700">'+escapeHtml(p.name||'بورتال مجمّع')+'</span><button class="icon-btn" title="نسخ" onclick="copyFreelancerPortalLink(\''+p.id+'\')"><i class="fa-solid fa-copy"></i></button><button class="icon-btn" title="معاينة" onclick="window.open(_freelancerPortalUrl(_freelancerPortals().find(x=>x.id===\''+p.id+'\')),\'_blank\')"><i class="fa-solid fa-eye"></i></button><button class="icon-btn" title="تعديل" onclick="openFreelancerPortalManager(\''+p.id+'\')"><i class="fa-solid fa-pen"></i></button><button class="icon-btn" title="حذف" onclick="deleteFreelancerPortal(\''+p.id+'\')"><i class="fa-solid fa-trash"></i></button></div>';}).join('')+'</div></div>':'')+
+  '</div>';
+  document.body.appendChild(over); over.onclick=function(e){if(e.target===over)over.remove();};
+}
+function saveFreelancerPortal(){
+  var modal=document.getElementById('freelancer-portal-manager'); if(!modal)return;
+  var id=modal.querySelector('#fp-edit-id').value, scope=(modal.querySelector('input[name="fp-scope"]:checked')||{}).value||'selected';
+  var ids=Array.from(modal.querySelectorAll('.fp-client:checked')).map(function(x){return x.value;});
+  if(scope==='selected'&&!ids.length){toast('<i class="fa-solid fa-triangle-exclamation"></i> اختر عميلاً واحداً على الأقل');return;}
+  var portal=id?_freelancerPortals().find(function(p){return String(p.id)===String(id);}):null;
+  if(!portal){portal={id:'fp_'+Date.now().toString(36),portal_kind:'freelancer',createdAt:new Date().toISOString()};S.client_portals.push(portal);}
+  portal.name=(modal.querySelector('#fp-name').value||'بوابة متابعة الأعمال').trim(); portal.scope_mode=scope; portal.all_clients=scope==='all'; portal.client_ids=scope==='all'?[]:ids; portal.updatedAt=new Date().toISOString(); portal._dirty=true;
+  _freelancerPortalToken(portal); save(); modal.remove();
+  var link=_freelancerPortalUrl(portal); navigator.clipboard&&navigator.clipboard.writeText(link).catch(function(){}); toast('<i class="fa-solid fa-circle-check"></i> تم إنشاء البورتال ونسخ الرابط');
+}
+function copyFreelancerPortalLink(id){var p=_freelancerPortals().find(function(x){return String(x.id)===String(id);});if(!p)return;var link=_freelancerPortalUrl(p);navigator.clipboard.writeText(link).then(function(){toast('<i class="fa-solid fa-copy"></i> تم نسخ الرابط');});}
+function deleteFreelancerPortal(id){if(!confirm('حذف هذا البورتال وإيقاف رابطه؟'))return;var p=_freelancerPortals().find(function(x){return String(x.id)===String(id);});(S.public_tokens||[]).forEach(function(t){if(p&&String(t.entity_id)===String(p.id)){t.revoked=true;t.updatedAt=new Date().toISOString();t._dirty=true;}});S.client_portals=(S.client_portals||[]).filter(function(x){return String(x.id)!==String(id);});save();document.getElementById('freelancer-portal-manager')?.remove();openFreelancerPortalManager();}
 
 function _shortPortalUrl(clientId,taskId){
   var portal=(S.client_portals||[]).find(function(p){return String(p.client_id||'')===String(clientId||'')&&(!taskId||String(p.task_id||'')===String(taskId));})||(S.client_portals||[]).find(function(p){return String(p.client_id||'')===String(clientId||'');});

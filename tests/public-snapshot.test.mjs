@@ -34,6 +34,26 @@ test('portal token limits data to its client', async () => {
   assert.equal(result.data.transactions, undefined);
 });
 
+test('aggregated portal limits data and finances to selected clients', async () => {
+  const multi = {
+    settings:{name:'Studio'},
+    clients:[{id:'c1',name:'One'},{id:'c2',name:'Two'},{id:'c3',name:'Hidden'}],
+    projects:[{id:'p1',client_id:'c1'},{id:'p2',client_id:'c2'},{id:'p3',client_id:'c3'}],
+    tasks:[{id:'t1',client_id:'c1'},{id:'t2',project_id:'p2'},{id:'t3',client_id:'c3'}],
+    invoices:[{id:'i1',client_id:'c1'},{id:'i3',client_id:'c3'}],
+    transactions:[{id:'x1',client_id:'c2',amount:10},{id:'x3',client_id:'c3',amount:99}],
+    client_portals:[{id:'fp1',portal_kind:'freelancer',scope_mode:'selected',client_ids:['c1','c2']}],
+    public_tokens:[{token:'multi',entity_type:'client_portal',entity_id:'fp1',client_ids:['c1','c2'],portal_kind:'freelancer'}]
+  };
+  const multiStore = {...store, async publicStudioCandidates(){return [{user_id:'owner',data:multi}];}};
+  const result = await publicSnapshot(multiStore,{type:'client_portal',token:'multi'});
+  assert.deepEqual(result.data.clients.map(x=>x.id),['c1','c2']);
+  assert.deepEqual(result.data.projects.map(x=>x.id),['p1','p2']);
+  assert.deepEqual(result.data.tasks.map(x=>x.id),['t1','t2']);
+  assert.deepEqual(result.data.transactions.map(x=>x.id),['x1']);
+  assert.equal(JSON.stringify(result.data).includes('c3'),false);
+});
+
 test('portal refuses an unknown token', async () => {
   assert.equal(await publicSnapshot(store, {type:'client_portal',token:'wrong'}), null);
 });
