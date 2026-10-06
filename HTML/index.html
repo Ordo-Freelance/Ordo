@@ -1113,7 +1113,7 @@ function getQRDataURL(text, size) {
 </script>
 <!-- Quill Rich Text Editor -->
 <link href="../Assets/vendor/quill/quill.snow.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../CSS/styles.css?v=unified-header-mobile-4">
+<link rel="stylesheet" href="../CSS/styles.css?v=mobile-ux-1">
 <script>
 (function(){
   try{
@@ -1575,6 +1575,7 @@ try {
   </button>
   <div class="header-page-title" id="header-page-title" data-i18n="nav_dashboard">لوحة التحكم</div>
   <div class="header-page-tools" id="header-page-tools"></div>
+  <button class="header-mobile-more" id="header-mobile-more" type="button" onclick="toggleMobileHeaderTools(event)" aria-label="المزيد من إجراءات الصفحة" aria-expanded="false"><i class="fa-solid fa-ellipsis"></i></button>
   <div class="header-actions">
     <!-- Notifications Bell -->
     <button id="_notif-bell-btn" onclick="_toggleNotifPanel(this)" style="position:relative;width:34px;height:34px;border-radius:10px;background:var(--surface2);border:1.5px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s" title="الإشعارات">
@@ -3302,7 +3303,7 @@ try {
     <div><div class="page-title"><span data-i18n="title_invoices">الفواتير</span> <span data-i18n="title_invoices2">والعقود والعروض</span></div><div class="page-subtitle" data-i18n="sub_invoices">الفواتير والعقود وعروض الأسعار في مكان واحد</div></div>
     <button class="btn btn-primary" id="inv-add-btn" onclick="openInvoiceModal()" data-i18n="btn_new_invoice"><i class="fa-solid fa-plus" style="margin-left:4px"></i> فاتورة جديدة</button>
   </div>
-  <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px">
+  <div class="invoices-section-tabs" style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:8px">
     <button class="filter-chip active" id="inv-tab-inv" onclick="switchInvTab('invoices')"><i class="fa-solid fa-square"></i> الفواتير</button>
     <button class="filter-chip" id="inv-tab-ct" onclick="switchInvTab('contracts')"><i class="fa-solid fa-pen-to-square"></i> العقود</button>
     <button class="filter-chip" id="inv-tab-proposals" onclick="switchInvTab('proposals')"><i class="fa-solid fa-file-contract"></i> عروض الأسعار</button>
@@ -5577,7 +5578,7 @@ try {
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=unified-header-mobile-4"></script>
+<script src="../JavaScript/app.js?v=mobile-ux-1"></script>
 <script src="../JavaScript/project-finance-integration.js?v=2"></script>
 <script>document.body.classList.remove('auth-booting');</script>
 <script src="../JavaScript/vercel_persistence.js?v=storefront-sync-1"></script>

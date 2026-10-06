@@ -42,4 +42,10 @@ test('mobile layer reduces density while retaining all three task views',()=>{
   assert.match(css,/grid-auto-columns:minmax\(250px,88vw\)/);
   assert.match(css,/\.tasks-v2-list-head\{display:none!important\}/);
   assert.match(css,/\.wf-toolbar\{overflow-x:auto/);
+  assert.match(html,/id="header-mobile-more"/);
+  assert.match(app,/function toggleMobileHeaderTools\(event\)/);
+  assert.match(css,/body\.mobile-header-tools-open \.header-page-tools:not\(:empty\)\{display:grid!important\}/);
+  assert.match(css,/max-height:92dvh!important/);
+  assert.match(css,/#_dash-stats-inner>\.ordo-home-stat-card\{flex:0 0 158px!important/);
+  assert.match(css,/\.invoices-section-tabs\{gap:7px!important/);
 });
