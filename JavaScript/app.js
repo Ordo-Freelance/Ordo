@@ -12892,6 +12892,14 @@ function updateHeader(pageId){
   const tools=document.getElementById('header-page-tools');
   if(tools){
     tools.innerHTML='';
+    if(cta&&cta.label){
+      var mobilePrimary=document.createElement('button');
+      mobilePrimary.type='button';
+      mobilePrimary.className='btn btn-primary mobile-header-primary';
+      mobilePrimary.setAttribute('onclick',cta.fn||'');
+      mobilePrimary.innerHTML='<i class="fa-solid fa-plus"></i><span>'+String(cta.label).replace(/^\+\s*/, '')+'</span>';
+      tools.appendChild(mobilePrimary);
+    }
     if(pageId==='clients'){
       var activeClientTab=(typeof _activeClientsTab==='string'&&_activeClientsTab)||'clients';
       var clientTabs=document.createElement('div');

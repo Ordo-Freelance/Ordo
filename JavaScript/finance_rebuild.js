@@ -538,6 +538,14 @@
     var tools=document.getElementById('header-page-tools');
     if(!page||!page.classList.contains('active')||!tools)return;
     tools.innerHTML='';
+    if(allowed('fin_income')){
+      var primary=document.createElement('button');
+      primary.type='button';
+      primary.className='btn btn-success mobile-header-primary';
+      primary.setAttribute('onclick','financeV3Income()');
+      primary.innerHTML='<i class="fa-solid fa-plus"></i><span>دخل</span>';
+      tools.appendChild(primary);
+    }
     var actions=document.createElement('div');
     actions.className='fv3-actions';
     actions.innerHTML=
