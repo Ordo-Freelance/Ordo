@@ -541,7 +541,6 @@
     var actions=document.createElement('div');
     actions.className='fv3-actions';
     actions.innerHTML=
-      (allowed('fin_income')?'<button class="btn btn-success unified-header-tool" onclick="financeV3Income()"><i class="fa-solid fa-plus"></i> دخل</button>':'')+
       (allowed('fin_expense')?'<button class="btn btn-danger unified-header-tool" onclick="financeV3Expense()"><i class="fa-solid fa-minus"></i> مصروف</button>':'')+
       (allowed('loans')?'<button class="btn btn-ghost unified-header-tool" onclick="openLoanModal && openLoanModal()"><i class="fa-solid fa-handshake"></i> قرض</button>':'')+
       (allowed('finance_account_manage')?'<button class="btn btn-primary unified-header-tool" onclick="openFinanceAccountModal()"><i class="fa-solid fa-building-columns"></i> حساب/بنك</button>':'');
