@@ -139,7 +139,7 @@
       if(due > 0) rows.push({date:taskDate(t), type:'مهمة غير مدفوعة', desc:t.title || '-', amount:due, code:cur(t)});
     });
     bundle.transactions.forEach(function(t){
-      rows.push({date:txDate(t), type:t.type === 'expense' ? 'مصروف' : 'تحصيل', desc:t.desc || t.source || t.expCat || '-', amount:t.type === 'expense' ? -Math.abs(num(t.amount)) : Math.abs(num(t.amount)), code:cur(t)});
+      rows.push({entity:'transaction',id:t.id,txType:t.type,date:txDate(t), type:t.type === 'expense' ? 'مصروف' : 'تحصيل', desc:t.desc || t.source || t.expCat || '-', amount:t.type === 'expense' ? -Math.abs(num(t.amount)) : Math.abs(num(t.amount)), code:cur(t)});
     });
     return rows.sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); });
   }
@@ -153,6 +153,10 @@
       var byProject = r.project_id != null && projectIds[String(r.project_id)];
       if(!byClient && !byProject) return;
       rows.push({
+        entity:'collection',
+        id:r.id,
+        taskId:r.task_id,
+        sourceType:r.source_type,
         key:String(r.source_type || '') + ':' + String(r.task_id || '') + ':' + String(r.collectedAt || r.collectedAtIso || ''),
         date:String(r.collectedAt || r.collectedAtIso || r.createdAt || '').slice(0,10),
         type:r.source_type === 'project_task' ? 'مشروع' : 'فردي',
@@ -206,19 +210,114 @@
         '<button class="btn btn-success btn-sm" onclick="openIncomeModal && openIncomeModal()"><i class="fa-solid fa-plus"></i> تسجيل تحصيل</button>'+
       '</div>'+
       '<div class="section-title" style="margin-bottom:10px"><i class="fa-solid fa-square-check"></i> سجل التاسكات المحصلة</div>'+
-      (collectedRows.length ? '<table class="fv3-table" style="margin-bottom:16px"><thead><tr><th>التاريخ</th><th>النوع</th><th>التاسك</th><th>المشروع</th><th>المبلغ</th></tr></thead><tbody>'+
+      (collectedRows.length ? '<table class="fv3-table" style="margin-bottom:16px"><thead><tr><th>التاريخ</th><th>النوع</th><th>التاسك</th><th>المشروع</th><th>المبلغ</th><th>إجراءات</th></tr></thead><tbody>'+
         collectedRows.map(function(r){
-          return '<tr><td>'+esc(r.date||'-')+'</td><td><span class="fv3-pill">'+esc(r.type)+'</span></td><td>'+esc(r.desc)+'</td><td>'+esc(r.project||'-')+'</td><td style="font-weight:900;color:var(--accent3)">'+fmt(r.amount,r.code)+'</td></tr>';
+          var actions=r.entity==='collection'?'<div style="display:flex;gap:5px"><button class="btn btn-ghost btn-sm" title="تعديل العملية" onclick="OrdoClientFinanceFix.editCollection('+JSON.stringify(String(r.id))+','+JSON.stringify(bundle.client.id)+')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-danger btn-sm" title="حذف العملية" onclick="OrdoClientFinanceFix.deleteCollection('+JSON.stringify(String(r.id))+','+JSON.stringify(bundle.client.id)+')"><i class="fa-solid fa-trash"></i></button></div>':'<span style="color:var(--text3)">—</span>';
+          return '<tr><td>'+esc(r.date||'-')+'</td><td><span class="fv3-pill">'+esc(r.type)+'</span></td><td>'+esc(r.desc)+'</td><td>'+esc(r.project||'-')+'</td><td style="font-weight:900;color:var(--accent3)">'+fmt(r.amount,r.code)+'</td><td>'+actions+'</td></tr>';
         }).join('')+'</tbody></table>' : '<div class="empty" style="padding:18px;margin-bottom:16px">لا توجد تاسكات محصلة بعد</div>')+
       '<div class="section-title" style="margin-bottom:10px"><i class="fa-solid fa-list-timeline"></i> سجل الحساب</div>'+
-      (rows.length ? '<table class="fv3-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th><th>المبلغ</th></tr></thead><tbody>'+
+      (rows.length ? '<table class="fv3-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th><th>المبلغ</th><th>إجراءات</th></tr></thead><tbody>'+
         rows.map(function(r){
-          return '<tr><td>'+esc(r.date||'-')+'</td><td><span class="fv3-pill">'+esc(r.type)+'</span></td><td>'+esc(r.desc)+'</td><td style="font-weight:900;color:'+(num(r.amount)<0?'var(--accent3)':'var(--accent4)')+'">'+fmt(r.amount,r.code)+'</td></tr>';
+          var actions=r.entity==='transaction'?'<div style="display:flex;gap:5px"><button class="btn btn-ghost btn-sm" title="تعديل العملية" onclick="OrdoClientFinanceFix.editTransaction('+JSON.stringify(String(r.id))+','+JSON.stringify(bundle.client.id)+')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-danger btn-sm" title="حذف العملية" onclick="OrdoClientFinanceFix.deleteTransaction('+JSON.stringify(String(r.id))+','+JSON.stringify(bundle.client.id)+')"><i class="fa-solid fa-trash"></i></button></div>':'<span style="color:var(--text3)">—</span>';
+          return '<tr><td>'+esc(r.date||'-')+'</td><td><span class="fv3-pill">'+esc(r.type)+'</span></td><td>'+esc(r.desc)+'</td><td style="font-weight:900;color:'+(num(r.amount)<0?'var(--accent3)':'var(--accent4)')+'">'+fmt(r.amount,r.code)+'</td><td>'+actions+'</td></tr>';
         }).join('')+'</tbody></table>' : '<div class="empty" style="padding:24px">لا توجد حركات أو مستحقات مسجلة</div>');
     return true;
   }
   function card(label, value, color, icon){
     return '<div class="card" style="padding:12px;text-align:center;border-right:2px solid '+color+'"><div style="font-size:18px;font-weight:900;color:'+color+'">'+value+'</div><div style="font-size:10px;color:var(--text3);margin-top:3px"><i class="fa-solid '+icon+'"></i> '+label+'</div></div>';
+  }
+  function findTask(row){
+    var s=S(), id=String(row && (row.task_id||row.taskId)||'');
+    return arr(s.tasks).concat(arr(s.project_tasks),arr(s.archivedTasks)).find(function(t){return String(t.id)===id;}) || null;
+  }
+  function linkedInvoice(taskId){
+    return arr(S().invoices).find(function(inv){return arr(inv.items).some(function(it){return String(it._taskId||it.taskId||it.linkedTaskId||it._projectTaskId||it.projectTaskId||it.linkedProjTaskId||'')===String(taskId);});}) || null;
+  }
+  function txForCollection(row){
+    var taskId=String(row&&row.task_id||''),invoiceId=String(row&&row.invoice_id||'');
+    var direct=arr(S().transactions).find(function(tx){return String(tx.source_ref||'')==='task-payment:'+String(row.source_type||'task')+':'+taskId;});
+    if(direct)return direct;
+    return arr(S().transactions).slice().reverse().find(function(tx){
+      if(String(tx.linkedTaskId||tx.linkedProjTaskId||'')===taskId)return true;
+      return invoiceId&&arr(tx.allocations).some(function(a){return String(a.invoice_id||a.invoiceId||'')===invoiceId;});
+    })||null;
+  }
+  function setAllocatedAmount(tx,invoiceId,amount){
+    var old=0,changed=false;
+    tx.allocations=arr(tx.allocations).map(function(a){
+      if(!changed&&String(a.invoice_id||a.invoiceId||'')===String(invoiceId)){old=num(a.amount);changed=true;return Object.assign({},a,{amount:amount});}
+      return a;
+    });
+    tx.amount=Math.max(0,num(tx.amount)-old+amount);
+    tx.unallocatedAmount=Math.max(0,num(tx.unallocatedAmount));
+  }
+  async function persist(clientId){
+    if(root.OrdoPaymentReconciliation) root.OrdoPaymentReconciliation.reconcileAll(S());
+    if(typeof root.lsSave==='function') root.lsSave();
+    if(typeof root.cloudSave==='function') await root.cloudSave(S());
+    renderAccounts(clientId);
+  }
+  function editCollection(id,clientId){
+    var row=arr(S().task_collections).find(function(r){return String(r.id)===String(id);}); if(!row)return;
+    var old=document.getElementById('modal-edit-task-collection'); if(old)old.remove();
+    var ov=document.createElement('div');ov.className='modal-overlay';ov.id='modal-edit-task-collection';ov.style.display='flex';
+    ov.innerHTML='<div class="modal" style="max-width:470px"><div class="modal-header"><div class="modal-title"><i class="fa-solid fa-pen"></i> تعديل عملية التحصيل</div><button class="close-btn" onclick="this.closest(\'.modal-overlay\').remove()"><i class="fa-solid fa-xmark"></i></button></div><div class="form-group"><label>المبلغ</label><input id="fc-edit-amount" type="number" min="0" step="0.01" value="'+esc(row.amount)+'"></div><div class="form-group"><label>التاريخ</label><input id="fc-edit-date" type="date" value="'+esc(String(row.collectedAt||row.collectedAtIso||'').slice(0,10))+'"></div><div class="form-group"><label>وصف العملية</label><input id="fc-edit-title" value="'+esc(row.task_title||row.title||'')+'"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">إلغاء</button><button class="btn btn-primary" onclick="OrdoClientFinanceFix.saveCollection(\''+esc(id)+'\','+JSON.stringify(clientId)+')"><i class="fa-solid fa-floppy-disk"></i> حفظ</button></div></div>';
+    document.body.appendChild(ov);
+  }
+  async function saveCollection(id,clientId){
+    var row=arr(S().task_collections).find(function(r){return String(r.id)===String(id);}); if(!row)return;
+    var amount=Math.max(0,num(document.getElementById('fc-edit-amount')&&document.getElementById('fc-edit-amount').value));
+    var date=(document.getElementById('fc-edit-date')&&document.getElementById('fc-edit-date').value)||new Date().toISOString().slice(0,10);
+    var title=(document.getElementById('fc-edit-title')&&document.getElementById('fc-edit-title').value||'').trim();
+    if(!amount){if(root.toast)root.toast('أدخل مبلغاً صحيحاً');return;}
+    var tx=txForCollection(row),inv=linkedInvoice(row.task_id),oldRowAmount=num(row.amount);
+    row.amount=amount;row.collectedAt=date;row.collectedAtIso=date+'T00:00:00';if(title)row.task_title=title;
+    if(tx){
+      if(inv&&arr(tx.allocations).length){
+        var allocation=arr(tx.allocations).find(function(a){return String(a.invoice_id||a.invoiceId||'')===String(inv.id);});
+        setAllocatedAmount(tx,inv.id,Math.max(0,num(allocation&&allocation.amount)-oldRowAmount+amount));
+      }else tx.amount=amount;
+      tx.isoDate=date;tx.date=date;if(title)tx.desc='تحصيل مهمة: '+title;
+    }
+    var task=findTask(row);if(task){task.paidAmount=amount;task.amountPaid=amount;task.collectedAt=date;task.collectedAtIso=row.collectedAtIso;}
+    var modal=document.getElementById('modal-edit-task-collection');if(modal)modal.remove();await persist(clientId);if(root.toast)root.toast('تم تعديل العملية المالية');
+  }
+  function deleteCollection(id,clientId){
+    var row=arr(S().task_collections).find(function(r){return String(r.id)===String(id);});if(!row)return;
+    var run=async function(){
+      S().task_collections=arr(S().task_collections).filter(function(r){return String(r.id)!==String(id);});
+      var tx=txForCollection(row),inv=linkedInvoice(row.task_id);
+      if(tx&&inv&&arr(tx.allocations).length){
+        setAllocatedAmount(tx,inv.id,Math.max(0,num((arr(tx.allocations).find(function(a){return String(a.invoice_id||a.invoiceId||'')===String(inv.id);})||{}).amount)-num(row.amount)));
+        if(num(tx.amount)<=0)S().transactions=arr(S().transactions).filter(function(item){return String(item.id)!==String(tx.id);});
+      }else if(tx)S().transactions=arr(S().transactions).filter(function(item){return String(item.id)!==String(tx.id);});
+      var task=findTask(row);if(task){task.paymentCollected=false;task.paid=false;task.pay='none';task.paymentStatus='pending';task.paidAmount=0;task.amountPaid=0;task.collectedAt=null;task.collectedAtIso=null;}
+      if(inv&&root.OrdoPaymentReconciliation)root.OrdoPaymentReconciliation.reconcileInvoice(S(),inv);
+      await persist(clientId);if(root.toast)root.toast('تم حذف العملية وتحديث الفاتورة والتاسك');
+    };
+    if(typeof root.confirmDel==='function')root.confirmDel('حذف عملية التحصيل؟ سيتم تحديث حالة التاسك والفاتورة المرتبطة.',run);
+    else if(root.confirm('حذف عملية التحصيل؟'))run();
+  }
+  function editTransaction(id,clientId){
+    var tx=arr(S().transactions).find(function(row){return String(row.id)===String(id);});if(!tx)return;
+    var old=document.getElementById('modal-edit-client-transaction');if(old)old.remove();
+    var ov=document.createElement('div');ov.className='modal-overlay';ov.id='modal-edit-client-transaction';ov.style.display='flex';
+    ov.innerHTML='<div class="modal" style="max-width:470px"><div class="modal-header"><div class="modal-title"><i class="fa-solid fa-pen"></i> تعديل العملية المالية</div><button class="close-btn" onclick="this.closest(\'.modal-overlay\').remove()"><i class="fa-solid fa-xmark"></i></button></div><div class="form-group"><label>المبلغ</label><input id="ft-edit-amount" type="number" min="0" step="0.01" value="'+esc(tx.amount)+'"></div><div class="form-group"><label>التاريخ</label><input id="ft-edit-date" type="date" value="'+esc(String(tx.isoDate||tx.date||'').slice(0,10))+'"></div><div class="form-group"><label>الوصف</label><input id="ft-edit-desc" value="'+esc(tx.desc||'')+'"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" onclick="this.closest(\'.modal-overlay\').remove()">إلغاء</button><button class="btn btn-primary" onclick="OrdoClientFinanceFix.saveTransaction('+JSON.stringify(String(id))+','+JSON.stringify(clientId)+')"><i class="fa-solid fa-floppy-disk"></i> حفظ</button></div></div>';
+    document.body.appendChild(ov);
+  }
+  async function saveTransaction(id,clientId){
+    var tx=arr(S().transactions).find(function(row){return String(row.id)===String(id);});if(!tx)return;
+    var amount=Math.max(0,num(document.getElementById('ft-edit-amount')&&document.getElementById('ft-edit-amount').value));
+    if(!amount){if(root.toast)root.toast('أدخل مبلغاً صحيحاً');return;}
+    var previous=num(tx.amount),date=(document.getElementById('ft-edit-date')&&document.getElementById('ft-edit-date').value)||new Date().toISOString().slice(0,10),desc=(document.getElementById('ft-edit-desc')&&document.getElementById('ft-edit-desc').value||'').trim();
+    tx.amount=amount;tx.isoDate=date;tx.date=date;if(desc)tx.desc=desc;
+    if(arr(tx.allocations).length&&previous>0){var ratio=amount/previous;tx.allocations=tx.allocations.map(function(a){return Object.assign({},a,{amount:num(a.amount)*ratio});});}
+    var modal=document.getElementById('modal-edit-client-transaction');if(modal)modal.remove();await persist(clientId);if(root.toast)root.toast('تم تعديل العملية المالية وتحديث الحساب');
+  }
+  function deleteTransaction(id,clientId){
+    var tx=arr(S().transactions).find(function(row){return String(row.id)===String(id);});if(!tx)return;
+    var run=async function(){S().transactions=arr(S().transactions).filter(function(row){return String(row.id)!==String(id);});await persist(clientId);if(root.toast)root.toast('تم حذف العملية المالية وتحديث الحساب');};
+    if(typeof root.confirmDel==='function')root.confirmDel('حذف العملية المالية؟ سيتم تحديث الفواتير والتاسكات المرتبطة.',run);else if(root.confirm('حذف العملية المالية؟'))run();
   }
 
   var oldRender = root._renderProfileTab;
@@ -230,5 +329,5 @@
     };
   }
 
-  root.OrdoClientFinanceFix = {renderAccounts:renderAccounts, summary:function(id){ var b=clientBundle(id); return b ? summary(b) : {}; }};
+  root.OrdoClientFinanceFix = {renderAccounts:renderAccounts,editCollection:editCollection,saveCollection:saveCollection,deleteCollection:deleteCollection,editTransaction:editTransaction,saveTransaction:saveTransaction,deleteTransaction:deleteTransaction, summary:function(id){ var b=clientBundle(id); return b ? summary(b) : {}; }};
 })(window);
