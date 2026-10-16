@@ -11226,7 +11226,7 @@ function exportPDF(id){
     const st=sourceTask ? (sourceDone ? 'done' : 'progress') : 'item';
     const amount=(+it.qty||0)*(+it.price||0);
     return {
-      desc:(it.subClientName&&it.subClientName!==inv.client?'تابع لـ '+it.subClientName+' — ':'')+(it.desc||sourceTask?.title||'بند فاتورة'),
+      desc:(it.desc||sourceTask?.title||'بند فاتورة'),
       projectName:isProject ? _invoiceProjectName(it) : '',
       projectKey:isProject ? String(it.project_id||it.projectId||_invoiceProjectName(it)||'project') : '',
       projectBudget:isProject ? _invoiceProjectBudget(it) : 0,

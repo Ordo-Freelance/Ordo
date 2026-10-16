@@ -29,11 +29,12 @@ test('printed invoice isolates every subclient into its own section',()=>{
   assert.match(app,/!x\.subClientName&&x\.status==='done'/);
   assert.match(app,/subClientGroups\.forEach\(g=>pushSplitSection/);
   assert.doesNotMatch(app,/تابع للعميل الرئيسي/);
+  assert.doesNotMatch(app,/desc:\(it\.subClientName.*تابع لـ/);
 });
 
 test('invoice printing waits for the Arabic font and images',()=>{
   assert.match(app,/frameDoc\.fonts\.load\('400 12px Cairo'\)/);
   assert.match(app,/frameDoc\.fonts\.load\('900 15px Cairo'\)/);
   assert.match(app,/Promise\.all\(\[fontReady,imageReady\]\)/);
-  assert.match(html,/app\.js\?v=subclient-title-16/);
+  assert.match(html,/app\.js\?v=subclient-row-title-17/);
 });
