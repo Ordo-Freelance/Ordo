@@ -51,6 +51,14 @@
     if(paid){task.collectedAt=task.collectedAt||new Date().toISOString().slice(0,10);task.collectedAtIso=task.collectedAtIso||new Date().toISOString();}
     else {task.collectedAt=null;task.collectedAtIso=null;}
   }
+  function taskCollectionId(row){return sid(row&&(row.task_id||row.taskId||row.linkedTaskId));}
+  function syncTaskCollection(state,task,amount,paid,invoice,sourceType){
+    state.task_collections=Array.isArray(state.task_collections)?state.task_collections:[];
+    state.task_collections=state.task_collections.filter(function(row){return taskCollectionId(row)!==sid(task.id);});
+    if(!paid)return;
+    var isProject=(state.project_tasks||[]).includes(task),now=new Date().toISOString();
+    state.task_collections.push({id:'task-collection:'+sid(task.id),source_ref:'task-collection:'+sid(task.id),task_id:task.id,task_title:task.title||'',source_type:isProject?'project_task':'task',project_id:task.project_id||task.projectId||'',project_name:task.projectName||'',client:task.client||invoice&&invoice.client||'',amount:num(amount),currency:task.currency||'EGP',collectedAt:now.slice(0,10),collectedAtIso:now,source:sourceType||'payment_reconciliation',invoice_id:invoice&&invoice.id||'',createdAt:now});
+  }
   function reconcileInvoice(state,invoice){
     if(!invoice)return null;
     var total=invoiceTotal(invoice),rows=allocationRows(state,invoice);
@@ -68,7 +76,7 @@
     var available=paidAmount;
     linkedTasks(state,invoice).forEach(function(row){
       var applied=Math.min(row.amount,available),full=row.amount>0&&applied>=row.amount-0.005;
-      setTaskPaid(row.task,applied,full,invoice);available=Math.max(0,available-applied);
+      setTaskPaid(row.task,applied,full,invoice);syncTaskCollection(state,row.task,row.amount,full,invoice,'invoice_reconciliation');available=Math.max(0,available-applied);
     });
     return {total:total,paid:paidAmount,remaining:remaining,status:invoice.status};
   }
@@ -113,11 +121,12 @@
   function toggleTask(state,task,invoice){
     var type=(state.project_tasks||[]).includes(task)?'project_task':'task',ref='task-payment:'+type+':'+sid(task.id);
     var isPaid=task.paymentCollected===true||task.paid===true||paidStatus(task.paymentStatus)||task.pay==='full';
-    if(isPaid){removeByRef(state,ref);setTaskPaid(task,0,false,invoice);}
+    if(isPaid){removeByRef(state,ref);setTaskPaid(task,0,false,invoice);syncTaskCollection(state,task,0,false,invoice,'task_payment');}
     else {
       var amount=num(task.value||task.amount||task.price),allocation=invoice?{invoice_id:invoice.id,task_id:task.id,amount:amount}:null;
       upsertTransaction(state,{id:ref,source_ref:ref,source_type:'task_payment',type:'income',amount:amount,client:task.client||invoice&&invoice.client||'',client_id:task.client_id||task.clientId||invoice&&(invoice.client_id||invoice.clientId)||'',source:task.client||invoice&&invoice.client||'',desc:'تحصيل مهمة: '+(task.title||''),linkedTaskId:type==='task'?task.id:'',linkedProjTaskId:type==='project_task'?task.id:'',invoice_id:invoice&&invoice.id||'',isoDate:new Date().toISOString().slice(0,10),date:new Date().toISOString().slice(0,10),createdAt:new Date().toISOString(),allocations:allocation?[allocation]:[]});
       setTaskPaid(task,amount,true,invoice);
+      syncTaskCollection(state,task,amount,true,invoice,'task_payment');
     }
     if(invoice)reconcileInvoice(state,invoice);return !isPaid;
   }

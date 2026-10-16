@@ -37,7 +37,14 @@ test('partial client receipt appears on invoice and leaves task unpaid',()=>{
 test('paying an invoiced task reduces invoice balance without duplicate cash',()=>{
   const s=base();pay.toggleTask(s,s.tasks[0],s.invoices[0]);pay.toggleTask(s,s.tasks[0],s.invoices[0]);pay.toggleTask(s,s.tasks[0],s.invoices[0]);
   assert.equal(s.transactions.length,1);assert.equal(s.transactions[0].source_ref,'task-payment:task:t1');
+  assert.equal(s.task_collections.length,1);assert.equal(s.task_collections[0].task_id,'t1');
   assert.equal(s.invoices[0].remainingAmount,0);assert.equal(s.invoices[0].status,'paid');
+});
+
+test('reconciliation replaces legacy duplicate task collection rows',()=>{
+  const s=base();s.task_collections=[{id:'old-1',task_id:'t1'},{id:'old-2',task_id:'t1'}];
+  pay.settleInvoice(s,s.invoices[0]);
+  assert.equal(s.task_collections.length,1);assert.equal(s.task_collections[0].id,'task-collection:t1');
 });
 
 test('client receipt allocates oldest invoices first',()=>{
