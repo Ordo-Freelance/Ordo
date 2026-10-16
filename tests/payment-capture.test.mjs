@@ -17,4 +17,9 @@ test('payment capture lists created accounts and exposes transaction details',()
   assert.match(source,/التاريخ والوقت/);
   assert.match(source,/إيصال \/ إثبات الدفع/);
   assert.match(source,/الوقت غير مسجل للعملية القديمة/);
+  assert.match(source,/رقم الإيصال/);
+  assert.match(source,/عرض وطباعة إيصال النظام/);
+  assert.match(source,/إرسال الإيصال للعميل/);
+  assert.match(source,/printReceipt:printSystemReceipt/);
+  assert.match(source,/shareReceipt:shareSystemReceipt/);
 });
