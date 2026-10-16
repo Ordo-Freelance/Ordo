@@ -55,6 +55,15 @@ test('deleting an explicit task payment clears stale paid and deposit flags',()=
   assert.equal(s.task_collections.length,0);
 });
 
+test('startup removes old invoice-distributed task payments and restores the task value',()=>{
+  const s=base();
+  Object.assign(s.tasks[0],{pay:'deposit',deposit:400,paidAmount:400,paymentStatus:'deposit'});
+  s.task_collections=[{id:'legacy-auto',task_id:'t1',source:'invoice_reconciliation',amount:400}];
+  pay.reconcileAll(s);
+  assert.equal(s.tasks[0].pay,'none');assert.equal(s.tasks[0].deposit,0);
+  assert.equal(s.task_collections.length,0);
+});
+
 test('client receipt allocates oldest invoices first',()=>{
   const s=base();s.invoices.push({id:'i2',client:'عميل',date:'2026-02-01',total:800,items:[]});s.invoices[0].date='2026-01-01';
   pay.receipt(s,s.clients[0],1200,{source_ref:'receipt-2'});

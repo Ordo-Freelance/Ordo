@@ -99,6 +99,13 @@
   function reconcileAll(state){
     state.transactions=Array.isArray(state.transactions)?state.transactions:[];
     state.invoices=Array.isArray(state.invoices)?state.invoices:[];
+    // Remove rows created by the old behaviour that distributed a general
+    // invoice receipt across tasks. They are not evidence of a task payment.
+    var staleIds=new Set((state.task_collections||[]).filter(function(row){return row.source==='invoice_reconciliation';}).map(function(row){return taskCollectionId(row);}));
+    state.task_collections=(state.task_collections||[]).filter(function(row){return row.source!=='invoice_reconciliation';});
+    (state.tasks||[]).concat(state.project_tasks||[],state.archivedTasks||[]).forEach(function(task){
+      if(staleIds.has(sid(task.id))&&!explicitTaskPayments(state,task).length)setTaskPaid(task,0,false,invoiceForTask(state,task));
+    });
     state.invoices.forEach(function(inv){reconcileInvoice(state,inv);});
     return state;
   }

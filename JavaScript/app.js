@@ -10046,8 +10046,20 @@ function markTaskPaymentCollected(taskId){
 // INVOICES
 // ============================================================
 /* â”€â”€ عرض مهام العميل في مودال الفاتورة â”€â”€ */
+function _invoiceTaskPaidAmount(t){
+  if(!t)return 0;
+  const id=String(t.id||'');
+  return (S.transactions||[]).reduce((sum,tx)=>{
+    const linked=String(tx.linkedTaskId||tx.linkedProjTaskId||tx.linkedProjectTaskId||'')===id;
+    const ref=String(tx.source_ref||'');
+    const explicit=linked||ref===`task-payment:task:${id}`||ref===`task-payment:project_task:${id}`;
+    return explicit&&tx.type==='income'?sum+Math.max(0,+(tx.amount||0)):sum;
+  },0);
+}
 function _isInvoiceTaskCollected(t){
-  return !!(t && (t.paymentCollected || t.paid || t.pay === 'full' || t.pay === 'paid' || t.paymentStatus === 'collected' || t.paymentStatus === 'paid'));
+  const value=Math.max(0,+(t&&(t.value||t.amount||t.price)||0));
+  const paid=_invoiceTaskPaidAmount(t);
+  return value>0&&paid>=value-0.005;
 }
 function _invoiceTaskMatchesClient(t, clientName){
   return String(t && t.client || '').trim() === String(clientName || '').trim();
@@ -10192,7 +10204,8 @@ function onInvClientChange(clientName){
     const already      = invItems.some(it => String(it._taskId || '') === String(t.id || ''));
     const hasInvoice   = invoicedTaskIds.has(String(t.id));
     const isPaidFull   = isPaidTask(t);
-    const isPaidDeposit= t.pay === 'deposit';
+    const paidEvidence = _invoiceTaskPaidAmount(t);
+    const isPaidDeposit= !isPaidFull && paidEvidence > 0;
     const isUnpaid     = !isPaidFull && !isPaidDeposit;
 
     // بطاقة الدفع
@@ -10200,7 +10213,7 @@ function onInvClientChange(clientName){
     if(isPaidFull)
       payBadge = `<span style="background:rgba(79,209,165,.15);color:var(--accent3);padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مدفوع</span>`;
     else if(isPaidDeposit)
-      payBadge = `<span style="background:rgba(247,201,72,.15);color:var(--accent2);padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700"><i class="fa-solid fa-heart"></i> عربون ${t.deposit?t.deposit.toLocaleString()+' ج':''}</span>`;
+      payBadge = `<span style="background:rgba(247,201,72,.15);color:var(--accent2);padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700"><i class="fa-solid fa-heart"></i> عربون ${paidEvidence?paidEvidence.toLocaleString()+' ج':''}</span>`;
     else
       payBadge = `<span style="background:rgba(255,99,99,.12);color:#ff6b6b;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700"><i class="fa-solid fa-circle-xmark"></i> غير مدفوع</span>`;
 
@@ -10228,7 +10241,7 @@ function onInvClientChange(clientName){
           ${invBadge}
         </div>
         ${isPaidFull && t.value ? `<div style="font-size:10px;color:var(--accent3);margin-top:4px"><i class="fa-solid fa-bell"></i> تم تحصيل ${t.value.toLocaleString()} ج سابقاً — لن يُضاف تلقائياً</div>` : ''}
-        ${isPaidDeposit && t.deposit ? `<div style="font-size:10px;color:var(--accent2);margin-top:4px"><i class="fa-solid fa-bell"></i> يوجد عربون ${t.deposit.toLocaleString()} ج — لن يُضاف تلقائياً</div>` : ''}
+        ${isPaidDeposit && paidEvidence ? `<div style="font-size:10px;color:var(--accent2);margin-top:4px"><i class="fa-solid fa-bell"></i> يوجد عربون ${paidEvidence.toLocaleString()} ج مرتبط بحركة مالية — لن يُضاف تلقائياً</div>` : ''}
       </div>
       <button type="button" class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openTaskModal(${taskIdSafe})" title="تعديل المهمة وحالة الدفع" style="flex-shrink:0;padding:7px 9px"><i class="fa-solid fa-pen"></i></button>
       <div style="font-size:18px;flex-shrink:0;width:28px;text-align:center">${icon}</div>
@@ -10300,7 +10313,7 @@ function _invoiceAdvanceInfo(clientName){
     .forEach(t=>{
       const value=+(t.value||t.amount||t.price||0);
       const paidFull=_isInvoiceTaskCollected(t);
-      const partial=Math.max(+(t.deposit||0),+(t.depositAmount||0),+(t.paidAmount||0),+(t.amountPaid||0),+(t.collectedAmount||0));
+      const partial=_invoiceTaskPaidAmount(t);
       selectedPaid+=paidFull?value:Math.min(value||partial,partial);
     });
   const client=(S.clients||[]).find(c=>c.name===clientName);
