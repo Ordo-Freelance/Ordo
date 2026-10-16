@@ -5373,6 +5373,15 @@ try {
       </div>
       <div id="inv-projects-list" style="padding:10px;display:flex;flex-direction:column;gap:6px;max-height:170px;overflow-y:auto"></div>
     </div>
+    <div id="inv-subclient-item-panel" style="display:none;margin-bottom:14px;border:1px solid rgba(100,181,246,.28);border-radius:10px;padding:12px;background:rgba(100,181,246,.06)">
+      <div style="font-size:12px;font-weight:800;color:#64b5f6;margin-bottom:9px"><i class="fa-solid fa-building"></i> إضافة بند لعميل فرعي في نفس الفاتورة</div>
+      <div style="display:grid;grid-template-columns:minmax(130px,.8fr) minmax(180px,1.5fr) 110px auto;gap:7px;align-items:center">
+        <select class="form-select" id="inv-subclient-select"></select>
+        <input class="form-input" id="inv-subclient-desc" placeholder="وصف البند">
+        <input class="form-input" id="inv-subclient-amount" type="number" min="0" placeholder="المبلغ">
+        <button type="button" class="btn btn-primary btn-sm" onclick="addSubClientInvoiceItem()"><i class="fa-solid fa-plus"></i> إضافة</button>
+      </div>
+    </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">تاريخ الفاتورة</label><input class="form-input" type="date" id="inv-date"></div>
       <div class="form-group"><label class="form-label">تاريخ الاستحقاق</label><input class="form-input" type="date" id="inv-due"></div>
@@ -5392,6 +5401,10 @@ try {
       <div style="background:rgba(124,111,247,.08);border:1px solid rgba(124,111,247,.22);border-radius:10px;padding:10px 12px;text-align:center">
         <div style="font-size:10px;color:var(--text3);font-weight:800">الصافي بعد الخصم</div>
         <div style="font-size:18px;font-weight:900;color:var(--accent);margin-top:3px"><span id="inv-total-live">0</span> ج</div>
+      </div>
+      <div style="background:rgba(247,201,72,.08);border:1px solid rgba(247,201,72,.24);border-radius:10px;padding:10px 12px;text-align:center">
+        <div style="font-size:10px;color:var(--text3);font-weight:800">مدفوع مسبقاً</div>
+        <div style="font-size:18px;font-weight:900;color:var(--accent2);margin-top:3px"><span id="inv-prepaid-live">0</span> ج</div>
       </div>
       <div style="background:rgba(79,209,165,.08);border:1px solid rgba(79,209,165,.24);border-radius:10px;padding:10px 12px;text-align:center">
         <div style="font-size:10px;color:var(--text3);font-weight:800">إجمالي المستحق</div>
@@ -5594,7 +5607,7 @@ try {
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=client-history-11"></script>
+<script src="../JavaScript/app.js?v=subclients-invoice-12"></script>
 <script src="../JavaScript/payment_reconciliation.js?v=4"></script>
 <script src="../JavaScript/project-finance-integration.js?v=2"></script>
 <script>document.body.classList.remove('auth-booting');</script>
@@ -9306,7 +9319,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <script src="../JavaScript/finance_rebuild.js?v=transaction-actions-6"></script>
 <link rel="stylesheet" href="../CSS/cairo_global_fix.css?v=1">
 <script src="../JavaScript/text_repair.js?v=1"></script>
-<script src="../JavaScript/client_finance_fix.js?v=11"></script>
+<script src="../JavaScript/client_finance_fix.js?v=12"></script>
 <script src="../JavaScript/payment_capture.js?v=3"></script>
 <script src="../JavaScript/portal_chat.js?v=chat-clear-4"></script>
 <script src="../JavaScript/support_center.js?v=challenge-chat-2"></script>

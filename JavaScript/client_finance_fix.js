@@ -184,7 +184,7 @@
     bundle.tasks.forEach(function(t){
       if(invoicedTaskIds[String(t.id)] || (t.invoiceId && bundle.invoices.some(function(i){ return String(i.id) === String(t.invoiceId); }))) return;
       var due = taskUnpaidAmount(t);
-      if(due > 0) rows.push({date:taskDate(t), type:'مهمة غير مدفوعة', desc:t.title || '-', amount:due, code:cur(t)});
+      if(due > 0) rows.push({date:taskDate(t), type:'مهمة غير مدفوعة', desc:t.title || '-', affiliate:String(t.client||'')!==String(bundle.client.name||'')?t.client:'', amount:due, code:cur(t)});
     });
     bundle.transactions.forEach(function(t){
       rows.push({entity:'transaction',id:t.id,txType:t.type,date:txDate(t), type:t.type === 'expense' ? 'مصروف' : 'تحصيل', desc:t.desc || t.source || t.expCat || '-', amount:t.type === 'expense' ? -Math.abs(num(t.amount)) : Math.abs(num(t.amount)), code:cur(t)});
@@ -252,7 +252,9 @@
       (rows.length ? '<table class="fv3-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th><th>المبلغ</th><th>إجراءات</th></tr></thead><tbody>'+
         rows.map(function(r){
           var actions=r.entity==='transaction'?'<div style="display:flex;gap:5px"><button class="btn btn-ghost btn-sm" title="تعديل العملية" onclick="OrdoClientFinanceFix.editTransaction('+jsArg(String(r.id))+','+jsArg(bundle.client.id)+')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-danger btn-sm" title="حذف العملية" onclick="OrdoClientFinanceFix.deleteTransaction('+jsArg(String(r.id))+','+jsArg(bundle.client.id)+')"><i class="fa-solid fa-trash"></i></button></div>':'<span style="color:var(--text3)">—</span>';
-          return '<tr><td>'+esc(r.date||'-')+'</td><td><span class="fv3-pill">'+esc(r.type)+'</span></td><td>'+(r.entity==='transaction'?'<button class="btn btn-ghost btn-sm" style="padding:2px 7px" onclick="OrdoPaymentCapture.openDetails('+jsArg(String(r.id))+')">'+esc(r.desc)+'</button>':esc(r.desc))+'</td><td style="font-weight:900;color:'+(num(r.amount)<0?'var(--accent3)':'var(--accent4)')+'">'+fmt(r.amount,r.code)+'</td><td>'+actions+'</td></tr>';
+          var descHtml=r.entity==='transaction'?'<button class="btn btn-ghost btn-sm" style="padding:2px 7px" onclick="OrdoPaymentCapture.openDetails('+jsArg(String(r.id))+')">'+esc(r.desc)+'</button>':esc(r.desc);
+          if(r.affiliate)descHtml+='<div style="font-size:10px;color:#64b5f6;margin-top:3px"><i class="fa-solid fa-building"></i> تابع لـ '+esc(r.affiliate)+'</div>';
+          return '<tr><td>'+esc(r.date||'-')+'</td><td><span class="fv3-pill">'+esc(r.type)+'</span></td><td>'+descHtml+'</td><td style="font-weight:900;color:'+(num(r.amount)<0?'var(--accent3)':'var(--accent4)')+'">'+fmt(r.amount,r.code)+'</td><td>'+actions+'</td></tr>';
         }).join('')+'</tbody></table>' : '<div class="empty" style="padding:24px">لا توجد حركات أو مستحقات مسجلة</div>');
     return true;
   }
