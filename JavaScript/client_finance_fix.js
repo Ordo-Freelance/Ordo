@@ -191,6 +191,8 @@
       var byClient = bundle.names.indexOf(String(r.client || '')) > -1;
       var byProject = r.project_id != null && projectIds[String(r.project_id)];
       if(!byClient && !byProject) return;
+      var tx=collectionTransaction(r);
+      if(!tx || num(tx.amount)<=0) return;
       rows.push({
         entity:'collection',
         id:r.id,
@@ -206,32 +208,12 @@
         code:r.currency || 'EGP'
       });
     });
-    function addFallback(t, type, projectName){
-      if(!taskPaid(t)) return;
-      var key = type + ':' + String(t.id || '') + ':' + String(t.collectedAt || t.collectedAtIso || '');
-      if(rows.some(function(r){ return r.key === key; })) return;
-      rows.push({
-        key:key,
-        date:String(t.collectedAt || t.collectedAtIso || t.paidAt || '').slice(0,10) || taskDate(t),
-        type:type === 'project_task' ? 'مشروع' : 'فردي',
-        desc:t.title || '-',
-        project:projectName || '',
-        amount:taskValue(t),
-        code:cur(t)
-      });
-    }
-    bundle.tasks.forEach(function(t){ addFallback(t, 'task', ''); });
-    bundle.projectTasks.forEach(function(t){
-      var p = bundle.projects.find(function(pr){ return String(pr.id) === String(t.project_id || t.projectId || ''); });
-      addFallback(t, 'project_task', p && p.name);
-    });
     return rows.sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); });
   }
   function renderAccounts(clientId){
     injectStyle();
     var bundle = clientBundle(clientId);
     if(!bundle) return false;
-    if(ensureCollectionTransactions(bundle)) bundle=clientBundle(clientId);
     var body = document.getElementById('profile-body');
     if(!body) return false;
     var sums = summary(bundle);
