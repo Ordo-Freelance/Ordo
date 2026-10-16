@@ -6,11 +6,12 @@ const app=fs.readFileSync(new URL('../JavaScript/app.js',import.meta.url),'utf8'
 const html=fs.readFileSync(new URL('../HTML/index.html',import.meta.url),'utf8');
 const finance=fs.readFileSync(new URL('../JavaScript/client_finance_fix.js',import.meta.url),'utf8');
 
-test('parent invoice can add a labelled subclient item and include subclient tasks',()=>{
+test('parent invoice shows subclient tasks in a separate task-card panel',()=>{
   assert.match(html,/inv-subclient-item-panel/);
-  assert.match(app,/function addSubClientInvoiceItem\(\)/);
+  assert.match(html,/inv-subclient-tasks-list/);
   assert.match(app,/ctx\.names\.includes\(t\.client\)/);
-  assert.match(app,/تابع لـ.*it\.subClientName/);
+  assert.match(app,/const subTasks = allClientTasks\.filter/);
+  assert.match(app,/rows\.map\(t=>renderTaskChip/);
 });
 
 test('parent finance ledger labels tasks belonging to a subclient',()=>{

@@ -10119,18 +10119,6 @@ function _invoiceClientContext(clientName){
   const ids=(c?[String(c.id)]:[]).concat(sub.map(sc=>String(sc.id))).filter(Boolean);
   return {client:c,sub,names,ids};
 }
-function addSubClientInvoiceItem(){
-  const select=document.getElementById('inv-subclient-select');
-  const desc=document.getElementById('inv-subclient-desc');
-  const amount=document.getElementById('inv-subclient-amount');
-  const subName=select?.value||'',label=(desc?.value||'').trim(),price=Math.max(0,+(amount?.value||0));
-  if(!subName)return showMiniNotif('اختر العميل الفرعي');
-  if(!label||!price)return showMiniNotif('اكتب وصف البند والمبلغ');
-  invItems.push({subClientName:subName,desc:label,qty:1,price});
-  desc.value='';amount.value='';renderInvForm();calcTotal();
-  showMiniNotif('تمت إضافة بند تابع لـ '+subName);
-}
-if(typeof window!=='undefined')window.addSubClientInvoiceItem=addSubClientInvoiceItem;
 function _invoiceProjectRowsForClient(clientName){
   const ctx=_invoiceClientContext(clientName);
   return _clientProjectDueRows(ctx.names,ctx.ids);
@@ -10209,7 +10197,7 @@ function onInvClientChange(clientName){
   const projectPanel = document.getElementById('inv-projects-panel');
   const projectList  = document.getElementById('inv-projects-list');
   const subPanel=document.getElementById('inv-subclient-item-panel');
-  const subSelect=document.getElementById('inv-subclient-select');
+  const subList=document.getElementById('inv-subclient-tasks-list');
   if(!panel||!list) return;
   if(!name){
     panel.style.display='none';
@@ -10218,15 +10206,11 @@ function onInvClientChange(clientName){
     return;
   }
   const clientCtx=_invoiceClientContext(name);
-  if(subPanel&&subSelect){
-    if(clientCtx.sub.length){
-      subSelect.innerHTML=clientCtx.sub.map(sc=>`<option value="${escapeHtml(sc.name)}">${escapeHtml(sc.name)}</option>`).join('');
-      subPanel.style.display='block';
-    }else subPanel.style.display='none';
-  }
 
   // كل تاسكات العميل ? مش بس الجاري، كمان المكتملة والمدفوعة
-  const tasks = getAllTasksIncludingArchived().filter(t => clientCtx.names.includes(t.client));
+  const allClientTasks = getAllTasksIncludingArchived().filter(t => clientCtx.names.includes(t.client));
+  const tasks = allClientTasks.filter(t=>t.client===clientCtx.client?.name);
+  const subTasks = allClientTasks.filter(t=>t.client!==clientCtx.client?.name);
 
   // معرفة أي مهام عندها فواتير بالفعل
   const invoicedTaskIds = _invoiceExistingTaskIds(document.getElementById('inv-eid')?.value || '');
@@ -10303,6 +10287,17 @@ function onInvClientChange(clientName){
         </div>
       </div>`
     : '';
+
+  if(subPanel&&subList){
+    if(subTasks.length){
+      subList.innerHTML=clientCtx.sub.map(sc=>{
+        const rows=subTasks.filter(t=>t.client===sc.name);
+        if(!rows.length)return '';
+        return `<div><div style="font-size:11px;font-weight:900;color:#64b5f6;margin:0 2px 6px"><i class="fa-solid fa-building"></i> ${escapeHtml(sc.name)} <span style="color:var(--text3);font-weight:600">(${rows.length} مهام)</span></div><div style="display:flex;flex-direction:column;gap:6px">${rows.map(t=>renderTaskChip(t,_isInvoiceTaskCollected(t))).join('')}</div></div>`;
+      }).join('');
+      subPanel.style.display='block';
+    }else{subList.innerHTML='';subPanel.style.display='none';}
+  }
 
   if(tasks.length){
     list.innerHTML =
