@@ -41,7 +41,8 @@
   function setTaskPaid(task,amount,paid,invoice){
     if(!task)return;
     var total=num(task.value||task.amount||task.price||amount),received=Math.min(total||amount,num(amount));
-    task.paidAmount=received; task.amountPaid=received;
+    task.paidAmount=received; task.amountPaid=received; task.collectedAmount=received;
+    task.deposit=paid?0:received; task.depositAmount=paid?0:received;
     task.invoiceId=invoice?invoice.id:(task.invoiceId||null);
     task.invoiceNum=invoice?(invoice.num||''):(task.invoiceNum||'');
     task.invoiced=!!invoice; task.invoicePending=!!invoice&&!paid;
@@ -59,6 +60,21 @@
     var isProject=(state.project_tasks||[]).includes(task),now=new Date().toISOString();
     state.task_collections.push({id:'task-collection:'+sid(task.id),source_ref:'task-collection:'+sid(task.id),task_id:task.id,task_title:task.title||'',source_type:isProject?'project_task':'task',project_id:task.project_id||task.projectId||'',project_name:task.projectName||'',client:task.client||invoice&&invoice.client||'',amount:num(amount),currency:task.currency||'EGP',collectedAt:now.slice(0,10),collectedAtIso:now,source:sourceType||'payment_reconciliation',invoice_id:invoice&&invoice.id||'',createdAt:now});
   }
+  function explicitTaskPayments(state,task){
+    var isProject=(state.project_tasks||[]).includes(task),id=sid(task&&task.id);
+    return (state.transactions||[]).filter(function(tx){
+      var linked=isProject?sid(tx.linkedProjTaskId||tx.linkedProjectTaskId):sid(tx.linkedTaskId);
+      var ref='task-payment:'+(isProject?'project_task':'task')+':'+id;
+      return linked===id || sid(tx.source_ref)===ref;
+    });
+  }
+  function reconcileLinkedTask(state,row,invoice){
+    var task=row.task,payments=explicitTaskPayments(state,task);
+    var received=payments.reduce(function(sum,tx){return sum+num(tx.amount);},0);
+    var total=num(task.value||task.amount||task.price||row.amount),full=total>0&&received>=total-0.005;
+    setTaskPaid(task,Math.min(total||received,received),full,invoice);
+    syncTaskCollection(state,task,total,full,invoice,'task_payment');
+  }
   function reconcileInvoice(state,invoice){
     if(!invoice)return null;
     var total=invoiceTotal(invoice),rows=allocationRows(state,invoice);
@@ -73,10 +89,10 @@
     invoice.paid=total>0&&remaining<0.005;
     invoice.status=invoice.paid?'paid':(paidAmount>0?'partial':'pending');
     if(!invoice.paid)invoice.collectedAt=null;
-    var available=paidAmount;
     linkedTasks(state,invoice).forEach(function(row){
-      var applied=Math.min(row.amount,available),full=row.amount>0&&applied>=row.amount-0.005;
-      setTaskPaid(row.task,applied,full,invoice);syncTaskCollection(state,row.task,row.amount,full,invoice,'invoice_reconciliation');available=Math.max(0,available-applied);
+      // A client/invoice receipt changes the invoice balance only. A task is
+      // paid (or has a deposit) only when a transaction explicitly targets it.
+      reconcileLinkedTask(state,row,invoice);
     });
     return {total:total,paid:paidAmount,remaining:remaining,status:invoice.status};
   }

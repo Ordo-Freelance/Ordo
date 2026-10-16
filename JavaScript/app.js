@@ -10305,9 +10305,19 @@ function _invoiceAdvanceInfo(clientName){
     });
   const client=(S.clients||[]).find(c=>c.name===clientName);
   const prepaid=client&&client.openingBalanceType==='prepaid'?+(client.openingBalance||0):0;
+  const existingInvoiceIds=new Set((S.invoices||[]).map(inv=>String(inv.id)));
   const unallocated=(S.transactions||[])
-    .filter(tx=>tx.type==='income'&&(ctx.names.includes(tx.client||tx.source||'')||String(tx.client_id||tx.clientId||'')===String(client&&client.id)))
-    .reduce((sum,tx)=>sum+Math.max(0,+(tx.unallocatedAmount||0)),0);
+    .filter(tx=>{
+      const clientMatch=ctx.names.includes(tx.client||tx.source||'')||String(tx.client_id||tx.clientId||'')===String(client&&client.id);
+      const taskLinked=tx.source_type==='task_payment'||tx.linkedTaskId||tx.linkedProjTaskId||tx.linkedProjectTaskId;
+      const invoiceOnly=tx.source_type==='invoice_payment';
+      return tx.type==='income'&&clientMatch&&!taskLinked&&!invoiceOnly;
+    })
+    .reduce((sum,tx)=>{
+      const allocated=(tx.allocations||[]).reduce((n,a)=>existingInvoiceIds.has(String(a.invoice_id||a.invoiceId))?n+Math.max(0,+(a.amount||0)):n,0);
+      const available=Object.prototype.hasOwnProperty.call(tx,'unallocatedAmount')?Math.max(0,+(tx.unallocatedAmount||0)):Math.max(0,+(tx.amount||0)-allocated);
+      return sum+available;
+    },0);
   return {selectedPaid,prepaid,unallocated};
 }
 
@@ -10327,8 +10337,14 @@ function _renderInvoiceAdvanceReminder(clientName){
   if(info.prepaid>0)parts.push(`رصيد مقدم للعميل: <b>${info.prepaid.toLocaleString('ar-EG')} ج</b>`);
   if(info.unallocated>0)parts.push(`تحصيل غير مخصص: <b>${info.unallocated.toLocaleString('ar-EG')} ج</b>`);
   if(!clientName||!parts.length){box.style.display='none';box.innerHTML='';return;}
+  const isNewInvoice=!String(document.getElementById('inv-eid')?.value||'');
+  const availableCredit=Math.max(0,info.prepaid+info.unallocated);
+  if(isNewInvoice&&dep.dataset.manual!=='1'&&availableCredit>0){
+    dep.value=Math.min(_invoiceSubtotal(),availableCredit);
+    calcTotal();
+  }
   box.style.display='block';
-  box.innerHTML=`<i class="fa-solid fa-bell" style="color:var(--accent2)"></i> ${parts.join(' — ')}<br><span style="color:var(--text3)">للمراجعة فقط؛ لن يُضاف أي مبلغ إلى «مدفوع مسبقاً» تلقائياً.</span>`;
+  box.innerHTML=`<i class="fa-solid fa-bell" style="color:var(--accent2)"></i> ${parts.join(' — ')}<br><span style="color:var(--text3)">${availableCredit>0?'تم تطبيق الرصيد المتاح على صافي المستحق، ويمكنك تعديل المبلغ يدوياً.':'للمراجعة فقط؛ لا توجد دفعة عامة متاحة للتطبيق.'}</span>`;
 }
 
 function addAllUnpaidInvItems(){
@@ -10501,6 +10517,7 @@ function openInvoiceModal(id){
     document.getElementById('inv-due').value=inv.due;
     document.getElementById('inv-notes').value=inv.notes||'';
     document.getElementById('inv-deposit').value=inv.deposit||0;
+    document.getElementById('inv-deposit').dataset.manual='1';
     const invDiscType=document.getElementById('inv-discount-type'); if(invDiscType) invDiscType.value=inv.discountType||'amount';
     const invDisc=document.getElementById('inv-discount'); if(invDisc) invDisc.value=inv.discount||0;
     invItems=(inv.items||[]).map(i=>({...i}));
@@ -10523,6 +10540,7 @@ function openInvoiceModal(id){
     document.getElementById('inv-due').value=d.toISOString().split('T')[0];
     document.getElementById('inv-notes').value=S.settings?.terms||'';
     document.getElementById('inv-deposit').value=0;
+    document.getElementById('inv-deposit').dataset.manual='';
     const invDiscType=document.getElementById('inv-discount-type'); if(invDiscType) invDiscType.value='amount';
     const invDisc=document.getElementById('inv-discount'); if(invDisc) invDisc.value='';
     invItems=[];
@@ -10531,7 +10549,7 @@ function openInvoiceModal(id){
     const pnlElN=document.getElementById('inv-project-label'); if(pnlElN) pnlElN.value='استلام المشروع';
   }
   setTimeout(()=>{
-    const dep=document.getElementById('inv-deposit');if(dep){dep.oninput=calcTotal;}
+    const dep=document.getElementById('inv-deposit');if(dep){dep.oninput=function(ev){if(ev&&ev.isTrusted)dep.dataset.manual='1';calcTotal();};}
     renderPoliciesList('inv-policies-list',invPolicies,'removeInvPolicy');
     const projEl=document.getElementById('inv-project-url');
     if(projEl)liveQR('inv-project-url','inv-project-qr-prev',90);

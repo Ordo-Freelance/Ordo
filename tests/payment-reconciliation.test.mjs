@@ -16,10 +16,10 @@ function base(){
   return {clients:[{id:'c1',name:'عميل'}],tasks:[task],project_tasks:[],invoices:[invoice],transactions:[]};
 }
 
-test('settling an invoice is idempotent and marks its task paid',()=>{
+test('settling an invoice is idempotent without marking its tasks paid',()=>{
   const s=base();pay.settleInvoice(s,s.invoices[0]);pay.settleInvoice(s,s.invoices[0]);
   assert.equal(s.transactions.length,1);assert.equal(s.transactions[0].amount,1000);
-  assert.equal(s.invoices[0].status,'paid');assert.equal(s.tasks[0].pay,'full');
+  assert.equal(s.invoices[0].status,'paid');assert.equal(s.tasks[0].pay,'none');
 });
 
 test('unsettling removes only the generated invoice receipt and reverses task status',()=>{
@@ -31,7 +31,7 @@ test('unsettling removes only the generated invoice receipt and reverses task st
 test('partial client receipt appears on invoice and leaves task unpaid',()=>{
   const s=base();pay.receipt(s,s.clients[0],400,{source_ref:'receipt-1'});
   assert.equal(s.invoices[0].paidAmount,400);assert.equal(s.invoices[0].remainingAmount,600);
-  assert.equal(s.invoices[0].status,'partial');assert.equal(s.tasks[0].pay,'deposit');
+  assert.equal(s.invoices[0].status,'partial');assert.equal(s.tasks[0].pay,'none');
 });
 
 test('paying an invoiced task reduces invoice balance without duplicate cash',()=>{
@@ -41,10 +41,18 @@ test('paying an invoiced task reduces invoice balance without duplicate cash',()
   assert.equal(s.invoices[0].remainingAmount,0);assert.equal(s.invoices[0].status,'paid');
 });
 
-test('reconciliation replaces legacy duplicate task collection rows',()=>{
+test('invoice reconciliation clears legacy task collections without explicit task payment',()=>{
   const s=base();s.task_collections=[{id:'old-1',task_id:'t1'},{id:'old-2',task_id:'t1'}];
   pay.settleInvoice(s,s.invoices[0]);
-  assert.equal(s.task_collections.length,1);assert.equal(s.task_collections[0].id,'task-collection:t1');
+  assert.equal(s.task_collections.length,0);assert.equal(s.tasks[0].pay,'none');
+});
+
+test('deleting an explicit task payment clears stale paid and deposit flags',()=>{
+  const s=base();pay.toggleTask(s,s.tasks[0],s.invoices[0]);
+  assert.equal(s.tasks[0].pay,'full');
+  s.transactions=[];pay.reconcileInvoice(s,s.invoices[0]);
+  assert.equal(s.tasks[0].pay,'none');assert.equal(s.tasks[0].paidAmount,0);
+  assert.equal(s.task_collections.length,0);
 });
 
 test('client receipt allocates oldest invoices first',()=>{

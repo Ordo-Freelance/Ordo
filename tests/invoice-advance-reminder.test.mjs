@@ -8,8 +8,8 @@ test('new invoices always start with zero paid in advance',()=>{
   assert.match(app,/document\.getElementById\('inv-deposit'\)\.value=0/);
 });
 
-test('prior collections are reminders and are not auto-applied',()=>{
-  assert.match(app,/للمراجعة فقط؛ لن يُضاف أي مبلغ/);
-  assert.match(app,/الدفعات السابقة تظهر كتذكير فقط/);
-  assert.doesNotMatch(app,/depEl\.value\s*=\s*currentDep\s*\+/);
+test('verified unallocated client collections are applied once at invoice level',()=>{
+  assert.match(app,/const availableCredit=Math\.max\(0,info\.prepaid\+info\.unallocated\)/);
+  assert.match(app,/dep\.value=Math\.min\(_invoiceSubtotal\(\),availableCredit\)/);
+  assert.match(app,/تم تطبيق الرصيد المتاح على صافي المستحق/);
 });
