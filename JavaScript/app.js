@@ -1866,10 +1866,11 @@ function removeTaskTypeFromSettings(i){
   lsSave(); cloudSaveNow(S); renderSettingsTaskTypes(); fillTaskTypesDD();
   showToast('<i class="fa-solid fa-trash"></i> تم حذف: '+name);
 }
-function saveSettings(){
+async function saveSettings(){
+  const settingsEmail=(document.getElementById('set-email')?.value||'').trim();
   _mergeUiSettingsIntoS();
   S.settings = Object.assign({}, S.settings, {
-    name:v('set-name'), phone:v('set-phone'), email:v('set-email'),
+    name:v('set-name'), phone:v('set-phone'), email:settingsEmail,
     address:v('set-address'), terms:v('set-terms'),
     currency:(S.settings && S.settings.base_currency) || (document.getElementById('set-currency')||{}).value || 'ج.م',
     username:(document.getElementById('set-username')||{}).value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'')||'',
@@ -1883,7 +1884,10 @@ function saveSettings(){
     hoverOverlayColor:S.settings?.hoverOverlayColor||localStorage.getItem('studioHoverOverlay')||'',
   });
   _syncStudioLogoToConfig();
-  lsSave(); cloudSaveNow(S); toast('? تم حفظ الإعدادات');
+  lsSave();
+  if(typeof cloudSaveNow==='function') await cloudSaveNow(S);
+  const emailEl=document.getElementById('set-email');if(emailEl)emailEl.value=S.settings.email||'';
+  toast('<i class="fa-solid fa-square-check"></i> تم حفظ الإعدادات وتحديث بيانات الفاتورة');
 }
 
 async function forceCloudReload(){
@@ -9387,7 +9391,9 @@ function renderClients(){
   grid.innerHTML=clients.map(c=>{
     const dueParts=cDueParts(c);
     const due=dueParts.total;
-    const dueCurrency=c.currency_symbol||c.currency||c.openingBalanceCurrency||(S.settings&&(S.settings.base_currency||S.settings.currency))||_getCurrency();
+    const clientTaskCurrency=getAllTasksIncludingArchived().find(t=>t.client===c.name&&(t.currency_code||t.currency||t.currency_symbol));
+    const dueCurrencyMeta=_salaryCurrencyMeta(c.currency_code||c.openingBalanceCurrency||c.currency||(clientTaskCurrency&&(clientTaskCurrency.currency_code||clientTaskCurrency.currency||clientTaskCurrency.currency_symbol))||S.settings?.base_currency_code||'EGP');
+    const dueCurrency=dueCurrencyMeta.symbol;
     const taskCount=cTasks(c.name);
     const nameLength=String(c.name||'').trim().length;
     const nameClass=nameLength>34?' is-very-long':(nameLength>22?' is-long':'');
@@ -11194,7 +11200,9 @@ function exportPDF(id){
     const ptask=projectRel && projectRel.task;
     const sourceTask=task || ptask;
     const isProject=_invoiceItemIsProject(it);
-    const st=sourceTask ? (sourceTask.done||sourceTask.status==='done' ? 'done' : 'progress') : 'item';
+    const sourceStatus=String(sourceTask&&(sourceTask.status||sourceTask.state)||'').toLowerCase();
+    const sourceDone=!!(sourceTask&&(sourceTask.done||sourceTask.completed||sourceStatus==='done'||sourceStatus==='completed'||sourceStatus==='مكتمل'||sourceStatus==='مكتملة'));
+    const st=sourceTask ? (sourceDone ? 'done' : 'progress') : 'item';
     const amount=(+it.qty||0)*(+it.price||0);
     return {
       desc:it.desc||sourceTask?.title||'بند فاتورة',

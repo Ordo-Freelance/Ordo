@@ -59,11 +59,14 @@
   function taskPaidAmount(t){
     if(!t)return 0;
     var id=String(t.id||'');
-    return arr(S().transactions).reduce(function(sum,tx){
+    var explicit=arr(S().transactions).reduce(function(sum,tx){
       var linked=String(tx.linkedTaskId||tx.linkedProjTaskId||tx.linkedProjectTaskId||'')===id;
       var ref=String(tx.source_ref||''),explicit=linked||ref==='task-payment:task:'+id||ref==='task-payment:project_task:'+id;
       return explicit&&tx.type==='income'?sum+Math.max(0,num(tx.amount)):sum;
     },0);
+    if(explicit>0)return explicit;
+    var legacyPaid=t._archived&&(t.paymentCollected||t.paid||t.pay==='full'||t.pay==='paid'||t.paymentStatus==='collected'||t.paymentStatus==='paid');
+    return legacyPaid?num(t.value||t.amount||t.price||t.total||t.clientAmount||t.clientPrice):0;
   }
   function taskPaid(t){
     var value=num(t&&(t.value||t.amount||t.price||t.total||t.clientAmount||t.clientPrice));
@@ -90,7 +93,7 @@
     var projects = arr(s.projects).filter(match);
     var projectIds = {};
     projects.forEach(function(p){ if(p && p.id != null) projectIds[String(p.id)] = true; });
-    var archived=arr(s.archivedTasks);
+    var archived=arr(s.archivedTasks).map(function(t){return Object.assign({_archived:true},t);});
     var tasks = uniqueTasks(arr(s.tasks).concat(archived.filter(function(t){return !isProjectTask(t);}))).filter(match);
     var projectTasks = uniqueTasks(arr(s.project_tasks).concat(archived.filter(isProjectTask))).filter(function(t){
       return match(t) || (t && projectIds[String(t.project_id || t.projectId || '')]);
