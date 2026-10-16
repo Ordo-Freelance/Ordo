@@ -36,3 +36,9 @@ test('legacy collected tasks get one finance ledger transaction and count in col
   assert.match(source,/ensureCollectionTransactions\(bundle\)/);
   assert.match(source,/collectionTimeUnknown/);
 });
+
+test('deleted collections return archived tasks to client unpaid totals',()=>{
+  assert.match(source,/arr\(s\.tasks\)\.concat\(archived\.filter/);
+  assert.match(source,/arr\(s\.project_tasks\)\.concat\(archived\.filter/);
+  assert.match(source,/function uniqueTasks/);
+});

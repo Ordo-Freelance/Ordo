@@ -61,6 +61,10 @@
     var pst = String((t && t.paymentStatus) || '').toLowerCase();
     return !!(t && (t.paymentCollected || t.paid || pay === 'paid' || pay === 'collected' || pst === 'collected' || pst === 'paid'));
   }
+  function uniqueTasks(rows){
+    var seen={};return rows.filter(function(t){var id=String(t&&t.id||'');if(!id||seen[id])return false;seen[id]=true;return true;});
+  }
+  function isProjectTask(t){return !!(t&&(t.source_type==='project_task'||t.project_id||t.projectId));}
   function taskDate(t){ return String((t && (t.isoDate || t.orderDate || t.createdAt || t.doneAt)) || '').slice(0,10); }
   function clientBundle(clientId){
     var s = S();
@@ -78,8 +82,9 @@
     var projects = arr(s.projects).filter(match);
     var projectIds = {};
     projects.forEach(function(p){ if(p && p.id != null) projectIds[String(p.id)] = true; });
-    var tasks = arr(s.tasks).filter(match);
-    var projectTasks = arr(s.project_tasks).filter(function(t){
+    var archived=arr(s.archivedTasks);
+    var tasks = uniqueTasks(arr(s.tasks).concat(archived.filter(function(t){return !isProjectTask(t);}))).filter(match);
+    var projectTasks = uniqueTasks(arr(s.project_tasks).concat(archived.filter(isProjectTask))).filter(function(t){
       return match(t) || (t && projectIds[String(t.project_id || t.projectId || '')]);
     });
     var invoices = arr(s.invoices).filter(match).filter(function(i){ return !isProjectInvoice(i); });
