@@ -11362,7 +11362,7 @@ function exportPDF(id){
   pushSplitSection(blocks,'المهام المكتملة',completedItems,completedItems.reduce((s,it)=>s+it.amount,0));
   pushSplitSection(blocks,'المهام الجارية',currentItems,currentItems.reduce((s,it)=>s+it.amount,0));
   pushSplitSection(blocks,'بنود الفاتورة',manualItems,manualItems.reduce((s,it)=>s+it.amount,0));
-  subClientGroups.forEach(g=>pushSplitSection(blocks,'مهام '+g.name+' — تابع للعميل الرئيسي',g.items,g.total));
+  subClientGroups.forEach(g=>pushSplitSection(blocks,'مهام '+g.name,g.items,g.total));
   projectModelGroups.forEach(g=>pushSplitSection(blocks,'مشروع '+(g.name||'مشروع'),g.items,g.total));
   blocks.push({html:`
       <div class="inv-cost-summary${projectModelGroups.length?'':' no-projects'}">
