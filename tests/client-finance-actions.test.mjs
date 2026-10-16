@@ -11,6 +11,13 @@ test('client finance rows expose edit and confirmed delete actions',()=>{
   assert.match(source,/confirmDel\('حذف عملية التحصيل/);
 });
 
+test('inline finance actions HTML-escapes quoted JavaScript arguments',()=>{
+  assert.match(source,/function jsArg\(v\)\{ return esc\(JSON\.stringify\(v\)\); \}/);
+  assert.match(source,/editCollection\('\+jsArg\(String\(r\.id\)\)/);
+  assert.doesNotMatch(source,/editCollection\('\+JSON\.stringify\(String\(r\.id\)\)/);
+  assert.match(financeSource,/editTransaction\('\+jsArg\(String\(t\.id\)\)/);
+});
+
 test('main finance table uses id-safe transaction edit and delete actions',()=>{
   assert.match(financeSource,/OrdoClientFinanceFix\.editTransaction/);
   assert.match(financeSource,/OrdoClientFinanceFix\.deleteTransaction/);
