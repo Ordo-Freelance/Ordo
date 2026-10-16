@@ -5,8 +5,9 @@ import fs from 'node:fs';
 const app=fs.readFileSync(new URL('../JavaScript/app.js',import.meta.url),'utf8');
 const finance=fs.readFileSync(new URL('../JavaScript/client_finance_fix.js',import.meta.url),'utf8');
 
-test('client card prefers the saved client currency code and resolves its symbol',()=>{
-  assert.match(app,/_salaryCurrencyMeta\(c\.currency_code\|\|c\.openingBalanceCurrency/);
+test('client card prefers the currency of the clients actual tasks over stale client currency',()=>{
+  assert.match(app,/const actualWorkCurrency=clientTaskCurrency/);
+  assert.match(app,/_salaryCurrencyMeta\(actualWorkCurrency\|\|c\.currency_code/);
   assert.match(app,/const dueCurrency=dueCurrencyMeta\.symbol/);
 });
 

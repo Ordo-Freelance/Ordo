@@ -9392,7 +9392,8 @@ function renderClients(){
     const dueParts=cDueParts(c);
     const due=dueParts.total;
     const clientTaskCurrency=getAllTasksIncludingArchived().find(t=>t.client===c.name&&(t.currency_code||t.currency||t.currency_symbol));
-    const dueCurrencyMeta=_salaryCurrencyMeta(c.currency_code||c.openingBalanceCurrency||c.currency||(clientTaskCurrency&&(clientTaskCurrency.currency_code||clientTaskCurrency.currency||clientTaskCurrency.currency_symbol))||S.settings?.base_currency_code||'EGP');
+    const actualWorkCurrency=clientTaskCurrency&&(clientTaskCurrency.currency_code||clientTaskCurrency.currency||clientTaskCurrency.currency_symbol);
+    const dueCurrencyMeta=_salaryCurrencyMeta(actualWorkCurrency||c.currency_code||c.openingBalanceCurrency||c.currency||S.settings?.base_currency_code||'EGP');
     const dueCurrency=dueCurrencyMeta.symbol;
     const taskCount=cTasks(c.name);
     const nameLength=String(c.name||'').trim().length;
