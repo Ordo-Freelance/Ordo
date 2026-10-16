@@ -5430,7 +5430,11 @@ function _renderProfileTab(tab, id){
     const taskDue = cTasks.reduce((s,t)=>s+_taskDue(t),0);
     const openBal = +c.openingBalance || 0;
     const openType = c.openingBalanceType || 'receivable';
-    const owed = Math.max(0, unpaidInv + taskDue + (openType==='receivable'?openBal:0) - (openType==='prepaid'?openBal:0));
+    const unifiedAccount=window.OrdoClientFinanceFix&&typeof window.OrdoClientFinanceFix.summary==='function'
+      ? window.OrdoClientFinanceFix.summary(c.id) : null;
+    const owed = unifiedAccount
+      ? Object.keys(unifiedAccount).reduce((sum,code)=>sum+Math.max(0,+(unifiedAccount[code].netDue||0)),0)
+      : Math.max(0, unpaidInv + taskDue + (openType==='receivable'?openBal:0) - (openType==='prepaid'?openBal:0));
     const activeTasks = cTasks.filter(t=>!(t.done||t.status==='done')).length;
     const doneTasks = cTasks.filter(t=>t.done||t.status==='done').length;
     const recentRows = sortedTasks.slice(0,3).map(t=>{
@@ -9361,7 +9365,12 @@ function renderClients(){
     const projectDue=_clientProjectDueRows(allNames,clientIds).reduce((s,p)=>s+p.due,0);
     const openBal=(+c.openingBalance||0);
     const openingDue=(c.openingBalanceType==='receivable'?openBal:0)-(c.openingBalanceType==='prepaid'?openBal:0);
-    const profileDue=Math.max(0,unpaidInv+taskDue+openingDue);
+    const unifiedSummary=window.OrdoClientFinanceFix&&typeof window.OrdoClientFinanceFix.summary==='function'
+      ? window.OrdoClientFinanceFix.summary(c.id) : null;
+    const unifiedDue=unifiedSummary
+      ? Object.keys(unifiedSummary).reduce((sum,code)=>sum+Math.max(0,+(unifiedSummary[code].netDue||0)),0)
+      : null;
+    const profileDue=unifiedDue==null?Math.max(0,unpaidInv+taskDue+openingDue):unifiedDue;
     return {
       invoices:Math.max(0,invDue),
       tasks:Math.max(0,taskDue),
