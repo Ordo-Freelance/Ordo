@@ -3,11 +3,18 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const source=fs.readFileSync(new URL('../JavaScript/client_finance_fix.js',import.meta.url),'utf8');
+const financeSource=fs.readFileSync(new URL('../JavaScript/finance_rebuild.js',import.meta.url),'utf8');
 
 test('client finance rows expose edit and confirmed delete actions',()=>{
   assert.match(source,/editCollection/);
   assert.match(source,/deleteCollection/);
   assert.match(source,/confirmDel\('حذف عملية التحصيل/);
+});
+
+test('main finance table uses id-safe transaction edit and delete actions',()=>{
+  assert.match(financeSource,/OrdoClientFinanceFix\.editTransaction/);
+  assert.match(financeSource,/OrdoClientFinanceFix\.deleteTransaction/);
+  assert.doesNotMatch(financeSource,/openIncomeModal'\)\+'\(\\''\+esc\(t\.id\)/);
 });
 
 test('editing and deleting collections updates linked financial state',()=>{
