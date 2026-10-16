@@ -25,6 +25,31 @@
     document.head.appendChild(style);
   }
   function txDate(t){ return String((t && (t.isoDate || t.date || t.createdAt)) || '').slice(0,10); }
+  function collectionTransaction(row){
+    var taskId=String(row&&(row.task_id||row.taskId)||''),invoiceId=String(row&&row.invoice_id||'');
+    return arr(S().transactions).find(function(tx){
+      if(String(tx.source_ref||'')==='task-collection-ledger:'+String(row.id||''))return true;
+      if(taskId&&String(tx.linkedTaskId||tx.linkedProjTaskId||'')===taskId)return true;
+      return invoiceId&&arr(tx.allocations).some(function(a){return String(a.invoice_id||a.invoiceId||'')===invoiceId;});
+    })||null;
+  }
+  function ensureCollectionTransactions(bundle){
+    var changed=false,s=S(),projectIds={};bundle.projects.forEach(function(p){projectIds[String(p.id)]=true;});
+    arr(s.task_collections).forEach(function(row){
+      var belongs=bundle.names.indexOf(String(row.client||''))>-1||(row.project_id!=null&&projectIds[String(row.project_id)]);
+      if(!belongs||collectionTransaction(row)||num(row.amount)<=0)return;
+      var raw=String(row.collectedAtIso||row.createdAt||row.collectedAt||''),hasTime=raw.indexOf('T')>-1&&raw.slice(11,16)!=='00:00';
+      var taskId=String(row.task_id||''),isProject=row.source_type==='project_task';
+      s.transactions=arr(s.transactions);s.transactions.push({
+        id:'task-collection-ledger:'+String(row.id||taskId),source_ref:'task-collection-ledger:'+String(row.id||taskId),source_type:'task_collection_ledger',type:'income',amount:num(row.amount),
+        client:row.client||bundle.client.name,client_id:bundle.client.id,source:row.client||bundle.client.name,desc:'تحصيل مهمة: '+(row.task_title||row.title||'-'),
+        linkedTaskId:isProject?'':taskId,linkedProjTaskId:isProject?taskId:'',project_id:row.project_id||'',currency_code:row.currency||cur(row),
+        isoDate:raw.slice(0,10),date:raw.slice(0,10),createdAt:raw&&raw.indexOf('T')>-1?raw:(raw.slice(0,10)+'T00:00:00'),collectionTimeUnknown:!hasTime,payMethod:row.payMethod||'غير مسجل'
+      });changed=true;
+    });
+    if(changed){if(typeof root.lsSave==='function')root.lsSave();if(typeof root.cloudSave==='function')root.cloudSave(s);}
+    return changed;
+  }
   function invTotal(i){ return num(i && (i.total || i.amount || i.value)); }
   function invPaid(i){
     var st = String((i && i.status) || '').toLowerCase();
@@ -156,6 +181,7 @@
         entity:'collection',
         id:r.id,
         taskId:r.task_id,
+        invoiceId:r.invoice_id,
         sourceType:r.source_type,
         key:String(r.source_type || '') + ':' + String(r.task_id || '') + ':' + String(r.collectedAt || r.collectedAtIso || ''),
         date:String(r.collectedAt || r.collectedAtIso || r.createdAt || '').slice(0,10),
@@ -191,6 +217,7 @@
     injectStyle();
     var bundle = clientBundle(clientId);
     if(!bundle) return false;
+    if(ensureCollectionTransactions(bundle)) bundle=clientBundle(clientId);
     var body = document.getElementById('profile-body');
     if(!body) return false;
     var sums = summary(bundle);
@@ -210,10 +237,11 @@
         '<button class="btn btn-success btn-sm" onclick="openIncomeModal && openIncomeModal()"><i class="fa-solid fa-plus"></i> تسجيل تحصيل</button>'+
       '</div>'+
       '<div class="section-title" style="margin-bottom:10px"><i class="fa-solid fa-square-check"></i> سجل التاسكات المحصلة</div>'+
-      (collectedRows.length ? '<table class="fv3-table" style="margin-bottom:16px"><thead><tr><th>التاريخ</th><th>النوع</th><th>التاسك</th><th>المشروع</th><th>المبلغ</th><th>إجراءات</th></tr></thead><tbody>'+
+      (collectedRows.length ? '<table class="fv3-table" style="margin-bottom:16px"><thead><tr><th>التاريخ والوقت</th><th>النوع</th><th>التاسك</th><th>المشروع</th><th>المبلغ</th><th>إجراءات</th></tr></thead><tbody>'+
         collectedRows.map(function(r){
           var actions=r.entity==='collection'?'<div style="display:flex;gap:5px"><button class="btn btn-ghost btn-sm" title="تعديل العملية" onclick="OrdoClientFinanceFix.editCollection('+JSON.stringify(String(r.id))+','+JSON.stringify(bundle.client.id)+')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-danger btn-sm" title="حذف العملية" onclick="OrdoClientFinanceFix.deleteCollection('+JSON.stringify(String(r.id))+','+JSON.stringify(bundle.client.id)+')"><i class="fa-solid fa-trash"></i></button></div>':'<span style="color:var(--text3)">—</span>';
-          return '<tr><td>'+esc(r.date||'-')+'</td><td><span class="fv3-pill">'+esc(r.type)+'</span></td><td>'+esc(r.desc)+'</td><td>'+esc(r.project||'-')+'</td><td style="font-weight:900;color:var(--accent3)">'+fmt(r.amount,r.code)+'</td><td>'+actions+'</td></tr>';
+          var tx=r.entity==='collection'?collectionTransaction({id:r.id,task_id:r.taskId,invoice_id:r.invoiceId}):null,time=tx&&!tx.collectionTimeUnknown&&tx.createdAt?new Date(tx.createdAt).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'}):'الوقت غير مسجل';
+          return '<tr><td>'+esc(r.date||'-')+'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+esc(time)+'</div></td><td><span class="fv3-pill">'+esc(r.type)+'</span></td><td>'+(tx?'<button class="btn btn-ghost btn-sm" onclick="OrdoPaymentCapture.openDetails('+JSON.stringify(String(tx.id))+')">'+esc(r.desc)+'</button>':esc(r.desc))+'</td><td>'+esc(r.project||'-')+'</td><td style="font-weight:900;color:var(--accent3)">'+fmt(r.amount,r.code)+'</td><td>'+actions+'</td></tr>';
         }).join('')+'</tbody></table>' : '<div class="empty" style="padding:18px;margin-bottom:16px">لا توجد تاسكات محصلة بعد</div>')+
       '<div class="section-title" style="margin-bottom:10px"><i class="fa-solid fa-list-timeline"></i> سجل الحساب</div>'+
       (rows.length ? '<table class="fv3-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th><th>المبلغ</th><th>إجراءات</th></tr></thead><tbody>'+

@@ -23,3 +23,9 @@ test('editing and deleting collections updates linked financial state',()=>{
   assert.match(source,/reconcileInvoice\(S\(\),inv\)/);
   assert.match(source,/await root\.cloudSave\(S\(\)\)/);
 });
+
+test('legacy collected tasks get one finance ledger transaction and count in collected totals',()=>{
+  assert.match(source,/task-collection-ledger:/);
+  assert.match(source,/ensureCollectionTransactions\(bundle\)/);
+  assert.match(source,/collectionTimeUnknown/);
+});

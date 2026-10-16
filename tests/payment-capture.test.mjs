@@ -16,4 +16,5 @@ test('payment capture lists created accounts and exposes transaction details',()
   assert.match(source,/paymentAccounts/);
   assert.match(source,/التاريخ والوقت/);
   assert.match(source,/إيصال \/ إثبات الدفع/);
+  assert.match(source,/الوقت غير مسجل للعملية القديمة/);
 });

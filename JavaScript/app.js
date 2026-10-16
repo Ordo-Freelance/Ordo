@@ -6496,6 +6496,9 @@ function _saveAndShowStmt(){
   if(sel){ sel.value=clientName; }
   renderStatementsList();
   _showStmtDetail(stmt.id);
+  if(_profileClientId && document.getElementById('modal-client-profile') && getComputedStyle(document.getElementById('modal-client-profile')).display!=='none'){
+    _renderProfileTab('statements',_profileClientId);
+  }
   if(typeof showMiniNotif==='function') showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم حفظ كشف الحساب '+stmt.num);
 }
 
