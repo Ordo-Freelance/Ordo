@@ -11316,6 +11316,7 @@ function exportPDF(id){
       <div class="inv-summary">
         <div class="inv-card"><div class="v">${totals.subtotal.toLocaleString()} ج</div><div class="l">إجمالي الفاتورة</div></div>
         <div class="inv-card"><div class="v" style="color:${theme.warn}">${breakdown.discountValue}</div><div class="l">${breakdown.discountLabel}</div></div>
+        <div class="inv-card"><div class="v" style="color:${theme.ok}">${breakdown.prepaid.toLocaleString()} ج</div><div class="l">مدفوع مسبقاً</div></div>
         <div class="inv-card"><div class="v" style="color:${theme.accent}">${breakdown.totalDue.toLocaleString()} ج</div><div class="l">إجمالي المستحق</div></div>
       </div>`;
   const sectionBlockFor=(title,arr,total)=>`
@@ -11457,7 +11458,7 @@ function exportPDF(id){
       .inv-studio-name{font-size:15px;font-weight:900;line-height:1.4}
       .inv-studio-line{font-size:11.5px;line-height:1.9;color:${theme.ink};font-weight:500;white-space:normal;overflow-wrap:anywhere}
       .inv-studio-line span{color:${theme.accent};font-weight:900}
-      .inv-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 20px}
+      .inv-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 20px}
       .inv-cost-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 20px}
       .inv-cost-summary.no-projects{grid-template-columns:repeat(3,minmax(0,1fr))}
       .inv-card{background:${theme.softer};border:1px solid ${theme.line};border-radius:12px;padding:14px;text-align:center}
