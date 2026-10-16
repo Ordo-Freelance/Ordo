@@ -10115,6 +10115,7 @@ function toggleProjectAsInvoiceItem(projectId){
 if(typeof window!=='undefined') window.toggleProjectAsInvoiceItem=toggleProjectAsInvoiceItem;
 function onInvClientChange(clientName){
   const name = clientName || document.getElementById('inv-client')?.value || '';
+  _renderInvoiceAdvanceReminder(name);
   const panel = document.getElementById('inv-tasks-panel');
   const list  = document.getElementById('inv-tasks-list');
   const projectPanel = document.getElementById('inv-projects-panel');
@@ -10180,8 +10181,8 @@ function onInvClientChange(clientName){
           ${payBadge}
           ${invBadge}
         </div>
-        ${isPaidFull && t.value ? `<div style="font-size:10px;color:var(--accent3);margin-top:4px">â†ھ سيُضاف ${t.value.toLocaleString()} ج كمدفوع مسبقاً في الفاتورة</div>` : ''}
-        ${isPaidDeposit && t.deposit ? `<div style="font-size:10px;color:var(--accent2);margin-top:4px">â†ھ سيُضاف العربون ${t.deposit.toLocaleString()} ج كمدفوع مسبقاً في الفاتورة</div>` : ''}
+        ${isPaidFull && t.value ? `<div style="font-size:10px;color:var(--accent3);margin-top:4px"><i class="fa-solid fa-bell"></i> تم تحصيل ${t.value.toLocaleString()} ج سابقاً — لن يُضاف تلقائياً</div>` : ''}
+        ${isPaidDeposit && t.deposit ? `<div style="font-size:10px;color:var(--accent2);margin-top:4px"><i class="fa-solid fa-bell"></i> يوجد عربون ${t.deposit.toLocaleString()} ج — لن يُضاف تلقائياً</div>` : ''}
       </div>
       <button type="button" class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openTaskModal(${taskIdSafe})" title="تعديل المهمة وحالة الدفع" style="flex-shrink:0;padding:7px 9px"><i class="fa-solid fa-pen"></i></button>
       <div style="font-size:18px;flex-shrink:0;width:28px;text-align:center">${icon}</div>
@@ -10244,6 +10245,46 @@ function onInvClientChange(clientName){
   }
 }
 
+function _invoiceAdvanceInfo(clientName){
+  const ctx=_invoiceClientContext(clientName||'');
+  const selectedIds=new Set(invItems.map(it=>String(it._taskId||it.taskId||it.linkedTaskId||'')).filter(Boolean));
+  let selectedPaid=0;
+  getAllTasksIncludingArchived()
+    .filter(t=>ctx.names.includes(t.client)&&selectedIds.has(String(t.id)))
+    .forEach(t=>{
+      const value=+(t.value||t.amount||t.price||0);
+      const paidFull=_isInvoiceTaskCollected(t);
+      const partial=Math.max(+(t.deposit||0),+(t.depositAmount||0),+(t.paidAmount||0),+(t.amountPaid||0),+(t.collectedAmount||0));
+      selectedPaid+=paidFull?value:Math.min(value||partial,partial);
+    });
+  const client=(S.clients||[]).find(c=>c.name===clientName);
+  const prepaid=client&&client.openingBalanceType==='prepaid'?+(client.openingBalance||0):0;
+  const unallocated=(S.transactions||[])
+    .filter(tx=>tx.type==='income'&&(ctx.names.includes(tx.client||tx.source||'')||String(tx.client_id||tx.clientId||'')===String(client&&client.id)))
+    .reduce((sum,tx)=>sum+Math.max(0,+(tx.unallocatedAmount||0)),0);
+  return {selectedPaid,prepaid,unallocated};
+}
+
+function _renderInvoiceAdvanceReminder(clientName){
+  const dep=document.getElementById('inv-deposit');
+  if(!dep)return;
+  let box=document.getElementById('inv-advance-reminder');
+  if(!box){
+    box=document.createElement('div');
+    box.id='inv-advance-reminder';
+    box.style.cssText='display:none;margin-top:7px;padding:9px 11px;border:1px solid rgba(247,201,72,.38);border-radius:8px;background:rgba(247,201,72,.08);color:var(--text);font-size:11px;line-height:1.7';
+    dep.parentElement.appendChild(box);
+  }
+  const info=_invoiceAdvanceInfo(clientName);
+  const parts=[];
+  if(info.selectedPaid>0)parts.push(`مدفوع سابقاً للبنود المختارة: <b>${info.selectedPaid.toLocaleString('ar-EG')} ج</b>`);
+  if(info.prepaid>0)parts.push(`رصيد مقدم للعميل: <b>${info.prepaid.toLocaleString('ar-EG')} ج</b>`);
+  if(info.unallocated>0)parts.push(`تحصيل غير مخصص: <b>${info.unallocated.toLocaleString('ar-EG')} ج</b>`);
+  if(!clientName||!parts.length){box.style.display='none';box.innerHTML='';return;}
+  box.style.display='block';
+  box.innerHTML=`<i class="fa-solid fa-bell" style="color:var(--accent2)"></i> ${parts.join(' — ')}<br><span style="color:var(--text3)">للمراجعة فقط؛ لن يُضاف أي مبلغ إلى «مدفوع مسبقاً» تلقائياً.</span>`;
+}
+
 function addAllUnpaidInvItems(){
   const client = document.getElementById('inv-client')?.value || '';
   if(!client) return alert('اختر العميل أولاً');
@@ -10285,22 +10326,8 @@ function toggleTaskAsItem(taskId){
       if(typeof showMiniNotif === 'function') showMiniNotif('<i class="fa-solid fa-file-invoice"></i> هذا البند عليه فاتورة بالفعل');
       return;
     }
-    // إضافة البند
-    const isPaidFull    = !!(t.paymentCollected || t.paid || t.pay === 'full' || t.pay === 'paid' || t.paymentStatus === 'collected' || t.paymentStatus === 'paid');
-    const isPaidDeposit = t.pay === 'deposit';
-
+    // الدفعات السابقة تظهر كتذكير فقط ولا تُضاف للفاتورة تلقائياً
     _addTaskToInvoiceItems(t);
-
-    // تحديث خانة "مدفوع مسبقاً"
-    const depEl = document.getElementById('inv-deposit');
-    if(depEl){
-      const currentDep = +(depEl.value) || 0;
-      if(isPaidFull && t.value){
-        depEl.value = currentDep + t.value;
-      } else if(isPaidDeposit && t.deposit){
-        depEl.value = currentDep + t.deposit;
-      }
-    }
   }
 
   renderInvForm();
@@ -10311,16 +10338,7 @@ function toggleTaskAsItem(taskId){
 
 /* إعادة حساب خانة العربون بناءً على البنود المتبقية */
 function _recalcDepositFromItems(){
-  let dep = 0;
-  invItems.forEach(it => {
-    if(!it._taskId) return;
-    const t = S.tasks.find(x => x.id === it._taskId);
-    if(!t) return;
-    if((t.pay==='full'||t.done) && t.value)   dep += t.value;
-    else if(t.pay==='deposit' && t.deposit)    dep += t.deposit;
-  });
-  const depEl = document.getElementById('inv-deposit');
-  if(depEl) depEl.value = dep || 0;
+  _renderInvoiceAdvanceReminder(document.getElementById('inv-client')?.value||'');
   calcTotal();
 }
 
@@ -10456,6 +10474,7 @@ function openInvoiceModal(id){
     const d=new Date();d.setDate(d.getDate()+7);
     document.getElementById('inv-due').value=d.toISOString().split('T')[0];
     document.getElementById('inv-notes').value=S.settings?.terms||'';
+    document.getElementById('inv-deposit').value=0;
     const invDiscType=document.getElementById('inv-discount-type'); if(invDiscType) invDiscType.value='amount';
     const invDisc=document.getElementById('inv-discount'); if(invDisc) invDisc.value='';
     invItems=[];
@@ -10467,6 +10486,7 @@ function openInvoiceModal(id){
     renderPoliciesList('inv-policies-list',invPolicies,'removeInvPolicy');
     const projEl=document.getElementById('inv-project-url');
     if(projEl)liveQR('inv-project-url','inv-project-qr-prev',90);
+    _renderInvoiceAdvanceReminder(document.getElementById('inv-client')?.value||'');
   },100);
   renderInvForm();openM('modal-invoice');
 }
