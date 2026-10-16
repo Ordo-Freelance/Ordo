@@ -5731,7 +5731,7 @@ function _renderProfileTab(tab, id){
             <button class="btn btn-ghost btn-sm" onclick="previewInv(${i.id})" title="عرض"><i class="fa-solid fa-eye"></i></button>
             <button class="btn btn-ghost btn-sm" onclick="openInvoiceModal(${i.id})" title="تعديل"><i class="fa-solid fa-pen"></i></button>
             <button class="btn btn-warn btn-sm" onclick="exportPDF(${i.id})" title="PDF"><i class="fa-solid fa-print"></i></button>
-            ${i.status!=='paid'?`<button class="btn btn-success btn-sm" onclick="markPaid(${i.id});_renderProfileTab('invoices',${id})" style="font-size:10px"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i></button>`:''}
+            ${i.status!=='paid'?`<button class="btn btn-success btn-sm" onclick="markPaid(${i.id});_renderProfileTab('invoices',${id})" title="تحصيل الفاتورة" aria-label="تحصيل الفاتورة" style="font-size:12px"><i class="fa-solid fa-hand-holding-dollar" style="color:inherit"></i></button>`:''}
             <button class="btn btn-danger btn-sm" onclick="delInvoice(${i.id});_renderProfileTab('invoices',${id})" title="حذف"><i class="fa-solid fa-trash"></i></button>
           </div>
         </div>`).join('')

@@ -22,3 +22,8 @@ test('invoice QR has a saved label and uses workspace print theme',()=>{
   assert.match(app,/const theme=_printTheme\(\)/);
   assert.match(html,/id="inv-project-label"/);
 });
+
+test('client invoice list shows a visible collection icon',()=>{
+  assert.match(app,/title="تحصيل الفاتورة" aria-label="تحصيل الفاتورة"/);
+  assert.match(app,/fa-hand-holding-dollar" style="color:inherit"/);
+});
