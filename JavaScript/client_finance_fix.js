@@ -56,10 +56,18 @@
     var st = String((i && i.status) || '').toLowerCase();
     return !!(i && (i.paid || st === 'paid' || st === 'مدفوعة' || st === 'مدفوع'));
   }
+  function taskPaidAmount(t){
+    if(!t)return 0;
+    var id=String(t.id||'');
+    return arr(S().transactions).reduce(function(sum,tx){
+      var linked=String(tx.linkedTaskId||tx.linkedProjTaskId||tx.linkedProjectTaskId||'')===id;
+      var ref=String(tx.source_ref||''),explicit=linked||ref==='task-payment:task:'+id||ref==='task-payment:project_task:'+id;
+      return explicit&&tx.type==='income'?sum+Math.max(0,num(tx.amount)):sum;
+    },0);
+  }
   function taskPaid(t){
-    var pay = String((t && t.pay) || '').toLowerCase();
-    var pst = String((t && t.paymentStatus) || '').toLowerCase();
-    return !!(t && (t.paymentCollected || t.paid || pay === 'paid' || pay === 'collected' || pst === 'collected' || pst === 'paid'));
+    var value=num(t&&(t.value||t.amount||t.price||t.total||t.clientAmount||t.clientPrice));
+    return value>0&&taskPaidAmount(t)>=value-0.005;
   }
   function uniqueTasks(rows){
     var seen={};return rows.filter(function(t){var id=String(t&&t.id||'');if(!id||seen[id])return false;seen[id]=true;return true;});
@@ -93,9 +101,7 @@
   }
   function taskUnpaidAmount(t){
     var value = num(t.value || t.amount || t.price || t.total || t.clientAmount || t.clientPrice);
-    var deposit = num(t.deposit || t.depositAmount || t.paidAmount || t.amountPaid || t.collectedAmount);
-    if(taskPaid(t)) return 0;
-    return Math.max(0, value - deposit);
+    return Math.max(0, value - taskPaidAmount(t));
   }
   function taskValue(t){
     return num(t && (t.value || t.amount || t.price || t.total || t.clientAmount || t.clientPrice || t.paidAmount || t.amountPaid));

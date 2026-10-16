@@ -14,3 +14,10 @@ test('generated invoice and task receipts are not subtracted twice',()=>{
   assert.match(source,/invoice_payment\|task_payment\|task_collection_ledger/);
   assert.match(source,/!linked&&!generated\?income:0/);
 });
+
+test('unpaid task totals ignore stale paid flags and require linked transaction evidence',()=>{
+  assert.match(source,/function taskPaidAmount\(t\)/);
+  assert.match(source,/tx\.linkedTaskId\|\|tx\.linkedProjTaskId/);
+  assert.match(source,/value - taskPaidAmount\(t\)/);
+  assert.doesNotMatch(source,/var deposit = num\(t\.deposit/);
+});
