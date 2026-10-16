@@ -4001,6 +4001,11 @@ try {
       <span class="wa-tag" onclick="insertWaVar('{{قيمة_المهمة}}')">{{قيمة_المهمة}}</span>
       <span class="wa-tag" onclick="insertWaVar('{{تفاصيل_المهمة}}')">{{تفاصيل_المهمة}}</span>
       <span class="wa-tag" onclick="insertWaVar('{{رابط_المتابعة}}')">{{رابط_المتابعة}}</span>
+      <span class="wa-tag" onclick="insertWaVar('{{مبلغ_التحصيل}}')">{{مبلغ_التحصيل}}</span>
+      <span class="wa-tag" onclick="insertWaVar('{{رقم_الإيصال}}')">{{رقم_الإيصال}}</span>
+      <span class="wa-tag" onclick="insertWaVar('{{تاريخ_التحصيل}}')">{{تاريخ_التحصيل}}</span>
+      <span class="wa-tag" onclick="insertWaVar('{{وسيلة_الدفع}}')">{{وسيلة_الدفع}}</span>
+      <span class="wa-tag" onclick="insertWaVar('{{بيان_التحصيل}}')">{{بيان_التحصيل}}</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
       <div class="tpl-card">
@@ -4018,6 +4023,10 @@ try {
       <div class="tpl-card">
         <div class="tpl-card-title" style="color:var(--accent4)"><i class="fa-solid fa-money-bill-wave"></i> تذكير بالدفع</div>
         <textarea class="form-textarea" id="wa-tpl-remind" rows="5" onfocus="waActiveTpl=this.id" style="font-size:12px"></textarea>
+      </div>
+      <div class="tpl-card">
+        <div class="tpl-card-title" style="color:var(--accent3)"><i class="fa-solid fa-receipt"></i> تأكيد التحصيل وإيصال الدفع</div>
+        <textarea class="form-textarea" id="wa-tpl-collection" rows="7" onfocus="waActiveTpl=this.id" style="font-size:12px"></textarea>
       </div>
       <div class="tpl-card">
         <div class="tpl-card-title" style="color:var(--accent3)"><i class="fa-brands fa-whatsapp"></i> تفاصيل مهمة للعميل</div>
@@ -4611,6 +4620,7 @@ try {
         <button class="btn btn-ghost btn-sm" onclick="loadWaTpl('task')"    id="wa-tpl-btn-task"><i class="fa-solid fa-star-of-life"></i> مشروع</button>
         <button class="btn btn-ghost btn-sm" onclick="loadWaTpl('done')"    id="wa-tpl-btn-done"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تسليم</button>
         <button class="btn btn-ghost btn-sm" onclick="loadWaTpl('remind')"  id="wa-tpl-btn-remind"><i class="fa-solid fa-money-bill-wave"></i> تذكير دفع</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWaTpl('collection')" id="wa-tpl-btn-collection"><i class="fa-solid fa-receipt"></i> إيصال تحصيل</button>
       </div>
     </div>
 
@@ -4630,6 +4640,7 @@ try {
     </div>
 
     <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" id="wa-receipt-action" style="display:none"><i class="fa-solid fa-file-pdf"></i> فتح إيصال التحصيل</button>
       <button class="btn btn-ghost" onclick="closeM('modal-whatsapp')">إلغاء</button>
       <button class="wa-send-btn" onclick="doSendWhatsApp()">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
@@ -5583,7 +5594,7 @@ try {
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=invoice-summary-qr-theme-5"></script>
+<script src="../JavaScript/app.js?v=collection-whatsapp-6"></script>
 <script src="../JavaScript/payment_reconciliation.js?v=2"></script>
 <script src="../JavaScript/project-finance-integration.js?v=2"></script>
 <script>document.body.classList.remove('auth-booting');</script>
@@ -9296,7 +9307,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <link rel="stylesheet" href="../CSS/cairo_global_fix.css?v=1">
 <script src="../JavaScript/text_repair.js?v=1"></script>
 <script src="../JavaScript/client_finance_fix.js?v=7"></script>
-<script src="../JavaScript/payment_capture.js?v=2"></script>
+<script src="../JavaScript/payment_capture.js?v=3"></script>
 <script src="../JavaScript/portal_chat.js?v=chat-clear-4"></script>
 <script src="../JavaScript/support_center.js?v=challenge-chat-2"></script>
 <script src="../JavaScript/storage_usage.js?v=storage-files-2"></script>

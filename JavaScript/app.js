@@ -742,6 +742,9 @@ function _confirmCollect(clientId, totalOwed){
   // إعادة رسم البروفايل
   if(typeof openClientProfile === 'function') openClientProfile(clientId);
   renderAll();
+  setTimeout(function(){
+    if(typeof window.openCollectionWhatsApp==='function') window.openCollectionWhatsApp({clientName:c.name,transactionId:tx.id,reference:tx.desc},{amount:tx.amount,date:tx.isoDate,payMethod:tx.payMethod,methodLabel:tx.payMethod});
+  },180);
 }
 
 // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
@@ -1831,7 +1834,7 @@ function loadSettings(){
   // قوالب واتساب
   const wt = s.waTemplates||{};
   const defaults = getWaTemplateDefaults();
-  ['invoice','task','done','remind','taskQuick','memberTask','tracking'].forEach(k=>{
+  ['invoice','task','done','remind','collection','taskQuick','memberTask','tracking'].forEach(k=>{
     const el=document.getElementById('wa-tpl-'+k);
     if(el) el.value = cleanWaTemplate(wt[k]||defaults[k]||'');
   });
@@ -2013,6 +2016,14 @@ function getWaTemplateDefaults(){
       'تذكير بفاتورة رقم {{رقم_الفاتورة}} بقيمة {{قيمة_الفاتورة}}\n' +
       'موعد السداد كان {{تاريخ_الاستحقاق}}\n\n' +
       'نرجو السداد في أقرب وقت.',
+    collection:
+      'مرحباً {{اسم_العميل}}\n' +
+      'تم استلام مبلغ {{مبلغ_التحصيل}} بنجاح.\n' +
+      'رقم الإيصال: {{رقم_الإيصال}}\n' +
+      'التاريخ: {{تاريخ_التحصيل}}\n' +
+      'وسيلة الدفع: {{وسيلة_الدفع}}\n' +
+      'عن: {{بيان_التحصيل}}\n\n' +
+      'شكراً لتعاملك مع {{اسم_العمل}}',
     taskQuick:
       'مرحباً {{اسم_العميل}}\n\n' +
       'تفاصيل المهمة: {{اسم_المشروع}}\n' +
@@ -2056,6 +2067,7 @@ function saveWaTemplates(){
     task:    cleanWaTemplate(v('wa-tpl-task')),
     done:    cleanWaTemplate(v('wa-tpl-done')),
     remind:  cleanWaTemplate(v('wa-tpl-remind')),
+    collection: cleanWaTemplate(v('wa-tpl-collection')),
     taskQuick: cleanWaTemplate(v('wa-tpl-taskQuick')),
     memberTask: cleanWaTemplate(v('wa-tpl-memberTask')),
     tracking: cleanWaTemplate(v('wa-tpl-tracking')),
@@ -2072,6 +2084,8 @@ let waCtx = {};
 function openWaModal(tplType, invIdOrNull, taskIdOrNull){
   const s = S.settings||{};
   waCtx = { tplType, invId: invIdOrNull, taskId: taskIdOrNull };
+  const receiptBtn=document.getElementById('wa-receipt-action');
+  if(receiptBtn) receiptBtn.style.display='none';
 
   // جمع البيانات
   let clientName='', clientPhone='', invNum='', invTotal='', invDue='', projectUrl='', taskName='';
@@ -2120,7 +2134,7 @@ function openWaModal(tplType, invIdOrNull, taskIdOrNull){
   loadWaTpl(tplType);
 
   // تمييز الزر النشط
-  ['invoice','task','done','remind'].forEach(k=>{
+  ['invoice','task','done','remind','collection'].forEach(k=>{
     const btn = document.getElementById('wa-tpl-btn-'+k);
     if(btn) btn.className = 'btn btn-sm btn-'+(k===tplType?'primary':'ghost');
   });
@@ -2138,7 +2152,7 @@ function loadWaTpl(key){
   if(ta){ ta.value = filled; }
 
   // تمييز الأزرار
-  ['invoice','task','done','remind'].forEach(k=>{
+  ['invoice','task','done','remind','collection'].forEach(k=>{
     const btn = document.getElementById('wa-tpl-btn-'+k);
     if(btn) btn.className = 'btn btn-sm '+(k===key?'btn-primary':'btn-ghost');
   });
@@ -2157,6 +2171,31 @@ function updateWaPreview(){
   const prev = document.getElementById('wa-preview-text');
   if(prev) prev.textContent = txt || '...';
 }
+
+window.openCollectionWhatsApp=function(opts,meta){
+  opts=opts||{};meta=meta||{};
+  const clientName=opts.clientName||opts.client||'';
+  const client=(S.clients||[]).find(c=>c.name===clientName)||{};
+  const txId=opts.transactionId||meta.transactionId||'';
+  const receiptNo=txId?'RCP-'+String(txId).slice(-5):'—';
+  waCtx={tplType:'collection',transactionId:txId,vars:{
+    '{{اسم_العميل}}':clientName,
+    '{{مبلغ_التحصيل}}':(+meta.amount||0).toLocaleString('ar-EG')+' '+_getCurrency(),
+    '{{رقم_الإيصال}}':receiptNo,
+    '{{تاريخ_التحصيل}}':meta.date||new Date().toISOString().slice(0,10),
+    '{{وسيلة_الدفع}}':meta.methodLabel||meta.payMethod||'غير محدد',
+    '{{بيان_التحصيل}}':opts.reference||opts.title||'تحصيل',
+    '{{اسم_العمل}}':S.settings?.name||'العمل'
+  }};
+  const nameEl=document.getElementById('wa-recip-name');if(nameEl)nameEl.textContent=clientName||'العميل';
+  const phone=String(opts.clientPhone||client.phone||'').replace(/[^\d]/g,'');
+  const phoneEl=document.getElementById('wa-phone-input');if(phoneEl)phoneEl.value=phone;
+  const phoneDisp=document.getElementById('wa-recip-phone-disp');if(phoneDisp)phoneDisp.innerHTML=phone?'<i class="fa-solid fa-phone"></i> '+phone:'لا يوجد رقم — أدخله يدوياً';
+  const receiptBtn=document.getElementById('wa-receipt-action');
+  if(receiptBtn){receiptBtn.style.display=txId?'inline-flex':'none';receiptBtn.onclick=()=>exportReceipt(txId);}
+  loadWaTpl('collection');
+  openM('modal-whatsapp');
+};
 
 function doSendWhatsApp(){
   const phone = document.getElementById('wa-phone-input')?.value.trim().replace(/[^\d]/g,'');
@@ -9655,6 +9694,10 @@ function saveTrans(type){
     const savedTx = (S.transactions||[]).find(t=>String(t.id)===String(savedId));
     if(savedId && savedTx && savedTx.source_type==='statement_collection') _completePendingStmtCollection(savedId, savedTx.statementId);
     if(savedId) setTimeout(()=>exportReceipt(savedId), 400);
+    const incomeClient=(S.clients||[]).find(c=>c.name===savedTx?.source||c.name===savedTx?.client);
+    if(savedId&&savedTx&&incomeClient&&!eid&&typeof window.openCollectionWhatsApp==='function'){
+      setTimeout(()=>window.openCollectionWhatsApp({clientName:incomeClient.name,transactionId:savedId,reference:savedTx.desc||'تحصيل'},{amount:savedTx.amount,date:savedTx.isoDate,payMethod:savedTx.payMethod,methodLabel:savedTx.paymentMethodLabel||savedTx.payMethod}),650);
+    }
   }
 }
 function delTrans(id){
