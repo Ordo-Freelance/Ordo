@@ -23,3 +23,10 @@ test('invoice live summary includes paid in advance',()=>{
   assert.match(html,/id="inv-prepaid-live"/);
   assert.match(app,/prepaidEl\.textContent=dep\.toLocaleString\(\)/);
 });
+
+test('printed invoice isolates every subclient into its own section',()=>{
+  assert.match(app,/const subClientGroups=Array\.from/);
+  assert.match(app,/!x\.subClientName&&x\.status==='done'/);
+  assert.match(app,/subClientGroups\.forEach\(g=>pushSplitSection/);
+  assert.match(app,/تابع للعميل الرئيسي/);
+});

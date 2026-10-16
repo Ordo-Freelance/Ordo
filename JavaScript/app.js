@@ -11230,6 +11230,7 @@ function exportPDF(id){
       projectName:isProject ? _invoiceProjectName(it) : '',
       projectKey:isProject ? String(it.project_id||it.projectId||_invoiceProjectName(it)||'project') : '',
       projectBudget:isProject ? _invoiceProjectBudget(it) : 0,
+      subClientName:it.subClientName&&it.subClientName!==inv.client?it.subClientName:'',
       date:(sourceTask&&(sourceTask.doneAt||sourceTask.deadline||sourceTask.isoDate||sourceTask.createdAt)||inv.date||'').slice(0,10),
       amount,
       status:st,
@@ -11240,9 +11241,13 @@ function exportPDF(id){
     };
   });
   const projectItems=itemModels.filter(x=>x.section==='projects');
-  const completedItems=itemModels.filter(x=>x.section!=='projects'&&x.status==='done');
-  const currentItems=itemModels.filter(x=>x.section!=='projects'&&x.status==='progress');
-  const manualItems=itemModels.filter(x=>x.section!=='projects'&&x.status==='item');
+  const completedItems=itemModels.filter(x=>x.section!=='projects'&&!x.subClientName&&x.status==='done');
+  const currentItems=itemModels.filter(x=>x.section!=='projects'&&!x.subClientName&&x.status==='progress');
+  const manualItems=itemModels.filter(x=>x.section!=='projects'&&!x.subClientName&&x.status==='item');
+  const subClientGroups=Array.from(itemModels.filter(x=>x.section!=='projects'&&x.subClientName).reduce((map,it)=>{
+    if(!map.has(it.subClientName))map.set(it.subClientName,{name:it.subClientName,items:[],total:0});
+    const group=map.get(it.subClientName);group.items.push(it);group.total+=it.amount||0;return map;
+  },new Map()).values());
   const breakdown=_invoiceBreakdown(inv, totals);
   const individualTotal=breakdown.individualTotal;
   const projectsTotal=breakdown.projectsTotal;
@@ -11357,6 +11362,7 @@ function exportPDF(id){
   pushSplitSection(blocks,'المهام المكتملة',completedItems,completedItems.reduce((s,it)=>s+it.amount,0));
   pushSplitSection(blocks,'المهام الجارية',currentItems,currentItems.reduce((s,it)=>s+it.amount,0));
   pushSplitSection(blocks,'بنود الفاتورة',manualItems,manualItems.reduce((s,it)=>s+it.amount,0));
+  subClientGroups.forEach(g=>pushSplitSection(blocks,'مهام '+g.name+' — تابع للعميل الرئيسي',g.items,g.total));
   projectModelGroups.forEach(g=>pushSplitSection(blocks,'مشروع '+(g.name||'مشروع'),g.items,g.total));
   blocks.push({html:`
       <div class="inv-cost-summary${projectModelGroups.length?'':' no-projects'}">
