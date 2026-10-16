@@ -9300,13 +9300,17 @@ function renderClients(){
       allNames.includes(e.client||e.client_name||e.clientName||e.source||'')
     );
     const invs=(cSummary&&Array.isArray(cSummary.invoices)?cSummary.invoices:(S.invoices||[]).filter(matchClientEntity)).filter(i=>!_isProjectInvoice(i));
-    const invDue=invs.filter(i=>!(i.paid||i.status==='مدفوعة'||i.status==='paid')).reduce((s,i)=>s+(+i.total||0),0);
-    const invTotal=invs.reduce((s,i)=>s+(+i.total||0),0);
-    const invPaid=invs.filter(i=>i.paid||i.status==='مدفوعة'||i.status==='paid').reduce((s,i)=>s+(+i.total||0),0);
-    const unpaidInv=Math.max(0,invTotal-invPaid);
+    const invoiceTotal=i=>Math.max(0,+(i.total??i.amount??i.value)||0);
+    const invoicePaidAmount=i=>{
+      const total=invoiceTotal(i);
+      if(i.paid||i.status==='مدفوعة'||i.status==='paid') return total;
+      return Math.min(total,Math.max(+(i.paidAmount||0),+(i.amountPaid||0),+(i.legacyPaidAmount||0),+(i.deposit||0)));
+    };
+    const invDue=invs.reduce((s,i)=>s+Math.max(0,invoiceTotal(i)-invoicePaidAmount(i)),0);
+    const unpaidInv=Math.max(0,invDue);
     const invoicedTaskIds=invoiceTaskIdsForClient(c,allNames,clientIds);
     const taskValue=t=>+(t&&(t.value??t.amount??t.price??t.total??t.clientAmount??t.clientPrice))||0;
-    const taskPaidAmount=t=>+(t&&(t.deposit??t.paidAmount??t.amountPaid??t.collectedAmount))||0;
+    const taskPaidAmount=t=>t?Math.max(+(t.deposit||0),+(t.depositAmount||0),+(t.paidAmount||0),+(t.amountPaid||0),+(t.collectedAmount||0)):0;
     const taskDue=getAllTasksIncludingArchived().filter(matchClientEntity).reduce((s,t)=>{
       if(invoicedTaskIds.has(idVal(t.id))) return s;
       const paid=!!(t.paymentCollected||t.paid||t.pay==='full'||t.pay==='paid'||t.paymentStatus==='collected'||t.paymentStatus==='paid');
@@ -9332,6 +9336,7 @@ function renderClients(){
   grid.innerHTML=clients.map(c=>{
     const dueParts=cDueParts(c);
     const due=dueParts.total;
+    const dueCurrency=c.currency_symbol||c.currency||c.openingBalanceCurrency||(S.settings&&(S.settings.base_currency||S.settings.currency))||_getCurrency();
     const taskCount=cTasks(c.name);
     const nameLength=String(c.name||'').trim().length;
     const nameClass=nameLength>34?' is-very-long':(nameLength>22?' is-long':'');
@@ -9353,7 +9358,7 @@ function renderClients(){
       <div class="client-simple-card-contact">${contact || '<span>لا توجد بيانات تواصل</span>'}</div>
       <div class="client-simple-card-stats">
         <span><b>${taskCount.toLocaleString('ar-EG')}</b><small>مهام</small></span>
-        <span class="${due>0?'is-due':'is-clear'}"><b>${due.toLocaleString('ar-EG')}</b><small>مستحق</small></span>
+        <span class="${due>0?'is-due':'is-clear'}"><b>${due.toLocaleString('ar-EG')} ${escapeHtml(dueCurrency)}</b><small>إجمالي المستحق</small></span>
       </div>
     </article>`;
   }).join('');
