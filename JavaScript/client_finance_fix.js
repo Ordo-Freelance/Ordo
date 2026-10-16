@@ -120,7 +120,7 @@
     var byCurrency = {};
     function add(code, key, value){
       code = code || 'EGP';
-      byCurrency[code] = byCurrency[code] || {code:code, invoiced:0, paid:0, unpaidInvoices:0, unpaidTasks:0, income:0, expense:0, openingDue:0, openingPrepaid:0};
+      byCurrency[code] = byCurrency[code] || {code:code, invoiced:0, paid:0, unpaidInvoices:0, unpaidTasks:0, income:0, expense:0, availableCredit:0, openingDue:0, openingPrepaid:0};
       byCurrency[code][key] += num(value);
     }
     var c = bundle.client;
@@ -140,11 +140,19 @@
     });
     bundle.transactions.forEach(function(t){
       if(t.type === 'expense') add(cur(t), 'expense', Math.abs(num(t.amount)));
-      else add(cur(t), 'income', Math.abs(num(t.amount)));
+      else {
+        var income=Math.abs(num(t.amount));
+        add(cur(t), 'income', income);
+        var hasExplicitCredit=t.unallocatedAmount!=null;
+        var linked=arr(t.allocations).length||t.linkedTaskId||t.linkedProjTaskId||t.invoice_id||t.invoiceId;
+        var generated=/^(invoice_payment|task_payment|task_collection_ledger|project_ledger|project_task_payment)$/.test(String(t.source_type||''));
+        var available=hasExplicitCredit?Math.max(0,num(t.unallocatedAmount)):(!linked&&!generated?income:0);
+        if(available) add(cur(t), 'availableCredit', available);
+      }
     });
     Object.keys(byCurrency).forEach(function(code){
       var b = byCurrency[code];
-      b.netDue = b.openingDue + b.unpaidInvoices + b.unpaidTasks - b.openingPrepaid;
+      b.netDue = Math.max(0,b.openingDue + b.unpaidInvoices + b.unpaidTasks - b.openingPrepaid - b.availableCredit);
     });
     return byCurrency;
   }
