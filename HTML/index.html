@@ -3767,6 +3767,10 @@ try {
             <button class="btn btn-ghost btn-sm" onclick="addPolicy()" style="flex-shrink:0">+ إضافة</button>
           </div>
         </div>
+        <label style="display:flex;align-items:center;gap:9px;margin:12px 0;padding:11px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer">
+          <input type="checkbox" id="set-invoice-show-qr" checked style="width:18px;height:18px;accent-color:var(--accent)">
+          <span><strong style="display:block;font-size:12px">إظهار روابط QR في الفاتورة</strong><small style="color:var(--text3)">عند إلغاء التفعيل لن تظهر أكواد QR في المعاينة أو ملف PDF.</small></span>
+        </label>
         <button class="btn btn-primary" onclick="saveSettings()" data-i18n="btn_save_settings"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ الإعدادات</button>
       </div>
 
@@ -5417,6 +5421,7 @@ try {
       <div style="display:flex;gap:8px;align-items:flex-start">
         <div style="flex:1">
           <input class="form-input" id="inv-project-url" placeholder="https://drive.google.com/... أو أي رابط للاستلام" oninput="liveQR('inv-project-url','inv-project-qr-prev',90)">
+          <input class="form-input" id="inv-project-label" placeholder="اسم الرابط، مثال: استلام المشروع" value="استلام المشروع" style="margin-top:8px">
           <div style="font-size:11px;color:var(--text3);margin-top:5px">يظهر كـ QR كود في الفاتورة — العميل يمسحه ويراجع الشغل مباشرة</div>
         </div>
         <div id="inv-project-qr-prev" style="width:90px;height:90px;flex-shrink:0;border-radius:8px;overflow:hidden;border:1px solid var(--border)"></div>
@@ -5578,7 +5583,7 @@ try {
 </div>
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
-<script src="../JavaScript/app.js?v=invoice-advance-reminder-4"></script>
+<script src="../JavaScript/app.js?v=invoice-summary-qr-theme-5"></script>
 <script src="../JavaScript/payment_reconciliation.js?v=2"></script>
 <script src="../JavaScript/project-finance-integration.js?v=2"></script>
 <script>document.body.classList.remove('auth-booting');</script>

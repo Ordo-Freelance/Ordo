@@ -1822,6 +1822,8 @@ function loadSettings(){
   const nd=document.getElementById('studio-name-disp');if(nd)nd.textContent=s.name||'صاحب العمل';
   renderPoliciesList('policies-list', s.policies||[], 'removePolicy');
   renderSocialsList();
+  const invoiceQrEl=document.getElementById('set-invoice-show-qr');
+  if(invoiceQrEl) invoiceQrEl.checked=s.invoiceShowQr!==false;
   // إعادة تهيئة الـ social dropdown
   setTimeout(() => {
     selectSocialOpt('instagram');
@@ -1870,6 +1872,7 @@ function saveSettings(){
     username:(document.getElementById('set-username')||{}).value.trim().toLowerCase().replace(/[^a-z0-9_-]/g,'')||'',
     logo:S.settings?.logo||'', logoDark:S.settings?.logoDark||'', logoLight:S.settings?.logoLight||'', policies:S.settings?.policies||[],
     socials:S.settings?.socials||[], waTemplates:S.settings?.waTemplates||{},
+    invoiceShowQr:document.getElementById('set-invoice-show-qr')?.checked!==false,
     taskTypes:S.settings?.taskTypes||[], taskStatuses:S.settings?.taskStatuses||[],
     paymentAccounts:S.settings?.paymentAccounts||[],
     fontScale:S.settings?.fontScale||Number(localStorage.getItem('studioFontScale')||1),
@@ -10420,7 +10423,7 @@ function _invoiceBreakdown(inv, totals){
     individualTotal,
     discountLabel:discount.label,
     discountValue:discount.value,
-    totalDue:totals.net,
+    totalDue:totals.remaining,
     remainingAfterPrepaid:totals.remaining,
     prepaid:+(inv&&inv.deposit||0),
     grossTotal:projectsTotal + individualTotal
@@ -10461,6 +10464,8 @@ function openInvoiceModal(id){
     invPolicies=(inv.policies||[]).map(p=>({...p}));
     const puEl=document.getElementById('inv-project-url');
     if(puEl)puEl.value=inv.projectUrl||'';
+    const pnlEl=document.getElementById('inv-project-label');
+    if(pnlEl)pnlEl.value=inv.projectLabel||'استلام المشروع';
     const plEl=document.getElementById('inv-payment-link');
     if(plEl)plEl.value=inv.paymentLink||'';
     // عرض مهام العميل
@@ -10480,6 +10485,7 @@ function openInvoiceModal(id){
     invItems=[];
     invPolicies=(S.settings?.policies||[]).map(p=>({...p}));
     const plElN=document.getElementById('inv-payment-link'); if(plElN) plElN.value='';
+    const pnlElN=document.getElementById('inv-project-label'); if(pnlElN) pnlElN.value='استلام المشروع';
   }
   setTimeout(()=>{
     const dep=document.getElementById('inv-deposit');if(dep){dep.oninput=calcTotal;}
@@ -10662,6 +10668,7 @@ function saveInvoice(){
     from:S.settings?.name||'العمل',status:'pending',
     policies:invPolicies.map(p=>({...p})),
     projectUrl:(document.getElementById('inv-project-url')?.value||'').trim(),
+    projectLabel:(document.getElementById('inv-project-label')?.value||'استلام المشروع').trim(),
     paymentLink:(document.getElementById('inv-payment-link')?.value||'').trim(),
     receiptImage: window._invReceiptData||null,
     project_id: window._pendingInvoiceProjectId || (cleanItems.find(i=>i.project_id)?.project_id || ''),
@@ -11009,10 +11016,10 @@ function previewInv(id){
         <div style="font-size:10px;color:#9a7a35;font-weight:900">إجمالي التاسكات الفردية</div>
         <div style="font-size:20px;font-weight:900;color:#f39a08;margin-top:4px">${individualTotal.toLocaleString()} ج</div>
       </div>
-      <div style="background:#f0fff8;border:1px solid #c8f1df;border-radius:12px;padding:12px;text-align:center">
+      ${projectGroups.length?`<div style="background:#f0fff8;border:1px solid #c8f1df;border-radius:12px;padding:12px;text-align:center">
         <div style="font-size:10px;color:#438268;font-weight:900">إجمالي المشاريع</div>
         <div style="font-size:20px;font-weight:900;color:#4fd1a5;margin-top:4px">${projectsTotal.toLocaleString()} ج</div>
-      </div>
+      </div>`:''}
       <div style="background:#f0fff8;border:1px solid #c8f1df;border-radius:12px;padding:12px;text-align:center">
         <div style="font-size:10px;color:#438268;font-weight:900">مدفوع مسبقاً</div>
         <div style="font-size:20px;font-weight:900;color:#4fd1a5;margin-top:4px">${breakdown.prepaid.toLocaleString()} ج</div>
@@ -11240,9 +11247,9 @@ function exportPDF(id){
   pushSplitSection(blocks,'بنود الفاتورة',manualItems,manualItems.reduce((s,it)=>s+it.amount,0));
   projectModelGroups.forEach(g=>pushSplitSection(blocks,'مشروع '+(g.name||'مشروع'),g.items,g.total));
   blocks.push({html:`
-      <div class="inv-cost-summary">
+      <div class="inv-cost-summary${projectModelGroups.length?'':' no-projects'}">
         <div class="inv-card"><div class="v" style="color:${theme.accent}">${individualTotal.toLocaleString()} ج</div><div class="l">إجمالي التاسكات الفردية</div></div>
-        <div class="inv-card"><div class="v" style="color:${theme.ok}">${projectsTotal.toLocaleString()} ج</div><div class="l">إجمالي المشاريع</div></div>
+        ${projectModelGroups.length?`<div class="inv-card"><div class="v" style="color:${theme.ok}">${projectsTotal.toLocaleString()} ج</div><div class="l">إجمالي المشاريع</div></div>`:''}
         <div class="inv-card"><div class="v" style="color:${theme.ok}">${breakdown.prepaid.toLocaleString()} ج</div><div class="l">مدفوع مسبقاً</div></div>
         <div class="inv-card"><div class="v" style="color:${theme.warn}">${breakdown.remainingAfterPrepaid.toLocaleString()} ج</div><div class="l">المتبقي بعد المدفوع</div></div>
       </div>`,units:5});
@@ -11332,6 +11339,7 @@ function exportPDF(id){
       .inv-studio-line span{color:${theme.accent};font-weight:900}
       .inv-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 20px}
       .inv-cost-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 20px}
+      .inv-cost-summary.no-projects{grid-template-columns:repeat(3,minmax(0,1fr))}
       .inv-card{background:${theme.softer};border:1px solid ${theme.line};border-radius:12px;padding:14px;text-align:center}
       .inv-card .v{font-size:21px;font-weight:900;color:${theme.accent};line-height:1.1}
       .inv-card .l{font-size:10.5px;color:${theme.muted};font-weight:800;margin-top:6px}
@@ -15355,14 +15363,17 @@ function renderSocialsList(){
 
 /* Build QR section HTML for invoice preview/PDF */
 function buildQRSectionHTML(inv, forPDF){
+  if(S.settings?.invoiceShowQr===false) return '';
   const projectUrl = inv.projectUrl||'';
   const socials = S.settings.socials||[];
   if(!projectUrl && !socials.length) return '';
 
   const sz = forPDF ? 90 : 72;
+  const theme=_printTheme();
+  const projectLabel=escapeHtml(String(inv.projectLabel||'استلام المشروع').trim()||'استلام المشروع');
   const bgStyle = forPDF
-    ? 'margin:0 28px 20px;padding:16px 18px;background:#f5f3ff;border-radius:8px;border:1px solid #e0dcff'
-    : 'margin-top:16px;padding-top:14px;border-top:2px dashed #e0dcff';
+    ? `margin:0 28px 20px;padding:16px 18px;background:${theme.softer};border-radius:8px;border:1px solid ${theme.line}`
+    : `margin-top:16px;padding-top:14px;border-top:2px dashed ${theme.line}`;
 
   let blocks = '';
 
@@ -15370,8 +15381,8 @@ function buildQRSectionHTML(inv, forPDF){
     const du = getQRDataURL(projectUrl, sz);
     if(du) blocks += `
       <div class="inv-qr-block" style="text-align:center">
-        <img src="${du}" width="${sz}" height="${sz}" style="border-radius:6px;border:1px solid #e0e0f0;display:block">
-        <div style="font-size:10px;font-weight:700;color:#7c6ff7;margin-top:5px;text-transform:uppercase;letter-spacing:.5px"><i class="fa-solid fa-link"></i> استلام المشروع</div>
+        <img src="${du}" width="${sz}" height="${sz}" style="border-radius:6px;border:1px solid ${theme.line};display:block">
+        <div style="font-size:10px;font-weight:700;color:${theme.accent};margin-top:5px;text-transform:uppercase;letter-spacing:.5px"><i class="fa-solid fa-link"></i> ${projectLabel}</div>
         <div style="font-size:9px;color:#888;max-width:${sz+10}px;word-break:break-all;margin-top:2px">${projectUrl.length>38?projectUrl.slice(0,38)+'â€¦':projectUrl}</div>
       </div>`;
   }
@@ -15382,8 +15393,8 @@ function buildQRSectionHTML(inv, forPDF){
       const du = getQRDataURL(s.url, sz);
       if(du) blocks += `
         <div class="inv-qr-block" style="text-align:center">
-          <img src="${du}" width="${sz}" height="${sz}" style="border-radius:6px;border:1px solid #e0e0f0;display:block">
-          <div style="font-size:10px;font-weight:700;color:${meta.color};margin-top:5px">${meta.icon} ${meta.label}</div>
+          <img src="${du}" width="${sz}" height="${sz}" style="border-radius:6px;border:1px solid ${theme.line};display:block">
+          <div style="font-size:10px;font-weight:700;color:${theme.accent};margin-top:5px">${meta.icon||'<i class="fa-solid fa-link"></i>'} ${escapeHtml(meta.label||s.name||'رابط')}</div>
         </div>`;
     });
   }
@@ -15391,7 +15402,7 @@ function buildQRSectionHTML(inv, forPDF){
   if(!blocks) return '';
 
   return `<div style="${bgStyle}">
-    <div style="font-size:11px;font-weight:700;color:#7c6ff7;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px"><i class="fa-solid fa-mobile-screen"></i> QR كودات ? امسحها بكاميرتك</div>
+    <div style="font-size:11px;font-weight:700;color:${theme.accent};margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px"><i class="fa-solid fa-mobile-screen"></i> روابط QR — امسحها بكاميرتك</div>
     <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">${blocks}</div>
   </div>`;
 }
