@@ -219,7 +219,7 @@
       (rows.length ? '<table class="fv3-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th><th>المبلغ</th><th>إجراءات</th></tr></thead><tbody>'+
         rows.map(function(r){
           var actions=r.entity==='transaction'?'<div style="display:flex;gap:5px"><button class="btn btn-ghost btn-sm" title="تعديل العملية" onclick="OrdoClientFinanceFix.editTransaction('+JSON.stringify(String(r.id))+','+JSON.stringify(bundle.client.id)+')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-danger btn-sm" title="حذف العملية" onclick="OrdoClientFinanceFix.deleteTransaction('+JSON.stringify(String(r.id))+','+JSON.stringify(bundle.client.id)+')"><i class="fa-solid fa-trash"></i></button></div>':'<span style="color:var(--text3)">—</span>';
-          return '<tr><td>'+esc(r.date||'-')+'</td><td><span class="fv3-pill">'+esc(r.type)+'</span></td><td>'+esc(r.desc)+'</td><td style="font-weight:900;color:'+(num(r.amount)<0?'var(--accent3)':'var(--accent4)')+'">'+fmt(r.amount,r.code)+'</td><td>'+actions+'</td></tr>';
+          return '<tr><td>'+esc(r.date||'-')+'</td><td><span class="fv3-pill">'+esc(r.type)+'</span></td><td>'+(r.entity==='transaction'?'<button class="btn btn-ghost btn-sm" style="padding:2px 7px" onclick="OrdoPaymentCapture.openDetails('+JSON.stringify(String(r.id))+')">'+esc(r.desc)+'</button>':esc(r.desc))+'</td><td style="font-weight:900;color:'+(num(r.amount)<0?'var(--accent3)':'var(--accent4)')+'">'+fmt(r.amount,r.code)+'</td><td>'+actions+'</td></tr>';
         }).join('')+'</tbody></table>' : '<div class="empty" style="padding:24px">لا توجد حركات أو مستحقات مسجلة</div>');
     return true;
   }

@@ -708,7 +708,7 @@
       rows.map(function(t){
         var a = accountById(t.account_id);
         var isExpense = t.type === 'expense';
-        return '<tr><td>'+esc(txDate(t) || '-')+'</td><td><span class="fv3-pill">'+(isExpense?'مصروف':'دخل')+'</span></td><td>'+esc(t.desc || t.source || t.expCat || '-').slice(0,90)+'</td><td>'+esc(a ? a.name : '-')+'</td><td class="'+(isExpense?'fv3-amount-expense':'fv3-amount-income')+'">'+(isExpense?'- ':'+ ')+fmt(txAmount(t),currency(t,a))+'</td><td><button class="btn btn-ghost btn-sm" onclick="'+(isExpense?'openExpenseModal':'openIncomeModal')+'(\''+esc(t.id)+'\')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-danger btn-sm" onclick="deleteFinanceTransaction(\''+esc(t.id)+'\')"><i class="fa-solid fa-trash"></i></button></td></tr>';
+        return '<tr><td>'+esc(txDate(t) || '-')+'</td><td><span class="fv3-pill">'+(isExpense?'مصروف':'دخل')+'</span></td><td><button class="btn btn-ghost btn-sm" style="padding:2px 7px" onclick="OrdoPaymentCapture.openDetails('+JSON.stringify(String(t.id))+')">'+esc(t.desc || t.source || t.expCat || '-').slice(0,90)+'</button></td><td>'+esc(a ? a.name : '-')+'</td><td class="'+(isExpense?'fv3-amount-expense':'fv3-amount-income')+'">'+(isExpense?'- ':'+ ')+fmt(txAmount(t),currency(t,a))+'</td><td><button class="btn btn-ghost btn-sm" onclick="'+(isExpense?'openExpenseModal':'openIncomeModal')+'(\''+esc(t.id)+'\')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-danger btn-sm" onclick="deleteFinanceTransaction(\''+esc(t.id)+'\')"><i class="fa-solid fa-trash"></i></button></td></tr>';
       }).join('')+'</tbody></table></section>';
   }
   function openReceivablesModal(){
