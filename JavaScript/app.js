@@ -11426,7 +11426,9 @@ function exportPDF(id){
     <!DOCTYPE html><html lang="ar" dir="rtl">
     <head>
     <meta charset="UTF-8">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=block" rel="stylesheet">
     <style>
       *{margin:0;padding:0;box-sizing:border-box;}
       body{font-family:'Cairo',sans-serif;background:#fff;color:#1a1a2e;direction:rtl;}
@@ -11532,8 +11534,26 @@ function exportPDF(id){
       setTimeout(()=>{w.focus();w.print();},500);
     }
   };
-  if(frame.contentWindow.document.readyState==='complete') setTimeout(doPrint,250);
-  else frame.onload=()=>setTimeout(doPrint,250);
+  const printWhenAssetsReady=()=>{
+    const frameDoc=frame.contentWindow.document;
+    const fontReady=frameDoc.fonts&&frameDoc.fonts.ready
+      ? Promise.race([
+          frameDoc.fonts.load('400 12px Cairo').then(()=>frameDoc.fonts.load('900 15px Cairo')).then(()=>frameDoc.fonts.ready),
+          new Promise(resolve=>setTimeout(resolve,5000))
+        ])
+      : Promise.resolve();
+    const imageReady=Promise.all(Array.from(frameDoc.images||[]).map(img=>{
+      if(img.complete) return Promise.resolve();
+      return new Promise(resolve=>{
+        img.addEventListener('load',resolve,{once:true});
+        img.addEventListener('error',resolve,{once:true});
+        setTimeout(resolve,3000);
+      });
+    }));
+    Promise.all([fontReady,imageReady]).then(()=>setTimeout(doPrint,100));
+  };
+  if(frame.contentWindow.document.readyState==='complete') printWhenAssetsReady();
+  else frame.onload=printWhenAssetsReady;
 }
 
 // ============================================================

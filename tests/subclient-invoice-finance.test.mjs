@@ -30,3 +30,10 @@ test('printed invoice isolates every subclient into its own section',()=>{
   assert.match(app,/subClientGroups\.forEach\(g=>pushSplitSection/);
   assert.match(app,/تابع للعميل الرئيسي/);
 });
+
+test('invoice printing waits for the Arabic font and images',()=>{
+  assert.match(app,/frameDoc\.fonts\.load\('400 12px Cairo'\)/);
+  assert.match(app,/frameDoc\.fonts\.load\('900 15px Cairo'\)/);
+  assert.match(app,/Promise\.all\(\[fontReady,imageReady\]\)/);
+  assert.match(html,/app\.js\?v=invoice-font-ready-15/);
+});
