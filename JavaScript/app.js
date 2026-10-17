@@ -2099,7 +2099,7 @@ function openWaModal(tplType, invIdOrNull, taskIdOrNull){
     if(inv){
       clientName = inv.client;
       invNum     = inv.num||'';
-      invTotal   = _invoiceDisplayTotal(inv).toLocaleString()+' '+_getCurrency();
+      invTotal   = _fmtPrice(_invoiceAmountDue(inv),inv.currency_code||inv.currency_symbol||inv.currency);
       invDue     = inv.due||'';
       projectUrl = inv.projectUrl||'';
       taskName   = inv.items?.[0]?.desc||'';
@@ -10549,6 +10549,11 @@ function _invoiceRefreshStoredTotals(inv){
 function _invoiceDisplayTotal(inv){
   return _invoiceRefreshStoredTotals(inv).net || +(inv&&inv.total||0);
 }
+function _invoiceAmountDue(inv){
+  if(!inv) return 0;
+  if(inv.paid===true || inv.status==='paid' || inv.status==='مدفوعة') return 0;
+  return Math.max(0, _invoiceRefreshStoredTotals(inv).remaining || 0);
+}
 
 function openInvoiceModal(id){
   fillDD('inv-client');
@@ -11021,7 +11026,7 @@ function renderInvoices(){
   tbody.innerHTML=S.invoices.map(inv=>`<tr>
     <td style="font-family:var(--mono);color:var(--accent);font-size:12px">${inv.num}</td>
     <td>${inv.client}${inv.parentClient?`<div style="font-size:10px;color:var(--text3);margin-top:1px"><i class="fa-solid fa-building"></i> ${inv.parentClient}</div>`:''}</td>
-    <td style="font-weight:700;color:var(--accent3)">${_invoiceDisplayTotal(inv).toLocaleString()} ج</td>
+    <td style="font-weight:700;color:var(--accent3)" title="صافي المستحق بعد الخصم والمدفوعات">${_fmtPrice(_invoiceAmountDue(inv),inv.currency_code||inv.currency_symbol||inv.currency)}</td>
     <td>${sm[inv.status]}</td>
     <td><div class="inv-actions">
       <button class="btn btn-ghost btn-sm" onclick="previewInv(${inv.id})" title="معاينة"><i class="fa-solid fa-eye"></i></button>

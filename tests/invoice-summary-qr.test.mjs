@@ -35,3 +35,10 @@ test('client invoice list shows a visible collection icon',()=>{
   assert.match(app,/title="تحصيل الفاتورة" aria-label="تحصيل الفاتورة"/);
   assert.match(app,/fa-hand-holding-dollar" style="color:inherit"/);
 });
+
+test('invoice list and WhatsApp use net payable amount after every deduction',()=>{
+  assert.match(app,/function _invoiceAmountDue\(inv\)/);
+  assert.match(app,/invTotal\s*=\s*_fmtPrice\(_invoiceAmountDue\(inv\)/);
+  assert.match(app,/صافي المستحق بعد الخصم والمدفوعات/);
+  assert.match(app,/_fmtPrice\(_invoiceAmountDue\(inv\),inv\.currency_code\|\|inv\.currency_symbol\|\|inv\.currency\)/);
+});
