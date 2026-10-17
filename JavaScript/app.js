@@ -11039,7 +11039,9 @@ function renderInvoices(){
     if(Object.prototype.hasOwnProperty.call(inv,'publicPrintHtml')){delete inv.publicPrintHtml;removedLegacyPrintSnapshots=true;}
     if(Object.prototype.hasOwnProperty.call(inv,'publicPrintKey')){delete inv.publicPrintKey;removedLegacyPrintSnapshots=true;}
   });
-  if(removedLegacyPrintSnapshots){lsSave();if(typeof _queueCloudSave==='function')_queueCloudSave();}
+  const portalScopeUpgrade=S.settings?._portalScopeVersion!==2;
+  if(portalScopeUpgrade){S.settings=S.settings||{};S.settings._portalScopeVersion=2;}
+  if(removedLegacyPrintSnapshots||portalScopeUpgrade){lsSave();if(typeof _queueCloudSave==='function')_queueCloudSave();}
   const sm={
     pending:'<span class="inv-status-badge inv-uncollected">âڈ³ لم يتم التحصيل</span>',
     partial:'<span class="inv-status-badge" style="background:rgba(124,111,247,.15);color:var(--accent)"><i class="fa-solid fa-circle-half-stroke"></i> مدفوع جزئياً</span>',
