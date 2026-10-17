@@ -280,7 +280,8 @@ function hideLs(){const l=document.getElementById('ls');l.style.opacity='0';l.st
 function showErr(m){document.getElementById('ls').style.display='none';const er=document.getElementById('er');er.style.display='flex';if(m)document.getElementById('er-msg').textContent=m;}
 function applyPortalIdentityBackground(settings){
   const mode=settings.displayMode||'dark';
-  const theme=settings.appearanceThemes?.[mode]||(!settings.appearanceThemes?settings:null);
+  const themes=settings.appearanceThemes&&typeof settings.appearanceThemes==='object'?settings.appearanceThemes:null;
+  const theme=themes?.[mode]||(!themes?settings:null);
   const valid=value=>/^#[0-9a-f]{6}$/i.test(value||'');
   const mix=(hex,target,ratio)=>{
     const a=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));

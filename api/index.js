@@ -309,7 +309,7 @@ async function financeFeatureAccess(store,user){
 
 function publicView(data, type, token) {
   const settings = data.settings || {};
-  const publicSettings = Object.fromEntries(['name','studio','studioName','username','store_slug','svc_store_name','store_logo','svc_banner','svc_banner_size','svc_banner_custom_px','svc_site_desc','svc_orders_open','socials','logo','logoDark','logoLight','avatar','accent','accentColor','accent2','accentColor2','theme_color','displayMode','display_mode','fontScale','toneColor','toneStyle','toneGradientEnd','toneAngle','hoverOverlayColor','phone','email','whatsapp','about','bio','currency','base_currency','base_currency_code','enabled_currencies','socialLinks','social_links'].filter(key => settings[key] !== undefined).map(key => [key, settings[key]]));
+  const publicSettings = Object.fromEntries(['name','studio','studioName','username','store_slug','svc_store_name','store_logo','svc_banner','svc_banner_size','svc_banner_custom_px','svc_site_desc','svc_orders_open','socials','logo','logoDark','logoLight','avatar','accent','accentColor','accent2','accentColor2','theme_color','displayMode','display_mode','fontScale','toneColor','toneStyle','toneGradientEnd','toneAngle','appearanceThemes','hoverOverlayColor','phone','email','whatsapp','about','bio','currency','base_currency','base_currency_code','enabled_currencies','socialLinks','social_links'].filter(key => settings[key] !== undefined).map(key => [key, settings[key]]));
   if (type === 'store') return { settings: publicSettings, services: data.services || [], standalone_packages: data.standalone_packages || [], portfolio_projects: data.portfolio_projects || [], stores: data.stores || [], reviews: (data.reviews || []).filter(row => row.public_visible !== false) };
   if (type === 'reviews_public') return { settings: publicSettings, reviews: (data.reviews || []).filter(row => row.public_visible !== false), public_tokens: (data.public_tokens || []).filter(item => ['review','store'].includes(item.entity_type) && !item.revoked && (!item.expires_at || new Date(item.expires_at) > new Date())).map(item => ({token:item.token,entity_type:item.entity_type})) };
   if (type === 'review') return { settings: publicSettings, reviews: (data.reviews || []).filter(row => row.public_visible !== false) };
@@ -1341,6 +1341,7 @@ export default async function handler(req, res) {
     if (postAction === 'public.snapshot') {
       const snapshot = await publicSnapshot(store, input);
       if (!snapshot) return fail(res, 'الرابط غير صالح أو غير متاح', 404, 'public_not_found');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       return ok(res, snapshot);
     }
 

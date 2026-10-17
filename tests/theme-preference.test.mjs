@@ -7,6 +7,8 @@ const app = fs.readFileSync(new URL('../JavaScript/app.js', import.meta.url), 'u
 const cloudThemeSource = app.slice(app.indexOf('function _loadThemeFromCloud(){'), app.indexOf('// PLATFORM NAME', app.indexOf('function _loadThemeFromCloud(){')));
 const modeSource = app.slice(app.indexOf('function setDisplayMode(mode, persist = true) {'), app.indexOf('function setThemeColor(', app.indexOf('function setDisplayMode(mode, persist = true) {')));
 const portal = fs.readFileSync(new URL('../HTML/client-portal.html', import.meta.url), 'utf8');
+const api = fs.readFileSync(new URL('../api/index.js', import.meta.url), 'utf8');
+const vercel = fs.readFileSync(new URL('../vercel.json', import.meta.url), 'utf8');
 
 test('client portal shares the workspace palette and account accent without stale secondary orange', () => {
   for (const token of ['--bg:#0d1425', '--s1:#151e32', '--s2:#1b2640', '--s3:#22304e', '--bd:#303d59']) {
@@ -17,6 +19,13 @@ test('client portal shares the workspace palette and account accent without stal
   assert.match(portal, /ownerPref\('studioAccentColor'\)/);
   assert.match(portal, /ownerPref\('studioDisplayMode'\)/);
   assert.match(portal, /ownerPref\('studioToneColor'\)/);
+});
+
+test('public portal receives modern appearance themes without stale caching', () => {
+  assert.match(api, /'appearanceThemes'/);
+  assert.match(api, /postAction === 'public\.snapshot'[\s\S]*?Cache-Control', 'no-store, no-cache, must-revalidate'/);
+  assert.match(vercel, /\/portal\/\(\.\*\)[\s\S]*?no-store, no-cache, must-revalidate/);
+  assert.match(vercel, /\/HTML\/client-portal\.html[\s\S]*?no-store, no-cache, must-revalidate/);
 });
 
 test('locally chosen dark mode wins over an older light setting from cloud', () => {

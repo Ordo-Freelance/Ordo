@@ -43,6 +43,8 @@
     { "source": "/CSS/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=600, stale-while-revalidate=3600" }] },
     { "source": "/admin", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
     { "source": "/admin/", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
-    { "source": "/HTML/admin.html", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] }
+    { "source": "/HTML/admin.html", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
+    { "source": "/portal/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
+    { "source": "/HTML/client-portal.html", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] }
   ]
 }
