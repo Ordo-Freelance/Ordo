@@ -23383,6 +23383,7 @@ function openPortfolioProjectModal(id){
   var nm=document.getElementById('pf-proj-thumb-name'); if(nm) nm.textContent='لا توجد صورة';
   var cl=document.getElementById('pf-proj-thumb-clear'); if(cl) cl.style.display='none';
   var inp=document.getElementById('pf-proj-thumb-input'); if(inp) inp.value='';
+  var importStatus=document.getElementById('pf-behance-import-status'); if(importStatus){importStatus.style.display='none';importStatus.textContent='';}
   // populate cats
   var catSel=document.getElementById('pf-proj-cat');
   if(catSel){
@@ -23430,6 +23431,45 @@ function clearPfProjThumb(){
   var nm=document.getElementById('pf-proj-thumb-name'); if(nm) nm.textContent='لا توجد صورة';
   var cl=document.getElementById('pf-proj-thumb-clear'); if(cl) cl.style.display='none';
   var inp=document.getElementById('pf-proj-thumb-input'); if(inp) inp.value='';
+}
+async function importBehancePortfolio(){
+  var urlEl=document.getElementById('pf-proj-url');
+  var url=(urlEl&&urlEl.value||'').trim();
+  var status=document.getElementById('pf-behance-import-status');
+  var btn=document.getElementById('pf-behance-import-btn');
+  if(!/^https:\/\/(?:www\.)?behance\.net\//i.test(url)){
+    toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل رابط مشروع صحيح من Behance');
+    if(status){status.style.display='block';status.style.color='var(--accent4)';status.textContent='الرابط يجب أن يبدأ بـ https://www.behance.net/';}
+    return;
+  }
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> استيراد';}
+  if(status){status.style.display='block';status.style.color='var(--text3)';status.textContent='جاري قراءة بيانات المشروع والصورة المصغرة...';}
+  try{
+    var response=await fetch('/api/index?action=portfolio.behance_import',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({url:url})});
+    var payload=await response.json();
+    if(!response.ok||payload.error) throw new Error(payload.error&&payload.error.message||'تعذر استيراد المشروع');
+    var project=payload.data||{};
+    var nameEl=document.getElementById('pf-proj-name');
+    var descEl=document.getElementById('pf-proj-desc');
+    var typeEl=document.getElementById('pf-proj-link-type');
+    if(nameEl&&project.title) nameEl.value=project.title;
+    if(descEl&&project.description) descEl.value=project.description;
+    if(typeEl) typeEl.value='behance';
+    if(urlEl&&project.url) urlEl.value=project.url;
+    if(project.thumbnail){
+      _pfThumbData=project.thumbnail;
+      var preview=document.getElementById('pf-proj-thumb-preview'); if(preview){preview.src=project.thumbnail;preview.style.display='';}
+      var nm=document.getElementById('pf-proj-thumb-name'); if(nm) nm.textContent='صورة مستوردة من Behance';
+      var clear=document.getElementById('pf-proj-thumb-clear'); if(clear) clear.style.display='';
+    }
+    if(status){status.style.color='var(--accent3)';status.textContent='تم استيراد اسم المشروع والوصف والصورة المصغرة. اختر التصنيف ثم احفظ.';}
+    toast('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم استيراد مشروع Behance');
+  }catch(error){
+    if(status){status.style.color='var(--accent4)';status.textContent=error.message||'تعذر استيراد المشروع';}
+    toast('<i class="fa-solid fa-triangle-exclamation"></i> '+escapeHtml(error.message||'تعذر استيراد المشروع'));
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-brands fa-behance"></i> استيراد';}
+  }
 }
 function savePortfolioProject(){
   var name=(document.getElementById('pf-proj-name')||{}).value||''; if(!name.trim()){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل اسم المشروع');return;}

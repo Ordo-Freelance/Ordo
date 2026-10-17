@@ -5812,7 +5812,11 @@ try {
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">رابط المشروع</label>
-        <input class="form-input" id="pf-proj-url" placeholder="رابط Behance أو Drive..." dir="ltr">
+        <div style="display:flex;gap:7px;align-items:center">
+          <input class="form-input" id="pf-proj-url" placeholder="رابط Behance أو Drive..." dir="ltr" style="flex:1">
+          <button type="button" class="btn btn-primary btn-sm" id="pf-behance-import-btn" onclick="importBehancePortfolio()" style="white-space:nowrap"><i class="fa-brands fa-behance"></i> استيراد</button>
+        </div>
+        <div id="pf-behance-import-status" style="display:none;font-size:10px;margin-top:6px;color:var(--text3)"></div>
       </div>
       <div class="form-group">
         <label class="form-label">نوع الرابط</label>
@@ -5824,7 +5828,7 @@ try {
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">صورة مصغرة <span style="color:var(--text3);font-size:10px">(أقصى 1MB)</span></label>
+      <label class="form-label">صورة مصغرة <span style="color:var(--text3);font-size:10px">(تُستورد تلقائياً من Behance أو ارفعها يدوياً)</span></label>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <input type="file" id="pf-proj-thumb-input" accept="image/*" style="display:none" onchange="handlePfProjThumb(this)">
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pf-proj-thumb-input').click()"><i class="fa-solid fa-folder"></i> رفع صورة</button>

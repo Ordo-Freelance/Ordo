@@ -608,9 +608,9 @@ function renderPage(){
 
   const activeTasks=_clientTasks.filter(t=>!t.done&&t.status!=='مكتملة'&&t.status!=='موقوفة').length;
   const doneTasks=_clientTasks.filter(t=>t.done||t.status==='مكتملة').length;
-  const totalInv=_clientInvoices.reduce((s,i)=>s+(+i.total||0),0);
-  const paidInv=_clientInvoices.filter(i=>i.paid||i.status==='مدفوعة').reduce((s,i)=>s+(+i.total||0),0);
-  const unpaid=Math.max(0,totalInv-paidInv);
+  const totalInv=_clientInvoices.reduce((s,i)=>s+_portalInvoiceValues(i).total,0);
+  const paidInv=_clientInvoices.reduce((s,i)=>s+_portalInvoiceValues(i).prepaid,0);
+  const unpaid=_clientInvoices.reduce((s,i)=>s+_portalInvoiceValues(i).due,0);
 
   // ── الرصيد الافتتاحي للعميل ──
   const clientObj=(_ud.clients||[]).find(c=>String(c.id)===String(_clientId));
@@ -1770,16 +1770,13 @@ function renderAccounts(){
 
   const invoiceTotals={};
   const paidTotals={};
+  const unpaidTotals={};
   _clientInvoices.forEach(inv=>{
     const c=_entityCur(inv).code;
-    _addCurrencyTotal(invoiceTotals,c,inv.total||inv.amount||0);
-    if(_invoicePaid(inv)) _addCurrencyTotal(paidTotals,c,inv.total||inv.amount||0);
-  });
-
-  const unpaidTotals={};
-  Object.keys(invoiceTotals).forEach(code=>{
-    const v=(invoiceTotals[code]||0)-(paidTotals[code]||0);
-    if(v>0) unpaidTotals[code]=v;
+    const vals=_portalInvoiceValues(inv);
+    _addCurrencyTotal(invoiceTotals,c,vals.total);
+    _addCurrencyTotal(paidTotals,c,vals.prepaid);
+    _addCurrencyTotal(unpaidTotals,c,vals.due);
   });
   const unbilledTasks=_unbilledPortalTasks(_clientTasks,_clientInvoices);
   const workTotals={};

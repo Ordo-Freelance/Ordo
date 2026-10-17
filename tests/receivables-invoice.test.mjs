@@ -85,6 +85,11 @@ test('account tab shows unbilled task dues and footer stays at page bottom', () 
   assert.match(portalSource,/\.wrap\{[^}]*flex:1/);
 });
 
+test('portal account totals use invoice net due after discount and prepayment',()=>{
+  assert.match(portalSource,/const vals=_portalInvoiceValues\(inv\);[\s\S]*?_addCurrencyTotal\(invoiceTotals,c,vals\.total\);[\s\S]*?_addCurrencyTotal\(paidTotals,c,vals\.prepaid\);[\s\S]*?_addCurrencyTotal\(unpaidTotals,c,vals\.due\);/);
+  assert.match(portalSource,/const unpaid=_clientInvoices\.reduce\(\(s,i\)=>s\+_portalInvoiceValues\(i\)\.due,0\)/);
+});
+
 test('portal billing tab includes account statements and readable identity colors', () => {
   assert.match(portalSource, /_clientStatements=\(ud\.statements\|\|\[\]\)/);
   assert.match(portalSource, /الفواتير والكشوف/);

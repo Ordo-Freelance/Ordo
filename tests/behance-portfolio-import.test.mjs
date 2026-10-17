@@ -1,0 +1,33 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { parseBehanceMetadata, validatedBehanceUrl } from '../api/index.js';
+
+const appSource=fs.readFileSync(new URL('../JavaScript/app.js',import.meta.url),'utf8');
+const htmlSource=fs.readFileSync(new URL('../HTML/index.html',import.meta.url),'utf8');
+const portalSource=fs.readFileSync(new URL('../HTML/client-portal.html',import.meta.url),'utf8');
+const storeSource=fs.readFileSync(new URL('../HTML/store.html',import.meta.url),'utf8');
+
+test('Behance importer only permits HTTPS Behance pages',()=>{
+  assert.equal(validatedBehanceUrl('https://www.behance.net/gallery/123/Test')?.hostname,'www.behance.net');
+  assert.equal(validatedBehanceUrl('http://www.behance.net/gallery/123/Test'),null);
+  assert.equal(validatedBehanceUrl('https://behance.net.evil.test/gallery/123'),null);
+  assert.equal(validatedBehanceUrl('https://127.0.0.1/gallery/123'),null);
+});
+
+test('Behance Open Graph metadata fills the portfolio project',()=>{
+  const html=`<meta property="og:title" content="Brand Identity — Behance"><meta name="description" content="Project details"><meta property="og:image" content="/cover.jpg">`;
+  assert.deepEqual(parseBehanceMetadata(html,'https://www.behance.net/gallery/123/Test'),{
+    title:'Brand Identity',description:'Project details',thumbnail:'https://www.behance.net/cover.jpg',url:'https://www.behance.net/gallery/123/Test',provider:'behance'
+  });
+  assert.match(htmlSource,/id="pf-behance-import-btn"/);
+  assert.match(appSource,/function importBehancePortfolio\(\)/);
+  assert.match(appSource,/_pfThumbData=project\.thumbnail/);
+});
+
+test('saved portfolio projects remain visible in both portal and store',()=>{
+  assert.match(portalSource,/portfolio_projects\|\|\[\]/);
+  assert.match(storeSource,/portfolio_projects\|\|\[\]/);
+  assert.match(portalSource,/p\.thumb\|\|p\.image/);
+  assert.match(storeSource,/p\.thumb\|\|p\.image/);
+});

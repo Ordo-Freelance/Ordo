@@ -161,6 +161,47 @@ function parseMaybe(value) {
   return value;
 }
 
+function decodeHtmlEntities(value = '') {
+  return String(value)
+    .replace(/&amp;/gi, '&').replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(parseInt(code, 16)));
+}
+
+function htmlMeta(html, key) {
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const patterns = [
+    new RegExp(`<meta[^>]+(?:property|name)=["']${escaped}["'][^>]+content=["']([^"']*)["'][^>]*>`, 'i'),
+    new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+(?:property|name)=["']${escaped}["'][^>]*>`, 'i')
+  ];
+  for (const pattern of patterns) {
+    const match = String(html || '').match(pattern);
+    if (match) return decodeHtmlEntities(match[1]).trim();
+  }
+  return '';
+}
+
+function parseBehanceMetadata(html, sourceUrl) {
+  const title = htmlMeta(html, 'og:title') || htmlMeta(html, 'twitter:title');
+  const description = htmlMeta(html, 'og:description') || htmlMeta(html, 'description') || htmlMeta(html, 'twitter:description');
+  const thumbnail = htmlMeta(html, 'og:image') || htmlMeta(html, 'twitter:image');
+  return {
+    title: title.replace(/\s*[—|]\s*Behance\s*$/i, '').trim(),
+    description,
+    thumbnail: thumbnail ? new URL(thumbnail, sourceUrl).toString() : '',
+    url: sourceUrl,
+    provider: 'behance'
+  };
+}
+
+function validatedBehanceUrl(value) {
+  let target;
+  try { target = new URL(String(value || '').trim()); } catch { return null; }
+  if (target.protocol !== 'https:' || !['behance.net', 'www.behance.net'].includes(target.hostname.toLowerCase())) return null;
+  return target;
+}
+
 function unwrapStudio(value) {
   let data = value;
   for (let i = 0; i < 4; i++) {
@@ -1179,9 +1220,33 @@ export default async function handler(req, res) {
     }
 
     if (req.method !== 'POST') return fail(res, 'POST only', 405, 'method_not_allowed');
-    const store = await makePostgresStore();
     const input = await readBody(req);
     const postAction = action || input.action || '';
+    const store = await makePostgresStore();
+
+    if (postAction === 'portfolio.behance_import') {
+      const { user } = await currentUser(req, store);
+      if (!user) return fail(res, 'يلزم تسجيل الدخول لاستيراد المشروع', 401, 'login_required');
+      const target = validatedBehanceUrl(input.url);
+      if (!target) return fail(res, 'أدخل رابط مشروع صحيح من Behance', 400, 'invalid_behance_url');
+      const response = await fetch(target.toString(), {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; OrdoPortfolioImporter/1.0)',
+          'Accept': 'text/html,application/xhtml+xml'
+        },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(12000)
+      });
+      if (!response.ok) return fail(res, 'تعذر قراءة صفحة المشروع من Behance', 502, 'behance_fetch_failed');
+      const finalUrl = validatedBehanceUrl(response.url);
+      if (!finalUrl) return fail(res, 'حوّل Behance الطلب إلى رابط غير مسموح', 400, 'invalid_behance_redirect');
+      const length = Number(response.headers.get('content-length') || 0);
+      if (length > 3 * 1024 * 1024) return fail(res, 'صفحة المشروع أكبر من الحد المسموح', 413, 'behance_page_too_large');
+      const html = (await response.text()).slice(0, 3 * 1024 * 1024);
+      const metadata = parseBehanceMetadata(html, finalUrl.toString());
+      if (!metadata.title && !metadata.thumbnail) return fail(res, 'لم نتمكن من استخراج بيانات المشروع. تأكد أن الرابط عام.', 422, 'behance_metadata_missing');
+      return ok(res, metadata);
+    }
 
     if (postAction === 'auth.session' || postAction === 'auth.user') {
       const { user, token } = await currentUser(req, store);
@@ -1630,4 +1695,4 @@ export default async function handler(req, res) {
   }
 }
 
-export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo, portalChatAccess, portalChatAttachment, portalChatPublicRow, financeFeatureAccess };
+export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo, portalChatAccess, portalChatAttachment, portalChatPublicRow, financeFeatureAccess, parseBehanceMetadata, validatedBehanceUrl };
