@@ -202,6 +202,19 @@ function validatedBehanceUrl(value) {
   return target;
 }
 
+function behanceProjectId(target) {
+  return String(target?.pathname || '').match(/^\/gallery\/(\d+)\//)?.[1] || '';
+}
+
+function behanceCoverFromEmbed(html) {
+  const source = decodeHtmlEntities(String(html || '').replace(/\\\//g, '/'));
+  const preferred = source.match(/https:\/\/mir-s3-cdn-cf\.behance\.net\/projects\/(?:max_808|808)_webp\/[^"'\s<]+/i);
+  if (preferred) return preferred[0];
+  const srcset = source.match(/<img[^>]+alt=["']Project Cover:[^>]+srcset=["']([^"']+)/i)?.[1] || '';
+  const urls = [...srcset.matchAll(/(https:\/\/[^\s,]+)/g)].map(match => match[1]);
+  return urls.at(-1) || '';
+}
+
 function unwrapStudio(value) {
   let data = value;
   for (let i = 0; i < 4; i++) {
@@ -1229,22 +1242,36 @@ export default async function handler(req, res) {
       if (!user) return fail(res, 'يلزم تسجيل الدخول لاستيراد المشروع', 401, 'login_required');
       const target = validatedBehanceUrl(input.url);
       if (!target) return fail(res, 'أدخل رابط مشروع صحيح من Behance', 400, 'invalid_behance_url');
-      const response = await fetch(target.toString(), {
+      const projectId = behanceProjectId(target);
+      if (!projectId) return fail(res, 'الرابط يجب أن يكون رابط مشروع Behance منشوراً', 400, 'invalid_behance_project');
+      const canonical = new URL(target.toString());
+      canonical.hostname = 'behance.net';
+      const oembedUrl = new URL('https://www.behance.net/services/oembed');
+      oembedUrl.searchParams.set('url', canonical.toString());
+      const response = await fetch(oembedUrl, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; OrdoPortfolioImporter/1.0)',
-          'Accept': 'text/html,application/xhtml+xml'
+          'User-Agent': 'Mozilla/5.0',
+          'Accept': 'application/json',
+          'Referer': 'https://www.behance.net/'
         },
         redirect: 'follow',
         signal: AbortSignal.timeout(12000)
       });
-      if (!response.ok) return fail(res, 'تعذر قراءة صفحة المشروع من Behance', 502, 'behance_fetch_failed');
-      const finalUrl = validatedBehanceUrl(response.url);
-      if (!finalUrl) return fail(res, 'حوّل Behance الطلب إلى رابط غير مسموح', 400, 'invalid_behance_redirect');
-      const length = Number(response.headers.get('content-length') || 0);
-      if (length > 3 * 1024 * 1024) return fail(res, 'صفحة المشروع أكبر من الحد المسموح', 413, 'behance_page_too_large');
-      const html = (await response.text()).slice(0, 3 * 1024 * 1024);
-      const metadata = parseBehanceMetadata(html, finalUrl.toString());
-      if (!metadata.title && !metadata.thumbnail) return fail(res, 'لم نتمكن من استخراج بيانات المشروع. تأكد أن الرابط عام.', 422, 'behance_metadata_missing');
+      if (!response.ok) return fail(res, 'تعذر قراءة بيانات المشروع من Behance', 502, 'behance_fetch_failed');
+      const embed = await response.json();
+      const embedResponse = await fetch(`https://www.behance.net/embed/project/${projectId}?ilo0=1`, {
+        headers: {'User-Agent':'Mozilla/5.0','Accept':'text/html,application/xhtml+xml'},
+        signal: AbortSignal.timeout(12000)
+      });
+      const embedHtml = embedResponse.ok ? (await embedResponse.text()).slice(0, 2 * 1024 * 1024) : '';
+      const metadata = {
+        title: String(embed.title || '').replace(/\s+-\s+[^-]+$/,'').trim(),
+        description: embed.author_name ? `مشروع بواسطة ${embed.author_name}` : '',
+        thumbnail: behanceCoverFromEmbed(embedHtml),
+        url: target.toString(),
+        provider: 'behance'
+      };
+      if (!metadata.title || !metadata.thumbnail) return fail(res, 'لم نتمكن من استخراج صورة المشروع. تأكد أن المشروع منشور ويسمح بالتضمين.', 422, 'behance_metadata_missing');
       return ok(res, metadata);
     }
 
@@ -1695,4 +1722,4 @@ export default async function handler(req, res) {
   }
 }
 
-export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo, portalChatAccess, portalChatAttachment, portalChatPublicRow, financeFeatureAccess, parseBehanceMetadata, validatedBehanceUrl };
+export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo, portalChatAccess, portalChatAttachment, portalChatPublicRow, financeFeatureAccess, parseBehanceMetadata, validatedBehanceUrl, behanceProjectId, behanceCoverFromEmbed };

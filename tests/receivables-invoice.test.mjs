@@ -90,6 +90,11 @@ test('portal account totals use invoice net due after discount and prepayment',(
   assert.match(portalSource,/const unpaid=_clientInvoices\.reduce\(\(s,i\)=>s\+_portalInvoiceValues\(i\)\.due,0\)/);
 });
 
+test('portal invoice tolerates legacy JSON-string allocations without breaking the page',()=>{
+  assert.match(portalSource,/const safeArray=value=>/);
+  assert.match(portalSource,/safeArray\(tx\.allocations\)\.filter/);
+});
+
 test('portal billing tab includes account statements and readable identity colors', () => {
   assert.match(portalSource, /_clientStatements=\(ud\.statements\|\|\[\]\)/);
   assert.match(portalSource, /الفواتير والكشوف/);
@@ -116,7 +121,7 @@ test('portal invoices open a protected preview and provide PDF printing', () => 
 
 test('portal invoice uses discounted net, linked collections, and real A4 page count', () => {
   assert.match(portalSource, /const total=Math\.max\(0,subtotal-Math\.min\(subtotal,discount\)\)/);
-  assert.match(portalSource, /tx\.allocations\|\|\[\]/);
+  assert.match(portalSource, /safeArray\(tx\.allocations\)/);
   assert.match(portalSource, /مدفوع \/ عربون \/ جزئي/);
   assert.match(portalSource, /perPage=10/);
   assert.match(portalSource, /صفحة \$\{pageIndex\+1\} من \$\{pageCount\}/);

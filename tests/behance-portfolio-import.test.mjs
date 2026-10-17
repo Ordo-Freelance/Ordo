@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { parseBehanceMetadata, validatedBehanceUrl } from '../api/index.js';
+import { parseBehanceMetadata, validatedBehanceUrl, behanceProjectId, behanceCoverFromEmbed } from '../api/index.js';
 
 const appSource=fs.readFileSync(new URL('../JavaScript/app.js',import.meta.url),'utf8');
 const htmlSource=fs.readFileSync(new URL('../HTML/index.html',import.meta.url),'utf8');
@@ -9,10 +9,17 @@ const portalSource=fs.readFileSync(new URL('../HTML/client-portal.html',import.m
 const storeSource=fs.readFileSync(new URL('../HTML/store.html',import.meta.url),'utf8');
 
 test('Behance importer only permits HTTPS Behance pages',()=>{
-  assert.equal(validatedBehanceUrl('https://www.behance.net/gallery/123/Test')?.hostname,'www.behance.net');
+  const target=validatedBehanceUrl('https://www.behance.net/gallery/123/Test');
+  assert.equal(target?.hostname,'www.behance.net');
+  assert.equal(behanceProjectId(target),'123');
   assert.equal(validatedBehanceUrl('http://www.behance.net/gallery/123/Test'),null);
   assert.equal(validatedBehanceUrl('https://behance.net.evil.test/gallery/123'),null);
   assert.equal(validatedBehanceUrl('https://127.0.0.1/gallery/123'),null);
+});
+
+test('Behance embed page yields the official project cover',()=>{
+  const html='<img alt="Project Cover: Test" srcset="https://mir-s3-cdn-cf.behance.net/projects/404_webp/cover.jpg 404w, https://mir-s3-cdn-cf.behance.net/projects/max_808_webp/cover.jpg 808w">';
+  assert.equal(behanceCoverFromEmbed(html),'https://mir-s3-cdn-cf.behance.net/projects/max_808_webp/cover.jpg');
 });
 
 test('Behance Open Graph metadata fills the portfolio project',()=>{

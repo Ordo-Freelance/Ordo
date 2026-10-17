@@ -404,6 +404,7 @@ function _currencyRows(map, color){
 }
 function _clientTransactions(){
   return (_ud&&_ud.transactions||[]).filter(t=>{
+    if(!t||typeof t!=='object')return false;
     return (_clientId && String(t.client_id||'')===String(_clientId)) ||
       _clientProjects?.some(p=>String(p.id)===String(t.project_id||t.projectId||'')) ||
       t.source===_clientName || t.client===_clientName || t.client_name===_clientName;
@@ -1883,7 +1884,13 @@ function renderInvoices(){
 }
 
 function _portalInvoiceValues(inv){
-  const items=Array.isArray(inv.items)?inv.items:[];
+  const safeArray=value=>{
+    if(Array.isArray(value))return value;
+    if(typeof value==='string'){try{const parsed=JSON.parse(value);return Array.isArray(parsed)?parsed:[];}catch(_){return [];}}
+    return [];
+  };
+  inv=inv&&typeof inv==='object'?inv:{};
+  const items=safeArray(inv.items).filter(item=>item&&typeof item==='object');
   const itemsTotal=items.reduce((sum,it)=>sum+(+(it.qty||1)*+(it.price||it.amount||0)),0);
   const subtotal=+(inv.subtotal||inv.beforeDiscount||itemsTotal||inv.total||0);
   const discount=+(inv.discountAmount||inv.discount_amount||(inv.discountType==='percent'?subtotal*(+(inv.discount||0)/100):inv.discount)||0);
@@ -1891,7 +1898,7 @@ function _portalInvoiceValues(inv){
   const linkedPaid=_clientTransactions().reduce((sum,tx)=>{
     if(tx.type!=='income')return sum;
     const direct=String(tx.invoice_id||tx.invoiceId||tx.linkedInvoiceId||'')===String(inv.id);
-    const allocated=(tx.allocations||[]).filter(a=>String(a.invoice_id||a.invoiceId||'')===String(inv.id)).reduce((n,a)=>n+(+a.amount||0),0);
+    const allocated=safeArray(tx.allocations).filter(a=>a&&String(a.invoice_id||a.invoiceId||'')===String(inv.id)).reduce((n,a)=>n+(+a.amount||0),0);
     return sum+(direct?(+tx.amount||0):allocated);
   },0);
   const prepaid=Math.max(+(inv.prepaid||0),+(inv.paidInAdvance||0),+(inv.deposit||0),+(inv.paidAmount||inv.amountPaid||0),linkedPaid);
