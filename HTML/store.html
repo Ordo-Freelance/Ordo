@@ -630,6 +630,12 @@ async function buildPage(userId, preloadedData){
     '._rev-avg-count{font-size:12px;color:'+textMuted+'}'+
     '._rev-comment{font-size:12px;color:'+textSub+';line-height:1.7;font-style:italic;padding:10px 12px;background:'+cardBg+';border-radius:10px;border-right:3px solid #f7c948;margin-top:10px}';
     document.head.appendChild(css);
+    // The generic store stylesheet is built at runtime. Apply the saved
+    // account identity once more afterwards so the user's selected palette,
+    // background mode and public surfaces stay authoritative.
+    if(window.applyOrdoPublicAppearance)window.applyOrdoPublicAppearance(settings);
+    document.documentElement.style.setProperty('--ac',accent);
+    document.documentElement.style.setProperty('--accent',accent);
 
     // ══════════════════════════════════
     // ── SOCIALS helper ──

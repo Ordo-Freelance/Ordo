@@ -144,7 +144,7 @@ body.lm .brief-portal-sheet{color-scheme:light}
 .nav-wa:hover{opacity:.88}
 @media(max-width:420px){.nav-hdr-btn span{display:none}.nav-hdr-btn{padding:7px 10px}}
 /* STORE SECTION */
-.store-sec{margin-top:40px}
+.store-sec{margin-top:72px}
 .store-divider{height:1px;background:linear-gradient(90deg,var(--ac),transparent);margin-bottom:28px;opacity:.4}
 .store-tabs{display:flex;gap:0;border-bottom:2px solid var(--bd);margin-bottom:0;overflow-x:auto;scrollbar-width:none}
 .store-tabs::-webkit-scrollbar{display:none}
@@ -156,10 +156,16 @@ body.lm .brief-portal-sheet{color-scheme:light}
 /* SVC CARDS GRID */
 .svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
 @media(max-width:480px){.svc-grid{grid-template-columns:1fr 1fr;gap:10px}}
-.store-sec .svc-grid,.store-sec .pf-grid{display:flex;overflow-x:auto;overflow-y:hidden;gap:14px;padding:2px 2px 12px;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:var(--ac) transparent;overscroll-behavior-inline:contain}
+.store-sec .svc-grid,.store-sec .pf-grid{display:flex;overflow-x:auto;overflow-y:hidden;gap:12px;padding:2px 2px 12px;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:var(--ac) transparent;overscroll-behavior-inline:contain}
 .store-sec .svc-grid::-webkit-scrollbar,.store-sec .pf-grid::-webkit-scrollbar{height:6px}
 .store-sec .svc-grid::-webkit-scrollbar-thumb,.store-sec .pf-grid::-webkit-scrollbar-thumb{background:var(--ac);border-radius:10px}
-.store-sec .svc-card,.store-sec .pf-card{flex:0 0 min(270px,82vw);scroll-snap-align:start}
+.store-sec .svc-card{flex:0 0 min(245px,78vw);scroll-snap-align:start}
+.store-sec .pf-card{flex:0 0 min(210px,70vw);scroll-snap-align:start;direction:rtl}
+.store-sec .pf-grid[data-auto-loop="true"]{direction:ltr;scroll-snap-type:none;scrollbar-width:none}
+.store-sec .pf-grid[data-auto-loop="true"]::-webkit-scrollbar{display:none}
+.store-sec .pf-grid[data-auto-loop="true"] .pf-card img{height:122px}
+.store-sec .pf-grid[data-auto-loop="true"] .pf-info{padding:9px 10px 10px;gap:5px}
+.store-sec .pf-grid[data-auto-loop="true"] .pf-title{font-size:11.5px}
 .svc-card{background:var(--s1);border:1.5px solid var(--bd);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;position:relative}
 .svc-card:hover{transform:translateY(-3px);border-color:rgba(124,111,247,.45);box-shadow:0 10px 28px rgba(124,111,247,.15)}
 .svc-img{width:100%;height:130px;object-fit:cover;display:block}
@@ -257,7 +263,6 @@ if(!ORDO_SUPABASE_CONFIG.SUPA_URL||!ORDO_SUPABASE_CONFIG.SUPA_ANON||ORDO_SUPABAS
 const SUPA_URL=ORDO_SUPABASE_CONFIG.SUPA_URL||'';
 const SUPA_ANON=ORDO_SUPABASE_CONFIG.SUPA_ANON||'';
 const ORDO_HOME='./';
-const STORE_URL='./store.html';
 
 const db=supabase.createClient(SUPA_URL,SUPA_ANON);
 async function sendPortalEvent(eventType, eventData){
@@ -265,6 +270,12 @@ async function sendPortalEvent(eventType, eventData){
   return ORDO_API_REQUEST('public.portalEvent',{token:pPublicToken,event_type:eventType,event_data:eventData});
 }
 const xe=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');
+function _portalStoreLink(){
+  const settings=_settings||{},slug=String(settings.username||settings.store_slug||'').trim();
+  const uid=window._resolvedUid||pUid||'';
+  if(location.protocol==='file:')return 'store.html?'+(slug?'u='+encodeURIComponent(slug):'uid='+encodeURIComponent(uid));
+  return slug?location.origin+'/store/'+encodeURIComponent(slug):location.origin+'/store?uid='+encodeURIComponent(uid);
+}
 
 // xeHtml: يعرض HTML من Quill بشكل آمن — يحتفظ بالصور ويمنع السكريبتات
 function xeHtml(html) {
@@ -694,8 +705,7 @@ function renderPage(){
   const invoicesFirst=initialTab==='invoices';
 
   // ── بناء رابط المتجر بالـ username لو متاح ──
-  const _storeUid=window._resolvedUid||pUid||'';
-  const _storeLink=(location.protocol!=='file:'?location.origin+'/store':'/HTML/store.html')+'?uid='+encodeURIComponent(_storeUid);
+  const _storeLink=_portalStoreLink();
 
   // ── Fix #9: Apply user identity (title, favicon, theme-color) ──
   document.title = (nm || 'Ordo') + ' — بوابة العميل';
@@ -824,6 +834,7 @@ function renderPage(){
     <span>© ${new Date().getFullYear()} ${xe(nm)}</span>
     <div class="ftr-pw"><span>مدعوم من</span><span style="font-size:11px;font-weight:900;color:var(--ac)">⚡ Ordo</span><a href="${ORDO_HOME}" target="_blank" class="ftr-try"><i class="fa-solid fa-bolt"></i>جرّب الآن</a></div>
   </div></footer>`;
+  setTimeout(_startPortalPortfolioAutoScroll,100);
 }
 
 // ── TASKS STATE ──
@@ -964,10 +975,7 @@ function renderStoreSection(){
   if(!svcs.length && !pkgs.length && !pfRaw.length) return '';
 
   const acc = _settings?.accent||_settings?.accentColor||'#7c6ff7';
-  const un  = _settings?.username||'';
-  const storeLink = un
-    ? (STORE_URL+'?u='+encodeURIComponent(un))
-    : (STORE_URL+'?uid='+(window._resolvedUid||pUid||''));
+  const storeLink=_portalStoreLink();
 
   // ── helper: بناء كرت خدمة أو باقة ──
   function svcCard(s, type, idx){
@@ -1041,31 +1049,18 @@ function renderStoreSection(){
       : `<div class="empty"><i class="fa-solid fa-box"></i>لا توجد باقات حالياً</div>`}
   </div>`;
 
+  function portfolioCards(duplicate){
+    return pfRaw.map(p=>{
+      const img=p.thumb||p.image||'',link=p.url||p.link||'#',title=p.name||p.title||p.label||'مشروع';
+      const isB=p.link_type==='behance'||p.type==='behance',cat=p.cat||p.category||p.type_label||(isB?'Behance':'مشروع');
+      return `<a class="pf-card" href="${xe(link)}" target="_blank" title="${xe(title)}"${duplicate?' aria-hidden="true" tabindex="-1"':''}>
+        ${img?`<img src="${xe(img)}" alt="${xe(title)}" loading="lazy">`:`<div class="pf-ph"><div class="pf-ph-icon">${isB?'<i class="fa-brands fa-behance"></i>':'<i class="fa-solid fa-folder-open"></i>'}</div><div class="pf-ph-name">${xe(title.slice(0,24))}</div></div>`}
+        <div class="pf-info"><div class="pf-title">${xe(title)}</div><div class="pf-cat">${xe(cat)}</div><div class="pf-link"><span>عرض المشروع</span><i class="fa-solid fa-arrow-up-right-from-square"></i></div></div>
+      </a>`;
+    }).join('');
+  }
   const pfPanel = `<div class="store-tab-panel${_storeActiveTab==='pf'?' on':''}" id="_sp-pf">
-    ${pfRaw.length
-      ? `<div class="pf-grid">
-          ${pfRaw.map(p=>{
-            const img   = p.thumb||p.image||'';
-            const link  = p.url||p.link||'#';
-            const title = p.name||p.title||p.label||'مشروع';
-            const isB   = p.link_type==='behance'||p.type==='behance';
-            const cat   = p.cat||p.category||p.type_label||(isB?'Behance':'مشروع');
-            return `<a class="pf-card" href="${xe(link)}" target="_blank" title="${xe(title)}">
-              ${img
-                ? `<img src="${xe(img)}" alt="${xe(title)}" loading="lazy">`
-                : `<div class="pf-ph">
-                    <div class="pf-ph-icon">${isB?'<i class="fa-brands fa-behance"></i>':'<i class="fa-solid fa-folder-open"></i>'}</div>
-                    <div class="pf-ph-name">${xe(title.slice(0,24))}</div>
-                   </div>`}
-              <div class="pf-info">
-                <div class="pf-title">${xe(title)}</div>
-                <div class="pf-cat">${xe(cat)}</div>
-                <div class="pf-link"><span>عرض المشروع</span><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
-              </div>
-            </a>`;
-          }).join('')}
-        </div>`
-      : `<div class="empty"><i class="fa-solid fa-images"></i>لا توجد أعمال حالياً</div>`}
+    ${pfRaw.length?`<div class="pf-grid" id="_portal-pf-marquee" data-auto-loop="${pfRaw.length>1?'true':'false'}">${portfolioCards(false)}${pfRaw.length>1?portfolioCards(true):''}</div>`:`<div class="empty"><i class="fa-solid fa-images"></i>لا توجد أعمال حالياً</div>`}
   </div>`;
 
   return `
@@ -1096,6 +1091,25 @@ function _storeSetTab(key){
   tmp.innerHTML = renderStoreSection();
   const newSec = tmp.firstElementChild;
   if(newSec) sec.parentElement.replaceChild(newSec, sec);
+  setTimeout(_startPortalPortfolioAutoScroll,80);
+}
+
+function _startPortalPortfolioAutoScroll(){
+  const rail=document.getElementById('_portal-pf-marquee');
+  if(!rail||rail.dataset.autoLoop!=='true'||rail.dataset.running==='true')return;
+  if(!rail.clientWidth)return;
+  rail.dataset.running='true';
+  let paused=false,last=performance.now();
+  const pause=()=>{paused=true},resume=()=>{paused=false;last=performance.now()};
+  rail.addEventListener('mouseenter',pause);rail.addEventListener('mouseleave',resume);
+  rail.addEventListener('pointerdown',pause);rail.addEventListener('pointerup',resume);rail.addEventListener('pointercancel',resume);
+  function move(now){
+    if(!document.body.contains(rail))return;
+    const loopAt=rail.querySelector('[aria-hidden="true"]')?.offsetLeft||rail.scrollWidth/2;
+    if(!paused&&loopAt>rail.clientWidth){rail.scrollLeft+=(now-last)*0.028;if(rail.scrollLeft>=loopAt)rail.scrollLeft-=loopAt;}
+    last=now;requestAnimationFrame(move);
+  }
+  requestAnimationFrame(move);
 }
 
 // ══════════════════════════════════════════════
@@ -1110,10 +1124,7 @@ function renderServices(){
   if(!svcs.length && !pkgs.length) return '';
 
   const acc = _settings?.accent||_settings?.accentColor||'#7c6ff7';
-  const un  = _settings?.username||'';
-  const storeLink = un
-    ? (STORE_URL+'?u='+encodeURIComponent(un))
-    : (STORE_URL+'?uid='+(window._resolvedUid||pUid||''));
+  const storeLink=_portalStoreLink();
 
   // ── كاتيجوريز فريدة ──
   const cats = [...new Set([...svcs,...pkgs].map(s=>s.cat).filter(Boolean))];

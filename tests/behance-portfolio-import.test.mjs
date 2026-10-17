@@ -42,7 +42,13 @@ test('saved portfolio projects remain visible in both portal and store',()=>{
   assert.match(portalSource,/عرض المشروع/);
   assert.match(portalSource,/store-sec \.svc-grid,\.store-sec \.pf-grid\{display:flex;overflow-x:auto/);
   assert.match(portalSource,/>عرض المزيد<\/span>/);
+  assert.match(portalSource,/location\.origin\+'\/store\/'\+encodeURIComponent\(slug\)/);
+  assert.match(portalSource,/id="_portal-pf-marquee" data-auto-loop=/);
+  assert.match(portalSource,/function _startPortalPortfolioAutoScroll\(\)/);
+  assert.match(portalSource,/rail\.scrollLeft\+=\(now-last\)\*0\.028/);
+  assert.match(portalSource,/\.store-sec\{margin-top:72px\}/);
   assert.match(storeSource,/class="_pf-title"/);
   assert.match(storeSource,/class="_pf-cat"/);
   assert.match(storeSource,/class="_pf-link"><span>عرض المشروع/);
+  assert.match(storeSource,/if\(window\.applyOrdoPublicAppearance\)window\.applyOrdoPublicAppearance\(settings\)/);
 });
