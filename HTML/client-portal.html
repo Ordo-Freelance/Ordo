@@ -2026,7 +2026,15 @@ function _portalInvoiceStyles(){
 }
 function _portalInvoiceDocument(inv,printMode){
   const exact=typeof inv?.publicPrintHtml==='string'?inv.publicPrintHtml.trim():'';
-  if(/^<!doctype html>|^<html[\s>]/i.test(exact))return exact;
+  if(/^<!doctype html>|^<html[\s>]/i.test(exact)){
+    if(printMode)return exact;
+    // The canonical document is exactly A4 wide. In a wider iframe an RTL
+    // body pins that fixed-width page to the right, leaving one large white
+    // strip on the left. Center only the on-screen preview; printing/PDF keeps
+    // the original freelancer document byte-for-byte.
+    const previewFit='<style id="portal-preview-fit">html{background:#666!important}body{width:100%!important;min-width:210mm;background:#666!important}.inv-page{margin-left:auto!important;margin-right:auto!important}</style>';
+    return exact.replace(/<\/head>/i,previewFit+'</head>');
+  }
   return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><link href="../Assets/vendor/fonts/offline-fonts.css" rel="stylesheet"><style>${_portalInvoiceStyles()}</style></head><body>${_portalInvoiceBody(inv,!!printMode)}</body></html>`;
 }
 function openPortalInvoice(id){

@@ -135,6 +135,9 @@ test('portal invoices open a protected preview and provide PDF printing', () => 
   assert.match(portalSource, /المهام المكتملة/);
   assert.match(portalSource, /function _portalInvoiceDocument\(inv,printMode\)/);
   assert.match(portalSource, /typeof inv\?\.publicPrintHtml==='string'/);
+  assert.match(portalSource, /id="portal-preview-fit"/);
+  assert.match(portalSource, /\.inv-page\{margin-left:auto!important;margin-right:auto!important\}/);
+  assert.match(portalSource, /if\(printMode\)return exact/);
   assert.match(portalSource, /srcdoc=_portalInvoiceDocument\(inv,false\)/);
   assert.match(portalSource, /srcdoc=_portalInvoiceDocument\(inv,true\)/);
   assert.match(portalSource, /المهام المكتملة <small>/);
