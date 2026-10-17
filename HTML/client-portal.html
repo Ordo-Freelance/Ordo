@@ -166,6 +166,11 @@ body.lm .brief-portal-sheet{color-scheme:light}
 .store-sec .pf-grid[data-auto-loop="true"] .pf-card img{height:122px}
 .store-sec .pf-grid[data-auto-loop="true"] .pf-info{padding:9px 10px 10px;gap:5px}
 .store-sec .pf-grid[data-auto-loop="true"] .pf-title{font-size:11.5px}
+.pf-rail-wrap{position:relative;padding-inline:34px}
+.pf-rail-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:30px;height:30px;border-radius:50%;border:1px solid var(--bd);background:var(--s1);color:var(--ac);display:grid;place-items:center;cursor:pointer;box-shadow:0 5px 16px rgba(0,0,0,.22);transition:.18s}
+.pf-rail-arrow:hover{background:var(--ac);color:#fff;border-color:var(--ac);transform:translateY(-50%) scale(1.07)}
+.pf-rail-arrow.prev{left:0}.pf-rail-arrow.next{right:0}
+@media(max-width:520px){.pf-rail-wrap{padding-inline:30px}.pf-rail-arrow{width:27px;height:27px}}
 .svc-card{background:var(--s1);border:1.5px solid var(--bd);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;position:relative}
 .svc-card:hover{transform:translateY(-3px);border-color:rgba(124,111,247,.45);box-shadow:0 10px 28px rgba(124,111,247,.15)}
 .svc-img{width:100%;height:130px;object-fit:cover;display:block}
@@ -1060,7 +1065,11 @@ function renderStoreSection(){
     }).join('');
   }
   const pfPanel = `<div class="store-tab-panel${_storeActiveTab==='pf'?' on':''}" id="_sp-pf">
-    ${pfRaw.length?`<div class="pf-grid" id="_portal-pf-marquee" data-auto-loop="${pfRaw.length>1?'true':'false'}">${portfolioCards(false)}${pfRaw.length>1?portfolioCards(true):''}</div>`:`<div class="empty"><i class="fa-solid fa-images"></i>لا توجد أعمال حالياً</div>`}
+    ${pfRaw.length?`<div class="pf-rail-wrap">
+      <button class="pf-rail-arrow prev" type="button" onclick="_movePortalPortfolio(-1)" aria-label="السابق"><i class="fa-solid fa-chevron-left"></i></button>
+      <div class="pf-grid" id="_portal-pf-marquee" data-auto-loop="${pfRaw.length>1?'true':'false'}">${portfolioCards(false)}${pfRaw.length>1?portfolioCards(true):''}</div>
+      <button class="pf-rail-arrow next" type="button" onclick="_movePortalPortfolio(1)" aria-label="التالي"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>`:`<div class="empty"><i class="fa-solid fa-images"></i>لا توجد أعمال حالياً</div>`}
   </div>`;
 
   return `
@@ -1103,13 +1112,22 @@ function _startPortalPortfolioAutoScroll(){
   const pause=()=>{paused=true},resume=()=>{paused=false;last=performance.now()};
   rail.addEventListener('mouseenter',pause);rail.addEventListener('mouseleave',resume);
   rail.addEventListener('pointerdown',pause);rail.addEventListener('pointerup',resume);rail.addEventListener('pointercancel',resume);
+  window.addEventListener('pointerup',resume,{passive:true});window.addEventListener('blur',resume);
   function move(now){
     if(!document.body.contains(rail))return;
     const loopAt=rail.querySelector('[aria-hidden="true"]')?.offsetLeft||rail.scrollWidth/2;
-    if(!paused&&loopAt>rail.clientWidth){rail.scrollLeft+=(now-last)*0.028;if(rail.scrollLeft>=loopAt)rail.scrollLeft-=loopAt;}
+    if(!paused&&loopAt>rail.clientWidth){rail.scrollLeft+=(now-last)*0.065;if(rail.scrollLeft>=loopAt)rail.scrollLeft-=loopAt;}
     last=now;requestAnimationFrame(move);
   }
   requestAnimationFrame(move);
+}
+
+function _movePortalPortfolio(direction){
+  const rail=document.getElementById('_portal-pf-marquee');
+  if(!rail)return;
+  const card=rail.querySelector('.pf-card');
+  const step=(card?.getBoundingClientRect().width||210)+12;
+  rail.scrollBy({left:direction*step,behavior:'smooth'});
 }
 
 // ══════════════════════════════════════════════

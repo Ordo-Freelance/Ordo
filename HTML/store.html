@@ -293,7 +293,8 @@ async function buildPage(userId, preloadedData){
       history.replaceState({},'', '/store/'+encodeURIComponent(canonicalSlug));
     }
     var accent=settings.accentColor||settings.accent||settings.theme_color||'#7c6ff7';
-    var isLight=(settings.displayMode||settings.display_mode||'dark')==='light';
+    var identityMode=settings.displayMode||settings.display_mode||'dark';
+    var isLight=identityMode==='light';
     window.applyOrdoPublicAppearance(settings);
     var logo=settings.store_logo||(isLight ? (settings.logoDark||settings.logo||settings.logoLight) : (settings.logoLight||settings.logo||settings.logoDark))||'';
     var studioName=(settings.svc_store_name||settings.name||'Studio');
@@ -320,11 +321,31 @@ async function buildPage(userId, preloadedData){
     }
     document.getElementById('_ls-fill').style.background='linear-gradient(90deg,'+accent+','+accent+'99)';
 
-    // ── colors ──
-    var bg      =isLight?'#f4f5fb'  :'#0a0a0f';
-    var surface =isLight?'#ffffff'  :'#111118';
-    var surface2=isLight?'#f0f1f8'  :'#16161f';
-    var surface3=isLight?'#e8e9f4'  :'#1c1c28';
+    // ── colors: derive the complete store palette from the owner's identity ──
+    function validHex(v){return /^#[0-9a-f]{6}$/i.test(v||'');}
+    function mixHex(a,b,ratio){
+      return '#'+[1,3,5].map(function(i){
+        var x=parseInt(a.slice(i,i+2),16),y=parseInt(b.slice(i,i+2),16);
+        return Math.round(x*(1-ratio)+y*ratio).toString(16).padStart(2,'0');
+      }).join('');
+    }
+    function identityClamp(color){
+      var rgb=[1,3,5].map(function(i){return parseInt(color.slice(i,i+2),16);});
+      var lum=(rgb[0]*299+rgb[1]*587+rgb[2]*114)/1000;
+      return isLight&&lum<170?mixHex(color,'#ffffff',.75):!isLight&&lum>115?mixHex(color,'#0d1425',.72):color;
+    }
+    var identityTheme=settings.appearanceThemes&&settings.appearanceThemes[identityMode];
+    if(!identityTheme&&!settings.appearanceThemes)identityTheme=settings;
+    var identityTone=validHex(identityTheme&&identityTheme.toneColor)?identityClamp(identityTheme.toneColor):(isLight?'#f5f7ff':'#0d1425');
+    var identityToneEnd=validHex(identityTheme&&identityTheme.toneGradientEnd)?identityClamp(identityTheme.toneGradientEnd):identityTone;
+    var identityAngle=Math.max(0,Math.min(360,Number(identityTheme&&identityTheme.toneAngle)||135));
+    var pageBg=identityTheme&&identityTheme.toneStyle==='gradient'
+      ?'linear-gradient('+identityAngle+'deg,'+identityTone+','+identityToneEnd+')'
+      :identityTone;
+    var bg      =identityTone;
+    var surface =isLight?mixHex(bg,'#ffffff',.88):mixHex(bg,'#101827',.68);
+    var surface2=isLight?mixHex(bg,'#ffffff',.76):mixHex(bg,'#182238',.58);
+    var surface3=isLight?mixHex(bg,'#ffffff',.64):mixHex(bg,'#22304a',.48);
     var textMain=isLight?'#1a1a2e'  :'#f0f0f5';
     var textSub =isLight?'#555577'  :'#aaaacc';
     var textMuted=isLight?'#888899' :'#777799';
@@ -335,7 +356,9 @@ async function buildPage(userId, preloadedData){
     var sheetBg =isLight?'#ffffff':'#1a1a28';
     var C={bg:bg,surface:surface,surface2:surface2,surface3:surface3,textMain:textMain,textSub:textSub,textMuted:textMuted,borderC:borderC,cardBg:cardBg,cardBorder:cardBorder,sheetBg:sheetBg};
 
-    document.body.style.background=bg;
+    document.documentElement.style.background=pageBg;
+    document.body.style.background=pageBg;
+    document.body.style.backgroundAttachment='fixed';
     var _lsEl=document.getElementById('_ls');
     if(_lsEl) _lsEl.style.background=bg;
     var _lsBarEl=document.getElementById('_ls-bar');
@@ -459,7 +482,7 @@ async function buildPage(userId, preloadedData){
     var css=document.createElement('style');
     css.textContent=
     '*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}'+
-    'html,body{background:'+bg+';color:'+textMain+';font-family:\'Cairo\',sans-serif;direction:rtl;min-height:100vh;overflow-x:hidden}'+
+    'html,body{background:'+pageBg+';color:'+textMain+';font-family:\'Cairo\',sans-serif;direction:rtl;min-height:100vh;overflow-x:hidden}'+
     'body::before{content:\'\';position:fixed;inset:0;z-index:0;pointer-events:none;'+
       'background:radial-gradient(ellipse 80% 60% at 15% 5%,'+accent+'1e,transparent 60%),'+
       'radial-gradient(ellipse 60% 50% at 85% 90%,'+accent+'12,transparent 60%)}'+
