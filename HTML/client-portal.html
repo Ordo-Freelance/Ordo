@@ -283,6 +283,10 @@ function applyPortalIdentityBackground(settings){
   const themes=settings.appearanceThemes&&typeof settings.appearanceThemes==='object'?settings.appearanceThemes:null;
   const theme=themes?.[mode]||(!themes?settings:null);
   const valid=value=>/^#[0-9a-f]{6}$/i.test(value||'');
+  const brightness=hex=>{
+    const rgb=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
+    return (rgb[0]*299+rgb[1]*587+rgb[2]*114)/1000;
+  };
   const mix=(hex,target,ratio)=>{
     const a=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
     const b=[1,3,5].map(i=>parseInt(target.slice(i,i+2),16));
@@ -294,10 +298,17 @@ function applyPortalIdentityBackground(settings){
     return;
   }
   let first=theme.toneColor,second=valid(theme.toneGradientEnd)?theme.toneGradientEnd:first;
+  // Older accounts sometimes saved the light background as the single legacy
+  // tone while the selected mode was dark (or the reverse). Do not turn the
+  // whole public portal grey because of that conflicting legacy value.
+  if(!themes&&((mode==='dark'&&brightness(first)>190)||(mode==='light'&&brightness(first)<70))){
+    first=mode==='dark'?'#0d1425':'#f5f7ff';
+    second=first;
+  }
   const clamp=hex=>{
     const b=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
-    const brightness=(b[0]*299+b[1]*587+b[2]*114)/1000;
-    return mode==='light'&&brightness<170?mix(hex,'#ffffff',.75):mode==='dark'&&brightness>115?mix(hex,'#0d1425',.72):hex;
+    const luminance=(b[0]*299+b[1]*587+b[2]*114)/1000;
+    return mode==='light'&&luminance<170?mix(hex,'#ffffff',.75):mode==='dark'&&luminance>115?mix(hex,'#0d1425',.72):hex;
   };
   first=clamp(first);second=clamp(second);
   const angle=Math.max(0,Math.min(360,Number(theme.toneAngle)||135));

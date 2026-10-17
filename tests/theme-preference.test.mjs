@@ -28,6 +28,13 @@ test('public portal receives modern appearance themes without stale caching', ()
   assert.match(vercel, /\/HTML\/client-portal\.html[\s\S]*?no-store, no-cache, must-revalidate/);
 });
 
+test('portal rejects a legacy light tone when the selected mode is dark', () => {
+  assert.match(portal, /mode==='dark'&&brightness\(first\)>190/);
+  assert.match(portal, /first=mode==='dark'\?'#0d1425':'#f5f7ff'/);
+  const persistence = fs.readFileSync(new URL('../JavaScript/vercel_persistence.js', import.meta.url), 'utf8');
+  assert.match(persistence, /'appearanceThemes'/);
+});
+
 test('locally chosen dark mode wins over an older light setting from cloud', () => {
   const values = new Map([['studioDisplayMode','dark'],['studioAccentColor','#123456']]);
   const calls = [];
