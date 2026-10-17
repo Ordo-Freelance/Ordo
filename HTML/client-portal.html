@@ -643,8 +643,8 @@ function renderPage(){
   const totalTasksValue = _clientTasks.reduce((s,t)=>s+(+t.value||0),0);
   const totalProjTasksValue = (_ud.project_tasks||[]).filter(t=>_clientProjects.some(p=>String(p.id)===String(t.project_id))).reduce((s,t)=>s+(+t.value||0),0);
   _clientInvoices.forEach(inv=>{
-    const amount=+(inv.total||inv.amount||0);
-    if(amount>0 && !_invoicePaid(inv)) _addCurrencyTotal(dueByCurrency,_entityCur(inv).code,amount);
+    const vals=_portalInvoiceValues(inv),amount=vals.total;
+    if(vals.due>0) _addCurrencyTotal(dueByCurrency,_entityCur(inv).code,vals.due);
     if(amount>0) _addCurrencyTotal(chargeByCurrency,_entityCur(inv).code,amount);
   });
   if(openingBal>0 && openingType==='receivable') _addCurrencyTotal(dueByCurrency,openingCur.code,openingBal);
@@ -1861,6 +1861,7 @@ function renderInvoices(){
   if(!_clientInvoices.length&&!_clientStatements.length)return`<div class="empty"><i class="fa-solid fa-file-invoice"></i><div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:5px">لا توجد فواتير أو كشوف حساب بعد</div><div>ستظهر مستنداتك المالية هنا عند إصدارها</div></div>`;
   const invoices=_clientInvoices.sort((a,b)=>new Date(b.date||b.created_at||0)-new Date(a.date||a.created_at||0)).map(inv=>{
     const paid=inv.paid||inv.status==='مدفوعة';
+    const vals=_portalInvoiceValues(inv);
     return`<div class="inv-card is-openable" role="button" tabindex="0" onclick="openPortalInvoice('${xe(String(inv.id))}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPortalInvoice('${xe(String(inv.id))}')}" title="عرض الفاتورة وتحميل PDF">
       <div class="inv-ico"><i class="fa-solid fa-file-invoice-dollar"></i></div>
       <div class="inv-info">
@@ -1868,7 +1869,7 @@ function renderInvoices(){
         <div class="inv-date">${inv.date||inv.created_at?new Date(inv.date||inv.created_at).toLocaleDateString('ar-EG'):''}</div>
         <span class="badge ${paid?'badge-done':'badge-pend'}" style="margin-top:4px">${paid?'✅ مدفوعة':'⏳ غير مدفوعة'}</span>
       </div>
-      <div class="inv-amount">${inv.total?_money(inv.total,inv):'—'}</div>
+      <div class="inv-amount" title="صافي المستحق بعد الخصم والمدفوع">${_money(vals.due,inv)}<div style="font-size:9px;color:var(--t3);margin-top:3px">من صافي ${_money(vals.total,inv)}</div></div>
     </div>`;
   }).join('');
   const statements=_clientStatements.sort((a,b)=>new Date(b.to||b.endDate||b.createdAt||b.created_at||0)-new Date(a.to||a.endDate||a.createdAt||a.created_at||0)).map(stmt=>{
@@ -1889,15 +1890,21 @@ function _portalInvoiceValues(inv){
   const itemsTotal=items.reduce((sum,it)=>sum+(+(it.qty||1)*+(it.price||it.amount||0)),0);
   const subtotal=+(inv.subtotal||inv.beforeDiscount||itemsTotal||inv.total||0);
   const discount=+(inv.discountAmount||inv.discount_amount||(inv.discountType==='percent'?subtotal*(+(inv.discount||0)/100):inv.discount)||0);
-  const total=+(inv.total||inv.netTotal||Math.max(0,subtotal-discount));
-  const prepaid=+(inv.prepaid||inv.paidInAdvance||inv.deposit||0);
-  const due=Math.max(0,+(inv.totalDue??inv.remaining??inv.dueAmount??(total-prepaid))||0);
-  return {items,subtotal,discount,total,prepaid,due};
+  const total=Math.max(0,subtotal-Math.min(subtotal,discount));
+  const linkedPaid=_clientTransactions().reduce((sum,tx)=>{
+    if(tx.type!=='income')return sum;
+    const direct=String(tx.invoice_id||tx.invoiceId||tx.linkedInvoiceId||'')===String(inv.id);
+    const allocated=(tx.allocations||[]).filter(a=>String(a.invoice_id||a.invoiceId||'')===String(inv.id)).reduce((n,a)=>n+(+a.amount||0),0);
+    return sum+(direct?(+tx.amount||0):allocated);
+  },0);
+  const prepaid=Math.max(+(inv.prepaid||0),+(inv.paidInAdvance||0),+(inv.deposit||0),+(inv.paidAmount||inv.amountPaid||0),linkedPaid);
+  const due=(inv.paid||['paid','مدفوعة','مدفوع'].includes(inv.status))?0:Math.max(0,total-prepaid);
+  return {items,subtotal,discount,total,prepaid,due,linkedPaid};
 }
-function _portalInvoiceRows(inv){
-  const vals=_portalInvoiceValues(inv);
-  if(!vals.items.length)return`<tr><td colspan="4" style="padding:22px;text-align:center;color:#74748a">لا توجد بنود تفصيلية محفوظة</td></tr>`;
-  return vals.items.map(it=>{
+function _portalInvoiceRows(inv,sourceItems){
+  const items=sourceItems||_portalInvoiceValues(inv).items;
+  if(!items.length)return`<tr><td colspan="4" style="padding:22px;text-align:center;color:#74748a">لا توجد بنود تفصيلية محفوظة</td></tr>`;
+  return items.map(it=>{
     const qty=+(it.qty||1),price=+(it.price||it.amount||0),line=qty*price;
     const task=[...(_ud?.tasks||[]),...(_ud?.project_tasks||[])].find(t=>String(t.id)===String(it._taskId||it._projectTaskId||''));
     const date=(task?.doneAt||task?.deadline||task?.isoDate||task?.createdAt||it.date||it.isoDate||it.doneAt||inv.date||'').slice(0,10);
@@ -1906,21 +1913,26 @@ function _portalInvoiceRows(inv){
     return`<tr><td>${xe(it.desc||it.title||it.name||'بند')}</td><td style="text-align:center">${xe(date)}</td><td style="text-align:left;font-weight:800">${_money(line,inv)}</td><td style="text-align:center">${xe(status)}</td></tr>`;
   }).join('');
 }
-function _portalInvoiceBody(inv,printMode){
+function _portalInvoicePage(inv,pageItems,pageIndex,pageCount,printMode){
   const vals=_portalInvoiceValues(inv),s=_settings||{};
   const paid=inv.paid||['paid','مدفوعة'].includes(inv.status);
   const logo=(s.logoLight||s.logo||s.logoDark||'');
-  const summary=`<div class="portal-invoice-summary"><div><b>${_money(vals.subtotal,inv)}</b><span>إجمالي الفاتورة</span></div><div><b class="warn">${_money(vals.discount,inv)}</b><span>القيمة المخصومة</span></div><div><b class="paid">${_money(vals.prepaid,inv)}</b><span>مدفوع مسبقاً</span></div><div><b>${_money(vals.due,inv)}</b><span>إجمالي المستحق</span></div></div>`;
+  const summary=`<div class="portal-invoice-summary"><div><b>${_money(vals.subtotal,inv)}</b><span>الإجمالي قبل الخصم</span></div><div><b class="warn">${_money(vals.discount,inv)}</b><span>القيمة المخصومة</span></div><div><b>${_money(vals.total,inv)}</b><span>الصافي بعد الخصم</span></div><div><b class="paid">${_money(vals.prepaid,inv)}</b><span>مدفوع / عربون / جزئي</span></div><div><b>${_money(vals.due,inv)}</b><span>إجمالي المستحق</span></div></div>`;
   return`<div class="portal-invoice-doc ${printMode?'print-doc':''}">
     <div class="portal-invoice-head"><div>${logo?`<img src="${xe(logo)}" alt="${xe(s.name||'الشعار')}">`:`<strong>${xe(s.name||'Ordo')}</strong>`}</div><div><h1>فاتورة</h1><small>${xe(inv.num||inv.number||String(inv.id||''))}</small></div></div>
     <div class="portal-invoice-band"></div>
-    <div class="portal-invoice-meta"><div><b>العميل:</b> ${xe(inv.client||inv.client_name||_clientName||'')}</div><div><b>تاريخ الفاتورة:</b> ${xe(inv.date||inv.created_at||'')}</div><div><b>تاريخ الاستحقاق:</b> ${xe(inv.due||inv.dueDate||'')}</div></div>
-    ${(s.email||s.phone||s.address)?`<div class="portal-invoice-contact">${[s.email,s.phone,s.address].filter(Boolean).map(xe).join(' • ')}</div>`:''}
-    ${summary}
-    <section><h3><span>المهام المكتملة <small>${vals.items.length} بنود</small></span><em>${_money(vals.items.reduce((sum,it)=>sum+(+(it.qty||1)*+(it.price||it.amount||0)),0),inv)}</em></h3><table><thead><tr><th>الطلب</th><th>التاريخ</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>${_portalInvoiceRows(inv)}</tbody></table></section>
-    ${inv.notes?`<div class="portal-invoice-notes"><b>ملاحظات</b><br>${xe(inv.notes)}</div>`:''}
-    <footer>شكراً لتعاملكم معنا — ${xe(s.name||'Ordo')}</footer>
+    ${pageIndex===0?`<div class="portal-invoice-meta"><div><b>العميل:</b> ${xe(inv.client||inv.client_name||_clientName||'')}</div><div><b>تاريخ الفاتورة:</b> ${xe(inv.date||inv.created_at||'')}</div><div><b>تاريخ الاستحقاق:</b> ${xe(inv.due||inv.dueDate||'')}</div></div>${(s.email||s.phone||s.address)?`<div class="portal-invoice-contact">${[s.email,s.phone,s.address].filter(Boolean).map(xe).join(' • ')}</div>`:''}${summary}`:''}
+    <section><h3><span>المهام المكتملة <small>${vals.items.length} بنود</small></span><em>صفحة ${pageIndex+1} من ${pageCount}</em></h3><table><thead><tr><th>الطلب</th><th>التاريخ</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>${_portalInvoiceRows(inv,pageItems)}</tbody></table></section>
+    ${pageIndex===pageCount-1&&inv.notes?`<div class="portal-invoice-notes"><b>ملاحظات</b><br>${xe(inv.notes)}</div>`:''}
+    <footer><span>شكراً لتعاملكم معنا — ${xe(s.name||'Ordo')}</span><span>صفحة ${pageIndex+1} من ${pageCount}</span></footer>
   </div>`;
+}
+function _portalInvoiceBody(inv,printMode){
+  const items=_portalInvoiceValues(inv).items,perPage=10,pages=[];
+  const count=Math.max(1,Math.ceil(items.length/perPage));
+  for(let i=0;i<count;i++)pages.push(items.slice(i*perPage,(i+1)*perPage));
+  const pagingStyle=`<style>.portal-invoice-doc{margin:0 auto 14px;break-after:page;page-break-after:always}.portal-invoice-doc:last-child{break-after:auto;page-break-after:auto}.portal-invoice-summary{grid-template-columns:repeat(5,1fr);gap:8px}footer{display:flex;justify-content:space-between;text-align:right}@media print{.portal-invoice-doc{margin:0;break-after:page;page-break-after:always}.portal-invoice-doc:last-child{break-after:auto;page-break-after:auto}}</style>`;
+  return pagingStyle+pages.map((rows,index)=>_portalInvoicePage(inv,rows,index,pages.length,printMode)).join('');
 }
 function _portalInvoiceStyles(){
   const rawAccent=_settings?.invoiceAccent||_settings?.toneColor||_settings?.accentColor||_settings?.accent||'#f5a000';

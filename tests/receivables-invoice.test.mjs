@@ -108,3 +108,12 @@ test('portal invoices open a protected preview and provide PDF printing', () => 
   assert.match(portalSource, /linear-gradient\(135deg,#171721,#49351f\)/);
   assert.match(portalSource, /background:#fffaf1;border:1px solid #f4dfb6/);
 });
+
+test('portal invoice uses discounted net, linked collections, and real A4 page count', () => {
+  assert.match(portalSource, /const total=Math\.max\(0,subtotal-Math\.min\(subtotal,discount\)\)/);
+  assert.match(portalSource, /tx\.allocations\|\|\[\]/);
+  assert.match(portalSource, /مدفوع \/ عربون \/ جزئي/);
+  assert.match(portalSource, /perPage=10/);
+  assert.match(portalSource, /صفحة \$\{pageIndex\+1\} من \$\{pageCount\}/);
+  assert.match(portalSource, /vals\.due>0/);
+});
