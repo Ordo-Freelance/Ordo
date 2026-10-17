@@ -121,6 +121,21 @@ test('portal billing tab includes account statements and readable identity color
   assert.match(portalSource, /كشوفات الحساب/);
   assert.match(portalSource, /--t1','#f7f9ff'/);
   assert.match(portalSource, /--t3','#aeb8d0'/);
+  assert.match(portalSource, /function openPortalAccountStatement\(\)/);
+  assert.match(portalSource, /عرض كشف الحساب/);
+  assert.match(portalSource, /document\.getElementById\('tp-accounts'\)/);
+});
+
+test('client portal can make invoices and statements the first section',()=>{
+  const appSource=fs.readFileSync(new URL('../JavaScript/app.js',import.meta.url),'utf8');
+  const indexSource=fs.readFileSync(new URL('../HTML/index.html',import.meta.url),'utf8');
+  assert.match(appSource,/الفواتير وكشف الحساب أولاً/);
+  assert.match(appSource,/function _saveClientPortalDefaultTab\(clientId,value\)/);
+  assert.match(appSource,/token\.default_tab=value/);
+  assert.match(indexSource,/default_tab: portal\.default_tab \|\| 'tasks'/);
+  assert.match(portalSource,/function _portalDefaultTab\(\)/);
+  assert.match(portalSource,/const invoicesFirst=initialTab==='invoices'/);
+  assert.match(portalSource,/!pTaskId&&!pTab&&!pInvoiceId&&_portalDefaultTab\(\)==='invoices'/);
 });
 
 test('portal invoices open a protected preview and provide PDF printing', () => {

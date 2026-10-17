@@ -6301,10 +6301,12 @@ function _ensurePublicLinkToken(entityType, entityId, opts) {
         client_id: opts.client_id || null,
         project_id: opts.project_id || null,
         allowed_sections: opts.allowed_sections || null,
-        expires_at: opts.expires_at || null
+        expires_at: opts.expires_at || null,
+        default_tab: opts.default_tab || null
       });
       if (tokenObj && tokenObj.token) {
         if (opts.allow_multiple !== undefined) tokenObj.allow_multiple = !!opts.allow_multiple;
+        if (opts.default_tab) tokenObj.default_tab = opts.default_tab;
         if (opts.entity) {
           opts.entity.public_token = tokenObj.token;
           opts.entity.updatedAt = new Date().toISOString();
@@ -6370,6 +6372,7 @@ function _publicPortalToken(clientId, taskId, portalObj) {
     fallbackToken: portal.public_token || portal.token,
     client_id: clientId || portal.client_id || null,
     project_id: portal.project_id || null,
+    default_tab: portal.default_tab || 'tasks',
     allowed_sections: ['client','projects','tasks','invoices','contracts','proposals','reviews','orders']
   });
 }

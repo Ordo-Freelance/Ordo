@@ -24568,9 +24568,11 @@ function _ordoClientPortalToken(clientId, taskId, portal) {
       var t = window.OrdoData.createPublicToken('client_portal', portal.id, {
         client_id: clientId || portal.client_id || null,
         project_id: portal.project_id || null,
+        default_tab: portal.default_tab || 'tasks',
         allowed_sections: ['client','projects','tasks','invoices','contracts','proposals','reviews','orders']
       });
       if (t && t.token) {
+        t.default_tab = portal.default_tab || 'tasks';
         portal.public_token = t.token;
         portal.updatedAt = new Date().toISOString();
         portal._dirty = true;
@@ -24594,13 +24596,20 @@ function _shortPortalUrl(clientId,taskId){
 
 function _showClientPortalLink(clientId){
   var c=(S.clients||[]).find(function(x){return String(x.id)===String(clientId);}); if(!c) return;
+  S.client_portals=S.client_portals||[];
+  var portal=S.client_portals.find(function(p){return String(p.client_id||'')===String(clientId||'');});
+  if(!portal){
+    portal={id:'portal_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),entity_type:'client_portal',source_type:'client_portal_link',source_id:String(clientId),client_id:String(clientId),client_name:c.name||'',status:'active',default_tab:'tasks',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),_dirty:true};
+    S.client_portals.push(portal);lsSave();
+  }
+  var defaultTab=portal.default_tab==='invoices'?'invoices':'tasks';
   var uid=(typeof _supaUserId!=='undefined'&&_supaUserId)?_supaUserId:'';
   var _pp2=window.location.pathname,_ps2=_pp2.split('/').filter(function(x){return x!=='';});
   if(_ps2.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_ps2[_ps2.length-1])>=0)_ps2.pop();
   if(_ps2.length&&_ps2[_ps2.length-1].endsWith('.html'))_ps2.pop();
   var base=window.location.origin+(_ps2.length?'/'+_ps2.join('/')+'/' :'/') +'client-portal.html';
   var link=_shortPortalUrl(clientId);
-  link = _ordoAttachPublicToken(link, _ordoClientPortalToken(clientId));
+  link = _ordoAttachPublicToken(link, _ordoClientPortalToken(clientId,null,portal));
   var over=document.createElement('div');
   over.className='modal-overlay'; over.style.display='flex';
   over.innerHTML=`<div class="modal" style="max-width:500px">
@@ -24619,6 +24628,14 @@ function _showClientPortalLink(clientId){
         return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600">'+x[0]+'</div>';
       }).join('')}
     </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">
+      <label for="_client-portal-default-tab" style="display:block;font-size:12px;font-weight:800;margin-bottom:7px"><i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--accent)"></i> أول قسم يظهر للعميل</label>
+      <select id="_client-portal-default-tab" data-client-id="${escapeHtml(String(clientId))}" onchange="_saveClientPortalDefaultTab(this.dataset.clientId,this.value)" style="width:100%;background:var(--surface3);color:var(--text1);border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-family:inherit">
+        <option value="tasks" ${defaultTab==='tasks'?'selected':''}>الطلبات والمهام أولاً</option>
+        <option value="invoices" ${defaultTab==='invoices'?'selected':''}>الفواتير وكشف الحساب أولاً</option>
+      </select>
+      <div style="font-size:10px;color:var(--text3);margin-top:6px">يُحفظ الاختيار فوراً ويُطبّق على رابط البوابة الحالي.</div>
+    </div>
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:monospace;font-size:11px;word-break:break-all;margin-bottom:14px;color:var(--text2)">${link}</div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('<i class=\\'fa-solid fa-square-check\\' style=\\'color:var(--accent3)\\'></i> تم نسخ رابط بوابة ${escapeHtml(c.name)}'))">
@@ -24630,6 +24647,22 @@ function _showClientPortalLink(clientId){
   </div>`;
   document.body.appendChild(over);
   over.onclick=e=>{if(e.target===over)over.remove();};
+}
+
+async function _saveClientPortalDefaultTab(clientId,value){
+  value=value==='invoices'?'invoices':'tasks';
+  var portal=(S.client_portals||[]).find(function(p){return String(p.client_id||'')===String(clientId||'');});
+  if(!portal){toast('تعذر العثور على بوابة العميل');return;}
+  portal.default_tab=value;portal.updatedAt=new Date().toISOString();portal._dirty=true;
+  var token=(S.public_tokens||[]).find(function(t){return t.entity_type==='client_portal'&&String(t.entity_id||'')===String(portal.id||'');});
+  if(token){token.default_tab=value;token.updated_at=new Date().toISOString();token._dirty=true;}
+  lsSave();
+  try{
+    if(window.OrdoData&&typeof window.OrdoData.save==='function')await window.OrdoData.save({now:true});
+    else if(typeof cloudSaveNow==='function')await cloudSaveNow(S);
+    else if(typeof cloudSave==='function')await cloudSave(S);
+    toast(value==='invoices'?'تم ضبط الفواتير وكشف الحساب كأول قسم':'تم ضبط الطلبات والمهام كأول قسم');
+  }catch(e){console.error(e);toast('تم الحفظ محلياً وسيُزامن تلقائياً');}
 }
 
 function openClientPortal(portalId){

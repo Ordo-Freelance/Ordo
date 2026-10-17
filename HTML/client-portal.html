@@ -588,6 +588,10 @@ async function _bootWithData(userId, clientId, ud){
     renderPage();
     hideLs();
 
+    if(!pTaskId&&!pTab&&!pInvoiceId&&_portalDefaultTab()==='invoices'){
+      setTimeout(()=>switchTab('invoices'),0);
+    }
+
     if(pTaskId){
       setTimeout(()=>{
         switchTab('tasks');
@@ -611,6 +615,12 @@ async function _bootWithData(userId, clientId, ud){
       setTimeout(()=>{switchTab('invoices');openPortalInvoice(pInvoiceId);},650);
     }
   }catch(e){console.error('_bootWithData error:',e);showErr('حدث خطأ، حاول تحديث الصفحة.');}
+}
+
+function _portalDefaultTab(){
+  const portal=(_ud?.client_portals||[]).find(p=>String(p.client_id||'')===String(_clientId||''));
+  const configured=window._ordoPublicToken?.default_tab||portal?.default_tab||'tasks';
+  return configured==='invoices'&&(_clientInvoices.length||_clientStatements.length)?'invoices':'tasks';
 }
 
 function renderPage(){
@@ -676,6 +686,8 @@ function renderPage(){
   const totalDueNow = Object.values(dueByCurrency).reduce((s,v)=>s+(+v||0),0);
   const totalCollected = Object.values(paidByCurrency).reduce((s,v)=>s+(+v||0),0);
   const totalAccount = Object.values(chargeByCurrency).reduce((s,v)=>s+(+v||0),0);
+  const initialTab=_portalDefaultTab();
+  const invoicesFirst=initialTab==='invoices';
 
   // ── بناء رابط المتجر بالـ username لو متاح ──
   const _storeUid=window._resolvedUid||pUid||'';
@@ -777,9 +789,10 @@ function renderPage(){
 
     <!-- TABS -->
     <div class="tabs" id="tabs">
-      <button class="tab on" onclick="switchTab('tasks')" id="tab-tasks"><i class="fa-solid fa-clipboard-list"></i>طلباتي (${_clientTasks.length})</button>
+      ${invoicesFirst?`<button class="tab on" onclick="switchTab('invoices')" id="tab-invoices"><i class="fa-solid fa-file-invoice"></i>الفواتير والكشوف (${_clientInvoices.length+_clientStatements.length})</button>`:''}
+      <button class="tab ${initialTab==='tasks'?'on':''}" onclick="switchTab('tasks')" id="tab-tasks"><i class="fa-solid fa-clipboard-list"></i>طلباتي (${_clientTasks.length})</button>
       <button class="tab" onclick="switchTab('projects')" id="tab-projects"><i class="fa-solid fa-folder-open"></i>المشاريع (${_clientProjects.length})</button>
-      ${(_clientInvoices.length||_clientStatements.length)?`<button class="tab" onclick="switchTab('invoices')" id="tab-invoices"><i class="fa-solid fa-file-invoice"></i>الفواتير والكشوف (${_clientInvoices.length+_clientStatements.length})</button>`:''}
+      ${(!invoicesFirst&&(_clientInvoices.length||_clientStatements.length))?`<button class="tab" onclick="switchTab('invoices')" id="tab-invoices"><i class="fa-solid fa-file-invoice"></i>الفواتير والكشوف (${_clientInvoices.length+_clientStatements.length})</button>`:''}
       <button class="tab" onclick="switchTab('briefs')" id="tab-briefs"><i class="fa-solid fa-clipboard-question"></i>البريفات (${(_ud.brief_forms||[]).length})</button>
       <button class="tab" onclick="switchTab('accounts')" id="tab-accounts"><i class="fa-solid fa-coins"></i>حسابي</button>
       <button class="tab" onclick="switchTab('reviews')" id="tab-reviews"><i class="fa-solid fa-star"></i>تقييماتي</button>
@@ -787,11 +800,11 @@ function renderPage(){
     </div>
 
     <!-- TASKS PANEL (الطلبات العادية) -->
-    <div class="tab-panel on" id="tp-tasks">${renderTasks()}</div>
+    <div class="tab-panel ${initialTab==='tasks'?'on':''}" id="tp-tasks">${renderTasks()}</div>
     <!-- PROJECTS PANEL -->
     <div class="tab-panel" id="tp-projects">${renderProjects()}</div>
     <!-- INVOICES PANEL -->
-    <div class="tab-panel" id="tp-invoices">${renderInvoices()}</div>
+    <div class="tab-panel ${initialTab==='invoices'?'on':''}" id="tp-invoices">${renderInvoices()}</div>
     <div class="tab-panel" id="tp-briefs">${renderBriefForms()}</div>
     <!-- ACCOUNTS PANEL -->
     <div class="tab-panel" id="tp-accounts">${renderAccounts()}</div>
@@ -1789,7 +1802,7 @@ function _accountDate(value){
   const parsed=new Date(raw);
   return Number.isNaN(parsed.getTime())?raw.slice(0,10):parsed.toISOString().slice(0,10);
 }
-function _accountRefresh(){const panel=document.getElementById('tp-account');if(panel)panel.innerHTML=renderAccounts();}
+function _accountRefresh(){const panel=document.getElementById('tp-accounts');if(panel)panel.innerHTML=renderAccounts();}
 function _accountSetPeriod(months){
   const now=new Date(),from=new Date(now);
   from.setMonth(from.getMonth()-Math.max(1,+months||1));
@@ -1806,6 +1819,10 @@ function printPortalStatement(){
   const win=window.open('','_blank');if(!win)return;try{win.opener=null}catch(_){}
   win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>كشف حساب - ${xe(_clientName||'العميل')}</title><link href="../Assets/vendor/fonts/offline-fonts.css" rel="stylesheet"><style>*{box-sizing:border-box}body{font-family:Cairo,Arial,sans-serif;color:#171721;margin:24px;direction:rtl}button,.statement-filters{display:none!important}.statement-table{width:100%;border-collapse:collapse;font-size:11px}.statement-table th{background:#fff4dc;padding:8px;border:1px solid #ead9ba}.statement-table td{padding:8px;border:1px solid #eee}.statement-title{display:block!important} @page{size:A4;margin:12mm}</style></head><body><h1 style="font-size:22px">كشف حساب</h1><p>${xe(_clientName||'')}</p>${card.outerHTML}</body></html>`);
   win.document.close();const ready=()=>{win.focus();win.print()};if(win.document.fonts?.ready)win.document.fonts.ready.then(ready);else setTimeout(ready,400);
+}
+function openPortalAccountStatement(){
+  switchTab('accounts');
+  setTimeout(()=>document.getElementById('portal-account-statement')?.scrollIntoView({behavior:'smooth',block:'start'}),80);
 }
 function renderAccounts(){
   const clientObj=(_ud.clients||[]).find(c=>String(c.id)===String(_clientId));
@@ -1937,7 +1954,8 @@ function renderAccounts(){
 }
 
 function renderInvoices(){
-  if(!_clientInvoices.length&&!_clientStatements.length)return`<div class="empty"><i class="fa-solid fa-file-invoice"></i><div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:5px">لا توجد فواتير أو كشوف حساب بعد</div><div>ستظهر مستنداتك المالية هنا عند إصدارها</div></div>`;
+  const statementAction=`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--s1);border:1px solid var(--bd);border-radius:13px;padding:12px 14px;margin-bottom:14px"><div><div style="font-size:13px;font-weight:900;color:var(--t1)"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--ac)"></i> كشف الحساب الشامل</div><div style="font-size:10px;color:var(--t3);margin-top:3px">كل الأعمال والفواتير والتحصيلات حسب التاريخ</div></div><button onclick="openPortalAccountStatement()" style="border:0;background:var(--ac);color:#fff;border-radius:9px;padding:8px 14px;font:800 11px var(--font);cursor:pointer"><i class="fa-solid fa-eye"></i> عرض كشف الحساب</button></div>`;
+  if(!_clientInvoices.length&&!_clientStatements.length)return statementAction+`<div class="empty"><i class="fa-solid fa-file-invoice"></i><div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:5px">لا توجد فواتير أو كشوف حساب بعد</div><div>ستظهر مستنداتك المالية هنا عند إصدارها</div></div>`;
   const invoices=_clientInvoices.sort((a,b)=>new Date(b.date||b.created_at||0)-new Date(a.date||a.created_at||0)).map(inv=>{
     const paid=inv.paid||inv.status==='مدفوعة';
     const vals=_portalInvoiceValues(inv);
@@ -1955,13 +1973,13 @@ function renderInvoices(){
     const total=+(stmt.total||stmt.grandTotal||stmt.amount||stmt.balance||0);
     const paid=stmt.paid===true||['paid','collected','مدفوع','محصل'].includes(stmt.status);
     const date=stmt.to||stmt.endDate||stmt.date||stmt.createdAt||stmt.created_at;
-    return`<div class="inv-card">
+    return`<div class="inv-card is-openable" role="button" tabindex="0" onclick="openPortalAccountStatement()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPortalAccountStatement()}" title="عرض كشف الحساب">
       <div class="inv-ico"><i class="fa-solid fa-file-lines"></i></div>
       <div class="inv-info"><div class="inv-name">${xe(stmt.title||stmt.name||stmt.num||stmt.number||'كشف حساب')}</div><div class="inv-date">${date?new Date(date).toLocaleDateString('ar-EG'):''}</div><span class="badge ${paid?'badge-done':'badge-pend'}" style="margin-top:4px">${paid?'✅ مسدد':'⏳ مستحق'}</span></div>
       <div class="inv-amount">${total?_money(total,stmt):'—'}</div>
     </div>`;
   }).join('');
-  return `${invoices?`<div style="font-size:13px;font-weight:900;color:var(--t2);margin:4px 0 10px"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--ac)"></i> الفواتير</div>${invoices}`:''}${statements?`<div style="font-size:13px;font-weight:900;color:var(--t2);margin:18px 0 10px"><i class="fa-solid fa-file-lines" style="color:var(--ac)"></i> كشوفات الحساب</div>${statements}`:''}`;
+  return `${statementAction}${invoices?`<div style="font-size:13px;font-weight:900;color:var(--t2);margin:4px 0 10px"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--ac)"></i> الفواتير</div>${invoices}`:''}${statements?`<div style="font-size:13px;font-weight:900;color:var(--t2);margin:18px 0 10px"><i class="fa-solid fa-file-lines" style="color:var(--ac)"></i> كشوفات الحساب</div>${statements}`:''}`;
 }
 
 function _portalInvoiceValues(inv){
