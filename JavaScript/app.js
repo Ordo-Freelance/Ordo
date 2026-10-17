@@ -1834,7 +1834,7 @@ function loadSettings(){
   // قوالب واتساب
   const wt = s.waTemplates||{};
   const defaults = getWaTemplateDefaults();
-  ['invoice','task','done','remind','collection','taskQuick','memberTask','tracking'].forEach(k=>{
+  ['invoice','task','done','remind','collection','taskQuick','memberTask','tracking','statement','followup','contract','memberProject','memberLate','serviceShare'].forEach(k=>{
     const el=document.getElementById('wa-tpl-'+k);
     if(el) el.value = cleanWaTemplate(wt[k]||defaults[k]||'');
   });
@@ -2052,7 +2052,14 @@ function getWaTemplateDefaults(){
       'مشروعك «{{اسم_المشروع}}» قيد التنفيذ لدى {{اسم_العمل}}.\n' +
       'يمكنك متابعة التقدم ومراحل التنفيذ من الرابط:\n\n' +
       '{{رابط_المتابعة}}\n\n' +
-      'لأي استفسار تواصل معنا: {{رقم_هاتف_العمل}}'
+      'لأي استفسار تواصل معنا: {{رقم_هاتف_العمل}}',
+    statement:
+      'مرحباً {{اسم_العميل}}\n\nنرفق لك كشف حساب رقم {{رقم_الكشف}}\nالفترة: {{فترة_الكشف}}\nعدد الطلبات: {{عدد_الطلبات}}\nإجمالي الكشف: {{إجمالي_الكشف}}\nالمحصّل: {{المحصل}}\nالمستحق: {{المستحق}}\n\n{{اسم_العمل}}',
+    followup:'أهلاً {{اسم_العميل}}، أتمنى تكون بخير. حابين نطمن عليك ونعرف لو محتاج أي شيء من ناحيتنا.\n\n{{اسم_العمل}}',
+    contract:'مرحباً {{اسم_العميل}}،\n\nيرجى مراجعة وتوقيع العقد «{{اسم_العقد}}» من الرابط:\n{{رابط_العقد}}\n\nللاستفسار تواصل معنا.\n{{اسم_العمل}}',
+    memberProject:'مرحباً {{اسم_المنفذ}}\n\nهذه مهامك الحالية لدى {{اسم_العمل}}:\n{{قائمة_المهام}}\n\nللاستفسار تواصل معنا.',
+    memberLate:'تنبيه هام\n\nعزيزي {{اسم_المنفذ}}،\nيرجى الانتباه للمهام التالية المتأخرة:\n{{قائمة_المهام}}\n\nنرجو التواصل معنا في أقرب وقت. {{اسم_العمل}}',
+    serviceShare:'اطلب خدماتي من هنا: {{رابط_الخدمات}}\n\n{{اسم_العمل}}'
   };
 }
 
@@ -2076,6 +2083,12 @@ function saveWaTemplates(){
     taskQuick: cleanWaTemplate(v('wa-tpl-taskQuick')),
     memberTask: cleanWaTemplate(v('wa-tpl-memberTask')),
     tracking: cleanWaTemplate(v('wa-tpl-tracking')),
+    statement: cleanWaTemplate(v('wa-tpl-statement')),
+    followup: cleanWaTemplate(v('wa-tpl-followup')),
+    contract: cleanWaTemplate(v('wa-tpl-contract')),
+    memberProject: cleanWaTemplate(v('wa-tpl-memberProject')),
+    memberLate: cleanWaTemplate(v('wa-tpl-memberLate')),
+    serviceShare: cleanWaTemplate(v('wa-tpl-serviceShare')),
   };
   lsSave();
   if(typeof cloudSaveNow === 'function') cloudSaveNow(S); else if(typeof cloudSave === 'function') cloudSave(S);
@@ -6709,7 +6722,8 @@ function _waStmt(id){
   const studio=S.settings?.name||'Ordo';
   const c=S.clients.find(x=>x.name===s.client);
   const phone=(c?.phone||'').replace(/[^\d]/g,'');
-  const msg=`مرحباً ${s.client}\n\nنرفق لك كشف حساب رقم ${s.num}\nالفترة: ${s.from||'?'} ? ${s.to||'?'}\nعدد الطلبات: ${s.tasks_count} طلب\nإجمالي الكشف: ${_stmtMoney(s.total)}\nالمحصّل: ${_stmtMoney(s.paid)}\nالمستحق: ${_stmtMoney(s.due)}\n\n${studio}`;
+  const tpl=S.settings?.waTemplates?.statement||getWaTemplateDefaults().statement;
+  const msg=fillWaVars(cleanWaTemplate(tpl),{'{{اسم_العميل}}':s.client,'{{رقم_الكشف}}':s.num,'{{فترة_الكشف}}':(s.from||'?')+' - '+(s.to||'?'),'{{عدد_الطلبات}}':s.tasks_count,'{{إجمالي_الكشف}}':_stmtMoney(s.total),'{{المحصل}}':_stmtMoney(s.paid),'{{المستحق}}':_stmtMoney(s.due),'{{اسم_العمل}}':studio});
   const url=`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
   window.open(url,'_blank');
 }
@@ -9646,12 +9660,24 @@ function openExpenseModal(id){
   }
   openM('modal-expense');
 }
+function openPersonalTreasuryTransfer(){
+  openExpenseModal();
+  const title=document.getElementById('expense-ttl');
+  if(title)title.innerHTML='<i class="fa-solid fa-vault"></i> تحويل للخزنة الشخصية';
+  const cat=document.getElementById('ex-cat');
+  if(cat){
+    if(![...cat.options].some(o=>o.value==='تحويل للخزنة الشخصية'))cat.add(new Option('تحويل للخزنة الشخصية','تحويل للخزنة الشخصية'));
+    cat.value='تحويل للخزنة الشخصية';
+  }
+  const desc=document.getElementById('ex-desc');if(desc)desc.value='تحويل من مالية العمل إلى الخزنة الشخصية';
+  const personal=document.querySelector('input[name="ex-profit-impact"][value="personal"]');if(personal)personal.checked=true;
+}
 function _onExpenseCatChange(value){
   const loanFields=document.getElementById('ex-loan-fields');
   if(loanFields) loanFields.style.display=value==='سلفة للغير'?'block':'none';
   const personal=document.querySelector('input[name="ex-profit-impact"][value="personal"]');
   const work=document.querySelector('input[name="ex-profit-impact"][value="work"]');
-  if(value==='سحب شخصي'){
+  if(value==='سحب شخصي'||value==='تحويل للخزنة الشخصية'){
     if(personal) personal.checked=true;
   } else if(value && value!=='سلفة للغير'){
     if(work) work.checked=true;
@@ -9827,7 +9853,7 @@ function _isPersonalExpense(t){
   if(!t || t.type!=='expense') return false;
   if(t.expImpact==='personal') return true;
   const hay = [t.expCat, t.source, t.desc].filter(Boolean).join(' ');
-  return /سحب\s*شخصي|مصاريف\s*تعليمية\s*شخصية|شخصي/.test(hay);
+  return /سحب\s*شخصي|مصاريف\s*تعليمية\s*شخصية|تحويل\s*للخزنة\s*الشخصية|شخصي/.test(hay);
 }
 function _isProfitExpense(t){
   return t && t.type==='expense' && t.expCat!=='سلفة للغير' && !_isPersonalExpense(t);
@@ -12554,7 +12580,8 @@ function renderFollowupReminders(){
 }
 function sendFollowupWA(clientId){
   const c=S.clients.find(x=>x.id===clientId);if(!c)return;
-  const msg=c.followupMsg||`أهلاً ${c.name}، اتمنى تكون بخير <i class="fa-solid fa-hands"></i> عايز أطمن عليك وأعرف لو محتاج حاجة من ناحيتنا âœ¨`;
+  const tpl=c.followupMsg||S.settings?.waTemplates?.followup||getWaTemplateDefaults().followup;
+  const msg=fillWaVars(cleanWaTemplate(tpl),{'{{اسم_العميل}}':c.name,'{{اسم_العمل}}':S.settings?.name||'العمل','{{رقم_هاتف_العمل}}':S.settings?.phone||''});
   const phone=c.phone?.replace(/\D/g,'');
   if(!phone){alert('مفيش رقم واتساب محفوظ للعميل ده');return;}
   window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,'_blank');
@@ -16317,10 +16344,26 @@ function renderTeams(){
 // ============================================================
 // SUBSCRIPTIONS
 // ============================================================
-function openSubscriptionModal(){
+function openSubscriptionModal(editId){
+  const edit=document.getElementById('sub-edit-id');if(edit)edit.value='';
+  const details=document.getElementById('sub-details');if(details)details.value='';
+  const saveBtn=document.getElementById('sub-save-btn');if(saveBtn)saveBtn.innerHTML='+ إضافة الاشتراك';
   const date=document.getElementById('sub-next-date');
   if(date && !date.value) date.value=_subscriptionDateKey(new Date());
   _fillSharedCurrencySelect('sub-currency',S.settings?.base_currency_code);
+  if(editId){
+    const s=(S.subscriptions||[]).find(x=>String(x.id)===String(editId));
+    if(s){
+      if(edit)edit.value=s.id;
+      const values={
+        'sub-name':s.name||'','sub-amount':s.amount||'','sub-next-date':_subscriptionDue(s),
+        'sub-cat':s.cat||'برامج واشتراكات','sub-cadence':s.cadence||'monthly',
+        'sub-currency':s.currency_code||'EGP','sub-remind-days':s.remindDays||1,'sub-details':s.details||''
+      };
+      Object.entries(values).forEach(([id,value])=>{const el=document.getElementById(id);if(el)el.value=value;});
+      if(saveBtn)saveBtn.innerHTML='<i class="fa-solid fa-floppy-disk"></i> حفظ التعديلات';
+    }
+  }
   renderSubsList();
   openM('modal-subscription');
 }
@@ -16330,18 +16373,24 @@ function renderSubsList(){
 }
 
 function addSubscription(){
+  const editId=document.getElementById('sub-edit-id')?.value||'';
   const name = document.getElementById('sub-name')?.value.trim();
   const amount = +(document.getElementById('sub-amount')?.value)||0;
   const nextDate = document.getElementById('sub-next-date')?.value;
   const cat = document.getElementById('sub-cat')?.value||'برامج واشتراكات';
   if(!name||amount<=0||!nextDate) return alert('أدخل اسم الاشتراك والمبلغ وموعد الاستحقاق');
   if(!S.subscriptions) S.subscriptions=[];
-  S.subscriptions.push({id:'sub_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),name,amount,nextDate,day:+nextDate.slice(8,10),cat,cadence:document.getElementById('sub-cadence')?.value||'monthly',currency_code:document.getElementById('sub-currency')?.value||'EGP',remindDays:+document.getElementById('sub-remind-days')?.value||1,active:true});
-  lsSave();
+  const record={id:editId||'sub_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),name,amount,nextDate,day:+nextDate.slice(8,10),cat,cadence:document.getElementById('sub-cadence')?.value||'monthly',currency_code:document.getElementById('sub-currency')?.value||'EGP',remindDays:+document.getElementById('sub-remind-days')?.value||1,details:document.getElementById('sub-details')?.value.trim()||'',active:true};
+  if(editId){
+    const idx=S.subscriptions.findIndex(x=>String(x.id)===String(editId));
+    if(idx>=0)S.subscriptions[idx]=Object.assign({},S.subscriptions[idx],record);
+  }else S.subscriptions.push(record);
+  lsSave();if(typeof cloudSaveNow==='function')cloudSaveNow(S);
   renderSubsList();
   renderSubscriptionsPage();
-  ['sub-name','sub-amount'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم إضافة الاشتراك: '+name);
+  ['sub-name','sub-amount','sub-details','sub-edit-id'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const saveBtn=document.getElementById('sub-save-btn');if(saveBtn)saveBtn.innerHTML='+ إضافة الاشتراك';
+  showMiniNotif('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> تم '+(editId?'تعديل':'إضافة')+' الاشتراك: '+name);
 }
 
 function renewSubscription(i){
@@ -16832,7 +16881,8 @@ function renderMonthlyTimeline(){
     const prefix = `${selYear}-${mNum}`;
     const mTrans = S.transactions.filter(t=>(t.isoDate||'').startsWith(prefix));
     const inc = mTrans.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-    const exp = mTrans.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+    const exp = _profitExpenseSum(mTrans);
+    const personal = mTrans.filter(_isPersonalExpense).reduce((s,t)=>s+(+t.amount||0),0);
     const net = inc-exp;
     const isCurrent = +selYear===now.getFullYear() && i===now.getMonth();
     const isFuture = +selYear>now.getFullYear() || (+selYear===now.getFullYear() && i>now.getMonth());
@@ -16844,7 +16894,8 @@ function renderMonthlyTimeline(){
         ${exp?`<div style="position:absolute;right:0;top:0;height:100%;width:${Math.min(100,Math.round(exp/(Math.max(inc,exp)||1)*100))}%;background:var(--accent4);border-radius:4px;opacity:.5"></div>`:''}
       </div>
       <div style="font-size:11px;color:var(--accent3);width:70px;text-align:left;font-weight:700">+${inc.toLocaleString()}</div>
-      <div style="font-size:11px;color:var(--accent4);width:70px;text-align:left">-${exp.toLocaleString()}</div>
+      <div style="font-size:11px;color:var(--accent4);width:70px;text-align:left" title="مصروفات التشغيل">-${exp.toLocaleString()}</div>
+      <div style="font-size:11px;color:var(--accent2);width:70px;text-align:left" title="تحويلات وسحب شخصي">خزنة ${personal.toLocaleString()}</div>
       <div style="font-size:11px;font-weight:800;width:70px;text-align:left;color:${net>=0?'var(--accent3)':'var(--accent4)'}">${net>=0?'+':''}${net.toLocaleString()} ج</div>
     </div>`;
   }).filter(Boolean).join('');
@@ -17055,15 +17106,11 @@ function sendMemberWA(msgType){
   var text = '';
   if(msgType==='project'){
     var taskList = activeTasks.slice(0,5).map(function(t){return '? '+t.title+(t.deadline?' (موعد: '+t.deadline+')':'');}).join('\n');
-    text = 'مرحباً ' + memberName + ' <i class="fa-solid fa-hand-wave"></i>\n\n' +
-      'هذه مهامك الحالية لدى ' + studio + ':\n' + (taskList||'لا توجد مهام نشطة') +
-      '\n\nظ„لاستفسار تواصل معنا <i class="fa-solid fa-hands"></i>';
+    text=fillWaVars(cleanWaTemplate(S.settings?.waTemplates?.memberProject||getWaTemplateDefaults().memberProject),{'{{اسم_المنفذ}}':memberName,'{{قائمة_المهام}}':taskList||'لا توجد مهام نشطة','{{اسم_العمل}}':studio});
   } else {
     var lateTasks = activeTasks.filter(function(t){return t.deadline && t.deadline < new Date().toISOString().split('T')[0];});
     var taskList = lateTasks.slice(0,3).map(function(t){return '? '+t.title+' (كان المفترض: '+t.deadline+')';}).join('\n');
-    text = 'تنبيه هام <i class="fa-solid fa-triangle-exclamation"></i>\n\nعزيزي ' + memberName + '،\n' +
-      'يرجى الانتباه للمهام التالية المتأخرة:\n' + (taskList||activeTasks.slice(0,3).map(function(t){return '? '+t.title;}).join('\n')) +
-      '\n\nنرجو التواصل معنا في أقرب وقت. ' + studio;
+    text=fillWaVars(cleanWaTemplate(S.settings?.waTemplates?.memberLate||getWaTemplateDefaults().memberLate),{'{{اسم_المنفذ}}':memberName,'{{قائمة_المهام}}':taskList||activeTasks.slice(0,3).map(function(t){return '? '+t.title;}).join('\n'),'{{اسم_العمل}}':studio});
   }
   var url = phone
     ? 'https://wa.me/'+phone+'?text='+encodeURIComponent(text)
@@ -17187,8 +17234,8 @@ function _subscriptionRows(){
     const label=days<0?'متأخر '+Math.abs(days)+' يوم':days===0?'مستحق اليوم':'بعد '+days+' يوم';
     const cadence={weekly:'أسبوعي',monthly:'شهري',yearly:'سنوي'}[s.cadence]||'شهري';
     return `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;background:var(--surface2);border:1px solid ${urgent?'var(--accent4)':'var(--border)'};border-radius:10px;padding:12px;margin-bottom:8px">
-      <div style="flex:1;min-width:190px"><div style="font-weight:700">${escapeHtml(s.name||'اشتراك')}</div><div style="font-size:11px;color:var(--text3)">${escapeHtml(s.cat||'اشتراكات')} · ${cadence} · ${Number(s.amount||0).toLocaleString()} ${_subscriptionCurrency(s)}</div><div style="font-size:11px;color:${urgent?'var(--accent4)':'var(--text3)'}">${due} · ${label} · تذكير قبل ${+s.remindDays===2?'يومين':'يوم'}</div></div>
-      <button class="btn btn-success btn-sm" onclick="renewSubscription(${i})"><i class="fa-solid fa-check"></i> تسجيل السداد</button><button class="btn btn-danger btn-sm" onclick="delSubscription(${i})" aria-label="حذف الالتزام"><i class="fa-solid fa-trash"></i></button>
+      <div style="flex:1;min-width:190px"><div style="font-weight:700">${escapeHtml(s.name||'اشتراك')}</div><div style="font-size:11px;color:var(--text3)">${escapeHtml(s.cat||'اشتراكات')} · ${cadence} · ${Number(s.amount||0).toLocaleString()} ${_subscriptionCurrency(s)}</div><div style="font-size:11px;color:${urgent?'var(--accent4)':'var(--text3)'}">${due} · ${label} · تذكير قبل ${+s.remindDays===2?'يومين':'يوم'}</div>${s.details?`<div style="font-size:11px;color:var(--text2);margin-top:4px"><i class="fa-solid fa-note-sticky"></i> ${escapeHtml(s.details)}</div>`:''}</div>
+      <button class="btn btn-ghost btn-sm" onclick="openSubscriptionModal('${String(s.id).replace(/'/g,"\\'")}')"><i class="fa-solid fa-pen"></i> تعديل</button><button class="btn btn-success btn-sm" onclick="renewSubscription(${i})"><i class="fa-solid fa-check"></i> تسجيل السداد</button><button class="btn btn-danger btn-sm" onclick="delSubscription(${i})" aria-label="حذف الالتزام"><i class="fa-solid fa-trash"></i></button>
     </div>`;
   }).join('');
 }
@@ -20710,7 +20757,7 @@ function ctShare(id){
   // Find client phone for WA
   const clientObj = (S.clients||[]).find(cl=>(cl.name||'').toLowerCase()===(c.client_name||'').toLowerCase());
   const clientPhone = (c.client_phone||clientObj?.phone||'').replace(/\D/g,'');
-  const waText = 'مرحباً '+(c.client_name||'')+'،\n\nيرجى مراجعة وتوقيع العقد الخاص بك:\n\n'+url+'\n\nظ„لاستفسار تواصل معنا.';
+  const waText=fillWaVars(cleanWaTemplate(S.settings?.waTemplates?.contract||getWaTemplateDefaults().contract),{'{{اسم_العميل}}':c.client_name||'','{{اسم_العقد}}':c.title||'العقد','{{رابط_العقد}}':url,'{{اسم_العمل}}':S.settings?.name||'العمل'});
   const wa = clientPhone
     ? 'https://wa.me/'+clientPhone+'?text='+encodeURIComponent(waText)
     : 'https://wa.me/?text='+encodeURIComponent(waText);
@@ -22940,7 +22987,8 @@ function svcPreviewPublic(){
   window.open(getSvcLink(), '_blank');
 }
 function svcShareWhatsApp(){
-  window.open('https://wa.me/?text='+encodeURIComponent('<i class="fa-solid fa-bag-shopping"></i> اطلب خدماتي: '+getSvcLink()),'_blank');
+  const msg=fillWaVars(cleanWaTemplate(S.settings?.waTemplates?.serviceShare||getWaTemplateDefaults().serviceShare),{'{{رابط_الخدمات}}':getSvcLink(),'{{اسم_العمل}}':S.settings?.name||'العمل'});
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 function switchSvcTab(tab){
   var tabs=['services','packages','portfolio','website','orders','stores'];

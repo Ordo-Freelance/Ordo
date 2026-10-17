@@ -2752,6 +2752,7 @@ try {
       <button class="close-btn" onclick="closeM('modal-subscription')"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:14px">سجّل التزاماتك، واختر موعد التذكير. لن تُحسب كمصروف إلا عند تسجيل السداد.</div>
+    <input type="hidden" id="sub-edit-id">
     <div id="subs-list" style="max-height:300px;overflow-y:auto;margin-bottom:14px"></div>
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px">
       <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">إضافة اشتراك جديد</div>
@@ -2775,7 +2776,8 @@ try {
         <div class="form-group"><label class="form-label">العملة</label><select class="form-select" id="sub-currency"><option value="EGP">جنيه مصري</option><option value="SAR">ريال سعودي</option><option value="USD">دولار أمريكي</option></select></div>
         <div class="form-group"><label class="form-label">ذكّرني قبل الموعد</label><select class="form-select" id="sub-remind-days"><option value="1">بيوم</option><option value="2">بيومين</option></select></div>
       </div>
-      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="addSubscription()">+ إضافة الاشتراك</button>
+      <div class="form-group"><label class="form-label">تفاصيل وملاحظات</label><textarea class="form-textarea" id="sub-details" rows="2" placeholder="مثال: رقم الحساب، الباقة، أو أي تفاصيل مهمة"></textarea></div>
+      <button class="btn btn-primary" id="sub-save-btn" style="width:100%;justify-content:center" onclick="addSubscription()">+ إضافة الاشتراك</button>
     </div>
     <div style="display:flex;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeM('modal-subscription')">إغلاق</button>
@@ -2900,6 +2902,7 @@ try {
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-success" onclick="openIncomeModal()">+ دخل</button>
       <button class="btn btn-danger" onclick="openExpenseModal()">+ مصروف</button>
+      <button class="btn btn-ghost" onclick="openPersonalTreasuryTransfer()"><i class="fa-solid fa-vault"></i> تحويل للخزنة الشخصية</button>
       <button class="btn btn-ghost" onclick="openSubscriptionModal()"><i class="fa-solid fa-rotate"></i> اشتراكاتي</button>
     </div>
   </div>
@@ -3023,6 +3026,7 @@ try {
           </optgroup>
           <optgroup label="مصروف شخصي">
             <option value="سحب شخصي"><i class="fa-solid fa-dollar-sign"></i> سحب شخصي</option>
+            <option value="تحويل للخزنة الشخصية"><i class="fa-solid fa-vault"></i> تحويل للخزنة الشخصية</option>
             <option value="مصاريف تعليمية شخصية"><i class="fa-solid fa-graduation-cap"></i> مصاريف تعليمية شخصية</option>
           </optgroup>
         </select>
@@ -4040,6 +4044,12 @@ try {
         <div class="tpl-card-title" style="color:var(--accent)"><i class="fa-solid fa-link"></i> رابط متابعة المشروع</div>
         <textarea class="form-textarea" id="wa-tpl-tracking" rows="5" onfocus="waActiveTpl=this.id" style="font-size:12px"></textarea>
       </div>
+      <div class="tpl-card"><div class="tpl-card-title" style="color:var(--accent2)"><i class="fa-solid fa-file-lines"></i> مشاركة كشف حساب</div><textarea class="form-textarea" id="wa-tpl-statement" rows="5" onfocus="waActiveTpl=this.id" style="font-size:12px"></textarea></div>
+      <div class="tpl-card"><div class="tpl-card-title" style="color:#25D366"><i class="fa-brands fa-whatsapp"></i> متابعة عميل</div><textarea class="form-textarea" id="wa-tpl-followup" rows="5" onfocus="waActiveTpl=this.id" style="font-size:12px"></textarea></div>
+      <div class="tpl-card"><div class="tpl-card-title" style="color:var(--accent)"><i class="fa-solid fa-file-signature"></i> مشاركة عقد</div><textarea class="form-textarea" id="wa-tpl-contract" rows="5" onfocus="waActiveTpl=this.id" style="font-size:12px"></textarea></div>
+      <div class="tpl-card"><div class="tpl-card-title" style="color:var(--accent2)"><i class="fa-solid fa-users-gear"></i> ملخص مهام المنفذ</div><textarea class="form-textarea" id="wa-tpl-memberProject" rows="5" onfocus="waActiveTpl=this.id" style="font-size:12px"></textarea></div>
+      <div class="tpl-card"><div class="tpl-card-title" style="color:var(--accent4)"><i class="fa-solid fa-triangle-exclamation"></i> تنبيه مهام متأخرة للمنفذ</div><textarea class="form-textarea" id="wa-tpl-memberLate" rows="5" onfocus="waActiveTpl=this.id" style="font-size:12px"></textarea></div>
+      <div class="tpl-card"><div class="tpl-card-title" style="color:var(--accent3)"><i class="fa-solid fa-store"></i> مشاركة رابط الخدمات</div><textarea class="form-textarea" id="wa-tpl-serviceShare" rows="5" onfocus="waActiveTpl=this.id" style="font-size:12px"></textarea></div>
     </div>
     <button class="btn btn-primary" style="margin-top:14px" onclick="saveWaTemplates()"><i class="fa-solid fa-floppy-disk"></i> حفظ القوالب</button>
   </div>
@@ -5300,6 +5310,7 @@ try {
           <option value="صيانة أجهزة"><i class="fa-solid fa-wrench"></i> صيانة أجهزة</option>
           <option value="إنترنت"><i class="fa-solid fa-globe"></i> إنترنت</option>
           <option value="سحب شخصي"><i class="fa-solid fa-dollar-sign"></i> سحب شخصي</option>
+          <option value="تحويل للخزنة الشخصية"><i class="fa-solid fa-vault"></i> تحويل للخزنة الشخصية</option>
           <option value="سلفة للغير">🤝 سلفة للغير (فلوس ليا عندهم)</option>
           <option value="أخرى"><i class="fa-solid fa-thumbtack"></i> أخرى</option>
         </select>
