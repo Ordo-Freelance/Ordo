@@ -92,3 +92,13 @@ test('portal billing tab includes account statements and readable identity color
   assert.match(portalSource, /--t1','#f7f9ff'/);
   assert.match(portalSource, /--t3','#aeb8d0'/);
 });
+
+test('portal invoices open a protected preview and provide PDF printing', () => {
+  assert.match(portalSource, /onclick="openPortalInvoice\('/);
+  assert.match(portalSource, /function openPortalInvoice\(id\)/);
+  assert.match(portalSource, /_clientInvoices\.find\(row=>String\(row\.id\)===String\(id\)\)/);
+  assert.match(portalSource, /تحميل PDF/);
+  assert.match(portalSource, /function downloadPortalInvoicePdf\(id\)/);
+  assert.match(portalSource, /document\.fonts\?\.ready/);
+  assert.match(portalSource, /win\.print\(\)/);
+});
