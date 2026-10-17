@@ -11545,6 +11545,13 @@ function exportPDF(id,options){
     </style>
     </head><body>${pageHtml}</body></html>`;
   if(options.returnHtml)return html;
+  const printKey=_invoicePrintSnapshotKey(inv);
+  if(inv.publicPrintHtml!==html||inv.publicPrintKey!==printKey){
+    inv.publicPrintHtml=html;
+    inv.publicPrintKey=printKey;
+    lsSave();
+    if(typeof _queueCloudSave==='function')_queueCloudSave();
+  }
   const pa=document.getElementById('print-area');
   if(pa){
     const bodyMatch=html.match(/<body[^>]*>([\s\S]*)<\/body>/i);

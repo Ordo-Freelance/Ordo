@@ -102,6 +102,9 @@ test('portal invoices open a protected preview and provide PDF printing', () => 
   assert.match(portalSource, /document\.fonts\?\.ready/);
   assert.match(portalSource, /win\.print\(\)/);
   assert.match(portalSource, /pInvoiceId=P\.get\('invoice'\)/);
-  assert.match(portalSource, /المهام والبنود/);
+  assert.match(portalSource, /المهام المكتملة/);
   assert.match(portalSource, /inv\.publicPrintHtml\|\|/);
+  assert.match(portalSource, /المهام المكتملة <small>/);
+  assert.match(portalSource, /linear-gradient\(135deg,#171721,#49351f\)/);
+  assert.match(portalSource, /background:#fffaf1;border:1px solid #f4dfb6/);
 });

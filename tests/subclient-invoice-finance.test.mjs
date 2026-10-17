@@ -36,5 +36,5 @@ test('invoice printing waits for the Arabic font and images',()=>{
   assert.match(app,/frameDoc\.fonts\.load\('400 12px Cairo'\)/);
   assert.match(app,/frameDoc\.fonts\.load\('900 15px Cairo'\)/);
   assert.match(app,/Promise\.all\(\[fontReady,imageReady\]\)/);
-  assert.match(html,/app\.js\?v=shared-invoice-print-23/);
+  assert.match(html,/app\.js\?v=shared-invoice-print-24/);
 });
