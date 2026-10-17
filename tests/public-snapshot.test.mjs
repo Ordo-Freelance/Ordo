@@ -7,6 +7,7 @@ const studio = {
   clients: [{id:'c1',name:'One'},{id:'c2',name:'Two'}],
   tasks: [{id:'t1',client_id:'c1'},{id:'t2',client_id:'c2'}],
   services: [{id:'s1',name:'Design'}],
+  statements: [{id:'st1',client_id:'c1',total:900},{id:'st2',client_id:'c2',total:400}],
   transactions: [{id:'private'}],
   public_tokens: [{token:'portal-secret',entity_type:'client_portal',entity_id:'p1',client_id:'c1'}]
 };
@@ -31,6 +32,7 @@ test('portal token limits data to its client', async () => {
   const result = await publicSnapshot(store, {type:'client_portal',token:'portal-secret'});
   assert.deepEqual(result.data.clients.map(x => x.id), ['c1']);
   assert.deepEqual(result.data.tasks.map(x => x.id), ['t1']);
+  assert.deepEqual(result.data.statements.map(x => x.id), ['st1']);
   assert.equal(result.data.transactions, undefined);
 });
 

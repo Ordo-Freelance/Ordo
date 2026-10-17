@@ -111,6 +111,8 @@ test('settings use grouped navigation without moving existing tab controls', () 
     assert.ok(html.includes(`id="stabp-${id}"`), `missing settings panel ${id}`);
   }
   assert.match(settingsCss, /grid-template-areas:/);
+  assert.match(settingsCss, /#stabp-general \.card\s*\{\s*overflow:\s*visible/);
+  assert.match(settingsCss, /#social-dd-menu[\s\S]*overflow-y:\s*auto\s*!important/);
   assert.match(app, /storageCard\.hidden = tab !== 'general'/);
   assert.doesNotMatch(app, /tabs\.appendChild\(btn\)/);
 });

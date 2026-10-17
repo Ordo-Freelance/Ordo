@@ -112,6 +112,23 @@
 #page-settings.settings-v3 #stabp-general #logo-light-preview { min-height: 104px !important; }
 #page-settings.settings-v3 #stabp-general #cloud-diag-card { grid-column: 1 / -1; }
 #page-settings.settings-v3 .stab-panel .btn { min-height: 38px; }
+#page-settings.settings-v3 #stabp-general .card {
+  overflow: visible;
+}
+#page-settings.settings-v3 #policy-icon-sel-dd,
+#page-settings.settings-v3 #social-dd-menu {
+  max-height: min(360px, 55vh);
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+#page-settings.settings-v3 #policy-icon-sel-dd {
+  width: min(220px, calc(100vw - 48px)) !important;
+}
+#page-settings.settings-v3 #social-platform-dd {
+  z-index: 20;
+}
 
 @media (max-width: 1050px) {
   #page-settings.settings-v3.active { grid-template-columns: 185px minmax(0, 1fr); column-gap: 16px; }

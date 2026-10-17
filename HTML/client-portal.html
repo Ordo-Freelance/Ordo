@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="../Assets/vendor/fontawesome/css/all.min.css" crossorigin="anonymous">
 <script src="../JavaScript/config.js?v=vercel-1"></script>
 <script src="../JavaScript/vercel_backend.js?v=1"></script>
-<script src="../JavaScript/ordo_public_core.js"></script>
+<script src="../JavaScript/ordo_public_core.js?v=statements-2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--ac:#7c6ff7;--ac2:#7c6ff7;--bg:#0d1425;--s1:#151e32;--s2:#1b2640;--s3:#22304e;--bd:#303d59;--t1:#f3f6ff;--t2:#bdc7e4;--t3:#8493b5;--g:#4fd1a5;--y:#f7c948;--r:#ff6b6b;--font:'Cairo',sans-serif}
@@ -287,7 +287,7 @@ function applyPortalIdentityBackground(settings){
   };
   const root=document.body;
   if(!theme||!valid(theme.toneColor)){
-    ['--portal-background','--bg','--s1','--s2','--s3','--bd'].forEach(v=>root.style.removeProperty(v));
+    ['--portal-background','--bg','--s1','--s2','--s3','--bd','--t1','--t2','--t3'].forEach(v=>root.style.removeProperty(v));
     return;
   }
   let first=theme.toneColor,second=valid(theme.toneGradientEnd)?theme.toneGradientEnd:first;
@@ -300,11 +300,19 @@ function applyPortalIdentityBackground(settings){
   const angle=Math.max(0,Math.min(360,Number(theme.toneAngle)||135));
   root.style.setProperty('--bg',first);
   root.style.setProperty('--portal-background',theme.toneStyle==='gradient'?'linear-gradient('+angle+'deg,'+first+','+second+')':first);
-  const target=mode==='light'?'#ffffff':'#ffffff';
-  root.style.setProperty('--s1',mix(first,target,mode==='light'?.88:.07));
-  root.style.setProperty('--s2',mix(first,target,mode==='light'?.76:.12));
-  root.style.setProperty('--s3',mix(first,target,mode==='light'?.64:.17));
-  root.style.setProperty('--bd',mix(first,target,mode==='light'?.43:.25));
+  if(mode==='light'){
+    root.style.setProperty('--s1',mix(first,'#ffffff',.88));
+    root.style.setProperty('--s2',mix(first,'#ffffff',.76));
+    root.style.setProperty('--s3',mix(first,'#ffffff',.64));
+    root.style.setProperty('--bd',mix(first,'#ffffff',.43));
+    root.style.setProperty('--t1','#172033');root.style.setProperty('--t2','#41506b');root.style.setProperty('--t3','#687791');
+  }else{
+    root.style.setProperty('--s1',mix(first,'#101827',.68));
+    root.style.setProperty('--s2',mix(first,'#182238',.58));
+    root.style.setProperty('--s3',mix(first,'#22304a',.48));
+    root.style.setProperty('--bd',mix(first,'#66728b',.45));
+    root.style.setProperty('--t1','#f7f9ff');root.style.setProperty('--t2','#d7def0');root.style.setProperty('--t3','#aeb8d0');
+  }
 }
 
 const P=new URLSearchParams(location.search);
@@ -313,7 +321,7 @@ const pPathToken=(location.pathname.match(/^\/portal\/([^/?#]+)\/?$/i)||[])[1]||
 const pPublicToken=P.get('token')||P.get('public_token')||P.get('t')||(pPathToken?decodeURIComponent(pPathToken):'');
 const pUsername=P.get('u'), pClientSlug=P.get('p');
 const pTab=P.get('tab')||'', pProjId=P.get('pid')||'', pBriefId=P.get('brief')||'';
-let _ud,_settings,_clientName,_clientPhone,_clientId,_clientTasks,_clientProjects,_clientInvoices,_clientOrders;
+let _ud,_settings,_clientName,_clientPhone,_clientId,_clientTasks,_clientProjects,_clientInvoices,_clientStatements,_clientOrders;
 
 function _curMeta(value){
   const defaults={
@@ -548,11 +556,12 @@ async function _bootWithData(userId, clientId, ud){
     _clientTasks=_clientTasks.concat((ud.team_tasks||[]).filter(t=>t&&t.client_visibility===true&&t.is_internal!==true&&matchClient(t)));
     _clientProjects=(ud.projects||[]).filter(p=>p&&matchClient(p));
     _clientInvoices=(ud.invoices||[]).filter(i=>i&&matchClient(i));
+    _clientStatements=(ud.statements||[]).filter(s=>s&&matchClient(s));
     _clientOrders=(ud.svc_orders||[]).filter(o=>o&&matchClient(o));
     if(window._ordoPublicToken&&window.OrdoPublic){
       if(!OrdoPublic.allowed(window._ordoPublicToken,'tasks')) _clientTasks=[];
       if(!OrdoPublic.allowed(window._ordoPublicToken,'projects')) _clientProjects=[];
-      if(!OrdoPublic.allowed(window._ordoPublicToken,'invoices')) _clientInvoices=[];
+      if(!OrdoPublic.allowed(window._ordoPublicToken,'invoices')) {_clientInvoices=[];_clientStatements=[];}
       if(!OrdoPublic.allowed(window._ordoPublicToken,'orders')) _clientOrders=[];
     }
 
@@ -742,7 +751,7 @@ function renderPage(){
     <div class="tabs" id="tabs">
       <button class="tab on" onclick="switchTab('tasks')" id="tab-tasks"><i class="fa-solid fa-clipboard-list"></i>طلباتي (${_clientTasks.length})</button>
       <button class="tab" onclick="switchTab('projects')" id="tab-projects"><i class="fa-solid fa-folder-open"></i>المشاريع (${_clientProjects.length})</button>
-      <button class="tab" onclick="switchTab('invoices')" id="tab-invoices"><i class="fa-solid fa-file-invoice"></i>الفواتير (${_clientInvoices.length})</button>
+      ${(_clientInvoices.length||_clientStatements.length)?`<button class="tab" onclick="switchTab('invoices')" id="tab-invoices"><i class="fa-solid fa-file-invoice"></i>الفواتير والكشوف (${_clientInvoices.length+_clientStatements.length})</button>`:''}
       <button class="tab" onclick="switchTab('briefs')" id="tab-briefs"><i class="fa-solid fa-clipboard-question"></i>البريفات (${(_ud.brief_forms||[]).length})</button>
       <button class="tab" onclick="switchTab('accounts')" id="tab-accounts"><i class="fa-solid fa-coins"></i>حسابي</button>
       <button class="tab" onclick="switchTab('reviews')" id="tab-reviews"><i class="fa-solid fa-star"></i>تقييماتي</button>
@@ -1844,8 +1853,8 @@ function renderAccounts(){
 }
 
 function renderInvoices(){
-  if(!_clientInvoices.length)return`<div class="empty"><i class="fa-solid fa-file-invoice"></i><div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:5px">لا توجد فواتير بعد</div><div>ستظهر فواتيرك هنا عند إصدارها</div></div>`;
-  return _clientInvoices.sort((a,b)=>new Date(b.date||b.created_at||0)-new Date(a.date||a.created_at||0)).map(inv=>{
+  if(!_clientInvoices.length&&!_clientStatements.length)return`<div class="empty"><i class="fa-solid fa-file-invoice"></i><div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:5px">لا توجد فواتير أو كشوف حساب بعد</div><div>ستظهر مستنداتك المالية هنا عند إصدارها</div></div>`;
+  const invoices=_clientInvoices.sort((a,b)=>new Date(b.date||b.created_at||0)-new Date(a.date||a.created_at||0)).map(inv=>{
     const paid=inv.paid||inv.status==='مدفوعة';
     return`<div class="inv-card">
       <div class="inv-ico"><i class="fa-solid fa-file-invoice-dollar"></i></div>
@@ -1857,6 +1866,17 @@ function renderInvoices(){
       <div class="inv-amount">${inv.total?_money(inv.total,inv):'—'}</div>
     </div>`;
   }).join('');
+  const statements=_clientStatements.sort((a,b)=>new Date(b.to||b.endDate||b.createdAt||b.created_at||0)-new Date(a.to||a.endDate||a.createdAt||a.created_at||0)).map(stmt=>{
+    const total=+(stmt.total||stmt.grandTotal||stmt.amount||stmt.balance||0);
+    const paid=stmt.paid===true||['paid','collected','مدفوع','محصل'].includes(stmt.status);
+    const date=stmt.to||stmt.endDate||stmt.date||stmt.createdAt||stmt.created_at;
+    return`<div class="inv-card">
+      <div class="inv-ico"><i class="fa-solid fa-file-lines"></i></div>
+      <div class="inv-info"><div class="inv-name">${xe(stmt.title||stmt.name||stmt.num||stmt.number||'كشف حساب')}</div><div class="inv-date">${date?new Date(date).toLocaleDateString('ar-EG'):''}</div><span class="badge ${paid?'badge-done':'badge-pend'}" style="margin-top:4px">${paid?'✅ مسدد':'⏳ مستحق'}</span></div>
+      <div class="inv-amount">${total?_money(total,stmt):'—'}</div>
+    </div>`;
+  }).join('');
+  return `${invoices?`<div style="font-size:13px;font-weight:900;color:var(--t2);margin:4px 0 10px"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--ac)"></i> الفواتير</div>${invoices}`:''}${statements?`<div style="font-size:13px;font-weight:900;color:var(--t2);margin:18px 0 10px"><i class="fa-solid fa-file-lines" style="color:var(--ac)"></i> كشوفات الحساب</div>${statements}`:''}`;
 }
 
 // ── TASK DETAIL SHEET ──

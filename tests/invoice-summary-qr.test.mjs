@@ -23,6 +23,14 @@ test('invoice QR has a saved label and uses workspace print theme',()=>{
   assert.match(html,/id="inv-project-label"/);
 });
 
+test('collection receipt uses the workspace print identity and transaction currency',()=>{
+  const receipt=app.slice(app.indexOf('function exportReceipt('),app.indexOf('function _invLinkToProject(',app.indexOf('function exportReceipt(')));
+  assert.match(receipt,/const theme = _printTheme\(\)/);
+  assert.match(receipt,/_logoForContext\('dark-bg'\)/);
+  assert.match(receipt,/receiptCurrency\.symbol/);
+  assert.match(receipt,/linear-gradient\(135deg,\$\{theme\.ink\},\$\{theme\.accentDark\}\)/);
+});
+
 test('client invoice list shows a visible collection icon',()=>{
   assert.match(app,/title="تحصيل الفاتورة" aria-label="تحصيل الفاتورة"/);
   assert.match(app,/fa-hand-holding-dollar" style="color:inherit"/);

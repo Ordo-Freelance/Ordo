@@ -10900,36 +10900,41 @@ function exportReceipt(transId){
   const t = S.transactions.find(x=>x.id===transId);
   if(!t) return;
   const s = S.settings||{};
+  const theme = _printTheme();
   const receiptLogo = _logoForContext('dark-bg');
-  const logo = receiptLogo ? `<img src="${receiptLogo}" style="max-height:56px;max-width:130px;object-fit:contain" onerror="this.style.display=\'none\'">` : `<div style="font-size:20px;font-weight:900;color:#7c6ff7">${s.name||'Ordo'}</div>`;
+  const logo = receiptLogo ? `<img src="${receiptLogo}" style="max-height:58px;max-width:150px;object-fit:contain" onerror="this.style.display=\'none\'">` : `<div style="font-size:20px;font-weight:900;color:#fff">${escapeHtml(s.name||'Ordo')}</div>`;
   const linkedTask = t.linkedTaskId ? S.tasks.find(x=>x.id===t.linkedTaskId) : null;
   const payTypeAr = {full:'دفعة كاملة',deposit:'عربون',partial:'دفعة جزئية'}[t.paymentType||'full'] || 'دفعة';
   const receiptNum = 'RCP-' + String(transId).slice(-5);
   const dateStr = t.isoDate ? new Date(t.isoDate+'T00:00:00').toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'}) : t.date||'';
+  const receiptCurrency = window.OrdoData&&typeof window.OrdoData.getCurrencyMeta==='function'
+    ? window.OrdoData.getCurrencyMeta(t.currency||t.currency_code||_getCurrency())
+    : {symbol:t.currency_symbol||t.currency||_getCurrency(),code:t.currency_code||''};
+  const studioContact = [s.phone,s.email,s.address].filter(Boolean).map(escapeHtml).join(' • ');
   const receiptHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-<style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Cairo',sans-serif;background:#fff;color:#1a1a2e;direction:rtl;}@page{size:A4;margin:0;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style>
+<style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Cairo',sans-serif;background:#fff;color:${theme.ink};direction:rtl;}@page{size:A4;margin:0;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style>
 </head><body><div style="width:210mm;min-height:297mm;background:#fff">
-<div style="background:#14141e;padding:22px 28px;display:flex;justify-content:space-between;align-items:center">
+<div style="background:linear-gradient(135deg,${theme.ink},${theme.accentDark});padding:22px 28px;display:flex;justify-content:space-between;align-items:center">
   <div>${logo}</div>
-  <div style="text-align:left"><div style="font-size:24px;font-weight:900;color:#4fd1a5">إيصال استلام</div><div style="font-size:11px;color:#b0a8ff;margin-top:3px">${receiptNum}</div></div>
+  <div style="text-align:left"><div style="font-size:24px;font-weight:900;color:#fff">إيصال تحصيل</div><div style="font-size:11px;color:${theme.soft};margin-top:3px">${receiptNum}</div></div>
 </div>
-<div style="height:3px;background:linear-gradient(to left,#4fd1a5,#7c6ff7)"></div>
-<div style="display:flex;justify-content:space-between;padding:22px 28px;background:#f7fffe">
-  <div><div style="font-size:10px;color:#888;margin-bottom:4px">صادر من</div><div style="font-size:14px;font-weight:700">${s.name||'العمل'}</div>${s.phone?`<div style="font-size:11px;color:#555;margin-top:2px"><i class="fa-solid fa-phone"></i> ${s.phone}</div>`:''}</div>
+<div style="height:4px;background:${theme.accent}"></div>
+<div style="display:flex;justify-content:space-between;padding:22px 28px;background:${theme.softer}">
+  <div><div style="font-size:10px;color:${theme.muted};margin-bottom:4px">صادر من</div><div style="font-size:14px;font-weight:700">${escapeHtml(s.name||'العمل')}</div>${studioContact?`<div style="font-size:10px;color:${theme.muted};margin-top:4px">${studioContact}</div>`:''}</div>
   <div style="text-align:left"><div style="font-size:10px;color:#888;margin-bottom:4px">بيانات الإيصال</div><div style="font-size:13px;font-weight:700">رقم: ${receiptNum}</div><div style="font-size:11px;color:#555;margin-top:3px">التاريخ: ${dateStr}</div></div>
 </div>
-<div style="margin:0 28px 24px;background:linear-gradient(135deg,#14141e,#1e1e30);border-radius:12px;padding:24px 28px;display:flex;justify-content:space-between;align-items:center">
-  <div><div style="font-size:11px;color:#b0a8ff;margin-bottom:6px">تم استلام مبلغ</div>
-    <div style="font-size:36px;font-weight:900;color:#4fd1a5">${t.amount.toLocaleString()} <span style="font-size:18px">ج.م</span></div>
-    <div style="margin-top:8px;display:inline-block;background:rgba(79,209,165,.2);color:#4fd1a5;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700">${payTypeAr}</div>
+<div style="margin:0 28px 24px;background:linear-gradient(135deg,${theme.ink},${theme.accentDark});border-radius:12px;padding:24px 28px;display:flex;justify-content:space-between;align-items:center">
+  <div><div style="font-size:11px;color:${theme.soft};margin-bottom:6px">تم تحصيل مبلغ</div>
+    <div style="font-size:36px;font-weight:900;color:#fff">${(+t.amount||0).toLocaleString()} <span style="font-size:18px;color:${theme.accent}">${escapeHtml(receiptCurrency.symbol||receiptCurrency.code||'')}</span></div>
+    <div style="margin-top:8px;display:inline-block;background:${theme.accent};color:#fff;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700">${payTypeAr}</div>
   </div>
-  <div style="text-align:left"><div style="font-size:11px;color:#b0a8ff;margin-bottom:3px">من</div><div style="font-size:15px;font-weight:700;color:#fff">${t.source||'?'}</div></div>
+  <div style="text-align:left"><div style="font-size:11px;color:${theme.soft};margin-bottom:3px">من</div><div style="font-size:15px;font-weight:700;color:#fff">${escapeHtml(t.source||'?')}</div></div>
 </div>
-<div style="margin:0 28px 24px;border:1px solid #e8e8f0;border-radius:10px;overflow:hidden">
-  <div style="padding:10px 16px;background:#f8f8fc;font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.5px">تفاصيل الإيصال</div>
+<div style="margin:0 28px 24px;border:1px solid ${theme.line};border-radius:10px;overflow:hidden">
+  <div style="padding:10px 16px;background:${theme.softer};font-size:10px;font-weight:700;color:${theme.muted};text-transform:uppercase;letter-spacing:.5px;border-right:4px solid ${theme.accent}">تفاصيل الإيصال</div>
   <table style="width:100%;border-collapse:collapse">
-    <tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5;width:38%">الوصف</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5">${t.desc||'?'}</td></tr>
+    <tr><td style="padding:11px 16px;font-size:12px;color:${theme.muted};border-bottom:1px solid ${theme.line};width:38%">الوصف</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid ${theme.line}">${escapeHtml(t.desc||'?')}</td></tr>
     ${linkedTask ? `<tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5">المشروع</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5"><i class="fa-solid fa-clipboard-list"></i> ${linkedTask.title}</td></tr><tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5">العميل</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5">${linkedTask.client||'?'}</td></tr>` : ''}
     <tr><td style="padding:11px 16px;font-size:12px;color:#888;border-bottom:1px solid #f0f0f5">نوع الدفعة</td><td style="padding:11px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f0f0f5">${payTypeAr}</td></tr>
     <tr><td style="padding:11px 16px;font-size:12px;color:#888">تاريخ الاستلام</td><td style="padding:11px 16px;font-size:13px;font-weight:600">${dateStr}</td></tr>

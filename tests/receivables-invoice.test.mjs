@@ -84,3 +84,11 @@ test('account tab shows unbilled task dues and footer stays at page bottom', () 
   assert.match(portalSource,/document\.getElementById\('root'\)\.style\.display='flex'/);
   assert.match(portalSource,/\.wrap\{[^}]*flex:1/);
 });
+
+test('portal billing tab includes account statements and readable identity colors', () => {
+  assert.match(portalSource, /_clientStatements=\(ud\.statements\|\|\[\]\)/);
+  assert.match(portalSource, /الفواتير والكشوف/);
+  assert.match(portalSource, /كشوفات الحساب/);
+  assert.match(portalSource, /--t1','#f7f9ff'/);
+  assert.match(portalSource, /--t3','#aeb8d0'/);
+});

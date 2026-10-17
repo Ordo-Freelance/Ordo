@@ -273,6 +273,7 @@ function publicView(data, type, token) {
     clients,
     projects: (data.projects || []).filter(belongs), tasks: (data.tasks || []).filter(row => belongs(row) && row.client_visibility !== false && row.is_internal !== true),
     project_tasks: (data.project_tasks || []).filter(row => belongs(row) && row.client_visibility !== false && row.is_internal !== true), invoices: (data.invoices || []).filter(belongs),
+    statements: (data.statements || []).filter(belongs),
     team_tasks: (data.team_tasks || []).filter(row => row.client_visibility === true && belongs(row)),
     contracts: (data.contracts || []).filter(belongs), proposals: (data.proposals || []).filter(belongs),
     brief_forms: (data.brief_forms || []).filter(row => belongs(row) && ['sent','submitted','accepted'].includes(row.status)).map(row => ({id:row.id,title:row.title,description:row.description,banner:row.banner,items:row.items,questions:row.questions,status:row.status,project_id:row.project_id})),
