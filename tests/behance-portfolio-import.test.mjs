@@ -37,4 +37,7 @@ test('saved portfolio projects remain visible in both portal and store',()=>{
   assert.match(storeSource,/portfolio_projects\|\|\[\]/);
   assert.match(portalSource,/p\.thumb\|\|p\.image/);
   assert.match(storeSource,/p\.thumb\|\|p\.image/);
+  assert.match(portalSource,/class="pf-title">\$\{xe\(title\)\}/);
+  assert.match(portalSource,/class="pf-cat">\$\{xe\(cat\)\}/);
+  assert.match(portalSource,/عرض المشروع/);
 });

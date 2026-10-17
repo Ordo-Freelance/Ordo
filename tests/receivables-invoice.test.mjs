@@ -79,10 +79,18 @@ test('account tab shows unbilled task dues and footer stays at page bottom', () 
   vm.runInNewContext(portalSource.slice(start,end),context);
   const html=context.renderAccounts();
   assert.match(html,/إجمالي المستحق الآن[\s\S]*?EGP":3000/);
+  assert.match(html,/إجمالي المدفوع حتى الآن/);
+  assert.doesNotMatch(html,/حسب العملة/);
   assert.match(html,/أعمال مستحقة غير مفوترة/);
   assert.match(portalSource,/#root\{min-height:100vh;display:flex;flex-direction:column\}/);
   assert.match(portalSource,/document\.getElementById\('root'\)\.style\.display='flex'/);
   assert.match(portalSource,/\.wrap\{[^}]*flex:1/);
+});
+
+test('portal headline shows all recorded collections instead of the old excess-payment label',()=>{
+  assert.match(portalSource,/onclick="_openCollectedPopup\(\)"/);
+  assert.match(portalSource,/totalCollected>0\?_currencyRows\(paidByCurrency,'var\(--g\)'\)/);
+  assert.doesNotMatch(portalSource,/الهواء عليه/);
 });
 
 test('portal account totals use invoice net due after discount and prepayment',()=>{
