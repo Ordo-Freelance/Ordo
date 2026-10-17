@@ -156,6 +156,10 @@ body.lm .brief-portal-sheet{color-scheme:light}
 /* SVC CARDS GRID */
 .svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
 @media(max-width:480px){.svc-grid{grid-template-columns:1fr 1fr;gap:10px}}
+.store-sec .svc-grid,.store-sec .pf-grid{display:flex;overflow-x:auto;overflow-y:hidden;gap:14px;padding:2px 2px 12px;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:var(--ac) transparent;overscroll-behavior-inline:contain}
+.store-sec .svc-grid::-webkit-scrollbar,.store-sec .pf-grid::-webkit-scrollbar{height:6px}
+.store-sec .svc-grid::-webkit-scrollbar-thumb,.store-sec .pf-grid::-webkit-scrollbar-thumb{background:var(--ac);border-radius:10px}
+.store-sec .svc-card,.store-sec .pf-card{flex:0 0 min(270px,82vw);scroll-snap-align:start}
 .svc-card{background:var(--s1);border:1.5px solid var(--bd);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;position:relative}
 .svc-card:hover{transform:translateY(-3px);border-color:rgba(124,111,247,.45);box-shadow:0 10px 28px rgba(124,111,247,.15)}
 .svc-img{width:100%;height:130px;object-fit:cover;display:block}
@@ -1075,6 +1079,7 @@ function renderStoreSection(){
         </div>
         <div style="font-size:12px;color:var(--t3);margin-top:3px">اطلب أي خدمة أو باقة مباشرة</div>
       </div>
+      <a href="${xe(storeLink)}" target="_blank" class="nav-hdr-btn nav-store" style="align-self:center"><span>عرض المزيد</span><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
     </div>
     <!-- Tabs -->
     <div class="store-tabs">${tabsHtml}</div>

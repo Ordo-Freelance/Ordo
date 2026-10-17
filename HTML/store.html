@@ -537,15 +537,19 @@ async function buildPage(userId, preloadedData){
     '._pc-price{font-size:17px;font-weight:900;color:'+accent+'}'+
     '._pc-btns{display:flex;gap:5px;flex-wrap:wrap}'+
     // PORTFOLIO
-    '._pf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}'+
-    '@media(max-width:480px){._pf-grid{grid-template-columns:1fr 1fr 1fr;gap:8px}}'+
-    '._pf-card{border-radius:14px;overflow:hidden;aspect-ratio:1;background:'+surface3+';border:1px solid '+cardBorder+';position:relative;cursor:pointer;transition:.2s;text-decoration:none;display:block}'+
-    '._pf-card:hover{transform:scale(1.04);border-color:'+accent+'66;box-shadow:0 8px 24px '+accent+'22}'+
-    '._pf-card img{width:100%;height:100%;object-fit:cover;display:block}'+
-    '._pf-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px;text-align:center;color:'+textSub+'}'+
+    '._pf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}'+
+    '@media(max-width:480px){._pf-grid{grid-template-columns:1fr;gap:12px}}'+
+    '._pf-card{border-radius:14px;overflow:hidden;background:'+surface2+';border:1px solid '+cardBorder+';position:relative;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;text-decoration:none;display:flex;flex-direction:column;color:'+textMain+'}'+
+    '._pf-card:hover{transform:translateY(-3px);border-color:'+accent+'66;box-shadow:0 12px 30px rgba(0,0,0,.18)}'+
+    '._pf-card img{width:100%;height:150px;object-fit:cover;display:block}'+
+    '._pf-ph{width:100%;height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px;text-align:center;color:'+textSub+';background:'+surface3+'}'+
     '._pf-ph-icon{font-size:30px;color:'+accent+'99}'+
     '._pf-ph-name{font-size:11px;font-weight:700;color:'+textSub+';line-height:1.4;word-break:break-word}'+
     '._pf-ph-cat{font-size:10px;color:'+textMuted+';margin-top:2px}'+
+    '._pf-info{padding:12px 13px 13px;display:flex;flex-direction:column;gap:7px;flex:1}'+
+    '._pf-title{font-size:13px;font-weight:900;color:'+textMain+';line-height:1.5}'+
+    '._pf-cat{font-size:10px;font-weight:800;color:'+accent+'}'+
+    '._pf-link{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:8px;border-top:1px solid '+borderC+';font-size:11px;font-weight:800;color:'+accent+'}'+
     // CONTACT
     '._con{display:flex;flex-direction:column;gap:10px}'+
     '._con-item{display:flex;align-items:center;gap:14px;padding:16px 18px;background:'+surface+';border:1px solid '+cardBorder+';border-radius:14px;text-decoration:none;color:'+textMain+';transition:.15s;cursor:pointer;width:100%;font-family:\'Cairo\',sans-serif;text-align:right}'+
@@ -782,6 +786,7 @@ async function buildPage(userId, preloadedData){
             var img=p.thumb||p.image||'';
             var link=p.url||p.link||'#';
             var title=p.name||p.title||p.label||'مشروع';
+            var cat=p.cat||p.category||'';
             var isB=p.link_type==='behance'||p.type==='behance';
             return '<a class="_pf-card" href="'+xe(link)+'" target="_blank" title="'+xe(title)+'">'+
               (img?'<img src="'+xe(img)+'" alt="'+xe(title)+'" loading="lazy">':
@@ -789,6 +794,9 @@ async function buildPage(userId, preloadedData){
                   '<div class="_pf-ph-icon">'+(isB?'<i class="fa-brands fa-behance"></i>':'<i class="fa-solid fa-folder-open"></i>')+'</div>'+
                   '<div class="_pf-ph-name">'+xe(title.slice(0,26))+'</div>'+
                 '</div>')+
+              '<div class="_pf-info"><div class="_pf-title">'+xe(title)+'</div>'+
+                (cat?'<div class="_pf-cat">'+xe(cat)+'</div>':'')+
+                '<div class="_pf-link"><span>عرض المشروع</span><i class="fa-solid fa-arrow-up-right-from-square"></i></div></div>'+
             '</a>';
           }).join('')+
         '</div>'
@@ -928,6 +936,9 @@ async function buildPage(userId, preloadedData){
                       '<div class="_pf-ph-name">'+xe(title.slice(0,26))+'</div>'+
                       (cat?'<div class="_pf-ph-cat">'+xe(cat)+'</div>':'')+
                     '</div>')+
+                '<div class="_pf-info"><div class="_pf-title">'+xe(title)+'</div>'+
+                  (cat?'<div class="_pf-cat">'+xe(cat)+'</div>':'')+
+                  '<div class="_pf-link"><span>عرض المشروع</span><i class="fa-solid fa-arrow-up-right-from-square"></i></div></div>'+
               '</a>';
             }).join('')+
           '</div>'
@@ -1112,6 +1123,9 @@ window._showAllPf=function(){
             '<div class="_pf-ph-name">'+xe(title.slice(0,26))+'</div>'+
             (cat?'<div class="_pf-ph-cat">'+xe(cat)+'</div>':'')+
           '</div>')+
+      '<div class="_pf-info"><div class="_pf-title">'+xe(title)+'</div>'+
+        (cat?'<div class="_pf-cat">'+xe(cat)+'</div>':'')+
+        '<div class="_pf-link"><span>عرض المشروع</span><i class="fa-solid fa-arrow-up-right-from-square"></i></div></div>'+
     '</a>';
   }).join('');
   var btn=document.querySelector('[onclick="_showAllPf()"]');if(btn)btn.remove();
