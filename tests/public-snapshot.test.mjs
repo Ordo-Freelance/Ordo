@@ -6,9 +6,10 @@ const studio = {
   settings: { name:'Studio', username:'studio', email:'owner@example.com', accentColor:'#10b981', accentColor2:'#047857', displayMode:'light', logoDark:'dark-logo.png', logoLight:'light-logo.png' },
   clients: [{id:'c1',name:'One'},{id:'c2',name:'Two'}],
   tasks: [{id:'t1',client_id:'c1'},{id:'t2',client_id:'c2'}],
+  invoices: [{id:'i1',client:'One',total:900},{id:'i2',client:'Two',total:400}],
   services: [{id:'s1',name:'Design'}],
   statements: [{id:'st1',client_id:'c1',total:900},{id:'st2',client_id:'c2',total:400}],
-  transactions: [{id:'private'}],
+  transactions: [{id:'tx1',client:'One',type:'income',amount:100},{id:'tx2',client:'Two',type:'income',amount:50}],
   public_tokens: [{token:'portal-secret',entity_type:'client_portal',entity_id:'p1',client_id:'c1'}]
 };
 const store = {
@@ -33,7 +34,8 @@ test('portal token limits data to its client', async () => {
   assert.deepEqual(result.data.clients.map(x => x.id), ['c1']);
   assert.deepEqual(result.data.tasks.map(x => x.id), ['t1']);
   assert.deepEqual(result.data.statements.map(x => x.id), ['st1']);
-  assert.equal(result.data.transactions, undefined);
+  assert.deepEqual(result.data.invoices.map(x => x.id), ['i1']);
+  assert.deepEqual(result.data.transactions.map(x => x.id), ['tx1']);
 });
 
 test('portal refuses an unknown token', async () => {

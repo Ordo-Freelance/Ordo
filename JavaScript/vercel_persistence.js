@@ -91,11 +91,15 @@
   }
   function publicPortalData(data,token){
     var clientId=String(token.client_id||'');
-    var projects=(data.projects||[]).filter(function(x){return String(x.client_id||'')===clientId||String(x.clientId||'')===clientId;});
+    var clientRows=(data.clients||[]).filter(function(x){return String(x.id)===clientId;});
+    var clientNames=clientRows.map(function(x){return String(x.name||x.company||'').trim().toLowerCase();}).filter(Boolean);
+    if(token.client_name)clientNames.push(String(token.client_name).trim().toLowerCase());
+    function directClient(x){var name=String(x&& (x.client||x.client_name||x.clientName||x.source)||'').trim().toLowerCase();return String(x&& (x.client_id||x.clientId)||'')===clientId||!!name&&clientNames.indexOf(name)>=0;}
+    var projects=(data.projects||[]).filter(directClient);
     var projectIds=projects.map(function(x){return String(x.id);});
-    function forClient(x){return String(x.client_id||x.clientId||'')===clientId||projectIds.indexOf(String(x.project_id||x.projectId||''))>=0;}
+    function forClient(x){return directClient(x)||projectIds.indexOf(String(x.project_id||x.projectId||''))>=0;}
     var invoices=(data.invoices||[]).filter(forClient).map(function(x){var clean=Object.assign({},x);delete clean.publicPrintHtml;delete clean.publicPrintKey;return clean;});
-    return {settings:publicSettings(data.settings),clients:(data.clients||[]).filter(function(x){return String(x.id)===clientId;}).map(function(x){return{id:x.id,name:x.name,email:x.email,phone:x.phone,company:x.company,currency_code:x.currency_code,currency_symbol:x.currency_symbol,openingBalance:x.openingBalance,openingBalanceCurrency:x.openingBalanceCurrency,openingBalanceType:x.openingBalanceType,openingBalanceNote:x.openingBalanceNote};}),projects:projects,project_tasks:(data.project_tasks||[]).filter(forClient),tasks:(data.tasks||[]).filter(forClient),invoices:invoices,contracts:(data.contracts||[]).filter(forClient),proposals:(data.proposals||[]).filter(forClient),brief_forms:(data.brief_forms||[]).filter(function(x){return String(x.client_id)===clientId&&['sent','submitted','accepted'].includes(x.status);}).map(function(x){return{id:x.id,title:x.title,description:x.description,banner:x.banner,items:x.items,questions:x.questions,status:x.status,project_id:x.project_id};}),client_portals:(data.client_portals||[]).filter(function(x){return String(x.client_id||'')===clientId;}),svc_orders:(data.svc_orders||[]).filter(forClient)};
+    return {settings:publicSettings(data.settings),clients:clientRows.map(function(x){return{id:x.id,name:x.name,email:x.email,phone:x.phone,company:x.company,currency_code:x.currency_code,currency_symbol:x.currency_symbol,openingBalance:x.openingBalance,openingBalanceCurrency:x.openingBalanceCurrency,openingBalanceType:x.openingBalanceType,openingBalanceNote:x.openingBalanceNote};}),projects:projects,project_tasks:(data.project_tasks||[]).filter(forClient),tasks:(data.tasks||[]).filter(forClient),invoices:invoices,statements:(data.statements||[]).filter(forClient),transactions:(data.transactions||[]).filter(forClient),contracts:(data.contracts||[]).filter(forClient),proposals:(data.proposals||[]).filter(forClient),brief_forms:(data.brief_forms||[]).filter(forClient).filter(function(x){return['sent','submitted','accepted'].includes(x.status);}).map(function(x){return{id:x.id,title:x.title,description:x.description,banner:x.banner,items:x.items,questions:x.questions,status:x.status,project_id:x.project_id};}),client_portals:(data.client_portals||[]).filter(function(x){return String(x.client_id||'')===clientId;}),svc_orders:(data.svc_orders||[]).filter(forClient)};
   }
   async function publishPublicData(db,userId,data){
     var settings=data.settings||{},mainSlug=ensureStoreSlug(settings,userId),stores=[null].concat(data.stores||[]);
@@ -159,7 +163,7 @@
         updated_at:root.S._savedAt
       }, {onConflict:'user_id'});
       if(result.error) throw result.error;
-      var publicFingerprint = userId+':'+fingerprint({settings:publicSettings(root.S.settings),stores:root.S.stores,services:root.S.services,standalone_packages:root.S.standalone_packages,portfolio_projects:root.S.portfolio_projects,reviews:root.S.reviews,public_tokens:root.S.public_tokens,projects:root.S.projects,project_tasks:root.S.project_tasks,tasks:root.S.tasks,invoices:root.S.invoices,contracts:root.S.contracts,proposals:root.S.proposals,brief_forms:root.S.brief_forms,client_portals:root.S.client_portals,svc_orders:root.S.svc_orders});
+      var publicFingerprint = userId+':'+fingerprint({settings:publicSettings(root.S.settings),stores:root.S.stores,services:root.S.services,standalone_packages:root.S.standalone_packages,portfolio_projects:root.S.portfolio_projects,reviews:root.S.reviews,public_tokens:root.S.public_tokens,projects:root.S.projects,project_tasks:root.S.project_tasks,tasks:root.S.tasks,invoices:root.S.invoices,statements:root.S.statements,transactions:root.S.transactions,contracts:root.S.contracts,proposals:root.S.proposals,brief_forms:root.S.brief_forms,client_portals:root.S.client_portals,svc_orders:root.S.svc_orders});
       if(publicFingerprint !== lastPublishedFingerprint){
         await publishPublicData(db,userId,root.S);
         lastPublishedFingerprint = publicFingerprint;
