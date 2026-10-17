@@ -42,3 +42,10 @@ test('invoice list and WhatsApp use net payable amount after every deduction',()
   assert.match(app,/صافي المستحق بعد الخصم والمدفوعات/);
   assert.match(app,/_fmtPrice\(_invoiceAmountDue\(inv\),inv\.currency_code\|\|inv\.currency_symbol\|\|inv\.currency\)/);
 });
+
+test('invoice collection icon stays visible and WhatsApp includes the secure invoice link',()=>{
+  assert.match(app,/title="تحصيل المتبقي" aria-label="تحصيل المتبقي"[\s\S]*?fa-hand-holding-dollar" style="color:inherit"/);
+  assert.match(app,/\{\{رابط_الفاتورة\}\}/);
+  assert.match(app,/tab=invoices&invoice=/);
+  assert.match(app,/تحميل PDF قبل الإرسال/);
+});

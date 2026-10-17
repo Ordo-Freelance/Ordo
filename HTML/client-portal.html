@@ -322,7 +322,7 @@ const pUid=P.get('uid'),pCid=P.get('cid'),pOrderId=P.get('order'),pTaskId=P.get(
 const pPathToken=(location.pathname.match(/^\/portal\/([^/?#]+)\/?$/i)||[])[1]||'';
 const pPublicToken=P.get('token')||P.get('public_token')||P.get('t')||(pPathToken?decodeURIComponent(pPathToken):'');
 const pUsername=P.get('u'), pClientSlug=P.get('p');
-const pTab=P.get('tab')||'', pProjId=P.get('pid')||'', pBriefId=P.get('brief')||'';
+const pTab=P.get('tab')||'', pProjId=P.get('pid')||'', pBriefId=P.get('brief')||'', pInvoiceId=P.get('invoice')||'';
 let _ud,_settings,_clientName,_clientPhone,_clientId,_clientTasks,_clientProjects,_clientInvoices,_clientStatements,_clientOrders;
 
 function _curMeta(value){
@@ -588,6 +588,9 @@ async function _bootWithData(userId, clientId, ud){
           },300);
         }
       },500);
+    }
+    if(pInvoiceId&&_clientInvoices.some(inv=>String(inv.id)===String(pInvoiceId))){
+      setTimeout(()=>{switchTab('invoices');openPortalInvoice(pInvoiceId);},650);
     }
   }catch(e){console.error('_bootWithData error:',e);showErr('حدث خطأ، حاول تحديث الصفحة.');}
 }
@@ -1896,7 +1899,9 @@ function _portalInvoiceRows(inv){
   if(!vals.items.length)return`<tr><td colspan="4" style="padding:22px;text-align:center;color:#74748a">لا توجد بنود تفصيلية محفوظة</td></tr>`;
   return vals.items.map(it=>{
     const qty=+(it.qty||1),price=+(it.price||it.amount||0),line=qty*price;
-    return`<tr><td>${xe(it.desc||it.title||it.name||'بند')}</td><td style="text-align:center">${qty}</td><td style="text-align:left">${_money(price,inv)}</td><td style="text-align:left;font-weight:800">${_money(line,inv)}</td></tr>`;
+    const date=it.date||it.isoDate||it.doneAt||inv.date||'';
+    const status=it.status||it.state||'مكتمل';
+    return`<tr><td>${xe(it.desc||it.title||it.name||'بند')}</td><td style="text-align:center">${xe(date)}</td><td style="text-align:left;font-weight:800">${_money(line,inv)}</td><td style="text-align:center">${xe(status)}</td></tr>`;
   }).join('');
 }
 function _portalInvoiceBody(inv,printMode){
@@ -1910,7 +1915,7 @@ function _portalInvoiceBody(inv,printMode){
     <div class="portal-invoice-meta"><div><b>العميل:</b> ${xe(inv.client||inv.client_name||_clientName||'')}</div><div><b>تاريخ الفاتورة:</b> ${xe(inv.date||inv.created_at||'')}</div><div><b>تاريخ الاستحقاق:</b> ${xe(inv.due||inv.dueDate||'')}</div></div>
     ${(s.email||s.phone||s.address)?`<div class="portal-invoice-contact">${[s.email,s.phone,s.address].filter(Boolean).map(xe).join(' • ')}</div>`:''}
     ${summary}
-    <section><h3>بنود الفاتورة</h3><table><thead><tr><th>البند</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${_portalInvoiceRows(inv)}</tbody></table></section>
+    <section><h3>المهام والبنود</h3><table><thead><tr><th>الطلب</th><th>التاريخ</th><th>القيمة</th><th>الحالة</th></tr></thead><tbody>${_portalInvoiceRows(inv)}</tbody></table></section>
     <div class="portal-invoice-total"><span>حالة الفاتورة: <b>${paid?'مدفوعة':'غير مدفوعة'}</b></span><strong>المستحق: ${_money(vals.due,inv)}</strong></div>
     ${inv.notes?`<div class="portal-invoice-notes"><b>ملاحظات</b><br>${xe(inv.notes)}</div>`:''}
     <footer>شكراً لتعاملكم معنا — ${xe(s.name||'Ordo')}</footer>
