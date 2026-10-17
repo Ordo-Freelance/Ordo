@@ -49,3 +49,10 @@ test('invoice collection icon stays visible and WhatsApp includes the secure inv
   assert.match(app,/tab=invoices&invoice=/);
   assert.match(app,/تحميل PDF قبل الإرسال/);
 });
+
+test('client portal reuses the exact owner invoice print document',()=>{
+  assert.match(app,/function _syncInvoicePrintSnapshot\(inv\)/);
+  assert.match(app,/exportPDF\(inv\.id,\{returnHtml:true\}\)/);
+  assert.match(app,/if\(options\.returnHtml\)return html/);
+  assert.match(app,/\(S\.invoices\|\|\[\]\)\.forEach\(inv=>\{if\(_syncInvoicePrintSnapshot\(inv\)\)snapshotChanged=true;\}\)/);
+});

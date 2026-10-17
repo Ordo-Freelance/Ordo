@@ -103,4 +103,5 @@ test('portal invoices open a protected preview and provide PDF printing', () => 
   assert.match(portalSource, /win\.print\(\)/);
   assert.match(portalSource, /pInvoiceId=P\.get\('invoice'\)/);
   assert.match(portalSource, /المهام والبنود/);
+  assert.match(portalSource, /inv\.publicPrintHtml\|\|/);
 });
