@@ -1932,13 +1932,13 @@ function openPortalInvoice(id){
   const ov=document.createElement('div');ov.className='overlay';ov.id='portal-invoice-overlay';ov.onclick=e=>{if(e.target===ov)ov.remove()};
   ov.innerHTML=`<div class="sheet" style="max-width:940px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px"><div><b style="font-size:17px">${xe(inv.num||inv.number||'فاتورة')}</b><div style="font-size:11px;color:var(--t3)">معاينة الفاتورة</div></div><div style="display:flex;gap:8px"><button onclick="downloadPortalInvoicePdf('${xe(String(inv.id))}')" style="border:0;border-radius:10px;padding:9px 14px;background:var(--ac);color:#fff;font:800 12px var(--font);cursor:pointer"><i class="fa-solid fa-file-pdf"></i> تحميل PDF</button><button onclick="this.closest('.overlay').remove()" style="width:38px;height:38px;border-radius:10px;border:1px solid var(--bd);background:var(--s2);color:var(--t1);cursor:pointer"><i class="fa-solid fa-xmark"></i></button></div></div><iframe title="معاينة الفاتورة" style="display:block;width:100%;height:min(70vh,760px);border:0;border-radius:12px;background:#fff"></iframe></div>`;
   document.body.appendChild(ov);
-  ov.querySelector('iframe').srcdoc=inv.publicPrintHtml||`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><link href="../Assets/vendor/fonts/offline-fonts.css" rel="stylesheet"><style>${_portalInvoiceStyles()}</style></head><body>${_portalInvoiceBody(inv,false)}</body></html>`;
+  ov.querySelector('iframe').srcdoc=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><link href="../Assets/vendor/fonts/offline-fonts.css" rel="stylesheet"><style>${_portalInvoiceStyles()}</style></head><body>${_portalInvoiceBody(inv,false)}</body></html>`;
 }
 function downloadPortalInvoicePdf(id){
   const inv=_clientInvoices.find(row=>String(row.id)===String(id));if(!inv)return;
   const frame=document.createElement('iframe');frame.style.cssText='position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0';document.body.appendChild(frame);
   const title='invoice-'+String(inv.num||inv.number||inv.id||'').replace(/[^a-zA-Z0-9_-]/g,'-');
-  frame.srcdoc=inv.publicPrintHtml||`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${xe(title)}</title><link href="../Assets/vendor/fonts/offline-fonts.css" rel="stylesheet"><style>${_portalInvoiceStyles()}</style></head><body>${_portalInvoiceBody(inv,true)}</body></html>`;
+  frame.srcdoc=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${xe(title)}</title><link href="../Assets/vendor/fonts/offline-fonts.css" rel="stylesheet"><style>${_portalInvoiceStyles()}</style></head><body>${_portalInvoiceBody(inv,true)}</body></html>`;
   frame.onload=()=>{const win=frame.contentWindow;const ready=()=>{win.focus();win.print();setTimeout(()=>frame.remove(),1500)};if(win.document.fonts?.ready)win.document.fonts.ready.then(ready);else setTimeout(ready,500)};
 }
 

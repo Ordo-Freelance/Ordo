@@ -11031,27 +11031,15 @@ function _invLinkToProject(invId) {
   };
 }
 
-function _invoicePrintSnapshotKey(inv){
-  if(!inv) return '';
-  const clean=Object.assign({},inv);delete clean.publicPrintHtml;delete clean.publicPrintKey;
-  const raw=JSON.stringify([clean,S.settings?.name,S.settings?.phone,S.settings?.email,S.settings?.address,S.settings?.logo,S.settings?.logoDark,S.settings?.logoLight,S.settings?.accentColor,S.settings?.toneColor]);
-  let hash=5381;for(let i=0;i<raw.length;i++)hash=((hash<<5)+hash)^raw.charCodeAt(i);
-  return String(hash>>>0);
-}
-function _syncInvoicePrintSnapshot(inv){
-  if(!inv) return false;
-  const key=_invoicePrintSnapshotKey(inv);
-  if(inv.publicPrintHtml&&inv.publicPrintKey===key)return false;
-  const html=exportPDF(inv.id,{returnHtml:true});
-  if(!html)return false;
-  inv.publicPrintHtml=html;inv.publicPrintKey=key;return true;
-}
 function renderInvoices(){
   const tbody=document.getElementById('inv-tbody');if(!tbody)return;
   (S.invoices||[]).forEach(_invoiceRefreshStoredTotals);
-  let snapshotChanged=false;
-  (S.invoices||[]).forEach(inv=>{if(_syncInvoicePrintSnapshot(inv))snapshotChanged=true;});
-  if(snapshotChanged){lsSave();if(typeof _queueCloudSave==='function')_queueCloudSave();}
+  let removedLegacyPrintSnapshots=false;
+  (S.invoices||[]).forEach(inv=>{
+    if(Object.prototype.hasOwnProperty.call(inv,'publicPrintHtml')){delete inv.publicPrintHtml;removedLegacyPrintSnapshots=true;}
+    if(Object.prototype.hasOwnProperty.call(inv,'publicPrintKey')){delete inv.publicPrintKey;removedLegacyPrintSnapshots=true;}
+  });
+  if(removedLegacyPrintSnapshots){lsSave();if(typeof _queueCloudSave==='function')_queueCloudSave();}
   const sm={
     pending:'<span class="inv-status-badge inv-uncollected">âڈ³ لم يتم التحصيل</span>',
     partial:'<span class="inv-status-badge" style="background:rgba(124,111,247,.15);color:var(--accent)"><i class="fa-solid fa-circle-half-stroke"></i> مدفوع جزئياً</span>',
@@ -11545,13 +11533,6 @@ function exportPDF(id,options){
     </style>
     </head><body>${pageHtml}</body></html>`;
   if(options.returnHtml)return html;
-  const printKey=_invoicePrintSnapshotKey(inv);
-  if(inv.publicPrintHtml!==html||inv.publicPrintKey!==printKey){
-    inv.publicPrintHtml=html;
-    inv.publicPrintKey=printKey;
-    lsSave();
-    if(typeof _queueCloudSave==='function')_queueCloudSave();
-  }
   const pa=document.getElementById('print-area');
   if(pa){
     const bodyMatch=html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
