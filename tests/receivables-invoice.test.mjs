@@ -104,6 +104,12 @@ test('portal account totals use invoice net due after discount and prepayment',(
   assert.match(portalSource,/const unpaid=_clientInvoices\.reduce\(\(s,i\)=>s\+_portalInvoiceValues\(i\)\.due,0\)/);
 });
 
+test('comprehensive statement does not duplicate an unallocated receipt mirrored as invoice prepayment',()=>{
+  assert.match(portalSource,/const unallocatedPaymentPool=\{\}/);
+  assert.match(portalSource,/const coveredByClientReceipt=Math\.min\(recordedManual,unallocatedPaymentPool\[code\]\|\|0\)/);
+  assert.match(portalSource,/recordedManual-coveredByClientReceipt/);
+});
+
 test('portal invoice tolerates legacy JSON-string allocations without breaking the page',()=>{
   assert.match(portalSource,/const safeArray=value=>/);
   assert.match(portalSource,/safeArray\(tx\.allocations\)\.filter/);

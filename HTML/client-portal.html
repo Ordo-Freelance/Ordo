@@ -1849,6 +1849,13 @@ function renderAccounts(){
 
   const allTasks=[...(_ud.tasks||[]),...(_ud.project_tasks||[])];
   const rows=[];
+  const unallocatedPaymentPool={};
+  trans.forEach(t=>{
+    let allocations=t.allocations||[];
+    if(typeof allocations==='string'){try{allocations=JSON.parse(allocations)}catch(_){allocations=[];}}
+    const linked=!!(t.invoice_id||t.invoiceId||t.linkedInvoiceId)||(Array.isArray(allocations)&&allocations.some(a=>a&&(a.invoice_id||a.invoiceId)));
+    if(t.type==='income'&&!linked)_addCurrencyTotal(unallocatedPaymentPool,_entityCur(t).code,t.amount);
+  });
   if(openingBal>0)rows.push({date:_accountDate(clientObj?.openingBalanceDate),title:openingNote||(openingType==='receivable'?'رصيد افتتاحي مستحق':'رصيد افتتاحي مدفوع مسبقًا'),type:'رصيد افتتاحي',debit:openingType==='receivable'?openingBal:0,credit:openingType==='prepaid'?openingBal:0,currency:openingCur.code});
   _clientInvoices.forEach(inv=>{
     const vals=_portalInvoiceValues(inv),code=_entityCur(inv).code,invDate=_accountDate(inv.date||inv.created_at||inv.createdAt),number=inv.num||inv.number||'فاتورة';
@@ -1860,7 +1867,10 @@ function renderAccounts(){
       });
     }else if(vals.subtotal>0){rows.push({date:invDate,title:inv.title||inv.subject||number,type:'فاتورة',debit:vals.subtotal,credit:0,currency:code});}
     if(vals.discount>0)rows.push({date:invDate,title:'خصم على '+number,type:'خصم',debit:0,credit:vals.discount,currency:code});
-    const manualPaid=Math.max(0,vals.prepaid-vals.linkedPaid);
+    const recordedManual=Math.max(0,vals.prepaid-vals.linkedPaid);
+    const coveredByClientReceipt=Math.min(recordedManual,unallocatedPaymentPool[code]||0);
+    unallocatedPaymentPool[code]=Math.max(0,(unallocatedPaymentPool[code]||0)-coveredByClientReceipt);
+    const manualPaid=Math.max(0,recordedManual-coveredByClientReceipt);
     if(manualPaid>0)rows.push({date:_accountDate(inv.paymentDate||inv.paidAt||invDate),title:'عربون / دفعة مسجلة على '+number,type:'دفعة',debit:0,credit:manualPaid,currency:code});
   });
   unbilledTasks.forEach(task=>{
