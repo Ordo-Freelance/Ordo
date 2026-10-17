@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const app=fs.readFileSync(new URL('../JavaScript/app.js',import.meta.url),'utf8');
+const persistence=fs.readFileSync(new URL('../JavaScript/vercel_persistence.js',import.meta.url),'utf8');
 const html=fs.readFileSync(new URL('../HTML/index.html',import.meta.url),'utf8');
 
 test('invoice headline due uses net amount after discount and prepayment',()=>{
@@ -50,8 +51,10 @@ test('invoice collection icon stays visible and WhatsApp includes the secure inv
   assert.match(app,/تحميل PDF قبل الإرسال/);
 });
 
-test('invoice rendering removes obsolete heavy portal print snapshots',()=>{
-  assert.match(app,/delete inv\.publicPrintHtml/);
-  assert.match(app,/delete inv\.publicPrintKey/);
-  assert.doesNotMatch(app,/inv\.publicPrintHtml=html/);
+test('invoice rendering publishes the exact freelancer PDF document for the client portal',()=>{
+  assert.match(app,/exportPDF\(inv\.id,\{returnHtml:true\}\)/);
+  assert.match(app,/inv\.publicPrintHtml=html/);
+  assert.match(app,/inv\.publicPrintKey='invoice-print-v1'/);
+  assert.match(persistence,/root\.exportPDF\(inv\.id,\{returnHtml:true\}\)/);
+  assert.match(persistence,/inv\.publicPrintHtml=printHtml/);
 });

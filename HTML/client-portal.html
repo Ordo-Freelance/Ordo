@@ -48,7 +48,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .wlc-tag{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t3)}
 .wlc-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
 /* STATS */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:900px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:480px){.stats{grid-template-columns:repeat(2,1fr)}}
 .stat{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:14px;text-align:center}
 .stat-val{font-size:20px;font-weight:900;line-height:1.2;margin-bottom:3px}
@@ -674,6 +675,7 @@ function renderPage(){
   const hasPrepaidMoney = Object.keys(prepaidByCurrency).some(code=>prepaidByCurrency[code]>0);
   const totalDueNow = Object.values(dueByCurrency).reduce((s,v)=>s+(+v||0),0);
   const totalCollected = Object.values(paidByCurrency).reduce((s,v)=>s+(+v||0),0);
+  const totalAccount = Object.values(chargeByCurrency).reduce((s,v)=>s+(+v||0),0);
 
   // ── بناء رابط المتجر بالـ username لو متاح ──
   const _storeUid=window._resolvedUid||pUid||'';
@@ -750,6 +752,10 @@ function renderPage(){
     <div class="stats">
       <div class="stat" style="cursor:pointer" onclick="switchTab('tasks');setTimeout(()=>setTasksFilter('active'),100)"><div class="stat-val" style="color:var(--ac)">${activeTasks}</div><div class="stat-lbl">طلبات نشطة <i class="fa-solid fa-arrow-left" style="font-size:8px;opacity:.5"></i></div></div>
       <div class="stat" style="cursor:pointer" onclick="_openActiveProjectsPopup()"><div class="stat-val" style="color:var(--g)">${doneTasks}</div><div class="stat-lbl">مكتملة <i class="fa-solid fa-arrow-left" style="font-size:8px;opacity:.5"></i></div></div>
+      <div class="stat">
+        <div class="stat-val" style="color:var(--y)">${totalAccount>0?_currencyRows(chargeByCurrency,'var(--y)'):'—'}</div>
+        <div class="stat-lbl">إجمالي الحساب حتى الآن</div>
+      </div>
       <div class="stat" style="cursor:pointer;${totalDueNow>0?'border:1.5px solid rgba(255,107,107,.35)':''}" onclick="_openDueNowPopup()">
         <div class="stat-val" style="color:${totalDueNow>0?'var(--r)':'var(--g)'}">
           ${totalDueNow>0?_currencyRows(dueByCurrency,'var(--r)'):'✓'}
@@ -1968,18 +1974,23 @@ function _portalInvoiceStyles(){
   const accent=/^#[0-9a-f]{6}$/i.test(rawAccent)?rawAccent:'#f5a000';
   return`*{box-sizing:border-box}body{margin:0;background:#666;color:#171721;font-family:'Cairo',Arial,sans-serif;direction:rtl}.portal-invoice-doc{width:210mm;min-height:297mm;margin:0 auto;background:#fff;position:relative;padding-bottom:54px}.portal-invoice-head{padding:24px 30px;background:linear-gradient(135deg,#171721,#49351f);display:flex;justify-content:space-between;align-items:center;color:#fff}.portal-invoice-head img{max-width:155px;max-height:62px;object-fit:contain}.portal-invoice-head h1{font-size:29px;margin:0;line-height:1}.portal-invoice-head small{display:block;opacity:.75;margin-top:8px;font-weight:800}.portal-invoice-band{height:4px;background:${accent}}.portal-invoice-meta{margin:28px 30px 16px;padding:14px 18px;background:#fffaf1;border:1px solid #f4dfb6;border-radius:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:12px}.portal-invoice-meta b{color:${accent}}.portal-invoice-contact{margin:0 30px 18px;padding:11px;text-align:center;background:#fffaf1;border:1px solid #f4dfb6;border-radius:10px;font-size:11px}.portal-invoice-summary{margin:0 30px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.portal-invoice-summary>div{padding:14px 8px;text-align:center;background:#fffaf1;border:1px solid #f4dfb6;border-radius:12px}.portal-invoice-summary b{display:block;font-size:19px;color:${accent}}.portal-invoice-summary b.warn{color:#b88700}.portal-invoice-summary b.paid{color:#2f9d74}.portal-invoice-summary span{display:block;font-size:10px;color:#74748a;font-weight:800;margin-top:5px}section{margin:0 30px 20px}section h3{font-size:15px;color:${accent};border-bottom:3px solid #f4dfb6;padding-bottom:8px;display:flex;justify-content:space-between;align-items:center;margin:0 0 12px}section h3 small{font-size:10px;color:#74748a;margin-right:6px}section h3 em{font-style:normal;font-size:12px;color:#b88700}table{width:100%;border-collapse:collapse;font-size:11.5px;table-layout:fixed}th{background:#fff4dc;padding:9px 12px;text-align:right;border-bottom:2px solid #f4dfb6}td{padding:9px 12px;border-bottom:1px solid #eee;line-height:1.65}th:nth-child(2),th:nth-child(4),td:nth-child(2),td:nth-child(4){text-align:center}th:nth-child(3),td:nth-child(3){text-align:left}.portal-invoice-notes{margin:0 30px;padding:12px;background:#fffaf1;border-right:3px solid ${accent};border-radius:9px;font-size:11px}footer{position:absolute;right:0;left:0;bottom:0;padding:13px 30px;background:#fffaf1;border-top:1px solid #f4dfb6;color:#9090b0;font-size:10px;text-align:right}@page{size:A4;margin:0}@media print{body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.portal-invoice-doc{margin:0;min-height:297mm}}`;
 }
+function _portalInvoiceDocument(inv,printMode){
+  const exact=typeof inv?.publicPrintHtml==='string'?inv.publicPrintHtml.trim():'';
+  if(/^<!doctype html>|^<html[\s>]/i.test(exact))return exact;
+  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><link href="../Assets/vendor/fonts/offline-fonts.css" rel="stylesheet"><style>${_portalInvoiceStyles()}</style></head><body>${_portalInvoiceBody(inv,!!printMode)}</body></html>`;
+}
 function openPortalInvoice(id){
   const inv=_clientInvoices.find(row=>String(row.id)===String(id));if(!inv)return;
   const ov=document.createElement('div');ov.className='overlay';ov.id='portal-invoice-overlay';ov.onclick=e=>{if(e.target===ov)ov.remove()};
   ov.innerHTML=`<div class="sheet" style="max-width:940px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px"><div><b style="font-size:17px">${xe(inv.num||inv.number||'فاتورة')}</b><div style="font-size:11px;color:var(--t3)">معاينة الفاتورة</div></div><div style="display:flex;gap:8px"><button onclick="downloadPortalInvoicePdf('${xe(String(inv.id))}')" style="border:0;border-radius:10px;padding:9px 14px;background:var(--ac);color:#fff;font:800 12px var(--font);cursor:pointer"><i class="fa-solid fa-file-pdf"></i> تحميل PDF</button><button onclick="this.closest('.overlay').remove()" style="width:38px;height:38px;border-radius:10px;border:1px solid var(--bd);background:var(--s2);color:var(--t1);cursor:pointer"><i class="fa-solid fa-xmark"></i></button></div></div><iframe title="معاينة الفاتورة" style="display:block;width:100%;height:min(70vh,760px);border:0;border-radius:12px;background:#fff"></iframe></div>`;
   document.body.appendChild(ov);
-  ov.querySelector('iframe').srcdoc=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><link href="../Assets/vendor/fonts/offline-fonts.css" rel="stylesheet"><style>${_portalInvoiceStyles()}</style></head><body>${_portalInvoiceBody(inv,false)}</body></html>`;
+  ov.querySelector('iframe').srcdoc=_portalInvoiceDocument(inv,false);
 }
 function downloadPortalInvoicePdf(id){
   const inv=_clientInvoices.find(row=>String(row.id)===String(id));if(!inv)return;
   const frame=document.createElement('iframe');frame.style.cssText='position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0';document.body.appendChild(frame);
   const title='invoice-'+String(inv.num||inv.number||inv.id||'').replace(/[^a-zA-Z0-9_-]/g,'-');
-  frame.srcdoc=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${xe(title)}</title><link href="../Assets/vendor/fonts/offline-fonts.css" rel="stylesheet"><style>${_portalInvoiceStyles()}</style></head><body>${_portalInvoiceBody(inv,true)}</body></html>`;
+  frame.srcdoc=_portalInvoiceDocument(inv,true).replace(/<head>/i,`<head><title>${xe(title)}</title>`);
   frame.onload=()=>{const win=frame.contentWindow;const ready=()=>{win.focus();win.print();setTimeout(()=>frame.remove(),1500)};if(win.document.fonts?.ready)win.document.fonts.ready.then(ready);else setTimeout(ready,500)};
 }
 

@@ -121,10 +121,19 @@ test('portal invoices open a protected preview and provide PDF printing', () => 
   assert.match(portalSource, /win\.print\(\)/);
   assert.match(portalSource, /pInvoiceId=P\.get\('invoice'\)/);
   assert.match(portalSource, /المهام المكتملة/);
-  assert.doesNotMatch(portalSource, /inv\.publicPrintHtml\|\|/);
+  assert.match(portalSource, /function _portalInvoiceDocument\(inv,printMode\)/);
+  assert.match(portalSource, /typeof inv\?\.publicPrintHtml==='string'/);
+  assert.match(portalSource, /srcdoc=_portalInvoiceDocument\(inv,false\)/);
+  assert.match(portalSource, /srcdoc=_portalInvoiceDocument\(inv,true\)/);
   assert.match(portalSource, /المهام المكتملة <small>/);
   assert.match(portalSource, /linear-gradient\(135deg,#171721,#49351f\)/);
   assert.match(portalSource, /background:#fffaf1;border:1px solid #f4dfb6/);
+});
+
+test('portal headline includes the full account total to date',()=>{
+  assert.match(portalSource,/const totalAccount = Object\.values\(chargeByCurrency\)/);
+  assert.match(portalSource,/إجمالي الحساب حتى الآن/);
+  assert.match(portalSource,/repeat\(5,minmax\(0,1fr\)\)/);
 });
 
 test('portal invoice uses discounted net, linked collections, and real A4 page count', () => {

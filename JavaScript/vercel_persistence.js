@@ -98,7 +98,7 @@
     var projects=(data.projects||[]).filter(directClient);
     var projectIds=projects.map(function(x){return String(x.id);});
     function forClient(x){return directClient(x)||projectIds.indexOf(String(x.project_id||x.projectId||''))>=0;}
-    var invoices=(data.invoices||[]).filter(forClient).map(function(x){var clean=Object.assign({},x);delete clean.publicPrintHtml;delete clean.publicPrintKey;return clean;});
+    var invoices=(data.invoices||[]).filter(forClient).map(function(x){return Object.assign({},x);});
     return {settings:publicSettings(data.settings),clients:clientRows.map(function(x){return{id:x.id,name:x.name,email:x.email,phone:x.phone,company:x.company,currency_code:x.currency_code,currency_symbol:x.currency_symbol,openingBalance:x.openingBalance,openingBalanceCurrency:x.openingBalanceCurrency,openingBalanceType:x.openingBalanceType,openingBalanceNote:x.openingBalanceNote};}),projects:projects,project_tasks:(data.project_tasks||[]).filter(forClient),tasks:(data.tasks||[]).filter(forClient),invoices:invoices,statements:(data.statements||[]).filter(forClient),transactions:(data.transactions||[]).filter(forClient),contracts:(data.contracts||[]).filter(forClient),proposals:(data.proposals||[]).filter(forClient),brief_forms:(data.brief_forms||[]).filter(forClient).filter(function(x){return['sent','submitted','accepted'].includes(x.status);}).map(function(x){return{id:x.id,title:x.title,description:x.description,banner:x.banner,items:x.items,questions:x.questions,status:x.status,project_id:x.project_id};}),client_portals:(data.client_portals||[]).filter(function(x){return String(x.client_id||'')===clientId;}),svc_orders:(data.svc_orders||[]).filter(forClient)};
   }
   async function publishPublicData(db,userId,data){
@@ -146,6 +146,17 @@
     var userId = uid();
     if(data) root.S = data;
     root.S = normalize(root.S);
+    // Publish the very same invoice document produced by the freelancer
+    // account. The client portal consumes this snapshot instead of rebuilding
+    // an approximate template with different pagination and sections.
+    if(typeof root.exportPDF==='function'){
+      (root.S.invoices||[]).forEach(function(inv){
+        try{
+          var printHtml=root.exportPDF(inv.id,{returnHtml:true});
+          if(printHtml){inv.publicPrintHtml=printHtml;inv.publicPrintKey='invoice-print-v1';}
+        }catch(error){console.warn('Invoice public print refresh failed:',error);}
+      });
+    }
     var storeSlug=ensureStoreSlug(root.S.settings,userId);
     var contentFingerprint = userId+':'+fingerprint(Object.assign({},root.S,{_savedAt:null}));
     if(contentFingerprint === lastSavedFingerprint && root._lastCloudSaveOk) return root.S;
