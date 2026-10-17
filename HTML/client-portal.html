@@ -1781,6 +1781,32 @@ async function submitBriefSheet(formId,button){
     alert('تم إرسال البريف بنجاح');
   }catch(error){button.disabled=false;button.textContent='إرسال الإجابات';alert(error?.message||'تعذر إرسال البريف، حاول مجددًا');}
 }
+let _accountFrom='';
+let _accountTo='';
+function _accountDate(value){
+  const raw=String(value||'').trim();
+  if(!raw)return'';
+  const parsed=new Date(raw);
+  return Number.isNaN(parsed.getTime())?raw.slice(0,10):parsed.toISOString().slice(0,10);
+}
+function _accountRefresh(){const panel=document.getElementById('tp-account');if(panel)panel.innerHTML=renderAccounts();}
+function _accountSetPeriod(months){
+  const now=new Date(),from=new Date(now);
+  from.setMonth(from.getMonth()-Math.max(1,+months||1));
+  _accountFrom=from.toISOString().slice(0,10);_accountTo=now.toISOString().slice(0,10);_accountRefresh();
+}
+function _accountApplyPeriod(){
+  _accountFrom=document.getElementById('_account-from')?.value||'';
+  _accountTo=document.getElementById('_account-to')?.value||'';
+  _accountRefresh();
+}
+function _accountClearPeriod(){_accountFrom='';_accountTo='';_accountRefresh();}
+function printPortalStatement(){
+  const card=document.getElementById('portal-account-statement');if(!card)return;
+  const win=window.open('','_blank');if(!win)return;try{win.opener=null}catch(_){}
+  win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>كشف حساب - ${xe(_clientName||'العميل')}</title><link href="../Assets/vendor/fonts/offline-fonts.css" rel="stylesheet"><style>*{box-sizing:border-box}body{font-family:Cairo,Arial,sans-serif;color:#171721;margin:24px;direction:rtl}button,.statement-filters{display:none!important}.statement-table{width:100%;border-collapse:collapse;font-size:11px}.statement-table th{background:#fff4dc;padding:8px;border:1px solid #ead9ba}.statement-table td{padding:8px;border:1px solid #eee}.statement-title{display:block!important} @page{size:A4;margin:12mm}</style></head><body><h1 style="font-size:22px">كشف حساب</h1><p>${xe(_clientName||'')}</p>${card.outerHTML}</body></html>`);
+  win.document.close();const ready=()=>{win.focus();win.print()};if(win.document.fonts?.ready)win.document.fonts.ready.then(ready);else setTimeout(ready,400);
+}
 function renderAccounts(){
   const clientObj=(_ud.clients||[]).find(c=>String(c.id)===String(_clientId));
   const openingBal=+(clientObj?.openingBalance||0);
@@ -1821,23 +1847,38 @@ function renderAccounts(){
     if(openingType==='prepaid') _addCurrencyTotal(paidTotals,openingCur.code,openingBal);
   }
 
-  const rows=[
-    ...trans.map(t=>({date:t.isoDate||t.date||t.createdAt||'',title:t.desc||t.source||'معاملة',type:t.type==='income'?'دخل':'مصروف',amount:+t.amount||0,currency:_entityCur(t).code,positive:t.type==='income'})),
-    ...(openingBal>0?[{date:'',title:openingType==='receivable'?'رصيد افتتاحي مستحق':'رصيد افتتاحي مدفوع مسبقا',type:'رصيد افتتاحي',amount:openingBal,currency:openingCur.code,positive:openingType!=='receivable',opening:true}]:[])
-  ].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
-
-  const monthlyMap={};
-  trans.forEach(t=>{
-    const mk=String(t.isoDate||t.date||'').slice(0,7);
-    if(!mk) return;
-    const c=_entityCur(t).code;
-    monthlyMap[mk]=monthlyMap[mk]||{};
-    monthlyMap[mk][c]=monthlyMap[mk][c]||{income:0,expense:0,count:0};
-    if(t.type==='income') monthlyMap[mk][c].income += +t.amount||0;
-    if(t.type==='expense') monthlyMap[mk][c].expense += +t.amount||0;
-    monthlyMap[mk][c].count++;
+  const allTasks=[...(_ud.tasks||[]),...(_ud.project_tasks||[])];
+  const rows=[];
+  if(openingBal>0)rows.push({date:_accountDate(clientObj?.openingBalanceDate),title:openingNote||(openingType==='receivable'?'رصيد افتتاحي مستحق':'رصيد افتتاحي مدفوع مسبقًا'),type:'رصيد افتتاحي',debit:openingType==='receivable'?openingBal:0,credit:openingType==='prepaid'?openingBal:0,currency:openingCur.code});
+  _clientInvoices.forEach(inv=>{
+    const vals=_portalInvoiceValues(inv),code=_entityCur(inv).code,invDate=_accountDate(inv.date||inv.created_at||inv.createdAt),number=inv.num||inv.number||'فاتورة';
+    if(vals.items.length){
+      vals.items.forEach(item=>{
+        const qty=+(item.qty||1),amount=qty*(+(item.price||item.amount||0));if(!amount)return;
+        const task=allTasks.find(t=>String(t.id)===String(item._taskId||item._projectTaskId||item.task_id||item.taskId||''));
+        rows.push({date:_accountDate(task?.doneAt||task?.deadline||task?.isoDate||item.date||item.isoDate||invDate),title:item.desc||item.title||item.name||task?.title||'بند فاتورة',type:number,debit:amount,credit:0,currency:code});
+      });
+    }else if(vals.subtotal>0){rows.push({date:invDate,title:inv.title||inv.subject||number,type:'فاتورة',debit:vals.subtotal,credit:0,currency:code});}
+    if(vals.discount>0)rows.push({date:invDate,title:'خصم على '+number,type:'خصم',debit:0,credit:vals.discount,currency:code});
+    const manualPaid=Math.max(0,vals.prepaid-vals.linkedPaid);
+    if(manualPaid>0)rows.push({date:_accountDate(inv.paymentDate||inv.paidAt||invDate),title:'عربون / دفعة مسجلة على '+number,type:'دفعة',debit:0,credit:manualPaid,currency:code});
   });
-  const monthKeys=Object.keys(monthlyMap).sort((a,b)=>b.localeCompare(a));
+  unbilledTasks.forEach(task=>{
+    const amount=+(task.value||0),deposit=(task.pay==='deposit'||task.paymentStatus==='deposit')?+(task.deposit||0):0,code=_entityCur(task).code;
+    if(amount>0)rows.push({date:_accountDate(task.doneAt||task.deadline||task.isoDate||task.date||task.createdAt),title:task.title||task.name||'عمل غير مفوتر',type:'عمل غير مفوتر',debit:amount,credit:0,currency:code});
+    if(deposit>0)rows.push({date:_accountDate(task.depositDate||task.date||task.createdAt),title:'عربون: '+(task.title||task.name||'عمل'),type:'دفعة',debit:0,credit:deposit,currency:code});
+  });
+  trans.forEach(t=>rows.push({date:_accountDate(t.isoDate||t.date||t.createdAt||t.created_at),title:t.desc||t.source||t.title||'عملية تحصيل',type:t.type==='income'?'تحصيل':'رد / مصروف',debit:t.type==='expense'?(+t.amount||0):0,credit:t.type==='income'?(+t.amount||0):0,currency:_entityCur(t).code}));
+  rows.sort((a,b)=>String(a.date||'0000-00-00').localeCompare(String(b.date||'0000-00-00'))||String(a.type).localeCompare(String(b.type)));
+  const periodFrom=(typeof _accountFrom==='string'?_accountFrom:'')||'';
+  const periodTo=(typeof _accountTo==='string'?_accountTo:'')||'';
+  const beforeTotals={};
+  rows.forEach(row=>{if(periodFrom&&row.date&&row.date<periodFrom)beforeTotals[row.currency]=(beforeTotals[row.currency]||0)+row.debit-row.credit;});
+  const filteredRows=rows.filter(row=>(!periodFrom||!row.date||row.date>=periodFrom)&&(!periodTo||!row.date||row.date<=periodTo));
+  const running=Object.assign({},beforeTotals);
+  const statementRows=filteredRows.map(row=>{running[row.currency]=(running[row.currency]||0)+row.debit-row.credit;return Object.assign({},row,{balance:running[row.currency]});});
+  const periodCharges={},periodPaid={};
+  filteredRows.forEach(row=>{_addCurrencyTotal(periodCharges,row.currency,row.debit);_addCurrencyTotal(periodPaid,row.currency,row.credit);});
 
   return `<div style="margin-bottom:14px">
     <div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
@@ -1868,21 +1909,20 @@ function renderAccounts(){
 
     ${unbilledTasks.length?`<div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px"><div style="font-size:13px;font-weight:800;margin-bottom:10px"><i class="fa-solid fa-list-check" style="color:var(--ac)"></i> أعمال مستحقة غير مفوترة</div>${unbilledTasks.map(task=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--bd);font-size:12px"><span>${xe(task.title||task.name||'مهمة')}</span><strong>${_money(Math.max(0,(+task.value||0)-((task.pay==='deposit'||task.paymentStatus==='deposit')?(+task.deposit||0):0)),task)}</strong></div>`).join('')}</div>`:''}
 
-    <div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-list-timeline" style="color:var(--ac)"></i> سجل المعاملات</div>
-      ${rows.length?rows.map(t=>`<div style="padding:10px 12px;background:var(--s2);border-radius:10px;border:1px solid var(--bd);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:10px">
-        <div><div style="font-size:12px;font-weight:800;color:var(--t1)">${xe(t.title)}</div><div style="font-size:10px;color:var(--t3)">${t.date||t.type}</div></div>
-        <div style="font-size:14px;font-weight:900;color:${t.positive?'var(--g)':'var(--r)'}">${t.positive?'+':'-'}${_money(t.amount,t.currency)}</div>
-      </div>`).join(''):'<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px"><i class="fa-solid fa-inbox"></i> لا توجد معاملات مسجلة</div>'}
+    <div id="portal-account-statement" style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><div class="statement-title" style="font-size:13px;font-weight:800;color:var(--t2)"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--ac)"></i> كشف حساب شامل</div><button onclick="printPortalStatement()" style="border:1px solid var(--bd);background:var(--s2);color:var(--t1);border-radius:9px;padding:7px 12px;font:800 11px var(--font);cursor:pointer"><i class="fa-solid fa-print"></i> طباعة / PDF</button></div>
+      <div class="statement-filters" style="display:flex;align-items:end;gap:8px;flex-wrap:wrap;padding:10px;background:var(--s2);border:1px solid var(--bd);border-radius:11px;margin-bottom:12px">
+        <label style="font-size:10px;color:var(--t3)">من<input id="_account-from" type="date" value="${xe(periodFrom)}" style="display:block;margin-top:4px;background:var(--s1);color:var(--t1);border:1px solid var(--bd);border-radius:7px;padding:6px"></label>
+        <label style="font-size:10px;color:var(--t3)">إلى<input id="_account-to" type="date" value="${xe(periodTo)}" style="display:block;margin-top:4px;background:var(--s1);color:var(--t1);border:1px solid var(--bd);border-radius:7px;padding:6px"></label>
+        <button onclick="_accountApplyPeriod()" style="padding:7px 12px;border:0;border-radius:8px;background:var(--ac);color:#fff;font:800 11px var(--font);cursor:pointer">تطبيق</button>
+        <button onclick="_accountSetPeriod(1)" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--s1);color:var(--t2);font:700 10px var(--font);cursor:pointer">شهر</button>
+        <button onclick="_accountSetPeriod(2)" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--s1);color:var(--t2);font:700 10px var(--font);cursor:pointer">شهران</button>
+        <button onclick="_accountSetPeriod(3)" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--s1);color:var(--t2);font:700 10px var(--font);cursor:pointer">3 أشهر</button>
+        <button onclick="_accountClearPeriod()" style="padding:7px 10px;border:1px solid var(--bd);border-radius:8px;background:transparent;color:var(--t3);font:700 10px var(--font);cursor:pointer">الكل</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px"><div style="padding:10px;background:rgba(255,107,107,.08);border-radius:9px"><small style="color:var(--t3)">أعمال وفواتير خلال الفترة</small>${_currencyRows(periodCharges,'var(--r)')}</div><div style="padding:10px;background:rgba(79,209,165,.08);border-radius:9px"><small style="color:var(--t3)">تحصيلات وخصومات خلال الفترة</small>${_currencyRows(periodPaid,'var(--g)')}</div></div>
+      <div style="overflow:auto"><table class="statement-table" style="width:100%;border-collapse:collapse;min-width:700px;font-size:11px"><thead><tr style="background:var(--s2);color:var(--t2)"><th style="padding:9px;text-align:right">التاريخ</th><th style="padding:9px;text-align:right">البيان</th><th style="padding:9px;text-align:right">النوع</th><th style="padding:9px;text-align:left">عمل / مستحق</th><th style="padding:9px;text-align:left">مدفوع / خصم</th><th style="padding:9px;text-align:left">الرصيد</th></tr></thead><tbody>${statementRows.length?statementRows.map(row=>`<tr style="border-top:1px solid var(--bd)"><td style="padding:9px;white-space:nowrap">${xe(row.date||'سابق')}</td><td style="padding:9px;font-weight:800">${xe(row.title)}</td><td style="padding:9px;color:var(--t3)">${xe(row.type)}</td><td style="padding:9px;text-align:left;color:var(--r);font-weight:800">${row.debit?_money(row.debit,row.currency):'—'}</td><td style="padding:9px;text-align:left;color:var(--g);font-weight:800">${row.credit?_money(row.credit,row.currency):'—'}</td><td style="padding:9px;text-align:left;font-weight:900">${_money(row.balance,row.currency)}</td></tr>`).join(''):`<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--t3)">لا توجد أعمال أو تحصيلات في الفترة المحددة</td></tr>`}</tbody></table></div>
     </div>
-
-    ${monthKeys.length?`<div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px">
-      <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-calendar-days" style="color:var(--ac)"></i> السجل الشهري</div>
-      ${monthKeys.map(mk=>`<div style="padding:10px 12px;background:var(--s2);border-radius:10px;border:1px solid var(--bd);margin-bottom:6px">
-        <div style="font-size:12px;font-weight:900;color:var(--t1);margin-bottom:6px">${mk}</div>
-        ${Object.keys(monthlyMap[mk]).map(code=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;border-top:1px solid var(--bd);padding-top:5px;margin-top:5px"><span>${_curMeta(code).label}</span><b style="color:var(--g)">${_money(monthlyMap[mk][code].income,code)}</b></div>`).join('')}
-      </div>`).join('')}
-    </div>`:''}
   </div>`;
 }
 

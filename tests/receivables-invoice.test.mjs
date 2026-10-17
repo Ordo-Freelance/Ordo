@@ -67,7 +67,7 @@ test('client portal excludes invoiced project tasks from task dues', () => {
 });
 
 test('account tab shows unbilled task dues and footer stays at page bottom', () => {
-  const start=portalSource.indexOf('function renderAccounts(){');
+  const start=portalSource.indexOf('let _accountFrom=');
   const end=portalSource.indexOf('function renderInvoices(){',start);
   const context={
     _ud:{clients:[{id:'c1'}]},_clientId:'c1',_clientTasks:[{id:'t1',title:'تصميم',value:3000}],_clientInvoices:[],
@@ -76,12 +76,18 @@ test('account tab shows unbilled task dues and footer stays at page bottom', () 
     _addCurrencyTotal:(totals,code,amount)=>{totals[code]=(totals[code]||0)+amount;},
     _currencyRows:totals=>JSON.stringify(totals),_money:value=>String(value),xe:value=>String(value)
   };
+  context.document={getElementById:()=>null};context.window={open:()=>null};
   vm.runInNewContext(portalSource.slice(start,end),context);
   const html=context.renderAccounts();
   assert.match(html,/إجمالي المستحق الآن[\s\S]*?EGP":3000/);
   assert.match(html,/إجمالي المدفوع حتى الآن/);
   assert.doesNotMatch(html,/حسب العملة/);
   assert.match(html,/أعمال مستحقة غير مفوترة/);
+  assert.match(html,/كشف حساب شامل/);
+  assert.match(html,/شهران/);
+  assert.match(html,/عمل \/ مستحق/);
+  assert.match(html,/مدفوع \/ خصم/);
+  assert.match(html,/طباعة \/ PDF/);
   assert.match(portalSource,/#root\{min-height:100vh;display:flex;flex-direction:column\}/);
   assert.match(portalSource,/document\.getElementById\('root'\)\.style\.display='flex'/);
   assert.match(portalSource,/\.wrap\{[^}]*flex:1/);

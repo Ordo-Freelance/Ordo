@@ -52,9 +52,8 @@ test('invoice collection icon stays visible and WhatsApp includes the secure inv
 });
 
 test('invoice rendering publishes the exact freelancer PDF document for the client portal',()=>{
-  assert.match(app,/exportPDF\(inv\.id,\{returnHtml:true\}\)/);
-  assert.match(app,/inv\.publicPrintHtml=html/);
-  assert.match(app,/inv\.publicPrintKey='invoice-print-v1'/);
-  assert.match(persistence,/root\.exportPDF\(inv\.id,\{returnHtml:true\}\)/);
-  assert.match(persistence,/inv\.publicPrintHtml=printHtml/);
+  assert.doesNotMatch(app,/inv\.publicPrintHtml=html/);
+  assert.match(persistence,/root\.exportPDF\(x\.id,\{returnHtml:true\}\)/);
+  assert.match(persistence,/copy\.publicPrintHtml=html/);
+  assert.match(persistence,/delete inv\.publicPrintHtml/);
 });

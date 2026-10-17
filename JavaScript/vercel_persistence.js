@@ -98,8 +98,21 @@
     var projects=(data.projects||[]).filter(directClient);
     var projectIds=projects.map(function(x){return String(x.id);});
     function forClient(x){return directClient(x)||projectIds.indexOf(String(x.project_id||x.projectId||''))>=0;}
-    var invoices=(data.invoices||[]).filter(forClient).map(function(x){return Object.assign({},x);});
-    return {settings:publicSettings(data.settings),clients:clientRows.map(function(x){return{id:x.id,name:x.name,email:x.email,phone:x.phone,company:x.company,currency_code:x.currency_code,currency_symbol:x.currency_symbol,openingBalance:x.openingBalance,openingBalanceCurrency:x.openingBalanceCurrency,openingBalanceType:x.openingBalanceType,openingBalanceNote:x.openingBalanceNote};}),projects:projects,project_tasks:(data.project_tasks||[]).filter(forClient),tasks:(data.tasks||[]).filter(forClient),invoices:invoices,statements:(data.statements||[]).filter(forClient),transactions:(data.transactions||[]).filter(forClient),contracts:(data.contracts||[]).filter(forClient),proposals:(data.proposals||[]).filter(forClient),brief_forms:(data.brief_forms||[]).filter(forClient).filter(function(x){return['sent','submitted','accepted'].includes(x.status);}).map(function(x){return{id:x.id,title:x.title,description:x.description,banner:x.banner,items:x.items,questions:x.questions,status:x.status,project_id:x.project_id};}),client_portals:(data.client_portals||[]).filter(function(x){return String(x.client_id||'')===clientId;}),svc_orders:(data.svc_orders||[]).filter(forClient)};
+    var invoices=(data.invoices||[]).filter(forClient).map(function(x){
+      var copy=Object.assign({},x);
+      // Generate the canonical freelancer invoice only for the small public
+      // snapshot. Keeping this 30-50KB document out of studio_data prevents a
+      // portfolio save from exceeding the main record and leaving the portal
+      // on an older successful revision.
+      try{
+        if(typeof root.exportPDF==='function'){
+          var html=root.exportPDF(x.id,{returnHtml:true});
+          if(html){copy.publicPrintHtml=html;copy.publicPrintKey='invoice-print-v1';}
+        }
+      }catch(error){console.warn('Invoice public print refresh failed:',error);}
+      return copy;
+    });
+    return {settings:publicSettings(data.settings),clients:clientRows.map(function(x){return{id:x.id,name:x.name,email:x.email,phone:x.phone,company:x.company,currency_code:x.currency_code,currency_symbol:x.currency_symbol,openingBalance:x.openingBalance,openingBalanceCurrency:x.openingBalanceCurrency,openingBalanceType:x.openingBalanceType,openingBalanceNote:x.openingBalanceNote};}),projects:projects,project_tasks:(data.project_tasks||[]).filter(forClient),tasks:(data.tasks||[]).filter(forClient),invoices:invoices,statements:(data.statements||[]).filter(forClient),transactions:(data.transactions||[]).filter(forClient),contracts:(data.contracts||[]).filter(forClient),proposals:(data.proposals||[]).filter(forClient),brief_forms:(data.brief_forms||[]).filter(forClient).filter(function(x){return['sent','submitted','accepted'].includes(x.status);}).map(function(x){return{id:x.id,title:x.title,description:x.description,banner:x.banner,items:x.items,questions:x.questions,status:x.status,project_id:x.project_id};}),client_portals:(data.client_portals||[]).filter(function(x){return String(x.client_id||'')===clientId;}),svc_orders:(data.svc_orders||[]).filter(forClient),services:(data.services||[]).filter(function(x){return x&&x.active!==false;}),standalone_packages:(data.standalone_packages||[]).filter(function(x){return x&&x.active!==false;}),portfolio_projects:(data.portfolio_projects||[]).filter(function(x){return x&&x.active!==false;}),reviews:(data.reviews||[]).filter(function(x){return x&&x.public_visible!==false&&x.approved!==false;})};
   }
   async function publishPublicData(db,userId,data){
     var settings=data.settings||{},mainSlug=ensureStoreSlug(settings,userId),stores=[null].concat(data.stores||[]);
@@ -112,7 +125,7 @@
     }
     for(var j=0;j<(data.public_tokens||[]).length;j++){
       var token=data.public_tokens[j]; if(!token||!token.token)continue;
-      var tokenPayload=Object.assign({},token); if(token.entity_type==='client_portal')tokenPayload.studio_data=publicPortalData(data,token);
+      var tokenPayload=Object.assign({},token,{snapshot_version:2,published_at:new Date().toISOString()}); if(token.entity_type==='client_portal')tokenPayload.studio_data=publicPortalData(data,token);
       var tokenRes=await db.from('public_tokens').upsert({id:String(token.token),token:String(token.token),user_id:userId,type:token.entity_type||'',data:tokenPayload},{onConflict:'id'}); if(tokenRes.error)throw tokenRes.error;
     }
   }
@@ -146,17 +159,11 @@
     var userId = uid();
     if(data) root.S = data;
     root.S = normalize(root.S);
-    // Publish the very same invoice document produced by the freelancer
-    // account. The client portal consumes this snapshot instead of rebuilding
-    // an approximate template with different pagination and sections.
-    if(typeof root.exportPDF==='function'){
-      (root.S.invoices||[]).forEach(function(inv){
-        try{
-          var printHtml=root.exportPDF(inv.id,{returnHtml:true});
-          if(printHtml){inv.publicPrintHtml=printHtml;inv.publicPrintKey='invoice-print-v1';}
-        }catch(error){console.warn('Invoice public print refresh failed:',error);}
-      });
-    }
+    root.S.settings._publicSnapshotVersion=2;
+    // Old builds stored the full printable HTML inside studio_data. Remove it
+    // from the private source of truth; publishPublicData regenerates it in the
+    // dedicated client-portal snapshot below.
+    (root.S.invoices||[]).forEach(function(inv){delete inv.publicPrintHtml;delete inv.publicPrintKey;});
     var storeSlug=ensureStoreSlug(root.S.settings,userId);
     var contentFingerprint = userId+':'+fingerprint(Object.assign({},root.S,{_savedAt:null}));
     if(contentFingerprint === lastSavedFingerprint && root._lastCloudSaveOk) return root.S;

@@ -11060,16 +11060,9 @@ function _invLinkToProject(invId) {
 function renderInvoices(){
   const tbody=document.getElementById('inv-tbody');if(!tbody)return;
   (S.invoices||[]).forEach(_invoiceRefreshStoredTotals);
-  let refreshedPublicPrints=false;
-  (S.invoices||[]).forEach(inv=>{
-    try{
-      const html=exportPDF(inv.id,{returnHtml:true});
-      if(html&&html!==inv.publicPrintHtml){inv.publicPrintHtml=html;inv.publicPrintKey='invoice-print-v1';refreshedPublicPrints=true;}
-    }catch(error){console.warn('Invoice public print snapshot failed:',error);}
-  });
   const portalScopeUpgrade=S.settings?._portalScopeVersion!==2;
   if(portalScopeUpgrade){S.settings=S.settings||{};S.settings._portalScopeVersion=2;}
-  if(refreshedPublicPrints||portalScopeUpgrade){lsSave();if(typeof _queueCloudSave==='function')_queueCloudSave();}
+  if(portalScopeUpgrade){lsSave();if(typeof _queueCloudSave==='function')_queueCloudSave();}
   const sm={
     pending:'<span class="inv-status-badge inv-uncollected">âڈ³ لم يتم التحصيل</span>',
     partial:'<span class="inv-status-badge" style="background:rgba(124,111,247,.15);color:var(--accent)"><i class="fa-solid fa-circle-half-stroke"></i> مدفوع جزئياً</span>',

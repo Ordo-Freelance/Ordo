@@ -346,6 +346,20 @@ async function publicSnapshot(store, input) {
   const uid = String(input.uid || '').trim();
   if ((type === 'review' || type === 'client_portal' || type === 'brief') && !token) return null;
   if(type==='brief'&&!username)return null;
+  // Client portals have their own deliberately small, client-scoped snapshot.
+  // Prefer it once it carries the v2 marker. This avoids scanning/serving an
+  // older giant studio_data record after media or portfolio updates.
+  if(type==='client_portal'&&token){
+    try{
+      const normalized=await store.query('public_tokens',{op:'select',columns:'user_id,type,data,updated_at',filters:[{op:'eq',column:'token',value:token}],single:true});
+      const payload=parseMaybe(normalized?.data)||{};
+      const validType=(normalized?.type==='client_portal'||payload.entity_type==='client_portal');
+      const alive=!payload.revoked&&(!payload.expires_at||new Date(payload.expires_at)>new Date());
+      if(validType&&alive&&payload.snapshot_version>=2&&payload.studio_data){
+        return {uid:normalized.user_id,data:parseMaybe(payload.studio_data)||{},token:payload};
+      }
+    }catch(error){console.warn('Normalized public portal snapshot unavailable:',error);}
+  }
   const candidates = await store.publicStudioCandidates({ token:type==='brief'?'':token, username, uid: token&&type!=='brief' ? uid : (type === 'store' || type === 'reviews_public' ? uid : '') });
   for (const row of candidates) {
     const data = unwrapStudio(row.data);

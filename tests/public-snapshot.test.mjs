@@ -42,6 +42,20 @@ test('portal refuses an unknown token', async () => {
   assert.equal(await publicSnapshot(store, {type:'client_portal',token:'wrong'}), null);
 });
 
+test('portal prefers its fresh normalized scoped snapshot over stale studio data', async () => {
+  const normalized={
+    snapshot_version:2,entity_type:'client_portal',client_id:'c1',
+    studio_data:{settings:{name:'Studio'},clients:[{id:'c1',name:'One'}],tasks:[{id:'fresh'}],invoices:[],transactions:[],portfolio_projects:[{id:'pf1'}]}
+  };
+  const scopedStore={
+    async query(table){return table==='public_tokens'?{user_id:'owner',type:'client_portal',data:normalized}:[];},
+    async publicStudioCandidates(){return [{user_id:'owner',data:studio}];}
+  };
+  const result=await publicSnapshot(scopedStore,{type:'client_portal',token:'portal-secret'});
+  assert.deepEqual(result.data.tasks.map(row=>row.id),['fresh']);
+  assert.deepEqual(result.data.portfolio_projects.map(row=>row.id),['pf1']);
+});
+
 test('deleting a review removes every owned source without touching another owner', async () => {
   const rows = {
     studio_data:[{user_id:'owner',data:{reviews:[{id:'r1'},{id:'r2'}]}},{user_id:'other',data:{reviews:[{id:'r1'}]}}],
