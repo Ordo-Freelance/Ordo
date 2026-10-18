@@ -1836,11 +1836,35 @@ function portalBriefReferences(form){
     const title=xe(ref.title||ref.file_name||'مرجع العميل');
     if(ref.type==='file'&&/^data:application\/pdf;base64,/i.test(ref.data_url||''))return '<button type="button" class="brief-reference-card" data-form-id="'+xe(form.id)+'" data-reference-index="'+index+'" onclick="openPortalBriefPdf(this.dataset.formId,Number(this.dataset.referenceIndex))"><i class="fa-solid fa-file-pdf"></i><span><b>'+title+'</b><small>معاينة ملف PDF وتحميله</small></span><i class="fa-solid fa-eye"></i></button>';
     if(ref.type==='file'&&/^data:(text\/plain|application\/msword|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document);base64,/i.test(ref.data_url||''))return '<a class="brief-reference-card" href="'+xe(ref.data_url)+'" download="'+xe(ref.file_name||'brief-file')+'"><i class="fa-solid fa-file-arrow-down"></i><span><b>'+title+'</b><small>تحميل الملف</small></span><i class="fa-solid fa-download"></i></a>';
-    if(ref.type==='link'&&/^https:\/\//i.test(ref.url||''))return '<a class="brief-reference-card" href="'+xe(ref.url)+'" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-google-drive"></i><span><b>'+title+'</b><small>فتح الرابط الخارجي</small></span><i class="fa-solid fa-arrow-up-right-from-square"></i></a>';
+    if(ref.type==='link'&&portalDrivePreviewUrl(ref.url))return '<button type="button" class="brief-reference-card" data-form-id="'+xe(form.id)+'" data-reference-index="'+index+'" onclick="openPortalDrivePreview(this.dataset.formId,Number(this.dataset.referenceIndex))"><i class="fa-brands fa-google-drive"></i><span><b>'+title+'</b><small>معاينة ملف Google Drive</small></span><i class="fa-solid fa-eye"></i></button>';
+    if(ref.type==='link'&&/^https:\/\//i.test(ref.url||''))return '<a class="brief-reference-card" href="'+xe(ref.url)+'" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-link"></i><span><b>'+title+'</b><small>فتح الرابط الخارجي</small></span><i class="fa-solid fa-arrow-up-right-from-square"></i></a>';
     if(ref.type==='content'&&ref.content)return '<div class="brief-reference-content"><h4><i class="fa-solid fa-align-right"></i> '+title+'</h4><p>'+xe(ref.content)+'</p></div>';
     return'';
   }).join('');
   return cards?'<section class="brief-portal-references"><h3><i class="fa-solid fa-paperclip"></i> الملفات والمراجع</h3>'+cards+'</section>':'';
+}
+function portalDrivePreviewUrl(value){
+  try{
+    const url=new URL(value),host=url.hostname.toLowerCase();let match;
+    if(host==='drive.google.com'){
+      match=url.pathname.match(/^\/file\/d\/([^/]+)/);if(match)return 'https://drive.google.com/file/d/'+encodeURIComponent(match[1])+'/preview';
+      const id=url.searchParams.get('id');if(id)return 'https://drive.google.com/file/d/'+encodeURIComponent(id)+'/preview';
+      return '';
+    }
+    if(host==='docs.google.com'){
+      match=url.pathname.match(/^\/(document|spreadsheets|presentation)\/d\/([^/]+)/);if(match)return 'https://docs.google.com/'+match[1]+'/d/'+encodeURIComponent(match[2])+'/preview';
+    }
+  }catch(error){}
+  return '';
+}
+function closePortalDrivePreview(){document.getElementById('portal-drive-preview-overlay')?.remove();}
+function openPortalDrivePreview(formId,referenceIndex){
+  const form=(_ud?.brief_forms||[]).find(item=>String(item.id)===String(formId));
+  const references=(form?.references||[]).filter(ref=>ref&&ref.public_visible!==false),ref=references[referenceIndex],previewUrl=portalDrivePreviewUrl(ref?.url||'');
+  if(!ref||!previewUrl)return;closePortalDrivePreview();
+  const overlay=document.createElement('div');overlay.className='overlay portal-pdf-overlay';overlay.id='portal-drive-preview-overlay';overlay.onclick=event=>{if(event.target===overlay)closePortalDrivePreview();};
+  overlay.innerHTML='<div class="portal-pdf-dialog" role="dialog" aria-modal="true" aria-label="معاينة ملف Google Drive"><div class="portal-pdf-head"><strong><i class="fa-brands fa-google-drive" style="color:var(--ac)"></i> '+xe(ref.title||'ملف Google Drive')+'</strong><div class="portal-pdf-actions"><a class="portal-pdf-download" href="'+xe(ref.url)+'" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i> فتح في Drive</a><button type="button" class="portal-pdf-close" onclick="closePortalDrivePreview()" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div></div><iframe class="portal-pdf-frame" src="'+xe(previewUrl)+'" title="معاينة Google Drive" allow="autoplay"></iframe></div>';
+  document.body.appendChild(overlay);
 }
 function portalBriefPdfBlob(dataUrl){
   const match=String(dataUrl||'').match(/^data:(application\/pdf);base64,(.+)$/i);if(!match)return null;

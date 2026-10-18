@@ -36696,3 +36696,38 @@ window.OrdoCurrencyPatch = {
   };
   try{ _renderProfileTab = window._renderProfileTab; }catch(e){}
 })();
+
+/* Project briefs and questionnaires tab v14 */
+(function(){
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
+  function projectBriefs(project){
+    return (S.brief_forms||[]).filter(function(form){
+      return String(form.project_id||'')===String(project.id)||String(form.client_id||'')===String(project.client_id||'');
+    }).sort(function(a,b){return String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||''));});
+  }
+  function renderBriefsTab(project){
+    var rows=projectBriefs(project),labels={draft:'مسودة',sent:'أُرسل للعميل',submitted:'وصل الرد',accepted:'معتمد'};
+    return '<div class="project-briefs-v14"><div class="project-briefs-v14-head"><div><h3><i class="fa-solid fa-clipboard-question"></i> بريفات واستبيانات العميل</h3><p>كل النماذج المرتبطة بهذا المشروع أو بعميله.</p></div><button class="btn btn-primary btn-sm" data-client-id="'+esc(project.client_id||'')+'" data-project-id="'+esc(project.id)+'" onclick="openBriefForm(\'\',this.dataset.clientId,this.dataset.projectId)"><i class="fa-solid fa-plus"></i> بريف جديد</button></div>'+
+      (rows.length?'<div class="project-briefs-v14-grid">'+rows.map(function(form){var exact=String(form.project_id||'')===String(project.id),otherProject=(S.projects||[]).find(function(item){return String(item.id)===String(form.project_id||'');});return '<article class="project-briefs-v14-card"><div><span class="brief-status brief-status-'+esc(form.status||'draft')+'">'+(labels[form.status]||'مسودة')+'</span><h4>'+esc(form.title||'بريف')+'</h4><p>'+esc(form.description||'بدون وصف')+'</p><small><i class="fa-solid '+(exact?'fa-diagram-project':'fa-user')+'"></i> '+(exact?'مرتبط بهذا المشروع':otherProject?'مرتبط بمشروع '+esc(otherProject.name):'خاص بالعميل')+' · '+((form.references||[]).length)+' مرفقات</small></div><div class="project-briefs-v14-actions"><button class="btn btn-ghost btn-sm" data-id="'+esc(form.id)+'" onclick="openBriefForm(this.dataset.id)"><i class="fa-solid fa-eye"></i> عرض</button>'+(!exact?'<button class="btn btn-ghost btn-sm" data-id="'+esc(form.id)+'" data-project-id="'+esc(project.id)+'" onclick="linkBriefToCurrentProject(this.dataset.id,this.dataset.projectId)"><i class="fa-solid fa-link"></i> ربط بالمشروع</button>':'')+(form.status==='draft'?'<button class="btn btn-primary btn-sm" data-id="'+esc(form.id)+'" onclick="sendBriefForm(this.dataset.id)"><i class="fa-solid fa-paper-plane"></i> إرسال</button>':'')+'</div></article>';}).join('')+'</div>':'<div class="tasks-v2-empty"><i class="fa-solid fa-clipboard-question"></i><b>لا توجد بريفات أو استبيانات لهذا العميل</b><span>أنشئ أول بريف من هذا المشروع ليتم ربطه تلقائيًا.</span></div>')+'</div>';
+  }
+  window.linkBriefToCurrentProject=function(formId,projectId){
+    var form=(S.brief_forms||[]).find(function(item){return String(item.id)===String(formId);});
+    var project=(S.projects||[]).find(function(item){return String(item.id)===String(projectId);});if(!form||!project)return;
+    form.project_id=project.id;form.client_id=form.client_id||project.client_id||'';form.updatedAt=new Date().toISOString();
+    if(typeof lsSave==='function')lsSave();if(typeof cloudSave==='function')cloudSave(S);if(typeof renderBriefForms==='function')renderBriefForms();if(typeof renderProjectDetail==='function')renderProjectDetail();if(typeof toast==='function')toast('<i class="fa-solid fa-link"></i> تم ربط البريف بالمشروع');
+  };
+  var previousTab=window.renderProjTabContent||(typeof renderProjTabContent==='function'?renderProjTabContent:null);
+  window.renderProjTabContent=function(tab,project,tasks,client,color){if(tab==='briefs')return renderBriefsTab(project);return previousTab?previousTab.apply(this,arguments):'';};
+  try{renderProjTabContent=window.renderProjTabContent;}catch(e){}
+  var previousDetail=window.renderProjectDetail||(typeof renderProjectDetail==='function'?renderProjectDetail:null);
+  window.renderProjectDetail=function(){
+    var out=previousDetail?previousDetail.apply(this,arguments):undefined;
+    var nav=document.querySelector('#proj-detail-inner .project-v2-tabs');
+    if(nav&&!nav.querySelector('[data-project-briefs-tab]')){
+      var button=document.createElement('button');button.dataset.projectBriefsTab='1';button.className=_currentProjTab==='briefs'?'active':'';button.innerHTML='<i class="fa-solid fa-clipboard-question"></i> البريفات والاستبيانات';button.onclick=function(){switchProjTab('briefs');};nav.appendChild(button);
+    }
+    return out;
+  };
+  try{renderProjectDetail=window.renderProjectDetail;}catch(e){}
+  var style=document.createElement('style');style.textContent='.project-briefs-v14-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}.project-briefs-v14-head h3{margin:0 0 4px}.project-briefs-v14-head p{margin:0;color:var(--text3);font-size:12px}.project-briefs-v14-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}.project-briefs-v14-card{display:flex;flex-direction:column;justify-content:space-between;gap:14px;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}.project-briefs-v14-card h4{margin:9px 0 5px}.project-briefs-v14-card p{margin:0 0 10px;color:var(--text2);font-size:12px;line-height:1.7}.project-briefs-v14-card small{color:var(--text3)}.project-briefs-v14-actions{display:flex;gap:7px;flex-wrap:wrap}@media(max-width:650px){.project-briefs-v14-head{align-items:flex-start;flex-direction:column}.project-briefs-v14-head .btn{width:100%}.project-briefs-v14-grid{grid-template-columns:1fr}}';document.head.appendChild(style);
+})();

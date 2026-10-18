@@ -67,6 +67,10 @@ test('a brief can be linked to a client and is visible in client details',()=>{
   assert.match(html,/data-tab="briefs"/);
   assert.match(app,/const cBriefs = \(S\.brief_forms\|\|\[\]\)\.filter\(_matchClientEntity\)/);
   assert.match(app,/else if\(tab==='briefs'\)/);
+  assert.match(app,/Project briefs and questionnaires tab v14/);
+  assert.match(app,/data-project-briefs-tab/);
+  assert.match(app,/linkBriefToCurrentProject/);
+  assert.match(owner,/openBriefForm=function\(formId,initialClientId,initialProjectId\)/);
 });
 
 test('portal snapshot exposes only sent briefs for its client and not private answers',async()=>{
@@ -94,6 +98,9 @@ test('brief references support uploaded documents, drive links, content and port
   assert.match(portal,/function openPortalBriefPdf\(formId,referenceIndex\)/);
   assert.match(portal,/class="portal-pdf-frame"/);
   assert.match(portal,/تحميل PDF/);
+  assert.match(portal,/function portalDrivePreviewUrl\(value\)/);
+  assert.match(portal,/function openPortalDrivePreview\(formId,referenceIndex\)/);
+  assert.match(portal,/معاينة ملف Google Drive/);
   assert.match(portal,/فتح الرابط الخارجي/);
   assert.match(persistence,/references:\(x\.references\|\|\[\]\)\.filter/);
 });
