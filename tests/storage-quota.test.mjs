@@ -17,6 +17,13 @@ test('brief banners and uploaded answer-choice pictures consume account storage'
   assert.equal(imageBytes(snapshot),8);
 });
 
+test('uploaded brief reference documents consume account storage',()=>{
+  const pdf='data:application/pdf;base64,YWJjZA==';
+  const docx='data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,YWJjZA==';
+  const snapshot={brief_forms:[{references:[{type:'file',data_url:pdf},{type:'file',data_url:docx},{type:'link',url:'https://drive.google.com/file/d/example'}]}]};
+  assert.equal(imageBytes(snapshot),8);
+});
+
 test('storage policy ignores user-writable subscription claims and honors admin overrides', async () => {
   const logo = 'data:image/png;base64,YWJjZA==';
   const store = {async userById(){return {avatar_url:''};},async query(table){

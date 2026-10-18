@@ -3,7 +3,9 @@ export function imageBytes(value) {
     if (value[0] === '{' || value[0] === '[') {
       try { return imageBytes(JSON.parse(value)); } catch { return 0; }
     }
-    const match = /^data:image\/[a-z0-9.+-]+;base64,([a-z0-9+/=]+)$/i.exec(value);
+    // Count every binary type the studio can persist directly. Brief references
+    // may contain small PDFs/text/Word documents in addition to existing images.
+    const match = /^data:(?:image\/[a-z0-9.+-]+|application\/pdf|text\/plain|application\/msword|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document);base64,([a-z0-9+/=]+)$/i.exec(value);
     if (!match) return 0;
     const base64 = match[1];
     return Math.max(0, Math.floor(base64.length * 3 / 4) - (base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0));

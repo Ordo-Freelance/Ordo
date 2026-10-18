@@ -93,6 +93,7 @@ body.lm .brief-portal-sheet{color-scheme:light}
 .brief-portal-question .form-input:focus{border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 20%,transparent)}
 .brief-portal-question .form-input:disabled{opacity:.8;cursor:not-allowed}
 .brief-portal-question select.form-input option{background:var(--s2);color:var(--t1)}
+.brief-portal-references{margin:16px 0;padding:14px;background:var(--s2);border:1px solid var(--bd);border-radius:13px}.brief-portal-references>h3{margin:0 0 11px;font-size:14px}.brief-reference-card{display:flex;align-items:center;gap:11px;padding:11px 12px;margin:8px 0;border:1px solid var(--bd);border-radius:10px;background:var(--s3);color:var(--t1);text-decoration:none}.brief-reference-card>i:first-child{font-size:19px;color:var(--ac)}.brief-reference-card>i:last-child{margin-inline-start:auto;color:var(--t3)}.brief-reference-card span{display:flex;flex-direction:column;gap:2px}.brief-reference-card small{color:var(--t3)}.brief-reference-content{padding:12px;margin:8px 0;border:1px solid var(--bd);border-radius:10px;background:var(--s3)}.brief-reference-content h4{margin:0 0 8px}.brief-reference-content p{margin:0;color:var(--t2);line-height:1.85;white-space:pre-wrap;overflow-wrap:anywhere}
 .brief-portal-question input[type="checkbox"],.brief-portal-question input[type="radio"]{accent-color:var(--ac)}
 .brief-choice-grid,.brief-image-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
 .brief-choice{display:flex;align-items:center;gap:9px;padding:12px;border:1px solid var(--bd);border-radius:10px;background:var(--s2);cursor:pointer}
@@ -1827,10 +1828,22 @@ function openProjectDetail(projId){
   document.body.appendChild(ov);
 }
 
+function portalBriefReferences(form){
+  const references=(form?.references||[]).filter(ref=>ref&&ref.public_visible!==false);
+  if(!references.length)return'';
+  const cards=references.map(ref=>{
+    const title=xe(ref.title||ref.file_name||'مرجع العميل');
+    if(ref.type==='file'&&/^data:(application\/pdf|text\/plain|application\/msword|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document);base64,/i.test(ref.data_url||''))return '<a class="brief-reference-card" href="'+xe(ref.data_url)+'" download="'+xe(ref.file_name||'brief-file')+'"><i class="fa-solid fa-file-pdf"></i><span><b>'+title+'</b><small>فتح أو تحميل الملف</small></span><i class="fa-solid fa-download"></i></a>';
+    if(ref.type==='link'&&/^https:\/\//i.test(ref.url||''))return '<a class="brief-reference-card" href="'+xe(ref.url)+'" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-google-drive"></i><span><b>'+title+'</b><small>فتح الرابط الخارجي</small></span><i class="fa-solid fa-arrow-up-right-from-square"></i></a>';
+    if(ref.type==='content'&&ref.content)return '<div class="brief-reference-content"><h4><i class="fa-solid fa-align-right"></i> '+title+'</h4><p>'+xe(ref.content)+'</p></div>';
+    return'';
+  }).join('');
+  return cards?'<section class="brief-portal-references"><h3><i class="fa-solid fa-paperclip"></i> الملفات والمراجع</h3>'+cards+'</section>':'';
+}
 function renderBriefForms(){
   const forms=(_ud?.brief_forms||[]).filter(f=>f&&['sent','submitted','accepted'].includes(f.status));
   if(!forms.length)return '<div class="empty"><i class="fa-solid fa-clipboard-question" style="font-size:30px"></i><h3>لا توجد بريفات حاليًا</h3><p>ستظهر هنا النماذج التي يرسلها لك صاحب العمل.</p></div>';
-  return '<div style="display:grid;gap:12px">'+forms.map(f=>'<div class="card" id="brief-card-'+xe(f.id)+'" style="display:flex;justify-content:space-between;gap:15px;align-items:center;flex-wrap:wrap"><div><strong>'+xe(f.title||'بريف')+'</strong><p style="margin:5px 0;color:var(--t3);font-size:12px">'+xe(f.description||'')+'</p><small style="color:var(--t3)">'+(f.status==='sent'?'في انتظار إجاباتك':f.status==='accepted'?'تم اعتماد البريف':'تم إرسال إجاباتك')+'</small></div><button type="button" class="brief-open-btn '+(f.status==='sent'?'primary':'')+'" data-id="'+xe(f.id)+'" onclick="openBriefSheet(this.dataset.id)"><i class="fa-solid fa-clipboard-question"></i> '+(f.status==='sent'?'فتح البريف':'عرض البريف')+'</button></div>').join('')+'</div>';
+  return '<div style="display:grid;gap:12px">'+forms.map(f=>'<div class="card" id="brief-card-'+xe(f.id)+'" style="display:flex;justify-content:space-between;gap:15px;align-items:center;flex-wrap:wrap"><div><strong>'+xe(f.title||'بريف')+'</strong><p style="margin:5px 0;color:var(--t3);font-size:12px">'+xe(f.description||'')+'</p><small style="color:var(--t3)">'+(f.status==='sent'?'في انتظار إجاباتك':f.status==='accepted'?'تم اعتماد البريف':'تم إرسال إجاباتك')+((f.references||[]).length?' · '+(f.references||[]).length+' مرفقات':'')+'</small></div><button type="button" class="brief-open-btn '+(f.status==='sent'?'primary':'')+'" data-id="'+xe(f.id)+'" onclick="openBriefSheet(this.dataset.id)"><i class="fa-solid fa-clipboard-question"></i> '+(f.status==='sent'?'فتح البريف':'عرض البريف')+'</button></div>').join('')+'</div>';
 }
 function openBriefSheet(formId){
   const form=(_ud?.brief_forms||[]).find(f=>String(f.id)===String(formId));if(!form)return;
@@ -1858,6 +1871,7 @@ function openBriefSheet(formId){
   }).join('')+'</section>').join('');
   overlay.innerHTML='<div class="sheet brief-portal-sheet">'+(form.banner?'<img src="'+xe(form.banner)+'" alt="بانر الاستبيان" style="width:100%;max-height:220px;object-fit:cover;border-radius:13px;margin-bottom:14px">':'')+'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--bd);padding-bottom:14px"><div><small style="font-weight:800;letter-spacing:.08em;color:var(--g)">'+(String(form.title||'').includes('الهوية')?'BRAND QUESTIONNAIRE':'CLIENT BRIEF')+'</small><h2 style="margin:4px 0">'+xe(form.title||'بريف')+'</h2><small style="color:var(--t3)">نموذج تفاصيل المشروع</small></div><button class="btn btn-ghost" onclick="document.getElementById(\'brief-portal-overlay\').remove()" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div>'+
     (form.description?'<p style="color:var(--t2)">'+xe(form.description)+'</p>':'')+
+    portalBriefReferences(form)+
     ((form.items||[]).length?'<div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:16px 0"><h3 style="margin:0 0 9px">البنود</h3>'+(form.items||[]).map(item=>'<div style="padding:8px 0;border-bottom:1px solid var(--bd)"><b>'+xe(item.title)+'</b><p style="margin:3px 0;color:var(--t3);font-size:12px">'+xe(item.description)+'</p></div>').join('')+'</div>':'')+
     '<div id="brief-portal-fields">'+fields+'</div>'+(form.status==='sent'?'<div class="brief-stage-nav"><button class="btn btn-ghost" id="brief-prev" onclick="briefStageMove(-1)" hidden>السابق</button><span id="brief-stage-progress"></span><button class="btn btn-primary" id="brief-next" onclick="briefStageMove(1)">التالي</button><button class="btn btn-primary" id="brief-submit" data-id="'+xe(form.id)+'" onclick="submitBriefSheet(this.dataset.id,this)" hidden><i class="fa-solid fa-paper-plane"></i> إرسال الإجابات</button></div>':'<p style="color:var(--g);margin-top:16px">تم إرسال هذا البريف.</p>')+'</div>';
   document.body.appendChild(overlay);
@@ -2141,13 +2155,18 @@ function _portalInvoiceStyles(){
 function _portalInvoiceDocument(inv,printMode){
   const exact=typeof inv?.publicPrintHtml==='string'?inv.publicPrintHtml.trim():'';
   if(/^<!doctype html>|^<html[\s>]/i.test(exact)){
-    if(printMode)return exact;
+    // Older published invoice snapshots allowed the last table row to sit too
+    // close to the footer. Tighten row spacing just enough to keep every row
+    // fully visible without changing the canonical invoice structure.
+    const rowFit='<style id="portal-invoice-row-fit">.inv-content td{padding-top:7px!important;padding-bottom:7px!important;line-height:1.5!important}.inv-section{margin-bottom:12px!important}</style>';
+    const fitted=exact.replace(/<\/head>/i,rowFit+'</head>');
+    if(printMode)return fitted;
     // The canonical document is exactly A4 wide. In a wider iframe an RTL
     // body pins that fixed-width page to the right, leaving one large white
     // strip on the left. Center only the on-screen preview; printing/PDF keeps
     // the original freelancer document byte-for-byte.
     const previewFit='<style id="portal-preview-fit">html{background:#666!important}body{width:100%!important;min-width:210mm;background:#666!important}.inv-page{margin-left:auto!important;margin-right:auto!important}</style>';
-    return exact.replace(/<\/head>/i,previewFit+'</head>');
+    return fitted.replace(/<\/head>/i,previewFit+'</head>');
   }
   return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><link href="../Assets/vendor/fonts/offline-fonts.css" rel="stylesheet"><style>${_portalInvoiceStyles()}</style></head><body>${_portalInvoiceBody(inv,!!printMode)}</body></html>`;
 }

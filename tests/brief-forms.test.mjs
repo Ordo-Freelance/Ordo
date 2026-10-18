@@ -58,7 +58,7 @@ test('briefs sit beside invoices and contracts with editable items and question 
 test('portal snapshot exposes only sent briefs for its client and not private answers',async()=>{
   const data={settings:{name:'Studio'},clients:[{id:'a',name:'A'},{id:'b',name:'B'}],client_portals:[{id:'p',client_id:'a'}],public_tokens:[{token:'portal-a',entity_type:'client_portal',entity_id:'p',client_id:'a'}],brief_forms:[
     {id:'draft',client_id:'a',status:'draft'},
-    {id:'sent',client_id:'a',status:'sent',title:'بريف',share_token:'brf_a',banner:'data:image/webp;base64,AA',questions:[{id:'q',type:'essay',label:'سؤال'}],answers:{q:'private'},internalPricing:{lines:{base:1000}}},
+    {id:'sent',client_id:'a',status:'sent',title:'بريف',share_token:'brf_a',banner:'data:image/webp;base64,AA',references:[{id:'r1',type:'link',title:'Drive',url:'https://drive.google.com/file',public_visible:true},{id:'r2',type:'content',title:'خاص',content:'internal',public_visible:false}],questions:[{id:'q',type:'essay',label:'سؤال'}],answers:{q:'private'},internalPricing:{lines:{base:1000}}},
     {id:'other',client_id:'b',status:'sent'}
   ]};
   const store={async publicStudioCandidates(){return [{user_id:'owner',data}];},async query(){return [];}};
@@ -67,7 +67,19 @@ test('portal snapshot exposes only sent briefs for its client and not private an
   assert.equal(snapshot.data.brief_forms[0].answers,undefined);
   assert.equal(snapshot.data.brief_forms[0].internalPricing,undefined);
   assert.equal(snapshot.data.brief_forms[0].banner,'data:image/webp;base64,AA');
+  assert.deepEqual(snapshot.data.brief_forms[0].references.map(ref=>ref.id),['r1']);
   assert.equal(snapshot.data.brief_forms[0].share_token,undefined);
+});
+
+test('brief references support uploaded documents, drive links, content and portal visibility',()=>{
+  assert.match(owner,/briefAddReference/);
+  assert.match(owner,/briefUploadReference/);
+  assert.match(owner,/application\/pdf/);
+  assert.match(owner,/brief-ref-visible/);
+  assert.match(portal,/function portalBriefReferences\(form\)/);
+  assert.match(portal,/فتح أو تحميل الملف/);
+  assert.match(portal,/فتح الرابط الخارجي/);
+  assert.match(persistence,/references:\(x\.references\|\|\[\]\)\.filter/);
 });
 
 test('older portal briefs open separately using a client-scoped fallback token',async()=>{

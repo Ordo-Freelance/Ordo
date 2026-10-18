@@ -6,6 +6,7 @@ import vm from 'node:vm';
 const financeSource = fs.readFileSync(new URL('../JavaScript/finance_rebuild.js', import.meta.url), 'utf8');
 const clientSource = fs.readFileSync(new URL('../JavaScript/client_finance_fix.js', import.meta.url), 'utf8');
 const portalSource = fs.readFileSync(new URL('../HTML/client-portal.html', import.meta.url), 'utf8');
+const appSource = fs.readFileSync(new URL('../JavaScript/app.js', import.meta.url), 'utf8');
 
 function financeContext(data) {
   const source = financeSource.slice(financeSource.indexOf('  function receivableItems(){'), financeSource.indexOf('  function receivablesByCurrency('));
@@ -156,7 +157,10 @@ test('portal invoices open a protected preview and provide PDF printing', () => 
   assert.match(portalSource, /typeof inv\?\.publicPrintHtml==='string'/);
   assert.match(portalSource, /id="portal-preview-fit"/);
   assert.match(portalSource, /\.inv-page\{margin-left:auto!important;margin-right:auto!important\}/);
-  assert.match(portalSource, /if\(printMode\)return exact/);
+  assert.match(portalSource, /if\(printMode\)return fitted/);
+  assert.match(portalSource, /id="portal-invoice-row-fit"/);
+  assert.match(appSource, /const SECTION_CHUNK_UNITS=6/);
+  assert.match(appSource, /const PAGE_UNITS=25/);
   assert.match(portalSource, /srcdoc=_portalInvoiceDocument\(inv,false\)/);
   assert.match(portalSource, /srcdoc=_portalInvoiceDocument\(inv,true\)/);
   assert.match(portalSource, /المهام المكتملة <small>/);

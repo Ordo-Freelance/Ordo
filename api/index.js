@@ -315,7 +315,7 @@ function publicView(data, type, token) {
   if (type === 'review') return { settings: publicSettings, reviews: (data.reviews || []).filter(row => row.public_visible !== false) };
   if (type === 'brief') {
     const form=(data.brief_forms||[]).find(row=>String(row.id)===String(token?.entity_id)&&['sent','submitted','accepted'].includes(row.status)&&(row.share_token===token?.token||token?.via_portal&&String(row.client_id)===String(token.client_id)));
-    return {settings:publicSettings,brief_forms:form?[{id:form.id,title:form.title,description:form.description,banner:form.banner,items:form.items,questions:form.questions,status:form.status}]:[]};
+    return {settings:publicSettings,brief_forms:form?[{id:form.id,title:form.title,description:form.description,banner:form.banner,references:publicBriefReferences(form.references),items:form.items,questions:form.questions,status:form.status}]:[]};
   }
   const clientId = String(token?.client_id || '');
   const clients = (data.clients || []).filter(row => String(row.id) === clientId);
@@ -331,11 +331,22 @@ function publicView(data, type, token) {
     statements: (data.statements || []).filter(belongs), transactions: (data.transactions || []).filter(belongs),
     team_tasks: (data.team_tasks || []).filter(row => row.client_visibility === true && belongs(row)),
     contracts: (data.contracts || []).filter(belongs), proposals: (data.proposals || []).filter(belongs),
-    brief_forms: (data.brief_forms || []).filter(row => belongs(row) && ['sent','submitted','accepted'].includes(row.status)).map(row => ({id:row.id,title:row.title,description:row.description,banner:row.banner,items:row.items,questions:row.questions,status:row.status,project_id:row.project_id})),
+    brief_forms: (data.brief_forms || []).filter(row => belongs(row) && ['sent','submitted','accepted'].includes(row.status)).map(row => ({id:row.id,title:row.title,description:row.description,banner:row.banner,references:publicBriefReferences(row.references),items:row.items,questions:row.questions,status:row.status,project_id:row.project_id})),
     reviews: (data.reviews || []).filter(belongs), svc_orders: (data.svc_orders || []).filter(belongs),
     services: data.services || [], standalone_packages: data.standalone_packages || [],
     portfolio_projects: data.portfolio_projects || [], client_portals: (data.client_portals || []).filter(belongs)
   };
+}
+
+function publicBriefReferences(references) {
+  return (Array.isArray(references) ? references : []).filter(ref => ref && ref.public_visible !== false).map(ref => {
+    const type=['file','link','content'].includes(ref.type)?ref.type:'link';
+    const clean={id:String(ref.id||''),type,title:String(ref.title||'مرجع العميل').slice(0,180),public_visible:true};
+    if(type==='file'&&/^data:(application\/pdf|text\/plain|application\/msword|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document);base64,/i.test(String(ref.data_url||''))){clean.data_url=ref.data_url;clean.file_name=String(ref.file_name||'attachment').slice(0,220);clean.mime_type=String(ref.mime_type||'application/octet-stream').slice(0,120);}
+    if(type==='link'&&/^https:\/\//i.test(String(ref.url||'')))clean.url=String(ref.url).slice(0,2000);
+    if(type==='content')clean.content=String(ref.content||'').slice(0,20000);
+    return clean;
+  }).filter(ref => ref.type==='file'?ref.data_url:ref.type==='link'?ref.url:ref.content);
 }
 
 async function mergePublicReviews(store, userId, view) {

@@ -11467,7 +11467,10 @@ function exportPDF(id,options){
     const text=(it.projectName?it.projectName+' - ':'')+(it.desc||'');
     return Math.max(1, Math.ceil(String(text).length/56));
   };
-  const SECTION_CHUNK_UNITS=8;
+  // Keep enough breathing room above the fixed footer. Long Arabic labels can
+  // wrap to a second line after the font loads, so smaller chunks prevent the
+  // final row on a page from being clipped in the portal/PDF preview.
+  const SECTION_CHUNK_UNITS=6;
   const pushSplitSection=(blocks,title,arr,total)=>{
     if(!arr.length) return;
     let chunk=[], units=2, chunkTotal=0, firstChunk=true;
@@ -11537,7 +11540,7 @@ function exportPDF(id,options){
   if(qrHtml) blocks.push({html:qrHtml,units:7});
   const pages=[];
   let page=[], used=0;
-  const PAGE_UNITS=31;
+  const PAGE_UNITS=25;
   blocks.forEach(block=>{
     if(page.length && used+block.units>PAGE_UNITS){
       pages.push(page);
