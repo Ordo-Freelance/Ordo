@@ -10,3 +10,11 @@ test('client card total due subtracts partial invoice and task payments',()=>{
   assert.match(source,/إجمالي المستحق/);
   assert.match(source,/dueCurrency/);
 });
+
+test('client profile lists project invoices and project invoice actions use safe ids',()=>{
+  assert.match(source,/const cAllInvs = \(S\.invoices\|\|\[\]\)\.filter\(_matchClientInvoice\)/);
+  assert.match(source,/const profileInvs=cAllInvs/);
+  assert.match(source,/cProfileProjectIds\.has\(String\(inv\.project_id\|\|inv\.projectId/);
+  assert.match(source,/_openClientProfileProjectInvoice\(this\.dataset\.projectId,event\)/);
+  assert.match(source,/client_id: clientObj \? String\(clientObj\.id\) : ''/);
+});

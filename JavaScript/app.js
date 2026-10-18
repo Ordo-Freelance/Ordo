@@ -5511,6 +5511,18 @@ function _toggleTaskDetailPayment(taskId, sourceType){
   setTimeout(()=>openTaskDetail(taskId),60);
 }
 
+function _openClientProfileProject(projectId){
+  closeM('modal-client-profile');
+  showPage('projects');
+  setTimeout(function(){ openProjectDetail(projectId); },120);
+}
+
+function _openClientProfileProjectInvoice(projectId, event){
+  if(event){ event.preventDefault(); event.stopPropagation(); }
+  closeM('modal-client-profile');
+  setTimeout(function(){ openNewInvoiceForProject(projectId); },80);
+}
+
 function _renderProfileTab(tab, id){
   const c=S.clients.find(c=>c.id===id);if(!c)return;
   const subClients = S.clients.filter(sc=>String(sc.parentClientId)===String(c.id));
@@ -5522,12 +5534,19 @@ function _renderProfileTab(tab, id){
     allClientNames.includes(e.client||e.client_name||e.clientName||e.source||'')
   );
   const cProfileProjects = (S.projects||[]).filter(_matchClientEntity);
+  const cProfileProjectIds = new Set(cProfileProjects.map(p=>String(p.id)));
+  const _matchClientInvoice = inv => inv && (
+    _matchClientEntity(inv) ||
+    cProfileProjectIds.has(String(inv.project_id||inv.projectId||'')) ||
+    (inv.items||[]).some(item=>cProfileProjectIds.has(String(item?.project_id||item?.projectId||'')))
+  );
   const cProjectDueRows = _clientProjectDueRows(allClientNames,_clientIds);
   const cProjectDueTotal = cProjectDueRows.reduce((s,p)=>s+p.due,0);
   const cProjectDueNames = cProjectDueRows.map(p=>p.name).join('، ');
   const cSummary = window.OrdoReports ? window.OrdoReports.getClientSummary(c.id) : null;
   const cTasks = getAllTasksIncludingArchived().filter(_matchClientEntity);
-  const cInvs  = (cSummary ? cSummary.invoices : S.invoices.filter(_matchClientEntity)).filter(i=>!_isProjectInvoice(i));
+  const cAllInvs = (S.invoices||[]).filter(_matchClientInvoice);
+  const cInvs = cAllInvs.filter(i=>!_isProjectInvoice(i));
   const cContracts = cSummary ? cSummary.contracts : (S.contracts||[]).filter(_matchClientEntity);
   const cBriefs = (S.brief_forms||[]).filter(_matchClientEntity);
   const cTrans = cSummary ? cSummary.transactions : S.transactions.filter(_matchClientEntity);
@@ -5842,25 +5861,27 @@ function _renderProfileTab(tab, id){
   }
 
   else if(tab==='invoices'){
+    const profileInvs=cAllInvs;
     const sm={
       pending:'<span style="font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(247,201,72,.15);color:var(--accent2)">âڈ³ معلق</span>',
       partial:'<span style="font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(124,111,247,.15);color:var(--accent)"><i class="fa-solid fa-circle-half-stroke"></i> مدفوع جزئياً</span>',
       paid:'<span style="font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(79,209,165,.15);color:var(--accent3)"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> مدفوع</span>',
       cancelled:'<span style="font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(247,111,124,.15);color:var(--accent4)">ًںڑ« ملغية</span>'
     };
-    const totalPaid=cInvs.reduce((s,i)=>s+(+(i.paidAmount||i.amountPaid)||(i.status==='paid'?+i.total:0)),0);
-    const totalPend=cInvs.reduce((s,i)=>s+Math.max(0,+(i.remainingAmount??i.total)-((i.remainingAmount==null&&i.status==='partial')?+(i.paidAmount||i.amountPaid||0):0)),0);
+    const totalPaid=profileInvs.reduce((s,i)=>s+(+(i.paidAmount||i.amountPaid)||(i.status==='paid'?+i.total:0)),0);
+    const totalPend=profileInvs.reduce((s,i)=>s+Math.max(0,+(i.remainingAmount??i.total)-((i.remainingAmount==null&&i.status==='partial')?+(i.paidAmount||i.amountPaid||0):0)),0);
     body.innerHTML=`
       <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
         <div class="card" style="padding:10px 16px;flex:1;min-width:120px"><div style="font-size:18px;font-weight:900;color:var(--accent3)">${totalPaid.toLocaleString()} ج</div><div style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محصّل</div></div>
         <div class="card" style="padding:10px 16px;flex:1;min-width:120px"><div style="font-size:18px;font-weight:900;color:var(--accent2)">${totalPend.toLocaleString()} ج</div><div style="font-size:10px;color:var(--text3)">âڈ³ معلق</div></div>
         <button class="btn btn-primary btn-sm" style="align-self:center" onclick="openInvoiceForClient('${c.name.replace(/'/g,"\\'")}')" ><i class="fa-solid fa-file-plus" style="margin-left:5px"></i> فاتورة جديدة</button>
       </div>
-      ${cInvs.length?cInvs.map(i=>`
+      ${profileInvs.length?profileInvs.map(i=>`
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)">
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:700">#${i.num||'?'} <span style="font-size:11px;color:var(--text3)">${i.date||''}</span></div>
             ${isParent&&i.client!==c.name?`<div style="font-size:10px;color:var(--text3)"><i class="fa-solid fa-link"></i> ${i.client}</div>`:''}
+            ${_isProjectInvoice(i)?`<div style="font-size:10px;color:var(--accent);margin-top:2px"><i class="fa-solid fa-folder-open"></i> ${escapeHtml(i.projectName||cProfileProjects.find(p=>String(p.id)===String(i.project_id||i.projectId||''))?.name||'فاتورة مشروع')}</div>`:''}
             <div style="font-size:12px;font-weight:700;color:${i.status==='paid'?'var(--accent3)':i.status==='partial'?'var(--accent)':'var(--accent2)'};margin-top:2px">${i.total.toLocaleString()} ج &nbsp;${sm[i.status]||''}${i.status==='partial'?` <small>محصّل ${(+(i.paidAmount||i.amountPaid||0)).toLocaleString()} · متبقي ${(+(i.remainingAmount||0)).toLocaleString()} ج</small>`:''}</div>
           </div>
           <div style="display:flex;gap:5px;flex-shrink:0">
@@ -5916,15 +5937,15 @@ function _renderProfileTab(tab, id){
       var pct=tasks.length?Math.round(done/tasks.length*100):0;
       var sc=statusColors[p.status]||'var(--accent)';
       var sl=statusLabels[p.status]||p.status||'?';
-      var pIdArg=JSON.stringify(String(p.id));
-      return '<div style="padding:14px;background:var(--surface2);border-radius:12px;margin-bottom:10px;border:1px solid var(--border);cursor:pointer" onclick="closeM(\'modal-client-profile\');showPage(\'projects\');setTimeout(function(){openProjectDetail('+pIdArg+')},200)">'+
+      var safeProjectId=escapeHtml(String(p.id));
+      return '<div data-project-id="'+safeProjectId+'" style="padding:14px;background:var(--surface2);border-radius:12px;margin-bottom:10px;border:1px solid var(--border);cursor:pointer" onclick="_openClientProfileProject(this.dataset.projectId)">'+
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
           '<div>'+
             '<div style="font-size:13px;font-weight:800">'+(p.name||'?')+'</div>'+
             (p.desc?'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+p.desc.slice(0,60)+(p.desc.length>60?'â€¦':'')+'</div>':'')+
           '</div>'+
           '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">'+
-            '<button class="btn btn-ghost btn-sm" style="font-size:10px;padding:5px 8px" onclick="event.stopPropagation();closeM(\'modal-client-profile\');openNewInvoiceForProject('+pIdArg+')"><i class="fa-solid fa-file-invoice"></i> فاتورة مشروع</button>'+
+            '<button class="btn btn-ghost btn-sm" data-project-id="'+safeProjectId+'" style="font-size:10px;padding:5px 8px" onclick="_openClientProfileProjectInvoice(this.dataset.projectId,event)"><i class="fa-solid fa-file-invoice"></i> فاتورة مشروع</button>'+
             '<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+sc+'22;color:'+sc+'">'+sl+'</span>'+
           '</div>'+
         '</div>'+
@@ -10945,6 +10966,8 @@ function saveInvoice(){
 
   const d={
     client,
+    client_id: clientObj ? String(clientObj.id) : '',
+    clientId: clientObj ? String(clientObj.id) : '',
     parentClient: parentClientName, // الشركة الأم إن وُجدت
     num:v('inv-num'),date:v('inv-date'),due:v('inv-due'),notes:v('inv-notes'),
     items:cleanItems.map(i=>({...i})),subtotal,total,deposit:+(v('inv-deposit')||0),
