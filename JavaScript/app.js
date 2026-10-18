@@ -1101,6 +1101,13 @@ async function _downloadReviewCardDom(){
   if(btn){btn.innerHTML='<i class="fa-solid fa-spinner fa-spin" style="margin-left:6px"></i> جاري...';btn.disabled=true;}
   try{
     if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    if(typeof window.html2canvas==='function'){
+      var exactCanvas=await window.html2canvas(card,{scale:2,backgroundColor:null,useCORS:true,allowTaint:false,logging:false,removeContainer:true});
+      var exactLink=document.createElement('a');exactLink.download='review-'+Date.now()+'.png';exactLink.href=exactCanvas.toDataURL('image/png',1);exactLink.click();
+      toast('\u2705 تم حفظ نفس كارت المعاينة');
+      if(btn){btn.innerHTML='<i class="fa-solid fa-check" style="margin-left:6px;color:#4fd1a5"></i> تم!';setTimeout(function(){btn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';btn.disabled=false;},1600);}
+      return;
+    }
     var rect=card.getBoundingClientRect(),clone=card.cloneNode(true);
     function inlineComputed(source,target){
       var cs=getComputedStyle(source),css='';

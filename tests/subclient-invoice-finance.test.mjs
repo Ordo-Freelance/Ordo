@@ -36,6 +36,6 @@ test('invoice printing waits for the Arabic font and images',()=>{
   assert.match(app,/frameDoc\.fonts\.load\('400 12px Cairo'\)/);
   assert.match(app,/frameDoc\.fonts\.load\('900 15px Cairo'\)/);
   assert.match(app,/Promise\.all\(\[fontReady,imageReady\]\)/);
-  assert.match(html,/app\.js\?v=portal-scope-fix-27/);
+  assert.match(html,/app\.js\?v=review-card-match-28/);
   assert.match(html,/vercel_persistence\.js\?v=portal-scope-2/);
 });

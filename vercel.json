@@ -45,6 +45,11 @@
     { "source": "/admin/", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
     { "source": "/HTML/admin.html", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
     { "source": "/portal/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
-    { "source": "/HTML/client-portal.html", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] }
+    { "source": "/HTML/client-portal.html", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
+    { "source": "/review/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
+    { "source": "/public-reviews", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
+    { "source": "/reviews/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
+    { "source": "/HTML/review.html", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] },
+    { "source": "/HTML/reviews-public.html", "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }] }
   ]
 }

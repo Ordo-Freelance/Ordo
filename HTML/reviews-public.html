@@ -652,6 +652,19 @@
           document.documentElement.style.setProperty("--ac2", ac2);
           if (isL) document.body.classList.add("light");
           window.applyOrdoPublicAppearance(s);
+          // The shared appearance tone is useful for decorative pages, but it
+          // must not replace the contrast palette of the reviews dashboard.
+          // Restore the semantic review colours after loading owner identity.
+          var rootStyle=document.documentElement.style;
+          rootStyle.setProperty("--bg",isL?"#f4f5fb":"#0a0a0f");
+          rootStyle.setProperty("--s1",isL?"#ffffff":"#111118");
+          rootStyle.setProperty("--s2",isL?"#f0f1f8":"#16161f");
+          rootStyle.setProperty("--s3",isL?"#e8e9f4":"#1c1c28");
+          rootStyle.setProperty("--t1",isL?"#1a1a2e":"#f0f0f5");
+          rootStyle.setProperty("--t2",isL?"#555577":"#aaaacc");
+          rootStyle.setProperty("--t3",isL?"#888899":"#777799");
+          rootStyle.setProperty("--public-page-bg",isL?"#f4f5fb":"#0a0a0f");
+          rootStyle.setProperty("--public-surface",isL?"#ffffff":"#111118");
           document.title = nm + " — تقييمات العملاء";
           $("fy").textContent = new Date().getFullYear();
           var storeUrl = (location.protocol !== "file:" ? location.origin + "/store" : BASE + "store.html") + "?uid=" + encodeURIComponent(uid);
