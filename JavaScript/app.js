@@ -450,7 +450,7 @@ function hasPageFeature(pageId){
   if(pageId==='subscriptions' && f.fin_subscriptions===false) return false;
   const pageFlag = 'page_' + String(pageId).replace(/-/g, '_');
   if(f[pageFlag] === false) return false;
-  const map = { tasks:'tasks', projects:'tasks', 'workflow-board':'tasks', clients:'clients', finance:'finance', subscriptions:'finance',
+  const map = { tasks:'tasks', projects:'tasks', 'workflow-board':'tasks', clients:'clients', briefs:'clients', finance:'finance', subscriptions:'finance',
     invoices:'invoices', schedule:'schedule', team:'team',
     reports:'reports', meetings:'meetings', learning:'learning',
     timetracker:'timetracker', contracts:'contracts' };
@@ -5476,6 +5476,13 @@ function switchProfileTab(tab, btn){
   if(btn) btn.classList.add('active');
   _renderProfileTab(tab, _profileClientId);
 }
+window._refreshOpenClientBriefs=function(){
+  const modal=document.getElementById('modal-client-profile');
+  const active=document.querySelector('#profile-tabs .profile-tab.active');
+  if(modal&&getComputedStyle(modal).display!=='none'&&active?.dataset.tab==='briefs'&&_profileClientId!=null){
+    _renderProfileTab('briefs',_profileClientId);
+  }
+};
 
 function _toggleProfileTaskPayment(taskId, sourceType, clientId){
   const arr=sourceType==='project_task' ? (S.project_tasks||[]) : (S.tasks||[]);
@@ -5522,6 +5529,7 @@ function _renderProfileTab(tab, id){
   const cTasks = getAllTasksIncludingArchived().filter(_matchClientEntity);
   const cInvs  = (cSummary ? cSummary.invoices : S.invoices.filter(_matchClientEntity)).filter(i=>!_isProjectInvoice(i));
   const cContracts = cSummary ? cSummary.contracts : (S.contracts||[]).filter(_matchClientEntity);
+  const cBriefs = (S.brief_forms||[]).filter(_matchClientEntity);
   const cTrans = cSummary ? cSummary.transactions : S.transactions.filter(_matchClientEntity);
   const _invoicedTaskIds = (invoices)=>{
     const ids = new Set();
@@ -5931,6 +5939,26 @@ function _renderProfileTab(tab, id){
       '</div>';
     }).join('')
     :'<div class="empty"><div class="empty-icon"><i class="fa-solid fa-folder-open"></i></div>لا مشاريع مرتبطة بهذا العميل<br><button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="closeM(\'modal-client-profile\');showPage(\'projects\')">+ إضافة مشروع</button></div>');
+  }
+
+  else if(tab==='briefs'){
+    var briefStatusLabels={draft:'مسودة',sent:'أُرسل للعميل',submitted:'وصل الرد',accepted:'معتمد'};
+    var clientIdArg=escapeHtml(JSON.stringify(String(c.id)));
+    body.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px">'+
+      '<div style="font-size:13px;color:var(--text2)">'+cBriefs.length+' بريف أو استبيان</div>'+
+      '<button class="btn btn-primary btn-sm" onclick="openBriefForm(\'\','+clientIdArg+')"><i class="fa-solid fa-plus"></i> بريف جديد</button>'+
+    '</div>'+
+    (cBriefs.length?cBriefs.slice().sort(function(a,b){return String(b.createdAt||b.updatedAt||'').localeCompare(String(a.createdAt||a.updatedAt||''));}).map(function(form){
+      var formId=escapeHtml(String(form.id));
+      var project=(S.projects||[]).find(function(p){return String(p.id)===String(form.project_id);});
+      return '<div style="padding:14px;background:var(--surface2);border-radius:12px;margin-bottom:10px;border:1px solid var(--border)">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px"><div><div style="font-size:13px;font-weight:800">'+escapeHtml(form.title||'بريف')+'</div><div style="font-size:11px;color:var(--text3);margin-top:3px">'+escapeHtml(project?.name||'بدون مشروع')+' · '+((form.references||[]).length)+' مرفقات</div></div><span class="brief-status brief-status-'+escapeHtml(form.status||'draft')+'">'+(briefStatusLabels[form.status]||'مسودة')+'</span></div>'+
+        (form.description?'<p style="font-size:12px;color:var(--text2);margin:0 0 10px">'+escapeHtml(form.description)+'</p>':'')+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="openBriefForm(this.dataset.id)"><i class="fa-solid fa-eye"></i> عرض وتعديل</button>'+
+        (form.status==='draft'?'<button class="btn btn-primary btn-sm" data-id="'+formId+'" onclick="sendBriefForm(this.dataset.id)"><i class="fa-solid fa-paper-plane"></i> إرسال للعميل</button>':'')+
+        (['sent','submitted','accepted'].includes(form.status)?'<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="copyBriefLink(this.dataset.id)"><i class="fa-solid fa-link"></i> نسخ رابط البوابة</button>':'')+
+        '</div></div>';
+    }).join(''):'<div class="empty"><div class="empty-icon"><i class="fa-solid fa-clipboard-question"></i></div>لا توجد بريفات أو استبيانات مرتبطة بهذا العميل</div>');
   }
 
   else if(tab==='accounts'){
@@ -13068,7 +13096,7 @@ function _updatePerfCard(done, pending, inc){
 function renderVisiblePage(id){
   const pages={
     dashboard:()=>{updateDash();renderDashTeamPay();renderDashKanbanMini();renderDashMeetings();renderSalaryReminders();renderFollowupReminders();},
-    tasks:()=>renderTasks(),projects:()=>renderProjects(),clients:()=>renderClients(),'workflow-board':()=>renderWorkflowBoard(),
+    tasks:()=>renderTasks(),projects:()=>renderProjects(),clients:()=>renderClients(),briefs:()=>{if(typeof renderBriefForms==='function')renderBriefForms();},'workflow-board':()=>renderWorkflowBoard(),
     finance:()=>renderFinance(),subscriptions:()=>renderSubscriptionsPage(),invoices:()=>renderInvoices(),settings:()=>loadSettings(),
     schedule:()=>renderSchedule(),goals:()=>renderGoals(),team:()=>renderTeams(),
     meetings:()=>renderMeetings(),timetracker:()=>renderTimeTracker(),contracts:()=>renderContractsList(),
@@ -13085,6 +13113,7 @@ function renderVisiblePage(id){
 }
 function renderAll(){
   renderTasks();renderClients();renderFinance();renderInvoices();
+  if(typeof renderBriefForms==='function') renderBriefForms();
   renderSubscriptionsPage();
   renderGoals();renderSchedule();updateDash();loadSettings();renderTeams();
   renderMeetings();
@@ -13128,6 +13157,7 @@ const PAGE_TITLES = {
   'workflow-board': '<i class="fa-solid fa-diagram-project"></i> لوحة التنفيذ',
   schedule    : '<i class="fa-solid fa-calendar-days"></i> تنظيم اليوم',
   clients     : '<i class="fa-solid fa-users"></i> قاعدة العملاء',
+  briefs      : '<i class="fa-solid fa-clipboard-question"></i> البريفات والاستبيانات',
   finance     : '<i class="fa-solid fa-coins"></i> المالية والحسابات',
   subscriptions: '<i class="fa-solid fa-rotate"></i> اشتراكاتي',
   invoices    : '<i class="fa-solid fa-file-invoice"></i> الفواتير والعقود',
@@ -13145,6 +13175,7 @@ const PAGE_CTA = {
   dashboard: {label:'+ مهمة جديدة', fn:'openTaskModal()'},
   tasks:     {label:'+ مهمة جديدة', fn:'openTaskModal()'},
   clients:   {label:'+ عميل جديد',  fn:'openClientModal()'},
+  briefs:    {label:'+ بريف جديد',   fn:'openBriefForm()'},
   finance:   {label:'+ دخل',        fn:'openIncomeModal()'},
   subscriptions: {label:'+ اشتراك', fn:'openSubscriptionModal()'},
   invoices:  {label:'+ فاتورة',     fn:'openInvoiceModal()'},
@@ -26330,7 +26361,7 @@ function renderSupport(){
       (m.preferred_time?'<div style="font-size:11px;color:var(--text3)"><i class="fa-solid fa-alarm-clock"></i> '+escapeHtml(m.preferred_time)+'</div>':'')+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">'+
         '<div style="font-size:10px;color:var(--text3)">'+(m.created_at?new Date(m.created_at).toLocaleDateString('ar-EG'):'')+'</div>'+
-        (m.brief_id?'<button class="btn btn-primary btn-sm" data-brief-id="'+escapeHtml(m.brief_id)+'" onclick="event.stopPropagation();switchInvTab(\'briefs\');openBriefForm(this.dataset.briefId)">عرض البريف</button>':'<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openSupportReply(\''+m.id+'\')">â†© رد</button>')+
+        (m.brief_id?'<button class="btn btn-primary btn-sm" data-brief-id="'+escapeHtml(m.brief_id)+'" onclick="event.stopPropagation();showPage(\'briefs\');openBriefForm(this.dataset.briefId)">عرض البريف</button>':'<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openSupportReply(\''+m.id+'\')">â†© رد</button>')+
       '</div>'+
     '</div>';
   }).join('');
@@ -26424,8 +26455,8 @@ window.addEventListener('load', function(){
 // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function switchInvTab(tab){
   _mergeStandalonePagesIntoTabs();
-  const panels = {invoices:'inv-panel-invoices', contracts:'inv-panel-contracts', proposals:'inv-panel-proposals', briefs:'inv-panel-briefs', statements:'inv-panel-statements'};
-  const btns   = {invoices:'inv-tab-inv', contracts:'inv-tab-ct', proposals:'inv-tab-proposals', briefs:'inv-tab-briefs', statements:'inv-tab-stmt'};
+  const panels = {invoices:'inv-panel-invoices', contracts:'inv-panel-contracts', proposals:'inv-panel-proposals', statements:'inv-panel-statements'};
+  const btns   = {invoices:'inv-tab-inv', contracts:'inv-tab-ct', proposals:'inv-tab-proposals', statements:'inv-tab-stmt'};
   Object.keys(panels).forEach(k=>{
     const p = document.getElementById(panels[k]);
     const b = document.getElementById(btns[k]);
@@ -26436,13 +26467,11 @@ function switchInvTab(tab){
   if(addBtn){
     if(tab==='contracts'){ addBtn.textContent='+ عقد جديد'; addBtn.onclick=()=>openContractModal(); }
     else if(tab==='proposals'){ addBtn.textContent='+ عرض جديد'; addBtn.onclick=()=>openProposalModal(); }
-    else if(tab==='briefs'){ addBtn.textContent='+ بريف جديد'; addBtn.onclick=()=>openBriefForm(); }
     else if(tab==='statements'){ addBtn.textContent='+ كشف حساب'; addBtn.onclick=()=>_stmtNewDialog(); }
     else { addBtn.textContent='+ فاتورة جديدة'; addBtn.onclick=()=>openInvoiceModal(); }
   }
   if(tab==='contracts') renderContractsList();
   if(tab==='proposals' && typeof renderProposals==='function') renderProposals();
-  if(tab==='briefs' && typeof renderBriefForms==='function') renderBriefForms();
   if(tab==='statements') _initStatementsPanel();
 }
 

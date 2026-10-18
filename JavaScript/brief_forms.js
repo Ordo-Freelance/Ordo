@@ -102,7 +102,7 @@
   };
   window.openVisualIdentityBrief=function(){openBriefTemplate('identity');};
   window.renderBriefForms=function(){
-    var panel=document.getElementById('inv-panel-briefs');
+    var panel=document.getElementById('briefs-panel');
     if(!panel)return;
     var rows=forms().slice().sort(function(a,b){return String(b.createdAt||'').localeCompare(String(a.createdAt||''));});
     panel.innerHTML='<div class="brief-panel-heading"><div><h3>البريفات والاستبيانات</h3><p>أنشئ بنودًا وأسئلة وأرسلها من بوابة العميل. بعد وصول الإجابات يمكنك اعتمادها وربطها بالمشروع.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost" onclick="_pollPublicInbox().then(renderBriefForms)"><i class="fa-solid fa-rotate"></i> تحديث الردود</button><button class="btn btn-primary" onclick="openBriefForm()"><i class="fa-solid fa-plus"></i> بريف جديد</button></div></div>'+
@@ -121,20 +121,23 @@
           '<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="deleteBriefForm(this.dataset.id)" aria-label="حذف البريف"><i class="fa-solid fa-trash"></i></button>'+
           (f.status==='submitted'?'<button class="btn btn-success btn-sm" data-id="'+formId+'" onclick="acceptBriefForm(this.dataset.id)"><i class="fa-solid fa-check"></i> اعتماد وربط بالمشروع</button>':'')+
           (['submitted','accepted'].includes(f.status)?'<button class="btn btn-primary btn-sm" data-id="'+formId+'" onclick="openBriefQuoteBuilder(this.dataset.id)"><i class="fa-solid fa-file-invoice-dollar"></i> عرض سعر من البريف</button>':'')+
-          (!f.client_id&&['submitted','accepted'].includes(f.status)?'<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="linkBriefToClient(this.dataset.id)"><i class="fa-solid fa-user-link"></i> ربط بعميل</button>':'')+
+          (!f.client_id?'<button class="btn btn-ghost btn-sm" data-id="'+formId+'" onclick="linkBriefToClient(this.dataset.id)"><i class="fa-solid fa-user-link"></i> ربط بعميل</button>':'')+
           '</div></article>';
       }).join('')+'</div>':'<div class="card brief-empty"><i class="fa-solid fa-clipboard-question"></i><h3>لا توجد بريفات بعد</h3><p>أنشئ أول نموذج لتجميع تفاصيل العمل من العميل.</p></div>');
+    if(typeof window._refreshOpenClientBriefs==='function')window._refreshOpenClientBriefs();
   };
-  window.openBriefForm=function(formId){
+  window.openBriefForm=function(formId,initialClientId){
     var form=formId?find(formId):null;
     if(formId&&!form)return;
+    var selectedClientId=form?.client_id||initialClientId||'';
     document.getElementById('brief-editor-overlay')?.remove();
     var overlay=document.createElement('div');overlay.id='brief-editor-overlay';overlay.className='modal-overlay';overlay.style.display='flex';
     overlay.onclick=function(event){if(event.target===overlay)overlay.remove();};
     var readonly=false;
     var fields='<div class="brief-banner-editor"><img id="brief-banner-preview" src="'+esc(form?.banner||'')+'" alt="بانر الاستبيان" style="'+(form?.banner?'':'display:none')+'"><input type="hidden" id="brief-banner-data" value="'+esc(form?.banner||'')+'"><label class="btn btn-ghost btn-sm"><i class="fa-solid fa-image"></i> رفع بانر<input type="file" accept="image/png,image/jpeg,image/webp" hidden onchange="briefUploadBanner(this)"></label><button class="btn btn-ghost btn-sm" type="button" onclick="briefRemoveBanner()">إزالة البانر</button></div>'+
       '<div class="brief-grid"><div class="form-group"><label class="form-label">اسم النموذج *</label><input class="form-input" id="brief-title" maxlength="160" value="'+esc(form?.title||'')+'" placeholder="مثال: بريف تصميم الهوية"></div><div class="form-group"><label class="form-label">ابدأ من قالب جاهز</label><select class="form-select" id="brief-template-select" onchange="briefApplyTemplate(this.value)"><option value="">نموذج مخصص</option><option value="logo">قالب شعار</option><option value="identity">قالب هوية بصرية</option><option value="social">قالب سوشيال ميديا</option></select></div></div>'+
-      '<div class="brief-grid"><div class="form-group"><label class="form-label">المشروع المرتبط</label><select class="form-select" id="brief-project">'+projectOptions(form?.client_id,form?.project_id)+'</select></div><div class="form-group"><label class="form-label">وصف مختصر</label><input class="form-input" id="brief-description" value="'+esc(form?.description||'')+'" placeholder="ما المطلوب من العميل؟"></div></div>'+
+      '<div class="brief-grid"><div class="form-group"><label class="form-label">العميل المرتبط</label><select class="form-select" id="brief-client" onchange="briefClientChanged()">'+clientOptions(selectedClientId)+'</select></div><div class="form-group"><label class="form-label">المشروع المرتبط</label><select class="form-select" id="brief-project">'+projectOptions(selectedClientId,form?.project_id)+'</select></div></div>'+
+      '<div class="form-group"><label class="form-label">وصف مختصر</label><input class="form-input" id="brief-description" value="'+esc(form?.description||'')+'" placeholder="ما المطلوب من العميل؟"></div>'+
       '<section class="brief-editor-section"><div class="brief-section-head"><div><h4>مراجع وملفات العميل</h4><p class="brief-help">احفظ ملف البريف أو محتوى العميل أو رابط Google Drive، وحدد ما يظهر في بوابة العميل.</p></div><div class="brief-reference-actions"><button type="button" class="btn btn-ghost btn-sm" onclick="briefAddReference(\'file\')"><i class="fa-solid fa-file-arrow-up"></i> رفع ملف</button><button type="button" class="btn btn-ghost btn-sm" onclick="briefAddReference(\'link\')"><i class="fa-brands fa-google-drive"></i> رابط Drive</button><button type="button" class="btn btn-ghost btn-sm" onclick="briefAddReference(\'content\')"><i class="fa-solid fa-align-right"></i> محتوى</button></div></div><div id="brief-references">'+(form?.references||[]).map(referenceMarkup).join('')+'</div></section>'+
       '<section class="brief-editor-section"><div class="brief-section-head"><h4>البنود والتوضيحات</h4>'+(!readonly?'<button class="btn btn-ghost btn-sm" onclick="briefAddItem()">+ بند</button>':'')+'</div><div id="brief-items">'+(form?.items||[]).map(itemMarkup).join('')+'</div></section>'+
       '<section class="brief-editor-section"><div class="brief-section-head"><h4>مراحل الاستبيان وأسئلته</h4><div><button class="btn btn-ghost btn-sm" onclick="briefAddQuestion(\'section\')">+ مرحلة</button> <button class="btn btn-ghost btn-sm" onclick="briefAddQuestion()">+ سؤال</button></div></div><p class="brief-help">كل عنوان مرحلة يبدأ صفحة مستقلة للعميل، ويمكنه التنقل بالسابق والتالي.</p><div id="brief-questions">'+(form?.questions||[]).map(questionMarkup).join('')+'</div></section>';
@@ -180,7 +183,7 @@
     var form=body.dataset.id?find(body.dataset.id):null;
     if(form&&form.status==='accepted'&&!window.confirm('هذا البريف معتمد ومربوط بمشروع. سيؤدي تعديل النموذج إلى تحديث نسخة الاستبيان فقط، مع بقاء نسخة المشروع المعتمدة. متابعة؟'))return;
     var title=document.getElementById('brief-title').value.trim();
-    var clientId=form?.client_id||'';
+    var clientId=document.getElementById('brief-client')?.value||'';
     if(!title){notice('أدخل اسم النموذج');return;}
     var items=[...body.querySelectorAll('.brief-item')].map(function(el){return {id:el.dataset.id,title:el.querySelector('.brief-item-title').value.trim(),description:el.querySelector('.brief-item-desc').value.trim()};}).filter(function(item){return item.title;});
     var references=[...body.querySelectorAll('.brief-reference')].map(function(el){var type=el.dataset.type,title=el.querySelector('.brief-ref-title')?.value.trim()||'';var ref={id:el.dataset.id,type:type,title:title,public_visible:!!el.querySelector('.brief-ref-visible')?.checked};if(type==='file'){ref.data_url=el.querySelector('.brief-ref-data')?.value||'';ref.file_name=el.querySelector('.brief-ref-name')?.value||'';ref.mime_type=el.querySelector('.brief-ref-mime')?.value||'';}else if(type==='content')ref.content=el.querySelector('.brief-ref-content')?.value.trim()||'';else ref.url=el.querySelector('.brief-ref-url')?.value.trim()||'';return ref;}).filter(function(ref){return ref.title&&(ref.type==='file'?ref.data_url:ref.type==='content'?ref.content:/^https:\/\//i.test(ref.url));});

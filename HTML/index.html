@@ -235,7 +235,7 @@ function _buildPortalLink(clientName, portalId){
   // ── حساب الـ base path الصح بغض النظر عن الـ URL routing ──
   var _pathname = window.location.pathname;
   // شيل الـ page slug اللي ممكن يكون اتضاف من الـ URL routing
-  var _knownSlugs = ['dashboard','tasks','projects','workflow-board','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'];
+  var _knownSlugs = ['dashboard','tasks','projects','workflow-board','schedule','meetings','clients','briefs','finance','invoices','services','support','team','timetracker','goals','settings','reports'];
   var _parts = _pathname.split('/').filter(function(p){return p!=='';});
   // لو آخر جزء هو page slug، شيله
   if(_parts.length && _knownSlugs.indexOf(_parts[_parts.length-1]) >= 0){
@@ -1450,6 +1450,7 @@ try {
 
   
   <div class="nav-item" onclick="showPage('clients',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="nav-label" data-ar="قاعدة العملاء" data-i18n="nav_clients">قاعدة العملاء</span></div>
+  <div class="nav-item" onclick="showPage('briefs',this)" id="nav-briefs"><span class="nav-icon"><i class="fa-solid fa-clipboard-question"></i></span><span class="nav-label">البريفات والاستبيانات</span></div>
   <div class="nav-item" onclick="showPage('finance',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="nav-label" data-ar="المالية" data-i18n="nav_finance">المالية</span></div>
   <div class="nav-item" onclick="showPage('subscriptions',this)"><span class="nav-icon"><i class="fa-solid fa-rotate"></i></span><span class="nav-label">اشتراكاتي</span><span class="nav-badge" id="subscriptions-badge" style="display:none;background:var(--accent4)"></span></div>
   <div class="nav-item" onclick="showPage('invoices',this)"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><span class="nav-label" data-ar="الفواتير والعقود والعروض" data-i18n="nav_invoices">الفواتير والعقود والعروض</span></div>
@@ -1543,7 +1544,7 @@ try {
   }
   var dashboard=item('dashboard');if(dashboard)sidebar.insertBefore(dashboard,user);
   group('projects','المشاريع','fa-folder-open',['tasks','projects','workflow-board','schedule','meetings']);
-  group('clients','إدارة العمل والعملاء','fa-briefcase',['clients','services','reviews']);
+  group('clients','إدارة العمل والعملاء','fa-briefcase',['clients','briefs','services','reviews']);
   group('finance','المالية','fa-coins',['finance','subscriptions','invoices','proposals']);
   group('team','الفريق','fa-users',['team']);
   group('system','النظام والمساحة','fa-layer-group',['timetracker','freelancer-goals','vault']);
@@ -1633,6 +1634,7 @@ try {
 <div class="bn-more-menu" id="bn-more-menu">
   <div class="bn-more-item" onclick="showPage('projects');closeBnMore()" id="bnm-projects"><span><i class="fa-solid fa-diagram-project"></i></span><span>المشاريع</span></div>
   <div class="bn-more-item" onclick="showPage('clients');closeBnMore()" id="bnm-clients"><span><i class="fa-solid fa-address-book"></i></span><span data-i18n="nav_clients">قاعدة العملاء</span></div>
+  <div class="bn-more-item" onclick="showPage('briefs');closeBnMore()" id="bnm-briefs"><span><i class="fa-solid fa-clipboard-question"></i></span><span>البريفات والاستبيانات</span></div>
   <div class="bn-more-item" onclick="showPage('team');closeBnMore()" id="bnm-team"><span><i class="fa-solid fa-people-group"></i></span><span data-i18n="nav_team">فريق العمل</span></div>
   <div class="bn-more-item" onclick="showPage('finance');closeBnMore()" id="bnm-finance"><span><i class="fa-solid fa-coins"></i></span><span data-i18n="nav_finance">المالية</span></div>
   <div class="bn-more-item" onclick="showPage('invoices');closeBnMore()" id="bnm-invoices"><span><i class="fa-solid fa-file-invoice-dollar"></i></span><span data-i18n="nav_invoices">الفواتير والعقود والعروض</span></div>
@@ -2493,6 +2495,18 @@ try {
 
 </div>
 
+<!-- BRIEFS & QUESTIONNAIRES -->
+<div class="page" id="page-briefs">
+  <div class="page-header">
+    <div>
+      <div class="page-title"><i class="fa-solid fa-clipboard-question"></i> البريفات والاستبيانات</div>
+      <div class="page-subtitle">أنشئ البريف واربطه بالعميل واحتفظ بملفاته وإجاباته في مكان واحد</div>
+    </div>
+    <button class="btn btn-primary" onclick="openBriefForm()"><i class="fa-solid fa-plus"></i> بريف جديد</button>
+  </div>
+  <div id="briefs-panel"></div>
+</div>
+
 <!-- TIME TRACKER PAGE -->
 <div class="page" id="page-timetracker">
   <div class="page-header">
@@ -3311,7 +3325,6 @@ try {
     <button class="filter-chip active" id="inv-tab-inv" onclick="switchInvTab('invoices')"><i class="fa-solid fa-square"></i> الفواتير</button>
     <button class="filter-chip" id="inv-tab-ct" onclick="switchInvTab('contracts')"><i class="fa-solid fa-pen-to-square"></i> العقود</button>
     <button class="filter-chip" id="inv-tab-proposals" onclick="switchInvTab('proposals')"><i class="fa-solid fa-file-contract"></i> عروض الأسعار</button>
-    <button class="filter-chip" id="inv-tab-briefs" onclick="switchInvTab('briefs')"><i class="fa-solid fa-clipboard-question"></i> البريفات والاستبيانات</button>
     <button class="filter-chip" id="inv-tab-stmt" onclick="switchInvTab('statements')"><i class="fa-solid fa-file-lines"></i> كشوفات الحساب</button>
   </div>
   <div id="inv-panel-invoices">
@@ -3349,7 +3362,6 @@ try {
       </div>
     </div>
   </div>
-  <div id="inv-panel-briefs" style="display:none"></div>
   <!-- STATEMENTS PANEL -->
   <div id="inv-panel-statements" style="display:none">
     <div style="display:grid;grid-template-columns:300px 1fr;gap:20px">
@@ -4747,6 +4759,7 @@ try {
       <button class="profile-tab" data-tab="history" onclick="switchProfileTab('history',this)"><i class="fa-solid fa-calendar-days"></i> سجل الطلبات</button>
       <button class="profile-tab" data-tab="invoices" onclick="switchProfileTab('invoices',this)"><i class="fa-solid fa-receipt"></i> الفواتير</button>
       <button class="profile-tab" data-tab="contracts" onclick="switchProfileTab('contracts',this)"><i class="fa-solid fa-pen-to-square"></i> العقود</button>
+      <button class="profile-tab" data-tab="briefs" onclick="switchProfileTab('briefs',this)"><i class="fa-solid fa-clipboard-question"></i> البريفات</button>
       <button class="profile-tab" data-tab="statements" onclick="switchProfileTab('statements',this)"><i class="fa-solid fa-file-lines"></i> كشوفات الحساب</button>
       <button class="profile-tab" data-tab="accounts" onclick="switchProfileTab('accounts',this)"><i class="fa-solid fa-coins"></i> الحسابات المالية</button>
       <button class="profile-tab" data-tab="reviews" onclick="switchProfileTab('reviews',this)"><i class="fa-solid fa-star"></i> التقييمات</button>
@@ -5624,7 +5637,7 @@ try {
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
 <script src="../Assets/vendor/html2canvas/html2canvas.min.js?v=1.4.1"></script>
-<script src="../JavaScript/app.js?v=review-owner-32"></script>
+<script src="../JavaScript/app.js?v=brief-client-33"></script>
 <script src="../JavaScript/payment_reconciliation.js?v=4"></script>
 <script src="../JavaScript/project-finance-integration.js?v=2"></script>
 <script>document.body.classList.remove('auth-booting');</script>
@@ -9352,6 +9365,6 @@ document.addEventListener('DOMContentLoaded', function(){
 <script src="../JavaScript/support_center.js?v=challenge-chat-2"></script>
 <script src="../JavaScript/storage_usage.js?v=storage-files-2"></script>
 <script src="../JavaScript/brief_templates.js?v=1"></script>
-<script src="../JavaScript/brief_forms.js?v=7"></script>
+<script src="../JavaScript/brief_forms.js?v=8"></script>
 
 </body></html>

@@ -44,15 +44,29 @@ test('form editor and portal support banner, uploaded image choices and varied a
   assert.match(html,/prop-brief-id/);
 });
 
-test('briefs sit beside invoices and contracts with editable items and question types',()=>{
-  assert.match(html,/id="inv-tab-briefs"/);
-  assert.match(html,/id="inv-panel-briefs"/);
+test('briefs live under client management with editable items and question types',()=>{
+  assert.match(html,/id="page-briefs"/);
+  assert.match(html,/id="briefs-panel"/);
+  assert.match(html,/showPage\('briefs'/);
+  assert.match(html,/\['clients','briefs','services','reviews'\]/);
+  assert.doesNotMatch(html,/id="inv-tab-briefs"/);
+  assert.doesNotMatch(html,/id="inv-panel-briefs"/);
   assert.match(html,/brief_forms\.js/);
   for(const value of ['essay','checkbox','image'])assert.match(owner,new RegExp(`'${value}'`));
   assert.match(owner,/brief-item-title/);
   assert.match(owner,/brief-item-desc/);
   assert.match(owner,/brief-q-required/);
-  assert.match(app,/briefs:'inv-panel-briefs'/);
+  assert.match(owner,/getElementById\('briefs-panel'\)/);
+  assert.match(app,/briefs:\(\)=>\{if\(typeof renderBriefForms/);
+});
+
+test('a brief can be linked to a client and is visible in client details',()=>{
+  assert.match(owner,/id="brief-client"/);
+  assert.match(owner,/clientOptions\(selectedClientId\)/);
+  assert.match(owner,/clientId=document\.getElementById\('brief-client'\)/);
+  assert.match(html,/data-tab="briefs"/);
+  assert.match(app,/const cBriefs = \(S\.brief_forms\|\|\[\]\)\.filter\(_matchClientEntity\)/);
+  assert.match(app,/else if\(tab==='briefs'\)/);
 });
 
 test('portal snapshot exposes only sent briefs for its client and not private answers',async()=>{
@@ -77,7 +91,9 @@ test('brief references support uploaded documents, drive links, content and port
   assert.match(owner,/application\/pdf/);
   assert.match(owner,/brief-ref-visible/);
   assert.match(portal,/function portalBriefReferences\(form\)/);
-  assert.match(portal,/فتح أو تحميل الملف/);
+  assert.match(portal,/function openPortalBriefPdf\(formId,referenceIndex\)/);
+  assert.match(portal,/class="portal-pdf-frame"/);
+  assert.match(portal,/تحميل PDF/);
   assert.match(portal,/فتح الرابط الخارجي/);
   assert.match(persistence,/references:\(x\.references\|\|\[\]\)\.filter/);
 });

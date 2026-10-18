@@ -94,6 +94,7 @@ body.lm .brief-portal-sheet{color-scheme:light}
 .brief-portal-question .form-input:disabled{opacity:.8;cursor:not-allowed}
 .brief-portal-question select.form-input option{background:var(--s2);color:var(--t1)}
 .brief-portal-references{margin:16px 0;padding:14px;background:var(--s2);border:1px solid var(--bd);border-radius:13px}.brief-portal-references>h3{margin:0 0 11px;font-size:14px}.brief-reference-card{display:flex;align-items:center;gap:11px;padding:11px 12px;margin:8px 0;border:1px solid var(--bd);border-radius:10px;background:var(--s3);color:var(--t1);text-decoration:none}.brief-reference-card>i:first-child{font-size:19px;color:var(--ac)}.brief-reference-card>i:last-child{margin-inline-start:auto;color:var(--t3)}.brief-reference-card span{display:flex;flex-direction:column;gap:2px}.brief-reference-card small{color:var(--t3)}.brief-reference-content{padding:12px;margin:8px 0;border:1px solid var(--bd);border-radius:10px;background:var(--s3)}.brief-reference-content h4{margin:0 0 8px}.brief-reference-content p{margin:0;color:var(--t2);line-height:1.85;white-space:pre-wrap;overflow-wrap:anywhere}
+.brief-reference-card[type="button"]{width:100%;font:inherit;text-align:start;cursor:pointer}.portal-pdf-overlay{align-items:center;padding:18px}.portal-pdf-dialog{width:min(1050px,100%);height:min(88dvh,900px);display:flex;flex-direction:column;background:var(--s1);border:1px solid var(--bd);border-radius:18px;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.45)}.portal-pdf-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--bd)}.portal-pdf-head strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.portal-pdf-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}.portal-pdf-frame{display:block;width:100%;height:100%;border:0;background:#fff}.portal-pdf-download{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border-radius:9px;background:var(--ac);color:#111827;text-decoration:none;font-weight:800;font-size:12px}.portal-pdf-close{width:38px;height:38px;border:1px solid var(--bd);border-radius:9px;background:var(--s2);color:var(--t1);cursor:pointer}@media(max-width:520px){.portal-pdf-overlay{padding:7px}.portal-pdf-dialog{height:94dvh;border-radius:13px}.portal-pdf-head{padding:9px}.portal-pdf-download{padding:8px 10px}}
 .brief-portal-question input[type="checkbox"],.brief-portal-question input[type="radio"]{accent-color:var(--ac)}
 .brief-choice-grid,.brief-image-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
 .brief-choice{display:flex;align-items:center;gap:9px;padding:12px;border:1px solid var(--bd);border-radius:10px;background:var(--s2);cursor:pointer}
@@ -1831,14 +1832,35 @@ function openProjectDetail(projId){
 function portalBriefReferences(form){
   const references=(form?.references||[]).filter(ref=>ref&&ref.public_visible!==false);
   if(!references.length)return'';
-  const cards=references.map(ref=>{
+  const cards=references.map((ref,index)=>{
     const title=xe(ref.title||ref.file_name||'مرجع العميل');
-    if(ref.type==='file'&&/^data:(application\/pdf|text\/plain|application\/msword|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document);base64,/i.test(ref.data_url||''))return '<a class="brief-reference-card" href="'+xe(ref.data_url)+'" download="'+xe(ref.file_name||'brief-file')+'"><i class="fa-solid fa-file-pdf"></i><span><b>'+title+'</b><small>فتح أو تحميل الملف</small></span><i class="fa-solid fa-download"></i></a>';
+    if(ref.type==='file'&&/^data:application\/pdf;base64,/i.test(ref.data_url||''))return '<button type="button" class="brief-reference-card" data-form-id="'+xe(form.id)+'" data-reference-index="'+index+'" onclick="openPortalBriefPdf(this.dataset.formId,Number(this.dataset.referenceIndex))"><i class="fa-solid fa-file-pdf"></i><span><b>'+title+'</b><small>معاينة ملف PDF وتحميله</small></span><i class="fa-solid fa-eye"></i></button>';
+    if(ref.type==='file'&&/^data:(text\/plain|application\/msword|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document);base64,/i.test(ref.data_url||''))return '<a class="brief-reference-card" href="'+xe(ref.data_url)+'" download="'+xe(ref.file_name||'brief-file')+'"><i class="fa-solid fa-file-arrow-down"></i><span><b>'+title+'</b><small>تحميل الملف</small></span><i class="fa-solid fa-download"></i></a>';
     if(ref.type==='link'&&/^https:\/\//i.test(ref.url||''))return '<a class="brief-reference-card" href="'+xe(ref.url)+'" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-google-drive"></i><span><b>'+title+'</b><small>فتح الرابط الخارجي</small></span><i class="fa-solid fa-arrow-up-right-from-square"></i></a>';
     if(ref.type==='content'&&ref.content)return '<div class="brief-reference-content"><h4><i class="fa-solid fa-align-right"></i> '+title+'</h4><p>'+xe(ref.content)+'</p></div>';
     return'';
   }).join('');
   return cards?'<section class="brief-portal-references"><h3><i class="fa-solid fa-paperclip"></i> الملفات والمراجع</h3>'+cards+'</section>':'';
+}
+function portalBriefPdfBlob(dataUrl){
+  const match=String(dataUrl||'').match(/^data:(application\/pdf);base64,(.+)$/i);if(!match)return null;
+  const binary=atob(match[2]),bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  return URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+}
+function closePortalBriefPdf(){
+  const overlay=document.getElementById('portal-brief-pdf-overlay');if(!overlay)return;
+  if(overlay.dataset.objectUrl)URL.revokeObjectURL(overlay.dataset.objectUrl);overlay.remove();
+}
+function openPortalBriefPdf(formId,referenceIndex){
+  const form=(_ud?.brief_forms||[]).find(item=>String(item.id)===String(formId));
+  const references=(form?.references||[]).filter(ref=>ref&&ref.public_visible!==false),ref=references[referenceIndex];
+  if(!ref||ref.type!=='file'||!/^data:application\/pdf;base64,/i.test(ref.data_url||''))return;
+  closePortalBriefPdf();
+  let objectUrl='';try{objectUrl=portalBriefPdfBlob(ref.data_url)||ref.data_url;}catch(error){objectUrl=ref.data_url;}
+  const overlay=document.createElement('div');overlay.className='overlay portal-pdf-overlay';overlay.id='portal-brief-pdf-overlay';
+  overlay.dataset.objectUrl=objectUrl.startsWith('blob:')?objectUrl:'';overlay.onclick=event=>{if(event.target===overlay)closePortalBriefPdf();};
+  overlay.innerHTML='<div class="portal-pdf-dialog" role="dialog" aria-modal="true" aria-label="معاينة ملف PDF"><div class="portal-pdf-head"><strong><i class="fa-solid fa-file-pdf" style="color:var(--ac)"></i> '+xe(ref.title||ref.file_name||'ملف البريف')+'</strong><div class="portal-pdf-actions"><a class="portal-pdf-download" download="'+xe(ref.file_name||'brief.pdf')+'"><i class="fa-solid fa-download"></i> تحميل PDF</a><button type="button" class="portal-pdf-close" onclick="closePortalBriefPdf()" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div></div><iframe class="portal-pdf-frame" title="معاينة '+xe(ref.file_name||'ملف PDF')+'"></iframe></div>';
+  overlay.querySelector('.portal-pdf-download').href=objectUrl;overlay.querySelector('.portal-pdf-frame').src=objectUrl;document.body.appendChild(overlay);
 }
 function renderBriefForms(){
   const forms=(_ud?.brief_forms||[]).filter(f=>f&&['sent','submitted','accepted'].includes(f.status));
