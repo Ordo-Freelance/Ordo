@@ -261,6 +261,31 @@ body::before,body.lm::before{background:radial-gradient(ellipse 70% 50% at 15% 0
 .svc-card:hover{border-color:color-mix(in srgb,var(--ac) 45%,transparent);box-shadow:0 10px 28px color-mix(in srgb,var(--ac) 15%,transparent)}
 .pf-card:hover{border-color:color-mix(in srgb,var(--ac) 50%,transparent)}
 .pf-ph-icon{color:color-mix(in srgb,var(--ac) 60%,transparent)}
+.portal-task-project-trail{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+  width:max-content;
+  max-width:100%;
+  margin-top:7px;
+  padding:5px 9px;
+  border:1px solid color-mix(in srgb,var(--task-project-accent,var(--ac)) 28%,var(--bd));
+  border-radius:9px;
+  background:color-mix(in srgb,var(--task-project-accent,var(--ac)) 8%,var(--s2));
+  color:var(--t3);
+  font-size:10px;
+  line-height:1.5;
+}
+.portal-task-project-trail span{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.portal-task-project-trail b{color:var(--t1);font-weight:900;overflow-wrap:anywhere}
+.portal-task-project-trail>i{color:var(--task-project-accent,var(--ac));font-size:8px}
+.portal-task-project-trail span>i{color:var(--task-project-accent,var(--ac))}
+@media(max-width:520px){
+  .portal-task-project-trail{width:100%;align-items:flex-start}
+  .portal-task-project-trail>i{display:none}
+  .portal-task-project-trail span{width:100%}
+}
 </style>
 <script>
 (function(){
@@ -607,14 +632,18 @@ async function _bootWithData(userId, clientId, ud){
       return mn||mp;
     }
 
+    const allClientProjects=(ud.projects||[]);
+    const directClientProjects=allClientProjects.filter(p=>p&&matchClient(p));
+    const directProjectIds=new Set(directClientProjects.map(p=>String(p.id)));
+    _clientProjects=directClientProjects.concat(allClientProjects.filter(p=>p&&p.parentProjectId&&directProjectIds.has(String(p.parentProjectId))&&!directProjectIds.has(String(p.id))));
+    const clientProjectIds=new Set(_clientProjects.map(p=>String(p.id)));
     _clientTasks=(ud.tasks||[]).filter(t=>{
       if(!t)return false;
       if(t.client_visibility===false||t.is_internal===true)return false;
       return matchClient(t)||(pOrderId&&t.source_order_id===pOrderId);
     });
-    _clientTasks=_clientTasks.concat((ud.project_tasks||[]).filter(t=>t&&t.client_visibility!==false&&t.is_internal!==true&&matchClient(t)));
+    _clientTasks=_clientTasks.concat((ud.project_tasks||[]).filter(t=>t&&t.client_visibility!==false&&t.is_internal!==true&&(matchClient(t)||clientProjectIds.has(String(t.project_id||t.projectId||'')))));
     _clientTasks=_clientTasks.concat((ud.team_tasks||[]).filter(t=>t&&t.client_visibility===true&&t.is_internal!==true&&matchClient(t)));
-    _clientProjects=(ud.projects||[]).filter(p=>p&&matchClient(p));
     _clientInvoices=(ud.invoices||[]).filter(i=>i&&matchClient(i));
     _clientStatements=(ud.statements||[]).filter(s=>s&&matchClient(s));
     _clientOrders=(ud.svc_orders||[]).filter(o=>o&&matchClient(o));
@@ -884,6 +913,35 @@ const scMap={done:'badge-done',مكتملة:'badge-done',مكتمل:'badge-done'
 function _isTaskDone(t){ return t.done||t.status==='done'||t.status==='مكتمل'||t.status==='مكتملة'; }
 function _isTaskActive(t){ return !_isTaskDone(t)&&t.status!=='paused'&&t.status!=='موقوف'&&t.status!=='موقوفة'; }
 
+function _portalTaskProjectContext(task){
+  const projectId=task?.project_id||task?.projectId||'';
+  if(!projectId)return null;
+  const projects=_ud?.projects||[];
+  const project=projects.find(p=>String(p.id)===String(projectId));
+  if(!project){
+    const fallback=task?.projectName||task?.project_name||'';
+    return fallback?{projectName:fallback,periodName:''}:null;
+  }
+  const parentId=project.parentProjectId||project.parent_project_id||'';
+  const parent=parentId?projects.find(p=>String(p.id)===String(parentId)):null;
+  if(parent){
+    return{
+      projectName:parent.name||'مشروع رئيسي',
+      periodName:project.parentPeriodName||project.periodName||project.name||'شهر / مرحلة'
+    };
+  }
+  return{projectName:project.name||task?.projectName||'مشروع',periodName:''};
+}
+
+function _portalTaskProjectTrail(task,accent){
+  const context=_portalTaskProjectContext(task);
+  if(!context)return'';
+  return`<div class="portal-task-project-trail" style="--task-project-accent:${accent||'var(--ac)'}">
+    <span><i class="fa-solid fa-diagram-project"></i> تابع لمشروع <b>${xe(context.projectName)}</b></span>
+    ${context.periodName?`<i class="fa-solid fa-chevron-left"></i><span><i class="fa-solid fa-calendar-days"></i> شهر / مرحلة <b>${xe(context.periodName)}</b></span>`:''}
+  </div>`;
+}
+
 function setTasksFilter(f){ _tasksFilter=f; _tasksPage=1; document.getElementById('tp-tasks').innerHTML=renderTasks(); }
 function setTasksPage(p){ _tasksPage=p; document.getElementById('tp-tasks').innerHTML=renderTasks(); window.scrollTo({top:document.getElementById('tabs').offsetTop-10,behavior:'smooth'}); }
 
@@ -948,11 +1006,13 @@ function renderTasks(){
         const sc=scMap[st]||scMap[t.status]||'badge-pend';
         const lbl=stMap[st]||stMap[t.status]||st;
         const payStatus=t.pay||'none';
+        const projectTrail=_portalTaskProjectTrail(t,acc);
         return`<div class="card" style="cursor:pointer;border-right:3px solid ${_isTaskDone(t)?'var(--g)':_isTaskActive(t)?acc:'var(--r)'}" onclick="openTask('${xe(String(t.id))}')">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap">
             <div style="flex:1;min-width:0">
               <div class="card-ttl" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${xe(t.title||t.name||'طلب')}</div>
               ${t.taskType?`<div style="font-size:10px;color:${acc};margin-top:2px;font-weight:700">${xe(t.taskType)}</div>`:''}
+              ${projectTrail}
             </div>
             <span class="badge ${sc}">${xe(lbl)}</span>
           </div>
@@ -2302,6 +2362,7 @@ function openTask(taskId, fromUrl){
   const doneSteps=steps.filter(s=>s.done).length;
   const prog=steps.length?Math.round(doneSteps/steps.length*100):(t.done?100:0);
   const acc=_settings?.accent||_settings?.accentColor||'#7c6ff7';
+  const projectTrail=_portalTaskProjectTrail(t,acc);
 
   const stMap={new:'جديد',progress:'قيد التنفيذ',review:'مراجعة',revision:'تعديلات',done:'مكتمل',paused:'موقوف',مكتملة:'مكتمل','قيد التنفيذ':'قيد التنفيذ',جديد:'جديد',موقوفة:'موقوف'};
   const scMap={done:'badge-done',مكتملة:'badge-done',مكتمل:'badge-done',progress:'badge-prog','قيد التنفيذ':'badge-prog',review:'badge-prog',revision:'badge-pend',new:'badge-pend',جديد:'badge-pend',paused:'badge-stop',موقوفة:'badge-stop',موقوف:'badge-stop'};
@@ -2329,6 +2390,7 @@ function openTask(taskId, fromUrl){
           ${t.taskType?`<span class="badge" style="background:rgba(124,111,247,.12);color:var(--ac)">${xe(t.taskType)}</span>`:''}
           ${t.done?`<span class="badge badge-done"><i class="fa-solid fa-square-check"></i> مكتمل</span>`:''}
         </div>
+        ${projectTrail}
       </div>
       <button onclick="document.getElementById('task-ov').remove()" style="background:var(--s2);border:1px solid var(--bd);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;color:var(--t2);flex-shrink:0"><i class="fa-solid fa-xmark"></i></button>
     </div>

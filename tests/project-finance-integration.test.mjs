@@ -156,3 +156,12 @@ test('portal groups recurring project months under one parent project',()=>{
   assert.match(portal,/_portalRootProjects\(\)\.length/);
   assert.match(portal,/p\.projectKind==='parent'\|\|_portalProjectChildren\(p\)\.length/);
 });
+
+test('portal task cards identify their project and recurring month',()=>{
+  assert.match(portal,/function _portalTaskProjectContext\(task\)/);
+  assert.match(portal,/project\.parentProjectId\|\|project\.parent_project_id/);
+  assert.match(portal,/تابع لمشروع/);
+  assert.match(portal,/شهر \/ مرحلة/);
+  assert.match(portal,/const projectTrail=_portalTaskProjectTrail\(t,acc\)/);
+  assert.match(portal,/clientProjectIds\.has\(String\(t\.project_id\|\|t\.projectId\|\|''\)\)/);
+});
