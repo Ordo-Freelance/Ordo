@@ -39,3 +39,19 @@ test('the default task brief view exposes a substantial polished reading area',(
   assert.match(css,/overflow:auto/);
   assert.match(css,/\.tasks-v2-flow-main \.td-brief img/);
 });
+
+test('project tasks use a rich brief editor and persist its formatted HTML',()=>{
+  assert.match(html,/id="proj-task-brief-editor"/);
+  assert.match(html,/id="proj-task-brief-value"/);
+  assert.match(app,/new Quill\('#proj-task-brief-editor'/);
+  assert.match(app,/briefHtml:briefHtml/);
+  assert.match(app,/t\.briefHtml\|\|escapeHtml\(t\.desc\)/);
+});
+
+test('project and recurring month cards use the redesigned studio layout',()=>{
+  assert.match(app,/project-studio-card/);
+  assert.match(app,/rec-v9-month-grid/);
+  assert.match(app,/rec-v9-month-card/);
+  assert.match(css,/Project studio redesign v15/);
+  assert.match(css,/\.rec-v9-month-grid/);
+});

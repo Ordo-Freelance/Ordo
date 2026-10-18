@@ -29788,10 +29788,10 @@ function openProjTaskDetail(taskId, projId){
   '</div>'+
 
   // الوصف
-  (t.desc?
+  (t.briefHtml||t.desc?
     '<div style="background:var(--surface2);border-radius:12px;padding:14px;border:1px solid var(--border)">'+
-      '<div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">الوصف</div>'+
-      '<div style="font-size:13px;color:var(--text2);line-height:1.7">'+escapeHtml(t.desc)+'</div>'+
+      '<div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">تفاصيل وبريف المهمة</div>'+
+      '<div class="project-task-brief-content" style="font-size:13px;color:var(--text2);line-height:1.8">'+(t.briefHtml||escapeHtml(t.desc))+'</div>'+
     '</div>':'')+
 
   // الخطوات
@@ -34821,19 +34821,22 @@ window.OrdoCurrencyPatch = {
         window.OrdoProjectFinance.projectIncomeNotInLedger(S,p).reduce(function(total,tx){return total+num(tx.amount);},0):0;
       var cost = taskCostSummary(tasks);
       var members = (p.members || []).slice(0,4);
-      return '<article class="project-v2-card" style="--project-color:'+clr+'" onclick="openProjectDetail(&quot;'+esc(p.id)+'&quot;)">'+
+      var monthCount=(S.projects||[]).filter(function(child){return String(child.parentProjectId||'')===String(p.id);}).length;
+      var isRecurring=p.projectKind==='parent';
+      return '<article class="project-v2-card project-studio-card'+(isRecurring?' is-recurring':'')+'" style="--project-color:'+clr+'" onclick="openProjectDetail(&quot;'+esc(p.id)+'&quot;)">'+
+        '<div class="project-studio-glow"></div>'+
         '<div class="project-v2-card-head">'+
-          '<div><span class="project-v2-status" style="color:'+st.color+';background:'+st.bg+'">'+esc(st.label)+'</span><h3>'+esc(p.name || 'مشروع بدون اسم')+'</h3><p>'+(client?esc(client.name):'بدون عميل')+(p.deadline?' · تسليم '+esc(p.deadline):'')+'</p></div>'+
-          '<div class="project-v2-mark"><i class="fa-solid fa-diagram-project"></i></div>'+
+          '<div><div class="project-studio-labels"><span class="project-v2-status" style="color:'+st.color+';background:'+st.bg+'">'+esc(st.label)+'</span>'+(isRecurring?'<span class="project-studio-recurring"><i class="fa-solid fa-arrows-rotate"></i> مشروع شهري</span>':'')+'</div><h3>'+esc(p.name || 'مشروع بدون اسم')+'</h3><p><i class="fa-regular fa-user"></i> '+(client?esc(client.name):'بدون عميل')+(p.deadline?' <i class="fa-regular fa-calendar"></i> '+esc(p.deadline):'')+'</p></div>'+
+          '<div class="project-v2-mark"><i class="fa-solid '+(isRecurring?'fa-calendar-days':'fa-diagram-project')+'"></i></div>'+
         '</div>'+
-        '<div class="project-v2-progress"><span style="width:'+pct+'%;background:'+clr+'"></span></div>'+
+        '<div class="project-studio-progress-label"><span>تقدم المشروع</span><b>'+pct+'%</b></div><div class="project-v2-progress"><span style="width:'+pct+'%;background:'+clr+'"></span></div>'+
         '<div class="project-v2-metrics">'+
-          '<span><b>'+tasks.length+'</b><small>مهام</small></span>'+
+          '<span><b>'+(isRecurring?monthCount:tasks.length)+'</b><small>'+(isRecurring?'شهور':'مهام')+'</small></span>'+
           '<span><b>'+pct+'%</b><small>إنجاز</small></span>'+
           '<span><b>'+money(p.budget || cost.total, p.budgetCurrency)+'</b><small>ميزانية</small></span>'+
           '<span><b>'+money(sum.received+taskReceipts, p.budgetCurrency)+'</b><small>محصل من العميل</small></span>'+
         '</div>'+
-        '<div class="project-v2-footer">'+
+        '<div class="project-v2-footer"><span class="project-studio-open"><i class="fa-solid fa-arrow-left"></i> فتح مساحة العمل</span>'+
           '<div class="project-v2-people">'+(members.length?members.map(function(m){return '<span title="'+esc(m.name||'')+'">'+esc((m.name||'?').slice(0,1))+'</span>';}).join(''):'<em>لا فريق</em>')+'</div>'+
           '<div class="project-v2-actions" onclick="event.stopPropagation()">'+
             '<button title="مهمة" onclick="openProjTaskModal(&quot;'+esc(p.id)+'&quot;)"><i class="fa-solid fa-list-check"></i></button>'+
@@ -35302,6 +35305,43 @@ window.OrdoCurrencyPatch = {
   };
   try{ onPtaskTeamChange = window.onPtaskTeamChange; }catch(e){}
 
+  var projectTaskQuill=null;
+  function normalizeProjectTaskBrief(html){
+    html=String(html||'').trim();
+    return /^(<p><br><\/p>|<p><\/p>|<br>)$/.test(html)?'':html;
+  }
+  function syncProjectTaskBrief(){
+    var hidden=document.getElementById('proj-task-brief-value');
+    var desc=document.getElementById('ptask-desc');
+    var html=normalizeProjectTaskBrief(projectTaskQuill&&projectTaskQuill.root?projectTaskQuill.root.innerHTML:'');
+    if(hidden)hidden.value=html;
+    if(desc)desc.value=projectTaskQuill&&projectTaskQuill.getText?projectTaskQuill.getText().trim():'';
+  }
+  function initProjectTaskBrief(value){
+    var host=document.getElementById('proj-task-brief-editor');
+    if(!host||typeof Quill==='undefined')return;
+    if(!(projectTaskQuill&&projectTaskQuill.root&&projectTaskQuill.root.isConnected)){
+      projectTaskQuill=new Quill('#proj-task-brief-editor',{
+        theme:'snow',
+        placeholder:'اكتب بريف المهمة، المطلوب، الروابط والملاحظات…',
+        modules:{toolbar:[
+          [{header:[1,2,3,false]}],
+          ['bold','italic','underline','strike'],
+          [{color:[]},{background:[]}],
+          [{list:'ordered'},{list:'bullet'}],
+          ['blockquote','link','image'],
+          [{align:[]}],
+          ['clean']
+        ]}
+      });
+      projectTaskQuill.on('text-change',syncProjectTaskBrief);
+      window._projectTaskQuill=projectTaskQuill;
+    }
+    projectTaskQuill.setText('');
+    if(value)projectTaskQuill.clipboard.dangerouslyPasteHTML(value);
+    syncProjectTaskBrief();
+  }
+
   window.openProjTaskModal = function(projId, taskId, defaultStatus){
     var proj = projectById(projId);
     var t = taskId ? (S.project_tasks||[]).find(function(x){ return String(x.id) === String(taskId); }) : null;
@@ -35328,6 +35368,10 @@ window.OrdoCurrencyPatch = {
     if(typeof renderPtaskSteps==='function') renderPtaskSteps();
     if(typeof _renderPtaskAssigneeInfo==='function') _renderPtaskAssigneeInfo(t);
     openM('modal-proj-task');
+    setTimeout(function(){
+      var rich=t&&t.briefHtml?t.briefHtml:(t&&t.desc?'<p>'+esc(t.desc).replace(/\n/g,'<br>')+'</p>':'');
+      initProjectTaskBrief(rich);
+    },40);
   };
   try{ openProjTaskModal = window.openProjTaskModal; }catch(e){}
 
@@ -35340,10 +35384,13 @@ window.OrdoCurrencyPatch = {
     var asel=document.getElementById('ptask-assignee'), opt=asel&&asel.options[asel.selectedIndex];
     var pay=(document.getElementById('ptask-payment-status')||{}).value || 'pending';
     var dep=pay==='deposit' ? num((document.getElementById('ptask-deposit')||{}).value) : 0;
+    syncProjectTaskBrief();
+    var briefHtml=normalizeProjectTaskBrief((document.getElementById('proj-task-brief-value')||{}).value||'');
+    var briefText=projectTaskQuill&&projectTaskQuill.getText?projectTaskQuill.getText().trim():strip((document.getElementById('ptask-desc')||{}).value||'');
     if(pay==='deposit'&&dep<=0){toast('<i class="fa-solid fa-triangle-exclamation"></i> أدخل عربون المهمة بمبلغ موجب');return;}
     var old=eid ? S.project_tasks.find(function(t){ return String(t.id)===String(eid); }) : null;
     var d=Object.assign({}, old||{}, {
-      id:old?old.id:Date.now(), title:title, desc:strip((document.getElementById('ptask-desc')||{}).value || ''), project_id:projId,
+      id:old?old.id:Date.now(), title:title, desc:briefText, briefHtml:briefHtml, project_id:projId,
       priority:(document.getElementById('ptask-priority')||{}).value || 'normal', status:(document.getElementById('ptask-status')||{}).value || 'todo',
       orderDate:(document.getElementById('ptask-orderdate')||{}).value || '', deadline:(document.getElementById('ptask-deadline')||{}).value || '',
       value:num((document.getElementById('ptask-value')||{}).value), currency:(document.getElementById('ptask-currency')||{}).value || 'ج.م',
@@ -36166,7 +36213,15 @@ window.OrdoCurrencyPatch = {
   }
   function monthRows(parent,f,cur){
     if(!f.periods.length) return '<div class="rec-v8-empty"><i class="fa-solid fa-calendar-plus"></i><b>لا توجد شهور بعد</b><button class="btn btn-primary btn-sm" onclick="openProjectPeriodModal(&quot;'+esc(parent.id)+'&quot;)"><i class="fa-solid fa-plus"></i> إنشاء شهر</button></div>';
-    return '<div class="rec-v8-list">'+f.periods.map(function(sp){var s=periodSum(sp);return '<div class="rec-v8-row" onclick="openProjectPeriod(&quot;'+esc(parent.id)+'&quot;,&quot;'+esc(sp.id||sp.projectId)+'&quot;)"><span class="rec-v8-dot"><i class="fa-solid fa-calendar"></i></span><div class="rec-v8-main"><b>'+esc(sp.name||'مرحلة')+'</b><small>'+esc(sp.start||'بدون بداية')+' · '+s.tasks.length+' مهام · '+s.pct+'%</small></div><em>'+money(sp.budget,cur)+'</em><em>'+money(s.profit,cur)+'</em><div class="rec-v8-actions"><button title="تعديل" onclick="event.stopPropagation();openProjectPeriodModal(&quot;'+esc(parent.id)+'&quot;,&quot;'+esc(sp.id||sp.projectId)+'&quot;)"><i class="fa-solid fa-pen"></i></button><button class="danger" title="حذف" onclick="event.stopPropagation();deleteProjectPeriod(&quot;'+esc(parent.id)+'&quot;,&quot;'+esc(sp.id||sp.projectId)+'&quot;)"><i class="fa-solid fa-trash"></i></button></div></div>';}).join('')+'</div>';
+    return '<div class="rec-v9-month-grid">'+f.periods.map(function(sp){
+      var s=periodSum(sp), periodId=sp.id||sp.projectId;
+      return '<article class="rec-v9-month-card" onclick="openProjectPeriod(&quot;'+esc(parent.id)+'&quot;,&quot;'+esc(periodId)+'&quot;)">'+
+        '<div class="rec-v9-month-top"><span class="rec-v9-month-icon"><i class="fa-solid fa-calendar-days"></i></span><div><small>'+esc(sp.start||'بدون تاريخ بداية')+'</small><h3>'+esc(sp.name||'مرحلة')+'</h3></div><span class="rec-v9-month-arrow"><i class="fa-solid fa-arrow-left"></i></span></div>'+
+        '<div class="rec-v9-month-progress"><div><span>نسبة الإنجاز</span><b>'+s.pct+'%</b></div><i><span style="width:'+s.pct+'%"></span></i></div>'+
+        '<div class="rec-v9-month-metrics"><span><b>'+s.tasks.length+'</b><small>مهام</small></span><span><b>'+s.done+'</b><small>مكتملة</small></span><span><b>'+money(sp.budget,cur)+'</b><small>الميزانية</small></span><span><b>'+money(s.collected,cur)+'</b><small>محصل</small></span></div>'+
+        '<footer><strong class="'+(s.profit>=0?'income':'expense')+'">صافي '+money(s.profit,cur)+'</strong><div class="rec-v8-actions"><button title="تعديل" onclick="event.stopPropagation();openProjectPeriodModal(&quot;'+esc(parent.id)+'&quot;,&quot;'+esc(periodId)+'&quot;)"><i class="fa-solid fa-pen"></i></button><button class="danger" title="حذف" onclick="event.stopPropagation();deleteProjectPeriod(&quot;'+esc(parent.id)+'&quot;,&quot;'+esc(periodId)+'&quot;)"><i class="fa-solid fa-trash"></i></button></div></footer>'+
+      '</article>';
+    }).join('')+'</div>';
   }
   function finance(parent,f,cur){
     var rows=f.periods.map(function(sp){var s=periodSum(sp);return '<tr><td>'+esc(sp.name||'مرحلة')+'</td><td>'+money(sp.budget,cur)+'</td><td>'+money(s.collected,cur)+'</td><td>'+money(s.spent,cur)+'</td><td class="'+(s.profit>=0?'income':'expense')+'">'+money(s.profit,cur)+'</td><td><button class="icon-btn" onclick="openParentStatement(&quot;'+esc(parent.id)+'&quot;,&quot;'+esc(sp.id||sp.projectId)+'&quot;)"><i class="fa-solid fa-file-lines"></i></button></td></tr>';}).join('');

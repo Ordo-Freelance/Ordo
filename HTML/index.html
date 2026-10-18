@@ -1113,7 +1113,7 @@ function getQRDataURL(text, size) {
 </script>
 <!-- Quill Rich Text Editor -->
 <link href="../Assets/vendor/quill/quill.snow.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../CSS/styles.css?v=mobile-ux-6">
+<link rel="stylesheet" href="../CSS/styles.css?v=project-studio-38">
 <script>
 (function(){
   try{
@@ -2238,7 +2238,13 @@ try {
     <input type="hidden" id="ptask-eid">
     <input type="hidden" id="ptask-proj-id">
     <div class="form-group"><label class="form-label">عنوان المهمة *</label><input class="form-input" id="ptask-title" placeholder="ماذا يجب إنجازه؟"></div>
-    <div class="form-group"><label class="form-label">الوصف</label><textarea class="form-textarea" id="ptask-desc" rows="2" placeholder="تفاصيل إضافية..."></textarea></div>
+    <div class="form-group project-task-brief-field">
+      <label class="form-label"><i class="fa-solid fa-file-pen" style="color:var(--accent)"></i> تفاصيل وبريف المهمة</label>
+      <div class="project-task-brief-hint">اكتب المطلوب، الملاحظات، الروابط وخطوات التنفيذ بالتنسيق المناسب.</div>
+      <div id="proj-task-brief-editor"></div>
+      <input type="hidden" id="proj-task-brief-value">
+      <textarea class="form-textarea" id="ptask-desc" rows="2" placeholder="تفاصيل إضافية..." hidden></textarea>
+    </div>
     <!-- فلتر الفريق + المسؤول -->
     <div class="form-row" style="grid-template-columns:1fr 1fr">
       <div class="form-group">
@@ -5637,7 +5643,7 @@ try {
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
 <script src="../Assets/vendor/html2canvas/html2canvas.min.js?v=1.4.1"></script>
-<script src="../JavaScript/app.js?v=portal-project-tree-36"></script>
+<script src="../JavaScript/app.js?v=project-studio-38"></script>
 <script src="../JavaScript/payment_reconciliation.js?v=4"></script>
 <script src="../JavaScript/project-finance-integration.js?v=2"></script>
 <script>document.body.classList.remove('auth-booting');</script>
