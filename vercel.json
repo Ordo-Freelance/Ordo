@@ -34,6 +34,10 @@
     { "source": "/terms", "destination": "/HTML/terms.html" },
     { "source": "/admin", "destination": "/HTML/admin.html" },
     { "source": "/admin/", "destination": "/HTML/admin.html" },
+    { "source": "/error", "destination": "/HTML/error.html" },
+    { "source": "/404", "destination": "/HTML/error.html?code=404" },
+    { "source": "/500", "destination": "/HTML/error.html?code=500" },
+    { "source": "/505", "destination": "/HTML/error.html?code=505" },
     { "source": "/api/:path*", "destination": "/api/index.js" }
   ],
   "headers": [

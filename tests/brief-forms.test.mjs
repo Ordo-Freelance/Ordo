@@ -73,6 +73,14 @@ test('a brief can be linked to a client and is visible in client details',()=>{
   assert.match(owner,/openBriefForm=function\(formId,initialClientId,initialProjectId\)/);
 });
 
+test('project briefs have a read-only in-app preview with PDF and Drive support',()=>{
+  assert.match(app,/openProjectBriefPreview/);
+  assert.match(app,/project-brief-preview-overlay/);
+  assert.match(app,/drive\.google\.com\/file\/d\//);
+  assert.match(app,/معاينة داخلية كما تظهر للعميل/);
+  assert.match(app,/onclick="openProjectBriefPreview\(this\.dataset\.id\)"/);
+});
+
 test('portal snapshot exposes only sent briefs for its client and not private answers',async()=>{
   const data={settings:{name:'Studio'},clients:[{id:'a',name:'A'},{id:'b',name:'B'}],client_portals:[{id:'p',client_id:'a'}],public_tokens:[{token:'portal-a',entity_type:'client_portal',entity_id:'p',client_id:'a'}],brief_forms:[
     {id:'draft',client_id:'a',status:'draft'},

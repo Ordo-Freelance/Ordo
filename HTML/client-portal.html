@@ -281,6 +281,8 @@ body::before,body.lm::before{background:radial-gradient(ellipse 70% 50% at 15% 0
 .portal-task-project-trail b{color:var(--t1);font-weight:900;overflow-wrap:anywhere}
 .portal-task-project-trail>i{color:var(--task-project-accent,var(--ac));font-size:8px}
 .portal-task-project-trail span>i{color:var(--task-project-accent,var(--ac))}
+.portal-month-task-card:hover,.portal-project-task-card:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--ac) 55%,var(--bd));box-shadow:0 10px 24px rgba(0,0,0,.12)}
+.portal-project-task-card{transition:transform .18s,border-color .18s,box-shadow .18s}
 @media(max-width:520px){
   .portal-task-project-trail{width:100%;align-items:flex-start}
   .portal-task-project-trail>i{display:none}
@@ -1031,9 +1033,9 @@ function renderTasks(){
             ${_getTaskReview(t.id)?`<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--g)"><i class="fa-solid fa-star"></i> قيّمت هذا الطلب — شكراً!</div>`
             :`<button onclick="event.stopPropagation();openReviewSheet('${xe(String(t.id))}','${xe(String(t.title||t.name||'طلب'))}')" style="display:flex;align-items:center;gap:6px;background:rgba(247,201,72,.12);color:var(--y);border:1.5px solid rgba(247,201,72,.35);border-radius:8px;padding:6px 12px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer"><i class="fa-solid fa-star"></i> قيّم الطلب</button>`}
             ${(t.projectLink||t.driveLink)&&!t.clientReceived?
-              `<button onclick="event.stopPropagation();_openReceiveProjectSheet('${xe(String(t.id))}')" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.15);color:var(--g);border:1.5px solid rgba(79,209,165,.4);border-radius:8px;padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer;animation:pulse-green 2s infinite"><i class="fa-solid fa-handshake"></i> استلام المشروع</button>`
+              `<button onclick="event.stopPropagation();_openReceiveProjectSheet('${xe(String(t.id))}')" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.15);color:var(--g);border:1.5px solid rgba(79,209,165,.4);border-radius:8px;padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer;animation:pulse-green 2s infinite"><i class="fa-solid fa-handshake"></i> استلام المهمة</button>`
             : !t.clientReceived
-              ? `<button onclick="event.stopPropagation();_openReceiveProjectSheet('${xe(String(t.id))}')" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.08);color:var(--g);border:1.5px solid rgba(79,209,165,.25);border-radius:8px;padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer"><i class="fa-solid fa-handshake"></i> استلام المشروع</button>`
+              ? `<button onclick="event.stopPropagation();_openReceiveProjectSheet('${xe(String(t.id))}')" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.08);color:var(--g);border:1.5px solid rgba(79,209,165,.25);border-radius:8px;padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer"><i class="fa-solid fa-handshake"></i> استلام المهمة</button>`
               : `<span style="font-size:11px;color:var(--g);display:flex;align-items:center;gap:5px"><i class="fa-solid fa-circle-check"></i> تم الاستلام</span>`
             }
             ${t.clientReceived&&!t.clientRevisionRequested?
@@ -1827,9 +1829,9 @@ function openPortalRecurringProjectDetail(parent){
     if(!tasks.length)return'<div style="padding:14px;text-align:center;color:var(--t3);font-size:12px">لا توجد مهام في هذا الشهر</div>';
     return tasks.map(task=>{
       const done=task.done||['done','مكتملة'].includes(task.status),link=task.projectLink||task.driveLink||'';
-      return '<article style="padding:11px 12px;background:var(--s3);border:1px solid var(--bd);border-radius:10px;margin-top:7px">'+
+      return '<article class="portal-month-task-card" onclick="openTask(\''+xe(String(task.id))+'\')" style="padding:12px 13px;background:var(--s3);border:1px solid var(--bd);border-right:3px solid '+(done?'var(--g)':clr)+';border-radius:12px;margin-top:8px;cursor:pointer;transition:.18s">'+
         '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px"><div><b style="font-size:12px">'+xe(task.title||'مهمة')+'</b>'+(task.desc?'<p style="font-size:10px;color:var(--t3);line-height:1.6;margin:4px 0 0">'+xe(task.desc)+'</p>':'')+'</div><span style="font-size:9px;font-weight:800;white-space:nowrap;color:'+(done?'var(--g)':'var(--y)')+'">'+(done?'✓ مكتملة':'قيد التنفيذ')+'</span></div>'+
-        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px">'+(task.value?'<small style="color:'+clr+';font-weight:800">'+_money(task.value,task)+'</small>':'<span></span>')+(link?'<a href="'+xe(link)+'" target="_blank" rel="noopener noreferrer" style="font-size:10px;color:var(--ac);font-weight:800;text-decoration:none"><i class="fa-solid fa-arrow-up-right-from-square"></i> رابط التسليم</a>':'')+'</div></article>';
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding-top:8px;border-top:1px solid var(--bd)"><div>'+(task.value?'<small style="color:'+clr+';font-weight:800">'+_money(task.value,task)+'</small>':'')+'</div><div style="display:flex;gap:8px;align-items:center">'+(link?'<a href="'+xe(link)+'" onclick="event.stopPropagation()" target="_blank" rel="noopener noreferrer" style="font-size:10px;color:var(--g);font-weight:800;text-decoration:none"><i class="fa-solid fa-arrow-up-right-from-square"></i> تسليم المهمة</a>':'')+'<span style="font-size:10px;color:var(--ac);font-weight:800">التفاصيل ←</span></div></div></article>';
     }).join('');
   };
   const monthsHtml=periods.map((period,index)=>{
@@ -1870,8 +1872,8 @@ function openProjectDetail(projId){
     const tL=isDone?'✓ مكتمل':tStLabelMap[t.status]||t.status||'';
     const link=t.projectLink||t.driveLink||'';
     const taskCost=+t.value||0;
-    return`<div style="border:1px solid var(--bd);border-radius:14px;overflow:hidden;margin-bottom:10px">
-      <div style="padding:12px 14px;background:var(--s2)">
+    return`<div class="portal-project-task-card" style="border:1px solid var(--bd);border-right:3px solid ${tC};border-radius:14px;overflow:hidden;margin-bottom:10px">
+      <div onclick="openTask('${xe(String(t.id))}')" style="padding:12px 14px;background:var(--s2);cursor:pointer">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
           <div style="font-size:13px;font-weight:700;flex:1">${xe(t.title||'')}</div>
           <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
@@ -1883,8 +1885,9 @@ function openProjectDetail(projId){
         ${t.desc?`<div style="font-size:11px;color:var(--t3);margin-top:4px;line-height:1.5">${xe(t.desc)}</div>`:''}
       </div>
       ${isDone?`<div style="padding:10px 14px;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:8px">
-        ${link?`<a href="${xe(link)}" target="_blank" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.1);color:var(--g);border:1px solid rgba(79,209,165,.3);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:12px;font-weight:800;text-decoration:none"><i class="fa-solid fa-box-open"></i> فتح رابط التسليم</a>`:''}
-        ${!t.clientReceived?`<button data-tid="${xe(String(t.id))}" onclick="_openReceiveProjectSheet(this.dataset.tid)" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.12);color:var(--g);border:1.5px solid rgba(79,209,165,.35);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer${link?';animation:pulse-green 2s infinite':''}"><i class="fa-solid fa-handshake"></i> تأكيد الاستلام</button>`
+        ${link?`<a href="${xe(link)}" target="_blank" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.1);color:var(--g);border:1px solid rgba(79,209,165,.3);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:12px;font-weight:800;text-decoration:none"><i class="fa-solid fa-box-open"></i> فتح تسليم المهمة</a>`:''}
+        ${_getTaskReview(t.id)?`<div style="font-size:11px;color:var(--y);display:flex;align-items:center;gap:5px;padding:6px 0"><i class="fa-solid fa-star"></i> تم تقييم المهمة</div>`:`<button data-tid="${xe(String(t.id))}" data-ttl="${xe(t.title||'مهمة')}" onclick="openReviewSheet(this.dataset.tid,this.dataset.ttl)" style="display:flex;align-items:center;gap:6px;background:rgba(247,201,72,.12);color:var(--y);border:1.5px solid rgba(247,201,72,.35);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer"><i class="fa-solid fa-star"></i> قيّم المهمة</button>`}
+        ${!t.clientReceived?`<button data-tid="${xe(String(t.id))}" onclick="_openReceiveProjectSheet(this.dataset.tid)" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.12);color:var(--g);border:1.5px solid rgba(79,209,165,.35);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer${link?';animation:pulse-green 2s infinite':''}"><i class="fa-solid fa-handshake"></i> استلام المهمة</button>`
         :`<div style="font-size:11px;color:var(--g);display:flex;align-items:center;gap:5px;padding:6px 0"><i class="fa-solid fa-circle-check"></i> تم الاستلام</div>`}
         ${t.clientReceived&&!t.clientRevisionRequested?`<button data-tid="${xe(String(t.id))}" data-ttl="${xe(t.title||'')}" onclick="_openRevisionSheet(this.dataset.tid,this.dataset.ttl)" style="display:flex;align-items:center;gap:6px;background:rgba(249,115,22,.1);color:#f97316;border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:7px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer"><i class="fa-solid fa-rotate-left"></i> طلب تعديل</button>`:''}
         ${t.clientRevisionRequested?`<div style="font-size:11px;color:#f97316;display:flex;align-items:center;gap:5px;padding:6px 0"><i class="fa-solid fa-rotate-left"></i> تم إرسال طلب التعديل</div>`:''}
@@ -2449,12 +2452,12 @@ function openTask(taskId, fromUrl){
       <div style="font-size:13px;color:var(--t2);line-height:1.75;padding:12px;background:var(--s2);border-radius:10px">${xe(t.notes)}</div>
     </div>`:''}
 
-    <!-- استلام المشروع وطلب تعديل -->
+    <!-- تسليم المهمة وتقييمها وطلب تعديل -->
     ${(t.done||t.status==='done')?`<div style="padding-top:14px;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:10px">
       <!-- رابط التسليم — يظهر دائماً للمهام المكتملة -->
       ${(t.projectLink||t.driveLink)?`
       <div style="background:rgba(79,209,165,.07);border:1.5px solid rgba(79,209,165,.3);border-radius:14px;padding:14px">
-        <div style="font-size:12px;font-weight:800;color:var(--g);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-box-open"></i> ملف التسليم جاهز</div>
+        <div style="font-size:12px;font-weight:800;color:var(--g);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-box-open"></i> تسليم المهمة جاهز</div>
         <a href="${xe(t.projectLink||t.driveLink)}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(79,209,165,.15);color:var(--g);border:1.5px solid rgba(79,209,165,.4);border-radius:10px;padding:12px;font-family:var(--font);font-size:14px;font-weight:800;text-decoration:none">
           <i class="fa-solid fa-external-link-alt"></i> فتح رابط التسليم
         </a>
@@ -2465,10 +2468,11 @@ function openTask(taskId, fromUrl){
         <div style="font-size:11px">سيُضاف رابط التسليم من فريق العمل قريباً</div>
       </div>`
       }
+      ${_getTaskReview(t.id)?`<div style="display:flex;align-items:center;justify-content:center;gap:7px;padding:12px;background:rgba(247,201,72,.08);border:1px solid rgba(247,201,72,.25);border-radius:12px;font-size:12px;font-weight:800;color:var(--y)"><i class="fa-solid fa-star"></i> تم تقييم المهمة — شكراً لك</div>`:`<button onclick="document.getElementById('task-ov')?.remove();openReviewSheet('${xe(String(t.id))}','${xe(String(t.title||t.name||'مهمة'))}')" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(247,201,72,.12);color:var(--y);border:1.5px solid rgba(247,201,72,.35);border-radius:12px;padding:12px;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer"><i class="fa-solid fa-star"></i> قيّم المهمة</button>`}
       <!-- زرار الاستلام / مؤشر تم الاستلام -->
       ${!t.clientReceived?`
       <button data-tid="${xe(String(t.id))}" onclick="document.getElementById('task-ov')?.remove();_openReceiveProjectSheet('${xe(String(t.id))}')" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(79,209,165,.15);color:var(--g);border:2px solid rgba(79,209,165,.5);border-radius:12px;padding:13px;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;${t.projectLink||t.driveLink?'animation:pulse-green 2s infinite':''}">
-        <i class="fa-solid fa-handshake"></i> ${t.projectLink||t.driveLink?'تأكيد الاستلام':'الاستلام بدون رابط'}
+        <i class="fa-solid fa-handshake"></i> ${t.projectLink||t.driveLink?'تأكيد استلام المهمة':'استلام المهمة بدون رابط'}
       </button>`:`<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:rgba(79,209,165,.1);border-radius:12px;font-size:13px;font-weight:700;color:var(--g)"><i class="fa-solid fa-circle-check"></i> تم تأكيد الاستلام</div>`}
       ${t.clientReceived&&!t.clientRevisionRequested?`
       <button data-tid="${xe(String(t.id))}" data-ttl="${xe(t.title||'')}" onclick="document.getElementById('task-ov')?.remove();_openRevisionSheet('${xe(String(t.id))}','${xe(String(t.title||t.name||'طلب'))}')" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(249,115,22,.1);color:#f97316;border:1.5px solid rgba(249,115,22,.3);border-radius:12px;padding:12px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">
@@ -2707,7 +2711,7 @@ function _openReceiveProjectSheet(taskId){
     <div class="sheet-hdl"></div>
     <div style="text-align:center;margin-bottom:20px">
       <div style="font-size:48px;margin-bottom:8px">📦</div>
-      <div style="font-size:18px;font-weight:900;color:var(--t1)">استلام المشروع</div>
+      <div style="font-size:18px;font-weight:900;color:var(--t1)">استلام المهمة</div>
       <div style="font-size:13px;color:var(--t3);margin-top:5px">${xe(task.title||'المشروع')}</div>
     </div>
     ${link?`<div style="background:var(--s2);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:18px;text-align:center">
@@ -2721,7 +2725,7 @@ function _openReceiveProjectSheet(taskId){
       يمكنك تأكيد الاستلام أو الانتظار حتى يُضاف الرابط من فريق العمل
     </div>`}
     <div style="font-size:13px;color:var(--t2);margin-bottom:16px;padding:12px;background:rgba(79,209,165,.08);border-radius:10px;border-right:3px solid var(--g)">
-      بالضغط على "تأكيد الاستلام"، تؤكد أنك راجعت المشروع. يمكنك طلب تعديل لاحقاً إذا احتجت.
+      بالضغط على "تأكيد الاستلام"، تؤكد أنك راجعت تسليم هذه المهمة. يمكنك طلب تعديل لاحقاً إذا احتجت.
     </div>
     <div style="display:flex;gap:10px">
       <button data-tid="${xe(String(taskId))}" onclick="_confirmClientReceive(this.dataset.tid)" style="flex:1;background:var(--g);color:#fff;border:none;border-radius:12px;padding:14px;font-family:var(--font);font-size:15px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><i class="fa-solid fa-handshake"></i> تأكيد الاستلام</button>
@@ -2754,7 +2758,7 @@ async function _confirmClientReceive(taskId){
     ok.innerHTML=`<div class="sheet" style="max-height:60vh;text-align:center;padding:40px 20px">
       <div style="font-size:60px;margin-bottom:12px">✅</div>
       <div style="font-size:20px;font-weight:900;color:var(--t1);margin-bottom:8px">تم الاستلام بنجاح!</div>
-      <div style="font-size:13px;color:var(--t3);line-height:1.8;margin-bottom:16px">تم تأكيد استلامك للمشروع وتم إشعار فريق العمل.<br>يمكنك طلب تعديل لاحقاً إذا احتجت.</div>
+      <div style="font-size:13px;color:var(--t3);line-height:1.8;margin-bottom:16px">تم تأكيد استلامك للمهمة وتم إشعار فريق العمل.<br>يمكنك طلب تعديل لاحقاً إذا احتجت.</div>
       ${link?`<a href="${xe(link)}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:rgba(79,209,165,.15);color:var(--g);border:1.5px solid rgba(79,209,165,.4);border-radius:12px;padding:12px 20px;font-family:var(--font);font-size:14px;font-weight:800;text-decoration:none;margin-bottom:16px">
         <i class="fa-solid fa-external-link-alt"></i> فتح رابط التسليم
       </a>`:''}
