@@ -78,7 +78,12 @@ test('review page keeps readable semantic surfaces and exports the displayed car
   assert.match(portal,/portal-review-arrow next/);
   assert.match(app,/function _downloadReviewCardDom\(\)/);
   assert.match(app,/window\.html2canvas\(card/);
-  assert.match(app,/canvas\.toBlob\(resolve,'image\/png',1\)/);
+  assert.match(app,/function canvasPngBlob\(canvas\)/);
+  assert.match(app,/canvas\.toBlob\(function\(blob\)\{resolve\(blob\);\},'image\/png',1\)/);
+  assert.match(app,/canvas\.toDataURL\('image\/png',1\)/);
+  assert.match(app,/await downloadCanvas\(exactCanvas\)/);
+  assert.match(app,/window\._reviewSharePayload/);
+  assert.match(app,/_canvasDownloadReview\(payload\.clientName/);
   assert.match(app,/ignoreElements:function\(el\)/);
   assert.match(app,/cloneNode\(true\)/);
   assert.match(app,/XMLSerializer/);

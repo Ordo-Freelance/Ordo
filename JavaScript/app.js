@@ -1000,6 +1000,9 @@ function _shareReviewCard(clientName, stars, comment, dateStr, taskTitle){
   var ac = (S.settings&&(S.settings.accent||S.settings.accentColor))||'#7c6ff7';
   var logo = (S.settings&&S.settings.logo)||'';
   var lbl = ['','سيء جداً','مقبول','جيد','رائع','ممتاز!'][stars]||'';
+  // Retain the source values for the final canvas-only fallback. The primary
+  // export still captures the exact card shown on screen.
+  window._reviewSharePayload={clientName:clientName,stars:stars,comment:comment,dateStr:dateStr,taskTitle:taskTitle,studioName:nm,accent:ac,label:lbl};
   if(!document.getElementById('_rc-anim-style')){
     var sty=document.createElement('style');sty.id='_rc-anim-style';
     sty.textContent='@keyframes _rcFadeIn{from{opacity:0}to{opacity:1}}@keyframes _rcSlideUp{from{opacity:0;transform:translateY(30px) scale(.96)}to{opacity:1;transform:none}}';
@@ -1101,8 +1104,22 @@ async function _downloadReviewCardDom(){
   if(btn){btn.innerHTML='<i class="fa-solid fa-spinner fa-spin" style="margin-left:6px"></i> جاري...';btn.disabled=true;}
   try{
     if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    async function canvasPngBlob(canvas){
+      var pngBlob=null;
+      if(typeof canvas.toBlob==='function'){
+        try{pngBlob=await new Promise(function(resolve,reject){
+          try{canvas.toBlob(function(blob){resolve(blob);},'image/png',1);}catch(error){reject(error);}
+        });}catch(blobError){console.warn('[Ordo] canvas toBlob failed; trying data URL',blobError);}
+      }
+      if(pngBlob)return pngBlob;
+      // Some browsers return null from toBlob (and a tainted canvas can throw).
+      // A data-URL conversion gives non-tainted canvases a second reliable path.
+      var dataUrl=canvas.toDataURL('image/png',1),parts=dataUrl.split(','),binary=atob(parts[1]||''),bytes=new Uint8Array(binary.length);
+      for(var bi=0;bi<binary.length;bi++)bytes[bi]=binary.charCodeAt(bi);
+      return new Blob([bytes],{type:'image/png'});
+    }
     async function downloadCanvas(canvas){
-      var pngBlob=await new Promise(function(resolve){canvas.toBlob(resolve,'image/png',1);});
+      var pngBlob=await canvasPngBlob(canvas);
       if(!pngBlob)throw new Error('PNG encoding failed');
       var pngUrl=URL.createObjectURL(pngBlob),link=document.createElement('a');
       link.download='review-'+Date.now()+'.png';link.href=pngUrl;
@@ -1116,21 +1133,23 @@ async function _downloadReviewCardDom(){
       };
       try{
         exactCanvas=await window.html2canvas(card,captureOptions);
+        await downloadCanvas(exactCanvas);
       }catch(firstCaptureError){
         exactError=firstCaptureError;
-        // A remote logo without CORS must never prevent the whole card from
-        // downloading. Retry while omitting only unsafe remote images; every
-        // other pixel still comes from the exact card visible on screen.
+        // A remote logo can let capture finish but then taint PNG encoding.
+        // Retry capture and encoding together while omitting only unsafe
+        // remote images; all other pixels still come from the visible card.
         try{
           exactCanvas=await window.html2canvas(card,Object.assign({},captureOptions,{imageTimeout:2500,ignoreElements:function(el){
             if(!el||String(el.tagName).toUpperCase()!=='IMG')return false;
             var src=el.getAttribute('src')||'';
             return !!src&&!/^data:|^blob:/i.test(src)&&src.indexOf(location.origin)!==0&&src.charAt(0)!=='/';
           }}));
+          await downloadCanvas(exactCanvas);
+          exactError=null;
         }catch(secondCaptureError){exactError=secondCaptureError;}
       }
-      if(exactCanvas){
-        await downloadCanvas(exactCanvas);
+      if(exactCanvas&&!exactError){
         toast('\u2705 تم حفظ نفس كارت المعاينة');
         if(btn){btn.innerHTML='<i class="fa-solid fa-check" style="margin-left:6px;color:#4fd1a5"></i> تم!';setTimeout(function(){btn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';btn.disabled=false;},1600);}
         return;
@@ -1160,6 +1179,12 @@ async function _downloadReviewCardDom(){
     if(btn){btn.innerHTML='<i class="fa-solid fa-check" style="margin-left:6px;color:#4fd1a5"></i> تم!';setTimeout(function(){btn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';btn.disabled=false;},1600);}
   }catch(e){
     console.error('[Ordo] review card export',e);
+    var payload=window._reviewSharePayload;
+    if(payload){
+      console.warn('[Ordo] using canvas-only review export fallback');
+      _canvasDownloadReview(payload.clientName,payload.stars,payload.comment,payload.dateStr,payload.taskTitle,payload.studioName,payload.accent,payload.label);
+      return;
+    }
     if(btn){btn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';btn.disabled=false;}
     toast('\u26A0\uFE0F تعذر حفظ الصورة');
   }
