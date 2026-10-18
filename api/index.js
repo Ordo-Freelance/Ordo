@@ -1542,7 +1542,7 @@ export default async function handler(req, res) {
 
     if (postAction === 'public.review.submit') {
       const type = input.type === 'client_portal' ? 'client_portal' : 'review';
-      const snapshot = await publicSnapshot(store, {type,token:input.token});
+      const snapshot = await publicSnapshot(store, {type,token:input.token,uid:String(input.uid||'')});
       if (!snapshot) return fail(res, 'رابط التقييم غير صالح', 404, 'public_not_found');
       const supplied = input.review && typeof input.review === 'object' ? input.review : {};
       const name = String(supplied.client_name || '').trim().slice(0, 120);
@@ -1572,6 +1572,42 @@ export default async function handler(req, res) {
       } catch (error) { console.warn('Public review write failed:', error); }
       if (!saved) return fail(res, 'تعذر حفظ التقييم', 500, 'review_save_failed');
       return ok(res, {id:review.id});
+    }
+
+    if (postAction === 'reviews.recover_shared_token') {
+      const { user } = await currentUser(req, store);
+      if (!user) return fail(res, 'Login required', 401, 'login_required');
+      const studio = await store.query('studio_data', {op:'select',columns:'user_id,data',filters:[{op:'eq',column:'user_id',value:user.id}],single:true});
+      const root = parseMaybe(studio?.data) || {};
+      let current = root;
+      for (let i = 0; i < 4 && current && typeof current === 'object' && !Array.isArray(current.public_tokens) && current.data; i++) {
+        current.data = parseMaybe(current.data);
+        current = current.data;
+      }
+      const ownedTokens = new Set((current?.public_tokens || [])
+        .filter(item => item && item.entity_type === 'review' && !item.revoked)
+        .map(item => String(item.token || '')).filter(Boolean));
+      if (!ownedTokens.size) return ok(res, {reviews:[]});
+      const rows = await store.query('public_reviews', {op:'select',columns:'id,user_id,data,created_at',limit:1000});
+      const ownRows = (rows || []).filter(row => String(row.user_id) === String(user.id));
+      const seen = new Set(ownRows.map(row => String((parseMaybe(parseMaybe(row.data)?.review_data || row.data) || {}).id || '')));
+      const recovered = [];
+      for (const row of rows || []) {
+        if (String(row.user_id) === String(user.id)) continue;
+        const payload = parseMaybe(row.data) || {};
+        const review = parseMaybe(payload.review_data) || payload;
+        if (!review?.id || !ownedTokens.has(String(review.token || '')) || review.public_visible === false || payload.public_visible === false || seen.has(String(review.id))) continue;
+        await store.query('public_reviews', {op:'insert',payload:{id:uuid(),user_id:user.id,data:{review_data:review,public_visible:true,recovered_from_user_id:row.user_id},created_at:row.created_at||now()},single:true});
+        recovered.push(review);
+        seen.add(String(review.id));
+      }
+      if (recovered.length && current && typeof current === 'object') {
+        current.reviews = Array.isArray(current.reviews) ? current.reviews : [];
+        const studioSeen = new Set(current.reviews.map(review => String(review?.id || '')));
+        for (const review of recovered) if (!studioSeen.has(String(review.id))) current.reviews.push(review);
+        await store.query('studio_data', {op:'update',payload:{data:root,updated_at:now()},filters:[{op:'eq',column:'user_id',value:user.id}]});
+      }
+      return ok(res, {reviews:recovered});
     }
 
     if (postAction === 'reviews.delete') {

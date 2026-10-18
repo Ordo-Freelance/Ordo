@@ -468,7 +468,7 @@ async function submitReview(){
 
   // Save through the public API, which validates the review link.
   try{
-    const queued=await ORDO_API_REQUEST('public.review.submit',{type:'review',token:pPublicToken,review:review});
+    const queued=await ORDO_API_REQUEST('public.review.submit',{type:'review',token:pPublicToken,uid:_resolvedUid||pUid||'',review:review});
     saved=!!queued.data;
   }catch(e){ console.warn('Review save failed',e); }
 

@@ -67,6 +67,10 @@ test('review page keeps readable semantic surfaces and exports the displayed car
   assert.match(workspace,/onclick="savePublicWebsiteUrl\(\)"/);
   assert.match(app,/function savePublicWebsiteUrl\(\)/);
   assert.match(app,/S\.settings\.public_website_url=url/);
+  assert.match(app,/reviews\.recover_shared_token/);
+  assert.match(api,/postAction === 'reviews\.recover_shared_token'/);
+  assert.match(api,/publicSnapshot\(store, \{type,token:input\.token,uid:String\(input\.uid\|\|''\)\}\)/);
+  assert.match(workspace,/\/review\/.*\?uid=/s);
   assert.match(portal,/id="_portal-review-marquee"/);
   assert.match(portal,/function _startPortalReviewAutoScroll\(\)/);
   assert.match(portal,/function _movePortalReviews\(direction\)/);

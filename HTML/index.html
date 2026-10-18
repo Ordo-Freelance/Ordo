@@ -5624,7 +5624,7 @@ try {
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
 <script src="../Assets/vendor/html2canvas/html2canvas.min.js?v=1.4.1"></script>
-<script src="../JavaScript/app.js?v=public-website-30"></script>
+<script src="../JavaScript/app.js?v=review-owner-31"></script>
 <script src="../JavaScript/payment_reconciliation.js?v=4"></script>
 <script src="../JavaScript/project-finance-integration.js?v=2"></script>
 <script>document.body.classList.remove('auth-booting');</script>
@@ -6419,7 +6419,7 @@ function _shortReviewUrl() {
     allowed_sections: ['reviews','client','project'],
     allow_multiple: true
   });
-  if (token && window.location.protocol !== 'file:') return window.location.origin + '/review/' + encodeURIComponent(token);
+  if (token && window.location.protocol !== 'file:') return window.location.origin + '/review/' + encodeURIComponent(token) + '?uid=' + encodeURIComponent(_supaUserId||'');
   return _getAppBase() + 'review.html?uid=' + (_supaUserId||'') + (token ? '&token=' + encodeURIComponent(token) : '');
 }
 

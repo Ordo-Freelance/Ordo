@@ -27919,6 +27919,19 @@ async function _pollReviews(){
       if(changed){ lsSave(); if(document.getElementById('page-reviews')?.classList.contains('active')) renderReviewsPage(); }
     }
 
+    // Recover legacy reviews that were submitted through a copied review token
+    // before review links included the owner's uid. The server validates that
+    // the token belongs to the signed-in account and keeps this idempotent.
+    try{
+      const recoveredResponse=await ORDO_API_REQUEST('reviews.recover_shared_token',{});
+      const recovered=recoveredResponse?.data?.reviews||[];
+      if(recovered.length){
+        let changed=false;S.reviews=S.reviews||[];
+        for(const review of recovered){if(review?.id&&!S.reviews.some(item=>String(item.id)===String(review.id))){S.reviews.push(review);changed=true;}}
+        if(changed){lsSave();if(document.getElementById('page-reviews')?.classList.contains('active'))renderReviewsPage();toast('<i class="fa-solid fa-star" style="color:#f7c948"></i> تم استعادة '+recovered.length+' تقييم قديم');}
+      }
+    }catch(recoverError){console.warn('Legacy review recovery failed:',recoverError);}
+
     // â”€â”€ Also poll studio_data directly (original logic) â”€â”€
     const {data:row}=await supa.from('studio_data').select('data').eq('user_id',_supaUserId).maybeSingle();
     if(!row?.data)return;
@@ -28051,6 +28064,15 @@ async function _syncReviewsNow(btn){
       if(!ex){ S.reviews.push(p.review); found++; }
     }
     if(mine.length) localStorage.setItem('_ordo_pending_reviews',JSON.stringify(pend.filter(p=>p.uid!==_supaUserId)));
+
+    // 4. Recover reviews submitted via a legacy duplicated public token.
+    try{
+      const recoveredResponse=await ORDO_API_REQUEST('reviews.recover_shared_token',{});
+      for(const review of recoveredResponse?.data?.reviews||[]){
+        if(!S.reviews) S.reviews=[];
+        if(review?.id&&!S.reviews.some(item=>String(item.id)===String(review.id))){S.reviews.push(review);found++;}
+      }
+    }catch(recoverError){console.warn('Legacy review recovery failed:',recoverError);}
 
     if(found>0){
       lsSave(); cloudSave(S);
