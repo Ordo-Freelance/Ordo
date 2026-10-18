@@ -50,6 +50,12 @@ test('review page keeps readable semantic surfaces and exports the displayed car
   assert.match(page,/document\.body\.style\]\.forEach/);
   const publicReviews=fs.readFileSync(new URL('../HTML/reviews-public.html',import.meta.url),'utf8');
   assert.match(publicReviews,/document\.body\.style\]\.forEach/);
+  assert.match(publicReviews,/class="nav-links"/);
+  assert.match(publicReviews,/id="nav-services"/);
+  assert.match(publicReviews,/id="nav-work"/);
+  assert.match(publicReviews,/class="hero-shell"/);
+  assert.match(publicReviews,/id="stat-avg"/);
+  assert.match(publicReviews,/storeUrl \+ "#_pf"/);
   assert.match(app,/function _downloadReviewCardDom\(\)/);
   assert.match(app,/window\.html2canvas\(card/);
   assert.match(app,/canvas\.toBlob\(resolve,'image\/png',1\)/);
