@@ -1005,12 +1005,12 @@ function _shareReviewCard(clientName, stars, comment, dateStr, taskTitle){
     sty.textContent='@keyframes _rcFadeIn{from{opacity:0}to{opacity:1}}@keyframes _rcSlideUp{from{opacity:0;transform:translateY(30px) scale(.96)}to{opacity:1;transform:none}}';
     document.head.appendChild(sty);
   }
-  // FA stars
+  // Text stars keep the live card and its DOM export visually identical.
   var starsHtml='';
   for(var si=0;si<5;si++){
     starsHtml+=si<stars
-      ?'<i class="fa-solid fa-star" style="color:#f7c948;font-size:26px;filter:drop-shadow(0 2px 8px rgba(247,201,72,.35))"></i>'
-      :'<i class="fa-solid fa-star" style="color:#2a2a3a;font-size:26px"></i>';
+      ?'<span style="color:#f7c948;font-size:30px;line-height:1;filter:drop-shadow(0 2px 8px rgba(247,201,72,.35))">★</span>'
+      :'<span style="color:#2a2a3a;font-size:30px;line-height:1">★</span>';
   }
 
   var ov=document.createElement('div'); ov.id='_review-share-overlay';
@@ -1082,7 +1082,7 @@ function _shareReviewCard(clientName, stars, comment, dateStr, taskTitle){
   var dlBtn=document.createElement('button'); dlBtn.id='_rc-dl-btn';
   dlBtn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';
   dlBtn.style.cssText='display:flex;align-items:center;background:'+ac+';color:#fff;border:none;border-radius:14px;padding:12px 26px;font-family:Cairo,sans-serif;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 6px 24px '+ac+'40';
-  dlBtn.onclick=function(){ _canvasDownloadReview(clientName,stars,comment,dateStr,taskTitle,nm,ac,lbl); };
+  dlBtn.onclick=function(){ _downloadReviewCardDom(); };
   var clBtn=document.createElement('button');
   clBtn.innerHTML='<i class="fa-solid fa-xmark" style="margin-left:6px"></i> إغلاق';
   clBtn.style.cssText='display:flex;align-items:center;background:rgba(255,255,255,.05);color:#777;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 26px;font-family:Cairo,sans-serif;font-size:14px;font-weight:700;cursor:pointer';
@@ -1092,7 +1092,44 @@ function _shareReviewCard(clientName, stars, comment, dateStr, taskTitle){
   ov.appendChild(wrap); document.body.appendChild(ov);
 }
 
-// â•گâ•گâ•گ Pure Canvas download ? no external libs needed â•گâ•گâ•گ
+// Export the exact DOM card shown on screen instead of maintaining a second
+// canvas layout with different typography, spacing and wrapping.
+async function _downloadReviewCardDom(){
+  var btn=document.getElementById('_rc-dl-btn');
+  var card=document.getElementById('_review-share-card');
+  if(!card)return;
+  if(btn){btn.innerHTML='<i class="fa-solid fa-spinner fa-spin" style="margin-left:6px"></i> جاري...';btn.disabled=true;}
+  try{
+    if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    var rect=card.getBoundingClientRect(),clone=card.cloneNode(true);
+    function inlineComputed(source,target){
+      var cs=getComputedStyle(source),css='';
+      for(var i=0;i<cs.length;i++){var key=cs[i];css+=key+':'+cs.getPropertyValue(key)+';';}
+      target.setAttribute('style',css+'animation:none!important;transition:none!important;');
+      for(var j=0;j<source.children.length;j++)inlineComputed(source.children[j],target.children[j]);
+    }
+    inlineComputed(card,clone);
+    // External images can taint the canvas. The tiny footer logo is optional;
+    // the visible text identity remains unchanged in the export.
+    Array.prototype.slice.call(clone.querySelectorAll('img')).forEach(function(img){img.remove();});
+    var serialized=new XMLSerializer().serializeToString(clone);
+    var w=Math.ceil(rect.width),h=Math.ceil(rect.height);
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:'+w+'px;height:'+h+'px">'+serialized+'</div></foreignObject></svg>';
+    var blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'}),url=URL.createObjectURL(blob),img=new Image();
+    await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject;img.src=url;});
+    var scale=2,cvs=document.createElement('canvas');cvs.width=w*scale;cvs.height=h*scale;
+    var ctx=cvs.getContext('2d');ctx.scale(scale,scale);ctx.drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+    var a=document.createElement('a');a.download='review-'+Date.now()+'.png';a.href=cvs.toDataURL('image/png',1);a.click();
+    toast('\u2705 تم حفظ نفس كارت المعاينة');
+    if(btn){btn.innerHTML='<i class="fa-solid fa-check" style="margin-left:6px;color:#4fd1a5"></i> تم!';setTimeout(function(){btn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';btn.disabled=false;},1600);}
+  }catch(e){
+    console.error('[Ordo] review card export',e);
+    if(btn){btn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';btn.disabled=false;}
+    toast('\u26A0\uFE0F تعذر حفظ الصورة');
+  }
+}
+
+// Legacy fallback for callers that still invoke the old renderer directly.
 function _canvasDownloadReview(clientName,stars,comment,dateStr,taskTitle,studioName,ac,starLabel){
   var btn=document.getElementById('_rc-dl-btn');
   if(btn){btn.innerHTML='<i class="fa-solid fa-spinner fa-spin" style="margin-left:6px"></i> جاري...';btn.disabled=true;}
@@ -24573,6 +24610,7 @@ function _ordoClientPortalToken(clientId, taskId, portal) {
       });
       if (t && t.token) {
         t.default_tab = portal.default_tab || 'tasks';
+        t.portal_visibility = Object.assign({}, portal.visibility || _clientPortalVisibilityDefaults());
         portal.public_token = t.token;
         portal.updatedAt = new Date().toISOString();
         portal._dirty = true;
@@ -24594,15 +24632,46 @@ function _shortPortalUrl(clientId,taskId){
   return window.location.protocol==='file:'?'client-portal.html?uid='+encodeURIComponent(_supaUserId||'')+'&cid='+encodeURIComponent(clientId||'')+(taskId?'&taskid='+encodeURIComponent(taskId):''):window.location.origin+'/clients';
 }
 
+function _clientPortalVisibilityDefaults(){
+  return {
+    header_booking:true,header_store:true,header_whatsapp:true,
+    due_banner:true,welcome:true,opening_balance:true,
+    stat_active:true,stat_completed:true,stat_total:true,stat_due:true,stat_paid:true,
+    tab_tasks:true,tab_projects:true,tab_invoices:true,tab_briefs:true,tab_accounts:true,tab_reviews:true,tab_chat:true,
+    account_summary:true,account_unbilled:true,account_statement:true,
+    invoice_statement:true,invoice_invoices:true,invoice_statements:true,
+    public_services:true,public_packages:true,public_portfolio:true,public_reviews:true,footer:true
+  };
+}
+function _clientPortalVisibility(portal){return Object.assign(_clientPortalVisibilityDefaults(),portal&&portal.visibility||{});}
+function _clientPortalVisibilityEditor(clientId,portal){
+  var visibility=_clientPortalVisibility(portal);
+  var groups=[
+    {title:'الهيدر والتواصل',icon:'fa-window-maximize',items:[['header_booking','زر احجز ميتنج'],['header_store','زر المتجر'],['header_whatsapp','زر واتساب']]},
+    {title:'التنبيهات والتعريف',icon:'fa-bell',items:[['due_banner','تنبيه المبلغ المستحق أو الرصيد'],['welcome','بطاقة الترحيب وبيانات النشاط'],['opening_balance','الرصيد الافتتاحي']]},
+    {title:'أرقام الملخص',icon:'fa-chart-simple',items:[['stat_active','عدد الطلبات النشطة'],['stat_completed','عدد الطلبات المكتملة'],['stat_total','إجمالي الحساب حتى الآن'],['stat_due','المستحق حتى الآن'],['stat_paid','إجمالي المدفوع حتى الآن']]},
+    {title:'التبويبات',icon:'fa-table-columns',items:[['tab_tasks','طلباتي والمهام'],['tab_projects','المشاريع'],['tab_invoices','الفواتير والكشوف'],['tab_briefs','البريفات'],['tab_accounts','حسابي'],['tab_reviews','تقييماتي'],['tab_chat','الرسائل']]},
+    {title:'تفاصيل حسابي والفواتير',icon:'fa-coins',items:[['account_summary','ملخص الحساب داخل حسابي'],['account_unbilled','الأعمال المستحقة غير المفوترة'],['account_statement','كشف الحساب الشامل'],['invoice_statement','زر كشف الحساب داخل الفواتير'],['invoice_invoices','قائمة الفواتير'],['invoice_statements','قائمة كشوفات الحساب']]},
+    {title:'الأقسام العامة',icon:'fa-store',items:[['public_services','الخدمات'],['public_packages','الباقات'],['public_portfolio','البورتفوليو والأعمال'],['public_reviews','تقييمات العملاء العامة'],['footer','الفوتر']]}
+  ];
+  return groups.map(function(group){
+    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px">'+
+      '<div style="font-size:12px;font-weight:900;margin-bottom:9px;color:var(--text2)"><i class="fa-solid '+group.icon+'" style="color:var(--accent);margin-left:6px"></i>'+group.title+'</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px">'+group.items.map(function(item){
+        return '<label style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface3);border:1px solid var(--border);border-radius:9px;padding:8px 10px;font-size:11px;font-weight:700;cursor:pointer">'+
+          '<span>'+item[1]+'</span><input type="checkbox" '+(visibility[item[0]]!==false?'checked':'')+' onchange="_toggleClientPortalVisibility(\''+escapeHtml(String(clientId))+'\',\''+item[0]+'\',this.checked)" style="width:17px;height:17px;accent-color:var(--accent);flex:none"></label>';
+      }).join('')+'</div></div>';
+  }).join('');
+}
+
 function _showClientPortalLink(clientId){
   var c=(S.clients||[]).find(function(x){return String(x.id)===String(clientId);}); if(!c) return;
   S.client_portals=S.client_portals||[];
   var portal=S.client_portals.find(function(p){return String(p.client_id||'')===String(clientId||'');});
   if(!portal){
-    portal={id:'portal_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),entity_type:'client_portal',source_type:'client_portal_link',source_id:String(clientId),client_id:String(clientId),client_name:c.name||'',status:'active',default_tab:'tasks',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),_dirty:true};
+    portal={id:'portal_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),entity_type:'client_portal',source_type:'client_portal_link',source_id:String(clientId),client_id:String(clientId),client_name:c.name||'',status:'active',visibility:_clientPortalVisibilityDefaults(),createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),_dirty:true};
     S.client_portals.push(portal);lsSave();
   }
-  var defaultTab=portal.default_tab==='invoices'?'invoices':'tasks';
   var uid=(typeof _supaUserId!=='undefined'&&_supaUserId)?_supaUserId:'';
   var _pp2=window.location.pathname,_ps2=_pp2.split('/').filter(function(x){return x!=='';});
   if(_ps2.length&&['dashboard','tasks','projects','schedule','meetings','clients','finance','invoices','services','support','team','timetracker','goals','settings','reports'].indexOf(_ps2[_ps2.length-1])>=0)_ps2.pop();
@@ -24612,7 +24681,7 @@ function _showClientPortalLink(clientId){
   link = _ordoAttachPublicToken(link, _ordoClientPortalToken(clientId,null,portal));
   var over=document.createElement('div');
   over.className='modal-overlay'; over.style.display='flex';
-  over.innerHTML=`<div class="modal" style="max-width:500px">
+  over.innerHTML=`<div class="modal" style="max-width:760px">
     <div class="modal-header">
       <div class="modal-title"><i class="fa-solid fa-id-card" style="color:var(--accent3)"></i> بوابة العميل الكاملة</div>
       <button class="close-btn" onclick="this.closest('.modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button>
@@ -24622,20 +24691,8 @@ function _showClientPortalLink(clientId){
       ${c.phone?`<div style="font-size:12px;color:var(--text3);margin-bottom:2px"><i class="fa-solid fa-phone"></i> ${c.phone}</div>`:''}
       ${c.email?`<div style="font-size:12px;color:var(--text3)"><i class="fa-solid fa-envelope"></i> ${c.email}</div>`:''}
     </div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">العميل يشوف في البوابة:</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-      ${[['ًں“پ مشاريعه ومهامهم',''],['ًں“¦ طلباته',''],['ًں“„ فواتيره',''],['ًں“‹ عقوده','']].map(function(x){
-        return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600">'+x[0]+'</div>';
-      }).join('')}
-    </div>
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">
-      <label for="_client-portal-default-tab" style="display:block;font-size:12px;font-weight:800;margin-bottom:7px"><i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--accent)"></i> أول قسم يظهر للعميل</label>
-      <select id="_client-portal-default-tab" data-client-id="${escapeHtml(String(clientId))}" onchange="_saveClientPortalDefaultTab(this.dataset.clientId,this.value)" style="width:100%;background:var(--surface3);color:var(--text1);border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-family:inherit">
-        <option value="tasks" ${defaultTab==='tasks'?'selected':''}>الطلبات والمهام أولاً</option>
-        <option value="invoices" ${defaultTab==='invoices'?'selected':''}>الفواتير وكشف الحساب أولاً</option>
-      </select>
-      <div style="font-size:10px;color:var(--text3);margin-top:6px">يُحفظ الاختيار فوراً ويُطبّق على رابط البوابة الحالي.</div>
-    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><div style="font-size:13px;font-weight:900">تخصيص ما يراه العميل</div><div style="font-size:10px;color:var(--text3)">كل اختيار يُحفظ تلقائياً</div></div>
+    <div style="max-height:48vh;overflow:auto;padding-left:3px;margin-bottom:14px">${_clientPortalVisibilityEditor(clientId,portal)}</div>
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:monospace;font-size:11px;word-break:break-all;margin-bottom:14px;color:var(--text2)">${link}</div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="navigator.clipboard.writeText('${link}').then(()=>toast('<i class=\\'fa-solid fa-square-check\\' style=\\'color:var(--accent3)\\'></i> تم نسخ رابط بوابة ${escapeHtml(c.name)}'))">
@@ -24649,19 +24706,18 @@ function _showClientPortalLink(clientId){
   over.onclick=e=>{if(e.target===over)over.remove();};
 }
 
-async function _saveClientPortalDefaultTab(clientId,value){
-  value=value==='invoices'?'invoices':'tasks';
+async function _toggleClientPortalVisibility(clientId,key,checked){
   var portal=(S.client_portals||[]).find(function(p){return String(p.client_id||'')===String(clientId||'');});
   if(!portal){toast('تعذر العثور على بوابة العميل');return;}
-  portal.default_tab=value;portal.updatedAt=new Date().toISOString();portal._dirty=true;
+  portal.visibility=Object.assign(_clientPortalVisibilityDefaults(),portal.visibility||{});portal.visibility[key]=!!checked;portal.updatedAt=new Date().toISOString();portal._dirty=true;
   var token=(S.public_tokens||[]).find(function(t){return t.entity_type==='client_portal'&&String(t.entity_id||'')===String(portal.id||'');});
-  if(token){token.default_tab=value;token.updated_at=new Date().toISOString();token._dirty=true;}
+  if(token){token.portal_visibility=Object.assign({},portal.visibility);token.updated_at=new Date().toISOString();token._dirty=true;}
   lsSave();
   try{
     if(window.OrdoData&&typeof window.OrdoData.save==='function')await window.OrdoData.save({now:true});
     else if(typeof cloudSaveNow==='function')await cloudSaveNow(S);
     else if(typeof cloudSave==='function')await cloudSave(S);
-    toast(value==='invoices'?'تم ضبط الفواتير وكشف الحساب كأول قسم':'تم ضبط الطلبات والمهام كأول قسم');
+    toast('تم حفظ تخصيص بوابة العميل');
   }catch(e){console.error(e);toast('تم الحفظ محلياً وسيُزامن تلقائياً');}
 }
 

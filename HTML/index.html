@@ -6307,6 +6307,7 @@ function _ensurePublicLinkToken(entityType, entityId, opts) {
       if (tokenObj && tokenObj.token) {
         if (opts.allow_multiple !== undefined) tokenObj.allow_multiple = !!opts.allow_multiple;
         if (opts.default_tab) tokenObj.default_tab = opts.default_tab;
+        if (opts.portal_visibility) tokenObj.portal_visibility = Object.assign({}, opts.portal_visibility);
         if (opts.entity) {
           opts.entity.public_token = tokenObj.token;
           opts.entity.updatedAt = new Date().toISOString();
@@ -6361,6 +6362,7 @@ function _publicPortalToken(clientId, taskId, portalObj) {
       task_id: taskId ? String(taskId) : null,
       client_name: client ? client.name : '',
       status: 'active',
+      visibility: typeof _clientPortalVisibilityDefaults === 'function' ? _clientPortalVisibilityDefaults() : {},
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       _dirty: true
@@ -6373,6 +6375,7 @@ function _publicPortalToken(clientId, taskId, portalObj) {
     client_id: clientId || portal.client_id || null,
     project_id: portal.project_id || null,
     default_tab: portal.default_tab || 'tasks',
+    portal_visibility: portal.visibility || null,
     allowed_sections: ['client','projects','tasks','invoices','contracts','proposals','reviews','orders']
   });
 }

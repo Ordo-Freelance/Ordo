@@ -608,16 +608,16 @@ async function _bootWithData(userId, clientId, ud){
     renderPage();
     hideLs();
 
-    if(!pTaskId&&!pTab&&!pInvoiceId&&_portalDefaultTab()==='invoices'){
-      setTimeout(()=>switchTab('invoices'),0);
+    if(!pTaskId&&!pTab&&!pInvoiceId&&_portalDefaultTab()!=='tasks'){
+      setTimeout(()=>switchTab(_portalDefaultTab()),0);
     }
 
-    if(pTaskId){
+    if(pTaskId&&_portalTabVisible('tasks')){
       setTimeout(()=>{
         switchTab('tasks');
         openTask(pTaskId,true);
       },500);
-    } else if(pTab){
+    } else if(pTab&&_portalTabVisible(pTab)){
       // فتح تاب محدد مباشرة (مثلاً المشاريع)
       setTimeout(()=>{
         switchTab(pTab);
@@ -631,20 +631,33 @@ async function _bootWithData(userId, clientId, ud){
         }
       },500);
     }
-    if(pInvoiceId&&_clientInvoices.some(inv=>String(inv.id)===String(pInvoiceId))){
+    if(pInvoiceId&&_portalTabVisible('invoices')&&_clientInvoices.some(inv=>String(inv.id)===String(pInvoiceId))){
       setTimeout(()=>{switchTab('invoices');openPortalInvoice(pInvoiceId);},650);
     }
   }catch(e){console.error('_bootWithData error:',e);showErr('حدث خطأ، حاول تحديث الصفحة.');}
 }
 
-function _portalDefaultTab(){
+function _portalVisibility(){
+  const defaults={
+    header_booking:true,header_store:true,header_whatsapp:true,
+    due_banner:true,welcome:true,opening_balance:true,
+    stat_active:true,stat_completed:true,stat_total:true,stat_due:true,stat_paid:true,
+    tab_tasks:true,tab_projects:true,tab_invoices:true,tab_briefs:true,tab_accounts:true,tab_reviews:true,tab_chat:true,
+    account_summary:true,account_unbilled:true,account_statement:true,
+    invoice_statement:true,invoice_invoices:true,invoice_statements:true,
+    public_services:true,public_packages:true,public_portfolio:true,public_reviews:true,footer:true
+  };
   const portal=(_ud?.client_portals||[]).find(p=>String(p.client_id||'')===String(_clientId||''));
-  const configured=window._ordoPublicToken?.default_tab||portal?.default_tab||'tasks';
-  return configured==='invoices'&&(_clientInvoices.length||_clientStatements.length)?'invoices':'tasks';
+  return Object.assign(defaults,window._ordoPublicToken?.portal_visibility||{},portal?.visibility||{});
+}
+function _portalTabVisible(tab){return _portalVisibility()['tab_'+tab]!==false;}
+function _portalDefaultTab(){
+  return ['tasks','projects','invoices','briefs','accounts','reviews','chat'].find(_portalTabVisible)||'tasks';
 }
 
 function renderPage(){
   const s=_settings;const nm=s.name||'Studio';
+  const pv=_portalVisibility();
   const logo=(s.displayMode||s.display_mode||'dark')==='light'
     ? (s.logoDark||s.logo||s.logoLight||'')
     : (s.logoLight||s.logo||s.logoDark||'');
@@ -707,7 +720,6 @@ function renderPage(){
   const totalCollected = Object.values(paidByCurrency).reduce((s,v)=>s+(+v||0),0);
   const totalAccount = Object.values(chargeByCurrency).reduce((s,v)=>s+(+v||0),0);
   const initialTab=_portalDefaultTab();
-  const invoicesFirst=initialTab==='invoices';
 
   // ── بناء رابط المتجر بالـ username لو متاح ──
   const _storeLink=_portalStoreLink();
@@ -731,19 +743,19 @@ function renderPage(){
   <nav class="nav"><div class="nav-in">
     <a class="nav-brand" href="${xe(_storeLink)}">${lo}<div>${logo?'':`<div class="nav-nm">${xe(nm)}</div>`}<div class="nav-sub">بوابة العميل</div></div></a>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-      <button onclick="_openClientBookingForm()" class="nav-hdr-btn nav-meeting">
+      ${pv.header_booking?`<button onclick="_openClientBookingForm()" class="nav-hdr-btn nav-meeting">
         <i class="fa-solid fa-calendar-days"></i><span>احجز ميتنج</span>
-      </button>
-      <a href="${xe(_storeLink)}" target="_blank" class="nav-hdr-btn nav-store">
+      </button>`:''}
+      ${pv.header_store?`<a href="${xe(_storeLink)}" target="_blank" class="nav-hdr-btn nav-store">
         <i class="fa-solid fa-store"></i><span>المتجر</span>
-      </a>
-      ${phone?`<a href="https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent('مرحباً '+nm)}" target="_blank" class="nav-wa"><i class="fa-brands fa-whatsapp"></i></a>`:''}
+      </a>`:''}
+      ${pv.header_whatsapp&&phone?`<a href="https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent('مرحباً '+nm)}" target="_blank" class="nav-wa"><i class="fa-brands fa-whatsapp"></i></a>`:''}
     </div>
   </div></nav>
 
   <div class="wrap">
     <!-- WELCOME -->
-    ${hasDueMoney?`
+    ${pv.due_banner&&hasDueMoney?`
     <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(255,107,107,.12),rgba(255,107,107,.06));border:1.5px solid rgba(255,107,107,.4);border-radius:16px;padding:16px 18px;margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,107,107,.18);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">💳</div>
@@ -756,7 +768,7 @@ function renderPage(){
         <div style="font-size:26px;font-weight:900;color:rgba(255,107,107,.95);line-height:1">${_currencyRows(dueByCurrency,'var(--r)')}</div>
       </div>
     </div>
-    `:(hasPrepaidMoney)?`
+    `:(pv.due_banner&&hasPrepaidMoney)?`
     <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(79,209,165,.1),rgba(79,209,165,.05));border:1.5px solid rgba(79,209,165,.35);border-radius:16px;padding:16px 18px;margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="width:44px;height:44px;border-radius:12px;background:rgba(79,209,165,.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">✅</div>
@@ -770,75 +782,74 @@ function renderPage(){
       </div>
     </div>
     `:''}
-    <div class="welcome">
+    ${pv.welcome?`<div class="welcome">
       <div class="wlc-name">مرحباً، ${xe(_clientName)} 👋</div>
       <div class="wlc-svc">${xe(svcName)}</div>
       <div class="wlc-meta">
         <div class="wlc-tag"><i class="fa-solid fa-calendar-days"></i> ${orderDate}</div>
         <div class="wlc-badge badge-prog" style="background:rgba(124,111,247,.12);color:var(--ac)">● نشط</div>
       </div>
-    </div>
+    </div>`:''}
 
     <!-- STATS -->
-    <div class="stats">
-      <div class="stat" style="cursor:pointer" onclick="switchTab('tasks');setTimeout(()=>setTasksFilter('active'),100)"><div class="stat-val" style="color:var(--ac)">${activeTasks}</div><div class="stat-lbl">طلبات نشطة <i class="fa-solid fa-arrow-left" style="font-size:8px;opacity:.5"></i></div></div>
-      <div class="stat" style="cursor:pointer" onclick="_openActiveProjectsPopup()"><div class="stat-val" style="color:var(--g)">${doneTasks}</div><div class="stat-lbl">مكتملة <i class="fa-solid fa-arrow-left" style="font-size:8px;opacity:.5"></i></div></div>
-      <div class="stat">
+    ${(pv.stat_active||pv.stat_completed||pv.stat_total||pv.stat_due||pv.stat_paid)?`<div class="stats">
+      ${pv.stat_active?`<div class="stat" style="${pv.tab_tasks?'cursor:pointer':''}" ${pv.tab_tasks?`onclick="switchTab('tasks');setTimeout(()=>setTasksFilter('active'),100)"`:''}><div class="stat-val" style="color:var(--ac)">${activeTasks}</div><div class="stat-lbl">طلبات نشطة ${pv.tab_tasks?'<i class="fa-solid fa-arrow-left" style="font-size:8px;opacity:.5"></i>':''}</div></div>`:''}
+      ${pv.stat_completed?`<div class="stat" style="cursor:pointer" onclick="_openActiveProjectsPopup()"><div class="stat-val" style="color:var(--g)">${doneTasks}</div><div class="stat-lbl">مكتملة <i class="fa-solid fa-arrow-left" style="font-size:8px;opacity:.5"></i></div></div>`:''}
+      ${pv.stat_total?`<div class="stat">
         <div class="stat-val" style="color:var(--y)">${totalAccount>0?_currencyRows(chargeByCurrency,'var(--y)'):'—'}</div>
         <div class="stat-lbl">إجمالي الحساب حتى الآن</div>
-      </div>
-      <div class="stat" style="cursor:pointer;${totalDueNow>0?'border:1.5px solid rgba(255,107,107,.35)':''}" onclick="_openDueNowPopup()">
+      </div>`:''}
+      ${pv.stat_due?`<div class="stat" style="cursor:pointer;${totalDueNow>0?'border:1.5px solid rgba(255,107,107,.35)':''}" onclick="_openDueNowPopup()">
         <div class="stat-val" style="color:${totalDueNow>0?'var(--r)':'var(--g)'}">
           ${totalDueNow>0?_currencyRows(dueByCurrency,'var(--r)'):'✓'}
         </div>
         <div class="stat-lbl">مستحق لحد الآن <i class="fa-solid fa-arrow-left" style="font-size:8px;opacity:.5"></i></div>
-      </div>
-      <div class="stat" style="cursor:pointer;${totalCollected>0?'border:1.5px solid rgba(79,209,165,.35)':''}" onclick="_openCollectedPopup()">
+      </div>`:''}
+      ${pv.stat_paid?`<div class="stat" style="cursor:pointer;${totalCollected>0?'border:1.5px solid rgba(79,209,165,.35)':''}" onclick="_openCollectedPopup()">
         <div class="stat-val" style="color:${totalCollected>0?'var(--g)':'var(--t3)'}">
           ${totalCollected>0?_currencyRows(paidByCurrency,'var(--g)'):'—'}
         </div>
         <div class="stat-lbl">إجمالي المدفوع حتى الآن <i class="fa-solid fa-arrow-left" style="font-size:8px;opacity:.5"></i></div>
-      </div>
-    </div>
+      </div>`:''}
+    </div>`:''}
 
-    ${openingBal>0?`<div style="margin:0 0 14px;padding:10px 14px;background:${openingType==='receivable'?'rgba(247,107,92,.1)':'rgba(79,209,165,.1)'};border-radius:10px;border-right:3px solid ${openingType==='receivable'?'var(--r)':'var(--g)'};font-size:12px">
+    ${pv.opening_balance&&openingBal>0?`<div style="margin:0 0 14px;padding:10px 14px;background:${openingType==='receivable'?'rgba(247,107,92,.1)':'rgba(79,209,165,.1)'};border-radius:10px;border-right:3px solid ${openingType==='receivable'?'var(--r)':'var(--g)'};font-size:12px">
       <div style="font-weight:800;margin-bottom:3px">${openingType==='receivable'?'💰 رصيد مستحق ليك من قبل':'✅ رصيد مدفوع مسبقاً'}: ${_money(openingBal,openingCur.code)}</div>
       ${openingNote?`<div style="color:var(--t3)">${xe(openingNote)}</div>`:''}
     </div>`:''}
 
     <!-- TABS -->
     <div class="tabs" id="tabs">
-      ${invoicesFirst?`<button class="tab on" onclick="switchTab('invoices')" id="tab-invoices"><i class="fa-solid fa-file-invoice"></i>الفواتير والكشوف (${_clientInvoices.length+_clientStatements.length})</button>`:''}
-      <button class="tab ${initialTab==='tasks'?'on':''}" onclick="switchTab('tasks')" id="tab-tasks"><i class="fa-solid fa-clipboard-list"></i>طلباتي (${_clientTasks.length})</button>
-      <button class="tab" onclick="switchTab('projects')" id="tab-projects"><i class="fa-solid fa-folder-open"></i>المشاريع (${_clientProjects.length})</button>
-      ${(!invoicesFirst&&(_clientInvoices.length||_clientStatements.length))?`<button class="tab" onclick="switchTab('invoices')" id="tab-invoices"><i class="fa-solid fa-file-invoice"></i>الفواتير والكشوف (${_clientInvoices.length+_clientStatements.length})</button>`:''}
-      <button class="tab" onclick="switchTab('briefs')" id="tab-briefs"><i class="fa-solid fa-clipboard-question"></i>البريفات (${(_ud.brief_forms||[]).length})</button>
-      <button class="tab" onclick="switchTab('accounts')" id="tab-accounts"><i class="fa-solid fa-coins"></i>حسابي</button>
-      <button class="tab" onclick="switchTab('reviews')" id="tab-reviews"><i class="fa-solid fa-star"></i>تقييماتي</button>
-      <button class="tab" onclick="switchTab('chat')" id="tab-chat"><i class="fa-solid fa-comments"></i>الرسائل</button>
+      ${pv.tab_tasks?`<button class="tab ${initialTab==='tasks'?'on':''}" onclick="switchTab('tasks')" id="tab-tasks"><i class="fa-solid fa-clipboard-list"></i>طلباتي (${_clientTasks.length})</button>`:''}
+      ${pv.tab_projects?`<button class="tab ${initialTab==='projects'?'on':''}" onclick="switchTab('projects')" id="tab-projects"><i class="fa-solid fa-folder-open"></i>المشاريع (${_clientProjects.length})</button>`:''}
+      ${pv.tab_invoices?`<button class="tab ${initialTab==='invoices'?'on':''}" onclick="switchTab('invoices')" id="tab-invoices"><i class="fa-solid fa-file-invoice"></i>الفواتير والكشوف (${_clientInvoices.length+_clientStatements.length})</button>`:''}
+      ${pv.tab_briefs?`<button class="tab ${initialTab==='briefs'?'on':''}" onclick="switchTab('briefs')" id="tab-briefs"><i class="fa-solid fa-clipboard-question"></i>البريفات (${(_ud.brief_forms||[]).length})</button>`:''}
+      ${pv.tab_accounts?`<button class="tab ${initialTab==='accounts'?'on':''}" onclick="switchTab('accounts')" id="tab-accounts"><i class="fa-solid fa-coins"></i>حسابي</button>`:''}
+      ${pv.tab_reviews?`<button class="tab ${initialTab==='reviews'?'on':''}" onclick="switchTab('reviews')" id="tab-reviews"><i class="fa-solid fa-star"></i>تقييماتي</button>`:''}
+      ${pv.tab_chat?`<button class="tab ${initialTab==='chat'?'on':''}" onclick="switchTab('chat')" id="tab-chat"><i class="fa-solid fa-comments"></i>الرسائل</button>`:''}
     </div>
 
     <!-- TASKS PANEL (الطلبات العادية) -->
-    <div class="tab-panel ${initialTab==='tasks'?'on':''}" id="tp-tasks">${renderTasks()}</div>
+    ${pv.tab_tasks?`<div class="tab-panel ${initialTab==='tasks'?'on':''}" id="tp-tasks">${renderTasks()}</div>`:''}
     <!-- PROJECTS PANEL -->
-    <div class="tab-panel" id="tp-projects">${renderProjects()}</div>
+    ${pv.tab_projects?`<div class="tab-panel ${initialTab==='projects'?'on':''}" id="tp-projects">${renderProjects()}</div>`:''}
     <!-- INVOICES PANEL -->
-    <div class="tab-panel ${initialTab==='invoices'?'on':''}" id="tp-invoices">${renderInvoices()}</div>
-    <div class="tab-panel" id="tp-briefs">${renderBriefForms()}</div>
+    ${pv.tab_invoices?`<div class="tab-panel ${initialTab==='invoices'?'on':''}" id="tp-invoices">${renderInvoices()}</div>`:''}
+    ${pv.tab_briefs?`<div class="tab-panel ${initialTab==='briefs'?'on':''}" id="tp-briefs">${renderBriefForms()}</div>`:''}
     <!-- ACCOUNTS PANEL -->
-    <div class="tab-panel" id="tp-accounts">${renderAccounts()}</div>
+    ${pv.tab_accounts?`<div class="tab-panel ${initialTab==='accounts'?'on':''}" id="tp-accounts">${renderAccounts()}</div>`:''}
     <!-- REVIEWS PANEL -->
-    <div class="tab-panel" id="tp-reviews">${renderMyReviews()}</div>
-    <div class="tab-panel" id="tp-chat"><div id="client-portal-chat"></div></div>
+    ${pv.tab_reviews?`<div class="tab-panel ${initialTab==='reviews'?'on':''}" id="tp-reviews">${renderMyReviews()}</div>`:''}
+    ${pv.tab_chat?`<div class="tab-panel ${initialTab==='chat'?'on':''}" id="tp-chat"><div id="client-portal-chat"></div></div>`:''}
 
   ${renderStoreSection()}
-  ${_renderFreelancerReviews()}
+  ${pv.public_reviews?_renderFreelancerReviews():''}
   </div>
 
-  <footer class="ftr"><div class="ftr-in">
+  ${pv.footer?`<footer class="ftr"><div class="ftr-in">
     <span>© ${new Date().getFullYear()} ${xe(nm)}</span>
     <div class="ftr-pw"><span>مدعوم من</span><span style="font-size:11px;font-weight:900;color:var(--ac)">⚡ Ordo</span><a href="${ORDO_HOME}" target="_blank" class="ftr-try"><i class="fa-solid fa-bolt"></i>جرّب الآن</a></div>
-  </div></footer>`;
+  </div></footer>`:''}`;
   setTimeout(_startPortalPortfolioAutoScroll,100);
 }
 
@@ -968,12 +979,13 @@ function renderTasks(){
 let _storeActiveTab = 'svc';
 
 function renderStoreSection(){
-  const svcs  = (_ud.services||[]).filter(s=>s&&s.name&&s.active!==false);
-  const pkgs  = (_ud.standalone_packages||[]).filter(p=>p&&p.name&&p.active!==false);
-  const pfRaw = _ud.portfolio_projects||[];
+  const pv=_portalVisibility();
+  const svcs  = pv.public_services?(_ud.services||[]).filter(s=>s&&s.name&&s.active!==false):[];
+  const pkgs  = pv.public_packages?(_ud.standalone_packages||[]).filter(p=>p&&p.name&&p.active!==false):[];
+  const pfRaw = pv.public_portfolio?(_ud.portfolio_projects||[]):[];
   // portfolio من داخل الخدمات القديم
   const pfFromSvcs = [];
-  svcs.forEach(s=>{ (s.portfolio||[]).forEach(p=>pfFromSvcs.push({id:p.id||s.id+'_pf',name:p.label||p.title||s.name,thumb:p.thumb||p.image||'',url:p.url||p.link||'#',cat:s.cat||p.cat||'',link_type:p.type||''})); });
+  if(pv.public_portfolio)svcs.forEach(s=>{ (s.portfolio||[]).forEach(p=>pfFromSvcs.push({id:p.id||s.id+'_pf',name:p.label||p.title||s.name,thumb:p.thumb||p.image||'',url:p.url||p.link||'#',cat:s.cat||p.cat||'',link_type:p.type||''})); });
   const existIds = pfRaw.map(p=>String(p.id));
   pfFromSvcs.forEach(p=>{ if(!existIds.includes(String(p.id))) pfRaw.push(p); });
 
@@ -1855,10 +1867,12 @@ function printPortalStatement(){
   win.document.close();const ready=()=>{win.focus();win.print()};if(win.document.fonts?.ready)win.document.fonts.ready.then(ready);else setTimeout(ready,400);
 }
 function openPortalAccountStatement(){
+  if(!_portalTabVisible('accounts'))return;
   switchTab('accounts');
   setTimeout(()=>document.getElementById('portal-account-statement')?.scrollIntoView({behavior:'smooth',block:'start'}),80);
 }
 function renderAccounts(){
+  const pv=typeof _portalVisibility==='function'?_portalVisibility():{account_summary:true,account_unbilled:true,account_statement:true};
   const clientObj=(_ud.clients||[]).find(c=>String(c.id)===String(_clientId));
   const openingBal=+(clientObj?.openingBalance||0);
   const openingType=clientObj?.openingBalanceType||'receivable';
@@ -1942,7 +1956,7 @@ function renderAccounts(){
   filteredRows.forEach(row=>{_addCurrencyTotal(periodCharges,row.currency,row.debit);_addCurrencyTotal(periodPaid,row.currency,row.credit);});
 
   return `<div style="margin-bottom:14px">
-    <div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
+    <div style="${pv.account_summary?'':'display:none;'}background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
       <div style="font-size:13px;font-weight:800;margin-bottom:12px;color:var(--t2)"><i class="fa-solid fa-scale-balanced" style="color:var(--ac)"></i> ملخص حسابي</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px">
         <div style="padding:12px;background:var(--s2);border-radius:12px;border:1px solid var(--bd)">
@@ -1968,9 +1982,9 @@ function renderAccounts(){
       </div>`:''}
     </div>
 
-    ${unbilledTasks.length?`<div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px"><div style="font-size:13px;font-weight:800;margin-bottom:10px"><i class="fa-solid fa-list-check" style="color:var(--ac)"></i> أعمال مستحقة غير مفوترة</div>${unbilledTasks.map(task=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--bd);font-size:12px"><span>${xe(task.title||task.name||'مهمة')}</span><strong>${_money(Math.max(0,(+task.value||0)-((task.pay==='deposit'||task.paymentStatus==='deposit')?(+task.deposit||0):0)),task)}</strong></div>`).join('')}</div>`:''}
+    ${pv.account_unbilled&&unbilledTasks.length?`<div style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px"><div style="font-size:13px;font-weight:800;margin-bottom:10px"><i class="fa-solid fa-list-check" style="color:var(--ac)"></i> أعمال مستحقة غير مفوترة</div>${unbilledTasks.map(task=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--bd);font-size:12px"><span>${xe(task.title||task.name||'مهمة')}</span><strong>${_money(Math.max(0,(+task.value||0)-((task.pay==='deposit'||task.paymentStatus==='deposit')?(+task.deposit||0):0)),task)}</strong></div>`).join('')}</div>`:''}
 
-    <div id="portal-account-statement" style="background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
+    <div id="portal-account-statement" style="${pv.account_statement?'':'display:none;'}background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><div class="statement-title" style="font-size:13px;font-weight:800;color:var(--t2)"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--ac)"></i> كشف حساب شامل</div><button onclick="printPortalStatement()" style="border:1px solid var(--bd);background:var(--s2);color:var(--t1);border-radius:9px;padding:7px 12px;font:800 11px var(--font);cursor:pointer"><i class="fa-solid fa-print"></i> طباعة / PDF</button></div>
       <div class="statement-filters" style="display:flex;align-items:end;gap:8px;flex-wrap:wrap;padding:10px;background:var(--s2);border:1px solid var(--bd);border-radius:11px;margin-bottom:12px">
         <label style="font-size:10px;color:var(--t3)">من<input id="_account-from" type="date" value="${xe(periodFrom)}" style="display:block;margin-top:4px;background:var(--s1);color:var(--t1);border:1px solid var(--bd);border-radius:7px;padding:6px"></label>
@@ -1988,9 +2002,12 @@ function renderAccounts(){
 }
 
 function renderInvoices(){
-  const statementAction=`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--s1);border:1px solid var(--bd);border-radius:13px;padding:12px 14px;margin-bottom:14px"><div><div style="font-size:13px;font-weight:900;color:var(--t1)"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--ac)"></i> كشف الحساب الشامل</div><div style="font-size:10px;color:var(--t3);margin-top:3px">كل الأعمال والفواتير والتحصيلات حسب التاريخ</div></div><button onclick="openPortalAccountStatement()" style="border:0;background:var(--ac);color:#fff;border-radius:9px;padding:8px 14px;font:800 11px var(--font);cursor:pointer"><i class="fa-solid fa-eye"></i> عرض كشف الحساب</button></div>`;
-  if(!_clientInvoices.length&&!_clientStatements.length)return statementAction+`<div class="empty"><i class="fa-solid fa-file-invoice"></i><div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:5px">لا توجد فواتير أو كشوف حساب بعد</div><div>ستظهر مستنداتك المالية هنا عند إصدارها</div></div>`;
-  const invoices=_clientInvoices.sort((a,b)=>new Date(b.date||b.created_at||0)-new Date(a.date||a.created_at||0)).map(inv=>{
+  const pv=_portalVisibility();
+  const statementAction=pv.invoice_statement&&pv.tab_accounts?`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--s1);border:1px solid var(--bd);border-radius:13px;padding:12px 14px;margin-bottom:14px"><div><div style="font-size:13px;font-weight:900;color:var(--t1)"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--ac)"></i> كشف الحساب الشامل</div><div style="font-size:10px;color:var(--t3);margin-top:3px">كل الأعمال والفواتير والتحصيلات حسب التاريخ</div></div><button onclick="openPortalAccountStatement()" style="border:0;background:var(--ac);color:#fff;border-radius:9px;padding:8px 14px;font:800 11px var(--font);cursor:pointer"><i class="fa-solid fa-eye"></i> عرض كشف الحساب</button></div>`:'';
+  const visibleInvoices=pv.invoice_invoices?_clientInvoices:[];
+  const visibleStatements=pv.invoice_statements?_clientStatements:[];
+  if(!visibleInvoices.length&&!visibleStatements.length)return statementAction+`<div class="empty"><i class="fa-solid fa-file-invoice"></i><div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:5px">لا توجد مستندات مالية ظاهرة حالياً</div></div>`;
+  const invoices=visibleInvoices.sort((a,b)=>new Date(b.date||b.created_at||0)-new Date(a.date||a.created_at||0)).map(inv=>{
     const paid=inv.paid||inv.status==='مدفوعة';
     const vals=_portalInvoiceValues(inv);
     return`<div class="inv-card is-openable" role="button" tabindex="0" onclick="openPortalInvoice('${xe(String(inv.id))}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPortalInvoice('${xe(String(inv.id))}')}" title="عرض الفاتورة وتحميل PDF">
@@ -2003,7 +2020,7 @@ function renderInvoices(){
       <div class="inv-amount" title="صافي المستحق بعد الخصم والمدفوع">${_money(vals.due,inv)}<div style="font-size:9px;color:var(--t3);margin-top:3px">من صافي ${_money(vals.total,inv)}</div></div>
     </div>`;
   }).join('');
-  const statements=_clientStatements.sort((a,b)=>new Date(b.to||b.endDate||b.createdAt||b.created_at||0)-new Date(a.to||a.endDate||a.createdAt||a.created_at||0)).map(stmt=>{
+  const statements=visibleStatements.sort((a,b)=>new Date(b.to||b.endDate||b.createdAt||b.created_at||0)-new Date(a.to||a.endDate||a.createdAt||a.created_at||0)).map(stmt=>{
     const total=+(stmt.total||stmt.grandTotal||stmt.amount||stmt.balance||0);
     const paid=stmt.paid===true||['paid','collected','مدفوع','محصل'].includes(stmt.status);
     const date=stmt.to||stmt.endDate||stmt.date||stmt.createdAt||stmt.created_at;
@@ -2425,7 +2442,8 @@ async function submitReview(taskId, taskTitle){
     document.body.appendChild(thnk);
 
     // تحديث تبويب الطلبات
-    document.getElementById('tp-tasks').innerHTML = renderTasks();
+    const tasksPanel=document.getElementById('tp-tasks');
+    if(tasksPanel)tasksPanel.innerHTML=renderTasks();
     // تحديث تبويب التقييمات لو مفتوح
     const revPanel = document.getElementById('tp-reviews');
     if(revPanel) revPanel.innerHTML = renderMyReviews();

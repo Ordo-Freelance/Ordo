@@ -42,3 +42,13 @@ test('public-facing pages load the shared owner appearance',()=>{
     assert.match(page,/applyOrdoPublicAppearance/);
   }
 });
+
+test('review page keeps readable semantic surfaces and exports the displayed card',()=>{
+  const page=fs.readFileSync(new URL('../HTML/review.html',import.meta.url),'utf8');
+  assert.match(page,/--public-page-bg/);
+  assert.match(page,/--public-surface/);
+  assert.match(app,/function _downloadReviewCardDom\(\)/);
+  assert.match(app,/cloneNode\(true\)/);
+  assert.match(app,/XMLSerializer/);
+  assert.match(app,/dlBtn\.onclick=function\(\)\{ _downloadReviewCardDom\(\); \}/);
+});

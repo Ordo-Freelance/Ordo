@@ -315,6 +315,9 @@ function showErr(msg){
 }
 
 function applyReviewIdentity(s){
+  // Load the shared owner identity first, then restore this form's semantic
+  // contrast tokens below so a neutral tone never turns the form grey.
+  window.applyOrdoPublicAppearance(s);
   const accent=s.accentColor||s.accent||s.theme_color||'#7c6ff7';
   const secondary=s.accentColor2||s.accent2||accent;
   document.documentElement.style.setProperty('--ac',accent);
@@ -327,9 +330,10 @@ function applyReviewIdentity(s){
   document.documentElement.style.setProperty('--t1',light?'#1a1a2e':'#f0f2f8');
   document.documentElement.style.setProperty('--t2',light?'#444466':'#9aa3bc');
   document.documentElement.style.setProperty('--t3',light?'#888899':'#5a6380');
+  document.documentElement.style.setProperty('--public-page-bg',light?'#f4f6fa':'#0a0d14');
+  document.documentElement.style.setProperty('--public-surface',light?'#ffffff':'#13161f');
   document.body.style.backgroundColor='var(--bg)';
   document.body.style.color='var(--t1)';
-  window.applyOrdoPublicAppearance(s);
   document.body.style.backgroundImage=`radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in srgb, ${accent} ${light?'7':'12'}%, transparent) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 80% 80%, color-mix(in srgb, ${secondary} ${light?'5':'8'}%, transparent) 0%, transparent 60%)`;
 }
 
@@ -346,6 +350,8 @@ async function boot(){
       const s=_ud?.settings||{};
       document.getElementById('fl-name').textContent=s.name||s.username||'فريلانسر';
       document.getElementById('fl-title').textContent=s.bio||s.title||'خدمات إبداعية متميزة';
+      const reviewLogo=(s.displayMode||s.display_mode||'dark')==='light'?(s.logoDark||s.logo||s.logoLight||''):(s.logoLight||s.logo||s.logoDark||'');
+      if(reviewLogo)document.getElementById('avatar-wrap').innerHTML=`<img class="freelancer-avatar" src="${reviewLogo}" onerror="this.style.display='none'">`;
       document.title=(s.name||s.username||'فريلانسر')+' — تقييم الخدمة';
       applyReviewIdentity(s);
       document.getElementById('loader').classList.add('hide');

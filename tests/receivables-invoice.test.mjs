@@ -126,16 +126,20 @@ test('portal billing tab includes account statements and readable identity color
   assert.match(portalSource, /document\.getElementById\('tp-accounts'\)/);
 });
 
-test('client portal can make invoices and statements the first section',()=>{
+test('client portal supports complete per-client visibility controls',()=>{
   const appSource=fs.readFileSync(new URL('../JavaScript/app.js',import.meta.url),'utf8');
-  const indexSource=fs.readFileSync(new URL('../HTML/index.html',import.meta.url),'utf8');
-  assert.match(appSource,/الفواتير وكشف الحساب أولاً/);
-  assert.match(appSource,/function _saveClientPortalDefaultTab\(clientId,value\)/);
-  assert.match(appSource,/token\.default_tab=value/);
-  assert.match(indexSource,/default_tab: portal\.default_tab \|\| 'tasks'/);
+  assert.match(appSource,/function _clientPortalVisibilityDefaults\(\)/);
+  assert.match(appSource,/function _clientPortalVisibilityEditor\(clientId,portal\)/);
+  assert.match(appSource,/function _toggleClientPortalVisibility\(clientId,key,checked\)/);
+  assert.match(appSource,/token\.portal_visibility=Object\.assign/);
+  assert.doesNotMatch(appSource,/أول قسم يظهر للعميل/);
+  assert.match(portalSource,/function _portalVisibility\(\)/);
   assert.match(portalSource,/function _portalDefaultTab\(\)/);
-  assert.match(portalSource,/const invoicesFirst=initialTab==='invoices'/);
-  assert.match(portalSource,/!pTaskId&&!pTab&&!pInvoiceId&&_portalDefaultTab\(\)==='invoices'/);
+  assert.match(portalSource,/pv\.stat_paid/);
+  assert.match(portalSource,/pv\.tab_chat/);
+  assert.match(portalSource,/pv\.public_portfolio/);
+  assert.match(portalSource,/pv\.account_statement/);
+  assert.match(portalSource,/pv\.invoice_invoices/);
 });
 
 test('portal invoices open a protected preview and provide PDF printing', () => {
