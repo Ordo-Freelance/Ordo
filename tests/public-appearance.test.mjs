@@ -52,6 +52,8 @@ test('review page keeps readable semantic surfaces and exports the displayed car
   assert.match(publicReviews,/document\.body\.style\]\.forEach/);
   assert.match(app,/function _downloadReviewCardDom\(\)/);
   assert.match(app,/window\.html2canvas\(card/);
+  assert.match(app,/canvas\.toBlob\(resolve,'image\/png',1\)/);
+  assert.match(app,/ignoreElements:function\(el\)/);
   assert.match(app,/cloneNode\(true\)/);
   assert.match(app,/XMLSerializer/);
   assert.match(app,/dlBtn\.onclick=function\(\)\{ _downloadReviewCardDom\(\); \}/);

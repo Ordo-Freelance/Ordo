@@ -1101,12 +1101,41 @@ async function _downloadReviewCardDom(){
   if(btn){btn.innerHTML='<i class="fa-solid fa-spinner fa-spin" style="margin-left:6px"></i> جاري...';btn.disabled=true;}
   try{
     if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    async function downloadCanvas(canvas){
+      var pngBlob=await new Promise(function(resolve){canvas.toBlob(resolve,'image/png',1);});
+      if(!pngBlob)throw new Error('PNG encoding failed');
+      var pngUrl=URL.createObjectURL(pngBlob),link=document.createElement('a');
+      link.download='review-'+Date.now()+'.png';link.href=pngUrl;
+      link.style.display='none';document.body.appendChild(link);link.click();link.remove();
+      setTimeout(function(){URL.revokeObjectURL(pngUrl);},3000);
+    }
     if(typeof window.html2canvas==='function'){
-      var exactCanvas=await window.html2canvas(card,{scale:2,backgroundColor:null,useCORS:true,allowTaint:false,logging:false,removeContainer:true});
-      var exactLink=document.createElement('a');exactLink.download='review-'+Date.now()+'.png';exactLink.href=exactCanvas.toDataURL('image/png',1);exactLink.click();
-      toast('\u2705 تم حفظ نفس كارت المعاينة');
-      if(btn){btn.innerHTML='<i class="fa-solid fa-check" style="margin-left:6px;color:#4fd1a5"></i> تم!';setTimeout(function(){btn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';btn.disabled=false;},1600);}
-      return;
+      var exactCanvas=null,exactError=null;
+      var captureOptions={scale:2,backgroundColor:null,useCORS:true,allowTaint:false,logging:false,removeContainer:true,imageTimeout:7000,
+        onclone:function(doc){var cloned=doc.getElementById('_review-share-card');if(cloned){cloned.style.animation='none';cloned.style.transition='none';}}
+      };
+      try{
+        exactCanvas=await window.html2canvas(card,captureOptions);
+      }catch(firstCaptureError){
+        exactError=firstCaptureError;
+        // A remote logo without CORS must never prevent the whole card from
+        // downloading. Retry while omitting only unsafe remote images; every
+        // other pixel still comes from the exact card visible on screen.
+        try{
+          exactCanvas=await window.html2canvas(card,Object.assign({},captureOptions,{imageTimeout:2500,ignoreElements:function(el){
+            if(!el||String(el.tagName).toUpperCase()!=='IMG')return false;
+            var src=el.getAttribute('src')||'';
+            return !!src&&!/^data:|^blob:/i.test(src)&&src.indexOf(location.origin)!==0&&src.charAt(0)!=='/';
+          }}));
+        }catch(secondCaptureError){exactError=secondCaptureError;}
+      }
+      if(exactCanvas){
+        await downloadCanvas(exactCanvas);
+        toast('\u2705 تم حفظ نفس كارت المعاينة');
+        if(btn){btn.innerHTML='<i class="fa-solid fa-check" style="margin-left:6px;color:#4fd1a5"></i> تم!';setTimeout(function(){btn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';btn.disabled=false;},1600);}
+        return;
+      }
+      console.warn('[Ordo] exact review capture unavailable; using local fallback',exactError);
     }
     var rect=card.getBoundingClientRect(),clone=card.cloneNode(true);
     function inlineComputed(source,target){
@@ -1126,7 +1155,7 @@ async function _downloadReviewCardDom(){
     await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject;img.src=url;});
     var scale=2,cvs=document.createElement('canvas');cvs.width=w*scale;cvs.height=h*scale;
     var ctx=cvs.getContext('2d');ctx.scale(scale,scale);ctx.drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
-    var a=document.createElement('a');a.download='review-'+Date.now()+'.png';a.href=cvs.toDataURL('image/png',1);a.click();
+    await downloadCanvas(cvs);
     toast('\u2705 تم حفظ نفس كارت المعاينة');
     if(btn){btn.innerHTML='<i class="fa-solid fa-check" style="margin-left:6px;color:#4fd1a5"></i> تم!';setTimeout(function(){btn.innerHTML='<i class="fa-solid fa-download" style="margin-left:6px"></i> حفظ كصورة';btn.disabled=false;},1600);}
   }catch(e){
