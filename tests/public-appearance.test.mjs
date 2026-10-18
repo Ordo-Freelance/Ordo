@@ -60,6 +60,7 @@ test('review page keeps readable semantic surfaces and exports the displayed car
   assert.match(publicReviews,/public_website_url/);
   assert.match(api,/public_website_url/);
   assert.doesNotMatch(publicReviews,/هوية مستقلة وتجارب شفافة/);
+  assert.doesNotMatch(publicReviews,/تجارب حقيقية، ثقة أكبر/);
   assert.match(publicReviews,/storeUrl \+ "#_pf"/);
   const workspace=fs.readFileSync(new URL('../HTML/index.html',import.meta.url),'utf8');
   assert.match(workspace,/id="svc-public-website-url"/);
