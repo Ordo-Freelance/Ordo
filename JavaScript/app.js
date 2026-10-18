@@ -27928,7 +27928,7 @@ async function _pollReviews(){
       if(recovered.length){
         let changed=false;S.reviews=S.reviews||[];
         for(const review of recovered){if(review?.id&&!S.reviews.some(item=>String(item.id)===String(review.id))){S.reviews.push(review);changed=true;}}
-        if(changed){lsSave();if(document.getElementById('page-reviews')?.classList.contains('active'))renderReviewsPage();toast('<i class="fa-solid fa-star" style="color:#f7c948"></i> تم استعادة '+recovered.length+' تقييم قديم');}
+        if(changed){lsSave();cloudSave(S);if(document.getElementById('page-reviews')?.classList.contains('active'))renderReviewsPage();toast('<i class="fa-solid fa-star" style="color:#f7c948"></i> تم استعادة '+recovered.length+' تقييم قديم');}
       }
     }catch(recoverError){console.warn('Legacy review recovery failed:',recoverError);}
 

@@ -338,6 +338,22 @@ function publicView(data, type, token) {
   };
 }
 
+async function mergePublicReviews(store, userId, view) {
+  view.reviews = Array.isArray(view.reviews) ? view.reviews : [];
+  const queued = await store.query('public_reviews', {
+    op:'select', columns:'id,data', filters:[{op:'eq',column:'user_id',value:userId}], limit:500
+  });
+  const seen = new Set(view.reviews.map(item => String(item?.id || '')).filter(Boolean));
+  for (const record of queued || []) {
+    const payload = parseMaybe(record.data) || {};
+    const review = parseMaybe(payload.review_data) || payload;
+    if (!review?.id || review.public_visible === false || payload.public_visible === false || seen.has(String(review.id))) continue;
+    view.reviews.push(review);
+    seen.add(String(review.id));
+  }
+  return view;
+}
+
 async function publicSnapshot(store, input) {
   const type = String(input.type || '');
   if (!['store','reviews_public','review','client_portal','brief'].includes(type)) return null;
@@ -356,7 +372,9 @@ async function publicSnapshot(store, input) {
       const validType=(normalized?.type==='client_portal'||payload.entity_type==='client_portal');
       const alive=!payload.revoked&&(!payload.expires_at||new Date(payload.expires_at)>new Date());
       if(validType&&alive&&payload.snapshot_version>=2&&payload.studio_data){
-        return {uid:normalized.user_id,data:parseMaybe(payload.studio_data)||{},token:payload};
+        const scoped=parseMaybe(payload.studio_data)||{};
+        try{await mergePublicReviews(store,normalized.user_id,scoped);}catch(error){console.warn('Live portal reviews unavailable:',error);}
+        return {uid:normalized.user_id,data:scoped,token:payload};
       }
     }catch(error){console.warn('Normalized public portal snapshot unavailable:',error);}
   }
@@ -389,19 +407,9 @@ async function publicSnapshot(store, input) {
     }
     if (type === 'client_portal' && !matching?.client_id) continue;
     const view = publicView(data, type, matching);
-    if (type === 'store' || type === 'reviews_public') {
+    if (type === 'store' || type === 'reviews_public' || type === 'client_portal') {
       try {
-        const queued = await store.query('public_reviews', {
-          op:'select', columns:'id,data', filters:[{op:'eq',column:'user_id',value:row.user_id}], limit:200
-        });
-        const seen = new Set((view.reviews || []).map(item => String(item.id)));
-        for (const record of queued || []) {
-          const payload = parseMaybe(record.data) || {};
-          const review = parseMaybe(payload.review_data) || payload;
-          if (!review.id || review.public_visible === false || payload.public_visible === false || seen.has(String(review.id))) continue;
-          view.reviews.push(review);
-          seen.add(String(review.id));
-        }
+        await mergePublicReviews(store,row.user_id,view);
       } catch (error) { console.warn('Public reviews unavailable:', error); }
     }
     return { uid: row.user_id, data: view, token: matching || null };

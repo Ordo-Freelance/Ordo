@@ -56,6 +56,23 @@ test('portal prefers its fresh normalized scoped snapshot over stale studio data
   assert.deepEqual(result.data.portfolio_projects.map(row=>row.id),['pf1']);
 });
 
+test('normalized portal merges newly recovered public reviews into its cached snapshot', async () => {
+  const normalized={
+    snapshot_version:2,entity_type:'client_portal',client_id:'c1',
+    studio_data:{settings:{name:'Studio'},clients:[{id:'c1',name:'One'}],reviews:[{id:'r1',client_name:'Existing'}]}
+  };
+  const scopedStore={async query(table){
+    if(table==='public_tokens')return {user_id:'owner',type:'client_portal',data:normalized};
+    if(table==='public_reviews')return [
+      {id:'p1',data:{review_data:{id:'r1',client_name:'Existing'}}},
+      {id:'p2',data:{review_data:{id:'r2',client_name:'Recovered'}}}
+    ];
+    return [];
+  }};
+  const result=await publicSnapshot(scopedStore,{type:'client_portal',token:'portal-secret'});
+  assert.deepEqual(result.data.reviews.map(row=>row.id),['r1','r2']);
+});
+
 test('deleting a review removes every owned source without touching another owner', async () => {
   const rows = {
     studio_data:[{user_id:'owner',data:{reviews:[{id:'r1'},{id:'r2'}]}},{user_id:'other',data:{reviews:[{id:'r1'}]}}],
