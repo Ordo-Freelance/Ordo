@@ -841,7 +841,7 @@ function renderPage(){
     <!-- TABS -->
     <div class="tabs" id="tabs">
       ${pv.tab_tasks?`<button class="tab ${initialTab==='tasks'?'on':''}" onclick="switchTab('tasks')" id="tab-tasks"><i class="fa-solid fa-clipboard-list"></i>طلباتي (${_clientTasks.length})</button>`:''}
-      ${pv.tab_projects?`<button class="tab ${initialTab==='projects'?'on':''}" onclick="switchTab('projects')" id="tab-projects"><i class="fa-solid fa-folder-open"></i>المشاريع (${_clientProjects.length})</button>`:''}
+      ${pv.tab_projects?`<button class="tab ${initialTab==='projects'?'on':''}" onclick="switchTab('projects')" id="tab-projects"><i class="fa-solid fa-folder-open"></i>المشاريع (${_portalRootProjects().length})</button>`:''}
       ${pv.tab_invoices?`<button class="tab ${initialTab==='invoices'?'on':''}" onclick="switchTab('invoices')" id="tab-invoices"><i class="fa-solid fa-file-invoice"></i>الفواتير والكشوف (${_clientInvoices.length+_clientStatements.length})</button>`:''}
       ${pv.tab_briefs?`<button class="tab ${initialTab==='briefs'?'on':''}" onclick="switchTab('briefs')" id="tab-briefs"><i class="fa-solid fa-clipboard-question"></i>البريفات (${(_ud.brief_forms||[]).length})</button>`:''}
       ${pv.tab_accounts?`<button class="tab ${initialTab==='accounts'?'on':''}" onclick="switchTab('accounts')" id="tab-accounts"><i class="fa-solid fa-coins"></i>حسابي</button>`:''}
@@ -1689,12 +1689,41 @@ function _portalProjectTasks(projectId){
     return true;
   });
 }
+function _portalProjectChildren(parent){
+  if(!parent)return[];
+  const rows=[],seen=new Set();
+  (_clientProjects||[]).filter(p=>String(p.parentProjectId||'')===String(parent.id)).forEach(p=>{
+    const key=String(p.id);if(!seen.has(key)){seen.add(key);rows.push(p);}
+  });
+  (parent.subProjects||[]).forEach(period=>{
+    const projectId=period.projectId||period.project_id||'';
+    const child=projectId&&(_clientProjects||[]).find(p=>String(p.id)===String(projectId));
+    const row=child||Object.assign({_portalEmbeddedPeriod:true,id:projectId||period.id,parentProjectId:parent.id},period);
+    const key=String(row.id||period.id||'');if(key&&!seen.has(key)){seen.add(key);rows.push(row);}
+  });
+  return rows.sort((a,b)=>String(a.start||a.createdAt||a.name||'').localeCompare(String(b.start||b.createdAt||b.name||'')));
+}
+function _portalRootProjects(){
+  const projects=_clientProjects||[],ids=new Set(projects.map(p=>String(p.id))),nested=new Set();
+  projects.forEach(p=>{if(p.parentProjectId&&ids.has(String(p.parentProjectId)))nested.add(String(p.id));});
+  projects.forEach(parent=>(parent.subProjects||[]).forEach(period=>{if(period.projectId||period.project_id)nested.add(String(period.projectId||period.project_id));}));
+  return projects.filter(p=>!nested.has(String(p.id)));
+}
+function _portalProjectTreeTasks(project){
+  const rows=[],seen=new Set();
+  [project].concat(_portalProjectChildren(project)).forEach(p=>_portalProjectTasks(p.id).forEach(task=>{
+    const key=String(task.id||`${p.id}:${task.title||''}`);if(!seen.has(key)){seen.add(key);rows.push(task);}
+  }));
+  return rows;
+}
 function renderProjects(){
-  if(!_clientProjects.length)return`<div class="empty"><i class="fa-solid fa-folder-open"></i><div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:5px">لا توجد مشاريع بعد</div><div>ستظهر مشاريعك الكبيرة هنا</div></div>`;
+  const rootProjects=_portalRootProjects();
+  if(!rootProjects.length)return`<div class="empty"><i class="fa-solid fa-folder-open"></i><div style="font-size:14px;font-weight:700;color:var(--t2);margin-bottom:5px">لا توجد مشاريع بعد</div><div>ستظهر مشاريعك الكبيرة هنا</div></div>`;
   const stColors={active:'var(--g)',hold:'var(--y)',review:'var(--ac)',done:'var(--t3)'};
   const stLabels={active:'نشط',hold:'معلق',review:'مراجعة',done:'مكتمل'};
-  return _clientProjects.map(p=>{
-    const ptasks=_portalProjectTasks(p.id);
+  return rootProjects.map(p=>{
+    const periods=_portalProjectChildren(p);
+    const ptasks=periods.length?_portalProjectTreeTasks(p):_portalProjectTasks(p.id);
     const doneT=ptasks.filter(t=>t.done||['done','مكتملة'].includes(t.status)).length;
     const prog=ptasks.length?Math.round(doneT/ptasks.length*100):0;
     const stC=stColors[p.status]||'var(--ac)';
@@ -1709,6 +1738,7 @@ function renderProjects(){
         <div>
           <div class="card-ttl">${xe(p.name)}</div>
           ${p.desc?`<div class="card-sub" style="margin-top:4px">${xe(p.desc)}</div>`:''}
+          ${periods.length?`<div style="font-size:11px;color:var(--ac);font-weight:800;margin-top:6px"><i class="fa-solid fa-calendar-days"></i> ${periods.length} شهر / مرحلة</div>`:''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
           <span class="badge" style="background:${stC}22;color:${stC}">● ${xe(stL)}</span>
@@ -1727,9 +1757,41 @@ function renderProjects(){
   }).join('');
 }
 
+function openPortalRecurringProjectDetail(parent){
+  const periods=_portalProjectChildren(parent),clr=parent.color||'var(--ac)';
+  const allTasks=_portalProjectTreeTasks(parent),allDone=allTasks.filter(t=>t.done||['done','مكتملة'].includes(t.status)).length;
+  const totalProgress=allTasks.length?Math.round(allDone/allTasks.length*100):0;
+  const statusLabel={active:'نشط',hold:'معلق',review:'مراجعة',done:'مكتمل'};
+  const taskRows=project=>{
+    const tasks=_portalProjectTasks(project.id);
+    if(!tasks.length)return'<div style="padding:14px;text-align:center;color:var(--t3);font-size:12px">لا توجد مهام في هذا الشهر</div>';
+    return tasks.map(task=>{
+      const done=task.done||['done','مكتملة'].includes(task.status),link=task.projectLink||task.driveLink||'';
+      return '<article style="padding:11px 12px;background:var(--s3);border:1px solid var(--bd);border-radius:10px;margin-top:7px">'+
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px"><div><b style="font-size:12px">'+xe(task.title||'مهمة')+'</b>'+(task.desc?'<p style="font-size:10px;color:var(--t3);line-height:1.6;margin:4px 0 0">'+xe(task.desc)+'</p>':'')+'</div><span style="font-size:9px;font-weight:800;white-space:nowrap;color:'+(done?'var(--g)':'var(--y)')+'">'+(done?'✓ مكتملة':'قيد التنفيذ')+'</span></div>'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px">'+(task.value?'<small style="color:'+clr+';font-weight:800">'+_money(task.value,task)+'</small>':'<span></span>')+(link?'<a href="'+xe(link)+'" target="_blank" rel="noopener noreferrer" style="font-size:10px;color:var(--ac);font-weight:800;text-decoration:none"><i class="fa-solid fa-arrow-up-right-from-square"></i> رابط التسليم</a>':'')+'</div></article>';
+    }).join('');
+  };
+  const monthsHtml=periods.map((period,index)=>{
+    const tasks=_portalProjectTasks(period.id),done=tasks.filter(t=>t.done||['done','مكتملة'].includes(t.status)).length,progress=tasks.length?Math.round(done/tasks.length*100):0;
+    return '<details '+(index===0?'open':'')+' style="border:1px solid var(--bd);background:var(--s2);border-radius:14px;margin-bottom:10px;overflow:hidden">'+
+      '<summary style="list-style:none;cursor:pointer;padding:13px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px"><div><b style="font-size:14px">'+xe(period.parentPeriodName||period.name||'شهر / مرحلة')+'</b><div style="font-size:10px;color:var(--t3);margin-top:3px">'+xe(period.start||'بدون تاريخ')+(period.deadline?' — '+xe(period.deadline):'')+' · '+tasks.length+' مهمة</div></div><div style="text-align:left"><strong style="display:block;color:'+clr+';font-size:13px">'+progress+'%</strong><small style="color:var(--t3)">'+done+'/'+tasks.length+' مكتملة</small></div></summary>'+
+      '<div style="padding:0 14px 14px;border-top:1px solid var(--bd)">'+(period.desc?'<p style="font-size:11px;color:var(--t2);line-height:1.7;margin:11px 0">'+xe(period.desc)+'</p>':'')+
+      ((period.budget||period.value)?'<div style="font-size:11px;color:var(--t3);margin-top:10px"><i class="fa-solid fa-coins" style="color:'+clr+'"></i> قيمة الشهر: <b style="color:'+clr+'">'+_money(period.budget||period.value,period)+'</b></div>':'')+
+      '<div style="height:5px;background:var(--s3);border-radius:5px;margin:10px 0"><i style="display:block;height:100%;width:'+progress+'%;background:'+clr+';border-radius:5px"></i></div>'+taskRows(period)+
+      (!period._portalEmbeddedPeriod?'<button type="button" data-project-id="'+xe(String(period.id))+'" onclick="document.getElementById(\'proj-detail-ov\')?.remove();openProjectDetail(this.dataset.projectId)" style="margin-top:10px;background:none;border:0;color:var(--ac);font-family:var(--font);font-size:11px;font-weight:800;cursor:pointer">عرض كل تفاصيل الشهر ←</button>':'')+'</div></details>';
+  }).join('');
+  const ov=document.createElement('div');ov.className='overlay';ov.id='proj-detail-ov';ov.onclick=event=>{if(event.target===ov)ov.remove();};
+  ov.innerHTML='<div class="sheet" style="max-height:92vh"><div class="sheet-hdl"></div><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px"><div><div style="font-size:19px;font-weight:900">'+xe(parent.name||'مشروع رئيسي')+'</div><div style="font-size:11px;color:var(--t3);margin-top:4px">مشروع رئيسي · '+periods.length+' شهر / مرحلة · '+(statusLabel[parent.status]||parent.status||'نشط')+'</div></div><button onclick="document.getElementById(\'proj-detail-ov\').remove()" style="background:var(--s2);border:1px solid var(--bd);width:34px;height:34px;border-radius:50%;cursor:pointer;color:var(--t2)"><i class="fa-solid fa-xmark"></i></button></div>'+
+    (parent.desc?'<p style="font-size:12px;color:var(--t2);line-height:1.7;padding:10px 12px;background:var(--s2);border-radius:10px;border-right:3px solid '+clr+'">'+xe(parent.desc)+'</p>':'')+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:14px 0"><span style="padding:9px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;text-align:center"><b style="display:block;color:'+clr+'">'+periods.length+'</b><small style="color:var(--t3)">الشهور</small></span><span style="padding:9px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;text-align:center"><b style="display:block;color:var(--g)">'+allDone+'</b><small style="color:var(--t3)">مهمة مكتملة</small></span><span style="padding:9px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;text-align:center"><b style="display:block;color:'+clr+'">'+totalProgress+'%</b><small style="color:var(--t3)">التقدم الكلي</small></span></div><div style="font-size:12px;font-weight:900;color:var(--t2);margin:14px 0 9px"><i class="fa-solid fa-calendar-days" style="color:'+clr+'"></i> الشهور والمراحل</div>'+(monthsHtml||'<div class="empty">لا توجد شهور مضافة بعد</div>')+'</div>';
+  document.body.appendChild(ov);
+}
+
 function openProjectDetail(projId){
   const p=_clientProjects.find(x=>String(x.id)===String(projId));
   if(!p) return;
+  if(p.projectKind==='parent'||_portalProjectChildren(p).length){openPortalRecurringProjectDetail(p);return;}
   const ptasks=_portalProjectTasks(projId);
   const doneT=ptasks.filter(t=>t.done||['done','مكتملة'].includes(t.status)).length;
   const prog=ptasks.length?Math.round(doneT/ptasks.length*100):0;

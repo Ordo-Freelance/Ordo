@@ -146,5 +146,13 @@ test('project Finance totals include linked income but exclude mirrored receipts
 test('portal project task collection includes linked tasks from its visible pools',()=>{
   assert.match(portal,/function _portalProjectTasks\(projectId\)/);
   assert.match(portal,/\.\.\.\(_ud\.project_tasks\|\|\[\]\),\.\.\.\(_clientTasks\|\|\[\]\)/);
-  assert.match(portal,/const ptasks=_portalProjectTasks\(p\.id\)/);
+  assert.match(portal,/const ptasks=periods\.length\?_portalProjectTreeTasks\(p\):_portalProjectTasks\(p\.id\)/);
+});
+
+test('portal groups recurring project months under one parent project',()=>{
+  assert.match(portal,/function _portalProjectChildren\(parent\)/);
+  assert.match(portal,/function _portalRootProjects\(\)/);
+  assert.match(portal,/function openPortalRecurringProjectDetail\(parent\)/);
+  assert.match(portal,/_portalRootProjects\(\)\.length/);
+  assert.match(portal,/p\.projectKind==='parent'\|\|_portalProjectChildren\(p\)\.length/);
 });
