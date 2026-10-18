@@ -4251,6 +4251,16 @@ try {
           <button onclick="saveSiteDesc()" class="btn btn-primary btn-sm" style="margin-top:10px;width:100%;justify-content:center" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
         </div>
 
+        <!-- Personal website used by public review pages -->
+        <div class="card" style="padding:16px">
+          <div style="font-size:13px;font-weight:800;margin-bottom:5px"><i class="fa-solid fa-globe" style="color:var(--accent)"></i> رابط موقعك الشخصي</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px">يظهر في زر «زور موقعنا» بصفحة التقييمات العامة.</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="form-input" id="svc-public-website-url" placeholder="https://yourwebsite.com" style="flex:1;direction:ltr">
+            <button onclick="savePublicWebsiteUrl()" class="btn btn-primary btn-sm" style="flex-shrink:0"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
+          </div>
+        </div>
+
         <!-- يوزرنيم الموقع الرئيسي -->
         <div class="card" style="padding:16px">
           <div style="font-size:13px;font-weight:800;margin-bottom:4px"><i class="fa-solid fa-at" style="color:var(--accent)"></i> يوزرنيم الموقع</div>
@@ -5614,7 +5624,7 @@ try {
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
 <script src="../Assets/vendor/html2canvas/html2canvas.min.js?v=1.4.1"></script>
-<script src="../JavaScript/app.js?v=review-card-save-29"></script>
+<script src="../JavaScript/app.js?v=public-website-30"></script>
 <script src="../JavaScript/payment_reconciliation.js?v=4"></script>
 <script src="../JavaScript/project-finance-integration.js?v=2"></script>
 <script>document.body.classList.remove('auth-booting');</script>

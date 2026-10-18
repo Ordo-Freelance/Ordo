@@ -23093,6 +23093,8 @@ function initWebsiteTab(){
   // وصف الموقع
   var descEl=document.getElementById('svc-site-desc');
   if(descEl) descEl.value=(_curSt ? (_curSt.desc||'') : (S.settings&&S.settings.svc_site_desc)||'');
+  var publicWebsiteEl=document.getElementById('svc-public-website-url');
+  if(publicWebsiteEl) publicWebsiteEl.value=(S.settings&&S.settings.public_website_url)||'';
   // استقبال الطلبات
   var isOpen=(S.settings&&S.settings.svc_orders_open!==false);
   _setOrdersOpenUI(isOpen);
@@ -23163,6 +23165,16 @@ async function saveSiteDesc(){
   if(store)store.desc=(document.getElementById('svc-site-desc')||{}).value||'';
   else {if(!S.settings) S.settings={};S.settings.svc_site_desc=(document.getElementById('svc-site-desc')||{}).value||'';}
   await _saveStorefrontChange('تم حفظ وصف المتجر');
+}
+async function savePublicWebsiteUrl(){
+  var input=document.getElementById('svc-public-website-url');
+  var url=(input?.value||'').trim();
+  if(url&&!/^https?:\/\//i.test(url)) url='https://'+url;
+  if(url&&!/^https?:\/\/[^\s]+$/i.test(url)){toast('أدخل رابط موقع صحيح يبدأ بـ https://');return;}
+  if(!S.settings)S.settings={};
+  S.settings.public_website_url=url;
+  if(input)input.value=url;
+  await _saveStorefrontChange(url?'تم حفظ رابط الموقع الشخصي':'تم حذف رابط الموقع الشخصي');
 }
 async function saveSvcStoreName(){
   var name=(document.getElementById('svc-store-name')?.value||'').trim();

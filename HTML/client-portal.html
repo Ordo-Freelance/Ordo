@@ -215,6 +215,24 @@ body.lm .brief-portal-sheet{color-scheme:light}
 .rev-stars{font-size:16px;letter-spacing:2px;margin-bottom:6px}
 .rev-comment{font-size:12px;color:var(--t2);line-height:1.7}
 .rev-meta{font-size:10px;color:var(--t3);margin-top:6px}
+.portal-review-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:15px;flex-wrap:wrap}
+.portal-review-score{display:flex;align-items:center;gap:9px;color:var(--t3);font-size:11px}
+.portal-review-score strong{font-size:20px;color:var(--y);line-height:1}
+.portal-review-rail-wrap{position:relative;padding-inline:36px}
+.portal-review-rail{display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;direction:ltr;scrollbar-width:none;overscroll-behavior-inline:contain;padding:2px 1px 8px}
+.portal-review-rail::-webkit-scrollbar{display:none}
+.portal-review-card{flex:0 0 min(300px,82vw);min-height:168px;background:var(--s2);border:1px solid var(--bd);border-radius:15px;padding:15px;direction:rtl;display:flex;flex-direction:column;scroll-snap-align:start}
+.portal-review-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.portal-review-person{display:flex;align-items:center;gap:8px;min-width:0}
+.portal-review-avatar{width:34px;height:34px;border-radius:50%;font-size:12px;font-weight:900;display:grid;place-items:center;flex-shrink:0}
+.portal-review-name{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.portal-review-date{font-size:9px;color:var(--t3)}
+.portal-review-stars{font-size:13px;letter-spacing:1px;white-space:nowrap}
+.portal-review-text{font-size:12px;color:var(--t2);line-height:1.8;padding:10px 11px;background:var(--bg);border-radius:9px;margin-top:auto;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.portal-review-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:30px;height:30px;border-radius:50%;border:1px solid var(--bd);background:var(--s1);color:var(--ac);display:grid;place-items:center;cursor:pointer;box-shadow:0 5px 16px rgba(0,0,0,.22);transition:.18s}
+.portal-review-arrow:hover{background:var(--ac);color:#fff;border-color:var(--ac);transform:translateY(-50%) scale(1.07)}
+.portal-review-arrow.prev{left:0}.portal-review-arrow.next{right:0}
+@media(max-width:520px){.portal-review-rail-wrap{padding-inline:30px}.portal-review-arrow{width:27px;height:27px}.portal-review-card{flex-basis:min(270px,84vw)}}
 /* LIGHT MODE */
 body.lm{--bg:#f5f7ff;--s1:#fff;--s2:#f0f2f8;--s3:#e8ecf5;--bd:#dce2ef;--t1:#1a2540;--t2:#485674;--t3:#8290ab;background:var(--portal-background,var(--bg));color:var(--t1)}
 body.lm::before{background:radial-gradient(ellipse 70% 50% at 15% 0%,rgba(124,111,247,.06) 0%,transparent 60%)}
@@ -850,7 +868,7 @@ function renderPage(){
     <span>© ${new Date().getFullYear()} ${xe(nm)}</span>
     <div class="ftr-pw"><span>مدعوم من</span><span style="font-size:11px;font-weight:900;color:var(--ac)">⚡ Ordo</span><a href="${ORDO_HOME}" target="_blank" class="ftr-try"><i class="fa-solid fa-bolt"></i>جرّب الآن</a></div>
   </div></footer>`:''}`;
-  setTimeout(_startPortalPortfolioAutoScroll,100);
+  setTimeout(function(){_startPortalPortfolioAutoScroll();_startPortalReviewAutoScroll();},100);
 }
 
 // ── TASKS STATE ──
@@ -1139,6 +1157,33 @@ function _movePortalPortfolio(direction){
   if(!rail)return;
   const card=rail.querySelector('.pf-card');
   const step=(card?.getBoundingClientRect().width||210)+12;
+  rail.scrollBy({left:direction*step,behavior:'smooth'});
+}
+
+function _startPortalReviewAutoScroll(){
+  const rail=document.getElementById('_portal-review-marquee');
+  if(!rail||rail.dataset.autoLoop!=='true'||rail.dataset.running==='true'||!rail.clientWidth)return;
+  rail.dataset.running='true';
+  let paused=false,last=performance.now();
+  const pause=()=>{paused=true};
+  const resume=()=>{paused=false;last=performance.now()};
+  rail.addEventListener('mouseenter',pause);rail.addEventListener('mouseleave',resume);
+  rail.addEventListener('pointerdown',pause);rail.addEventListener('pointerup',resume);rail.addEventListener('pointercancel',resume);
+  window.addEventListener('pointerup',resume,{passive:true});window.addEventListener('blur',resume);
+  function move(now){
+    if(!document.body.contains(rail))return;
+    const loopAt=rail.querySelector('[aria-hidden="true"]')?.offsetLeft||rail.scrollWidth/2;
+    if(!paused&&loopAt>rail.clientWidth){rail.scrollLeft+=(now-last)*0.055;if(rail.scrollLeft>=loopAt)rail.scrollLeft-=loopAt;}
+    last=now;requestAnimationFrame(move);
+  }
+  requestAnimationFrame(move);
+}
+
+function _movePortalReviews(direction){
+  const rail=document.getElementById('_portal-review-marquee');
+  if(!rail)return;
+  const card=rail.querySelector('.portal-review-card');
+  const step=(card?.getBoundingClientRect().width||300)+12;
   rail.scrollBy({left:direction*step,behavior:'smooth'});
 }
 
@@ -2291,45 +2336,34 @@ function _renderFreelancerReviews(){
   const total = allRevs.length;
   const avg = (allRevs.reduce((s,r)=>s+(+r.stars||0),0)/total).toFixed(1);
 
+  const visible=allRevs.slice(0,8);
+  function cards(duplicate){
+    return visible.map(r=>{
+      const starColor = +r.stars>=4?'#f7c948':+r.stars===3?acc:'#f76f7c';
+      return `<article class="portal-review-card"${duplicate?' aria-hidden="true"':''}>
+        <div class="portal-review-card-head">
+          <div class="portal-review-person">
+            <div class="portal-review-avatar" style="background:${acc}18;color:${acc}">${xe((r.client_name||'?')[0])}</div>
+            <div style="min-width:0"><div class="portal-review-name">${xe(r.client_name||'عميل')}</div><div class="portal-review-date"><i class="fa-solid fa-calendar-days"></i> ${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):''}</div></div>
+          </div>
+          <div><div class="portal-review-stars">${'⭐'.repeat(+r.stars||0)}</div><div style="font-size:9px;font-weight:800;color:${starColor};text-align:center">${['','سيء','مقبول','جيد','رائع','ممتاز'][+r.stars]||''}</div></div>
+        </div>
+        <div class="portal-review-text">${r.comment?'“'+xe(r.comment)+'”':'تقييم موثّق للخدمة'}</div>
+      </article>`;
+    }).join('');
+  }
   return `
   <section class="store-sec" id="_reviews-public-section" style="margin-top:40px">
     <div class="store-divider"></div>
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-      <div>
-        <div style="font-size:17px;font-weight:900;color:var(--t1)">
-          <i class="fa-solid fa-star" style="color:#f7c948;margin-left:7px"></i>تقييمات العملاء
-        </div>
-        <div style="font-size:12px;color:var(--t3);margin-top:3px">${total} تقييم · متوسط ⭐ ${avg}</div>
-      </div>
+    <div class="portal-review-head">
+      <div style="font-size:17px;font-weight:900;color:var(--t1)"><i class="fa-solid fa-star" style="color:#f7c948;margin-left:7px"></i>تقييمات العملاء</div>
+      <div class="portal-review-score"><strong>${avg}</strong><span>${'⭐'.repeat(Math.round(+avg))}<br>${total} تقييم</span></div>
     </div>
-    <div style="text-align:center;margin-bottom:20px">
-      <div style="font-size:44px;font-weight:900;color:#f7c948;line-height:1">${avg}</div>
-      <div style="font-size:20px;margin:6px 0">${'⭐'.repeat(Math.round(+avg))}</div>
-      <div style="font-size:12px;color:var(--t3)">${total} تقييم من العملاء</div>
+    <div class="portal-review-rail-wrap">
+      <button class="portal-review-arrow prev" type="button" onclick="_movePortalReviews(-1)" aria-label="التقييم السابق"><i class="fa-solid fa-chevron-left"></i></button>
+      <div class="portal-review-rail" id="_portal-review-marquee" data-auto-loop="${visible.length>1?'true':'false'}">${cards(false)}${visible.length>1?cards(true):''}</div>
+      <button class="portal-review-arrow next" type="button" onclick="_movePortalReviews(1)" aria-label="التقييم التالي"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      ${allRevs.slice(0,8).map(r=>{
-        const starLabel = ['','سيء','مقبول','جيد','رائع','ممتاز'][+r.stars]||'';
-        const starColor = +r.stars>=4?'#f7c948':+r.stars===3?acc:'#f76f7c';
-        return `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:14px;padding:14px 16px;border-right:3px solid ${starColor}">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:${r.comment?'8':'0'}px">
-            <div style="display:flex;align-items:center;gap:8px">
-              <div style="width:32px;height:32px;border-radius:50%;background:${acc}18;color:${acc};font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(r.client_name||'?')[0]}</div>
-              <div>
-                <div style="font-size:13px;font-weight:700">${xe(r.client_name||'عميل')}</div>
-                <div style="font-size:10px;color:var(--t3)"><i class="fa-solid fa-calendar-days"></i> ${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):''}</div>
-              </div>
-            </div>
-            <div style="text-align:center">
-              <div style="font-size:14px;letter-spacing:1px">${'⭐'.repeat(+r.stars||0)}</div>
-              <div style="font-size:9px;font-weight:700;color:${starColor}">${starLabel}</div>
-            </div>
-          </div>
-          ${r.comment?`<div style="font-size:13px;color:var(--t2);line-height:1.8;font-style:italic;padding:8px 12px;background:var(--bg);border-radius:8px;border-right:3px solid #f7c948">"${xe(r.comment)}"</div>`:''}
-        </div>`;
-      }).join('')}
-    </div>
-    ${allRevs.length>8?`<div style="text-align:center;margin-top:16px;font-size:12px;color:var(--t3)">وأكثر من ${allRevs.length-8} تقييم آخر...</div>`:''}
   </section>`;
 }
 
