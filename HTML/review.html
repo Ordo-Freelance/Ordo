@@ -323,15 +323,20 @@ function applyReviewIdentity(s){
   document.documentElement.style.setProperty('--ac',accent);
   document.documentElement.style.setProperty('--ac2',secondary);
   const light=(s.displayMode||s.display_mode||'dark')==='light';
-  document.documentElement.style.setProperty('--bg',light?'#f4f6fa':'#0a0d14');
-  document.documentElement.style.setProperty('--surface',light?'#ffffff':'#13161f');
-  document.documentElement.style.setProperty('--surface2',light?'#f0f1f8':'#1a1e2b');
-  document.documentElement.style.setProperty('--border',light?'rgba(0,0,0,.08)':'rgba(255,255,255,.08)');
-  document.documentElement.style.setProperty('--t1',light?'#1a1a2e':'#f0f2f8');
-  document.documentElement.style.setProperty('--t2',light?'#444466':'#9aa3bc');
-  document.documentElement.style.setProperty('--t3',light?'#888899':'#5a6380');
-  document.documentElement.style.setProperty('--public-page-bg',light?'#f4f6fa':'#0a0d14');
-  document.documentElement.style.setProperty('--public-surface',light?'#ffffff':'#13161f');
+  // The shared appearance helper sets variables directly on html and body.
+  // Restore the form palette at both scopes so the body cannot keep a stale
+  // grey tone that overrides the semantic review colours.
+  [document.documentElement.style,document.body.style].forEach(reviewStyle=>{
+    reviewStyle.setProperty('--bg',light?'#f4f6fa':'#0a0d14');
+    reviewStyle.setProperty('--surface',light?'#ffffff':'#13161f');
+    reviewStyle.setProperty('--surface2',light?'#f0f1f8':'#1a1e2b');
+    reviewStyle.setProperty('--border',light?'rgba(0,0,0,.08)':'rgba(255,255,255,.08)');
+    reviewStyle.setProperty('--t1',light?'#1a1a2e':'#f0f2f8');
+    reviewStyle.setProperty('--t2',light?'#444466':'#9aa3bc');
+    reviewStyle.setProperty('--t3',light?'#888899':'#5a6380');
+    reviewStyle.setProperty('--public-page-bg',light?'#f4f6fa':'#0a0d14');
+    reviewStyle.setProperty('--public-surface',light?'#ffffff':'#13161f');
+  });
   document.body.style.backgroundColor='var(--bg)';
   document.body.style.color='var(--t1)';
   document.body.style.backgroundImage=`radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in srgb, ${accent} ${light?'7':'12'}%, transparent) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 80% 80%, color-mix(in srgb, ${secondary} ${light?'5':'8'}%, transparent) 0%, transparent 60%)`;

@@ -47,6 +47,9 @@ test('review page keeps readable semantic surfaces and exports the displayed car
   const page=fs.readFileSync(new URL('../HTML/review.html',import.meta.url),'utf8');
   assert.match(page,/--public-page-bg/);
   assert.match(page,/--public-surface/);
+  assert.match(page,/document\.body\.style\]\.forEach/);
+  const publicReviews=fs.readFileSync(new URL('../HTML/reviews-public.html',import.meta.url),'utf8');
+  assert.match(publicReviews,/document\.body\.style\]\.forEach/);
   assert.match(app,/function _downloadReviewCardDom\(\)/);
   assert.match(app,/window\.html2canvas\(card/);
   assert.match(app,/cloneNode\(true\)/);
