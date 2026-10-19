@@ -82,7 +82,7 @@
       _limit: null,
       select: function(columns){ b._columns = columns || '*'; if(!b._op) b._op = 'select'; return b; },
       insert: function(payload){ b._op = 'insert'; b._payload = payload; return b; },
-      upsert: function(payload){ b._op = 'upsert'; b._payload = payload; return b; },
+      upsert: function(payload, options){ b._op = 'upsert'; b._payload = payload; b._allowEmptyOverwrite = !!(options && options.allowEmptyOverwrite); return b; },
       update: function(payload){ b._op = 'update'; b._payload = payload; return b; },
       delete: function(){ b._op = 'delete'; return b; },
       eq: function(column, value){ b._filters.push({op:'eq', column:column, value:value}); return b; },
@@ -108,7 +108,8 @@
           payload:b._payload,
           single:b._single,
           order:b._order,
-          limit:b._limit
+          limit:b._limit,
+          allow_empty_overwrite:b._allowEmptyOverwrite===true
         }).then(function(body){ return {data:body.data, error:null}; }).catch(function(err){ return {data:b._single ? null : [], error:err}; });
       }
     };

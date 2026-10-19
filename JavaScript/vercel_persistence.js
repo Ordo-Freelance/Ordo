@@ -40,8 +40,10 @@
   function coreRecordCount(data){
     data=data||{};
     return [
-      'tasks','clients','invoices','transactions','projects','project_tasks',
-      'services','portfolio_projects','brief_forms','contracts'
+      'tasks','archivedTasks','clients','invoices','transactions','projects','project_tasks',
+      'services','portfolio_projects','brief_forms','contracts','proposals','statements',
+      'team_tasks','teams','stores','standalone_packages','svc_orders','subscriptions',
+      'client_portals','finance_accounts','workflow_boards'
     ].reduce(function(total,key){return total+(Array.isArray(data[key])?data[key].length:0);},0);
   }
 
@@ -208,7 +210,7 @@
         data:JSON.stringify(root.S),
         username_index:storeSlug,
         updated_at:root.S._savedAt
-      }, {onConflict:'user_id'});
+      }, {onConflict:'user_id',allowEmptyOverwrite:allowEmptyOverwrite});
       if(result.error) throw result.error;
       var publicFingerprint = userId+':'+fingerprint({settings:publicSettings(root.S.settings),stores:root.S.stores,services:root.S.services,standalone_packages:root.S.standalone_packages,portfolio_projects:root.S.portfolio_projects,reviews:root.S.reviews,public_tokens:root.S.public_tokens,projects:root.S.projects,project_tasks:root.S.project_tasks,tasks:root.S.tasks,invoices:root.S.invoices,statements:root.S.statements,transactions:root.S.transactions,contracts:root.S.contracts,proposals:root.S.proposals,brief_forms:root.S.brief_forms,client_portals:root.S.client_portals,svc_orders:root.S.svc_orders});
       if(publicFingerprint !== lastPublishedFingerprint){

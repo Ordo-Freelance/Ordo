@@ -161,6 +161,24 @@ function parseMaybe(value) {
   return value;
 }
 
+const STUDIO_CORE_COLLECTIONS = [
+  'tasks', 'archivedTasks', 'clients', 'invoices', 'transactions', 'projects',
+  'project_tasks', 'services', 'portfolio_projects', 'brief_forms', 'contracts',
+  'proposals', 'statements', 'team_tasks', 'teams', 'stores',
+  'standalone_packages', 'svc_orders', 'subscriptions', 'client_portals',
+  'finance_accounts', 'workflow_boards'
+];
+
+function studioCoreRecordCount(value) {
+  const data = parseMaybe(value) || {};
+  return STUDIO_CORE_COLLECTIONS.reduce((total, key) =>
+    total + (Array.isArray(data[key]) ? data[key].length : 0), 0);
+}
+
+function shouldBlockEmptyStudioOverwrite(currentData, nextData, explicitlyAllowed = false) {
+  return !explicitlyAllowed && studioCoreRecordCount(currentData) > 0 && studioCoreRecordCount(nextData) === 0;
+}
+
 function decodeHtmlEntities(value = '') {
   return String(value)
     .replace(/&amp;/gi, '&').replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'")
@@ -1751,6 +1769,25 @@ export default async function handler(req, res) {
       if (table !== 'profiles' && !TABLES.has(table)) return fail(res, `Table is not available: ${table}`, 400, 'table_not_allowed');
       const accessError = enforceAccess(table, input, user);
       if (accessError) return fail(res, accessError.message, accessError.status, accessError.code);
+      if (table === 'studio_data' && ['insert','upsert','update'].includes(input.op)) {
+        const rows = (Array.isArray(input.payload) ? input.payload : [input.payload]).filter(Boolean);
+        for (const row of rows) {
+          if (row.data === undefined || studioCoreRecordCount(row.data) !== 0) continue;
+          const targetUserId = String(
+            row.user_id ||
+            input.filters.find(filter => filter.op === 'eq' && filter.column === 'user_id')?.value ||
+            user?.id || ''
+          );
+          if (!targetUserId) continue;
+          const current = await store.query('studio_data', {
+            op:'select', columns:'data',
+            filters:[{op:'eq',column:'user_id',value:targetUserId}], single:true
+          }, user);
+          if (shouldBlockEmptyStudioOverwrite(current?.data, row.data, input.allow_empty_overwrite === true)) {
+            return fail(res, 'تم منع استبدال بيانات الحساب بنسخة فارغة.', 409, 'empty_snapshot_blocked');
+          }
+        }
+      }
       if (user && !user.is_admin && ['studio_data','subscription_requests'].includes(table) && ['insert','upsert','update'].includes(input.op)) {
         const rows = Array.isArray(input.payload) ? input.payload : [input.payload];
         const info = await storageInfo(store, user.id);
@@ -1792,4 +1829,4 @@ export default async function handler(req, res) {
   }
 }
 
-export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo, portalChatAccess, portalChatAttachment, portalChatPublicRow, financeFeatureAccess, parseBehanceMetadata, validatedBehanceUrl, behanceProjectId, behanceCoverFromEmbed };
+export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo, portalChatAccess, portalChatAttachment, portalChatPublicRow, financeFeatureAccess, parseBehanceMetadata, validatedBehanceUrl, behanceProjectId, behanceCoverFromEmbed, studioCoreRecordCount, shouldBlockEmptyStudioOverwrite };
