@@ -2001,6 +2001,21 @@ function portalDrivePreviewUrl(value){
   }catch(error){}
   return '';
 }
+function portalVideoPreview(value){
+  try{
+    const url=new URL(value),host=url.hostname.toLowerCase();
+    if(host==='youtu.be')return{kind:'embed',url:'https://www.youtube.com/embed/'+encodeURIComponent(url.pathname.slice(1).split('/')[0])};
+    if(host.endsWith('youtube.com')){
+      const id=url.searchParams.get('v')||(url.pathname.match(/^\/(?:shorts|embed)\/([^/]+)/)||[])[1];
+      if(id)return{kind:'embed',url:'https://www.youtube.com/embed/'+encodeURIComponent(id)};
+    }
+    if(host==='vimeo.com'||host.endsWith('.vimeo.com')){
+      const id=(url.pathname.match(/\/(\d+)/)||[])[1];if(id)return{kind:'embed',url:'https://player.vimeo.com/video/'+encodeURIComponent(id)};
+    }
+    if(/\.(mp4|webm|ogg|mov)(?:[?#].*)?$/i.test(url.pathname+url.search))return{kind:'video',url:value};
+  }catch(error){}
+  return null;
+}
 function _portalFindTask(taskId){
   return [...(_ud?.tasks||[]),...(_ud?.project_tasks||[]),...(_ud?.team_tasks||[])].find(item=>String(item.id)===String(taskId));
 }
@@ -2012,6 +2027,7 @@ function openPortalDeliveryPreview(taskId){
   const task=_portalFindTask(taskId),source=_portalTaskDeliveryUrl(task);if(!task||!source)return;
   closePortalDeliveryPreview();
   const drivePreview=portalDrivePreviewUrl(source);
+  const videoPreview=portalVideoPreview(source);
   const isDataPdf=/^data:application\/pdf;base64,/i.test(source);
   const isImage=/^data:image\//i.test(source)||/\.(png|jpe?g|webp|gif|svg|avif)(?:[?#].*)?$/i.test(source);
   let objectUrl='',previewUrl=drivePreview||source;
@@ -2020,7 +2036,9 @@ function openPortalDeliveryPreview(taskId){
   overlay.dataset.objectUrl=objectUrl.startsWith('blob:')?objectUrl:'';overlay.onclick=event=>{if(event.target===overlay)closePortalDeliveryPreview();};
   const media=(!drivePreview&&isImage)
     ?'<div style="height:100%;overflow:auto;background:#0a0d18;display:grid;place-items:center;padding:18px"><img src="'+xe(previewUrl)+'" alt="معاينة التسليم" style="display:block;max-width:100%;max-height:100%;object-fit:contain;border-radius:10px"/></div>'
-    :'<iframe class="portal-pdf-frame" src="'+xe(previewUrl)+'" title="معاينة التسليم" allow="autoplay; fullscreen"></iframe>';
+    :(videoPreview&&videoPreview.kind==='video')
+      ?'<video class="portal-pdf-frame" src="'+xe(videoPreview.url)+'" controls autoplay playsinline style="object-fit:contain;background:#05070c"></video>'
+      :'<iframe class="portal-pdf-frame" src="'+xe(videoPreview?.url||previewUrl)+'" title="معاينة التسليم" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
   const download=isDataPdf||/^data:image\//i.test(source)
     ?'<a class="portal-pdf-download" href="'+xe(previewUrl)+'" download="'+xe((task.title||'delivery').replace(/[\\/:*?\"<>|]/g,'-')+(isDataPdf?'.pdf':'.png'))+'"><i class="fa-solid fa-download"></i> تحميل</a>'
     :'';

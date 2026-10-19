@@ -62,8 +62,22 @@ test('client project tasks expose task delivery, receipt and rating',()=>{
   assert.match(portal,/معاينة التسليم داخل البوابة/);
   assert.match(portal,/const canReview=_portalTaskCanReview\(t\)/);
   assert.match(portal,/portalDrivePreviewUrl\(source\)/);
+  assert.match(portal,/function portalVideoPreview\(value\)/);
+  assert.match(portal,/youtube\.com\/embed/);
+  assert.match(portal,/<video class="portal-pdf-frame"/);
   assert.match(portal,/portal-month-task-card/);
   assert.match(portal,/onclick="openTask/);
+  assert.match(app,/_appendPortalTaskActivity\(task,row\.id,'client_received'/);
+  assert.match(app,/_queuePortalTaskNotification\(row\.id,'طلب تعديل جديد'/);
+  assert.match(app,/سجل حركة المهمة/);
+});
+
+test('project cards support a persisted cover image URL',()=>{
+  assert.match(app,/id="proj-cover-url"/);
+  assert.match(app,/coverUrl:\/\^https:/);
+  assert.match(app,/class="project-studio-cover/);
+  assert.match(styles,/\.project-studio-cover img/);
+  assert.match(styles,/\.project-cover-preview\.has-image/);
 });
 
 test('monthly project workspace has polished cards and technical error pages',()=>{

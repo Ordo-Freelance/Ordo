@@ -1113,7 +1113,7 @@ function getQRDataURL(text, size) {
 </script>
 <!-- Quill Rich Text Editor -->
 <link href="../Assets/vendor/quill/quill.snow.min.css" rel="stylesheet">
-<link rel="stylesheet" href="../CSS/styles.css?v=brief-task-preview-39">
+<link rel="stylesheet" href="../CSS/styles.css?v=project-workflow-44">
 <script>
 (function(){
   try{
@@ -4808,27 +4808,29 @@ try {
       </div>
     </div>
 
-    <label id="t-client-visibility-wrap" class="task-client-visibility">
-      <input type="checkbox" id="t-client-visibility" checked>
-      إظهار هذه المهمة في بوابة العميل
-    </label>
+    <div class="task-quick-options">
+      <label id="t-client-visibility-wrap" class="task-client-visibility">
+        <input type="checkbox" id="t-client-visibility" checked>
+        <span>تظهر للعميل</span>
+      </label>
 
-    <details class="task-project-linker" id="t-project-linker">
-      <summary>
-        <span class="task-project-linker-icon"><i class="fa-solid fa-diagram-project"></i></span>
-        <span class="task-project-linker-copy">
-          <b id="t-project-summary-title">ربط بمشروع</b>
-          <small id="t-project-summary-sub">اختياري — اضغط لاختيار المشروع أو الشهر</small>
-        </span>
-        <i class="fa-solid fa-chevron-down task-project-linker-chevron"></i>
-      </summary>
-      <div class="task-project-linker-body">
-        <select class="form-select" id="t-project" onchange="onUnifiedTaskProjectChange(this.value)">
-          <option value="">— مهمة مستقلة بدون مشروع —</option>
-        </select>
-        <div id="t-project-hint">عند اختيار مشروع ستظهر المهمة داخله وتُحتسب ضمن حالته وماليته، مع الاحتفاظ بكل خصائص المهمة العادية.</div>
-      </div>
-    </details>
+      <details class="task-project-linker" id="t-project-linker">
+        <summary>
+          <span class="task-project-linker-icon"><i class="fa-solid fa-diagram-project"></i></span>
+          <span class="task-project-linker-copy">
+            <b id="t-project-summary-title">ربط بمشروع</b>
+            <small id="t-project-summary-sub">اختياري</small>
+          </span>
+          <i class="fa-solid fa-chevron-down task-project-linker-chevron"></i>
+        </summary>
+        <div class="task-project-linker-body">
+          <select class="form-select" id="t-project" onchange="onUnifiedTaskProjectChange(this.value)">
+            <option value="">— مهمة مستقلة بدون مشروع —</option>
+          </select>
+          <div id="t-project-hint">اختيار المشروع يربط المهمة بحالته وماليته مع الاحتفاظ بكل خصائص المهمة.</div>
+        </div>
+      </details>
+    </div>
 
     <!-- ── نوع العمل + نوع المهمة ── -->
     <div class="form-row">
@@ -5664,7 +5666,7 @@ try {
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
 <script src="../Assets/vendor/html2canvas/html2canvas.min.js?v=1.4.1"></script>
-<script src="../JavaScript/app.js?v=task-modal-43"></script>
+<script src="../JavaScript/app.js?v=project-workflow-44"></script>
 <script src="../JavaScript/payment_reconciliation.js?v=4"></script>
 <script src="../JavaScript/project-finance-integration.js?v=2"></script>
 <script>document.body.classList.remove('auth-booting');</script>
@@ -8078,7 +8080,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 </script>
-<script src="../JavaScript/app_patch.js?v=project-task-save-2"></script>
+<script src="../JavaScript/app_patch.js?v=project-workflow-44"></script>
 <script>
 (function(){
   'use strict';

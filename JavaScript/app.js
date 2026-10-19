@@ -9013,6 +9013,14 @@ function _renderFeaturesPanel(){
     if(String(t.notes || '').trim()) notes = [{text:t.notes, author:'ملاحظة إنشاء المهمة', initial:true}].concat(notes);
     return notes;
   }
+  function taskActivityHtml(t){
+    var items=Array.isArray(t.activityLog)?t.activityLog.slice():[];
+    if(!items.length)return '';
+    return '<details class="tasks-v2-inline-details tasks-v2-activity" open><summary><i class="fa-solid fa-clock-rotate-left"></i> سجل حركة المهمة <b>'+items.length+'</b></summary><div class="tasks-v2-activity-list">'+items.map(function(item){
+      var icon=item.type==='client_received'?'fa-handshake':item.type==='revision_request'?'fa-rotate-left':'fa-circle-dot';
+      return '<article><i class="fa-solid '+icon+'"></i><div><b>'+esc(item.title||'تحديث')+'</b>'+(item.detail?'<p>'+esc(item.detail)+'</p>':'')+'<small>'+esc(String(item.createdAt||item.at||'').slice(0,16).replace('T',' '))+'</small></div></article>';
+    }).join('')+'</div></details>';
+  }
   function taskDetailMessage(t, recipient){
     var defaults = typeof getWaTemplateDefaults === 'function' ? getWaTemplateDefaults() : {};
     var isMember = String(recipient || '') === String(t.workerMember || t.assignee_name || '');
@@ -9101,6 +9109,7 @@ function _renderFeaturesPanel(){
         '<section class="tasks-v2-detail-section tasks-v2-flow-link"><h3><i class="fa-solid fa-link"></i> رابط التسليم</h3><div class="tasks-v2-detail-link"><input id="td-proj-link-input" type="url" value="'+link+'" placeholder="https://drive.google.com/... أو أي رابط للتسليم"><button class="btn btn-ghost btn-sm" onclick="saveUnifiedTaskDeliveryLink(&quot;'+esc(taskRef)+'&quot;)"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>'+(link?'<a class="btn btn-ghost btn-sm" target="_blank" href="'+link+'"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>':'')+'</div></section>'+
         (notes.length ? '<button type="button" class="tasks-v2-note-summary" onclick="__tasksV2OpenNotes(&quot;'+esc(taskRef)+'&quot;)"><i class="fa-solid fa-comments"></i><span>'+notes.length+' ملاحظات مضافة</span><i class="fa-solid fa-chevron-left"></i></button>' : '<button type="button" class="tasks-v2-note-summary is-empty" onclick="__tasksV2OpenNotes(&quot;'+esc(taskRef)+'&quot;)"><i class="fa-solid fa-note-sticky"></i><span>إضافة ملاحظة</span><i class="fa-solid fa-plus"></i></button>')+
         (relInv.length ? '<details class="tasks-v2-inline-details"><summary><i class="fa-solid fa-file-invoice"></i> فواتير مرتبطة <b>'+relInv.length+'</b></summary>'+relInv.map(function(inv){ return '<div class="tasks-v2-detail-invoice"><b>'+esc(inv.num)+'</b><span>'+esc(inv.date || '')+'</span><strong>'+money(_invoiceDisplayTotal(inv))+'</strong></div>'; }).join('')+'</details>' : '')+
+        taskActivityHtml(t)+
       '</div>'+
       '</div>'+
       '<div class="tasks-v2-detail-actions tasks-v2-compact-actions tasks-v2-flow-actions">'+
@@ -9277,6 +9286,14 @@ function _renderFeaturesPanel(){
     }).join('');
 
     shell.innerHTML =
+      '<div class="tasks-v2-page-actions">'+
+        '<div class="tasks-header-search '+(f.search?'has-value':'')+'"><button class="tasks-v2-action-icon" onclick="__tasksV2ToggleHeaderSearch()" title="بحث"><i class="fa-solid fa-magnifying-glass"></i></button><div class="tasks-header-search-pop"><i class="fa-solid fa-magnifying-glass"></i><input value="'+esc(f.search)+'" placeholder="ابحث عن مهمة…" oninput="__tasksV2SetFilter(\'search\',this.value)">'+(f.search?'<button onclick="__tasksV2SetFilter(&quot;search&quot;,&quot;&quot;)" title="مسح"><i class="fa-solid fa-xmark"></i></button>':'')+'</div></div>'+
+        '<button class="tasks-v2-action-icon" onclick="openTasksArchivePage()" title="أرشيف المهام"><i class="fa-solid fa-box-archive"></i>'+((S.archivedTasks||[]).length?'<span>'+(S.archivedTasks||[]).length+'</span>':'')+'</button>'+
+        '<button class="tasks-v2-action-icon '+(activeFilters?'is-active':'')+'" data-tasks-v2-action="filters" title="فلترة"><i class="fa-solid fa-filter"></i>'+(activeFilters?'<span>'+activeFilters+'</span>':'')+'</button>'+
+        '<button class="tasks-v2-action-icon" data-tasks-v2-action="classic" title="تغيير الشكل"><i class="fa-solid fa-rotate-left"></i></button>'+
+        '<button class="tasks-v2-action-icon" data-tasks-v2-action="statuses" title="إدارة الحالات"><i class="fa-solid fa-sliders"></i></button>'+
+        '<button class="btn btn-primary tasks-header-new" onclick="openTaskModal()"><i class="fa-solid fa-plus"></i><span>مهمة جديدة</span></button>'+
+      '</div>'+
       '<div class="tasks-v2-quick-stats">'+
         '<button class="tasks-v2-quick-card is-danger" onclick="__tasksV2SetFilter(&quot;date&quot;,&quot;late&quot;)"><b>'+late.length+'</b><span>مهام متأخرة</span><small>عرض التفاصيل</small></button>'+
         '<button class="tasks-v2-quick-card" onclick="__tasksV2SetFilter(&quot;status&quot;,&quot;&quot;)"><b>'+open.length+'</b><span>غير مكتملة</span><small>كل النشط والموقوف والجديد</small></button>'+
@@ -9299,18 +9316,6 @@ function _renderFeaturesPanel(){
           (view==='list' ? listHtml(filtered) : view==='group' ? groupedHtml(filtered) : '<div class="tasks-v2-board">'+board+'</div>')+
         '</div>'+
       '</div>';
-    var headerTools=document.getElementById('header-page-tools');
-    var headerCta=document.getElementById('header-cta');
-    var tasksPageActive=document.getElementById('page-tasks')&&document.getElementById('page-tasks').classList.contains('active');
-    if(tasksPageActive&&headerCta)headerCta.style.display='none';
-    if(tasksPageActive&&headerTools){
-      headerTools.innerHTML='<div class="tasks-header-search '+(f.search?'has-value':'')+'"><button class="tasks-v2-action-icon" onclick="__tasksV2ToggleHeaderSearch()" title="بحث"><i class="fa-solid fa-magnifying-glass"></i></button><div class="tasks-header-search-pop"><i class="fa-solid fa-magnifying-glass"></i><input value="'+esc(f.search)+'" placeholder="ابحث عن مهمة…" oninput="__tasksV2SetFilter(\'search\',this.value)">'+(f.search?'<button onclick="__tasksV2SetFilter(&quot;search&quot;,&quot;&quot;)" title="مسح"><i class="fa-solid fa-xmark"></i></button>':'')+'</div></div>'+
-        '<button class="tasks-v2-action-icon" onclick="openTasksArchivePage()" title="أرشيف المهام"><i class="fa-solid fa-box-archive"></i>'+((S.archivedTasks||[]).length?'<span>'+(S.archivedTasks||[]).length+'</span>':'')+'</button>'+
-        '<button class="tasks-v2-action-icon '+(activeFilters?'is-active':'')+'" data-tasks-v2-action="filters" title="فلترة"><i class="fa-solid fa-filter"></i>'+(activeFilters?'<span>'+activeFilters+'</span>':'')+'</button>'+
-        '<button class="tasks-v2-action-icon" data-tasks-v2-action="classic" title="تغيير الشكل"><i class="fa-solid fa-rotate-left"></i></button>'+
-        '<button class="tasks-v2-action-icon" data-tasks-v2-action="statuses" title="إدارة الحالات"><i class="fa-solid fa-sliders"></i></button>'+
-        '<button class="btn btn-primary tasks-header-new" onclick="openTaskModal()"><i class="fa-solid fa-plus"></i><span>مهمة جديدة</span></button>';
-    }
     setTimeout(function(){ if(typeof runDailyArchive === 'function') runDailyArchive(); }, 300);
   }
 
@@ -13463,48 +13468,13 @@ function updateHeader(pageId){
   }
   const cta=PAGE_CTA[pageId];
   const tools=document.getElementById('header-page-tools');
-  if(tools){
-    tools.innerHTML='';
-    if(cta&&cta.label){
-      var mobilePrimary=document.createElement('button');
-      mobilePrimary.type='button';
-      mobilePrimary.className='btn btn-primary mobile-header-primary';
-      mobilePrimary.setAttribute('onclick',cta.fn||'');
-      mobilePrimary.innerHTML='<i class="fa-solid fa-plus"></i><span>'+String(cta.label).replace(/^\+\s*/, '')+'</span>';
-      tools.appendChild(mobilePrimary);
-    }
-    if(pageId==='clients'){
-      var activeClientTab=(typeof _activeClientsTab==='string'&&_activeClientsTab)||'clients';
-      var clientTabs=document.createElement('div');
-      clientTabs.className='header-client-tabs';
-      [['clients','fa-users','العملاء'],['leads','fa-user-plus','المحتملون'],['contacts','fa-address-book','جهات الاتصال']].forEach(function(item){
-        var tab=document.createElement('button');
-        tab.type='button';
-        tab.className='header-client-tab'+(activeClientTab===item[0]?' is-active':'');
-        tab.setAttribute('data-client-tab',item[0]);
-        tab.innerHTML='<i class="fa-solid '+item[1]+'"></i><span>'+item[2]+'</span>';
-        tab.onclick=function(){
-          if(typeof _switchClientsTab==='function') _switchClientsTab(item[0],document.getElementById('_ctab-'+item[0]));
-          document.querySelectorAll('.header-client-tab').forEach(function(button){button.classList.toggle('is-active',button.getAttribute('data-client-tab')===item[0]);});
-          updateHeader('clients');
-        };
-        clientTabs.appendChild(tab);
-      });
-      tools.appendChild(clientTabs);
-    }
-    if(pageId!=='tasks'){
-      var page=document.getElementById('page-'+pageId),head=page&&page.querySelector(':scope > .page-header, .page-header');
-      var buttons=head?Array.from(head.querySelectorAll('button')).filter(function(button){return !(cta&&cta.label&&button.classList.contains('btn-primary'));}).slice(0,5):[];
-      buttons.forEach(function(source){var clone=source.cloneNode(true);clone.querySelectorAll('[id]').forEach(function(node){node.removeAttribute('id');});clone.removeAttribute('id');clone.classList.add('unified-header-tool');tools.appendChild(clone);});
-    }
-  }
-  document.body.classList.toggle('unified-tasks-header',pageId==='tasks');
+  if(tools) tools.innerHTML='';
+  document.body.classList.remove('unified-tasks-header');
   const btn=document.getElementById('header-cta');
   if(btn){
-    var ctaLabel=(cta&&cta.label)||'';
-    btn.innerHTML=ctaLabel?'<i class="fa-solid fa-plus"></i><span>'+ctaLabel.replace(/^\+\s*/, '')+'</span>':'';
-    btn.style.display=cta?.label?'inline-flex':'none';
-    btn.setAttribute('onclick',cta?.fn||'');
+    btn.innerHTML='';
+    btn.style.display='none';
+    btn.removeAttribute('onclick');
   }
 }
 
@@ -28265,9 +28235,18 @@ async function _pollPublicInbox(){
         S.support_msgs=S.support_msgs||[];
         if(!S.support_msgs.some(item=>String(item.id)===String(payload.id))) S.support_msgs.push(payload);
       }
-      if(type==='task_received'&&task){ task.clientReceived=true; task.clientReceivedAt=payload.created_at||row.created_at; }
+      if(type==='task_received'&&task){
+        var receivedAt=payload.created_at||row.created_at||new Date().toISOString();
+        task.clientReceived=true; task.clientReceivedAt=receivedAt;
+        _appendPortalTaskActivity(task,row.id,'client_received','أكد العميل استلام المهمة','تم تأكيد الاستلام من بوابة العميل',receivedAt);
+        _queuePortalTaskNotification(row.id,'تم تأكيد استلام المهمة',(task.title||'مهمة')+' — أكد العميل الاستلام','task_received',task,receivedAt);
+      }
       if(type==='revision_request'){
-        if(task){ task.status='revision'; task.done=false; task.clientRevisionRequested=true; task.clientRevisionNote=payload.note||''; }
+        if(task){
+          task.status='revision'; task.done=false; task.clientRevisionRequested=true; task.clientRevisionNote=payload.note||'';
+          _appendPortalTaskActivity(task,row.id,'revision_request','طلب العميل تعديلاً',payload.note||'طلب تعديل بدون ملاحظة',payload.created_at||row.created_at);
+          _queuePortalTaskNotification(row.id,'طلب تعديل جديد',(task.title||'مهمة')+(payload.note?' — '+payload.note:''),'revision_request',task,payload.created_at||row.created_at);
+        }
         S._inbox=S._inbox||[];
         if(!S._inbox.some(item=>String(item.id)===String(payload.id))) S._inbox.unshift(payload);
       }
@@ -28282,6 +28261,19 @@ async function _pollPublicInbox(){
     if(S._publicEventIds.length>500) S._publicEventIds=S._publicEventIds.slice(-500);
     if(changed){ lsSave(); if(typeof cloudSave==='function')cloudSave(S); toast('وصل تحديث جديد من بوابة العميل أو المتجر'); }
   }catch(error){ console.warn('Public inbox sync failed:',error); }
+}
+function _appendPortalTaskActivity(task,eventId,type,title,detail,createdAt){
+  if(!task)return;
+  task.activityLog=Array.isArray(task.activityLog)?task.activityLog:[];
+  var id='portal_activity_'+String(eventId||Date.now());
+  if(task.activityLog.some(function(item){return String(item.id)===id;}))return;
+  task.activityLog.unshift({id:id,type:type,title:title,detail:detail||'',createdAt:createdAt||new Date().toISOString(),source:'client_portal'});
+}
+function _queuePortalTaskNotification(eventId,title,body,type,task,createdAt){
+  S._pending_notifications=Array.isArray(S._pending_notifications)?S._pending_notifications:[];
+  var id='portal_task_'+String(eventId||Date.now());
+  if(S._pending_notifications.some(function(item){return String(item.id)===id;}))return;
+  S._pending_notifications.unshift({id:id,title:title,body:body,type:type,taskId:task&&task.id,created_at:createdAt||new Date().toISOString(),read:false});
 }
 setTimeout(_pollPublicInbox,7000);
 setInterval(_pollPublicInbox,5*60*1000);
@@ -34946,6 +34938,11 @@ window.OrdoCurrencyPatch = {
   function isoToday(){ return new Date().toISOString().slice(0,10); }
   function projById(id){ return (S.projects || []).find(function(p){ return String(p.id) === String(id); }); }
   function projTasks(id){ return (S.project_tasks || []).filter(function(t){ return String(t.project_id) === String(id); }); }
+  window.projectCoverPreviewUrl=function(value){
+    var raw=String(value||'').trim();if(!/^https:\/\//i.test(raw))return '';
+    try{var url=new URL(raw),match;if(url.hostname==='drive.google.com'){match=url.pathname.match(/^\/file\/d\/([^/]+)/);var id=match&&match[1]||url.searchParams.get('id');if(id)return 'https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w1200';}}catch(error){}
+    return raw;
+  };
   function projClient(p){ return (S.clients || []).find(function(c){ return String(c.id) === String(p.client_id); }); }
   function num(v){ return +v || 0; }
   function money(v, cur){ return num(v).toLocaleString('ar-EG')+' '+(cur || 'ج.م'); }
@@ -35017,8 +35014,10 @@ window.OrdoCurrencyPatch = {
       var members = (p.members || []).slice(0,4);
       var monthCount=(S.projects||[]).filter(function(child){return String(child.parentProjectId||'')===String(p.id);}).length;
       var isRecurring=p.projectKind==='parent';
+      var cover=window.projectCoverPreviewUrl(p.coverUrl||p.cover_url||'');
       return '<article class="project-v2-card project-studio-card'+(isRecurring?' is-recurring':'')+'" style="--project-color:'+clr+'" onclick="openProjectDetail(&quot;'+esc(p.id)+'&quot;)">'+
         '<div class="project-studio-glow"></div>'+
+        (cover?'<div class="project-studio-cover"><img src="'+esc(cover)+'" alt="غلاف '+esc(p.name||'المشروع')+'" loading="lazy" onerror="this.parentElement.classList.add(\'is-error\')"><span><i class="fa-solid fa-image"></i></span></div>':'<div class="project-studio-cover is-empty"><i class="fa-solid '+(isRecurring?'fa-calendar-days':'fa-diagram-project')+'"></i></div>')+
         '<div class="project-v2-card-head">'+
           '<div><div class="project-studio-labels"><span class="project-v2-status" style="color:'+st.color+';background:'+st.bg+'">'+esc(st.label)+'</span>'+(isRecurring?'<span class="project-studio-recurring"><i class="fa-solid fa-arrows-rotate"></i> مشروع شهري</span>':'')+'</div><h3>'+esc(p.name || 'مشروع بدون اسم')+'</h3><p><i class="fa-regular fa-user"></i> '+(client?esc(client.name):'بدون عميل')+(p.deadline?' <i class="fa-regular fa-calendar"></i> '+esc(p.deadline):'')+'</p></div>'+
           '<div class="project-v2-mark"><i class="fa-solid '+(isRecurring?'fa-calendar-days':'fa-diagram-project')+'"></i></div>'+
@@ -35461,6 +35460,7 @@ window.OrdoCurrencyPatch = {
       id: old ? old.id : Date.now(),
       name:name,
       desc:strip((document.getElementById('proj-desc')||{}).value || ''),
+      coverUrl:/^https:\/\//i.test(strip((document.getElementById('proj-cover-url')||{}).value||''))?strip((document.getElementById('proj-cover-url')||{}).value||''):'',
       client_id:(document.getElementById('proj-client')||{}).value || '',
       status:(document.getElementById('proj-status')||{}).value || 'active',
       start:(document.getElementById('proj-start')||{}).value || '',
@@ -36061,6 +36061,7 @@ window.OrdoCurrencyPatch = {
       '<section class="project-modal-v4-section"><div class="project-modal-v4-title"><i class="fa-solid fa-circle-info"></i><b>أساسيات المشروع</b></div>'+
         '<div class="form-group"><label class="form-label">اسم المشروع *</label><input class="form-input" id="proj-name" value="'+esc(p?p.name:'')+'" placeholder="اسم المشروع"></div>'+
         '<div class="form-group"><label class="form-label">وصف المشروع</label><textarea class="form-input" id="proj-desc" rows="3" placeholder="نطاق المشروع، التسليمات، أو أي ملاحظات مهمة">'+esc(p?p.desc:'')+'</textarea></div>'+
+        '<div class="project-cover-field"><div class="form-group"><label class="form-label">رابط صورة غلاف المشروع</label><input class="form-input" id="proj-cover-url" type="url" value="'+esc(p?(p.coverUrl||p.cover_url||''):'')+'" placeholder="https://..." oninput="previewProjectCoverUrl(this.value)"><small>يدعم رابط صورة مباشر أو رابط ملف صورة من Google Drive</small></div><div id="proj-cover-preview" class="project-cover-preview'+(p&&window.projectCoverPreviewUrl(p.coverUrl||p.cover_url||'')?' has-image':'')+'"'+(p&&window.projectCoverPreviewUrl(p.coverUrl||p.cover_url||'')?' style="background-image:url(&quot;'+esc(window.projectCoverPreviewUrl(p.coverUrl||p.cover_url))+'&quot;)"':'')+'><i class="fa-solid fa-image"></i></div></div>'+
         '<div class="form-row"><div class="form-group"><label class="form-label">العميل</label><select class="form-select" id="proj-client">'+activeClientOptions(p?p.client_id:'')+'</select></div><div class="form-group"><label class="form-label">الحالة</label><select class="form-select" id="proj-status"><option value="active">نشط</option><option value="paused">متوقف</option><option value="done">مكتمل</option><option value="cancelled">ملغي</option></select></div></div>'+
         '<div class="form-row"><div class="form-group"><label class="form-label">تاريخ البدء</label><input class="form-input" id="proj-start" type="date" value="'+esc(p?p.start:'')+'"></div><div class="form-group"><label class="form-label">الموعد النهائي</label><input class="form-input" id="proj-deadline" type="date" value="'+esc(p?p.deadline:'')+'"></div></div>'+
       '</section>'+
@@ -36089,6 +36090,12 @@ window.OrdoCurrencyPatch = {
     openM('modal-project');
   };
   try{ openProjectModal=window.openProjectModal; }catch(e){}
+
+  window.previewProjectCoverUrl=function(value){
+    var preview=document.getElementById('proj-cover-preview');if(!preview)return;
+    var safe=typeof window.projectCoverPreviewUrl==='function'?window.projectCoverPreviewUrl(value):(/^https:\/\//i.test(String(value||'').trim())?String(value).trim():'');
+    preview.classList.toggle('has-image',!!safe);preview.style.backgroundImage=safe?'url("'+safe.replace(/["\\]/g,'')+'")':'';
+  };
 })();
 
 /* Recurring project periods v5 */

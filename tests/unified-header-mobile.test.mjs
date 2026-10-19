@@ -6,17 +6,15 @@ const html=fs.readFileSync(new URL('../HTML/index.html',import.meta.url),'utf8')
 const app=fs.readFileSync(new URL('../JavaScript/app.js',import.meta.url),'utf8');
 const css=fs.readFileSync(new URL('../CSS/styles.css',import.meta.url),'utf8');
 
-test('one adaptive app header owns page titles and page actions',()=>{
+test('app header owns page identity while each page keeps its own actions',()=>{
   assert.match(html,/id="header-page-tools"/);
   assert.doesNotMatch(html,/id="_header-studio-name"/);
   assert.match(app,/nav&&nav\.textContent\.trim\(\)/);
-  assert.match(app,/unified-header-tool/);
-  assert.match(app,/head\.querySelectorAll\('button'\)/);
-  assert.match(app,/button\.classList\.contains\('btn-primary'\)/);
-  assert.match(css,/\.page\.active \.page-header\{display:none!important\}/);
+  assert.doesNotMatch(app,/head\.querySelectorAll\('button'\)/);
+  assert.match(app,/if\(tools\) tools\.innerHTML=''/);
+  assert.match(css,/\.page\.active \.page-header\{display:flex!important\}/);
   assert.match(css,/\.page\.active>\.fv3-head/);
-  assert.match(css,/#page-clients\.active>\.clients-tabs-bar\{display:none!important\}/);
-  assert.match(app,/header-client-tabs/);
+  assert.match(css,/#page-clients\.active>\.clients-tabs-bar\{display:flex!important\}/);
 });
 
 test('dynamic finance page uses the shared app header',()=>{
@@ -26,12 +24,13 @@ test('dynamic finance page uses the shared app header',()=>{
   assert.doesNotMatch(finance,/page\.innerHTML = header\(\) \+ tabs\(\)/);
 });
 
-test('task page moves its controls and compact search into the app header',()=>{
+test('task page keeps controls in a compact local toolbar',()=>{
   assert.match(app,/tasks-header-search/);
   assert.match(app,/__tasksV2ToggleHeaderSearch/);
   assert.match(app,/openTasksArchivePage/);
   assert.match(app,/tasks-header-new/);
-  assert.match(app,/tasksPageActive&&headerTools/);
+  assert.match(app,/tasks-v2-page-actions/);
+  assert.doesNotMatch(app,/tasksPageActive&&headerTools/);
   assert.doesNotMatch(app,/tasks-v2-title">المهام والتاسكات/);
   assert.doesNotMatch(app,/tasks-v2-search-block">/);
 });
