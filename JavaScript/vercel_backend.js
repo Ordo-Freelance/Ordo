@@ -82,9 +82,24 @@
       _limit: null,
       select: function(columns){ b._columns = columns || '*'; if(!b._op) b._op = 'select'; return b; },
       insert: function(payload){ b._op = 'insert'; b._payload = payload; return b; },
-      upsert: function(payload, options){ b._op = 'upsert'; b._payload = payload; b._allowEmptyOverwrite = !!(options && options.allowEmptyOverwrite); return b; },
-      update: function(payload){ b._op = 'update'; b._payload = payload; return b; },
-      delete: function(){ b._op = 'delete'; return b; },
+      upsert: function(payload, options){
+        b._op = 'upsert'; b._payload = payload;
+        b._allowEmptyOverwrite = !!(options && options.allowEmptyOverwrite);
+        b._allowDestructiveOverwrite = !!(options && options.allowDestructiveOverwrite);
+        b._expectedUpdatedAt = options && options.expectedUpdatedAt;
+        return b;
+      },
+      update: function(payload, options){
+        b._op = 'update'; b._payload = payload;
+        b._allowDestructiveOverwrite = !!(options && options.allowDestructiveOverwrite);
+        b._expectedUpdatedAt = options && options.expectedUpdatedAt;
+        return b;
+      },
+      delete: function(options){
+        b._op = 'delete';
+        b._confirmDestructive = !!(options && options.confirmDestructive) || root._ordoAllowDestructiveCloudOverwrite === true;
+        return b;
+      },
       eq: function(column, value){ b._filters.push({op:'eq', column:column, value:value}); return b; },
       neq: function(column, value){ b._filters.push({op:'neq', column:column, value:value}); return b; },
       in: function(column, value){ b._filters.push({op:'in', column:column, value:value}); return b; },
@@ -100,6 +115,7 @@
       then: function(resolve, reject){ return b._execute().then(resolve, reject); },
       catch: function(reject){ return b._execute().catch(reject); },
       _execute: function(){
+        var isStudioMutation = b._table === 'studio_data' && ['insert','upsert','update'].indexOf(b._op) >= 0;
         return request('db.query', {
           table:b._table,
           op:b._op || 'select',
@@ -109,8 +125,15 @@
           single:b._single,
           order:b._order,
           limit:b._limit,
-          allow_empty_overwrite:b._allowEmptyOverwrite===true
-        }).then(function(body){ return {data:body.data, error:null}; }).catch(function(err){ return {data:b._single ? null : [], error:err}; });
+          allow_empty_overwrite:b._allowEmptyOverwrite===true,
+          allow_destructive_overwrite:b._allowDestructiveOverwrite===true,
+          confirm_destructive:b._confirmDestructive===true,
+          expected_updated_at:isStudioMutation ? (b._expectedUpdatedAt || root._ordoExpectedUpdatedAt || '') : ''
+        }).then(function(body){
+          var first = Array.isArray(body.data) ? body.data[0] : body.data;
+          if(b._table === 'studio_data' && first && first.updated_at) root._ordoExpectedUpdatedAt = first.updated_at;
+          return {data:body.data, error:null};
+        }).catch(function(err){ return {data:b._single ? null : [], error:err}; });
       }
     };
     return b;
@@ -138,7 +161,7 @@
             .then(function(body){ return {data:body.data,error:null}; }).catch(function(err){ return {data:null,error:err}; });
         },
         deleteUser: function(userId){
-          return request('admin.users.delete', {user_id:userId})
+          return request('admin.users.delete', {user_id:userId,confirm_destructive:true})
             .then(function(body){ return {data:body.data,error:null}; }).catch(function(err){ return {data:null,error:err}; });
         }
       },

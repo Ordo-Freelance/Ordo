@@ -81,3 +81,43 @@ test('an explicitly confirmed clear may write an empty snapshot', async () => {
   assert.ok(writes.some(write=>write.table==='studio_data'));
   assert.equal(root._ordoAllowEmptyCloudOverwrite,false);
 });
+
+test('client blocks losing the last service or an existing logo', async () => {
+  const source=fs.readFileSync(new URL('../JavaScript/vercel_persistence.js',import.meta.url),'utf8');
+  const writes=[];const memory=new Map();
+  const prior={settings:{username:'studio',logo:'data:image/png;base64,abc'},tasks:[{id:'t1'}],services:[{id:'s1'}]};
+  const root={
+    ORDO_LOCAL_ONLY:false,_supaUserId:'user-1',_cloudLoadDone:true,_appReady:true,_ordoCloudLoadedFromServer:true,
+    _ordoServerCoreCount:2,_ordoLastServerSnapshot:prior,S:{settings:{username:'studio',logo:''},tasks:[{id:'t1'}],services:[]},
+    localStorage:{getItem:key=>memory.get(key)||null,setItem:(key,value)=>memory.set(key,value)},addEventListener(){},showSyncIndicator(){},toast(){},
+    supa:{from(table){return{async upsert(row){writes.push({table,row});return{data:{},error:null};}}}}
+  };
+  vm.runInNewContext(source,{window:root,setTimeout,clearTimeout,console});
+  root._ordoCloudLoadedFromServer=true;
+  await root.cloudSave(root.S);
+  assert.equal(writes.length,0);
+  assert.equal(root._lastCloudSaveError.code,'collection_drop_blocked');
+  assert.equal(root.S.services.length,1);
+  assert.match(root.S.settings.logo,/^data:image/);
+});
+
+test('client sends the loaded server revision with every studio write', async () => {
+  const source=fs.readFileSync(new URL('../JavaScript/vercel_persistence.js',import.meta.url),'utf8');
+  const calls=[];const memory=new Map();
+  const remote={settings:{username:'studio'},tasks:[{id:'t1'}]};
+  const root={
+    ORDO_LOCAL_ONLY:false,_supaUserId:'user-1',_cloudLoadDone:true,_appReady:true,
+    S:{settings:{}},localStorage:{getItem:key=>memory.get(key)||null,setItem:(key,value)=>memory.set(key,value)},addEventListener(){},
+    supa:{from(table){return{
+      select(){return this;},eq(){return this;},async maybeSingle(){return{data:{data:remote,updated_at:'2026-10-19T00:00:00Z'},error:null};},
+      async upsert(row,options){calls.push({table,row,options});return{data:[{updated_at:'2026-10-19T00:01:00Z'}],error:null};}
+    };}}
+  };
+  vm.runInNewContext(source,{window:root,setTimeout,clearTimeout,console});
+  await root.cloudLoad();
+  root.S.tasks.push({id:'t2'});
+  await root.cloudSave(root.S);
+  const studio=calls.find(call=>call.table==='studio_data');
+  assert.equal(studio.options.expectedUpdatedAt,'2026-10-19T00:00:00Z');
+  assert.equal(root._ordoExpectedUpdatedAt,'2026-10-19T00:01:00Z');
+});

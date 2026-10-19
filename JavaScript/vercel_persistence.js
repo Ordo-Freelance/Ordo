@@ -47,6 +47,27 @@
     ].reduce(function(total,key){return total+(Array.isArray(data[key])?data[key].length:0);},0);
   }
 
+  function overwriteRisk(current,next,explicitlyAllowed){
+    if(explicitlyAllowed)return null;
+    current=current||{};next=next||{};
+    var collections=[
+      'tasks','archivedTasks','clients','invoices','transactions','projects','project_tasks',
+      'services','portfolio_projects','brief_forms','contracts','proposals','statements',
+      'team_tasks','teams','stores','standalone_packages','svc_orders','subscriptions',
+      'client_portals','finance_accounts','workflow_boards'
+    ];
+    var before=coreRecordCount(current),after=coreRecordCount(next);
+    if(before>0&&after===0)return{code:'empty_snapshot_blocked',message:'تم منع حفظ نسخة فارغة فوق بيانات الحساب.'};
+    var emptied=collections.filter(function(key){return Array.isArray(current[key])&&current[key].length>0&&Array.isArray(next[key])&&next[key].length===0;});
+    if(emptied.length)return{code:'collection_drop_blocked',message:'تم منع حذف قسم بيانات كامل دون تأكيد.',collections:emptied};
+    if(before>=5&&before-after>=3&&after/before<0.7)return{code:'material_data_drop_blocked',message:'تم منع حفظ نسخة ناقصة بصورة كبيرة.'};
+    var currentSettings=current.settings||{},nextSettings=next.settings||{};
+    var identityFields=['logo','logoDark','logoLight','store_logo','svc_banner'];
+    var missing=identityFields.filter(function(key){return typeof currentSettings[key]==='string'&&currentSettings[key].trim()&&!(typeof nextSettings[key]==='string'&&nextSettings[key].trim());});
+    if(missing.length)return{code:'identity_data_drop_blocked',message:'تم منع حذف ملفات الهوية دون تأكيد.',fields:missing};
+    return null;
+  }
+
   function uid(){
     return root._supaUserId || (function(){
       try {
@@ -152,6 +173,7 @@
       var remote = res && res.data ? normalize(res.data.data) : null;
       root._ordoServerCoreCount = coreRecordCount(remote);
       root._ordoLastServerSnapshot = remote ? JSON.parse(JSON.stringify(remote)) : null;
+      root._ordoExpectedUpdatedAt = res && res.data ? (res.data.updated_at || '') : '';
       if(remote && res.data.updated_at && !remote.updated_at) remote.updated_at = res.data.updated_at;
       var local = readCache();
       if(remote && local && JSON.stringify(remote) !== JSON.stringify(local)) {
@@ -186,32 +208,36 @@
     root._lastCloudSaveError=null;
     if(!userId || !db || !root._ordoCloudLoadedFromServer) return root.S;
     var nextCoreCount=coreRecordCount(root.S);
-    var previousCoreCount=Number(root._ordoServerCoreCount||0);
     var allowEmptyOverwrite=root._ordoAllowEmptyCloudOverwrite===true;
-    if(!allowEmptyOverwrite && previousCoreCount>=1 && nextCoreCount===0){
+    var allowDestructiveOverwrite=root._ordoAllowDestructiveCloudOverwrite===true||allowEmptyOverwrite;
+    var protectionError=overwriteRisk(root._ordoLastServerSnapshot,root.S,allowDestructiveOverwrite);
+    if(protectionError){
       var protectedSnapshot=root._ordoLastServerSnapshot;
       if(protectedSnapshot){
         root.S=normalize(JSON.parse(JSON.stringify(protectedSnapshot)));
         writeCache(root.S);
       }
-      var protectionError={
-        code:'empty_snapshot_blocked',
-        message:'تم منع حفظ نسخة فارغة فوق بيانات الحساب. أعد تحميل الصفحة لاسترجاع آخر نسخة سليمة.'
-      };
       root._lastCloudSaveError=protectionError;
-      if(root.showSyncIndicator) root.showSyncIndicator('<i class="fa-solid fa-shield-halved"></i> تم منع حفظ نسخة فارغة', '#f7c948');
-      if(root.toast) root.toast(protectionError.message);
+      if(root.showSyncIndicator) root.showSyncIndicator('<i class="fa-solid fa-shield-halved"></i> تم منع حفظ نسخة ناقصة', '#f7c948');
+      if(root.toast) root.toast(protectionError.message+' أعد تحميل الصفحة لاسترجاع آخر نسخة سليمة.');
       return root.S;
     }
-    if(allowEmptyOverwrite) root._ordoAllowEmptyCloudOverwrite=false;
+    if(allowDestructiveOverwrite){root._ordoAllowEmptyCloudOverwrite=false;root._ordoAllowDestructiveCloudOverwrite=false;}
     try {
       var result = await db.from('studio_data').upsert({
         user_id:userId,
         data:JSON.stringify(root.S),
         username_index:storeSlug,
         updated_at:root.S._savedAt
-      }, {onConflict:'user_id',allowEmptyOverwrite:allowEmptyOverwrite});
+      }, {
+        onConflict:'user_id',
+        allowEmptyOverwrite:allowEmptyOverwrite,
+        allowDestructiveOverwrite:allowDestructiveOverwrite,
+        expectedUpdatedAt:root._ordoExpectedUpdatedAt||''
+      });
       if(result.error) throw result.error;
+      var savedRow=Array.isArray(result.data)?result.data[0]:result.data;
+      if(savedRow&&savedRow.updated_at)root._ordoExpectedUpdatedAt=savedRow.updated_at;
       var publicFingerprint = userId+':'+fingerprint({settings:publicSettings(root.S.settings),stores:root.S.stores,services:root.S.services,standalone_packages:root.S.standalone_packages,portfolio_projects:root.S.portfolio_projects,reviews:root.S.reviews,public_tokens:root.S.public_tokens,projects:root.S.projects,project_tasks:root.S.project_tasks,tasks:root.S.tasks,invoices:root.S.invoices,statements:root.S.statements,transactions:root.S.transactions,contracts:root.S.contracts,proposals:root.S.proposals,brief_forms:root.S.brief_forms,client_portals:root.S.client_portals,svc_orders:root.S.svc_orders});
       if(publicFingerprint !== lastPublishedFingerprint){
         await publishPublicData(db,userId,root.S);

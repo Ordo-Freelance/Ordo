@@ -1790,7 +1790,13 @@ function confirmDel(msg,cb){
   // Replace button to remove old event listeners
   const newBtn = btnEl.cloneNode(true);
   btnEl.parentNode.replaceChild(newBtn, btnEl);
-  newBtn.onclick = function(){ cb(); closeM('modal-confirm'); };
+  newBtn.onclick = function(){
+    // A destructive cloud write is allowed only for the single save that
+    // follows an explicit confirmation from the account owner.
+    window._ordoAllowDestructiveCloudOverwrite = true;
+    setTimeout(function(){ window._ordoAllowDestructiveCloudOverwrite = false; }, 5000);
+    cb(); closeM('modal-confirm');
+  };
   openM('modal-confirm');
 }
 

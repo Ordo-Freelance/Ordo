@@ -40,6 +40,20 @@ CREATE TABLE IF NOT EXISTS studio_data (
 
 CREATE INDEX IF NOT EXISTS idx_studio_username ON studio_data (lower(username_index));
 
+-- آخر 20 نسخة لكل حساب تُحفظ آلياً قبل استبدال studio_data.
+-- لا يوجد ON DELETE CASCADE عمداً حتى تظل النسخ متاحة للاسترجاع بعد أي حذف خاطئ.
+CREATE TABLE IF NOT EXISTS studio_data_versions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  data jsonb NOT NULL,
+  source_updated_at timestamptz,
+  reason text NOT NULL DEFAULT 'before_write',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_studio_data_versions_user_created
+ON studio_data_versions (user_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS user_settings (
   user_id uuid PRIMARY KEY REFERENCES ordo_users(id) ON DELETE CASCADE,
   data jsonb NOT NULL DEFAULT '{}'::jsonb,

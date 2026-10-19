@@ -169,6 +169,10 @@ const STUDIO_CORE_COLLECTIONS = [
   'finance_accounts', 'workflow_boards'
 ];
 
+const STUDIO_IDENTITY_FIELDS = [
+  'logo', 'logoDark', 'logoLight', 'store_logo', 'svc_banner'
+];
+
 function studioCoreRecordCount(value) {
   const data = parseMaybe(value) || {};
   return STUDIO_CORE_COLLECTIONS.reduce((total, key) =>
@@ -177,6 +181,45 @@ function studioCoreRecordCount(value) {
 
 function shouldBlockEmptyStudioOverwrite(currentData, nextData, explicitlyAllowed = false) {
   return !explicitlyAllowed && studioCoreRecordCount(currentData) > 0 && studioCoreRecordCount(nextData) === 0;
+}
+
+function studioOverwriteRisk(currentData, nextData, explicitlyAllowed = false) {
+  if (explicitlyAllowed) return null;
+  const current = parseMaybe(currentData) || {};
+  const next = parseMaybe(nextData) || {};
+  const currentCount = studioCoreRecordCount(current);
+  const nextCount = studioCoreRecordCount(next);
+  if (currentCount > 0 && nextCount === 0) {
+    return { code: 'empty_snapshot_blocked', message: 'تم منع استبدال بيانات الحساب بنسخة فارغة.' };
+  }
+  const emptiedCollections = STUDIO_CORE_COLLECTIONS.filter(key =>
+    Array.isArray(current[key]) && current[key].length > 0 &&
+    Array.isArray(next[key]) && next[key].length === 0
+  );
+  if (emptiedCollections.length) {
+    return {
+      code: 'collection_drop_blocked',
+      message: 'تم منع حذف قسم بيانات كامل دون تأكيد صريح.',
+      collections: emptiedCollections
+    };
+  }
+  if (currentCount >= 5 && currentCount - nextCount >= 3 && nextCount / currentCount < 0.7) {
+    return { code: 'material_data_drop_blocked', message: 'تم منع حفظ نسخة ناقصة بصورة كبيرة.' };
+  }
+  const currentSettings = current.settings || {};
+  const nextSettings = next.settings || {};
+  const missingIdentity = STUDIO_IDENTITY_FIELDS.filter(key =>
+    typeof currentSettings[key] === 'string' && currentSettings[key].trim() &&
+    !(typeof nextSettings[key] === 'string' && nextSettings[key].trim())
+  );
+  if (missingIdentity.length) {
+    return {
+      code: 'identity_data_drop_blocked',
+      message: 'تم منع حذف ملفات الهوية دون تأكيد صريح.',
+      fields: missingIdentity
+    };
+  }
+  return null;
 }
 
 function decodeHtmlEntities(value = '') {
@@ -448,7 +491,7 @@ async function publicSnapshot(store, input) {
 
 async function deleteOwnReview(store, userId, reviewId) {
   const ownerFilter = [{op:'eq',column:'user_id',value:userId}];
-  const studio = await store.query('studio_data', {op:'select',columns:'user_id,data',filters:ownerFilter,single:true});
+  const studio = await store.query('studio_data', {op:'select',columns:'user_id,data,updated_at',filters:ownerFilter,single:true});
   const publicRows = await store.query('public_reviews', {op:'select',columns:'id,data',filters:ownerFilter,limit:500});
   const queueRows = await store.query('review_queue', {op:'select',columns:'id,data',filters:ownerFilter,limit:500});
   const publicMatches = (publicRows || []).filter(row => String(parseMaybe(parseMaybe(row.data)?.review_data || row.data)?.id) === reviewId);
@@ -463,7 +506,13 @@ async function deleteOwnReview(store, userId, reviewId) {
   if (!studioMatches.length && !publicMatches.length && !queueMatches.length) return false;
   if (studioMatches.length) {
     current.reviews = current.reviews.filter(review => String(review?.id) !== reviewId);
-    await store.query('studio_data', {op:'update',payload:{data:root},filters:ownerFilter});
+    if (typeof store.backupStudioData === 'function') await store.backupStudioData(studio,'before_review_delete');
+    const updated = await store.query('studio_data', {op:'update',payload:{data:root},filters:ownerFilter,expected_updated_at:studio.updated_at,single:true});
+    if (!updated) {
+      const error = new Error('توجد نسخة أحدث من البيانات. أعد المحاولة.');
+      error.code = 'stale_snapshot_blocked';
+      throw error;
+    }
   }
   for (const row of publicMatches) await store.query('public_reviews', {op:'delete',filters:[...ownerFilter,{op:'eq',column:'id',value:row.id}]});
   for (const row of queueMatches) await store.query('review_queue', {op:'delete',filters:[...ownerFilter,{op:'eq',column:'id',value:row.id}]});
@@ -493,6 +542,7 @@ function seedDb() {
     ordo_users: [],
     ordo_sessions: [],
     studio_data: [],
+    studio_data_versions: [],
     user_settings: [],
     serial_keys: [],
     subscription_plans: [
@@ -639,6 +689,23 @@ function enforceAccess(table, input, user) {
 }
 
 class LocalStore {
+  async backupStudioData(row, reason = 'before_write') {
+    if (!row?.user_id || row.data === undefined) return;
+    const db = await readLocalDb();
+    db.studio_data_versions = db.studio_data_versions || [];
+    db.studio_data_versions.push({
+      id: uuid(), user_id: row.user_id, data: row.data,
+      source_updated_at: row.updated_at || null, reason, created_at: now()
+    });
+    const own = db.studio_data_versions
+      .filter(item => String(item.user_id) === String(row.user_id))
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    const keep = new Set(own.slice(0, 20).map(item => item.id));
+    db.studio_data_versions = db.studio_data_versions.filter(item =>
+      String(item.user_id) !== String(row.user_id) || keep.has(item.id)
+    );
+    await writeLocalDb(db);
+  }
   async chatMediaFiles(userId) {
     const db=await readLocalDb();
     return (db.public_client_portal_events||[]).filter(row=>String(row.user_id)===String(userId)).filter(row=>{const data=parseMaybe(row.data)||{};return data.event_type==='portal_chat'&&data.event_data?.attachment;}).map(row=>{const data=parseMaybe(row.data);const file=data.event_data.attachment;return {id:row.id,client_id:data.client_id,kind:file.kind,name:file.name||'',bytes:Number(file.bytes||0),created_at:row.created_at};});
@@ -774,7 +841,7 @@ class LocalStore {
         db[key] = db[key].map(item => item.user_id === id
           ? { ...item, user_id:null, status:'unused', activated_at:null, expires_at:null, updated_at:now() }
           : item);
-      } else if (!['ordo_users', 'ordo_sessions'].includes(key)) {
+      } else if (!['ordo_users', 'ordo_sessions', 'studio_data_versions'].includes(key)) {
         db[key] = db[key].filter(item => item.user_id !== id);
       }
     }
@@ -876,9 +943,14 @@ class LocalStore {
         if (!row.created_at) row.created_at = now();
         const key = conflictKey(tableName);
         const index = rows.findIndex(item => String(item[key]) === String(row[key]));
-        if (input.op === 'upsert' && index >= 0) rows[index] = { ...rows[index], ...row };
-        else rows.push(row);
-        out.push(decodeJsonFields(row));
+        if (input.op === 'upsert' && index >= 0) {
+          if (tableName === 'studio_data' && input.expected_updated_at && String(rows[index].updated_at || '') !== String(input.expected_updated_at)) continue;
+          rows[index] = { ...rows[index], ...row };
+          out.push(decodeJsonFields(rows[index]));
+        } else {
+          rows.push(row);
+          out.push(decodeJsonFields(row));
+        }
       }
       await writeLocalDb(db);
       return input.single ? (out[0] || null) : out;
@@ -888,6 +960,7 @@ class LocalStore {
       const out = [];
       for (const row of rows) {
         if (!matches(row, filters)) continue;
+        if (tableName === 'studio_data' && input.expected_updated_at && String(row.updated_at || '') !== String(input.expected_updated_at)) continue;
         Object.assign(row, payload, { updated_at: now() });
         out.push(decodeJsonFields(row));
       }
@@ -921,7 +994,9 @@ async function makePostgresStore() {
   if (!postgresSchemaReady) {
     postgresSchemaReady = Promise.all([
       query('ALTER TABLE serial_keys ADD COLUMN IF NOT EXISTS note text, ADD COLUMN IF NOT EXISTS code_type text, ADD COLUMN IF NOT EXISTS price numeric(10,2) NOT NULL DEFAULT 0'),
-      query("ALTER TABLE ordo_users ADD COLUMN IF NOT EXISTS auth_provider text NOT NULL DEFAULT 'email', ADD COLUMN IF NOT EXISTS google_sub text DEFAULT ''")
+      query("ALTER TABLE ordo_users ADD COLUMN IF NOT EXISTS auth_provider text NOT NULL DEFAULT 'email', ADD COLUMN IF NOT EXISTS google_sub text DEFAULT ''"),
+      query("CREATE TABLE IF NOT EXISTS studio_data_versions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, data jsonb NOT NULL, source_updated_at timestamptz, reason text NOT NULL DEFAULT 'before_write', created_at timestamptz NOT NULL DEFAULT now())"),
+      query('CREATE INDEX IF NOT EXISTS idx_studio_data_versions_user_created ON studio_data_versions (user_id, created_at DESC)')
     ])
       .catch(error => {
         postgresSchemaReady = null;
@@ -930,6 +1005,17 @@ async function makePostgresStore() {
   }
   await postgresSchemaReady;
   return {
+    async backupStudioData(row, reason = 'before_write') {
+      if (!row?.user_id || row.data === undefined) return;
+      await query(
+        'INSERT INTO studio_data_versions (user_id,data,source_updated_at,reason) VALUES ($1,$2,$3,$4)',
+        [row.user_id, typeof row.data === 'string' ? row.data : JSON.stringify(row.data), row.updated_at || null, reason]
+      );
+      await query(
+        'DELETE FROM studio_data_versions WHERE user_id=$1 AND id NOT IN (SELECT id FROM studio_data_versions WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20)',
+        [row.user_id]
+      );
+    },
     async chatMediaFiles(userId) {
       const rows=await query("SELECT id, created_at, data::jsonb #>> '{client_id}' AS client_id, data::jsonb #>> '{event_data,attachment,kind}' AS kind, data::jsonb #>> '{event_data,attachment,name}' AS name, data::jsonb #>> '{event_data,attachment,bytes}' AS bytes FROM public_client_portal_events WHERE user_id=$1 AND data::jsonb #>> '{event_type}'='portal_chat' AND data::jsonb #>> '{event_data,attachment,kind}' IS NOT NULL ORDER BY created_at DESC LIMIT 500",[userId]);
       return rows.map(row=>({...row,bytes:Number(row.bytes||0)}));
@@ -1122,6 +1208,10 @@ async function makePostgresStore() {
             const key = conflictKey(tableName);
             const updates = keys.filter(col => col !== key).map(col => `${col}=EXCLUDED.${col}`).join(',');
             text += ` ON CONFLICT (${key}) DO UPDATE SET ${updates || `${key}=EXCLUDED.${key}`}`;
+            if (tableName === 'studio_data' && input.expected_updated_at) {
+              values.push(input.expected_updated_at);
+              text += ` WHERE studio_data.updated_at = $${values.length}`;
+            }
           }
           text += ' RETURNING *';
           const rows = await query(text, values);
@@ -1134,6 +1224,10 @@ async function makePostgresStore() {
         const keys = Object.keys(payload).filter(key => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key));
         const values = keys.map(key => payload[key]);
         const sets = keys.map((key, i) => `${key}=$${i + 1}`);
+        if (tableName === 'studio_data' && input.expected_updated_at) {
+          params.push(input.expected_updated_at);
+          where.push(`updated_at = $${params.length}`);
+        }
         const shiftedWhere = where.map(clause => clause.replace(/\$(\d+)/g, (_, n) => `$${Number(n) + values.length}`));
         if (!keys.includes('updated_at')) sets.push('updated_at=NOW()');
         const setClause = sets.join(',');
@@ -1614,7 +1708,7 @@ export default async function handler(req, res) {
     if (postAction === 'reviews.recover_shared_token') {
       const { user } = await currentUser(req, store);
       if (!user) return fail(res, 'Login required', 401, 'login_required');
-      const studio = await store.query('studio_data', {op:'select',columns:'user_id,data',filters:[{op:'eq',column:'user_id',value:user.id}],single:true});
+      const studio = await store.query('studio_data', {op:'select',columns:'user_id,data,updated_at',filters:[{op:'eq',column:'user_id',value:user.id}],single:true});
       const root = parseMaybe(studio?.data) || {};
       let current = root;
       for (let i = 0; i < 4 && current && typeof current === 'object' && !Array.isArray(current.public_tokens) && current.data; i++) {
@@ -1642,7 +1736,9 @@ export default async function handler(req, res) {
         current.reviews = Array.isArray(current.reviews) ? current.reviews : [];
         const studioSeen = new Set(current.reviews.map(review => String(review?.id || '')));
         for (const review of recovered) if (!studioSeen.has(String(review.id))) current.reviews.push(review);
-        await store.query('studio_data', {op:'update',payload:{data:root,updated_at:now()},filters:[{op:'eq',column:'user_id',value:user.id}]});
+        if (typeof store.backupStudioData === 'function') await store.backupStudioData(studio,'before_review_recovery');
+        const updated = await store.query('studio_data', {op:'update',payload:{data:root,updated_at:now()},filters:[{op:'eq',column:'user_id',value:user.id}],expected_updated_at:studio.updated_at,single:true});
+        if (!updated) return fail(res,'توجد نسخة أحدث من البيانات. أعد المحاولة.',409,'stale_snapshot_blocked');
       }
       return ok(res, {reviews:recovered});
     }
@@ -1690,6 +1786,9 @@ export default async function handler(req, res) {
       const userId = String(input.user_id || '');
       if (!userId) return fail(res, 'User is required');
       if (userId === user.id) return fail(res, 'لا يمكن للمشرف حذف حسابه الحالي', 400, 'cannot_delete_self');
+      if (input.confirm_destructive !== true) return fail(res, 'تأكيد الحذف النهائي مطلوب', 409, 'destructive_confirmation_required');
+      const currentStudio = await store.query('studio_data',{op:'select',columns:'user_id,data,updated_at',filters:[{op:'eq',column:'user_id',value:userId}],single:true},user);
+      if (currentStudio && typeof store.backupStudioData === 'function') await store.backupStudioData(currentStudio,'before_account_delete');
       const deleted = await store.adminDeleteUser(userId);
       if (!deleted) return fail(res, 'المستخدم غير موجود', 404, 'user_not_found');
       return ok(res, { deleted:true });
@@ -1769,10 +1868,24 @@ export default async function handler(req, res) {
       if (table !== 'profiles' && !TABLES.has(table)) return fail(res, `Table is not available: ${table}`, 400, 'table_not_allowed');
       const accessError = enforceAccess(table, input, user);
       if (accessError) return fail(res, accessError.message, accessError.status, accessError.code);
+      const studioWriteCurrents = [];
+      if (table === 'studio_data' && input.op === 'delete') {
+        if (input.confirm_destructive !== true) return fail(res, 'تأكيد الحذف النهائي مطلوب', 409, 'destructive_confirmation_required');
+        const targetUserId = String(
+          input.filters.find(filter => filter.op === 'eq' && filter.column === 'user_id')?.value || user?.id || ''
+        );
+        if (targetUserId) {
+          const current = await store.query('studio_data', {
+            op:'select', columns:'user_id,data,updated_at',
+            filters:[{op:'eq',column:'user_id',value:targetUserId}], single:true
+          }, user);
+          if (current) studioWriteCurrents.push(current);
+        }
+      }
       if (table === 'studio_data' && ['insert','upsert','update'].includes(input.op)) {
         const rows = (Array.isArray(input.payload) ? input.payload : [input.payload]).filter(Boolean);
         for (const row of rows) {
-          if (row.data === undefined || studioCoreRecordCount(row.data) !== 0) continue;
+          if (row.data === undefined) continue;
           const targetUserId = String(
             row.user_id ||
             input.filters.find(filter => filter.op === 'eq' && filter.column === 'user_id')?.value ||
@@ -1780,11 +1893,18 @@ export default async function handler(req, res) {
           );
           if (!targetUserId) continue;
           const current = await store.query('studio_data', {
-            op:'select', columns:'data',
+            op:'select', columns:'user_id,data,updated_at',
             filters:[{op:'eq',column:'user_id',value:targetUserId}], single:true
           }, user);
-          if (shouldBlockEmptyStudioOverwrite(current?.data, row.data, input.allow_empty_overwrite === true)) {
-            return fail(res, 'تم منع استبدال بيانات الحساب بنسخة فارغة.', 409, 'empty_snapshot_blocked');
+          if (current && !studioWriteCurrents.some(item => String(item.user_id) === String(current.user_id))) studioWriteCurrents.push(current);
+          const explicitlyAllowed = input.allow_destructive_overwrite === true || input.allow_empty_overwrite === true;
+          const risk = studioOverwriteRisk(current?.data, row.data, explicitlyAllowed);
+          if (risk) return fail(res, risk.message, 409, risk.code);
+          if (current && !user?.is_admin) {
+            const expected = String(input.expected_updated_at || '');
+            if (!expected || expected !== String(current.updated_at || '')) {
+              return fail(res, 'توجد نسخة أحدث من البيانات. تم منع الكتابة فوقها.', 409, 'stale_snapshot_blocked');
+            }
           }
         }
       }
@@ -1805,7 +1925,15 @@ export default async function handler(req, res) {
       if (!user && table === 'subscription_requests' && ['insert','upsert'].includes(input.op) && imageBytes(input.payload) > 2 * 1024 * 1024) {
         return fail(res, 'حجم صورة الإيصال كبير جداً', 413, 'image_too_large');
       }
+      if (studioWriteCurrents.length && typeof store.backupStudioData === 'function') {
+        const reason = input.op === 'delete' ? 'before_delete' : (input.allow_destructive_overwrite ? 'confirmed_destructive_write' : 'before_write');
+        for (const current of studioWriteCurrents) await store.backupStudioData(current, reason);
+      }
       const data = await store.query(table, input, user);
+      if (table === 'studio_data' && studioWriteCurrents.length && input.expected_updated_at) {
+        const written = Array.isArray(data) ? data.find(Boolean) : data;
+        if (!written) return fail(res, 'توجد نسخة أحدث من البيانات. تم منع الكتابة فوقها.', 409, 'stale_snapshot_blocked');
+      }
       if (table === 'platform_settings' && input.op === 'select' && !user?.is_admin) {
         const publicRow = row => {
           if(!row) return row;
@@ -1824,9 +1952,9 @@ export default async function handler(req, res) {
 
     return fail(res, 'Unknown action', 404, 'unknown_action');
   } catch (error) {
-    const status = error.code === 'email_exists' ? 409 : 500;
+    const status = ['email_exists','stale_snapshot_blocked'].includes(error.code) ? 409 : 500;
     return fail(res, error.message || 'Server error', status, error.code || 'server_error');
   }
 }
 
-export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo, portalChatAccess, portalChatAttachment, portalChatPublicRow, financeFeatureAccess, parseBehanceMetadata, validatedBehanceUrl, behanceProjectId, behanceCoverFromEmbed, studioCoreRecordCount, shouldBlockEmptyStudioOverwrite };
+export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo, portalChatAccess, portalChatAttachment, portalChatPublicRow, financeFeatureAccess, parseBehanceMetadata, validatedBehanceUrl, behanceProjectId, behanceCoverFromEmbed, studioCoreRecordCount, shouldBlockEmptyStudioOverwrite, studioOverwriteRisk };

@@ -20,7 +20,7 @@ if (window.location.protocol === 'file:') {
 .fa-regular{font-weight:400!important}
 </style>
 <script src="../JavaScript/config.js?v=vercel-1"></script>
-<script src="../JavaScript/vercel_backend.js?v=admin-permissions-3"></script>
+<script src="../JavaScript/vercel_backend.js?v=data-safety-48"></script>
 <style>
 :root {
   --bg:       #07080f;
@@ -8102,7 +8102,7 @@ async function bulkDeleteUsers() {
         .eq('user_id', uid);
 
       // 2. مسح admin_subscription من studio_data ثم الحذف
-      const { error } = await supa.from('studio_data').delete().eq('user_id', uid);
+      const { error } = await supa.from('studio_data').delete({confirmDestructive:true}).eq('user_id', uid);
       if(!error) {
         delete ALL_STUDIO_DATA[uid];
         ALL_USERS = ALL_USERS ? ALL_USERS.filter(u => u.id !== uid) : ALL_USERS;

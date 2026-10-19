@@ -1,5 +1,15 @@
 {
   "version": 2,
+  "redirects": [
+    { "source": "/admin.html", "destination": "/admin", "permanent": true },
+    { "source": "/client-portal.html", "destination": "/HTML/client-portal.html", "permanent": true },
+    { "source": "/contract.html", "destination": "/HTML/contract.html", "permanent": true },
+    { "source": "/proposal.html", "destination": "/HTML/proposal.html", "permanent": true },
+    { "source": "/review.html", "destination": "/HTML/review.html", "permanent": true },
+    { "source": "/reviews-public.html", "destination": "/HTML/reviews-public.html", "permanent": true },
+    { "source": "/store.html", "destination": "/HTML/store.html", "permanent": true },
+    { "source": "/team.html", "destination": "/HTML/team.html", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/", "destination": "/HTML/landing.html" },
     { "source": "/home", "destination": "/HTML/landing.html" },
