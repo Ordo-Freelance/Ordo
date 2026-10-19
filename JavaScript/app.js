@@ -2434,7 +2434,7 @@ function removeLogo(variant){
   if(!S.settings.logoDark && !S.settings.logoLight) S.settings.logo='';
   lsSave();cloudSaveNow(S);_renderLogoPreviews();updateUserBadge(getSession()||{});
 }
-function clearAll(){if(confirm('سيتم مسح جميع البيانات! هل أنت متأكد؟')){const s=S.settings;S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],settings:s};lsSave();renderAll();}}
+function clearAll(){if(confirm('سيتم مسح جميع البيانات! هل أنت متأكد؟')){window._ordoAllowEmptyCloudOverwrite=true;const s=S.settings;S={tasks:[],clients:[],transactions:[],invoices:[],goals:[],schedule:[],settings:s};lsSave();renderAll();}}
 
 function getAllTasksIncludingArchived(){
   var active = Array.isArray(S.tasks) ? S.tasks : [];

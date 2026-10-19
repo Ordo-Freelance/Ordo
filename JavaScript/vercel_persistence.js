@@ -37,6 +37,14 @@
     return data;
   }
 
+  function coreRecordCount(data){
+    data=data||{};
+    return [
+      'tasks','clients','invoices','transactions','projects','project_tasks',
+      'services','portfolio_projects','brief_forms','contracts'
+    ].reduce(function(total,key){return total+(Array.isArray(data[key])?data[key].length:0);},0);
+  }
+
   function uid(){
     return root._supaUserId || (function(){
       try {
@@ -140,6 +148,8 @@
       if(res.error) throw res.error;
       root._ordoCloudLoadedFromServer = true;
       var remote = res && res.data ? normalize(res.data.data) : null;
+      root._ordoServerCoreCount = coreRecordCount(remote);
+      root._ordoLastServerSnapshot = remote ? JSON.parse(JSON.stringify(remote)) : null;
       if(remote && res.data.updated_at && !remote.updated_at) remote.updated_at = res.data.updated_at;
       var local = readCache();
       if(remote && local && JSON.stringify(remote) !== JSON.stringify(local)) {
@@ -173,6 +183,25 @@
     root._lastCloudSaveOk=false;
     root._lastCloudSaveError=null;
     if(!userId || !db || !root._ordoCloudLoadedFromServer) return root.S;
+    var nextCoreCount=coreRecordCount(root.S);
+    var previousCoreCount=Number(root._ordoServerCoreCount||0);
+    var allowEmptyOverwrite=root._ordoAllowEmptyCloudOverwrite===true;
+    if(!allowEmptyOverwrite && previousCoreCount>=1 && nextCoreCount===0){
+      var protectedSnapshot=root._ordoLastServerSnapshot;
+      if(protectedSnapshot){
+        root.S=normalize(JSON.parse(JSON.stringify(protectedSnapshot)));
+        writeCache(root.S);
+      }
+      var protectionError={
+        code:'empty_snapshot_blocked',
+        message:'تم منع حفظ نسخة فارغة فوق بيانات الحساب. أعد تحميل الصفحة لاسترجاع آخر نسخة سليمة.'
+      };
+      root._lastCloudSaveError=protectionError;
+      if(root.showSyncIndicator) root.showSyncIndicator('<i class="fa-solid fa-shield-halved"></i> تم منع حفظ نسخة فارغة', '#f7c948');
+      if(root.toast) root.toast(protectionError.message);
+      return root.S;
+    }
+    if(allowEmptyOverwrite) root._ordoAllowEmptyCloudOverwrite=false;
     try {
       var result = await db.from('studio_data').upsert({
         user_id:userId,
@@ -187,6 +216,8 @@
         lastPublishedFingerprint = publicFingerprint;
       }
       lastSavedFingerprint = contentFingerprint;
+      root._ordoServerCoreCount = nextCoreCount;
+      root._ordoLastServerSnapshot = JSON.parse(JSON.stringify(root.S));
       root._lastCloudSaveOk=true;
       if(root.showSyncIndicator) root.showSyncIndicator('<i class="fa-solid fa-square-check" style="color:var(--accent3)"></i> محفوظ', '#4fd1a5');
     } catch(e) {
