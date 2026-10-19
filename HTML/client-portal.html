@@ -915,6 +915,22 @@ const scMap={done:'badge-done',مكتملة:'badge-done',مكتمل:'badge-done'
 function _isTaskDone(t){ return t.done||t.status==='done'||t.status==='مكتمل'||t.status==='مكتملة'; }
 function _isTaskActive(t){ return !_isTaskDone(t)&&t.status!=='paused'&&t.status!=='موقوف'&&t.status!=='موقوفة'; }
 
+function _portalTaskDeliveryUrl(task){
+  if(!task)return'';
+  const direct=task.projectLink||task.driveLink||task.deliveryLink||task.delivery_url||task.fileUrl||task.file_url||'';
+  if(direct)return direct;
+  const projectId=task.project_id||task.projectId||'';
+  const projects=_ud?.projects||[];
+  const project=projects.find(item=>String(item.id)===String(projectId));
+  const parentId=project?.parentProjectId||project?.parent_project_id||'';
+  const parent=parentId?projects.find(item=>String(item.id)===String(parentId)):null;
+  const projectLink=project?.projectLink||project?.driveLink||project?.deliveryLink||project?.delivery_url||project?.fileUrl||project?.file_url||'';
+  const parentLink=parent?.projectLink||parent?.driveLink||parent?.deliveryLink||parent?.delivery_url||parent?.fileUrl||parent?.file_url||'';
+  return projectLink||parentLink||'';
+}
+
+function _portalTaskCanReview(task){return _isTaskDone(task)||!!_portalTaskDeliveryUrl(task)||!!task?.clientReceived;}
+
 function _portalTaskProjectContext(task){
   const projectId=task?.project_id||task?.projectId||'';
   if(!projectId)return null;
@@ -1009,6 +1025,8 @@ function renderTasks(){
         const lbl=stMap[st]||stMap[t.status]||st;
         const payStatus=t.pay||'none';
         const projectTrail=_portalTaskProjectTrail(t,acc);
+        const deliveryLink=_portalTaskDeliveryUrl(t);
+        const canReview=_portalTaskCanReview(t);
         return`<div class="card" style="cursor:pointer;border-right:3px solid ${_isTaskDone(t)?'var(--g)':_isTaskActive(t)?acc:'var(--r)'}" onclick="openTask('${xe(String(t.id))}')">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap">
             <div style="flex:1;min-width:0">
@@ -1029,14 +1047,15 @@ function renderTasks(){
             </div>
             <span style="font-size:11px;color:${acc};font-weight:700">التفاصيل ←</span>
           </div>
-          ${_isTaskDone(t)?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          ${(deliveryLink||canReview)?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            ${deliveryLink?`<button onclick="event.stopPropagation();openPortalDeliveryPreview('${xe(String(t.id))}')" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.12);color:var(--g);border:1.5px solid rgba(79,209,165,.35);border-radius:8px;padding:6px 12px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer"><i class="fa-solid fa-eye"></i> معاينة التسليم</button>`:''}
             ${_getTaskReview(t.id)?`<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--g)"><i class="fa-solid fa-star"></i> قيّمت هذا الطلب — شكراً!</div>`
-            :`<button onclick="event.stopPropagation();openReviewSheet('${xe(String(t.id))}','${xe(String(t.title||t.name||'طلب'))}')" style="display:flex;align-items:center;gap:6px;background:rgba(247,201,72,.12);color:var(--y);border:1.5px solid rgba(247,201,72,.35);border-radius:8px;padding:6px 12px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer"><i class="fa-solid fa-star"></i> قيّم الطلب</button>`}
-            ${(t.projectLink||t.driveLink)&&!t.clientReceived?
+            :`<button onclick="event.stopPropagation();openReviewSheet('${xe(String(t.id))}','${xe(String(t.title||t.name||'مهمة'))}')" style="display:flex;align-items:center;gap:6px;background:rgba(247,201,72,.12);color:var(--y);border:1.5px solid rgba(247,201,72,.35);border-radius:8px;padding:6px 12px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer"><i class="fa-solid fa-star"></i> قيّم المهمة</button>`}
+            ${deliveryLink&&!t.clientReceived?
               `<button onclick="event.stopPropagation();_openReceiveProjectSheet('${xe(String(t.id))}')" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.15);color:var(--g);border:1.5px solid rgba(79,209,165,.4);border-radius:8px;padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer;animation:pulse-green 2s infinite"><i class="fa-solid fa-handshake"></i> استلام المهمة</button>`
-            : !t.clientReceived
+            : _isTaskDone(t)&&!t.clientReceived
               ? `<button onclick="event.stopPropagation();_openReceiveProjectSheet('${xe(String(t.id))}')" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.08);color:var(--g);border:1.5px solid rgba(79,209,165,.25);border-radius:8px;padding:6px 14px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer"><i class="fa-solid fa-handshake"></i> استلام المهمة</button>`
-              : `<span style="font-size:11px;color:var(--g);display:flex;align-items:center;gap:5px"><i class="fa-solid fa-circle-check"></i> تم الاستلام</span>`
+              : t.clientReceived?`<span style="font-size:11px;color:var(--g);display:flex;align-items:center;gap:5px"><i class="fa-solid fa-circle-check"></i> تم الاستلام</span>`:''
             }
             ${t.clientReceived&&!t.clientRevisionRequested?
               `<button onclick="event.stopPropagation();_openRevisionSheet('${xe(String(t.id))}','${xe(String(t.title||t.name||'طلب'))}')" style="display:flex;align-items:center;gap:6px;background:rgba(249,115,22,.1);color:#f97316;border:1.5px solid rgba(249,115,22,.3);border-radius:8px;padding:5px 12px;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer"><i class="fa-solid fa-rotate-left"></i> طلب تعديل</button>`
@@ -1828,10 +1847,10 @@ function openPortalRecurringProjectDetail(parent){
     const tasks=_portalProjectTasks(project.id);
     if(!tasks.length)return'<div style="padding:14px;text-align:center;color:var(--t3);font-size:12px">لا توجد مهام في هذا الشهر</div>';
     return tasks.map(task=>{
-      const done=task.done||['done','مكتملة'].includes(task.status),link=task.projectLink||task.driveLink||'';
+      const done=task.done||['done','مكتملة'].includes(task.status),link=_portalTaskDeliveryUrl(task);
       return '<article class="portal-month-task-card" onclick="openTask(\''+xe(String(task.id))+'\')" style="padding:12px 13px;background:var(--s3);border:1px solid var(--bd);border-right:3px solid '+(done?'var(--g)':clr)+';border-radius:12px;margin-top:8px;cursor:pointer;transition:.18s">'+
         '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px"><div><b style="font-size:12px">'+xe(task.title||'مهمة')+'</b>'+(task.desc?'<p style="font-size:10px;color:var(--t3);line-height:1.6;margin:4px 0 0">'+xe(task.desc)+'</p>':'')+'</div><span style="font-size:9px;font-weight:800;white-space:nowrap;color:'+(done?'var(--g)':'var(--y)')+'">'+(done?'✓ مكتملة':'قيد التنفيذ')+'</span></div>'+
-        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding-top:8px;border-top:1px solid var(--bd)"><div>'+(task.value?'<small style="color:'+clr+';font-weight:800">'+_money(task.value,task)+'</small>':'')+'</div><div style="display:flex;gap:8px;align-items:center">'+(link?'<a href="'+xe(link)+'" onclick="event.stopPropagation()" target="_blank" rel="noopener noreferrer" style="font-size:10px;color:var(--g);font-weight:800;text-decoration:none"><i class="fa-solid fa-arrow-up-right-from-square"></i> تسليم المهمة</a>':'')+'<span style="font-size:10px;color:var(--ac);font-weight:800">التفاصيل ←</span></div></div></article>';
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding-top:8px;border-top:1px solid var(--bd)"><div>'+(task.value?'<small style="color:'+clr+';font-weight:800">'+_money(task.value,task)+'</small>':'')+'</div><div style="display:flex;gap:8px;align-items:center">'+(link?'<button type="button" data-task-id="'+xe(String(task.id))+'" onclick="event.stopPropagation();openPortalDeliveryPreview(this.dataset.taskId)" style="font-size:10px;color:var(--g);font-weight:800;background:none;border:0;font-family:var(--font);cursor:pointer"><i class="fa-solid fa-eye"></i> معاينة التسليم</button>':'')+'<span style="font-size:10px;color:var(--ac);font-weight:800">التفاصيل ←</span></div></div></article>';
     }).join('');
   };
   const monthsHtml=periods.map((period,index)=>{
@@ -1870,7 +1889,7 @@ function openProjectDetail(projId){
     const isDone=!!t.done||['done','مكتملة'].includes(t.status);
     const tC=isDone?'var(--g)':tStColorMap[t.status]||'var(--t3)';
     const tL=isDone?'✓ مكتمل':tStLabelMap[t.status]||t.status||'';
-    const link=t.projectLink||t.driveLink||'';
+    const link=_portalTaskDeliveryUrl(t);
     const taskCost=+t.value||0;
     return`<div class="portal-project-task-card" style="border:1px solid var(--bd);border-right:3px solid ${tC};border-radius:14px;overflow:hidden;margin-bottom:10px">
       <div onclick="openTask('${xe(String(t.id))}')" style="padding:12px 14px;background:var(--s2);cursor:pointer">
@@ -1884,10 +1903,10 @@ function openProjectDetail(projId){
         ${t.assignee_name?`<div style="font-size:11px;color:var(--t3)"><i class="fa-solid fa-user" style="color:${clr}"></i> ${xe(t.assignee_name)}</div>`:''}
         ${t.desc?`<div style="font-size:11px;color:var(--t3);margin-top:4px;line-height:1.5">${xe(t.desc)}</div>`:''}
       </div>
-      ${isDone?`<div style="padding:10px 14px;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:8px">
-        ${link?`<a href="${xe(link)}" target="_blank" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.1);color:var(--g);border:1px solid rgba(79,209,165,.3);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:12px;font-weight:800;text-decoration:none"><i class="fa-solid fa-box-open"></i> فتح تسليم المهمة</a>`:''}
+      ${(isDone||link||t.clientReceived)?`<div style="padding:10px 14px;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:8px">
+        ${link?`<button type="button" data-tid="${xe(String(t.id))}" onclick="openPortalDeliveryPreview(this.dataset.tid)" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.1);color:var(--g);border:1px solid rgba(79,209,165,.3);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer"><i class="fa-solid fa-eye"></i> معاينة تسليم المهمة</button>`:''}
         ${_getTaskReview(t.id)?`<div style="font-size:11px;color:var(--y);display:flex;align-items:center;gap:5px;padding:6px 0"><i class="fa-solid fa-star"></i> تم تقييم المهمة</div>`:`<button data-tid="${xe(String(t.id))}" data-ttl="${xe(t.title||'مهمة')}" onclick="openReviewSheet(this.dataset.tid,this.dataset.ttl)" style="display:flex;align-items:center;gap:6px;background:rgba(247,201,72,.12);color:var(--y);border:1.5px solid rgba(247,201,72,.35);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer"><i class="fa-solid fa-star"></i> قيّم المهمة</button>`}
-        ${!t.clientReceived?`<button data-tid="${xe(String(t.id))}" onclick="_openReceiveProjectSheet(this.dataset.tid)" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.12);color:var(--g);border:1.5px solid rgba(79,209,165,.35);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer${link?';animation:pulse-green 2s infinite':''}"><i class="fa-solid fa-handshake"></i> استلام المهمة</button>`
+        ${!t.clientReceived&&(isDone||link)?`<button data-tid="${xe(String(t.id))}" onclick="_openReceiveProjectSheet(this.dataset.tid)" style="display:flex;align-items:center;gap:6px;background:rgba(79,209,165,.12);color:var(--g);border:1.5px solid rgba(79,209,165,.35);border-radius:8px;padding:8px 12px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer${link?';animation:pulse-green 2s infinite':''}"><i class="fa-solid fa-handshake"></i> استلام المهمة</button>`
         :`<div style="font-size:11px;color:var(--g);display:flex;align-items:center;gap:5px;padding:6px 0"><i class="fa-solid fa-circle-check"></i> تم الاستلام</div>`}
         ${t.clientReceived&&!t.clientRevisionRequested?`<button data-tid="${xe(String(t.id))}" data-ttl="${xe(t.title||'')}" onclick="_openRevisionSheet(this.dataset.tid,this.dataset.ttl)" style="display:flex;align-items:center;gap:6px;background:rgba(249,115,22,.1);color:#f97316;border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:7px 12px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer"><i class="fa-solid fa-rotate-left"></i> طلب تعديل</button>`:''}
         ${t.clientRevisionRequested?`<div style="font-size:11px;color:#f97316;display:flex;align-items:center;gap:5px;padding:6px 0"><i class="fa-solid fa-rotate-left"></i> تم إرسال طلب التعديل</div>`:''}
@@ -1981,6 +2000,32 @@ function portalDrivePreviewUrl(value){
     }
   }catch(error){}
   return '';
+}
+function _portalFindTask(taskId){
+  return [...(_ud?.tasks||[]),...(_ud?.project_tasks||[]),...(_ud?.team_tasks||[])].find(item=>String(item.id)===String(taskId));
+}
+function closePortalDeliveryPreview(){
+  const overlay=document.getElementById('portal-delivery-preview-overlay');if(!overlay)return;
+  if(overlay.dataset.objectUrl)URL.revokeObjectURL(overlay.dataset.objectUrl);overlay.remove();
+}
+function openPortalDeliveryPreview(taskId){
+  const task=_portalFindTask(taskId),source=_portalTaskDeliveryUrl(task);if(!task||!source)return;
+  closePortalDeliveryPreview();
+  const drivePreview=portalDrivePreviewUrl(source);
+  const isDataPdf=/^data:application\/pdf;base64,/i.test(source);
+  const isImage=/^data:image\//i.test(source)||/\.(png|jpe?g|webp|gif|svg|avif)(?:[?#].*)?$/i.test(source);
+  let objectUrl='',previewUrl=drivePreview||source;
+  if(isDataPdf){try{objectUrl=portalBriefPdfBlob(source)||source;previewUrl=objectUrl;}catch(error){previewUrl=source;}}
+  const overlay=document.createElement('div');overlay.className='overlay portal-pdf-overlay';overlay.id='portal-delivery-preview-overlay';
+  overlay.dataset.objectUrl=objectUrl.startsWith('blob:')?objectUrl:'';overlay.onclick=event=>{if(event.target===overlay)closePortalDeliveryPreview();};
+  const media=(!drivePreview&&isImage)
+    ?'<div style="height:100%;overflow:auto;background:#0a0d18;display:grid;place-items:center;padding:18px"><img src="'+xe(previewUrl)+'" alt="معاينة التسليم" style="display:block;max-width:100%;max-height:100%;object-fit:contain;border-radius:10px"/></div>'
+    :'<iframe class="portal-pdf-frame" src="'+xe(previewUrl)+'" title="معاينة التسليم" allow="autoplay; fullscreen"></iframe>';
+  const download=isDataPdf||/^data:image\//i.test(source)
+    ?'<a class="portal-pdf-download" href="'+xe(previewUrl)+'" download="'+xe((task.title||'delivery').replace(/[\\/:*?\"<>|]/g,'-')+(isDataPdf?'.pdf':'.png'))+'"><i class="fa-solid fa-download"></i> تحميل</a>'
+    :'';
+  overlay.innerHTML='<div class="portal-pdf-dialog" role="dialog" aria-modal="true" aria-label="معاينة تسليم المهمة"><div class="portal-pdf-head"><strong><i class="fa-solid fa-box-open" style="color:var(--g)"></i> '+xe(task.title||task.name||'تسليم المهمة')+'</strong><div class="portal-pdf-actions">'+download+'<button type="button" class="portal-pdf-close" onclick="closePortalDeliveryPreview()" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div></div>'+media+'</div>';
+  document.body.appendChild(overlay);
 }
 function closePortalDrivePreview(){document.getElementById('portal-drive-preview-overlay')?.remove();}
 function openPortalDrivePreview(formId,referenceIndex){
@@ -2366,6 +2411,8 @@ function openTask(taskId, fromUrl){
   const prog=steps.length?Math.round(doneSteps/steps.length*100):(t.done?100:0);
   const acc=_settings?.accent||_settings?.accentColor||'#7c6ff7';
   const projectTrail=_portalTaskProjectTrail(t,acc);
+  const deliveryLink=_portalTaskDeliveryUrl(t);
+  const canReview=_portalTaskCanReview(t);
 
   const stMap={new:'جديد',progress:'قيد التنفيذ',review:'مراجعة',revision:'تعديلات',done:'مكتمل',paused:'موقوف',مكتملة:'مكتمل','قيد التنفيذ':'قيد التنفيذ',جديد:'جديد',موقوفة:'موقوف'};
   const scMap={done:'badge-done',مكتملة:'badge-done',مكتمل:'badge-done',progress:'badge-prog','قيد التنفيذ':'badge-prog',review:'badge-prog',revision:'badge-pend',new:'badge-pend',جديد:'badge-pend',paused:'badge-stop',موقوفة:'badge-stop',موقوف:'badge-stop'};
@@ -2453,27 +2500,27 @@ function openTask(taskId, fromUrl){
     </div>`:''}
 
     <!-- تسليم المهمة وتقييمها وطلب تعديل -->
-    ${(t.done||t.status==='done')?`<div style="padding-top:14px;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:10px">
-      <!-- رابط التسليم — يظهر دائماً للمهام المكتملة -->
-      ${(t.projectLink||t.driveLink)?`
+    ${canReview?`<div style="padding-top:14px;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:10px">
+      <!-- رابط التسليم — يظهر بمجرد إضافته حتى لو كانت المهمة قيد التنفيذ -->
+      ${deliveryLink?`
       <div style="background:rgba(79,209,165,.07);border:1.5px solid rgba(79,209,165,.3);border-radius:14px;padding:14px">
         <div style="font-size:12px;font-weight:800;color:var(--g);margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-box-open"></i> تسليم المهمة جاهز</div>
-        <a href="${xe(t.projectLink||t.driveLink)}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(79,209,165,.15);color:var(--g);border:1.5px solid rgba(79,209,165,.4);border-radius:10px;padding:12px;font-family:var(--font);font-size:14px;font-weight:800;text-decoration:none">
-          <i class="fa-solid fa-external-link-alt"></i> فتح رابط التسليم
-        </a>
+        <button type="button" data-tid="${xe(String(t.id))}" onclick="openPortalDeliveryPreview(this.dataset.tid)" style="display:flex;width:100%;align-items:center;justify-content:center;gap:8px;background:rgba(79,209,165,.15);color:var(--g);border:1.5px solid rgba(79,209,165,.4);border-radius:10px;padding:12px;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">
+          <i class="fa-solid fa-eye"></i> معاينة التسليم داخل البوابة
+        </button>
       </div>`:
-      `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:14px;text-align:center;color:var(--t3)">
+      _isTaskDone(t)?`<div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:14px;text-align:center;color:var(--t3)">
         <i class="fa-solid fa-clock" style="font-size:22px;display:block;margin-bottom:8px;color:var(--y)"></i>
         <div style="font-size:13px;font-weight:700;color:var(--t2);margin-bottom:4px">رابط التسليم قريباً</div>
         <div style="font-size:11px">سيُضاف رابط التسليم من فريق العمل قريباً</div>
-      </div>`
+      </div>`:''
       }
       ${_getTaskReview(t.id)?`<div style="display:flex;align-items:center;justify-content:center;gap:7px;padding:12px;background:rgba(247,201,72,.08);border:1px solid rgba(247,201,72,.25);border-radius:12px;font-size:12px;font-weight:800;color:var(--y)"><i class="fa-solid fa-star"></i> تم تقييم المهمة — شكراً لك</div>`:`<button onclick="document.getElementById('task-ov')?.remove();openReviewSheet('${xe(String(t.id))}','${xe(String(t.title||t.name||'مهمة'))}')" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(247,201,72,.12);color:var(--y);border:1.5px solid rgba(247,201,72,.35);border-radius:12px;padding:12px;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer"><i class="fa-solid fa-star"></i> قيّم المهمة</button>`}
       <!-- زرار الاستلام / مؤشر تم الاستلام -->
-      ${!t.clientReceived?`
-      <button data-tid="${xe(String(t.id))}" onclick="document.getElementById('task-ov')?.remove();_openReceiveProjectSheet('${xe(String(t.id))}')" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(79,209,165,.15);color:var(--g);border:2px solid rgba(79,209,165,.5);border-radius:12px;padding:13px;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;${t.projectLink||t.driveLink?'animation:pulse-green 2s infinite':''}">
-        <i class="fa-solid fa-handshake"></i> ${t.projectLink||t.driveLink?'تأكيد استلام المهمة':'استلام المهمة بدون رابط'}
-      </button>`:`<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:rgba(79,209,165,.1);border-radius:12px;font-size:13px;font-weight:700;color:var(--g)"><i class="fa-solid fa-circle-check"></i> تم تأكيد الاستلام</div>`}
+      ${!t.clientReceived&&(_isTaskDone(t)||deliveryLink)?`
+      <button data-tid="${xe(String(t.id))}" onclick="document.getElementById('task-ov')?.remove();_openReceiveProjectSheet('${xe(String(t.id))}')" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(79,209,165,.15);color:var(--g);border:2px solid rgba(79,209,165,.5);border-radius:12px;padding:13px;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;${deliveryLink?'animation:pulse-green 2s infinite':''}">
+        <i class="fa-solid fa-handshake"></i> ${deliveryLink?'تأكيد استلام المهمة':'استلام المهمة بدون رابط'}
+      </button>`:t.clientReceived?`<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:rgba(79,209,165,.1);border-radius:12px;font-size:13px;font-weight:700;color:var(--g)"><i class="fa-solid fa-circle-check"></i> تم تأكيد الاستلام</div>`:''}
       ${t.clientReceived&&!t.clientRevisionRequested?`
       <button data-tid="${xe(String(t.id))}" data-ttl="${xe(t.title||'')}" onclick="document.getElementById('task-ov')?.remove();_openRevisionSheet('${xe(String(t.id))}','${xe(String(t.title||t.name||'طلب'))}')" style="display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(249,115,22,.1);color:#f97316;border:1.5px solid rgba(249,115,22,.3);border-radius:12px;padding:12px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">
         <i class="fa-solid fa-rotate-left"></i> طلب تعديل
@@ -2697,12 +2744,9 @@ function switchTab(id){
 // استلام المشروع — العميل يستلم المشروع
 // ══════════════════════════════════════════════════════
 function _openReceiveProjectSheet(taskId){
-  const t=(_ud?.tasks||[]).find(x=>String(x.id)===String(taskId));
-  // Check project_tasks too
-  const pt=(_ud?.project_tasks||[]).find(x=>String(x.id)===String(taskId));
-  const task = t||pt;
+  const task=_portalFindTask(taskId);
   if(!task) return;
-  const link = task.projectLink||task.driveLink||'';
+  const link=_portalTaskDeliveryUrl(task);
   const acc=_settings?.accent||'#7c6ff7';
 
   const ov=document.createElement('div');ov.className='overlay';ov.id='receive-ov';
@@ -2716,9 +2760,9 @@ function _openReceiveProjectSheet(taskId){
     </div>
     ${link?`<div style="background:var(--s2);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:18px;text-align:center">
       <div style="font-size:12px;color:var(--t3);margin-bottom:10px">اضغط على الزر أدناه لعرض ملف التسليم</div>
-      <a href="${xe(link)}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:${acc};color:#fff;border:none;border-radius:12px;padding:12px 24px;font-family:var(--font);font-size:14px;font-weight:800;text-decoration:none">
-        <i class="fa-solid fa-external-link-alt"></i> فتح رابط التسليم
-      </a>
+      <button type="button" data-tid="${xe(String(taskId))}" onclick="openPortalDeliveryPreview(this.dataset.tid)" style="display:inline-flex;align-items:center;gap:8px;background:${acc};color:#fff;border:none;border-radius:12px;padding:12px 24px;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">
+        <i class="fa-solid fa-eye"></i> معاينة التسليم داخل البوابة
+      </button>
     </div>`:`<div style="background:var(--s2);border-radius:12px;padding:14px;text-align:center;margin-bottom:18px;color:var(--t3);font-size:13px">
       <i class="fa-solid fa-box-open" style="font-size:28px;display:block;margin-bottom:8px;color:var(--y)"></i>
       <div style="font-weight:700;color:var(--t2);margin-bottom:4px">لا يوجد رابط تسليم حتى الآن</div>
@@ -2753,15 +2797,15 @@ async function _confirmClientReceive(taskId){
 
     // Show success with project link
     const task = t||pt;
-    const link = task?.projectLink||task?.driveLink||'';
+    const link=_portalTaskDeliveryUrl(task);
     const ok=document.createElement('div');ok.className='overlay';ok.onclick=()=>{ok.remove();document.getElementById('tp-tasks').innerHTML=renderTasks();};
     ok.innerHTML=`<div class="sheet" style="max-height:60vh;text-align:center;padding:40px 20px">
       <div style="font-size:60px;margin-bottom:12px">✅</div>
       <div style="font-size:20px;font-weight:900;color:var(--t1);margin-bottom:8px">تم الاستلام بنجاح!</div>
       <div style="font-size:13px;color:var(--t3);line-height:1.8;margin-bottom:16px">تم تأكيد استلامك للمهمة وتم إشعار فريق العمل.<br>يمكنك طلب تعديل لاحقاً إذا احتجت.</div>
-      ${link?`<a href="${xe(link)}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:rgba(79,209,165,.15);color:var(--g);border:1.5px solid rgba(79,209,165,.4);border-radius:12px;padding:12px 20px;font-family:var(--font);font-size:14px;font-weight:800;text-decoration:none;margin-bottom:16px">
-        <i class="fa-solid fa-external-link-alt"></i> فتح رابط التسليم
-      </a>`:''}
+      ${link?`<button type="button" data-tid="${xe(String(taskId))}" onclick="this.closest('.overlay').remove();openPortalDeliveryPreview(this.dataset.tid)" style="display:inline-flex;align-items:center;gap:8px;background:rgba(79,209,165,.15);color:var(--g);border:1.5px solid rgba(79,209,165,.4);border-radius:12px;padding:12px 20px;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;margin-bottom:16px">
+        <i class="fa-solid fa-eye"></i> معاينة التسليم داخل البوابة
+      </button>`:''}
       <button onclick="this.closest('.overlay').remove();document.getElementById('tp-tasks').innerHTML=renderTasks();" style="display:block;width:100%;background:var(--g);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">تم ✓</button>
     </div>`;
     document.body.appendChild(ok);

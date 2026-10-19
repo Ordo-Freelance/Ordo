@@ -18,6 +18,11 @@ test('client project tasks expose task delivery, receipt and rating',()=>{
   assert.match(portal,/استلام المهمة/);
   assert.match(portal,/قيّم المهمة/);
   assert.match(portal,/تسليم المهمة جاهز/);
+  assert.match(portal,/function _portalTaskDeliveryUrl\(task\)/);
+  assert.match(portal,/function openPortalDeliveryPreview\(taskId\)/);
+  assert.match(portal,/معاينة التسليم داخل البوابة/);
+  assert.match(portal,/const canReview=_portalTaskCanReview\(t\)/);
+  assert.match(portal,/portalDrivePreviewUrl\(source\)/);
   assert.match(portal,/portal-month-task-card/);
   assert.match(portal,/onclick="openTask/);
 });
