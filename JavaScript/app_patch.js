@@ -3757,48 +3757,59 @@ function _cpModal(id,html){
 // ══ SECTION 1: تخصيص حقول فورم المهمة ══
 
 var _TF_FIELDS=[
-  {id:'t-client-group-wrap', label:'العميل / الجهة'},
-  {id:'t-type-row-wrap',     label:'نوع العمل ونوع المهمة'},
-  {id:'t-dates-row-wrap',    label:'تاريخ الطلب ووعد التسليم'},
-  {id:'t-priority-row-wrap', label:'الأولوية والحالة'},
-  {id:'t-value-row',         label:'قيمة المشروع وحالة الدفع'},
-  {id:'t-worker-section',    label:'من يعمل على المهمة'},
-  {id:'t-notes-row-wrap',    label:'الملاحظات'},
-  {id:'t-steps-section-wrap',label:'خطوات التنفيذ'},
-  {id:'t-brief-section-wrap',label:'تفاصيل المشروع'},
-  {id:'task-inv-opt',        label:'خيار إصدار فاتورة'},
+  {id:'_tt-kind-bar',             label:'نوع المهمة: عميل أو شخصية', group:'الأساسيات'},
+  {id:'t-title-client-row',       label:'اسم المهمة والعميل', group:'الأساسيات'},
+  {id:'t-client-visibility-wrap', label:'الظهور في بوابة العميل', group:'الأساسيات'},
+  {id:'t-project-linker',         label:'ربط المهمة بمشروع أو شهر', group:'الأساسيات'},
+  {id:'t-type-row-wrap',          label:'نوع العمل ونوع المهمة', group:'التنظيم'},
+  {id:'t-dates-row-wrap',         label:'تاريخ الطلب ووعد التسليم', group:'التنظيم'},
+  {id:'t-priority-row-wrap',      label:'الأولوية والحالة', group:'التنظيم'},
+  {id:'task-color-options',       label:'لون المهمة في التقويم', group:'التنظيم'},
+  {id:'t-value-row',              label:'القيمة والعملة وحالة الدفع', group:'المالية'},
+  {id:'t-worker-section',         label:'من يعمل على المهمة', group:'التفاصيل الإضافية'},
+  {id:'t-notes-row-wrap',         label:'الملاحظات', group:'التفاصيل الإضافية'},
+  {id:'t-steps-section-wrap',     label:'خطوات التنفيذ', group:'التفاصيل الإضافية'},
+  {id:'t-brief-section-wrap',     label:'البريف والتفاصيل المنسقة', group:'التفاصيل الإضافية'},
+  {id:'task-inv-opt',             label:'إصدار فاتورة بعد الحفظ', group:'المالية'},
 ];
 
 function _getTFPrefs(){
   var saved=_cpLoad('_tfPrefs',{});
-  return _TF_FIELDS.map(function(f){return{id:f.id,label:f.label,visible:saved[f.id]!==false};});
+  return _TF_FIELDS.map(function(f){return{id:f.id,label:f.label,group:f.group||'',visible:saved[f.id]!==false};});
 }
 
 function _applyTFPrefs(){
   _getTFPrefs().forEach(function(p){var el=document.getElementById(p.id);if(el)el.style.display=p.visible?'':'none';});
+  if(_currentTaskKind==='personal'){
+    ['t-client-group-wrap','t-client-visibility-wrap','t-project-linker','t-type-row-wrap','t-value-row','t-worker-section','task-inv-opt'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='none';});
+  }
 }
 
 function _openTFSettings(){
   var prefs=_getTFPrefs();
+  var lastGroup='';
   var rows=prefs.map(function(p){
-    return '<label style="display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:11px;background:var(--surface2);margin-bottom:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text)">'
+    var heading=p.group!==lastGroup?'<div class="tf-settings-group">'+p.group+'</div>':'';lastGroup=p.group;
+    return heading+'<label class="tf-settings-row">'
       +'<input type="checkbox" data-id="'+p.id+'" '+(p.visible?'checked':'')
-      +' style="width:17px;height:17px;accent-color:var(--accent);cursor:pointer"> '+p.label+'</label>';
+      +'> <span>'+p.label+'</span></label>';
   }).join('');
   var ov=_cpModal('_tf-settings-modal',
-    '<div style="background:var(--surface);width:min(400px,93vw);border-radius:20px;padding:26px;box-shadow:0 24px 80px rgba(0,0,0,.5)">'
+    '<div class="tf-settings-panel">'
     +'<div style="font-size:16px;font-weight:900;text-align:center;margin-bottom:6px;color:var(--text)"><i class="fa-solid fa-sliders" style="color:var(--accent)"></i> تخصيص حقول فورم المهمة</div>'
-    +'<div style="font-size:12px;color:var(--text3);text-align:center;margin-bottom:18px">اختر الحقول اللي عايزها تظهر</div>'
+    +'<div style="font-size:12px;color:var(--text3);text-align:center;margin-bottom:14px">تحكم في ظهور كل قسم داخل نافذة الإنشاء والتعديل</div>'
     +rows
     +'<div style="display:flex;gap:10px;margin-top:18px">'
     +'<button id="_tf-save" class="btn btn-primary" style="flex:1"><i class="fa-solid fa-check"></i> حفظ</button>'
-    +'<button id="_tf-cancel" class="btn btn-ghost" style="flex:1">إلغاء</button>'
+    +'<button id="_tf-reset" class="btn btn-ghost" title="إظهار كل الحقول"><i class="fa-solid fa-rotate-left"></i></button>'
+    +'<button id="_tf-cancel" class="btn btn-ghost">إلغاء</button>'
     +'</div></div>');
   document.getElementById('_tf-save').onclick=function(){
     var map={};ov.querySelectorAll('input[data-id]').forEach(function(cb){map[cb.dataset.id]=cb.checked;});
     _cpSave('_tfPrefs',map);ov.remove();_wrapTaskFormSections();_applyTFPrefs();
     if(typeof showMiniNotif==='function')showMiniNotif('<i class="fa-solid fa-sliders" style="color:var(--accent)"></i> تم تحديث إعدادات فورم المهمة');
   };
+  document.getElementById('_tf-reset').onclick=function(){ov.querySelectorAll('input[data-id]').forEach(function(cb){cb.checked=true;});};
   document.getElementById('_tf-cancel').onclick=function(){ov.remove();};
 }
 
@@ -3949,7 +3960,7 @@ function _setTaskKind(kind){
   var pb=document.getElementById('_tt-personal-btn');
   if(cb){cb.style.background=!ip?'var(--accent)':'transparent';cb.style.color=!ip?'#fff':'var(--text3)';}
   if(pb){pb.style.background=ip?'var(--accent)':'transparent';pb.style.color=ip?'#fff':'var(--text3)';}
-  ['t-client-group-wrap','t-type-row-wrap','t-value-row','t-worker-section','task-inv-opt'].forEach(function(id){
+  ['t-client-group-wrap','t-client-visibility-wrap','t-project-linker','t-type-row-wrap','t-value-row','t-worker-section','task-inv-opt'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.style.display=ip?'none':'';
   });
   var dep=document.getElementById('deposit-row');if(dep)dep.style.display='none';
@@ -3988,7 +3999,7 @@ function _injectTaskModalControls(){
         _wrapTaskFormSections();
         var eid=(document.getElementById('task-eid')||{}).value||'';
         if(eid){
-          var t=window.S&&S.tasks&&S.tasks.find(function(x){return String(x.id)===String(eid);});
+          var t=window.S&&((S.tasks||[]).find(function(x){return String(x.id)===String(eid);})||(S.project_tasks||[]).find(function(x){return String(x.id)===String(eid);}));
           _setTaskKind(t&&t._isPersonal?'personal':'client');
         } else {
           _setTaskKind('client');

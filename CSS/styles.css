@@ -7266,6 +7266,104 @@ body.studio-toned .sb-footer,body.studio-toned .bottom-nav{background:var(--surf
 .tasks-v2-project-scope .tasks-v2-board{min-height:410px}
 .tasks-v2-project-scope .tasks-v2-list-wrap{margin-top:0}
 
+/* Compact, configurable task composer */
+#modal-task>.task-create-modal{
+  width:min(760px,96vw);
+  max-height:92vh;
+  overflow-y:auto;
+  padding:0 22px 20px;
+  border-radius:22px;
+  scrollbar-width:thin;
+}
+#modal-task .task-create-modal-head{
+  position:sticky;
+  top:0;
+  z-index:20;
+  margin:0 -22px 16px;
+  padding:15px 22px;
+  background:color-mix(in srgb,var(--surface) 95%,transparent);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(18px);
+}
+.task-create-title-wrap{display:flex;flex-direction:column;gap:3px;min-width:0}
+.task-create-title-wrap small{font-size:9px;color:var(--text3);font-weight:500}
+#modal-task .form-row{gap:12px;margin-bottom:12px}
+#modal-task .form-group{margin-bottom:10px}
+#modal-task .task-client-visibility{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  width:max-content;
+  max-width:100%;
+  margin:-1px 0 12px;
+  padding:7px 10px;
+  border-radius:9px;
+  background:var(--surface2);
+  color:var(--text2);
+  font-size:11px;
+  cursor:pointer;
+}
+.task-project-linker{
+  margin:0 0 14px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:linear-gradient(130deg,var(--surface2),color-mix(in srgb,var(--accent) 5%,var(--surface)));
+  overflow:hidden;
+  transition:border-color .18s,box-shadow .18s;
+}
+.task-project-linker.is-linked{
+  border-color:color-mix(in srgb,var(--accent3) 46%,var(--border));
+  box-shadow:inset 3px 0 0 var(--accent3);
+}
+.task-project-linker>summary{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) 24px;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  list-style:none;
+  cursor:pointer;
+  user-select:none;
+}
+.task-project-linker>summary::-webkit-details-marker{display:none}
+.task-project-linker-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:color-mix(in srgb,var(--accent) 14%,var(--surface));color:var(--accent)}
+.task-project-linker.is-linked .task-project-linker-icon{background:color-mix(in srgb,var(--accent3) 15%,var(--surface));color:var(--accent3)}
+.task-project-linker-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
+.task-project-linker-copy b{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.task-project-linker-copy small{font-size:9px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.task-project-linker-chevron{font-size:10px;color:var(--text3);transition:transform .18s}
+.task-project-linker[open] .task-project-linker-chevron{transform:rotate(180deg)}
+.task-project-linker-body{padding:0 12px 12px;border-top:1px solid var(--border)}
+.task-project-linker-body .form-select{margin-top:11px}
+#t-project-hint{font-size:9px;color:var(--text3);margin-top:6px;line-height:1.6}
+#modal-task .task-form-optional{border-radius:13px;margin-bottom:12px}
+#modal-task .task-modal-actions{
+  position:sticky;
+  bottom:-20px;
+  z-index:15;
+  display:flex;
+  gap:9px;
+  justify-content:flex-end;
+  margin:14px -22px -20px;
+  padding:12px 22px;
+  border-top:1px solid var(--border);
+  background:color-mix(in srgb,var(--surface) 96%,transparent);
+  backdrop-filter:blur(16px);
+}
+#modal-task.expanded>.task-create-modal{width:min(1050px,98vw);max-height:97vh}
+.tf-settings-panel{width:min(560px,94vw);max-height:86vh;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.5)}
+.tf-settings-group{margin:13px 2px 6px;color:var(--accent);font-size:10px;font-weight:900}
+.tf-settings-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid transparent;border-radius:10px;background:var(--surface2);margin-bottom:5px;cursor:pointer;font-size:12px;font-weight:650;color:var(--text)}
+.tf-settings-row:hover{border-color:var(--border)}
+.tf-settings-row input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+@media(max-width:640px){
+  #modal-task>.task-create-modal{width:96vw;padding:0 14px 16px;border-radius:17px}
+  #modal-task .task-create-modal-head{margin:0 -14px 14px;padding:13px 14px}
+  #modal-task .task-modal-actions{bottom:-16px;margin:12px -14px -16px;padding:10px 14px}
+  #modal-task .form-row{grid-template-columns:1fr}
+  .task-create-title-wrap small{display:none}
+}
+
 @media(max-width:760px){
   .tasks-v2-project-scope .tasks-v2-board{min-height:320px}
 }

@@ -4778,12 +4778,15 @@ try {
 
 <!-- TASK -->
 <div class="modal-overlay" id="modal-task">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title" id="task-modal-ttl"><i class="fa-solid fa-star-of-life"></i> مهمة جديدة</div>
+  <div class="modal task-create-modal">
+    <div class="modal-header task-create-modal-head">
+      <div class="task-create-title-wrap">
+        <div class="modal-title" id="task-modal-ttl"><i class="fa-solid fa-star-of-life"></i> مهمة جديدة</div>
+        <small>ابدأ بالأساسيات وافتح الخيارات الإضافية عند الحاجة</small>
+      </div>
       <div style="display:flex;gap:6px;align-items:center">
         <button class="expand-btn" id="_tf-gear" title="تخصيص حقول الفورم" onclick="event.stopPropagation();_openTFSettings()" style="color:var(--text3)"><i class="fa-solid fa-sliders"></i></button>
-        <button class="expand-btn" title="توسيع" onclick="toggleModalExpand('modal-task')"><i class="fa-solid fa-expand"></i></button>
+        <button class="expand-btn" data-modal-expand title="توسيع" onclick="toggleModalExpand('modal-task')"><i class="fa-solid fa-expand"></i></button>
         <button class="close-btn" onclick="closeM('modal-task')"><i class="fa-solid fa-xmark"></i></button>
       </div>
     </div>
@@ -4794,7 +4797,7 @@ try {
       <button id="_tt-client-btn" onclick="_setTaskKind('client')" style="flex:1;padding:8px 0;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font);background:var(--accent);color:#fff;transition:.2s;display:flex;align-items:center;justify-content:center;gap:6px"><i class="fa-solid fa-user-tie"></i> مهمة لعميل</button>
       <button id="_tt-personal-btn" onclick="_setTaskKind('personal')" style="flex:1;padding:8px 0;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font);background:transparent;color:var(--text3);transition:.2s;display:flex;align-items:center;justify-content:center;gap:6px"><i class="fa-solid fa-person"></i> مهمة شخصية</button>
     </div>
-    <div class="form-row">
+    <div class="form-row" id="t-title-client-row">
       <div class="form-group"><label class="form-label">اسم المهمة *</label><input class="form-input" id="t-title" placeholder="مثال: تصميم لوجو شركة X"></div>
       <div class="form-group">
         <label class="form-label">العميل / الجهة *</label>
@@ -4805,18 +4808,27 @@ try {
       </div>
     </div>
 
-    <label style="display:flex;align-items:center;gap:8px;margin:-3px 0 14px;font-size:12px;color:var(--text2);cursor:pointer">
+    <label id="t-client-visibility-wrap" class="task-client-visibility">
       <input type="checkbox" id="t-client-visibility" checked>
       إظهار هذه المهمة في بوابة العميل
     </label>
 
-    <div class="form-group" id="t-project-row">
-      <label class="form-label"><i class="fa-solid fa-diagram-project" style="color:var(--accent)"></i> ربط المهمة بمشروع <span style="font-size:10px;color:var(--text3)">— اختياري</span></label>
-      <select class="form-select" id="t-project" onchange="onUnifiedTaskProjectChange(this.value)">
-        <option value="">— مهمة مستقلة بدون مشروع —</option>
-      </select>
-      <div id="t-project-hint" style="font-size:10px;color:var(--text3);margin-top:5px;line-height:1.6">عند اختيار مشروع ستظهر المهمة داخله وتُحتسب ضمن حالته وماليته، مع الاحتفاظ بكل خصائص المهمة العادية.</div>
-    </div>
+    <details class="task-project-linker" id="t-project-linker">
+      <summary>
+        <span class="task-project-linker-icon"><i class="fa-solid fa-diagram-project"></i></span>
+        <span class="task-project-linker-copy">
+          <b id="t-project-summary-title">ربط بمشروع</b>
+          <small id="t-project-summary-sub">اختياري — اضغط لاختيار المشروع أو الشهر</small>
+        </span>
+        <i class="fa-solid fa-chevron-down task-project-linker-chevron"></i>
+      </summary>
+      <div class="task-project-linker-body">
+        <select class="form-select" id="t-project" onchange="onUnifiedTaskProjectChange(this.value)">
+          <option value="">— مهمة مستقلة بدون مشروع —</option>
+        </select>
+        <div id="t-project-hint">عند اختيار مشروع ستظهر المهمة داخله وتُحتسب ضمن حالته وماليته، مع الاحتفاظ بكل خصائص المهمة العادية.</div>
+      </div>
+    </details>
 
     <!-- ── نوع العمل + نوع المهمة ── -->
     <div class="form-row">
@@ -4978,7 +4990,7 @@ try {
       </div>
     </div>
 
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
+    <div class="task-modal-actions">
       <button class="btn btn-ghost" onclick="closeM('modal-task')">إلغاء</button>
       <button class="btn btn-primary" onclick="OrdoTaskSafeSave()" data-i18n="btn_save"><i class="fa-solid fa-floppy-disk" style="margin-left:4px"></i> حفظ</button>
     </div>
@@ -5652,7 +5664,7 @@ try {
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
 <script src="../Assets/vendor/html2canvas/html2canvas.min.js?v=1.4.1"></script>
-<script src="../JavaScript/app.js?v=project-context-42"></script>
+<script src="../JavaScript/app.js?v=task-modal-43"></script>
 <script src="../JavaScript/payment_reconciliation.js?v=4"></script>
 <script src="../JavaScript/project-finance-integration.js?v=2"></script>
 <script>document.body.classList.remove('auth-booting');</script>

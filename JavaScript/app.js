@@ -613,7 +613,7 @@ function toggleModalExpand(overlayId) {
   var isExpanded = overlay.classList.contains('expanded');
   overlay.classList.toggle('expanded');
   // Update icon
-  var btn = overlay.querySelector('.expand-btn');
+  var btn = overlay.querySelector('[data-modal-expand]');
   if(btn){
     btn.innerHTML = isExpanded
       ? '<i class="fa-solid fa-expand"></i>'
@@ -626,7 +626,7 @@ function toggleModalExpand(overlayId) {
 }
 
 function _makeExpandBtn(overlayId){
-  return '<button class="expand-btn" title="توسيع" onclick="toggleModalExpand(\''+overlayId+'\')"><i class="fa-solid fa-expand"></i></button>';
+  return '<button class="expand-btn" data-modal-expand title="توسيع" onclick="toggleModalExpand(\''+overlayId+'\')"><i class="fa-solid fa-expand"></i></button>';
 }
 
 
@@ -1743,7 +1743,7 @@ function _ordoResetModal(m){
   m.classList.remove('expanded');
   m.style.zIndex = '';
   delete m.dataset.ordoLayer;
-  var _eb = m.querySelector('.expand-btn');
+  var _eb = m.querySelector('[data-modal-expand]');
   if(_eb){ _eb.innerHTML='<i class="fa-solid fa-expand"></i>'; _eb.title='توسيع'; }
 }
 function openM(id){
@@ -3586,12 +3586,24 @@ function fillUnifiedTaskProjectSelect(selectedId){
 function onUnifiedTaskProjectChange(projectId){
   var project=(S.projects||[]).find(function(p){return String(p.id)===String(projectId);});
   var hint=document.getElementById('t-project-hint');
-  if(!project){if(hint)hint.textContent='عند اختيار مشروع ستظهر المهمة داخله وتُحتسب ضمن حالته وماليته، مع الاحتفاظ بكل خصائص المهمة العادية.';return;}
+  var linker=document.getElementById('t-project-linker');
+  var title=document.getElementById('t-project-summary-title');
+  var sub=document.getElementById('t-project-summary-sub');
+  if(!project){
+    if(hint)hint.textContent='عند اختيار مشروع ستظهر المهمة داخله وتُحتسب ضمن حالته وماليته، مع الاحتفاظ بكل خصائص المهمة العادية.';
+    if(linker)linker.classList.remove('is-linked');
+    if(title)title.textContent='ربط بمشروع';
+    if(sub)sub.textContent='اختياري — اضغط لاختيار المشروع أو الشهر';
+    return;
+  }
   var client=(S.clients||[]).find(function(c){return String(c.id)===String(project.client_id||project.clientId||'');});
   var clientName=project.client_name||project.clientName||project.client||(client&&client.name)||'';
   var clientSelect=document.getElementById('t-client');
   if(clientSelect&&clientName){clientSelect.value=clientName;if(typeof onTaskClientChange==='function')onTaskClientChange(clientName);}
   if(hint)hint.innerHTML='<i class="fa-solid fa-link" style="color:var(--accent3)"></i> مرتبطة بـ <b style="color:var(--text2)">'+escapeHtml(_unifiedTaskProjectLabel(project))+'</b>'+(clientName?' · العميل: '+escapeHtml(clientName):'');
+  if(linker)linker.classList.add('is-linked');
+  if(title)title.textContent='مرتبطة بـ '+_unifiedTaskProjectLabel(project);
+  if(sub)sub.textContent=clientName?'العميل: '+clientName:'اضغط لتغيير المشروع أو إلغاء الربط';
 }
 function _normalTaskStatus(status){return ({todo:'new',hold:'paused',revision:'review'})[status]||status||'new';}
 function _projectTaskStatus(status){return ({new:'todo',paused:'hold'})[status]||status||'todo';}
@@ -3716,6 +3728,8 @@ function openTaskModal(id,context){
   }
   var projectSelect=document.getElementById('t-project');if(projectSelect)projectSelect.value=explicitProject;
   onUnifiedTaskProjectChange(explicitProject);
+  var projectLinker=document.getElementById('t-project-linker');
+  if(projectLinker)projectLinker.open=!!explicitProject;
   openM('modal-task');
 }
 function toggleTaskInvHint(){

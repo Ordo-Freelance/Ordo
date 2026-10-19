@@ -27,6 +27,21 @@ test('the regular task editor can link, move and account for project tasks',()=>
   assert.match(index,/if\(typeof window\.saveTask === 'function'\)[\s\S]*?window\.saveTask\(\);[\s\S]*?return false;/);
   assert.match(patch,/var beforeProjectIds = \(S\(\)\.project_tasks \|\| \[\]\)/);
   assert.match(patch,/if\(!saved && !projectId\) saved = fallbackSaveTask/);
+  assert.match(index,/id="t-project-linker"/);
+  assert.match(index,/id="t-project-summary-title"/);
+  assert.match(app,/projectLinker\.open=!!explicitProject/);
+});
+
+test('task composer is compact, fully configurable and uses the correct expand control',()=>{
+  assert.match(index,/class="modal task-create-modal"/);
+  assert.match(index,/data-modal-expand title="توسيع"/);
+  assert.match(app,/overlay\.querySelector\('\[data-modal-expand\]'\)/);
+  assert.match(app,/m\.querySelector\('\[data-modal-expand\]'\)/);
+  for(const id of ['_tt-kind-bar','t-title-client-row','t-client-visibility-wrap','t-project-linker','task-color-options','t-value-row','t-worker-section','t-notes-row-wrap','t-steps-section-wrap','t-brief-section-wrap','task-inv-opt']){
+    assert.match(patch,new RegExp("id:'"+id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+"'"));
+  }
+  assert.match(styles,/Compact, configurable task composer/);
+  assert.match(styles,/\.task-project-linker\.is-linked/);
 });
 
 test('project table and kanban reuse the main task experience and remain scoped',()=>{
