@@ -42,6 +42,7 @@ test('task composer is compact, fully configurable and uses the correct expand c
   }
   assert.match(styles,/Compact, configurable task composer/);
   assert.match(styles,/\.task-project-linker\.is-linked/);
+  assert.match(styles,/#modal-task #_tt-kind-bar\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
 });
 
 test('project table and kanban reuse the main task experience and remain scoped',()=>{

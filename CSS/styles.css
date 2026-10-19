@@ -7316,6 +7316,19 @@ body.studio-toned .sb-footer,body.studio-toned .bottom-nav{background:var(--surf
 .task-create-title-wrap small{font-size:9px;color:var(--text3);font-weight:500}
 #modal-task .form-row{gap:12px;margin-bottom:12px}
 #modal-task .form-group{margin-bottom:10px}
+#modal-task #_tt-kind-bar{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  align-items:stretch;
+  gap:6px;
+  width:100%;
+}
+#modal-task #_tt-kind-bar>button{
+  width:100%;
+  min-width:0;
+  margin:0!important;
+  white-space:nowrap;
+}
 #modal-task .task-quick-options{
   display:flex;
   align-items:flex-start;
