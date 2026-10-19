@@ -6886,13 +6886,16 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
     if(typeof window.saveTask === 'function'){
       var oldSaveTask = window.saveTask;
       window.saveTask = function(){
-        var before = (st().tasks || []).map(function(t){ return String(t.id); });
+        var projectId = document.getElementById('t-project') && document.getElementById('t-project').value;
+        var pool = projectId ? (st().project_tasks || []) : (st().tasks || []);
+        var before = pool.map(function(t){ return String(t.id); });
         var eid = document.getElementById('task-eid') && document.getElementById('task-eid').value;
         var selected = document.getElementById('t-currency') && document.getElementById('t-currency').value || baseCurrency().code;
         var r = oldSaveTask.apply(this, arguments);
         setTimeout(function(){
-          var task = eid ? (st().tasks || []).find(function(t){ return String(t.id) === String(eid); }) : (st().tasks || []).find(function(t){ return before.indexOf(String(t.id)) === -1; });
-          if(!task && st().tasks && st().tasks.length) task = st().tasks[st().tasks.length - 1];
+          var currentPool = projectId ? (st().project_tasks || []) : (st().tasks || []);
+          var task = eid ? currentPool.find(function(t){ return String(t.id) === String(eid); }) : currentPool.find(function(t){ return before.indexOf(String(t.id)) === -1; });
+          if(!task && !projectId && st().tasks && st().tasks.length) task = st().tasks[st().tasks.length - 1];
           if(task){
             var c = meta(selected);
             task.currency_code = c.code;
@@ -7720,18 +7723,22 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
       window.saveTask = function(){
         var selected = document.getElementById('t-currency') && document.getElementById('t-currency').value;
         var beforeIds = (S().tasks || []).map(function(t){ return String(t.id); });
+        var beforeProjectIds = (S().project_tasks || []).map(function(t){ return String(t.id); });
+        var projectId = document.getElementById('t-project') && document.getElementById('t-project').value;
         var eid = document.getElementById('task-eid') && document.getElementById('task-eid').value;
         var r;
         try { r = oldSaveTask.apply(this, arguments); }
         catch(err) {
           console.error('[Ordo] saveTask legacy failed, using fallback', err);
-          fallbackSaveTask(selected, beforeIds, eid);
+          if(!projectId) fallbackSaveTask(selected, beforeIds, eid);
           return false;
         }
         setTimeout(function(){
-          var task = eid ? (S().tasks || []).find(function(t){ return String(t.id) === String(eid); }) : (S().tasks || []).find(function(t){ return beforeIds.indexOf(String(t.id)) === -1; });
-          if(!task) fallbackSaveTask(selected, beforeIds, eid);
-          task = eid ? (S().tasks || []).find(function(t){ return String(t.id) === String(eid); }) : (S().tasks || []).find(function(t){ return beforeIds.indexOf(String(t.id)) === -1; });
+          var pool = projectId ? (S().project_tasks || []) : (S().tasks || []);
+          var previousIds = projectId ? beforeProjectIds : beforeIds;
+          var task = eid ? pool.find(function(t){ return String(t.id) === String(eid); }) : pool.find(function(t){ return previousIds.indexOf(String(t.id)) === -1; });
+          if(!task && !projectId) fallbackSaveTask(selected, beforeIds, eid);
+          task = eid ? pool.find(function(t){ return String(t.id) === String(eid); }) : pool.find(function(t){ return previousIds.indexOf(String(t.id)) === -1; });
           if(task && selected){ var c = meta(selected); task.currency_code = c.code; task.currency_symbol = c.symbol; task.currency = c.code; }
           ensureState(); patchTaskCards(document);
         }, 80);
@@ -7759,18 +7766,22 @@ try{ if(window.OrdoPlugins) window.OrdoPlugins.register('currency', function(){}
       window.saveTask = function(){
         var selected = document.getElementById('t-currency') && document.getElementById('t-currency').value;
         var beforeIds = (S().tasks || []).map(function(t){ return String(t.id); });
+        var beforeProjectIds = (S().project_tasks || []).map(function(t){ return String(t.id); });
+        var projectId = document.getElementById('t-project') && document.getElementById('t-project').value;
         var eid = document.getElementById('task-eid') && document.getElementById('task-eid').value;
         var r;
         try { r = currentSaveTask.apply(this, arguments); }
         catch(err) {
           console.error('[Ordo] saveTask late guard fallback', err);
-          fallbackSaveTask(selected, beforeIds, eid);
+          if(!projectId) fallbackSaveTask(selected, beforeIds, eid);
           return false;
         }
         setTimeout(function(){
-          var saved = eid ? (S().tasks || []).find(function(t){ return String(t.id) === String(eid); }) : (S().tasks || []).find(function(t){ return beforeIds.indexOf(String(t.id)) === -1; });
-          if(!saved) fallbackSaveTask(selected, beforeIds, eid);
-          else {
+          var pool = projectId ? (S().project_tasks || []) : (S().tasks || []);
+          var previousIds = projectId ? beforeProjectIds : beforeIds;
+          var saved = eid ? pool.find(function(t){ return String(t.id) === String(eid); }) : pool.find(function(t){ return previousIds.indexOf(String(t.id)) === -1; });
+          if(!saved && !projectId) saved = fallbackSaveTask(selected, beforeIds, eid);
+          if(saved) {
             var c = meta(selected || saved.currency_code || saved.currency);
             saved.currency_code = c.code;
             saved.currency_symbol = c.symbol;

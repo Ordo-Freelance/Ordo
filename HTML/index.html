@@ -5652,7 +5652,7 @@ try {
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
 <script src="../Assets/vendor/html2canvas/html2canvas.min.js?v=1.4.1"></script>
-<script src="../JavaScript/app.js?v=unified-tasks-40"></script>
+<script src="../JavaScript/app.js?v=project-task-views-41"></script>
 <script src="../JavaScript/payment_reconciliation.js?v=4"></script>
 <script src="../JavaScript/project-finance-integration.js?v=2"></script>
 <script>document.body.classList.remove('auth-booting');</script>
@@ -8066,7 +8066,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 </script>
-<script src="../JavaScript/app_patch.js?v=sidebar-currencies-1"></script>
+<script src="../JavaScript/app_patch.js?v=project-task-save-2"></script>
 <script>
 (function(){
   'use strict';
@@ -8404,6 +8404,14 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   function read(id){ var el = document.getElementById(id); return el ? el.value : ''; }
   window.OrdoTaskSafeSave = function(){
+    // Keep the project selected in the unified task modal. The legacy fallback
+    // below only understands regular tasks, so use the unified saver whenever
+    // it is available.
+    if(typeof window.saveTask === 'function'){
+      try { if(typeof window._beforeSaveTask === 'function') window._beforeSaveTask(); } catch(e) {}
+      window.saveTask();
+      return false;
+    }
     ensureState();
     var title = read('t-title').trim();
     if(!title){ alert('أدخل اسم المهمة'); return false; }

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const app=fs.readFileSync(new URL('../JavaScript/app.js',import.meta.url),'utf8');
+const patch=fs.readFileSync(new URL('../JavaScript/app_patch.js',import.meta.url),'utf8');
+const index=fs.readFileSync(new URL('../HTML/index.html',import.meta.url),'utf8');
 const portal=fs.readFileSync(new URL('../HTML/client-portal.html',import.meta.url),'utf8');
 const styles=fs.readFileSync(new URL('../CSS/styles.css',import.meta.url),'utf8');
 const errorPage=fs.readFileSync(new URL('../HTML/error.html',import.meta.url),'utf8');
@@ -21,6 +23,18 @@ test('the regular task editor can link, move and account for project tasks',()=>
   assert.match(app,/S\.tasks=\(S\.tasks\|\|\[\]\)\.filter/);
   assert.match(app,/S\.project_tasks=\(S\.project_tasks\|\|\[\]\)\.filter/);
   assert.match(app,/linkedProjTaskId:opts\.projectId\?opts\.taskId\|\|null:null/);
+  assert.match(index,/if\(typeof window\.saveTask === 'function'\)[\s\S]*?window\.saveTask\(\);[\s\S]*?return false;/);
+  assert.match(patch,/var beforeProjectIds = \(S\(\)\.project_tasks \|\| \[\]\)/);
+  assert.match(patch,/if\(!saved && !projectId\) saved = fallbackSaveTask/);
+});
+
+test('project table and kanban reuse the main task experience and remain scoped',()=>{
+  assert.match(app,/window\.renderProjectTasksV2 = function\(projectId, view\)/);
+  assert.match(app,/!!t\._isProjectTask && String\(t\.project_id \|\| t\.projectId \|\| ''\) === String\(projectId \|\| ''\)/);
+  assert.match(app,/return window\.renderProjectTasksV2\(proj\.id, tab === 'kanban' \? 'kanban' : 'list'\)/);
+  assert.match(app,/tasks-v2-project-scope/);
+  assert.match(app,/switchProjTab\(&quot;kanban&quot;\)/);
+  assert.match(app,/switchProjTab\(&quot;table&quot;\)/);
 });
 
 test('client project tasks expose task delivery, receipt and rating',()=>{

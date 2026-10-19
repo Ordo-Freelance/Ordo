@@ -9320,6 +9320,41 @@ function _renderFeaturesPanel(){
     if(action === 'view-group') return window.__tasksV2SetView('group');
     if(action === 'statuses' && typeof openStatusManagerModal === 'function') return openStatusManagerModal();
   });
+  window.renderProjectTasksV2 = function(projectId, view){
+    var items = orderedTasks(tasksV2Source().filter(function(t){
+      return !!t._isProjectTask && String(t.project_id || t.projectId || '') === String(projectId || '');
+    }));
+    var open = items.filter(function(t){ return taskStatus(t) !== 'done'; });
+    var done = items.filter(function(t){ return taskStatus(t) === 'done'; });
+    var late = open.filter(function(t){ return t.deadline && t.deadline < todayIso(); });
+    var dueToday = open.filter(function(t){ return t.deadline === todayIso(); });
+    var pct = items.length ? Math.round(done.length / items.length * 100) : 0;
+    var mode = view === 'kanban' ? 'kanban' : 'list';
+    var board = visibleStatuses().map(function(st){
+      var statusItems = items.filter(function(t){ return taskStatus(t) === st.id; });
+      return '<section class="tasks-v2-col" data-status="'+st.id+'" ondragover="__tasksV2DragOver(event)" ondragleave="__tasksV2DragLeave(event)" ondrop="__tasksV2Drop(event)">'+
+        '<div class="tasks-v2-col-head"><div class="tasks-v2-col-title"><span class="tasks-v2-dot" style="background:'+st.color+'"></span><span>'+esc(st.label)+'</span></div><span class="tasks-v2-count">'+statusItems.length+'</span></div>'+
+        '<div class="tasks-v2-col-body">'+(statusItems.length ? statusItems.map(cardHtml).join('') : '<div class="tasks-v2-empty">اسحب مهمة هنا</div>')+'</div>'+
+      '</section>';
+    }).join('');
+    return '<div class="tasks-v2-project-scope">'+
+      '<div class="tasks-v2-quick-stats">'+
+        '<div class="tasks-v2-quick-card is-danger"><b>'+late.length+'</b><span>مهام متأخرة</span><small>داخل هذا المشروع فقط</small></div>'+
+        '<div class="tasks-v2-quick-card"><b>'+open.length+'</b><span>غير مكتملة</span><small>'+items.length+' مهمة إجمالًا</small></div>'+
+        '<div class="tasks-v2-quick-card is-progress"><b>'+pct+'%</b><span>نسبة الإنجاز</span><small>'+done.length+' مكتملة من '+items.length+'</small></div>'+
+        '<div class="tasks-v2-quick-card is-warn"><b>'+dueToday.length+'</b><span>تسليم اليوم</span><small>حسب مواعيد المشروع</small></div>'+
+      '</div>'+
+      '<div class="tasks-v2-layout '+(mode === 'list' ? 'is-list' : 'is-kanban')+'"><div class="tasks-v2-board-wrap">'+
+        '<div class="tasks-v2-board-head"><div><b>'+(mode === 'kanban' ? 'كانبان مهام المشروع' : 'جدول مهام المشروع')+'</b><div style="font-size:12px;color:var(--text3);margin-top:2px">'+items.length+' مهمة مرتبطة بهذا المشروع</div></div><div class="tasks-v2-board-tools">'+
+          '<button class="tasks-v2-action-icon '+(mode === 'kanban' ? 'is-active' : '')+'" onclick="switchProjTab(&quot;kanban&quot;)" title="عرض كانبان"><i class="fa-solid fa-table-columns"></i></button>'+
+          '<button class="tasks-v2-action-icon '+(mode === 'list' ? 'is-active' : '')+'" onclick="switchProjTab(&quot;table&quot;)" title="عرض الجدول"><i class="fa-solid fa-list"></i></button>'+
+          '<button class="tasks-v2-action-icon" onclick="openProjTaskModal(&quot;'+esc(projectId)+'&quot;)" title="إضافة مهمة"><i class="fa-solid fa-plus"></i></button>'+
+          '<span>'+pct+'%</span><div class="tasks-v2-progress"><span style="width:'+pct+'%"></span></div>'+
+        '</div></div>'+
+        (mode === 'kanban' ? '<div class="tasks-v2-board">'+board+'</div>' : listHtml(items))+
+      '</div></div>'+
+    '</div>';
+  };
   window.__tasksV2Refresh = renderTasksV2;
   window.__tasksV2DragStart = function(ev, id){
     dragId = id;
@@ -9327,12 +9362,12 @@ function _renderFeaturesPanel(){
     ev.dataTransfer.effectAllowed = 'move';
     ev.dataTransfer.setData('text/plain', String(id));
     setTimeout(function(){
-      var el = document.querySelector('#tasks-v2-shell [data-task-key="'+id+'"]');
+      var el = document.querySelector('[data-task-key="'+id+'"]');
       if(el) el.classList.add('dragging');
     }, 0);
   };
   window.__tasksV2DragEnd = function(){
-    document.querySelectorAll('#tasks-v2-shell .dragging').forEach(function(el){ el.classList.remove('dragging'); });
+    document.querySelectorAll('#tasks-v2-shell .dragging,.tasks-v2-project-scope .dragging').forEach(function(el){ el.classList.remove('dragging'); });
     if(dragId){
       justDragged = true;
       setTimeout(function(){ justDragged = false; }, 260);
@@ -18589,7 +18624,7 @@ function renderMilestonesForm(milestones=[]){
     const opts=document.getElementById('t-recurring-opts');
     if(opts) opts.style.display='none';
     if(id){
-      const t=S.tasks.find(x=>x.id===id);
+      const t=[...(S.tasks||[]),...(S.project_tasks||[])].find(x=>String(x.id)===String(id));
       if(t){
         renderMilestonesForm(t.milestones||[]);
         _origDeadline=t.deadline||'';
@@ -18626,13 +18661,14 @@ function renderMilestonesForm(milestones=[]){
     const newDeadline=document.getElementById('t-deadline')?.value||'';
     const reason=document.getElementById('t-deadline-reason')?.value||'';
     const eid=document.getElementById('task-eid')?.value;
+    const projectId=document.getElementById('t-project')?.value||'';
 
     _orig();
 
     // After save, patch the last saved task
     setTimeout(()=>{
-      const arr=S.tasks;
-      const target=eid ? arr.find(t=>t.id==eid) : arr[arr.length-1];
+      const arr=projectId?(S.project_tasks||[]):(S.tasks||[]);
+      const target=eid ? arr.find(t=>String(t.id)===String(eid)) : arr[arr.length-1];
       if(!target) return;
       target.milestones=milestones;
       if(isRecurring){target.recurringInterval=interval;target.recurringCount=count;}
@@ -18645,7 +18681,10 @@ function renderMilestonesForm(milestones=[]){
       // Create recurring instances (new tasks only)
       if(!eid && isRecurring && count>0){
         const instances=_createRecurringInstances(target,interval,count);
-        instances.forEach(inst=>S.tasks.push(inst));
+        instances.forEach(inst=>{
+          if(projectId){inst.project_id=projectId;inst.projectId=projectId;(S.project_tasks||[]).push(inst);}
+          else (S.tasks||[]).push(inst);
+        });
         lsSave();cloudSave(S);
         renderAll();
         if(typeof showMiniNotif==='function') showMiniNotif('<i class="fa-solid fa-repeat"></i> تم إنشاء '+count+' نسخة متكررة');
@@ -19401,8 +19440,11 @@ function _saveCapacity(){
 let _kbDragId = null;
 
 function refreshAfterKanbanMove(){
+  const projectPage = document.getElementById('page-project-detail');
   const v2Shell = document.getElementById('tasks-v2-shell');
-  if(v2Shell && v2Shell.style.display !== 'none' && typeof window.__tasksV2Refresh === 'function'){
+  if(projectPage && projectPage.classList.contains('active') && (window._currentProjId || _currentProjId) && typeof renderProjectDetail === 'function'){
+    renderProjectDetail();
+  } else if(v2Shell && v2Shell.style.display !== 'none' && typeof window.__tasksV2Refresh === 'function'){
     _updateScopeCounts();
     window.__tasksV2Refresh();
   } else {
@@ -35008,7 +35050,6 @@ window.OrdoCurrencyPatch = {
     var st = statusInfo(proj.status || 'active');
     var tabs = [
       ['overview','نظرة عامة','fa-chart-pie'],
-      ['tasks','المهام','fa-list-check'],
       ['kanban','كانبان','fa-table-columns'],
       ['table','جدول','fa-table'],
       ['finance','مالية المشروع','fa-wallet'],
@@ -35033,6 +35074,9 @@ window.OrdoCurrencyPatch = {
 
   var oldRenderProjTabContent = window.renderProjTabContent;
   window.renderProjTabContent = function(tab, proj, tasks, client, clr){
+    if((tab === 'tasks' || tab === 'kanban' || tab === 'table') && typeof window.renderProjectTasksV2 === 'function'){
+      return window.renderProjectTasksV2(proj.id, tab === 'kanban' ? 'kanban' : 'list');
+    }
     if(tab === 'finance') return renderProjectWalletTab(proj, tasks, clr);
     if(tab === 'content') return renderProjectContentCalendar(proj, clr);
     return oldRenderProjTabContent ? oldRenderProjTabContent(tab, proj, tasks, client, clr) : '';
