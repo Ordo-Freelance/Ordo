@@ -2908,6 +2908,20 @@ body.sidebar-collapsed .sidebar-overlay {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Dashboard phone layout: one calm card per row avoids clipped currency
+   values and keeps the statistic label, value and summary readable. */
+@media (max-width: 520px) {
+  #_dash-stats-inner{grid-template-columns:1fr!important;gap:10px!important}
+  #_dash-stats-inner>.ordo-home-stat-card{min-height:108px!important;grid-template-columns:44px minmax(0,1fr) auto!important;grid-template-rows:minmax(44px,auto) minmax(34px,auto)!important;padding:12px!important}
+  #_dash-stats-inner .ordo-home-stat-icon{width:42px!important;height:42px!important;transform:none!important}
+  #_dash-stats-inner .stat-label{font-size:12px!important;text-align:right!important}
+  #_dash-stats-inner .stat-value{font-size:29px!important}
+  #_dash-stats-inner .stat-value.green{font-size:20px!important;max-width:44vw!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  #_dash-stats-inner .stat-change{font-size:10px!important;justify-content:flex-start!important;padding-inline:10px!important}
+  #_dash-grid{gap:12px!important}
+}
+
 /* Tasks redesign */
 .tasks-v2-shell{
   display:flex;
