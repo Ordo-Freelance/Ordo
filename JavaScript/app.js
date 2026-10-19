@@ -2451,7 +2451,16 @@ function getAllTasksIncludingArchived(){
 }
 
 function findTaskAny(id){
-  return getAllTasksIncludingArchived().find(function(t){ return String(t.id) === String(id); }) || null;
+  var key=String(id||''), projectKey=key.indexOf('p_')===0, cleanId=key.replace(/^[pt]_/, '');
+  if(projectKey){
+    var projectTask=(S.project_tasks||[]).find(function(t){return String(t.id)===cleanId;});
+    if(projectTask){try{Object.defineProperty(projectTask,'_isProjectTask',{value:true,writable:true,configurable:true,enumerable:false});}catch(error){projectTask._isProjectTask=true;}return projectTask;}
+  }
+  var regular=getAllTasksIncludingArchived().find(function(t){ return String(t.id)===cleanId; });
+  if(regular)return regular;
+  var fallback=(S.project_tasks||[]).find(function(t){return String(t.id)===cleanId;});
+  if(fallback){try{Object.defineProperty(fallback,'_isProjectTask',{value:true,writable:true,configurable:true,enumerable:false});}catch(error){fallback._isProjectTask=true;}return fallback;}
+  return null;
 }
 
 // â•گâ•گâ•گ استعادة البيانات من النسخة الاحتياطية â•گâ•گâ•گ
@@ -3559,7 +3568,61 @@ function openTaskDetail(id){
   openM('modal-task-detail');
 }
 
-function openTaskModal(id){
+function _unifiedTaskProjectLabel(project){
+  if(!project)return'';
+  var parentId=project.parentProjectId||project.parent_project_id||'';
+  var parent=parentId?(S.projects||[]).find(function(p){return String(p.id)===String(parentId);}):null;
+  return parent?(parent.name||'مشروع')+' — '+(project.parentPeriodName||project.periodName||project.name||'مرحلة'):(project.name||'مشروع');
+}
+function fillUnifiedTaskProjectSelect(selectedId){
+  var select=document.getElementById('t-project');if(!select)return;
+  var current=selectedId===undefined?select.value:selectedId;
+  var rows=(S.projects||[]).filter(function(p){return p&&p.id!==undefined;});
+  select.innerHTML='<option value="">— مهمة مستقلة بدون مشروع —</option>'+rows.map(function(project){
+    return '<option value="'+escapeHtml(String(project.id))+'">'+escapeHtml(_unifiedTaskProjectLabel(project))+'</option>';
+  }).join('');
+  select.value=current==null?'':String(current);
+}
+function onUnifiedTaskProjectChange(projectId){
+  var project=(S.projects||[]).find(function(p){return String(p.id)===String(projectId);});
+  var hint=document.getElementById('t-project-hint');
+  if(!project){if(hint)hint.textContent='عند اختيار مشروع ستظهر المهمة داخله وتُحتسب ضمن حالته وماليته، مع الاحتفاظ بكل خصائص المهمة العادية.';return;}
+  var client=(S.clients||[]).find(function(c){return String(c.id)===String(project.client_id||project.clientId||'');});
+  var clientName=project.client_name||project.clientName||project.client||(client&&client.name)||'';
+  var clientSelect=document.getElementById('t-client');
+  if(clientSelect&&clientName){clientSelect.value=clientName;if(typeof onTaskClientChange==='function')onTaskClientChange(clientName);}
+  if(hint)hint.innerHTML='<i class="fa-solid fa-link" style="color:var(--accent3)"></i> مرتبطة بـ <b style="color:var(--text2)">'+escapeHtml(_unifiedTaskProjectLabel(project))+'</b>'+(clientName?' · العميل: '+escapeHtml(clientName):'');
+}
+function _normalTaskStatus(status){return ({todo:'new',hold:'paused',revision:'review'})[status]||status||'new';}
+function _projectTaskStatus(status){return ({new:'todo',paused:'hold'})[status]||status||'todo';}
+function _normalTaskPriority(priority){return priority==='normal'?'med':(priority||'med');}
+function _projectTaskPriority(priority){return priority==='med'?'normal':(priority||'normal');}
+function changeUnifiedTaskStatus(taskRef,newStatus){
+  var task=findTaskAny(taskRef);if(!task)return;
+  if(!task._isProjectTask)return changeTaskStatus(task.id,newStatus);
+  var previous=task.status;task.status=_projectTaskStatus(newStatus);task.done=task.status==='done';
+  if(task.done){task.completedAt=task.completedAt||new Date().toISOString();task.doneAt=task.doneAt||task.completedAt;}
+  else{task.completedAt=null;task.doneAt=null;}
+  lsSave();cloudSave(S);renderAll();if(typeof renderProjectDetail==='function')renderProjectDetail();
+  if(task.status==='done'&&previous!=='done'&&typeof _askProjectLinkForTask==='function')setTimeout(function(){_askProjectLinkForTask(task.id,task.project_id,function(){lsSave();cloudSave(S);renderAll();});},120);
+}
+function completeUnifiedTask(taskRef){
+  var task=findTaskAny(taskRef);if(!task)return;
+  if(!task._isProjectTask)return completeTask(task.id);
+  changeUnifiedTaskStatus(taskRef,task.status==='done'?'progress':'done');
+}
+function deleteUnifiedTask(taskRef){
+  var task=findTaskAny(taskRef);if(!task)return;
+  if(!task._isProjectTask)return delTask(task.id);
+  confirmDel('هل تريد حذف هذه المهمة نهائياً؟',function(){S.project_tasks=(S.project_tasks||[]).filter(function(item){return String(item.id)!==String(task.id);});lsSave();cloudSave(S);renderAll();if(typeof renderProjectDetail==='function')renderProjectDetail();});
+}
+function saveUnifiedTaskDeliveryLink(taskRef){
+  var task=findTaskAny(taskRef),input=document.getElementById('td-proj-link-input');if(!task||!input)return;
+  task.projectLink=input.value.trim();task.driveLink=task.projectLink;lsSave();cloudSave(S);showMiniNotif('<i class="fa-solid fa-link" style="color:var(--accent3)"></i> تم حفظ رابط التسليم');
+}
+
+function openTaskModal(id,context){
+  context=context||{};
   const extraOptions=document.getElementById('task-extra-options');
   const colorOptions=document.getElementById('task-color-options');
   if(extraOptions) extraOptions.open=!!id;
@@ -3567,25 +3630,37 @@ function openTaskModal(id){
   fillDD('t-client');
   fillTaskTypesDD();
   fillWorkerMembersDD();
-  document.getElementById('task-modal-ttl').innerHTML=id?'<i class="fa-solid fa-star-of-life"></i> تعديل المهمة':'<i class="fa-solid fa-star-of-life"></i> مهمة / مشروع جديد';
+  var explicitProject=String(context.projectId||'');
+  var source=context.source==='project'?'project':'task';
+  if(explicitProject&&typeof _setTaskKind==='function')_setTaskKind('client');
+  var t=null;
+  if(id!==undefined&&id!==null&&id!==''){
+    if(source==='project')t=(S.project_tasks||[]).find(function(item){return String(item.id)===String(id);});
+    if(!t)t=(S.tasks||[]).find(function(item){return String(item.id)===String(id);});
+    if(!t){t=(S.project_tasks||[]).find(function(item){return String(item.id)===String(id);});if(t)source='project';}
+  }
+  if(t&&t.project_id){source='project';explicitProject=String(t.project_id);}
+  fillUnifiedTaskProjectSelect(explicitProject);
+  var sourceInput=document.getElementById('task-source');if(sourceInput)sourceInput.value=source;
+  document.getElementById('task-modal-ttl').innerHTML=id?'<i class="fa-solid fa-star-of-life"></i> تعديل المهمة':'<i class="fa-solid fa-star-of-life"></i> مهمة جديدة';
   document.getElementById('task-eid').value=id||'';
   const invCb=document.getElementById('t-issue-inv');
   if(invCb)invCb.checked=false;
   const invHint=document.getElementById('t-inv-hint');
   if(invHint)invHint.style.display='none';
   if(id){
-    const t=S.tasks.find(t=>t.id===id);if(!t)return;
+    if(!t)return;
     const visibilityInput=document.getElementById('t-client-visibility');
     if(visibilityInput) visibilityInput.checked=t.client_visibility!==false&&t.is_internal!==true;
     document.getElementById('t-title').value=t.title;
     document.getElementById('t-client').value=t.client||'';
-    document.getElementById('t-priority').value=t.priority;
-    document.getElementById('t-status').value=t.status;
+    document.getElementById('t-priority').value=_normalTaskPriority(t.priority);
+    document.getElementById('t-status').value=_normalTaskStatus(t.status);
     document.getElementById('t-value').value=t.value||'';
     document.getElementById('t-order').value=t.orderDate||'';
     document.getElementById('t-deadline').value=t.deadline||'';
     const tc=document.getElementById('t-color'); if(tc) tc.value=_taskColor(t);
-    document.getElementById('t-pay').value=t.pay||'none';
+    document.getElementById('t-pay').value=t.paymentCollected||t.paymentStatus==='collected'?'full':(t.pay||(t.paymentStatus==='deposit'?'deposit':'none'));
     document.getElementById('t-deposit').value=t.deposit||'';
     document.getElementById('t-notes').value=t.notes||'';
     document.getElementById('t-jobtype').value=t.jobType||'freelance';
@@ -3593,14 +3668,14 @@ function openTaskModal(id){
     toggleDeposit(); toggleJobType();
     // Load worker fields
     const workerType = document.getElementById('t-worker-type');
-    if(workerType) workerType.value = t.workerType||'me';
+    if(workerType) workerType.value = t.workerType||(t.assignee_name?'team':'me');
     toggleWorkerFields();
     // Restore worker pay mode
     if(t.workerPayMode) { workerPayMode = t.workerPayMode; setWorkerPayMode(t.workerPayMode); }
     else { workerPayMode='fixed'; setWorkerPayMode('fixed'); }
     if(t.workerPct){ const pe=document.getElementById('t-worker-pct'); if(pe) pe.value=t.workerPct; }
     const workerMember = document.getElementById('t-worker-member');
-    if(workerMember && t.workerMember) workerMember.value = t.workerMember;
+    if(workerMember && (t.workerMember||t.assignee_name)) workerMember.value = t.workerMember||t.assignee_name;
     const workerAmt = document.getElementById('t-worker-amount');
     if(workerAmt) workerAmt.value = t.workerAmount||'';
     const workerDepStat = document.getElementById('t-worker-deposit-status');
@@ -3613,9 +3688,9 @@ function openTaskModal(id){
     renderTaskStepsForm(t.steps||[]);
     setTimeout(()=>{
       initTaskQuill();
-      if(t.brief) taskQuill.clipboard.dangerouslyPasteHTML(t.brief);
+      if(t.brief||t.briefHtml) taskQuill.clipboard.dangerouslyPasteHTML(t.brief||t.briefHtml);
       else taskQuill.setText('');
-      mirrorTaskBrief(t.brief||'', false);
+      mirrorTaskBrief(t.brief||t.briefHtml||'', false);
     }, 80);
   } else {
     const visibilityInput=document.getElementById('t-client-visibility');
@@ -3623,7 +3698,7 @@ function openTaskModal(id){
     ['t-title','t-value','t-deposit','t-notes'].forEach(f=>{const e=document.getElementById(f);if(e)e.value='';}); 
     document.getElementById('t-client').value='';
     document.getElementById('t-priority').value='med';
-    document.getElementById('t-status').value='new';
+    document.getElementById('t-status').value=_normalTaskStatus(context.defaultStatus||'new');
     document.getElementById('t-pay').value='none';
     document.getElementById('t-order').value=today();
     document.getElementById('t-deadline').value='';
@@ -3639,6 +3714,8 @@ function openTaskModal(id){
     renderTaskStepsForm([]);
     setTimeout(()=>{ initTaskQuill(); taskQuill.setText(''); mirrorTaskBrief('', false); }, 80);
   }
+  var projectSelect=document.getElementById('t-project');if(projectSelect)projectSelect.value=explicitProject;
+  onUnifiedTaskProjectChange(explicitProject);
   openM('modal-task');
 }
 function toggleTaskInvHint(){
@@ -3647,7 +3724,8 @@ function toggleTaskInvHint(){
   if(hint)hint.style.display=cb&&cb.checked?'block':'none';
 }
 function saveTask(){
-  const title=v('t-title').trim(),client=v('t-client');
+  const title=v('t-title').trim();
+  let client=v('t-client');
   if(!title)return alert('أدخل اسم المهمة');
   // تجاوز validation العميل لو المهمة شخصية
   var _isPersonalTask = (typeof _currentTaskKind !== 'undefined' && _currentTaskKind === 'personal');
@@ -3668,7 +3746,18 @@ function saveTask(){
     }
   }
   const eid=v('task-eid');
-  const selectedClient=(S.clients||[]).find(c=>c.name===client&&!c._isPersonal);
+  const projectId=(document.getElementById('t-project')?.value||'').trim();
+  const originalSource=document.getElementById('task-source')?.value||'task';
+  const linkedProject=projectId?(S.projects||[]).find(function(project){return String(project.id)===String(projectId);}):null;
+  let selectedClient=(S.clients||[]).find(c=>c.name===client&&!c._isPersonal);
+  if(linkedProject){
+    const linkedClientId=linkedProject.client_id||linkedProject.clientId||'';
+    const linkedClientName=linkedProject.client_name||linkedProject.clientName||linkedProject.client||'';
+    selectedClient=(S.clients||[]).find(c=>String(c.id)===String(linkedClientId))||
+      (S.clients||[]).find(c=>c.name===linkedClientName&&!c._isPersonal)||selectedClient;
+    if(selectedClient)client=selectedClient.name;
+    else if(linkedClientName)client=linkedClientName;
+  }
   const issueInv=document.getElementById('t-issue-inv')?.checked;
   const briefContent = readTaskBriefHTML();
   const jobType = v('t-jobtype')||'freelance';
@@ -3707,9 +3796,38 @@ function saveTask(){
     workerDepositPaid: isTeam && document.getElementById('t-worker-deposit-status')?.value==='yes',
     workerDepositAmount: isTeam ? (+(document.getElementById('t-worker-deposit-amount')?.value)||0) : 0,
     paymentCollected: false,
+    project_id:projectId||null,
+    projectId:projectId||null,
+    projectName:linkedProject?linkedProject.name||'':'',
   };
-  if(eid){const i=S.tasks.findIndex(t=>t.id==eid);if(i>-1){var oldTask=S.tasks[i];d.id=+eid;d.done=oldTask.done;d.doneAt=oldTask.doneAt||null;d.completedAt=oldTask.completedAt||null;d.createdAt=oldTask.createdAt||oldTask.created_at||null;d.comments=Array.isArray(oldTask.comments)?oldTask.comments:[];d.projectLink=oldTask.projectLink||'';d.driveLink=oldTask.driveLink||'';d.clientReceived=!!oldTask.clientReceived;d.archiveReminder24ShownAt=oldTask.archiveReminder24ShownAt||null;d.archiveReminder48ShownAt=oldTask.archiveReminder48ShownAt||null;d.archiveReminderShownAt=oldTask.archiveReminderShownAt||null;d.archiveReminderAgainAt=oldTask.archiveReminderAgainAt||null;d.paymentCollected=oldTask.paymentCollected||false;d.paymentStatus=oldTask.paymentStatus||d.paymentStatus;d.paid=oldTask.paid||false;d.pay=oldTask.pay||d.pay;d.paidAmount=oldTask.paidAmount||0;d.collectedAt=oldTask.collectedAt||null;d.collectedAtIso=oldTask.collectedAtIso||null;d.steps=mergeSteps(oldTask.steps||[],steps);S.tasks[i]=d;}}
-  else{ if(!checkLimit('max_tasks', S.tasks.length)) return; d.id=Date.now();S.tasks.push(d);}
+  var oldTask=null;
+  if(eid){
+    oldTask=originalSource==='project'
+      ?(S.project_tasks||[]).find(function(task){return String(task.id)===String(eid);})
+      :(S.tasks||[]).find(function(task){return String(task.id)===String(eid);});
+    if(!oldTask)oldTask=[...(S.tasks||[]),...(S.project_tasks||[])].find(function(task){return String(task.id)===String(eid);});
+  }
+  if(oldTask){
+    d.id=oldTask.id;d.done=oldTask.done||oldTask.status==='done';d.doneAt=oldTask.doneAt||null;d.completedAt=oldTask.completedAt||null;d.createdAt=oldTask.createdAt||oldTask.created_at||new Date().toISOString();d.comments=Array.isArray(oldTask.comments)?oldTask.comments:[];d.projectLink=oldTask.projectLink||'';d.driveLink=oldTask.driveLink||'';d.clientReceived=!!oldTask.clientReceived;d.archiveReminder24ShownAt=oldTask.archiveReminder24ShownAt||null;d.archiveReminder48ShownAt=oldTask.archiveReminder48ShownAt||null;d.archiveReminderShownAt=oldTask.archiveReminderShownAt||null;d.archiveReminderAgainAt=oldTask.archiveReminderAgainAt||null;d.paymentCollected=oldTask.paymentCollected||false;d.paymentStatus=oldTask.paymentStatus||d.paymentStatus;d.paid=oldTask.paid||false;d.pay=oldTask.pay||d.pay;d.paidAmount=oldTask.paidAmount||0;d.collectedAt=oldTask.collectedAt||null;d.collectedAtIso=oldTask.collectedAtIso||null;d.steps=mergeSteps(oldTask.steps||[],steps);
+  }else{
+    if(!checkLimit('max_tasks',(S.tasks||[]).length+(S.project_tasks||[]).length))return;
+    d.id=Date.now();d.createdAt=new Date().toISOString();d.comments=[];
+  }
+  d.updatedAt=new Date().toISOString();
+  if(projectId){
+    d.status=_projectTaskStatus(d.status);d.priority=_projectTaskPriority(d.priority);d.done=d.status==='done';
+    d.desc=String(briefContent||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();d.briefHtml=briefContent;
+    d.paymentStatus=d.pay==='full'?'collected':(d.pay==='deposit'?'deposit':'pending');d.paymentCollected=d.pay==='full';
+    d.assignee_name=d.workerMember||'';d.currency=d.currency_code||d.currency;d.client=linkedProject?.client_name||linkedProject?.clientName||linkedProject?.client||d.client;
+    S.tasks=(S.tasks||[]).filter(function(task){return String(task.id)!==String(d.id);});
+    var pi=(S.project_tasks||[]).findIndex(function(task){return String(task.id)===String(d.id);});
+    if(pi>=0)S.project_tasks[pi]=d;else{if(!S.project_tasks)S.project_tasks=[];S.project_tasks.push(d);}
+  }else{
+    d.status=_normalTaskStatus(d.status);d.priority=_normalTaskPriority(d.priority);d.project_id=null;d.projectId=null;d.projectName='';
+    S.project_tasks=(S.project_tasks||[]).filter(function(task){return String(task.id)!==String(d.id);});
+    var ti=(S.tasks||[]).findIndex(function(task){return String(task.id)===String(d.id);});
+    if(ti>=0)S.tasks[ti]=d;else S.tasks.push(d);
+  }
   lsSave(); cloudSave(S); closeM('modal-task');
   setTimeout(()=>{ renderAll(); buildDynamicStatusDropdowns(); }, 30);
   // Notify assigned team member when task is created/assigned
@@ -3752,6 +3870,7 @@ function saveTask(){
       desc: 'عربون: '+d.title,
       client: d.client||'',
       taskId: d.id,
+      projectId: projectId||null,
       paymentType: 'deposit',
       onSkip: ()=>{ if(issueInv) setTimeout(()=>openInvoiceFromTask(d),150); }
     }), 450);
@@ -3759,8 +3878,7 @@ function saveTask(){
   }
   // Also prompt on edit if deposit changed/added
   if(eid && payVal==='deposit' && depositVal>0){
-    var oldTask = S.tasks.find(x=>x.id===+eid);
-    var oldDepositRegistered = (S.transactions||[]).some(tx=>tx.linkedTaskId===+eid && tx.paymentType==='deposit');
+    var oldDepositRegistered = (S.transactions||[]).some(tx=>String(tx.linkedTaskId||tx.linkedProjTaskId||'')===String(eid) && tx.paymentType==='deposit');
     if(!oldDepositRegistered){
       var _mt1b=document.getElementById('modal-task'); if(_mt1b) _mt1b.style.display='none';
       setTimeout(()=>_showPaymentIncomePrompt({
@@ -3769,6 +3887,7 @@ function saveTask(){
         desc: 'عربون: '+d.title,
         client: d.client||'',
         taskId: d.id,
+        projectId: projectId||null,
         paymentType: 'deposit',
         onSkip: ()=>{}
       }), 450);
@@ -3783,6 +3902,7 @@ function saveTask(){
       desc: 'دفع كامل: '+d.title,
       client: d.client||'',
       taskId: d.id,
+      projectId: projectId||null,
       paymentType: 'full',
       onSkip: ()=>{ if(issueInv) setTimeout(()=>openInvoiceFromTask(d),150); }
     }), 450);
@@ -3824,6 +3944,8 @@ function _showPaymentIncomePrompt(opts){
       isoDate:now,
       paymentType:opts.paymentType||'full',
       linkedTaskId:opts.taskId||null,
+      linkedProjTaskId:opts.projectId?opts.taskId||null:null,
+      project_id:opts.projectId||'',
       currency:S.settings?.currency||'EGP'
     };
     if(!S.transactions) S.transactions=[];
@@ -7048,6 +7170,8 @@ function _renderFeaturesPanel(){
   },2000);
 })();
 
+
+
 /* Project finance audit v11: one ledger truth + project member profile modal */
 (function(){
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
@@ -7834,6 +7958,7 @@ function _renderFeaturesPanel(){
   try { onPtaskTeamChange = window.onPtaskTeamChange; } catch(e) {}
 
   window.openProjTaskModal = function(projId, taskId, defaultStatus){
+    return openTaskModal(taskId||'',{source:'project',projectId:projId||'',defaultStatus:defaultStatus||'new'});
     var proj = projectById(projId);
     var t = taskId ? (S.project_tasks || []).find(function(x){ return String(x.id) === String(taskId); }) : null;
     _ptaskSteps = t ? (t.steps || []).slice() : [];
@@ -8719,7 +8844,7 @@ function _renderFeaturesPanel(){
     var dateText = t.deadline ? niceDate(t.deadline) : 'بدون موعد';
     var valueText = t.value ? taskMoney(t) : '';
     var taskKey = t._v2Key || ('t_'+t.id);
-    var openCall = t._isProjectTask ? 'openProjectDetail(&quot;'+esc(t.project_id || '')+'&quot;)' : 'openTaskDetail('+t.id+')';
+    var openCall = t._isProjectTask ? 'openProjTaskDetail(&quot;'+esc(t.id)+'&quot;,&quot;'+esc(t.project_id||'')+'&quot;)' : 'openTaskDetail('+t.id+')';
     var editCall = t._isProjectTask ? 'openProjTaskModal(&quot;'+esc(t.project_id || '')+'&quot;,&quot;'+esc(t.id)+'&quot;)' : 'openTaskModal('+t.id+')';
     return '<div class="tasks-v2-card task-clickable" draggable="true" data-task-id="'+t.id+'" '+
       'data-task-key="'+taskKey+'" ondragstart="__tasksV2DragStart(event,&quot;'+taskKey+'&quot;)" ondragend="__tasksV2DragEnd(event)" '+
@@ -8751,7 +8876,7 @@ function _renderFeaturesPanel(){
       '<div class="tasks-v2-panel-head"><span><i class="fa-solid '+icon+'" style="color:'+tone+'"></i> '+title+'</span><span class="tasks-v2-count">'+items.length+'</span></div>'+
       '<div class="tasks-v2-agenda">'+
         (items.length ? items.slice(0,8).map(function(t){
-          return '<div class="tasks-v2-agenda-item" onclick="'+(t._isProjectTask?'openProjectDetail(&quot;'+esc(t.project_id||'')+'&quot;)':'openTaskDetail('+t.id+')')+'">'+
+          return '<div class="tasks-v2-agenda-item" onclick="'+(t._isProjectTask?'openProjTaskDetail(&quot;'+esc(t.id)+'&quot;,&quot;'+esc(t.project_id||'')+'&quot;)':'openTaskDetail('+t.id+')')+'">'+
             '<span class="tasks-v2-dot" style="background:'+getStatusColor(taskStatus(t))+'"></span>'+
             '<div style="min-width:0;flex:1"><b>'+esc(t.title)+'</b><small>'+(t._isProjectTask?'مشروع: '+esc(t.projectName):esc(t.client || 'بدون عميل'))+(t.deadline ? ' · '+niceDate(t.deadline) : '')+'</small></div>'+
           '</div>';
@@ -8767,7 +8892,7 @@ function _renderFeaturesPanel(){
       var st = taskStatus(t);
       var color = taskColor(t);
       var late = t.deadline && t.deadline < todayIso() && st !== 'done';
-      var openCall = t._isProjectTask ? 'openProjectDetail(&quot;'+esc(t.project_id || '')+'&quot;)' : 'openTaskDetail('+t.id+')';
+      var openCall = t._isProjectTask ? 'openProjTaskDetail(&quot;'+esc(t.id)+'&quot;,&quot;'+esc(t.project_id||'')+'&quot;)' : 'openTaskDetail('+t.id+')';
       var editCall = t._isProjectTask ? 'openProjTaskModal(&quot;'+esc(t.project_id || '')+'&quot;,&quot;'+esc(t.id)+'&quot;)' : 'openTaskModal('+t.id+')';
       var taskKey = t._v2Key || ('t_'+t.id);
       return '<div class="tasks-v2-list-row task-clickable" draggable="true" data-task-key="'+taskKey+'" data-task-id="'+t.id+'" data-status="'+st+'" ondragstart="__tasksV2DragStart(event,&quot;'+taskKey+'&quot;)" ondragend="__tasksV2DragEnd(event)" ondragover="__tasksV2DragOver(event)" ondragleave="__tasksV2DragLeave(event)" ondrop="__tasksV2Drop(event)" onclick="__tasksV2OpenTask(event,&quot;'+taskKey+'&quot;)">'+
@@ -8807,7 +8932,7 @@ function _renderFeaturesPanel(){
       var color = taskColor(t);
       var late = t.deadline && t.deadline < todayIso() && taskStatus(t) !== 'done';
       var key = t._v2Key || ('t_'+t.id);
-      var openCall = t._isProjectTask ? 'openProjectDetail(&quot;'+esc(t.project_id || '')+'&quot;)' : 'openTaskDetail('+t.id+')';
+      var openCall = t._isProjectTask ? 'openProjTaskDetail(&quot;'+esc(t.id)+'&quot;,&quot;'+esc(t.project_id||'')+'&quot;)' : 'openTaskDetail('+t.id+')';
       var editCall = t._isProjectTask ? 'openProjTaskModal(&quot;'+esc(t.project_id || '')+'&quot;,&quot;'+esc(t.id)+'&quot;)' : 'openTaskModal('+t.id+')';
       return '<div class="tasks-v2-group-row task-clickable" draggable="true" data-task-key="'+key+'" data-task-id="'+t.id+'" ondragstart="__tasksV2DragStart(event,&quot;'+key+'&quot;)" ondragend="__tasksV2DragEnd(event)" onclick="'+openCall+'">'+
         '<div class="tasks-v2-group-main"><i class="fa-solid fa-grip-vertical tasks-v2-drag-handle"></i><span class="tasks-v2-dot" style="background:'+color+'"></span><div><b>'+esc(t.title || 'مهمة بدون اسم')+'</b><small>'+(t._isProjectTask?'مشروع: '+esc(t.projectName):esc(t.client || 'بدون عميل'))+'</small></div></div>'+
@@ -8853,18 +8978,20 @@ function _renderFeaturesPanel(){
   }
   function taskStatusButtonsHtml(t){
     var current = taskStatus(t);
+    var ref=(t._isProjectTask?'p_':'t_')+String(t.id);
     return visibleStatuses().map(function(s){
       var active = s.id === current;
-      return '<button type="button" class="tasks-v2-status-option '+(active?'is-active':'')+'" style="--status-color:'+s.color+'" '+(active?'disabled':'onclick="changeTaskStatus('+t.id+',&quot;'+s.id+'&quot;);renderModernTaskDetail('+t.id+')"')+'><span></span>'+esc(s.label)+'</button>';
+      return '<button type="button" class="tasks-v2-status-option '+(active?'is-active':'')+'" style="--status-color:'+s.color+'" '+(active?'disabled':'onclick="changeUnifiedTaskStatus(&quot;'+esc(ref)+'&quot;,&quot;'+s.id+'&quot;);renderModernTaskDetail(&quot;'+esc(ref)+'&quot;)"')+'><span></span>'+esc(s.label)+'</button>';
     }).join('');
   }
   function commentsHtml(t){
     var comments = (t.comments || []).filter(function(c){ return c.stepIdx === null || c.stepIdx === undefined; });
+    var ref=(t._isProjectTask?'p_':'t_')+String(t.id);
     var initialNote = String(t.notes || '').trim();
     var initialHtml = initialNote ? '<div class="tasks-v2-detail-comment tasks-v2-initial-note"><div><b><i class="fa-solid fa-pen-to-square"></i> ملاحظة إنشاء المهمة</b><span></span></div><p>'+esc(initialNote)+'</p></div>' : '';
     if(!comments.length && !initialNote) return '<div class="tasks-v2-detail-empty">لا ملاحظات بعد</div>';
     return initialHtml + comments.map(function(c, idx){
-      return '<div class="tasks-v2-detail-comment"><div><b><i class="fa-solid fa-note-sticky"></i> '+esc(c.author || 'ملاحظة')+'</b><span>'+esc((c.at || '').slice(0,16).replace('T',' '))+'</span><button type="button" title="حذف الملاحظة" onclick="__tasksV2DeleteComment('+t.id+','+idx+')"><i class="fa-solid fa-trash"></i></button></div><p>'+esc(c.text || '')+'</p></div>';
+      return '<div class="tasks-v2-detail-comment"><div><b><i class="fa-solid fa-note-sticky"></i> '+esc(c.author || 'ملاحظة')+'</b><span>'+esc((c.at || '').slice(0,16).replace('T',' '))+'</span><button type="button" title="حذف الملاحظة" onclick="__tasksV2DeleteComment(&quot;'+esc(ref)+'&quot;,'+idx+')"><i class="fa-solid fa-trash"></i></button></div><p>'+esc(c.text || '')+'</p></div>';
     }).join('');
   }
   function taskNotes(t){
@@ -8894,19 +9021,24 @@ function _renderFeaturesPanel(){
   }
   function renderModernTaskDetail(id){
     var t = findTaskAny(id);
-    if(!t){
-      var pt = (S.project_tasks || []).find(function(x){ return String(x.id) === String(id).replace(/^p_/, ''); });
-      if(pt) return openProjTaskDetail(pt.id, pt.project_id);
-    }
     if(!t) return;
+    var taskRef=(t._isProjectTask?'p_':'t_')+String(t.id);
+    var editCall=t._isProjectTask
+      ?'openTaskModal(&quot;'+esc(String(t.id))+'&quot;,{source:&quot;project&quot;,projectId:&quot;'+esc(String(t.project_id||t.projectId||''))+'&quot;})'
+      :'openTaskModal(&quot;'+esc(String(t.id))+'&quot;,{source:&quot;task&quot;})';
     var editBtn = document.getElementById('td-edit-btn');
-    if(editBtn) editBtn.onclick = function(){ closeM('modal-task-detail'); openTaskModal(id); };
+    if(editBtn) editBtn.onclick = function(){ closeM('modal-task-detail'); openTaskModal(t.id,t._isProjectTask?{source:'project',projectId:t.project_id||t.projectId||''}:{source:'task'}); };
     var body = document.getElementById('td-body');
     if(!body) return;
     var st = taskStatus(t);
     var color = taskColor(t);
     var pct = taskProgress(t);
-    var relInv = (S.invoices || []).filter(function(inv){ return (inv.items || []).some(function(it){ return String(it._taskId) === String(id); }); });
+    var projectId=t.project_id||t.projectId||'';
+    var project=(S.projects||[]).find(function(item){return String(item.id)===String(projectId);});
+    var relInv = (S.invoices || []).filter(function(inv){
+      return String(inv.linkedProjTaskId||inv.project_task_id||'')===String(t.id)||
+        (inv.items || []).some(function(it){ return String(it._taskId||it.task_id||'')===String(t.id); });
+    });
     var link = esc(t.projectLink || t.driveLink || '');
     var client = findClientByName(t.client);
     var memberName = t.workerMember || t.assignee_name || '';
@@ -8920,6 +9052,7 @@ function _renderFeaturesPanel(){
           '<div class="tasks-v2-compact-tags">'+
             '<span class="tasks-v2-status-pill" style="border-color:'+color+';color:'+color+'"><i class="fa-solid fa-circle"></i> '+esc(getStatusLabel(st))+'</span>'+
             (t.client?'<span><i class="fa-solid fa-user"></i> '+esc(t.client)+'</span>':'')+
+            (t._isProjectTask?'<span><i class="fa-solid fa-diagram-project"></i> '+esc((project&&project.name)||t.projectName||'مشروع')+'</span>':'')+
             (memberName?'<span><i class="fa-solid fa-user-gear"></i> '+esc(memberName)+'</span>':'')+
             '<span>'+priorityLabel(t.priority)+'</span>'+
             (t.taskType?'<span>'+esc(t.taskType)+'</span>':'')+
@@ -8927,39 +9060,39 @@ function _renderFeaturesPanel(){
           '<h2>'+esc(t.title || 'مهمة بدون اسم')+'</h2>'+
         '</div>'+
         '<div class="tasks-v2-compact-tools">'+
-          '<button type="button" class="tasks-v2-detail-icon" onclick="__tasksV2OpenNotes('+t.id+')" title="الملاحظات"><i class="fa-solid fa-note-sticky"></i>'+(notes.length?'<b>'+notes.length+'</b>':'')+'</button>'+
-          '<label class="tasks-v2-color-dot" title="لون المهمة"><input type="color" value="'+esc(color)+'" oninput="__tasksV2SetTaskColor('+t.id+',this.value)"><span style="background:'+color+'"></span></label>'+
-          '<button type="button" class="tasks-v2-detail-icon" onclick="closeM(&quot;modal-task-detail&quot;);openTaskModal('+t.id+')" title="تعديل"><i class="fa-solid fa-pen"></i></button>'+
+          '<button type="button" class="tasks-v2-detail-icon" onclick="__tasksV2OpenNotes(&quot;'+esc(taskRef)+'&quot;)" title="الملاحظات"><i class="fa-solid fa-note-sticky"></i>'+(notes.length?'<b>'+notes.length+'</b>':'')+'</button>'+
+          '<label class="tasks-v2-color-dot" title="لون المهمة"><input type="color" value="'+esc(color)+'" oninput="__tasksV2SetTaskColor(&quot;'+esc(taskRef)+'&quot;,this.value)"><span style="background:'+color+'"></span></label>'+
+          '<button type="button" class="tasks-v2-detail-icon" onclick="closeM(&quot;modal-task-detail&quot;);'+editCall+'" title="تعديل"><i class="fa-solid fa-pen"></i></button>'+
         '</div>'+
       '</div>'+
       '<div class="tasks-v2-detail-progress tasks-v2-detail-progress-compact"><span style="width:'+pct+'%;background:'+color+'"></span></div>'+
       '<div class="tasks-v2-info-strip">'+
-        '<button onclick="openTaskModal('+t.id+')" title="تعديل قيمة المهمة"><small><i class="fa-solid fa-coins"></i> القيمة</small><b style="color:var(--accent3)">'+(t.value?money(t.value):'لا توجد')+'</b></button>'+
-        '<button onclick="openTaskModal('+t.id+')" title="تعديل حالة الدفع"><small><i class="fa-solid fa-wallet"></i> الدفع</small><b>'+payText(t)+'</b></button>'+
-        '<button onclick="openTaskModal('+t.id+')" title="وقت إنشاء المهمة"><small><i class="fa-regular fa-clock"></i> الإنشاء</small><b>'+createdLabel(t)+'</b></button>'+
-        '<button onclick="openTaskModal('+t.id+')" title="تعديل تاريخ التسليم"><small><i class="fa-solid fa-calendar-check"></i> التسليم</small><b class="'+(hasLateDeadline?'is-late':'')+'">'+(t.deadline?niceDate(t.deadline):'غير محدد')+'</b></button>'+
+        '<button onclick="'+editCall+'" title="تعديل قيمة المهمة"><small><i class="fa-solid fa-coins"></i> القيمة</small><b style="color:var(--accent3)">'+(t.value?money(t.value):'لا توجد')+'</b></button>'+
+        '<button onclick="'+editCall+'" title="تعديل حالة الدفع"><small><i class="fa-solid fa-wallet"></i> الدفع</small><b>'+payText(t)+'</b></button>'+
+        '<button onclick="'+editCall+'" title="وقت إنشاء المهمة"><small><i class="fa-regular fa-clock"></i> الإنشاء</small><b>'+createdLabel(t)+'</b></button>'+
+        '<button onclick="'+editCall+'" title="تعديل تاريخ التسليم"><small><i class="fa-solid fa-calendar-check"></i> التسليم</small><b class="'+(hasLateDeadline?'is-late':'')+'">'+(t.deadline?niceDate(t.deadline):'غير محدد')+'</b></button>'+
       '</div>'+
       '<section class="tasks-v2-status-row-flow"><div><b>حالة المهمة</b><span>غيّر الحالة بضغطة واحدة</span></div><div>'+taskStatusButtonsHtml(t)+'</div></section>'+
       '<div class="tasks-v2-flow-grid">'+
-        '<section class="tasks-v2-detail-section tasks-v2-flow-panel tasks-v2-flow-main"><h3><span><i class="fa-solid fa-file-lines"></i> التفاصيل</span><button type="button" class="tasks-v2-brief-expand" onclick="__tasksV2ToggleBriefExpand(this)" title="تكبير تفاصيل المشروع"><i class="fa-solid fa-expand"></i><b>تكبير</b></button></h3><div class="td-brief">'+(t.brief || t.desc || '<span style="color:var(--text3)">لا توجد تفاصيل مكتوبة لهذه المهمة</span>')+'</div></section>'+
+        '<section class="tasks-v2-detail-section tasks-v2-flow-panel tasks-v2-flow-main"><h3><span><i class="fa-solid fa-file-lines"></i> التفاصيل</span><button type="button" class="tasks-v2-brief-expand" onclick="__tasksV2ToggleBriefExpand(this)" title="تكبير تفاصيل المشروع"><i class="fa-solid fa-expand"></i><b>تكبير</b></button></h3><div class="td-brief">'+(t.brief || t.briefHtml || t.desc || '<span style="color:var(--text3)">لا توجد تفاصيل مكتوبة لهذه المهمة</span>')+'</div></section>'+
         '<section class="tasks-v2-detail-section tasks-v2-flow-panel">'+
           '<h3><i class="fa-solid fa-address-card"></i> الأطراف</h3>'+
           '<div class="tasks-v2-flow-people">'+(client?'<span><i class="fa-solid fa-user"></i><b>العميل</b><em>'+esc(client.name || t.client)+'</em><small>'+(client.phone?esc(client.phone):'لا يوجد رقم')+'</small></span>':(t.client?'<span><i class="fa-solid fa-user"></i><b>العميل</b><em>'+esc(t.client)+'</em><small>غير محفوظ</small></span>':''))+(memberName?'<span><i class="fa-solid fa-user-gear"></i><b>المنفذ</b><em>'+esc(memberName)+'</em><small>'+(member&&member.phone?esc(member.phone):'لا يوجد رقم')+'</small></span>':'')+'</div>'+
-          '<div class="tasks-v2-compact-send"><button class="btn btn-ghost btn-sm" onclick="__tasksV2SendTaskWhatsApp('+t.id+',&quot;client&quot;)"><i class="fa-brands fa-whatsapp"></i> إرسال للعميل</button>'+(memberName?'<button class="btn btn-ghost btn-sm" onclick="__tasksV2SendTaskWhatsApp('+t.id+',&quot;member&quot;)"><i class="fa-brands fa-whatsapp"></i> إرسال للمنفذ</button>':'')+'</div>'+
+          '<div class="tasks-v2-compact-send"><button class="btn btn-ghost btn-sm" onclick="__tasksV2SendTaskWhatsApp(&quot;'+esc(taskRef)+'&quot;,&quot;client&quot;)"><i class="fa-brands fa-whatsapp"></i> إرسال للعميل</button>'+(memberName?'<button class="btn btn-ghost btn-sm" onclick="__tasksV2SendTaskWhatsApp(&quot;'+esc(taskRef)+'&quot;,&quot;member&quot;)"><i class="fa-brands fa-whatsapp"></i> إرسال للمنفذ</button>':'')+'</div>'+
         '</section>'+
       '</div>'+
       '<div class="tasks-v2-flow-bottom">'+
         ((t.steps || []).length ? '<details class="tasks-v2-inline-details"><summary><i class="fa-solid fa-list-check"></i> خطوات المهمة <b>'+(t.steps || []).length+'</b></summary>'+renderStepsInDetail(t)+'</details>' : '')+
         (t.notes ? '<details class="tasks-v2-inline-details"><summary><i class="fa-solid fa-lock"></i> ملاحظات داخلية</summary><p class="tasks-v2-detail-note">'+esc(t.notes).replace(/\\n/g,'<br>')+'</p></details>' : '')+
-        '<section class="tasks-v2-detail-section tasks-v2-flow-link"><h3><i class="fa-solid fa-link"></i> رابط التسليم</h3><div class="tasks-v2-detail-link"><input id="td-proj-link-input" type="url" value="'+link+'" placeholder="https://drive.google.com/... أو أي رابط للتسليم"><button class="btn btn-ghost btn-sm" onclick="_saveTaskDeliveryLink('+t.id+')"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>'+(link?'<a class="btn btn-ghost btn-sm" target="_blank" href="'+link+'"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>':'')+'</div></section>'+
-        (notes.length ? '<button type="button" class="tasks-v2-note-summary" onclick="__tasksV2OpenNotes('+t.id+')"><i class="fa-solid fa-comments"></i><span>'+notes.length+' ملاحظات مضافة</span><i class="fa-solid fa-chevron-left"></i></button>' : '<button type="button" class="tasks-v2-note-summary is-empty" onclick="__tasksV2OpenNotes('+t.id+')"><i class="fa-solid fa-note-sticky"></i><span>إضافة ملاحظة</span><i class="fa-solid fa-plus"></i></button>')+
+        '<section class="tasks-v2-detail-section tasks-v2-flow-link"><h3><i class="fa-solid fa-link"></i> رابط التسليم</h3><div class="tasks-v2-detail-link"><input id="td-proj-link-input" type="url" value="'+link+'" placeholder="https://drive.google.com/... أو أي رابط للتسليم"><button class="btn btn-ghost btn-sm" onclick="saveUnifiedTaskDeliveryLink(&quot;'+esc(taskRef)+'&quot;)"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>'+(link?'<a class="btn btn-ghost btn-sm" target="_blank" href="'+link+'"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>':'')+'</div></section>'+
+        (notes.length ? '<button type="button" class="tasks-v2-note-summary" onclick="__tasksV2OpenNotes(&quot;'+esc(taskRef)+'&quot;)"><i class="fa-solid fa-comments"></i><span>'+notes.length+' ملاحظات مضافة</span><i class="fa-solid fa-chevron-left"></i></button>' : '<button type="button" class="tasks-v2-note-summary is-empty" onclick="__tasksV2OpenNotes(&quot;'+esc(taskRef)+'&quot;)"><i class="fa-solid fa-note-sticky"></i><span>إضافة ملاحظة</span><i class="fa-solid fa-plus"></i></button>')+
         (relInv.length ? '<details class="tasks-v2-inline-details"><summary><i class="fa-solid fa-file-invoice"></i> فواتير مرتبطة <b>'+relInv.length+'</b></summary>'+relInv.map(function(inv){ return '<div class="tasks-v2-detail-invoice"><b>'+esc(inv.num)+'</b><span>'+esc(inv.date || '')+'</span><strong>'+money(_invoiceDisplayTotal(inv))+'</strong></div>'; }).join('')+'</details>' : '')+
       '</div>'+
       '</div>'+
       '<div class="tasks-v2-detail-actions tasks-v2-compact-actions tasks-v2-flow-actions">'+
-        (st !== 'done' ? '<button class="btn btn-success" onclick="closeM(&quot;modal-task-detail&quot;);completeTask('+t.id+')"><i class="fa-solid fa-check"></i> إكمال</button>' : '<button class="btn btn-ghost" onclick="closeM(&quot;modal-task-detail&quot;);completeTask('+t.id+')">إلغاء الإكمال</button>')+
-        '<button class="btn btn-ghost" onclick="closeM(&quot;modal-task-detail&quot;);__tasksV2InvoiceFromTask('+t.id+')"><i class="fa-solid fa-file-invoice"></i> فاتورة</button>'+
-        '<button class="btn btn-danger btn-sm" onclick="closeM(&quot;modal-task-detail&quot;);delTask('+t.id+')"><i class="fa-solid fa-trash"></i> حذف</button>'+
+        (st !== 'done' ? '<button class="btn btn-success" onclick="closeM(&quot;modal-task-detail&quot;);completeUnifiedTask(&quot;'+esc(taskRef)+'&quot;)"><i class="fa-solid fa-check"></i> إكمال</button>' : '<button class="btn btn-ghost" onclick="closeM(&quot;modal-task-detail&quot;);completeUnifiedTask(&quot;'+esc(taskRef)+'&quot;)">إلغاء الإكمال</button>')+
+        '<button class="btn btn-ghost" onclick="closeM(&quot;modal-task-detail&quot;);__tasksV2InvoiceFromTask(&quot;'+esc(taskRef)+'&quot;)"><i class="fa-solid fa-file-invoice"></i> فاتورة</button>'+
+        '<button class="btn btn-danger btn-sm" onclick="closeM(&quot;modal-task-detail&quot;);deleteUnifiedTask(&quot;'+esc(taskRef)+'&quot;)"><i class="fa-solid fa-trash"></i> حذف</button>'+
       '</div>'+
     '</div>';
     openM('modal-task-detail');
@@ -8977,7 +9110,7 @@ function _renderFeaturesPanel(){
     }
   };
   function renderTaskNotesModal(id){
-    var t = (S.tasks || []).find(function(x){ return Number(x.id) === Number(id) || String(x.id) === String(id); });
+    var t=findTaskAny(id);
     if(!t) return;
     var ov = document.getElementById('modal-task-notes');
     if(!ov){
@@ -8992,13 +9125,13 @@ function _renderFeaturesPanel(){
       '<div class="tasks-v2-notes-body">'+
         '<div class="tasks-v2-notes-title"><b>'+esc(t.title || 'مهمة بدون اسم')+'</b><small>'+esc(t.client || '')+'</small></div>'+
         '<div class="tasks-v2-notes-list">'+(notes.length ? commentsHtml(t) : '<div class="tasks-v2-detail-empty">لا توجد ملاحظات بعد</div>')+'</div>'+
-        '<div class="tasks-v2-notes-form"><textarea id="task-notes-input" rows="3" placeholder="اكتب ملاحظة قصيرة..."></textarea><button class="btn btn-success" onclick="__tasksV2AddNote('+t.id+')"><i class="fa-solid fa-paper-plane"></i> إضافة</button></div>'+
+        '<div class="tasks-v2-notes-form"><textarea id="task-notes-input" rows="3" placeholder="اكتب ملاحظة قصيرة..."></textarea><button class="btn btn-success" onclick="__tasksV2AddNote(&quot;'+esc((t._isProjectTask?'p_':'t_')+String(t.id))+'&quot;)"><i class="fa-solid fa-paper-plane"></i> إضافة</button></div>'+
       '</div>'+
     '</div>';
     openM('modal-task-notes');
   }
   window.__tasksV2InvoiceFromTask = function(id){
-    var t = (S.tasks || []).find(function(x){ return Number(x.id) === Number(id) || String(x.id) === String(id); });
+    var t=findTaskAny(id);
     if(t && typeof openInvoiceFromTask === 'function') openInvoiceFromTask(t);
   };
   window.__tasksV2SubmitComment = function(id){
@@ -9012,14 +9145,15 @@ function _renderFeaturesPanel(){
     var input = document.getElementById('task-notes-input');
     var text = input ? input.value.trim() : '';
     if(!text) return;
-    addTaskComment(id, text, null);
+    var task=findTaskAny(id);if(!task)return;
+    if(!task.comments)task.comments=[];task.comments.push({id:Date.now(),text:text,author:(S.settings&&S.settings.name)||'أنا',stepIdx:null,at:new Date().toISOString()});lsSave();cloudSave(S);
     if(input) input.value = '';
     renderModernTaskDetail(id);
     renderTaskNotesModal(id);
     if(typeof showMiniNotif === 'function') showMiniNotif('تمت إضافة الملاحظة');
   };
   window.__tasksV2DeleteComment = function(id, commentIdx){
-    var t = (S.tasks || []).find(function(x){ return String(x.id) === String(id); });
+    var t=findTaskAny(id);
     if(!t || !Array.isArray(t.comments)) return;
     var visible = t.comments.map(function(c, i){ return {c:c, i:i}; }).filter(function(x){ return x.c.stepIdx === null || x.c.stepIdx === undefined; });
     var real = visible[commentIdx] && visible[commentIdx].i;
@@ -9042,7 +9176,7 @@ function _renderFeaturesPanel(){
     if(hero) hero.style.borderRightColor = color;
   };
   window.__tasksV2SendTaskWhatsApp = function(id, target){
-    var t = (S.tasks || []).find(function(x){ return String(x.id) === String(id); });
+    var t=findTaskAny(id);
     if(!t) return;
     var memberName = t.workerMember || t.assignee_name || '';
     var member = target === 'member' ? findTeamMemberByName(memberName) : null;
@@ -9056,6 +9190,7 @@ function _renderFeaturesPanel(){
   if(typeof openTaskDetail === 'function'){
     openTaskDetail = function(id){ renderModernTaskDetail(id); };
   }
+  window.openUnifiedTaskDetail=renderModernTaskDetail;
   function ensureShell(page){
     var shell = document.getElementById('tasks-v2-shell');
     if(!shell){
@@ -9170,11 +9305,7 @@ function _renderFeaturesPanel(){
   window.__tasksV2OpenTask = function(ev, id){
     if(justDragged){ ev && ev.stopPropagation(); return; }
     var key = String(id || '');
-    if(key.indexOf('p_') === 0){
-      var pt = (S.project_tasks || []).find(function(t){ return String(t.id) === key.slice(2); });
-      if(pt) return openProjTaskDetail(pt.id, pt.project_id);
-    }
-    openTaskDetail(key.replace(/^t_/, ''));
+    renderModernTaskDetail(key);
   };
   document.addEventListener('click', function(ev){
     var btn = ev.target.closest && ev.target.closest('[data-tasks-v2-action]');
@@ -31321,6 +31452,13 @@ function _openTaskNotePopup(taskId, projId){
   setTimeout(function(){var ta=document.getElementById('_task-note-ta');if(ta)ta.focus();},100);
 }
 
+// Project cards now open the same task detail used by the main Tasks page.
+window.openProjTaskDetail=function(taskId,projectId){
+  if(typeof window.openUnifiedTaskDetail==='function')return window.openUnifiedTaskDetail('p_'+String(taskId));
+  return openTaskDetail('p_'+String(taskId));
+};
+try{openProjTaskDetail=window.openProjTaskDetail;}catch(error){}
+
 function _saveTaskNote(taskId, projId){
   var t=(S.project_tasks||[]).find(function(x){return String(x.id)===String(taskId);});
   if(!t) return;
@@ -35343,6 +35481,12 @@ window.OrdoCurrencyPatch = {
   }
 
   window.openProjTaskModal = function(projId, taskId, defaultStatus){
+    return openTaskModal(taskId||'',{
+      source:'project',
+      projectId:projId||'',
+      defaultStatus:defaultStatus||'new'
+    });
+    /* Legacy project-task form kept below for old saved data migrations only. */
     var proj = projectById(projId);
     var t = taskId ? (S.project_tasks||[]).find(function(x){ return String(x.id) === String(taskId); }) : null;
     _ptaskSteps = t ? (t.steps||[]).slice() : [];

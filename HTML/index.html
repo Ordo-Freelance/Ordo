@@ -4780,7 +4780,7 @@ try {
 <div class="modal-overlay" id="modal-task">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title" id="task-modal-ttl"><i class="fa-solid fa-star-of-life"></i> مهمة / مشروع جديد</div>
+      <div class="modal-title" id="task-modal-ttl"><i class="fa-solid fa-star-of-life"></i> مهمة جديدة</div>
       <div style="display:flex;gap:6px;align-items:center">
         <button class="expand-btn" id="_tf-gear" title="تخصيص حقول الفورم" onclick="event.stopPropagation();_openTFSettings()" style="color:var(--text3)"><i class="fa-solid fa-sliders"></i></button>
         <button class="expand-btn" title="توسيع" onclick="toggleModalExpand('modal-task')"><i class="fa-solid fa-expand"></i></button>
@@ -4788,6 +4788,7 @@ try {
       </div>
     </div>
     <input type="hidden" id="task-eid">
+    <input type="hidden" id="task-source" value="task">
     <!-- شريط نوع المهمة: لعميل / شخصية -->
     <div id="_tt-kind-bar" style="display:flex;gap:6px;margin-bottom:14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:5px">
       <button id="_tt-client-btn" onclick="_setTaskKind('client')" style="flex:1;padding:8px 0;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font);background:var(--accent);color:#fff;transition:.2s;display:flex;align-items:center;justify-content:center;gap:6px"><i class="fa-solid fa-user-tie"></i> مهمة لعميل</button>
@@ -4808,6 +4809,14 @@ try {
       <input type="checkbox" id="t-client-visibility" checked>
       إظهار هذه المهمة في بوابة العميل
     </label>
+
+    <div class="form-group" id="t-project-row">
+      <label class="form-label"><i class="fa-solid fa-diagram-project" style="color:var(--accent)"></i> ربط المهمة بمشروع <span style="font-size:10px;color:var(--text3)">— اختياري</span></label>
+      <select class="form-select" id="t-project" onchange="onUnifiedTaskProjectChange(this.value)">
+        <option value="">— مهمة مستقلة بدون مشروع —</option>
+      </select>
+      <div id="t-project-hint" style="font-size:10px;color:var(--text3);margin-top:5px;line-height:1.6">عند اختيار مشروع ستظهر المهمة داخله وتُحتسب ضمن حالته وماليته، مع الاحتفاظ بكل خصائص المهمة العادية.</div>
+    </div>
 
     <!-- ── نوع العمل + نوع المهمة ── -->
     <div class="form-row">
@@ -5643,7 +5652,7 @@ try {
 
 <script src="../JavaScript/page-loader.js?v=calendar-polish-37"></script>
 <script src="../Assets/vendor/html2canvas/html2canvas.min.js?v=1.4.1"></script>
-<script src="../JavaScript/app.js?v=brief-task-preview-39"></script>
+<script src="../JavaScript/app.js?v=unified-tasks-40"></script>
 <script src="../JavaScript/payment_reconciliation.js?v=4"></script>
 <script src="../JavaScript/project-finance-integration.js?v=2"></script>
 <script>document.body.classList.remove('auth-booting');</script>

@@ -8,10 +8,19 @@ const styles=fs.readFileSync(new URL('../CSS/styles.css',import.meta.url),'utf8'
 const errorPage=fs.readFileSync(new URL('../HTML/error.html',import.meta.url),'utf8');
 const vercel=fs.readFileSync(new URL('../vercel.json',import.meta.url),'utf8');
 
-test('project tasks open their own task detail instead of redirecting to the project',()=>{
-  assert.match(app,/if\(pt\) return openProjTaskDetail\(pt\.id, pt\.project_id\)/);
-  assert.match(app,/project-task-detail-v15/);
-  assert.match(app,/رابط تسليم المهمة/);
+test('project tasks open the same unified task detail used by regular tasks',()=>{
+  assert.match(app,/window\.openProjTaskDetail=function\(taskId,projectId\)/);
+  assert.match(app,/window\.openUnifiedTaskDetail\('p_'\+String\(taskId\)\)/);
+  assert.match(app,/window\.openProjTaskModal = function\(projId, taskId, defaultStatus\)[\s\S]*?return openTaskModal\(taskId\|\|''/);
+  assert.match(app,/saveUnifiedTaskDeliveryLink/);
+});
+
+test('the regular task editor can link, move and account for project tasks',()=>{
+  assert.match(app,/fillUnifiedTaskProjectSelect\(explicitProject\)/);
+  assert.match(app,/const projectId=\(document\.getElementById\('t-project'\)/);
+  assert.match(app,/S\.tasks=\(S\.tasks\|\|\[\]\)\.filter/);
+  assert.match(app,/S\.project_tasks=\(S\.project_tasks\|\|\[\]\)\.filter/);
+  assert.match(app,/linkedProjTaskId:opts\.projectId\?opts\.taskId\|\|null:null/);
 });
 
 test('client project tasks expose task delivery, receipt and rating',()=>{

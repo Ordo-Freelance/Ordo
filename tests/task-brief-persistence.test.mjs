@@ -15,7 +15,7 @@ test('task brief editor mirrors text and rich media before task persistence',()=
 });
 
 test('opening an existing or new task resets the brief mirror deterministically',()=>{
-  assert.match(app,/mirrorTaskBrief\(t\.brief\|\|'', false\)/);
+  assert.match(app,/mirrorTaskBrief\(t\.brief\|\|t\.briefHtml\|\|'', false\)/);
   assert.match(app,/mirrorTaskBrief\('', false\)/);
 });
 
