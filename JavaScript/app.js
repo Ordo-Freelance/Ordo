@@ -36906,12 +36906,14 @@ window.OrdoCurrencyPatch = {
   };
   var previousOpenTaskModal = window.openTaskModal || (typeof openTaskModal === 'function' ? openTaskModal : null);
   if(previousOpenTaskModal){
-    window.openTaskModal = function(id){
+    window.openTaskModal = function(id, context){
       if(id !== undefined && id !== null && id !== ''){
         var task = (S.tasks || []).find(function(t){ return asStr(t.id) === asStr(id); });
         if(task) id = task.id;
       }
-      return previousOpenTaskModal.apply(this, arguments.length ? [id] : arguments);
+      var args = Array.prototype.slice.call(arguments);
+      if(args.length) args[0] = id;
+      return previousOpenTaskModal.apply(this, args);
     };
     try{ openTaskModal = window.openTaskModal; }catch(e){}
   }

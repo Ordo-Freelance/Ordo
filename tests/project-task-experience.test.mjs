@@ -23,6 +23,7 @@ test('the regular task editor can link, move and account for project tasks',()=>
   assert.match(app,/S\.tasks=\(S\.tasks\|\|\[\]\)\.filter/);
   assert.match(app,/S\.project_tasks=\(S\.project_tasks\|\|\[\]\)\.filter/);
   assert.match(app,/linkedProjTaskId:opts\.projectId\?opts\.taskId\|\|null:null/);
+  assert.match(app,/window\.openTaskModal = function\(id, context\)[\s\S]*?var args = Array\.prototype\.slice\.call\(arguments\)[\s\S]*?previousOpenTaskModal\.apply\(this, args\)/);
   assert.match(index,/if\(typeof window\.saveTask === 'function'\)[\s\S]*?window\.saveTask\(\);[\s\S]*?return false;/);
   assert.match(patch,/var beforeProjectIds = \(S\(\)\.project_tasks \|\| \[\]\)/);
   assert.match(patch,/if\(!saved && !projectId\) saved = fallbackSaveTask/);
