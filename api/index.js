@@ -57,6 +57,14 @@ function now() {
   return new Date().toISOString();
 }
 
+function normalizedTimestamp(value) {
+  if (!value) return '';
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
+  const raw = String(value);
+  const parsed = Date.parse(raw);
+  return Number.isNaN(parsed) ? raw : new Date(parsed).toISOString();
+}
+
 function uuid() {
   return crypto.randomUUID();
 }
@@ -1901,8 +1909,8 @@ export default async function handler(req, res) {
           const risk = studioOverwriteRisk(current?.data, row.data, explicitlyAllowed);
           if (risk) return fail(res, risk.message, 409, risk.code);
           if (current && !user?.is_admin) {
-            const expected = String(input.expected_updated_at || '');
-            if (!expected || expected !== String(current.updated_at || '')) {
+            const expected = normalizedTimestamp(input.expected_updated_at);
+            if (!expected || expected !== normalizedTimestamp(current.updated_at)) {
               return fail(res, 'توجد نسخة أحدث من البيانات. تم منع الكتابة فوقها.', 409, 'stale_snapshot_blocked');
             }
           }
@@ -1957,4 +1965,4 @@ export default async function handler(req, res) {
   }
 }
 
-export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo, portalChatAccess, portalChatAttachment, portalChatPublicRow, financeFeatureAccess, parseBehanceMetadata, validatedBehanceUrl, behanceProjectId, behanceCoverFromEmbed, studioCoreRecordCount, shouldBlockEmptyStudioOverwrite, studioOverwriteRisk };
+export { publicSnapshot, deleteOwnReview, readBody, sessionCookieName, setCookie, clearCookie, currentUser, storageInfo, portalChatAccess, portalChatAttachment, portalChatPublicRow, financeFeatureAccess, parseBehanceMetadata, validatedBehanceUrl, behanceProjectId, behanceCoverFromEmbed, studioCoreRecordCount, shouldBlockEmptyStudioOverwrite, studioOverwriteRisk, normalizedTimestamp };

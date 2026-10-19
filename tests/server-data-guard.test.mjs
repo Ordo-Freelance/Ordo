@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {studioCoreRecordCount, shouldBlockEmptyStudioOverwrite, studioOverwriteRisk} from '../api/index.js';
+import {studioCoreRecordCount, shouldBlockEmptyStudioOverwrite, studioOverwriteRisk, normalizedTimestamp} from '../api/index.js';
 
 test('server counts all important business collections', () => {
   assert.equal(studioCoreRecordCount({tasks:[{}],services:[{}],archivedTasks:[{}]}), 3);
@@ -35,4 +35,10 @@ test('server protects identity assets and allows an explicitly confirmed change'
   const after={settings:{logo:''},tasks:[{id:1}]};
   assert.equal(studioOverwriteRisk(before,after).code,'identity_data_drop_blocked');
   assert.equal(studioOverwriteRisk(before,after,true),null);
+});
+
+test('server compares database Date values with browser ISO timestamps consistently', () => {
+  const iso = '2026-10-19T19:37:44.236Z';
+  assert.equal(normalizedTimestamp(new Date(iso)), iso);
+  assert.equal(normalizedTimestamp(iso), iso);
 });
